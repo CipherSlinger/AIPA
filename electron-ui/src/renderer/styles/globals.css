@@ -15,7 +15,7 @@
   --text-muted: rgba(255,255,255,0.45);
   --text-bright: #ffffff;
   --accent: #6366f1;
-  --accent-hover: #1f8ad2;
+  --accent-hover: #4f52d6;
   --border: rgba(255,255,255,0.07);
   --success: #4ade80;
   --warning: #fbbf24;
@@ -290,7 +290,7 @@ html, body, #root {
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--bg-input);
+  background: var(--border-strong);
 }
 ::-webkit-scrollbar-corner {
   background: transparent;

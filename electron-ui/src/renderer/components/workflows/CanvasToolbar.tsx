@@ -7,7 +7,7 @@
 // Direction 13: search box
 // Iteration 530: B4 — toolbar UI refinement (search float, shadows, transitions, separators, icons)
 
-import React, { useRef, useState, useEffect } from 'react'
+import React, { useRef } from 'react'
 import { Maximize2, Minimize2, ChevronsDownUp, ChevronsUpDown, Map, Download, ArrowDownUp, ArrowLeftRight, Upload, Terminal, Search, X, Square, Play, HelpCircle, BarChart2 } from 'lucide-react'
 import { useT } from '../../i18n'
 
@@ -51,6 +51,12 @@ function hoverIn(e: React.MouseEvent<HTMLButtonElement>) {
 function hoverOut(e: React.MouseEvent<HTMLButtonElement>) {
   e.currentTarget.style.background = 'var(--border)'
   e.currentTarget.style.color = 'var(--text-muted)'
+}
+
+function activeToggleStyle(active: boolean): React.CSSProperties {
+  return active
+    ? { background: 'var(--accent-bg)', color: 'var(--accent-muted)', boxShadow: 'inset 0 0 0 1px var(--accent-border)' }
+    : { background: 'transparent', color: 'var(--text-muted)', boxShadow: 'none' }
 }
 
 interface CanvasToolbarProps {
@@ -126,17 +132,7 @@ export default function CanvasToolbar({
   showTimeline,
 }: CanvasToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [showShortcuts, setShowShortcuts] = useState(false)
   const t = useT()
-
-  useEffect(() => {
-    if (!showShortcuts) return
-    function handleOutsideClick(e: MouseEvent) {
-      setShowShortcuts(false)
-    }
-    document.addEventListener('mousedown', handleOutsideClick)
-    return () => document.removeEventListener('mousedown', handleOutsideClick)
-  }, [showShortcuts])
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -236,12 +232,12 @@ export default function CanvasToolbar({
               aria-label={t('canvas.abortLabel')}
               title={t('canvas.abortTitle')}
               style={{
-                background: 'rgba(239,68,68,0.15)',
-                border: '1px solid rgba(239,68,68,0.4)',
+                background: 'rgba(248,113,113,0.1)',
+                border: '1px solid rgba(248,113,113,0.35)',
                 borderRadius: 6,
                 padding: '3px 9px',
                 cursor: 'pointer',
-                color: '#f87171',
+                color: 'var(--error)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 4,
@@ -250,12 +246,12 @@ export default function CanvasToolbar({
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(239,68,68,0.28)'
-                e.currentTarget.style.borderColor = 'rgba(239,68,68,0.6)'
+                e.currentTarget.style.background = 'rgba(248,113,113,0.2)'
+                e.currentTarget.style.borderColor = 'rgba(248,113,113,0.5)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(239,68,68,0.15)'
-                e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)'
+                e.currentTarget.style.background = 'rgba(248,113,113,0.1)'
+                e.currentTarget.style.borderColor = 'rgba(248,113,113,0.35)'
               }}
             >
               <Square size={10} />
@@ -274,12 +270,12 @@ export default function CanvasToolbar({
               aria-label={t('canvas.runLabel')}
               title={t('canvas.runTitle')}
               style={{
-                background: 'rgba(99,102,241,0.15)',
-                border: '1px solid rgba(99,102,241,0.4)',
+                background: 'var(--accent-bg)',
+                border: '1px solid var(--accent-border)',
                 borderRadius: 6,
                 padding: '3px 9px',
                 cursor: 'pointer',
-                color: '#818cf8',
+                color: 'var(--accent-muted)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 4,
@@ -288,12 +284,12 @@ export default function CanvasToolbar({
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(99,102,241,0.28)'
-                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'
+                e.currentTarget.style.background = 'rgba(99,102,241,0.22)'
+                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.55)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(99,102,241,0.15)'
-                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'
+                e.currentTarget.style.background = 'var(--accent-bg)'
+                e.currentTarget.style.borderColor = 'var(--accent-border)'
               }}
             >
               <Play size={10} />
@@ -324,12 +320,12 @@ export default function CanvasToolbar({
               aria-label={t('canvas.rerunLabel')}
               title={t('canvas.rerunTitle')}
               style={{
-                background: 'rgba(34,197,94,0.15)',
-                border: '1px solid rgba(34,197,94,0.4)',
+                background: 'rgba(74,222,128,0.12)',
+                border: '1px solid rgba(74,222,128,0.35)',
                 borderRadius: 6,
                 padding: '3px 9px',
                 cursor: 'pointer',
-                color: '#22c55e',
+                color: 'var(--success)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 4,
@@ -338,12 +334,12 @@ export default function CanvasToolbar({
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(34,197,94,0.28)'
-                e.currentTarget.style.borderColor = 'rgba(34,197,94,0.6)'
+                e.currentTarget.style.background = 'rgba(74,222,128,0.2)'
+                e.currentTarget.style.borderColor = 'rgba(74,222,128,0.5)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(34,197,94,0.15)'
-                e.currentTarget.style.borderColor = 'rgba(34,197,94,0.4)'
+                e.currentTarget.style.background = 'rgba(74,222,128,0.12)'
+                e.currentTarget.style.borderColor = 'rgba(74,222,128,0.35)'
               }}
             >
               <Play size={10} />
@@ -457,9 +453,9 @@ export default function CanvasToolbar({
           onClick={(e) => { e.stopPropagation(); onToggleMinimap() }}
           aria-label={t('canvas.minimapLabel')}
           title={t('canvas.minimapTitle')}
-          style={{ ...toolbarBtnStyle, background: showMinimap ? 'rgba(99,102,241,0.15)' : 'transparent', color: showMinimap ? '#818cf8' : 'var(--text-muted)', boxShadow: showMinimap ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none' }}
+          style={{ ...toolbarBtnStyle, ...activeToggleStyle(showMinimap) }}
           onMouseEnter={hoverIn}
-          onMouseLeave={e => { e.currentTarget.style.background = showMinimap ? 'rgba(99,102,241,0.15)' : 'transparent'; e.currentTarget.style.color = showMinimap ? '#818cf8' : 'var(--text-muted)'; e.currentTarget.style.boxShadow = showMinimap ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none' }}
+          onMouseLeave={e => { const s = activeToggleStyle(showMinimap); e.currentTarget.style.background = s.background as string; e.currentTarget.style.color = s.color as string; e.currentTarget.style.boxShadow = s.boxShadow as string }}
         >
           <Map size={13} />
         </button>
@@ -471,9 +467,9 @@ export default function CanvasToolbar({
               onClick={(e) => { e.stopPropagation(); onToggleLayout() }}
               aria-label={t('canvas.layoutToggleLabel')}
               title={t('canvas.layoutToggleTitle')}
-              style={{ ...toolbarBtnStyle, background: layoutActive ? 'rgba(99,102,241,0.15)' : 'transparent', color: layoutActive ? '#818cf8' : 'var(--text-muted)', boxShadow: layoutActive ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none' }}
+              style={{ ...toolbarBtnStyle, ...activeToggleStyle(layoutActive) }}
               onMouseEnter={hoverIn}
-              onMouseLeave={e => { e.currentTarget.style.background = layoutActive ? 'rgba(99,102,241,0.15)' : 'transparent'; e.currentTarget.style.color = layoutActive ? '#818cf8' : 'var(--text-muted)'; e.currentTarget.style.boxShadow = layoutActive ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none' }}
+              onMouseLeave={e => { const s = activeToggleStyle(layoutActive); e.currentTarget.style.background = s.background as string; e.currentTarget.style.color = s.color as string; e.currentTarget.style.boxShadow = s.boxShadow as string }}
             >
               {layoutDirection === 'vertical' ? <ArrowDownUp size={13} /> : <ArrowLeftRight size={13} />}
             </button>
@@ -546,9 +542,9 @@ export default function CanvasToolbar({
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'
-              e.currentTarget.style.color = '#f87171'
-              e.currentTarget.style.background = 'rgba(239,68,68,0.06)'
+              e.currentTarget.style.borderColor = 'rgba(248,113,113,0.3)'
+              e.currentTarget.style.color = 'var(--error)'
+              e.currentTarget.style.background = 'rgba(248,113,113,0.06)'
             }}
             onMouseLeave={e => {
               e.currentTarget.style.borderColor = 'var(--border)'
@@ -582,88 +578,33 @@ export default function CanvasToolbar({
               onClick={(e) => { e.stopPropagation(); onToggleFullscreen() }}
               aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
               title={isFullscreen ? 'Exit fullscreen (F11)' : 'Fullscreen canvas (F11)'}
-              style={{ ...toolbarBtnStyle, background: isFullscreen ? 'rgba(99,102,241,0.15)' : 'transparent', color: isFullscreen ? '#818cf8' : 'var(--text-muted)', boxShadow: isFullscreen ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none' }}
+              style={{ ...toolbarBtnStyle, ...activeToggleStyle(isFullscreen) }}
               onMouseEnter={hoverIn}
-              onMouseLeave={e => { e.currentTarget.style.background = isFullscreen ? 'rgba(99,102,241,0.15)' : 'transparent'; e.currentTarget.style.color = isFullscreen ? '#818cf8' : 'var(--text-muted)' }}
+              onMouseLeave={e => { const s = activeToggleStyle(isFullscreen); e.currentTarget.style.background = s.background as string; e.currentTarget.style.color = s.color as string; e.currentTarget.style.boxShadow = s.boxShadow as string }}
             >
               {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
             </button>
           </>
         )}
-        <div style={{ position: 'relative' }} onMouseDown={e => e.stopPropagation()}>
+        {onShowShortcuts && (
           <button
-            onClick={() => onShowShortcuts ? onShowShortcuts() : setShowShortcuts(prev => !prev)}
+            onClick={(e) => { e.stopPropagation(); onShowShortcuts() }}
             title="Keyboard shortcuts (?)"
-            style={{
-              background: showShortcuts ? 'rgba(99,102,241,0.15)' : 'transparent',
-              border: showShortcuts ? '1px solid rgba(99,102,241,0.4)' : '1px solid var(--border)',
-              borderRadius: 6,
-              color: showShortcuts ? '#818cf8' : 'var(--text-muted)',
-              cursor: 'pointer',
-              padding: '4px 7px',
-              display: 'flex',
-              alignItems: 'center',
-              fontSize: 11,
-              gap: 4,
-              transition: 'all 0.15s ease',
-            }}
+            style={{ ...toolbarBtnStyle, ...activeToggleStyle(false) }}
+            onMouseEnter={hoverIn}
+            onMouseLeave={e => { const s = activeToggleStyle(false); e.currentTarget.style.background = s.background as string; e.currentTarget.style.color = s.color as string; e.currentTarget.style.boxShadow = s.boxShadow as string }}
           >
             <HelpCircle size={12} />
           </button>
-          {showShortcuts && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '100%',
-                right: 0,
-                marginTop: 6,
-                zIndex: 200,
-                background: 'var(--popup-bg)',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-                border: '1px solid var(--border)',
-                borderRadius: 12,
-                padding: '12px 16px',
-                minWidth: 220,
-                boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
-                animation: 'slideUp 0.15s ease',
-              }}
-              onMouseDown={e => e.stopPropagation()}
-            >
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10, letterSpacing: '0.04em' }}>
-                KEYBOARD SHORTCUTS
-              </div>
-              {[
-                { key: 'R', desc: 'Run workflow' },
-                { key: 'Esc', desc: 'Stop / deselect' },
-                { key: 'Del', desc: 'Delete selected node' },
-                { key: 'F', desc: 'Fit to view' },
-                { key: 'Ctrl+F', desc: 'Find step' },
-                { key: 'Space', desc: 'Pan canvas' },
-                { key: '+/-', desc: 'Zoom in/out' },
-                { key: 'Ctrl+Z', desc: 'Undo (coming soon)' },
-              ].map(({ key, desc }) => (
-                <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{desc}</span>
-                  <kbd style={{ fontSize: 10, fontFamily: 'monospace', background: 'var(--border)', borderRadius: 4, padding: '1px 5px', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>{key}</kbd>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        )}
       </div>
       {onToggleTimeline && (
         <button
           onClick={(e) => { e.stopPropagation(); onToggleTimeline() }}
           title="Execution timeline (T)"
-          style={{
-            ...toolbarBtnStyle,
-            background: showTimeline ? 'rgba(99,102,241,0.15)' : 'transparent',
-            color: showTimeline ? '#818cf8' : 'var(--text-muted)',
-            boxShadow: showTimeline ? 'inset 0 0 0 1px rgba(99,102,241,0.4)' : 'none',
-          }}
+          style={{ ...toolbarBtnStyle, ...activeToggleStyle(showTimeline ?? false) }}
           onMouseEnter={hoverIn}
-          onMouseLeave={e => { e.currentTarget.style.background = showTimeline ? 'rgba(99,102,241,0.15)' : 'transparent'; e.currentTarget.style.color = showTimeline ? '#818cf8' : 'var(--text-muted)' }}
+          onMouseLeave={e => { const s = activeToggleStyle(showTimeline ?? false); e.currentTarget.style.background = s.background as string; e.currentTarget.style.color = s.color as string; e.currentTarget.style.boxShadow = s.boxShadow as string }}
         >
           <BarChart2 size={13} />
         </button>

@@ -136,6 +136,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   // Enhancement 2: workflow completion summary toast
   const [completionSummary, setCompletionSummary] = useState<{ stepCount: number; visible: boolean } | null>(null)
   const prevRunningRef = useRef(false)
+  const completionToastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>()
 
   // Track when execution started for ETA
   const executionStartRef = useRef<number | null>(null)
@@ -180,8 +181,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     const wasRunning = prevRunningRef.current
     const allDone = !execution.isRunning && execution.completedCount === execution.totalSteps && execution.totalSteps > 0
     if (wasRunning && allDone && workflow) {
+      clearTimeout(completionToastTimerRef.current)
       setCompletionSummary({ stepCount: workflow.steps.length, visible: true })
-      setTimeout(() => setCompletionSummary(null), 4000)
+      completionToastTimerRef.current = setTimeout(() => setCompletionSummary(null), 4000)
     }
     prevRunningRef.current = execution.isRunning
   }, [execution.isRunning, execution.completedCount, execution.totalSteps, workflow])
@@ -523,6 +525,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
 
   // P2.2: Ctrl+C copy selected node(s) / Ctrl+V paste
   const [clipboard, setClipboard] = useState<WorkflowStep[] | null>(null)
+  const copyToastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>()
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -540,8 +543,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         if (nodesToCopy && nodesToCopy.length > 0) {
           e.preventDefault()
           setClipboard(nodesToCopy)
+          clearTimeout(copyToastTimerRef.current)
           setCopyToast(true)
-          setTimeout(() => setCopyToast(false), 2000)
+          copyToastTimerRef.current = setTimeout(() => setCopyToast(false), 2000)
           return
         }
         // Fallback: no node selected, copy whole workflow as before
@@ -549,8 +553,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           e.preventDefault()
           const json = JSON.stringify(workflow, null, 2)
           navigator.clipboard.writeText(json).then(() => {
+            clearTimeout(copyToastTimerRef.current)
             setCopyToast(true)
-            setTimeout(() => setCopyToast(false), 2000)
+            copyToastTimerRef.current = setTimeout(() => setCopyToast(false), 2000)
           }).catch(() => {})
         }
       }
@@ -794,7 +799,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   }, [workflow, containerRef, layout.panY, layout.zoom, layout.nodePositions, handleInsertStepAt])
 
   // Direction 13: compute effective highlight IDs (search takes priority over external prop)
-  const effectiveHighlightStepIds: Set<string> | null | undefined = (() => {
+  const effectiveHighlightStepIds = useMemo<Set<string> | null | undefined>(() => {
     if (searchQuery && workflow) {
       const q = searchQuery.toLowerCase()
       const matched = workflow.steps
@@ -803,7 +808,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
       return new Set(matched)
     }
     return highlightStepIds
-  })()
+  }, [searchQuery, workflow, highlightStepIds])
 
   const searchMatchCount = searchQuery && effectiveHighlightStepIds
     ? effectiveHighlightStepIds.size
@@ -814,9 +819,47 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     if (!effectiveHighlightStepIds || effectiveHighlightStepIds.size === 0 || !workflow) return
     const firstMatchId = workflow.steps.find(s => effectiveHighlightStepIds!.has(s.id))?.id
     if (firstMatchId) layout.autoPanToNode(firstMatchId)
-  }, [effectiveHighlightStepIds])
+  }, [effectiveHighlightStepIds]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // P2.4: snap alignment guides during node drag (moved before early return to satisfy Hooks rules)
+  // P2.4: snap alignment guides during node drag — must be before early return (Rules of Hooks)
+  const snapGuides = useMemo(() => {
+    if (!layout.draggingNode || !workflow) return []
+    const dragged = layout.nodePositions[layout.draggingNode]
+    if (!dragged) return []
+    const guides: Array<{ x1: number; y1: number; x2: number; y2: number; axis: 'x' | 'y'; pos: number }> = []
+    const THRESHOLD = 5
+    workflow.steps.forEach(step => {
+      if (step.id === layout.draggingNode) return
+      const other = layout.nodePositions[step.id]
+      if (!other) return
+      const edges: [number, number][] = [
+        [dragged.x, other.x],
+        [dragged.x, other.x + other.width],
+        [dragged.x + dragged.width, other.x],
+        [dragged.x + dragged.width, other.x + other.width],
+      ]
+      for (const [a, b] of edges) {
+        if (Math.abs(a - b) <= THRESHOLD) {
+          guides.push({ x1: a, y1: Math.min(dragged.y, other.y) - 10, x2: a, y2: Math.max(dragged.y + dragged.height, other.y + other.height) + 10, axis: 'x', pos: a })
+          break
+        }
+      }
+      const vEdges: [number, number][] = [
+        [dragged.y, other.y],
+        [dragged.y, other.y + other.height],
+        [dragged.y + dragged.height, other.y],
+        [dragged.y + dragged.height, other.y + other.height],
+      ]
+      for (const [a, b] of vEdges) {
+        if (Math.abs(a - b) <= THRESHOLD) {
+          guides.push({ x1: Math.min(dragged.x, other.x) - 10, y1: a, x2: Math.max(dragged.x + dragged.width, other.x + other.width) + 10, y2: a, axis: 'y', pos: a })
+          break
+        }
+      }
+    })
+    return guides
+  }, [layout.draggingNode, layout.nodePositions, workflow])
+
   // --- Empty state ---
   if (!workflow) {
     return (
@@ -831,14 +874,14 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         gap: 10,
       }}>
         <div style={{
-          background: 'rgba(99,102,241,0.08)',
+          background: 'var(--accent-bg)',
           borderRadius: 20,
           padding: 20,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-          <WorkflowIcon size={24} style={{ opacity: 0.45, color: 'rgba(99,102,241,0.8)' }} />
+          <WorkflowIcon size={24} style={{ opacity: 0.45, color: 'var(--accent)' }} />
         </div>
         <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{t('workflow.canvasEmpty')}</span>
         <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('workflow.selectOrCreate')}</span>
@@ -867,7 +910,6 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   const viewRight = viewLeft + layout.containerSize.w / layout.zoom
   const viewBottom = viewTop + layout.containerSize.h / layout.zoom
 
-  const showRerunOrError = (execution.completedCount === execution.totalSteps && execution.totalSteps > 0 && !execution.isRunning) || (execution.hasError && !execution.isRunning)
   const totalSteps = workflow?.steps.length ?? 0
 
   const totalDurationMs = workflow
@@ -904,47 +946,6 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
       return pos ? { y: pos.y + pos.height + 4, isVertical: false } : null
     }
   })()
-
-  // P2.4: snap alignment guides during node drag
-  const snapGuides = useMemo(() => {
-    if (!layout.draggingNode || !workflow) return []
-    const dragged = layout.nodePositions[layout.draggingNode]
-    if (!dragged) return []
-    const guides: Array<{ x1: number; y1: number; x2: number; y2: number; axis: 'x' | 'y'; pos: number }> = []
-    const THRESHOLD = 5
-    workflow.steps.forEach(step => {
-      if (step.id === layout.draggingNode) return
-      const other = layout.nodePositions[step.id]
-      if (!other) return
-      // Check left/right edge alignment
-      const edges: [number, number][] = [
-        [dragged.x, other.x],               // left-left
-        [dragged.x, other.x + other.width], // left-right
-        [dragged.x + dragged.width, other.x], // right-left
-        [dragged.x + dragged.width, other.x + other.width], // right-right
-      ]
-      for (const [a, b] of edges) {
-        if (Math.abs(a - b) <= THRESHOLD) {
-          guides.push({ x1: a, y1: Math.min(dragged.y, other.y) - 10, x2: a, y2: Math.max(dragged.y + dragged.height, other.y + other.height) + 10, axis: 'x', pos: a })
-          break
-        }
-      }
-      // Check top/bottom edge alignment
-      const vEdges: [number, number][] = [
-        [dragged.y, other.y],                   // top-top
-        [dragged.y, other.y + other.height],    // top-bottom
-        [dragged.y + dragged.height, other.y],   // bottom-top
-        [dragged.y + dragged.height, other.y + other.height], // bottom-bottom
-      ]
-      for (const [a, b] of vEdges) {
-        if (Math.abs(a - b) <= THRESHOLD) {
-          guides.push({ x1: Math.min(dragged.x, other.x) - 10, y1: a, x2: Math.max(dragged.x + dragged.width, other.x + other.width) + 10, y2: a, axis: 'y', pos: a })
-          break
-        }
-      }
-    })
-    return guides
-  }, [layout.draggingNode, layout.nodePositions, workflow])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden' }}>
@@ -1010,7 +1011,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 style={{
                   fontSize: 14, fontWeight: 700,
                   background: 'var(--bg-hover)',
-                  border: '1px solid #6366f1',
+                  border: '1px solid var(--accent)',
                   borderRadius: 4,
                   color: 'var(--text-primary)',
                   padding: '2px 6px',
@@ -1093,13 +1094,13 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             <span style={{
               fontSize: 9,
               fontWeight: 600,
-              color: selectedStepStatus === 'completed' ? '#22c55e'
-                : selectedStepStatus === 'running' ? '#6366f1'
-                : selectedStepStatus === 'error' ? '#f87171'
+              color: selectedStepStatus === 'completed' ? 'var(--success)'
+                : selectedStepStatus === 'running' ? 'var(--accent)'
+                : selectedStepStatus === 'error' ? 'var(--error)'
                 : 'var(--text-muted)',
-              background: selectedStepStatus === 'completed' ? 'rgba(34,197,94,0.1)'
-                : selectedStepStatus === 'running' ? 'rgba(99,102,241,0.12)'
-                : selectedStepStatus === 'error' ? 'rgba(239,68,68,0.1)'
+              background: selectedStepStatus === 'completed' ? 'rgba(74,222,128,0.1)'
+                : selectedStepStatus === 'running' ? 'var(--accent-bg)'
+                : selectedStepStatus === 'error' ? 'rgba(248,113,113,0.1)'
                 : 'var(--bg-hover)',
               borderRadius: 8,
               padding: '1px 6px',
@@ -1158,7 +1159,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             }}
           />
           {findQuery && (
-            <span style={{ fontSize: 10, color: findMatches.length > 0 ? '#22c55e' : '#f87171', flexShrink: 0, fontWeight: 600 }}>
+            <span style={{ fontSize: 10, color: findMatches.length > 0 ? 'var(--success)' : 'var(--error)', flexShrink: 0, fontWeight: 600 }}>
               {findMatches.length}
             </span>
           )}
@@ -1183,7 +1184,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         }}>
           <div style={{
             height: '100%',
-            background: 'linear-gradient(90deg, #6366f1, #818cf8, #6366f1)',
+            background: 'linear-gradient(90deg, var(--accent), var(--accent-muted), var(--accent))',
             backgroundSize: '200% 100%',
             animation: 'canvas-progress-shimmer 1.8s ease-in-out infinite',
             width: execution.activeStepIndex >= 0 && totalSteps > 0
@@ -1208,8 +1209,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         <div style={{
           position: 'absolute', top: 32, left: '50%', transform: 'translateX(-50%)',
           zIndex: 50, pointerEvents: 'none',
-          background: 'rgba(99,102,241,0.08)',
-          border: '1px solid rgba(99,102,241,0.3)',
+          background: 'var(--accent-bg)',
+          border: '1px solid var(--accent-border)',
           borderRadius: 10, padding: '5px 16px',
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
@@ -1228,8 +1229,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               marginLeft: 10,
               fontSize: 10,
               fontWeight: 700,
-              color: '#6366f1',
-              background: 'rgba(99,102,241,0.12)',
+              color: 'var(--accent)',
+              background: 'var(--accent-bg)',
               borderRadius: 20,
               padding: '1px 8px',
               flexShrink: 0,
@@ -1243,8 +1244,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           {execution.isRunning && streamingWps !== null && streamingWps > 0 && (
             <span style={{
               fontSize: 10,
-              color: 'rgba(99,102,241,0.8)',
-              background: 'rgba(99,102,241,0.08)',
+              color: 'var(--accent-muted)',
+              background: 'var(--accent-bg)',
               borderRadius: 8,
               padding: '1px 7px',
               fontWeight: 500,
@@ -1279,7 +1280,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         }}>
           <div style={{ fontSize: 18 }}>✓</div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--success)' }}>
               {t('workflow.canvasComplete')}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>
@@ -1347,7 +1348,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         >
           {/* Dashed circle with + */}
           <div style={{
-            background: 'rgba(99,102,241,0.08)',
+            background: 'var(--accent-bg)',
             borderRadius: 20,
             padding: 20,
             display: 'flex',
@@ -1360,17 +1361,16 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 cy={30}
                 r={26}
                 fill="none"
-                stroke="rgba(99,102,241,0.4)"
+                style={{ stroke: 'var(--accent-border)', animation: 'canvas-empty-dash-spin 20s linear infinite', transformOrigin: '30px 30px' }}
                 strokeWidth={1.5}
                 strokeDasharray="6 4"
-                style={{ animation: 'canvas-empty-dash-spin 20s linear infinite', transformOrigin: '30px 30px' }}
               />
               <text
                 x={30}
                 y={39}
                 textAnchor="middle"
                 fontSize={22}
-                fill="rgba(99,102,241,0.6)"
+                fill="var(--accent)"
                 fontWeight={300}
               >+</text>
             </svg>
@@ -1385,7 +1385,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           {onWorkflowUpdate && (
             <div style={{ display: 'flex', gap: 8, marginTop: 4, pointerEvents: 'all' }}>
               {[
-                { label: 'Prompt', color: '#818cf8', bg: 'rgba(99,102,241,0.12)', border: 'rgba(99,102,241,0.35)', nodeType: 'prompt' as const },
+                { label: 'Prompt', color: '#818cf8', bg: 'var(--accent-bg)', border: 'var(--accent-border)', nodeType: 'prompt' as const },
                 { label: 'Condition', color: '#fbbf24', bg: 'rgba(251,191,36,0.10)', border: 'rgba(251,191,36,0.35)', nodeType: 'condition' as const },
                 { label: 'Parallel', color: '#a78bfa', bg: 'rgba(167,139,250,0.10)', border: 'rgba(167,139,250,0.35)', nodeType: 'parallel' as const },
               ].map(({ label, color, bg, border, nodeType }) => (
@@ -1478,10 +1478,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           left: 158,  // 搜索框宽度约 150px + 8px offset
           zIndex: 11,
           fontSize: 10,
-          color: searchMatchCount > 0 ? '#6366f1' : 'var(--text-muted)',
-          background: searchMatchCount > 0
-            ? 'rgba(99,102,241,0.12)'
-            : 'var(--border)',
+          color: searchMatchCount > 0 ? 'var(--accent)' : 'var(--text-muted)',
+          background: searchMatchCount > 0 ? 'var(--accent-bg)' : 'var(--border)',
           borderRadius: 20,
           padding: '2px 8px',
           pointerEvents: 'none',
@@ -1534,10 +1532,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           position: 'absolute', top: execution.isRunning || execution.completedCount > 0 ? 60 : 40,
           left: '50%', transform: 'translateX(-50%)',
           zIndex: 20, pointerEvents: 'none',
-          background: 'rgba(99,102,241,0.12)',
-          border: '1px solid rgba(99,102,241,0.3)',
+          background: 'var(--accent-bg)',
+          border: '1px solid var(--accent-border)',
           borderRadius: 4,
-          padding: '2px 10px', fontSize: 9, color: '#6366f1',
+          padding: '2px 10px', fontSize: 9, color: 'var(--accent)',
         }}>
           {layout.selectedNodes.size} {t('workflow.nodesSelected')}
         </div>
@@ -1561,10 +1559,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             <line
               key={`snap-${i}`}
               x1={g.x1} y1={g.y1} x2={g.x2} y2={g.y2}
-              stroke="rgba(251,191,36,0.7)"
               strokeWidth={1}
               strokeDasharray="4 3"
-              style={{ pointerEvents: 'none' }}
+              style={{ stroke: 'var(--warning)', strokeOpacity: 0.7, pointerEvents: 'none' }}
             />
           ))}
           {workflow.steps.map((step, idx) => {
@@ -1652,8 +1649,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                   position: 'absolute',
                   inset: 0,
                   borderRadius: 12,
-                  background: 'rgba(99,102,241,0.06)',
-                  border: '1.5px dashed rgba(99,102,241,0.3)',
+                  background: 'var(--accent-bg)',
+                  border: '1.5px dashed var(--accent-border)',
                 }} />
                 {label && (
                   <span style={{
@@ -1803,10 +1800,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               ...(reorderInsertLine.isVertical
                 ? { top: -6, height: NODE_MIN_HEIGHT + 12, left: (reorderInsertLine as any).x, width: 2 }
                 : { left: -6, width: NODE_WIDTH + 12, top: (reorderInsertLine as any).y, height: 2 }),
-              background: '#6366f1',
+              background: 'var(--accent)',
               borderRadius: 1,
               pointerEvents: 'none',
-              boxShadow: '0 0 6px rgba(99,102,241,0.6)',
+              boxShadow: '0 0 6px var(--accent-muted)',
               zIndex: 10,
             }}
           />
@@ -1845,8 +1842,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 width: 28,
                 height: 28,
                 borderRadius: '50%',
-                background: isHovered ? '#6366f1' : 'rgba(99,102,241,0.12)',
-                border: `2px solid ${isHovered ? '#6366f1' : 'rgba(99,102,241,0.3)'}`,
+                background: isHovered ? 'var(--accent)' : 'var(--accent-bg)',
+                border: `2px solid ${isHovered ? 'var(--accent)' : 'var(--accent-border)'}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1854,11 +1851,11 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 zIndex: 5,
                 transition: 'all 0.15s ease',
                 opacity: isHovered ? 1 : 0.4,
-                color: isHovered ? 'var(--text-primary)' : '#6366f1',
+                color: isHovered ? 'var(--text-primary)' : 'var(--accent)',
                 fontSize: 18,
                 fontWeight: 300,
                 lineHeight: 1,
-                boxShadow: isHovered ? '0 2px 12px rgba(99,102,241,0.4)' : 'none',
+                boxShadow: isHovered ? '0 2px 12px var(--accent-border)' : 'none',
                 userSelect: 'none',
               }}
               title={t('workflow.addStep')}
@@ -1884,8 +1881,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               top: screenY,
               width: screenW,
               height: screenH,
-              border: '1px solid rgba(99,102,241,0.6)',
-              background: 'rgba(99,102,241,0.08)',
+              border: '1px solid var(--accent-muted)',
+              background: 'var(--accent-bg)',
               pointerEvents: 'none',
               zIndex: 15,
               borderRadius: 2,
@@ -2016,7 +2013,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 50,
-          background: 'rgba(34,197,94,0.9)',
+          background: 'var(--success)',
           color: 'var(--text-primary)',
           fontSize: 11,
           fontWeight: 600,
@@ -2025,7 +2022,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           pointerEvents: 'none',
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
-          boxShadow: '0 4px 16px rgba(34,197,94,0.3)',
+          boxShadow: '0 4px 16px rgba(74,222,128,0.3)',
           animation: 'canvas-toast-in 0.15s ease-out',
         }}>
           Workflow copied to clipboard ✓
@@ -2043,7 +2040,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             background: 'var(--glass-bg-low)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: `1px solid ${execution.hasError && !execution.isRunning ? 'rgba(239,68,68,0.3)' : 'var(--border)'}`,
+            border: `1px solid ${execution.hasError && !execution.isRunning ? 'rgba(248,113,113,0.3)' : 'var(--border)'}`,
             borderRadius: 12,
             minWidth: 180,
             maxWidth: 240,
@@ -2068,9 +2065,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           >
             <div style={{
               width: 7, height: 7, borderRadius: '50%',
-              background: execution.hasError && !execution.isRunning ? '#f87171' : '#22c55e',
+              background: execution.hasError && !execution.isRunning ? 'var(--error)' : 'var(--success)',
               flexShrink: 0,
-              boxShadow: `0 0 6px ${execution.hasError && !execution.isRunning ? 'rgba(239,68,68,0.5)' : 'rgba(34,197,94,0.5)'}`,
+              boxShadow: `0 0 6px ${execution.hasError && !execution.isRunning ? 'rgba(248,113,113,0.5)' : 'rgba(74,222,128,0.5)'}`,
             }} />
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>
               {execution.hasError && !execution.isRunning ? 'Finished with errors' : 'Completed'}
@@ -2122,9 +2119,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           {workflow.steps.map((step, idx) => {
             const st = execution.stepStatuses[step.id] ?? 'idle'
             const dur = execution.stepDurations[step.id]
-            const bg = st === 'completed' ? '#22c55e'
-              : st === 'running' ? '#6366f1'
-              : st === 'error' ? '#f87171'
+            const bg = st === 'completed' ? 'var(--success)'
+              : st === 'running' ? 'var(--accent)'
+              : st === 'error' ? 'var(--error)'
               : st === 'pending' ? 'var(--bg-active)'
               : 'var(--bg-hover)'
             const title = `Step ${idx + 1}: ${step.title}${dur ? ` (${dur < 1000 ? dur + 'ms' : (dur/1000).toFixed(1) + 's'})` : ''}`

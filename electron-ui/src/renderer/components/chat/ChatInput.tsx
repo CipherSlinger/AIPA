@@ -398,7 +398,7 @@ export default function ChatInput({
           style={{
             flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', gap: 0,
             background: 'var(--bg-hover)', borderRadius: 8, padding: '0',
-            border: isPlanMode ? '1px solid #a78bfa' : '1px solid var(--border)', transition: 'border-color 0.15s ease',
+            border: isPlanMode ? '1px solid var(--color-violet)' : '1px solid var(--border)', transition: 'border-color 0.15s ease',
           }}
         >
           {/* Plan Mode banner (Iteration 520; Iteration 540: approve/reject) */}
@@ -427,7 +427,7 @@ export default function ChatInput({
           <ChatInputPasteChips paste={{ ...paste, onWrapAsBlock: input.length > 500 ? () => { setInput(prev => '```\n' + prev + '\n```'); paste.setPastedLongText(false) } : undefined }} inputLength={input.length} />
           {/* Keep-going banner (Iteration 490) */}
           {isKeepGoing && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 6px', marginBottom: 4, fontSize: 11, color: '#818cf8', background: 'rgba(99,102,241,0.08)', borderRadius: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 6px', marginBottom: 4, fontSize: 11, color: 'var(--accent-muted)', background: 'var(--accent-bg)', borderRadius: 6 }}>
               <span style={{ flex: 1, opacity: 0.85 }}>{t('input.keepGoingHint')}</span>
               <button
                 onClick={() => { handleSend() }}
@@ -463,10 +463,10 @@ export default function ChatInput({
               <div style={{
                 position: 'absolute', inset: 0, zIndex: 10,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'rgba(99,102,241,0.06)', border: '2px dashed rgba(99,102,241,0.5)',
+                background: 'var(--accent-bg)', border: '2px dashed var(--accent-border)',
                 borderRadius: 8, pointerEvents: 'none',
               }}>
-                <span style={{ fontSize: 12, color: '#818cf8', fontWeight: 500 }}>
+                <span style={{ fontSize: 12, color: 'var(--accent-muted)', fontWeight: 500 }}>
                   {t('input.dropTextHere')}
                 </span>
               </div>
@@ -504,8 +504,8 @@ export default function ChatInput({
                   setTimeout(() => textareaRef.current?.focus(), 0)
                 }
               }}
-              onFocus={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = isPlanMode ? '#a78bfa' : 'rgba(99,102,241,0.45)' }}
-              onBlur={() => { setTextDragOver(false); if (inputWrapRef.current) inputWrapRef.current.style.borderColor = isPlanMode ? '#a78bfa' : 'var(--border)' }}
+              onFocus={() => { if (inputWrapRef.current) inputWrapRef.current.style.borderColor = isPlanMode ? 'var(--color-violet)' : 'var(--accent-border)' }}
+              onBlur={() => { setTextDragOver(false); if (inputWrapRef.current) inputWrapRef.current.style.borderColor = isPlanMode ? 'var(--color-violet)' : 'var(--border)' }}
               placeholder={t(PLACEHOLDER_KEYS[placeholderIdx])}
               aria-label={t('chat.placeholder')}
               rows={1}

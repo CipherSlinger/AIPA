@@ -58,32 +58,32 @@ function edgeStyleFromSourceStatus(sourceStatus: string | undefined): SourceEdge
   switch (sourceStatus) {
     case 'running':
       return {
-        color: '#6366f1',
+        color: 'var(--accent)',
         strokeDasharray: '8 4',
         strokeWidth: 2,
         opacity: 0.9,
         animated: true,
         animationName: 'canvas-edge-dash-flow',
-        filter: 'drop-shadow(0 0 6px rgba(99,102,241,0.6))',
+        filter: 'drop-shadow(0 0 6px var(--accent-muted))',
       }
     case 'completed':
     case 'success':
     case 'done':
       return {
-        color: '#22c55e',
+        color: 'var(--success)',
         strokeWidth: 2,
         opacity: 0.8,
         animated: false,
-        filter: 'drop-shadow(0 0 4px rgba(34,197,94,0.4))',
+        filter: 'drop-shadow(0 0 4px rgba(74,222,128,0.4))',
       }
     case 'error':
     case 'failed':
       return {
-        color: '#ef4444',
+        color: 'var(--error)',
         strokeWidth: 2,
         opacity: 0.8,
         animated: false,
-        filter: 'drop-shadow(0 0 4px rgba(239,68,68,0.4))',
+        filter: 'drop-shadow(0 0 4px rgba(248,113,113,0.4))',
       }
     case 'skipped':
       return {
@@ -189,7 +189,7 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
       <path
         d={d}
         fill="none"
-        stroke={highlighted ? 'rgba(99,102,241,0.8)' : srcStyle.color}
+        stroke={highlighted ? 'var(--accent-muted)' : srcStyle.color}
         strokeWidth={highlighted ? 2.5 : srcStyle.strokeWidth}
         strokeOpacity={highlighted ? 0.95 : srcStyle.opacity}
         strokeDasharray={highlighted ? undefined : srcStyle.strokeDasharray}
@@ -201,7 +201,7 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
             ? { animation: `${srcStyle.animationName ?? 'canvas-edge-dash-flow'} 1.2s linear infinite` }
             : {}),
           ...(highlighted
-            ? { filter: 'drop-shadow(0 0 4px rgba(99,102,241,0.5))' }
+            ? { filter: 'drop-shadow(0 0 4px var(--accent-muted))' }
             : srcStyle.filter
               ? { filter: srcStyle.filter }
               : {}),
@@ -213,10 +213,10 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
         <path
           d={d}
           fill="none"
-          stroke="rgba(99,102,241,0.8)"
+          stroke="var(--accent-muted)"
           strokeWidth={strokeWidth + 3}
           strokeOpacity={0.15}
-          style={{ pointerEvents: 'none', filter: 'blur(2px) drop-shadow(0 0 4px rgba(99,102,241,0.5))' }}
+          style={{ pointerEvents: 'none', filter: 'blur(2px) drop-shadow(0 0 4px var(--accent-muted))' }}
         />
       )}
 
@@ -225,17 +225,18 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
         <path
           d={d}
           fill="none"
-          stroke="rgba(99,102,241,0.5)"
+          stroke="var(--accent)"
           strokeWidth={2}
           strokeDasharray="5 4"
           strokeLinecap="round"
+          strokeOpacity={0.5}
           style={{ animation: 'canvas-edge-flow 0.7s linear infinite', pointerEvents: 'none' }}
         />
       )}
 
       {/* P1.4: particle dot flowing along active/running edges */}
       {(status === 'active' || sourceStatus === 'running') && (
-        <circle r={2.5} fill="#818cf8" opacity={0.95} style={{ pointerEvents: 'none', filter: 'drop-shadow(0 0 4px rgba(129,140,248,0.8))' }}>
+        <circle r={2.5} fill="var(--accent-muted)" opacity={0.95} style={{ pointerEvents: 'none', filter: 'drop-shadow(0 0 4px var(--accent-muted))' }}>
           <animateMotion dur="1.8s" repeatCount="indefinite" path={d} />
         </circle>
       )}
@@ -249,9 +250,9 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
         <path
           d={d}
           fill="none"
-          stroke="rgba(34,197,94,0.6)"
+          stroke="var(--success)"
           strokeWidth={2.5}
-          strokeOpacity={0.2}
+          strokeOpacity={0.6}
           style={{ filter: 'blur(2px)', pointerEvents: 'none' }}
         />
       )}
@@ -261,9 +262,9 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
         <path
           d={d}
           fill="none"
-          stroke="rgba(239,68,68,0.6)"
+          stroke="var(--error)"
           strokeWidth={2.5}
-          strokeOpacity={0.2}
+          strokeOpacity={0.6}
           style={{ filter: 'blur(2px)', pointerEvents: 'none' }}
         />
       )}
@@ -284,7 +285,7 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
             cx={midX}
             cy={midY}
             r={10}
-            fill="#6366f1"
+            fill="var(--accent)"
             stroke="none"
           />
           <text
@@ -321,7 +322,7 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
             cx={onAddBetween ? midX + 24 : midX}
             cy={midY}
             r={8}
-            fill="rgba(239,68,68,0.85)"
+            fill="var(--error)"
             stroke="none"
             style={{ transition: 'fill 0.15s ease' }}
           />
@@ -364,12 +365,12 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
               fill="var(--glass-bg-low)"
               stroke={
                 status === 'done' || status === 'completed'
-                  ? 'rgba(34,197,94,0.45)'
+                  ? 'rgba(74,222,128,0.45)'
                   : status === 'active' || status === 'running'
-                    ? 'rgba(99,102,241,0.65)'
+                    ? 'var(--accent-muted)'
                     : status === 'error'
-                      ? 'rgba(239,68,68,0.45)'
-                      : 'rgba(99,102,241,0.45)'
+                      ? 'rgba(248,113,113,0.45)'
+                      : 'var(--accent-border)'
               }
               strokeWidth={1}
             />
@@ -474,7 +475,7 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
             height={16}
             rx={5}
             ry={5}
-            fill="rgba(34,197,94,0.12)"
+            fill="rgba(74,222,128,0.12)"
             style={{ pointerEvents: 'none' }}
           />
           <text
@@ -484,7 +485,7 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
             dominantBaseline="central"
             style={{
               fontSize: '10px',
-              fill: 'rgba(34,197,94,0.85)',
+              fill: 'var(--success)',
               userSelect: 'none',
               pointerEvents: 'none',
               fontVariantNumeric: 'tabular-nums',
@@ -501,10 +502,10 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
 
 export function CanvasEdgeDefs() {
   function markerColor(status: EdgeStatus): string {
-    if (status === 'done' || status === 'completed') return 'rgba(34,197,94,0.7)'
-    if (status === 'active') return 'rgba(99,102,241,0.8)'
-    if (status === 'running') return 'rgba(99,102,241,0.8)'
-    if (status === 'error') return 'rgba(239,68,68,0.7)'
+    if (status === 'done' || status === 'completed') return 'rgba(74,222,128,0.7)'
+    if (status === 'active') return 'var(--accent-muted)'
+    if (status === 'running') return 'var(--accent-muted)'
+    if (status === 'error') return 'rgba(248,113,113,0.7)'
     return 'var(--text-muted)'
   }
   return (

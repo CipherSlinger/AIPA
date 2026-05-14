@@ -238,35 +238,23 @@ export default function App() {
     return () => cleanups.forEach((fn) => fn?.())
   }, [])
 
-  // Update window title with session name and unread indicator
-  useEffect(() => {
-    const chatTitle = useChatStore.getState().currentSessionTitle
-    const baseTitle = chatTitle ? `AIPA — ${chatTitle}` : 'AIPA'
-    document.title = baseTitle
-  }, [prefs])
-
-  // Listen for streaming end to flash title if user is scrolled away
+  // Flash title on streaming end; keep title in sync with session name
   useEffect(() => {
     let prevStreaming = false
+    let flashTimer: ReturnType<typeof setTimeout> | undefined
     const unsubscribe = useChatStore.subscribe((state) => {
       const wasStreaming = prevStreaming
       prevStreaming = state.isStreaming
-
-      // Update title with session name
-      const chatTitle = state.currentSessionTitle
-      const baseTitle = chatTitle ? `AIPA — ${chatTitle}` : 'AIPA'
-
+      const baseTitle = state.currentSessionTitle ? `AIPA — ${state.currentSessionTitle}` : 'AIPA'
       if (wasStreaming && !state.isStreaming && state.messages.length > 0) {
-        // Streaming just finished -- flash title briefly
+        clearTimeout(flashTimer)
         document.title = `(*) ${baseTitle}`
-        setTimeout(() => {
-          document.title = baseTitle
-        }, 3000)
-      } else if (!state.isStreaming) {
+        flashTimer = setTimeout(() => { document.title = baseTitle }, 3000)
+      } else if (!state.isStreaming && document.title !== baseTitle) {
         document.title = baseTitle
       }
     })
-    return unsubscribe
+    return () => { unsubscribe(); clearTimeout(flashTimer) }
   }, [])
 
   // Apply theme (supports 'system' for OS-level dark/light auto-detection)

@@ -39,6 +39,20 @@ import { useIdleReturn } from '../../hooks/useIdleReturn'
 import { useAwaySummary } from '../../hooks/useAwaySummary'
 import { useSpeculation } from '../../hooks/useSpeculation'
 
+const NOTE_BANNER_STYLE: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '4px 12px',
+  background: 'var(--accent-bg)',
+  backdropFilter: 'blur(12px)',
+  WebkitBackdropFilter: 'blur(12px)',
+  borderBottom: '1px solid var(--accent-border)',
+  fontSize: 12,
+  flexShrink: 0,
+  minHeight: 28,
+}
+
 export default function ChatPanel() {
   const t = useT()
   const messages = useChatStore(s => s.messages)
@@ -259,8 +273,8 @@ export default function ChatPanel() {
             position: 'absolute',
             inset: 8,
             zIndex: 50,
-            background: 'rgba(99,102,241,0.12)',
-            border: '3px dashed rgba(99,102,241,0.55)',
+            background: 'var(--accent-bg)',
+            border: '3px dashed var(--accent-border)',
             borderRadius: 8,
             display: 'flex',
             flexDirection: 'column',
@@ -271,7 +285,7 @@ export default function ChatPanel() {
             pointerEvents: 'none',
           }}
         >
-          <Upload size={48} style={{ color: '#818cf8' }} />
+          <Upload size={48} style={{ color: 'var(--accent-muted)' }} />
           <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)' }}>
             {t('chat.dragDropHint')}
           </div>
@@ -330,20 +344,8 @@ export default function ChatPanel() {
 
       {/* Pinned Note banner (Iteration 434) */}
       {currentSessionId && editingNote && !currentNote && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          padding: '4px 12px',
-          background: 'rgba(99,102,241,0.08)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(99,102,241,0.15)',
-          fontSize: 12,
-          flexShrink: 0,
-          minHeight: 28,
-        }}>
-          <StickyNote size={12} style={{ color: '#818cf8', flexShrink: 0 }} />
+        <div style={NOTE_BANNER_STYLE}>
+          <StickyNote size={12} style={{ color: 'var(--accent-muted)', flexShrink: 0 }} />
           <input
             autoFocus
             onChange={e => setNoteText(e.target.value.slice(0, 200))}
@@ -356,7 +358,7 @@ export default function ChatPanel() {
             }}
             placeholder={t('session.addNote')}
             maxLength={200}
-            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--accent-border)' }}
             onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
             style={{
               flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border)',
@@ -366,7 +368,7 @@ export default function ChatPanel() {
           />
           <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{noteText.length}/200</span>
           <button onClick={() => { if (noteText.trim()) setSessionNote(currentSessionId, noteText.trim()); setEditingNote(false) }}
-            style={{ background: 'none', border: 'none', color: '#4ade80', cursor: 'pointer', display: 'flex', padding: 2 }}>
+            style={{ background: 'none', border: 'none', color: 'var(--success)', cursor: 'pointer', display: 'flex', padding: 2 }}>
             <Check size={12} />
           </button>
           <button onClick={() => setEditingNote(false)}
@@ -376,20 +378,8 @@ export default function ChatPanel() {
         </div>
       )}
       {currentSessionId && currentNote && !editingNote && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          padding: '4px 12px',
-          background: 'rgba(99,102,241,0.08)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(99,102,241,0.15)',
-          fontSize: 12,
-          flexShrink: 0,
-          minHeight: 28,
-        }}>
-          <StickyNote size={12} style={{ color: '#818cf8', flexShrink: 0 }} />
+        <div style={NOTE_BANNER_STYLE}>
+          <StickyNote size={12} style={{ color: 'var(--accent-muted)', flexShrink: 0 }} />
           <span
             style={{ flex: 1, color: 'var(--text-secondary)', fontStyle: 'italic', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
             onClick={() => { setNoteText(currentNote || ''); setEditingNote(true) }}
@@ -561,8 +551,8 @@ export default function ChatPanel() {
               transition: 'color 0.15s ease, border-color 0.15s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#818cf8'
-              e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'
+              e.currentTarget.style.color = 'var(--accent-muted)'
+              e.currentTarget.style.borderColor = 'var(--accent-border)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.color = 'var(--text-muted)'

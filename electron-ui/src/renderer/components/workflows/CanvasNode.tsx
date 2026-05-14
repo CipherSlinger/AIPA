@@ -55,18 +55,25 @@ export const NODE_GAP_Y = 120
 
 // Type accent colors
 const TYPE_COLORS: Record<string, string> = {
-  prompt: '#6366f1',
-  condition: '#f59e0b',
-  parallel: '#a78bfa',
+  prompt: 'var(--accent)',
+  condition: 'var(--warning)',
+  parallel: 'var(--color-violet)',
+}
+
+// Type badge backgrounds (hex-alpha trick doesn't work with CSS vars)
+const TYPE_BG: Record<string, string> = {
+  prompt: 'var(--accent-bg)',
+  condition: 'rgba(245,158,11,0.1)',
+  parallel: 'rgba(167,139,250,0.1)',
 }
 
 // Status colors
 const STAT: Record<string, string> = {
-  idle: '#94a3b8',
-  pending: '#94a3b8',
-  running: '#6366f1',
-  completed: '#22c55e',
-  error: '#ef4444',
+  idle: 'var(--text-muted)',
+  pending: 'var(--text-muted)',
+  running: 'var(--accent)',
+  completed: 'var(--success)',
+  error: 'var(--error)',
 }
 
 export default function CanvasNode({
@@ -102,6 +109,9 @@ export default function CanvasNode({
   const promptRef = useRef<HTMLTextAreaElement>(null)
   const nodeRef = useRef<HTMLDivElement>(null)
   const streamRef = useRef<HTMLDivElement>(null)
+  const justDoneTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const copiedPromptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const copiedOutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const togglePin = () => {
     const n = !pinned; setPinned(n)
@@ -114,7 +124,7 @@ export default function CanvasNode({
 
   useEffect(() => { if (status !== 'completed') setOutputExpanded(false) }, [status])
   useEffect(() => {
-    if (prevRef.current === 'running' && status === 'completed') { setJustDone(true); setTimeout(() => setJustDone(false), 500) }
+    if (prevRef.current === 'running' && status === 'completed') { setJustDone(true); clearTimeout(justDoneTimerRef.current ?? undefined); justDoneTimerRef.current = setTimeout(() => setJustDone(false), 500) }
     prevRef.current = status
   }, [status])
   useEffect(() => { if (editTitle && titleRef.current) { titleRef.current.focus(); titleRef.current.select() } }, [editTitle])
@@ -197,7 +207,7 @@ export default function CanvasNode({
         {/* Running indicator bar */}
         {status === 'running' && (
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, overflow: 'hidden' }}>
-            <div style={{ width: '30%', height: '100%', background: 'linear-gradient(90deg,transparent,rgba(99,102,241,.6),transparent)', animation: 'canvas-node-bar 1.2s linear infinite' }} />
+            <div style={{ width: '30%', height: '100%', background: 'linear-gradient(90deg,transparent,var(--accent-muted),transparent)', animation: 'canvas-node-bar 1.2s linear infinite' }} />
           </div>
         )}
 
@@ -230,7 +240,7 @@ export default function CanvasNode({
                 <span style={{
                   display: 'inline-flex', alignItems: 'center', gap: 2,
                   fontSize: 8, fontWeight: 700, letterSpacing: '.04em',
-                  color: typeColor, background: `${typeColor}12`,
+                  color: typeColor, background: TYPE_BG[nodeType] || TYPE_BG.prompt,
                   borderRadius: 3, padding: '1px 4px', flexShrink: 0,
                 }}>
                   {typeIcon}{typeLabel}
@@ -243,7 +253,7 @@ export default function CanvasNode({
                   onBlur={commitTitle}
                   onKeyDown={e => { if (e.key === 'Enter') commitTitle(); if (e.key === 'Escape') setEditTitle(false) }}
                   onMouseDown={e => e.stopPropagation()}
-                  style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', flex: 1, minWidth: 0, background: 'var(--bg-hover)', border: '1px solid rgba(99,102,241,.4)', borderRadius: 3, outline: 'none', padding: '1px 4px', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                  style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', flex: 1, minWidth: 0, background: 'var(--bg-hover)', border: '1px solid var(--accent-border)', borderRadius: 3, outline: 'none', padding: '1px 4px', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               ) : (
                 <span style={{
                   fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', flex: 1, minWidth: 0,
@@ -294,16 +304,16 @@ export default function CanvasNode({
                   </div>
                   {outputText.length > 80 && (
                     <button onMouseDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); setOutputExpanded(v => !v) }}
-                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 9, color: '#818cf8', marginTop: 1 }}>
+                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 9, color: 'var(--accent-muted)', marginTop: 1 }}>
                       {outputExpanded ? t('canvas.showLess') : t('canvas.showMore')}
                     </button>
                   )}
                 </div>
               ) : status === 'running' && streamingText ? (
-                <div ref={streamRef} style={{ fontSize: 9, color: 'rgba(99,102,241,.7)', lineHeight: 1.4, overflowY: 'auto', maxHeight: 120, fontStyle: 'italic' }}>
+                <div ref={streamRef} style={{ fontSize: 9, color: 'var(--accent-muted)', lineHeight: 1.4, overflowY: 'auto', maxHeight: 120, fontStyle: 'italic' }}>
                   {streamingText}
                   <div style={{ display: 'flex', gap: 3, marginTop: 2 }}>
-                    {[0,1,2].map(i => <div key={i} style={{ width: 3.5, height: 3.5, borderRadius: '50%', background: 'rgba(99,102,241,.5)', animation: `canvas-node-dots 1.2s ease-in-out ${i*.2}s infinite` }} />)}
+                    {[0,1,2].map(i => <div key={i} style={{ width: 3.5, height: 3.5, borderRadius: '50%', background: 'var(--accent)', opacity: 0.5, animation: `canvas-node-dots 1.2s ease-in-out ${i*.2}s infinite` }} />)}
                   </div>
                 </div>
               ) : nodeType === 'condition' ? (
@@ -313,14 +323,14 @@ export default function CanvasNode({
               ) : nodeType === 'parallel' ? (
                 <div style={{ fontSize: 9, color: 'var(--text-muted)', lineHeight: 1.4 }}>
                   <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: 2 }}>{prompt}</div>
-                  {step.parallelPrompts?.length ? <span style={{ fontSize: 8, color: '#a78bfa' }}>{step.parallelPrompts.length} sub</span> : null}
+                  {step.parallelPrompts?.length ? <span style={{ fontSize: 8, color: 'var(--color-violet)' }}>{step.parallelPrompts.length} sub</span> : null}
                 </div>
               ) : editPrompt ? (
                 <div onMouseDown={e => e.stopPropagation()}>
                   <textarea ref={promptRef} value={editPromptVal} onChange={e => setEditPromptVal(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); setEditPrompt(false) } if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); commitPrompt() } }}
                     onBlur={commitPrompt}
-                    style={{ width: '100%', minHeight: 30, fontSize: 9, color: 'var(--text-primary)', background: 'var(--bg-hover)', border: '1px solid rgba(99,102,241,.4)', borderRadius: 3, padding: '2px 4px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.4 }} />
+                    style={{ width: '100%', minHeight: 30, fontSize: 9, color: 'var(--text-primary)', background: 'var(--bg-hover)', border: '1px solid var(--accent-border)', borderRadius: 3, padding: '2px 4px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.4 }} />
                   <div style={{ textAlign: 'right', fontSize: 7, color: 'var(--text-muted)', opacity: .4, fontFamily: 'monospace', marginTop: 1 }}>{editPromptVal.length}/2000</div>
                 </div>
               ) : (
@@ -332,9 +342,9 @@ export default function CanvasNode({
                     {prompt}
                   </div>
                   {hovered && onPromptChange && (
-                    <button onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(step.prompt).then(() => { setCopiedPrompt(true); setTimeout(() => setCopiedPrompt(false), 1000) }) }}
+                    <button onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(step.prompt).then(() => { setCopiedPrompt(true); clearTimeout(copiedPromptTimerRef.current ?? undefined); copiedPromptTimerRef.current = setTimeout(() => setCopiedPrompt(false), 1000) }) }}
                       onMouseDown={e => e.stopPropagation()}
-                      style={{ position: 'absolute', top: 1, right: 1, background: copiedPrompt ? 'rgba(34,197,94,.1)' : 'transparent', border: `1px solid ${copiedPrompt ? 'rgba(34,197,94,.25)' : 'transparent'}`, borderRadius: 3, padding: '1px 3px', cursor: 'pointer', color: copiedPrompt ? '#22c55e' : 'var(--text-muted)', fontSize: 8, display: 'flex', alignItems: 'center' }}>
+                      style={{ position: 'absolute', top: 1, right: 1, background: copiedPrompt ? 'rgba(74,222,128,0.1)' : 'transparent', border: `1px solid ${copiedPrompt ? 'rgba(74,222,128,0.25)' : 'transparent'}`, borderRadius: 3, padding: '1px 3px', cursor: 'pointer', color: copiedPrompt ? 'var(--success)' : 'var(--text-muted)', fontSize: 8, display: 'flex', alignItems: 'center' }}>
                       {copiedPrompt ? <Check size={8} /> : <Copy size={8} />}
                     </button>
                   )}
@@ -344,20 +354,20 @@ export default function CanvasNode({
               {/* Typing dots */}
               {status === 'running' && !streamingText && (
                 <div style={{ display: 'flex', gap: 3, marginTop: 2 }}>
-                  {[0,1,2].map(i => <div key={i} style={{ width: 3.5, height: 3.5, borderRadius: '50%', background: 'rgba(99,102,241,.5)', animation: `canvas-node-dots 1.2s ease-in-out ${i*.2}s infinite` }} />)}
+                  {[0,1,2].map(i => <div key={i} style={{ width: 3.5, height: 3.5, borderRadius: '50%', background: 'var(--accent)', opacity: 0.5, animation: `canvas-node-dots 1.2s ease-in-out ${i*.2}s infinite` }} />)}
                 </div>
               )}
 
               {/* Error */}
               {status === 'error' && outputText && (
-                <div style={{ marginTop: 3, paddingLeft: 5, borderLeft: '2px solid rgba(239,68,68,.3)' }}>
-                  <div style={{ fontSize: 8, color: '#f87171', opacity: .7, lineHeight: 1.3, display: 'flex', alignItems: 'flex-start', gap: 3 }}>
+                <div style={{ marginTop: 3, paddingLeft: 5, borderLeft: '2px solid rgba(248,113,113,0.3)' }}>
+                  <div style={{ fontSize: 8, color: 'var(--error)', opacity: .7, lineHeight: 1.3, display: 'flex', alignItems: 'flex-start', gap: 3 }}>
                     <AlertCircle size={8} style={{ flexShrink: 0 }} />
                     <span>{outputText.slice(0, 50)}</span>
                   </div>
                   {onRetryStep && (
                     <button onClick={e => { e.stopPropagation(); onRetryStep!() }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 5px', borderRadius: 3, border: '1px solid rgba(239,68,68,.2)', background: 'rgba(239,68,68,.05)', color: '#f87171', fontSize: 8, cursor: 'pointer', marginTop: 2 }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 5px', borderRadius: 3, border: '1px solid rgba(248,113,113,0.2)', background: 'rgba(248,113,113,0.05)', color: 'var(--error)', fontSize: 8, cursor: 'pointer', marginTop: 2 }}>
                       <RefreshCw size={8} /> Retry
                     </button>
                   )}
@@ -373,7 +383,7 @@ export default function CanvasNode({
                 <Btn onClick={e => { e.stopPropagation(); setShowNote(v => !v) }} style={{ fontSize: 9 }}>📝</Btn>
                 <span style={{ flex: 1 }} />
                 {durationMs !== undefined && <span style={{ fontSize: 7, color: 'var(--text-muted)', fontFamily: 'monospace', opacity: .4 }}>{durationMs < 1000 ? `${durationMs}ms` : `${(durationMs/1000).toFixed(1)}s`}</span>}
-                {status === 'running' && liveElapsedMs && Math.floor(liveElapsedMs/1000) >= 1 && <span style={{ fontSize: 7, color: '#818cf8', fontFamily: 'monospace' }}>{Math.floor(liveElapsedMs/1000)}s</span>}
+                {status === 'running' && liveElapsedMs && Math.floor(liveElapsedMs/1000) >= 1 && <span style={{ fontSize: 7, color: 'var(--accent-muted)', fontFamily: 'monospace' }}>{Math.floor(liveElapsedMs/1000)}s</span>}
               </div>
             )}
 
@@ -388,8 +398,8 @@ export default function CanvasNode({
 
             {/* Expanded output */}
             {status === 'completed' && outputExpanded && outputText && (
-              <div style={{ borderTop: '1px solid rgba(34,197,94,.12)', padding: '4px 6px', background: 'rgba(34,197,94,.03)', position: 'relative' }}>
-                <button onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(outputText).then(() => { setCopiedOut(true); setTimeout(() => setCopiedOut(false), 1000) }) }}
+              <div style={{ borderTop: '1px solid rgba(74,222,128,0.12)', padding: '4px 6px', background: 'rgba(74,222,128,0.03)', position: 'relative' }}>
+                <button onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(outputText).then(() => { setCopiedOut(true); clearTimeout(copiedOutTimerRef.current ?? undefined); copiedOutTimerRef.current = setTimeout(() => setCopiedOut(false), 1000) }) }}
                   onMouseDown={e => e.stopPropagation()}
                   style={{ position: 'absolute', top: 3, right: 3, background: 'transparent', border: '1px solid var(--border)', borderRadius: 3, padding: '1px 4px', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 8, display: 'flex', alignItems: 'center', gap: 2 }}>
                   {copiedOut ? <Check size={8} /> : <Copy size={8} />} {copiedOut ? t('workflow.canvasCopied') : t('canvas.copyOutput')}
@@ -403,9 +413,9 @@ export default function CanvasNode({
         )}
 
         {/* Connection port dots */}
-        <div style={{ position: 'absolute', left: -4, top: '50%', transform: 'translateY(-50%)', width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-primary)', border: `1.5px solid ${typeColor}60`, opacity: hovered && !selected ? .8 : .35, transition: 'all .15s ease', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', left: '50%', bottom: -4, transform: 'translateX(-50%)', width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-primary)', border: `1.5px solid ${typeColor}60`, opacity: hovered && !selected ? .8 : .35, transition: 'all .15s ease', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', right: -4, top: '50%', transform: 'translateY(-50%)', width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-primary)', border: `1.5px solid ${typeColor}60`, opacity: hovered && !selected ? .8 : .35, transition: 'all .15s ease', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', left: -4, top: '50%', transform: 'translateY(-50%)', width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-primary)', border: '1.5px solid var(--border-strong)', opacity: hovered && !selected ? .8 : .35, transition: 'all .15s ease', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', left: '50%', bottom: -4, transform: 'translateX(-50%)', width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-primary)', border: '1.5px solid var(--border-strong)', opacity: hovered && !selected ? .8 : .35, transition: 'all .15s ease', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', right: -4, top: '50%', transform: 'translateY(-50%)', width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-primary)', border: '1.5px solid var(--border-strong)', opacity: hovered && !selected ? .8 : .35, transition: 'all .15s ease', pointerEvents: 'none' }} />
       </div>
 
       {ctxMenu && <CtxMenu x={ctxMenu.x} y={ctxMenu.y} collapsed={collapsed} hasOutput={!!outputText} status={status}
@@ -458,8 +468,8 @@ function CtxMenu({ x, y, collapsed, hasOutput, status, onCollapse, onClose, onCo
       {onInsertBefore && <Item d={() => { onInsertBefore(); onClose() }}><PlusCircle size={11} style={{ opacity: .5 }} />{t('canvas.insertBefore')}</Item>}
       {onInsertAfter && <Item d={() => { onInsertAfter(); onClose() }}><PlusCircle size={11} style={{ opacity: .5 }} />{t('canvas.insertAfter')}</Item>}
       {onRetry && status === 'error' && <Item d={() => { onRetry(); onClose() }}><RefreshCw size={11} style={{ opacity: .5 }} />{t('canvas.retryStep')}</Item>}
-      {onRunFromStep && <><div style={{ height: 1, background: 'var(--border)', margin: '2px 0' }} /><Item s={{ color: '#818cf8' }} d={() => { onRunFromStep(); onClose() }}><Play size={10} style={{ opacity: .6 }} />{t('workflow.runFromStep')}</Item></>}
-      {onDeleteNode && <><div style={{ height: 1, background: 'var(--border)', margin: '2px 0' }} /><Item s={{ color: '#f87171' }} d={() => { onDeleteNode(); onClose() }}><Trash2 size={11} style={{ opacity: .5 }} />{t('canvas.deleteStep')}</Item></>}
+      {onRunFromStep && <><div style={{ height: 1, background: 'var(--border)', margin: '2px 0' }} /><Item s={{ color: 'var(--accent-muted)' }} d={() => { onRunFromStep(); onClose() }}><Play size={10} style={{ opacity: .6 }} />{t('workflow.runFromStep')}</Item></>}
+      {onDeleteNode && <><div style={{ height: 1, background: 'var(--border)', margin: '2px 0' }} /><Item s={{ color: 'var(--error)' }} d={() => { onDeleteNode(); onClose() }}><Trash2 size={11} style={{ opacity: .5 }} />{t('canvas.deleteStep')}</Item></>}
     </div>
   )
 }

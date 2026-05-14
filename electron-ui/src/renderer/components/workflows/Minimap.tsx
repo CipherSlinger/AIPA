@@ -90,9 +90,8 @@ export default function Minimap({ nodePositions, stepIds, stepStatuses, panX, pa
           const p = nodePositions[id]
           if (!p) return null
           const st = stepStatuses[id] ?? 'idle'
-          const fill = st === 'completed' ? '#22c55e'
-            : st === 'running' ? '#6366f1'
-            : st === 'pending' ? 'var(--text-faint)'
+          const fill = st === 'completed' ? 'var(--success)'
+            : st === 'running' ? 'var(--accent)'
             : 'var(--text-faint)'
           const nodeIdx = stepIds.indexOf(id)
           const rectW = Math.max(2, p.width * scale)

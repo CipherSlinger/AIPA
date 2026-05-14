@@ -202,7 +202,8 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
               top: 0,
               height: '100%',
               width: `${scrollState.scrollProgress * 100}%`,
-              background: 'rgba(99,102,241,0.7)',
+              background: 'var(--accent)',
+              opacity: 0.7,
               transition: 'all 0.15s ease',
             }}
           />
@@ -260,11 +261,11 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
               }}
             >
               <div style={{
-                outline: isHighlighted ? '2px solid rgba(99,102,241,0.7)' : 'none',
-                borderLeft: isFocused ? '3px solid rgba(99,102,241,0.7)' : '3px solid transparent',
+                outline: isHighlighted ? '2px solid var(--accent)' : 'none',
+                borderLeft: isFocused ? '3px solid var(--accent)' : '3px solid transparent',
                 borderRadius: isHighlighted ? 4 : 0,
                 transition: 'all 0.15s ease',
-                background: isFocused ? 'rgba(99,102,241,0.04)' : 'transparent',
+                background: isFocused ? 'var(--accent-bg)' : 'transparent',
               }}>
                 {renderMessage(msg, isHighlighted, item.msgIdx)}
               </div>

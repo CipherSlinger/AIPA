@@ -264,7 +264,7 @@ AIPA uses a unified glass-morphism design system with complete light/dark theme 
 - **Glass backgrounds**: `var(--glass-bg-low)` / `var(--glass-bg-mid)` / `var(--glass-bg-deep)`，配合 `backdropFilter: blur(12–20px)`
 - **Text opacity ladder**: `var(--text-primary)` / `var(--text-secondary)` / `var(--text-muted)` / `var(--text-faint)`
 - **Shadow system**: L1–L4 layered depth shadows
-- **Indigo accent**: `#6366f1`/`#818cf8`/`#a5b4fc` throughout
+- **Indigo accent**: `var(--accent)`/`var(--accent-muted)`/`var(--accent-border)` throughout; `var(--success)` green, `var(--error)` red, `var(--warning)` amber
 - **Transitions**: Unified `0.15s ease` on all interactive elements
 - **Tabular numbers**: All numeric displays use `fontVariantNumeric: tabular-nums`
 - **clawd-on-desk 桌宠集成** — 可选开启桌面宠物，AI 思考/工具调用/完成时触发对应动画状态（thinking/working/happy）
