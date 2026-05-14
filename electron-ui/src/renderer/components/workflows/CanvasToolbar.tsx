@@ -590,9 +590,9 @@ export default function CanvasToolbar({
           <button
             onClick={(e) => { e.stopPropagation(); onShowShortcuts() }}
             title="Keyboard shortcuts (?)"
-            style={{ ...toolbarBtnStyle, ...activeToggleStyle(false) }}
+            style={toolbarBtnStyle}
             onMouseEnter={hoverIn}
-            onMouseLeave={e => { const s = activeToggleStyle(false); e.currentTarget.style.background = s.background as string; e.currentTarget.style.color = s.color as string; e.currentTarget.style.boxShadow = s.boxShadow as string }}
+            onMouseLeave={hoverOut}
           >
             <HelpCircle size={12} />
           </button>

@@ -122,6 +122,11 @@ export default function CanvasNode({
     try { v.trim() ? localStorage.setItem(`aipa:step-note:${step.id}`, v) : localStorage.removeItem(`aipa:step-note:${step.id}`) } catch {}
   }
 
+  useEffect(() => () => {
+    clearTimeout(justDoneTimerRef.current ?? undefined)
+    clearTimeout(copiedPromptTimerRef.current ?? undefined)
+    clearTimeout(copiedOutTimerRef.current ?? undefined)
+  }, [])
   useEffect(() => { if (status !== 'completed') setOutputExpanded(false) }, [status])
   useEffect(() => {
     if (prevRef.current === 'running' && status === 'completed') { setJustDone(true); clearTimeout(justDoneTimerRef.current ?? undefined); justDoneTimerRef.current = setTimeout(() => setJustDone(false), 500) }

@@ -503,8 +503,7 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
 export function CanvasEdgeDefs() {
   function markerColor(status: EdgeStatus): string {
     if (status === 'done' || status === 'completed') return 'rgba(74,222,128,0.7)'
-    if (status === 'active') return 'var(--accent-muted)'
-    if (status === 'running') return 'var(--accent-muted)'
+    if (status === 'active' || status === 'running') return 'var(--accent-muted)'
     if (status === 'error') return 'rgba(248,113,113,0.7)'
     return 'var(--text-muted)'
   }

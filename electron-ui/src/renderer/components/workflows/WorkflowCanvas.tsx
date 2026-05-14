@@ -1855,7 +1855,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 fontSize: 18,
                 fontWeight: 300,
                 lineHeight: 1,
-                boxShadow: isHovered ? '0 2px 12px var(--accent-border)' : 'none',
+                boxShadow: isHovered ? '0 2px 12px var(--accent-muted)' : 'none',
                 userSelect: 'none',
               }}
               title={t('workflow.addStep')}
