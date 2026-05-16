@@ -3,6 +3,8 @@ import { Check, ChevronDown, Copy, AlertCircle, GripVertical, RefreshCw, Trash2,
 import { WorkflowStep } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { getPresetStepText } from './workflowConstants'
+import { countWords } from '../../utils/stringUtils'
+import { fmtNumber, formatDuration } from '../layout/statusBarConstants'
 import type { StepStatus } from './useWorkflowExecution'
 
 interface CanvasNodeProps {
@@ -45,6 +47,7 @@ interface CanvasNodeProps {
   onMoveUp?: () => void
   onMoveDown?: () => void
   onRetryStep?: () => void
+  staggerDelay?: number
 }
 
 
@@ -85,7 +88,7 @@ export default function CanvasNode({
   onReorderDragStart, onDeleteNode, onInsertBefore, onInsertAfter,
   onRetry, onRunFromStep, onPromptChange, onHeightChange, onDuplicate,
   onMoveUp, onMoveDown, onRetryStep,
-}: CanvasNodeProps & { staggerDelay?: number }) {
+}: CanvasNodeProps) {
   const t = useT()
   const [ctxMenu, setCtxMenu] = useState<{x:number;y:number}|null>(null)
   const [outputExpanded, setOutputExpanded] = useState(false)
@@ -105,8 +108,7 @@ export default function CanvasNode({
     try { return localStorage.getItem(`aipa:step-pin:${step.id}`) === '1' } catch { return false }
   })
   const [errorExpanded, setErrorExpanded] = useState(false)
-  const [streamingCps, setStreamingCps] = useState<number | null>(null)
-  const streamCpsRef = useRef<{ count: number; timestamp: number }>({ count: 0, timestamp: Date.now() })
+  const streamCpsRef = useRef<{ count: number; timestamp: number; cps: number | null }>({ count: 0, timestamp: Date.now(), cps: null })
   const prevRef = useRef<string|undefined>(undefined)
   const titleRef = useRef<HTMLInputElement>(null)
   const promptRef = useRef<HTMLTextAreaElement>(null)
@@ -136,14 +138,13 @@ export default function CanvasNode({
     prevRef.current = status
   }, [status])
   useEffect(() => {
-    if (status !== 'running' || !streamingText) { setStreamingCps(null); streamCpsRef.current = { count: 0, timestamp: Date.now() }; return }
+    if (status !== 'running' || !streamingText) { streamCpsRef.current = { count: 0, timestamp: Date.now(), cps: null }; return }
     const len = streamingText.length
     const now = Date.now()
     const elapsed = (now - streamCpsRef.current.timestamp) / 1000
     if (elapsed > 0.5 && len > streamCpsRef.current.count) {
-      setStreamingCps(Math.round((len - streamCpsRef.current.count) / elapsed))
+      streamCpsRef.current = { count: len, timestamp: now, cps: Math.round((len - streamCpsRef.current.count) / elapsed) }
     }
-    streamCpsRef.current = { count: len, timestamp: now }
   }, [streamingText, status])
   useEffect(() => { if (editTitle && titleRef.current) { titleRef.current.focus(); titleRef.current.select() } }, [editTitle])
   useEffect(() => { if (editPrompt && promptRef.current) { promptRef.current.focus(); promptRef.current.select() } }, [editPrompt])
@@ -169,7 +170,6 @@ export default function CanvasNode({
   const statColor = STAT[status] || STAT.idle
   const active = selected || status === 'running'
 
-  // Border: subtle colored left accent + light overall border
   const border = `1px solid ${selected ? 'rgba(99,102,241,.45)' : status === 'completed' ? 'rgba(34,197,94,.2)' : status === 'error' ? 'rgba(239,68,68,.2)' : 'var(--border)'}`
   const borderLeft = `3px solid ${typeColor}`
   const shadow = justDone ? '0 0 0 2px rgba(34,197,94,.4), 0 4px 16px rgba(34,197,94,.12)'
@@ -310,11 +310,9 @@ export default function CanvasNode({
 
               {status === 'completed' && outputText ? (
                 <div style={{ fontSize: 9, color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
-                    <span style={{ fontSize: 8, color: 'var(--text-muted)', background: 'var(--bg-hover)', borderRadius: 4, padding: '1px 6px', flexShrink: 0 }}>
-                      {outputText.trim().split(/\s+/).filter(Boolean).length}w · {outputText.length >= 1000 ? `${(outputText.length / 1000).toFixed(1)}k` : outputText.length} chars
-                    </span>
-                  </div>
+                  <span style={{ fontSize: 8, color: 'var(--text-muted)', background: 'var(--bg-hover)', borderRadius: 4, padding: '1px 6px', flexShrink: 0, display: 'inline-block', marginBottom: 2 }}>
+                    {countWords(outputText)}w · {fmtNumber(outputText.length)} chars
+                  </span>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
@@ -344,8 +342,8 @@ export default function CanvasNode({
               ) : status === 'running' && streamingText ? (
                 <div ref={streamRef} style={{ fontSize: 9, color: 'var(--accent-muted)', lineHeight: 1.4, overflowY: 'auto', maxHeight: 120, fontStyle: 'italic' }}>
                   <div style={{ height: 1, background: 'var(--accent)', opacity: 0.4, marginBottom: 3, borderRadius: 1, animation: 'canvas-node-bar 1.2s linear infinite', width: '30%' }} />
-                  {streamingCps !== null && streamingCps > 0 && (
-                    <span style={{ fontSize: 7, color: 'var(--accent-muted)', fontFamily: 'monospace', display: 'block', marginBottom: 2 }}>{streamingCps} c/s</span>
+                  {streamCpsRef.current.cps !== null && streamCpsRef.current.cps > 0 && (
+                    <span style={{ fontSize: 7, color: 'var(--accent-muted)', fontFamily: 'monospace', display: 'block', marginBottom: 2 }}>{streamCpsRef.current.cps} c/s</span>
                   )}
                   {streamingText}
                   <div style={{ display: 'flex', gap: 3, marginTop: 2 }}>
@@ -429,7 +427,7 @@ export default function CanvasNode({
                 <Btn onClick={e => { e.stopPropagation(); setShowNote(v => !v) }} style={{ fontSize: 9 }}>📝</Btn>
                 <span style={{ flex: 1 }} />
                 {durationMs !== undefined && <span style={{ fontSize: 7, color: 'var(--text-muted)', fontFamily: 'monospace', opacity: .4 }}>{durationMs < 1000 ? `${durationMs}ms` : `${(durationMs/1000).toFixed(1)}s`}</span>}
-                {status === 'running' && liveElapsedMs && Math.floor(liveElapsedMs/1000) >= 1 && <span style={{ fontSize: 7, color: 'var(--accent-muted)', fontFamily: 'monospace' }}>{liveElapsedMs >= 60000 ? `${Math.floor(liveElapsedMs/60000)}m ${Math.floor(liveElapsedMs/1000)%60}s` : `${(liveElapsedMs/1000).toFixed(1)}s`}</span>}
+                {status === 'running' && liveElapsedMs && liveElapsedMs >= 1000 && <span style={{ fontSize: 7, color: 'var(--accent-muted)', fontFamily: 'monospace' }}>{formatDuration(liveElapsedMs)}</span>}
               </div>
             )}
 

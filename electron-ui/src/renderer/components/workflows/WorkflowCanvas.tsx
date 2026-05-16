@@ -3,6 +3,7 @@ import { Workflow as WorkflowIcon, Maximize2, ChevronsUpDown, Download, Minimize
 import { Workflow, WorkflowStep } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { useChatStore } from '../../store'
+import { countWords } from '../../utils/stringUtils'
 import CanvasNode, { NODE_WIDTH, NODE_MIN_HEIGHT } from './CanvasNode'
 import CanvasEdge, { CanvasEdgeDefs } from './CanvasEdge'
 import CanvasProgressBar from './CanvasProgressBar'
@@ -350,7 +351,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
       if (!activeStep) return
 
       const streamText = execution.stepOutputs?.[activeStep.id] ?? ''
-      const wordCount = streamText.trim().split(/\s+/).filter(Boolean).length
+      const wordCount = countWords(streamText)
 
       const now = Date.now()
       const elapsed = (now - lastWpsCheckRef.current) / 1000
@@ -916,10 +917,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     ? workflow.steps.reduce((sum, step) => sum + (execution.stepDurations[step.id] ?? 0), 0)
     : 0
   const totalOutputWords = workflow
-    ? workflow.steps.reduce((sum, step) => {
-        const out = execution.stepOutputs[step.id] ?? ''
-        return sum + (out ? out.trim().split(/\s+/).filter(Boolean).length : 0)
-      }, 0)
+    ? workflow.steps.reduce((sum, step) => sum + countWords(execution.stepOutputs[step.id] ?? ''), 0)
     : 0
 
   // D8: determine which nodes are highlighted by edge hover

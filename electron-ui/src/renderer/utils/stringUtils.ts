@@ -76,3 +76,11 @@ export function truncateToLines(text: string, maxLines: number): string {
   if (lines.length <= maxLines) return text
   return lines.slice(0, maxLines).join('\n') + '…'
 }
+
+/** Counts whitespace-delimited words in a string. Returns 0 for empty/blank input. */
+export function countWords(text: string): number {
+  if (!text) return 0
+  const t = text.trim()
+  if (!t) return 0
+  return t.split(/\s+/).length
+}

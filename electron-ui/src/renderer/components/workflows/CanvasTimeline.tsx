@@ -2,6 +2,8 @@ import React, { useMemo } from 'react'
 import { X } from 'lucide-react'
 import type { StepStatus } from './useWorkflowExecution'
 import type { WorkflowStep } from '../../types/app.types'
+import { formatDuration } from '../layout/statusBarConstants'
+import { countWords } from '../../utils/stringUtils'
 
 export interface CanvasTimelineProps {
   steps: WorkflowStep[]
@@ -10,11 +12,6 @@ export interface CanvasTimelineProps {
   stepOutputs: Record<string, string>
   onClose: () => void
   onStepClick?: (stepId: string) => void
-}
-
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`
-  return `${(ms / 1000).toFixed(1)}s`
 }
 
 function getBarColor(status: StepStatus): string {
@@ -50,9 +47,7 @@ export default function CanvasTimeline({
   )
 
   const totalWords = useMemo(
-    () => Object.values(stepOutputs).reduce((sum, text) => {
-      return sum + (text ? text.trim().split(/\s+/).filter(Boolean).length : 0)
-    }, 0),
+    () => Object.values(stepOutputs).reduce((sum, text) => sum + countWords(text), 0),
     [stepOutputs]
   )
 
@@ -182,7 +177,7 @@ export default function CanvasTimeline({
                     paddingRight: 2,
                   }}
                   onMouseEnter={e => { if (onStepClick) (e.currentTarget as HTMLElement).style.background = 'var(--bg-hover)' }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+                  onMouseLeave={e => { if (onStepClick) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                 >
                   {/* Left label column — fixed 80px */}
                   <div
