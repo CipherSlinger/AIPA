@@ -217,6 +217,17 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   // P4.3: timeline panel
   const [showTimeline, setShowTimeline] = useState(false)
 
+  // Viewport bookmarks: slots 1-9 store { panX, panY, zoom }
+  const [bookmarks, setBookmarks] = useState<Record<number, { panX: number; panY: number; zoom: number }>>({})
+  const [bookmarkToast, setBookmarkToast] = useState<string | null>(null)
+  const bookmarkToastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>()
+
+  const showBookmarkToast = useCallback((msg: string) => {
+    clearTimeout(bookmarkToastTimerRef.current)
+    setBookmarkToast(msg)
+    bookmarkToastTimerRef.current = setTimeout(() => setBookmarkToast(null), 1500)
+  }, [])
+
   // D5: live step timer — track start times per step
   const [liveElapsedMs, setLiveElapsedMs] = useState<Record<string, number>>({})
   const stepStartTimesRef = useRef<Record<string, number>>({})
@@ -669,7 +680,62 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     return () => window.removeEventListener('keydown', handleKey)
   }, [workflow, undoRedo])
 
-  // D6: keyboard focus → node selection sync
+  // S key: fit selection to view (or fit all if nothing selected)
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key !== 's' && e.key !== 'S') return
+      if (e.ctrlKey || e.metaKey) return
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+      e.preventDefault()
+      const selected = layout.selectedNodes
+      const ids = selected.size > 0
+        ? [...selected]
+        : (workflow?.steps.map(s => s.id) ?? [])
+      layout.fitToSelection(ids)
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [layout, workflow])
+
+  // B key: save current viewport to the next available bookmark slot (1-9)
+  // 1-9 keys: jump to bookmark slot
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+      if (e.ctrlKey || e.metaKey) return
+
+      if (e.key === 'b' || e.key === 'B') {
+        e.preventDefault()
+        // Find the next available slot (1-9); wrap around if all used
+        let slot = 1
+        for (let i = 1; i <= 9; i++) {
+          if (!bookmarks[i]) { slot = i; break }
+          if (i === 9) slot = 1 // all slots used — overwrite slot 1
+        }
+        setBookmarks(prev => ({
+          ...prev,
+          [slot]: { panX: layout.panX, panY: layout.panY, zoom: layout.zoom },
+        }))
+        showBookmarkToast(`Bookmark ${slot} saved`)
+        return
+      }
+
+      const digit = parseInt(e.key, 10)
+      if (digit >= 1 && digit <= 9) {
+        const bm = bookmarks[digit]
+        if (bm) {
+          e.preventDefault()
+          layout.setPanX(bm.panX)
+          layout.setPanY(bm.panY)
+          layout.setZoom(bm.zoom)
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [layout, bookmarks, showBookmarkToast])
   useEffect(() => {
     if (layout.focusedNodeId && workflow) {
       handleNodeSelect(layout.focusedNodeId)
@@ -2045,6 +2111,31 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           animation: 'canvas-toast-in 0.15s ease-out',
         }}>
           Workflow copied to clipboard ✓
+        </div>
+      )}
+
+      {/* Bookmark toast */}
+      {bookmarkToast && (
+        <div style={{
+          position: 'absolute',
+          bottom: 70,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 50,
+          background: 'var(--accent, #6366f1)',
+          color: '#fff',
+          fontSize: 11,
+          fontWeight: 600,
+          borderRadius: 6,
+          padding: '5px 14px',
+          pointerEvents: 'none',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          boxShadow: '0 4px 16px rgba(99,102,241,0.4)',
+          animation: 'canvas-toast-in 0.15s ease-out',
+          whiteSpace: 'nowrap',
+        }}>
+          {bookmarkToast}
         </div>
       )}
 

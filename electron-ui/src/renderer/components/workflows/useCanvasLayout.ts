@@ -347,6 +347,25 @@ export function useCanvasLayout(
     setPanY(panY)
   }, [workflow, containerRef])
 
+  // --- Smooth zoom animation (used by zoomIn/zoomOut/fitToView/fitToSelection) ---
+  const animateToViewport = useCallback((
+    fromZoom: number, toZoom: number,
+    fromPanX: number, toPanX: number,
+    fromPanY: number, toPanY: number,
+    duration = 150,
+  ) => {
+    const start = performance.now()
+    const raf = (now: number) => {
+      const t = Math.min((now - start) / duration, 1)
+      const ease = 1 - Math.pow(1 - t, 3) // cubic ease-out
+      setZoom(fromZoom + (toZoom - fromZoom) * ease)
+      setPanX(fromPanX + (toPanX - fromPanX) * ease)
+      setPanY(fromPanY + (toPanY - fromPanY) * ease)
+      if (t < 1) requestAnimationFrame(raf)
+    }
+    requestAnimationFrame(raf)
+  }, [])
+
   // Fit to view (manual trigger via keyboard shortcut)
   const fitToView = useCallback(() => {
     if (!workflow || workflow.steps.length === 0 || !containerRef.current) return
@@ -372,11 +391,46 @@ export function useCanvasLayout(
     const newPanY = (ch - contentH * newZoom) / 2 - minY * newZoom + 30 * newZoom
 
     setSmoothTransition(true)
-    setZoom(newZoom)
-    setPanX(newPanX)
-    setPanY(newPanY)
+    animateToViewport(zoom, newZoom, panX, newPanX, panY, newPanY, 250)
     setTimeout(() => setSmoothTransition(false), 350)
-  }, [workflow, containerRef])
+  }, [workflow, containerRef, zoom, panX, panY, animateToViewport])
+
+  // Fit to selection — fits selected node IDs (or all nodes if ids is empty)
+  const fitToSelection = useCallback((ids: string[]) => {
+    if (!containerRef.current) return
+    const positions = ids
+      .map(id => nodePositionsRef.current[id])
+      .filter(Boolean) as NodePosition[]
+
+    if (positions.length === 0) {
+      fitToView()
+      return
+    }
+
+    const container = containerRef.current
+    const cw = container.clientWidth
+    const ch = container.clientHeight
+    const PAD = 60
+
+    const minX = Math.min(...positions.map(p => p.x)) - PAD
+    const minY = Math.min(...positions.map(p => p.y)) - PAD
+    const maxX = Math.max(...positions.map(p => p.x + p.width)) + PAD
+    const maxY = Math.max(...positions.map(p => p.y + p.height)) + PAD
+
+    const contentW = maxX - minX
+    const contentH = maxY - minY
+    const scaleX = cw / contentW
+    const scaleY = ch / contentH
+    const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.min(scaleX, scaleY, 2)))
+
+    // Center the bounding box in the container
+    const newPanX = (cw - contentW * newZoom) / 2 - minX * newZoom
+    const newPanY = (ch - contentH * newZoom) / 2 - minY * newZoom
+
+    setSmoothTransition(true)
+    animateToViewport(zoom, newZoom, panX, newPanX, panY, newPanY, 200)
+    setTimeout(() => setSmoothTransition(false), 350)
+  }, [containerRef, zoom, panX, panY, animateToViewport, fitToView])
 
   // Center at 100% zoom on first render (only if viewport was NOT restored)
   useEffect(() => {
@@ -641,32 +695,28 @@ export function useCanvasLayout(
     }
   }, [containerRef])
 
-  // --- Zoom in/out helpers (zoom toward canvas center) ---
+  // --- Zoom in/out helpers (zoom toward canvas center, with smooth animation) ---
   const zoomIn = useCallback(() => {
     if (!containerRef.current) return
     const rect = containerRef.current.getBoundingClientRect()
     const cx = rect.width / 2
     const cy = rect.height / 2
-    setZoom(prev => {
-      const newZoom = Math.min(MAX_ZOOM, prev + ZOOM_STEP)
-      setPanX(px => cx - (cx - px) * (newZoom / prev))
-      setPanY(py => cy - (cy - py) * (newZoom / prev))
-      return newZoom
-    })
-  }, [containerRef])
+    const newZoom = Math.min(MAX_ZOOM, zoom + ZOOM_STEP)
+    const newPx = cx - (cx - panX) * (newZoom / zoom)
+    const newPy = cy - (cy - panY) * (newZoom / zoom)
+    animateToViewport(zoom, newZoom, panX, newPx, panY, newPy, 150)
+  }, [containerRef, zoom, panX, panY, animateToViewport])
 
   const zoomOut = useCallback(() => {
     if (!containerRef.current) return
     const rect = containerRef.current.getBoundingClientRect()
     const cx = rect.width / 2
     const cy = rect.height / 2
-    setZoom(prev => {
-      const newZoom = Math.max(MIN_ZOOM, prev - ZOOM_STEP)
-      setPanX(px => cx - (cx - px) * (newZoom / prev))
-      setPanY(py => cy - (cy - py) * (newZoom / prev))
-      return newZoom
-    })
-  }, [containerRef])
+    const newZoom = Math.max(MIN_ZOOM, zoom - ZOOM_STEP)
+    const newPx = cx - (cx - panX) * (newZoom / zoom)
+    const newPy = cy - (cy - panY) * (newZoom / zoom)
+    animateToViewport(zoom, newZoom, panX, newPx, panY, newPy, 150)
+  }, [containerRef, zoom, panX, panY, animateToViewport])
 
   // --- Keyboard shortcuts ---
   useEffect(() => {
@@ -773,6 +823,7 @@ export function useCanvasLayout(
 
     // Actions
     fitToView,
+    fitToSelection,
     zoomIn,
     zoomOut,
     handleCollapseAll,
@@ -793,6 +844,7 @@ export function useCanvasLayout(
     startMarquee,
     setPanX,
     setPanY,
+    setZoom,
     updateNodeHeight,
   }
 }
