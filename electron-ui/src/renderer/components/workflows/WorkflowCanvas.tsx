@@ -1194,6 +1194,25 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           }} />
         </div>
       )}
+      {execution.isRunning && execution.activeStepIndex >= 0 && (
+        <div style={{
+          position: 'absolute',
+          top: 3,
+          right: 8,
+          zIndex: 21,
+          fontSize: 9,
+          color: 'var(--accent)',
+          background: 'var(--accent-bg)',
+          border: '1px solid var(--accent-border)',
+          borderRadius: 20,
+          padding: '1px 8px',
+          pointerEvents: 'none',
+          fontVariantNumeric: 'tabular-nums',
+          fontWeight: 600,
+        }}>
+          {execution.activeStepIndex + 1} / {execution.totalSteps}
+        </div>
+      )}
 
       {/* Execution progress bar */}
       <CanvasProgressBar
@@ -1532,12 +1551,14 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           position: 'absolute', top: execution.isRunning || execution.completedCount > 0 ? 60 : 40,
           left: '50%', transform: 'translateX(-50%)',
           zIndex: 20, pointerEvents: 'none',
+          display: 'flex', alignItems: 'center', gap: 8,
           background: 'var(--accent-bg)',
           border: '1px solid var(--accent-border)',
           borderRadius: 4,
           padding: '2px 10px', fontSize: 9, color: 'var(--accent)',
         }}>
           {layout.selectedNodes.size} {t('workflow.nodesSelected')}
+          <span style={{ opacity: 0.7 }}>· Press <kbd style={{ fontSize: 8, background: 'var(--bg-active)', borderRadius: 3, padding: '0 4px', fontFamily: 'monospace' }}>G</kbd> to group</span>
         </div>
       )}
 
@@ -2083,6 +2104,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 { label: 'Steps', value: `${execution.completedCount} / ${execution.totalSteps}` },
                 { label: 'Time', value: totalDurationMs < 1000 ? `${totalDurationMs}ms` : `${(totalDurationMs / 1000).toFixed(1)}s` },
                 { label: 'Output', value: `~${totalOutputWords}w` },
+                { label: 'Speed', value: totalDurationMs > 0 && totalOutputWords > 0 ? `${(totalOutputWords / (totalDurationMs / 1000)).toFixed(1)} w/s` : '—' },
               ].map(({ label, value }) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{label}</span>
@@ -2203,6 +2225,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         stepStatuses={execution.stepStatuses}
         stepOutputs={execution.stepOutputs}
         onClose={() => setShowTimeline(false)}
+        onStepClick={layout.autoPanToNode}
       />
     )}
     </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import type { NodePosition } from './useCanvasLayout'
 
 const MINIMAP_W = 120
@@ -20,6 +20,13 @@ interface MinimapProps {
 export default function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, containerW, containerH, onClickNode, onViewportDrag }: MinimapProps) {
   const vpDragRef = React.useRef<{ mouseX: number; mouseY: number; startPanX: number; startPanY: number } | null>(null)
   const [hoveredNode, setHoveredNode] = useState<string | null>(null)
+
+  // O(1) index lookup — avoid O(n²) indexOf in the render loop
+  const stepIndexMap = useMemo(() => {
+    const m = new Map<string, number>()
+    stepIds.forEach((id, i) => m.set(id, i))
+    return m
+  }, [stepIds])
 
   if (stepIds.length === 0) return null
 
@@ -76,11 +83,11 @@ export default function Minimap({ nodePositions, stepIds, stepStatuses, panX, pa
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid var(--border)',
-        borderRadius: 8,
+        borderRadius: 10,
         overflow: 'hidden',
         width: MINIMAP_W,
         height: MINIMAP_H,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
       }}
       onMouseDown={e => e.stopPropagation()}
       onClick={e => e.stopPropagation()}
@@ -92,8 +99,9 @@ export default function Minimap({ nodePositions, stepIds, stepStatuses, panX, pa
           const st = stepStatuses[id] ?? 'idle'
           const fill = st === 'completed' ? 'var(--success)'
             : st === 'running' ? 'var(--accent)'
+            : st === 'error' ? 'var(--error)'
             : 'var(--text-faint)'
-          const nodeIdx = stepIds.indexOf(id)
+          const nodeIdx = stepIndexMap.get(id) ?? 0
           const rectW = Math.max(2, p.width * scale)
           const rectH = Math.max(2, p.height * scale)
           const rx = (p.x - minX + pad) * scale
@@ -114,7 +122,11 @@ export default function Minimap({ nodePositions, stepIds, stepStatuses, panX, pa
                 strokeWidth={0.5}
                 style={{ cursor: onClickNode ? 'pointer' : 'default', transition: 'fill-opacity 0.15s ease' }}
                 onClick={onClickNode ? (e) => { e.stopPropagation(); onClickNode(id) } : undefined}
-              />
+              >
+                {st === 'running' && (
+                  <animate attributeName="opacity" values="0.7;1;0.7" dur="1.5s" repeatCount="indefinite" />
+                )}
+              </rect>
               {isHovered && rectW > 6 && rectH > 4 && (
                 <foreignObject
                   x={rx - 30}
@@ -156,16 +168,19 @@ export default function Minimap({ nodePositions, stepIds, stepStatuses, panX, pa
             </g>
           )
         })}
-        <rect
-          x={vpX} y={vpY}
-          width={Math.max(4, vpW)} height={Math.max(4, vpH)}
-          fill="var(--bg-hover)"
-          stroke="var(--text-faint)"
-          strokeWidth={0.8}
-          rx={1}
-          style={{ pointerEvents: onViewportDrag ? 'all' : 'none', cursor: onViewportDrag ? 'grab' : 'default' }}
-          onMouseDown={handleVpMouseDown}
-        />
+        {/* Viewport rectangle with glow */}
+        <g style={{ filter: 'drop-shadow(0 0 3px rgba(99,102,241,0.3))' }}>
+          <rect
+            x={vpX} y={vpY}
+            width={Math.max(4, vpW)} height={Math.max(4, vpH)}
+            fill="rgba(99,102,241,0.06)"
+            stroke="rgba(99,102,241,0.5)"
+            strokeWidth={1.5}
+            rx={2}
+            style={{ pointerEvents: onViewportDrag ? 'all' : 'none', cursor: onViewportDrag ? 'grab' : 'default' }}
+            onMouseDown={handleVpMouseDown}
+          />
+        </g>
       </svg>
     </div>
   )

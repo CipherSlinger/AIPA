@@ -80,6 +80,7 @@ function edgeStyleFromSourceStatus(sourceStatus: string | undefined): SourceEdge
     case 'failed':
       return {
         color: 'var(--error)',
+        strokeDasharray: '3 3',
         strokeWidth: 2,
         opacity: 0.8,
         animated: false,
@@ -234,16 +235,25 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
         />
       )}
 
-      {/* P1.4: particle dot flowing along active/running edges */}
+      {/* P1.4: particle dots flowing along active/running edges — dual particle */}
       {(status === 'active' || sourceStatus === 'running') && (
-        <circle r={2.5} fill="var(--accent-muted)" opacity={0.95} style={{ pointerEvents: 'none', filter: 'drop-shadow(0 0 4px var(--accent-muted))' }}>
-          <animateMotion dur="1.8s" repeatCount="indefinite" path={d} />
-        </circle>
+        <>
+          <circle r={2.5} fill="var(--accent-muted)" opacity={0.95} style={{ pointerEvents: 'none', filter: 'drop-shadow(0 0 4px var(--accent-muted))' }}>
+            <animateMotion dur="1.8s" repeatCount="indefinite" path={d} />
+          </circle>
+          <circle r={1.5} fill="var(--accent)" opacity={0.6} style={{ pointerEvents: 'none' }}>
+            <animateMotion dur="1.8s" begin="0.9s" repeatCount="indefinite" path={d} />
+          </circle>
+        </>
       )}
 
       {/* P1.4: connection endpoint dots — always visible at start and end */}
       <circle cx={startX} cy={startY} r={3} fill={srcStyle.color} opacity={0.5} style={{ pointerEvents: 'none' }} />
-      <circle cx={endX} cy={endY} r={3} fill={srcStyle.color} opacity={0.5} style={{ pointerEvents: 'none' }} />
+      <circle cx={endX} cy={endY} r={3} fill={srcStyle.color} opacity={0.5} style={{ pointerEvents: 'none' }}>
+        {(status === 'active' || sourceStatus === 'running') && (
+          <animate attributeName="r" values="3;5;3" dur="1.5s" repeatCount="indefinite" />
+        )}
+      </circle>
 
       {/* B3.4 + Iter 563: Done/success glow — also triggered by sourceStatus */}
       {((status === 'done' || status === 'completed') || (sourceStatus === 'completed' || sourceStatus === 'success' || sourceStatus === 'done')) && !highlighted && (

@@ -1,7 +1,3 @@
-// CanvasTimeline — P4.3: Gantt-style execution timeline panel for WorkflowCanvas
-// Fixed at canvas bottom as a flex row sibling; shows per-step duration bars
-// relative to the longest step (maxDuration approach).
-
 import React, { useMemo } from 'react'
 import { X } from 'lucide-react'
 import type { StepStatus } from './useWorkflowExecution'
@@ -9,10 +5,11 @@ import type { WorkflowStep } from '../../types/app.types'
 
 export interface CanvasTimelineProps {
   steps: WorkflowStep[]
-  stepDurations: Record<string, number>   // stepId -> ms
+  stepDurations: Record<string, number>
   stepStatuses: Record<string, StepStatus>
   stepOutputs: Record<string, string>
   onClose: () => void
+  onStepClick?: (stepId: string) => void
 }
 
 function formatDuration(ms: number): string {
@@ -22,9 +19,9 @@ function formatDuration(ms: number): string {
 
 function getBarColor(status: StepStatus): string {
   switch (status) {
-    case 'completed': return 'var(--color-success, #22c55e)'
-    case 'error':     return 'var(--color-error, #f87171)'
-    case 'running':   return 'var(--accent, #6366f1)'
+    case 'completed': return 'var(--success)'
+    case 'error':     return 'var(--error)'
+    case 'running':   return 'var(--accent)'
     default:          return 'var(--border-strong, #374151)'
   }
 }
@@ -33,10 +30,10 @@ export default function CanvasTimeline({
   steps,
   stepDurations,
   stepStatuses,
-  stepOutputs: _stepOutputs,
+  stepOutputs,
   onClose,
+  onStepClick,
 }: CanvasTimelineProps) {
-  // Filter to steps that have actually run (duration > 0)
   const validSteps = useMemo(
     () => steps.filter(s => (stepDurations[s.id] ?? 0) > 0),
     [steps, stepDurations]
@@ -51,6 +48,20 @@ export default function CanvasTimeline({
     () => validSteps.reduce((sum, s) => sum + stepDurations[s.id], 0),
     [validSteps, stepDurations]
   )
+
+  const totalWords = useMemo(
+    () => Object.values(stepOutputs).reduce((sum, text) => {
+      return sum + (text ? text.trim().split(/\s+/).filter(Boolean).length : 0)
+    }, 0),
+    [stepOutputs]
+  )
+
+  // Pre-build step index map for O(1) lookup
+  const stepIndexMap = useMemo(() => {
+    const m = new Map<string, number>()
+    steps.forEach((s, i) => m.set(s.id, i))
+    return m
+  }, [steps])
 
   return (
     <div
@@ -67,7 +78,7 @@ export default function CanvasTimeline({
         userSelect: 'none',
       }}
     >
-      {/* Title bar — 28px */}
+      {/* Title bar */}
       <div
         style={{
           height: 28,
@@ -82,6 +93,18 @@ export default function CanvasTimeline({
         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
           Execution Timeline
         </span>
+        {totalWords > 0 && (
+          <span style={{
+            fontSize: 10,
+            color: 'var(--text-muted)',
+            background: 'var(--bg-hover)',
+            borderRadius: 8,
+            padding: '1px 6px',
+            border: '1px solid var(--border)',
+          }}>
+            ~{totalWords}w
+          </span>
+        )}
         {totalMs > 0 && (
           <span style={{
             fontSize: 10,
@@ -93,7 +116,7 @@ export default function CanvasTimeline({
             padding: '1px 6px',
             border: '1px solid var(--border)',
           }}>
-            total: {formatDuration(totalMs)}
+            {formatDuration(totalMs)}
           </span>
         )}
         <button
@@ -120,7 +143,7 @@ export default function CanvasTimeline({
         </button>
       </div>
 
-      {/* Gantt chart area — flex-1 */}
+      {/* Gantt chart area */}
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
         {validSteps.length === 0 ? (
           <div style={{
@@ -141,17 +164,25 @@ export default function CanvasTimeline({
               const widthPct = (dur / maxDuration) * 100
               const barColor = getBarColor(status)
               const isRunning = status === 'running'
-              const stepNum = steps.findIndex(s => s.id === step.id) + 1
+              const stepNum = (stepIndexMap.get(step.id) ?? 0) + 1
 
               return (
                 <div
                   key={step.id}
+                  onClick={onStepClick ? () => onStepClick(step.id) : undefined}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     height: 22,
                     gap: 0,
+                    cursor: onStepClick ? 'pointer' : 'default',
+                    borderRadius: 3,
+                    transition: 'background 0.1s ease',
+                    paddingLeft: 2,
+                    paddingRight: 2,
                   }}
+                  onMouseEnter={e => { if (onStepClick) (e.currentTarget as HTMLElement).style.background = 'var(--bg-hover)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                 >
                   {/* Left label column — fixed 80px */}
                   <div
@@ -193,7 +224,6 @@ export default function CanvasTimeline({
 
                   {/* Bar track */}
                   <div style={{ flex: 1, position: 'relative', height: 10, background: 'var(--bg-hover)', borderRadius: 4, overflow: 'hidden' }}>
-                    {/* Actual duration bar */}
                     <div
                       style={{
                         position: 'absolute',
@@ -208,7 +238,6 @@ export default function CanvasTimeline({
                         minWidth: 4,
                       }}
                     />
-                    {/* Running shimmer */}
                     {isRunning && (
                       <div
                         style={{
@@ -222,7 +251,7 @@ export default function CanvasTimeline({
                     )}
                   </div>
 
-                  {/* Duration label — right side */}
+                  {/* Duration label */}
                   <span style={{
                     fontSize: 10,
                     color: 'var(--text-muted)',

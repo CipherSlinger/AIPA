@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react'
-import { Check, Loader, ChevronDown, Copy, AlertCircle, GripVertical, RefreshCw, Trash2, Play, PlusCircle, ChevronUp, Star, GitBranch, Layers, MessageSquare } from 'lucide-react'
+import { Check, ChevronDown, Copy, AlertCircle, GripVertical, RefreshCw, Trash2, Play, PlusCircle, ChevronUp, Star, GitBranch, Layers, MessageSquare } from 'lucide-react'
 import { WorkflowStep } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { getPresetStepText } from './workflowConstants'
@@ -104,6 +104,9 @@ export default function CanvasNode({
   const [pinned, setPinned] = useState(() => {
     try { return localStorage.getItem(`aipa:step-pin:${step.id}`) === '1' } catch { return false }
   })
+  const [errorExpanded, setErrorExpanded] = useState(false)
+  const [streamingCps, setStreamingCps] = useState<number | null>(null)
+  const streamCpsRef = useRef<{ count: number; timestamp: number }>({ count: 0, timestamp: Date.now() })
   const prevRef = useRef<string|undefined>(undefined)
   const titleRef = useRef<HTMLInputElement>(null)
   const promptRef = useRef<HTMLTextAreaElement>(null)
@@ -127,11 +130,21 @@ export default function CanvasNode({
     clearTimeout(copiedPromptTimerRef.current ?? undefined)
     clearTimeout(copiedOutTimerRef.current ?? undefined)
   }, [])
-  useEffect(() => { if (status !== 'completed') setOutputExpanded(false) }, [status])
+  useEffect(() => { if (status !== 'completed') setOutputExpanded(false); if (status !== 'error') setErrorExpanded(false) }, [status])
   useEffect(() => {
     if (prevRef.current === 'running' && status === 'completed') { setJustDone(true); clearTimeout(justDoneTimerRef.current ?? undefined); justDoneTimerRef.current = setTimeout(() => setJustDone(false), 500) }
     prevRef.current = status
   }, [status])
+  useEffect(() => {
+    if (status !== 'running' || !streamingText) { setStreamingCps(null); streamCpsRef.current = { count: 0, timestamp: Date.now() }; return }
+    const len = streamingText.length
+    const now = Date.now()
+    const elapsed = (now - streamCpsRef.current.timestamp) / 1000
+    if (elapsed > 0.5 && len > streamCpsRef.current.count) {
+      setStreamingCps(Math.round((len - streamCpsRef.current.count) / elapsed))
+    }
+    streamCpsRef.current = { count: len, timestamp: now }
+  }, [streamingText, status])
   useEffect(() => { if (editTitle && titleRef.current) { titleRef.current.focus(); titleRef.current.select() } }, [editTitle])
   useEffect(() => { if (editPrompt && promptRef.current) { promptRef.current.focus(); promptRef.current.select() } }, [editPrompt])
   useEffect(() => {
@@ -168,7 +181,7 @@ export default function CanvasNode({
   const h = collapsed ? NODE_COLLAPSED_HEIGHT : undefined
   const mh = collapsed ? undefined : NODE_MIN_HEIGHT
 
-  const typeIcon = nodeType === 'condition' ? <GitBranch size={10} /> : nodeType === 'parallel' ? <Layers size={10} /> : null
+  const typeIcon = nodeType === 'condition' ? <GitBranch size={11} /> : nodeType === 'parallel' ? <Layers size={11} /> : null
   const typeLabel = nodeType === 'condition' ? 'IF' : nodeType === 'parallel' ? 'PAR' : ''
 
   return (
@@ -246,7 +259,7 @@ export default function CanvasNode({
                   display: 'inline-flex', alignItems: 'center', gap: 2,
                   fontSize: 8, fontWeight: 700, letterSpacing: '.04em',
                   color: typeColor, background: TYPE_BG[nodeType] || TYPE_BG.prompt,
-                  borderRadius: 3, padding: '1px 4px', flexShrink: 0,
+                  borderRadius: 4, padding: '2px 5px', flexShrink: 0,
                 }}>
                   {typeIcon}{typeLabel}
                 </span>
@@ -297,25 +310,43 @@ export default function CanvasNode({
 
               {status === 'completed' && outputText ? (
                 <div style={{ fontSize: 9, color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                  <div style={{
-                    whiteSpace: outputExpanded ? 'pre-wrap' : undefined,
-                    wordBreak: 'break-word',
-                    display: outputExpanded ? 'block' : '-webkit-box',
-                    WebkitLineClamp: outputExpanded ? undefined : 2,
-                    WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                  }}>
-                    {outputExpanded ? outputText.slice(0, 2000) : outputText.slice(0, 80)}
-                    {!outputExpanded && outputText.length > 80 && '…'}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                    <span style={{ fontSize: 8, color: 'var(--text-muted)', background: 'var(--bg-hover)', borderRadius: 4, padding: '1px 6px', flexShrink: 0 }}>
+                      {outputText.trim().split(/\s+/).filter(Boolean).length}w · {outputText.length >= 1000 ? `${(outputText.length / 1000).toFixed(1)}k` : outputText.length} chars
+                    </span>
                   </div>
-                  {outputText.length > 80 && (
-                    <button onMouseDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); setOutputExpanded(v => !v) }}
-                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 9, color: 'var(--accent-muted)', marginTop: 1 }}>
-                      {outputExpanded ? t('canvas.showLess') : t('canvas.showMore')}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        whiteSpace: outputExpanded ? 'pre-wrap' : undefined,
+                        wordBreak: 'break-word',
+                        display: outputExpanded ? 'block' : '-webkit-box',
+                        WebkitLineClamp: outputExpanded ? undefined : 2,
+                        WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                      }}>
+                        {outputExpanded ? outputText.slice(0, 2000) : outputText.slice(0, 80)}
+                        {!outputExpanded && outputText.length > 80 && '…'}
+                      </div>
+                      {outputText.length > 80 && (
+                        <button onMouseDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); setOutputExpanded(v => !v) }}
+                          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 9, color: 'var(--accent-muted)', marginTop: 1 }}>
+                          {outputExpanded ? t('canvas.showLess') : t('canvas.showMore')}
+                        </button>
+                      )}
+                    </div>
+                    <button onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(outputText).then(() => { setCopiedOut(true); clearTimeout(copiedOutTimerRef.current ?? undefined); copiedOutTimerRef.current = setTimeout(() => setCopiedOut(false), 1000) }) }}
+                      onMouseDown={e => e.stopPropagation()}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: copiedOut ? 'var(--success)' : 'var(--text-muted)', padding: 1, flexShrink: 0, opacity: hovered ? 0.7 : 0, transition: 'opacity 0.15s' }}>
+                      {copiedOut ? <Check size={8} /> : <Copy size={8} />}
                     </button>
-                  )}
+                  </div>
                 </div>
               ) : status === 'running' && streamingText ? (
                 <div ref={streamRef} style={{ fontSize: 9, color: 'var(--accent-muted)', lineHeight: 1.4, overflowY: 'auto', maxHeight: 120, fontStyle: 'italic' }}>
+                  <div style={{ height: 1, background: 'var(--accent)', opacity: 0.4, marginBottom: 3, borderRadius: 1, animation: 'canvas-node-bar 1.2s linear infinite', width: '30%' }} />
+                  {streamingCps !== null && streamingCps > 0 && (
+                    <span style={{ fontSize: 7, color: 'var(--accent-muted)', fontFamily: 'monospace', display: 'block', marginBottom: 2 }}>{streamingCps} c/s</span>
+                  )}
                   {streamingText}
                   <div style={{ display: 'flex', gap: 3, marginTop: 2 }}>
                     {[0,1,2].map(i => <div key={i} style={{ width: 3.5, height: 3.5, borderRadius: '50%', background: 'var(--accent)', opacity: 0.5, animation: `canvas-node-dots 1.2s ease-in-out ${i*.2}s infinite` }} />)}
@@ -365,10 +396,20 @@ export default function CanvasNode({
 
               {/* Error */}
               {status === 'error' && outputText && (
-                <div style={{ marginTop: 3, paddingLeft: 5, borderLeft: '2px solid rgba(248,113,113,0.3)' }}>
-                  <div style={{ fontSize: 8, color: 'var(--error)', opacity: .7, lineHeight: 1.3, display: 'flex', alignItems: 'flex-start', gap: 3 }}>
-                    <AlertCircle size={8} style={{ flexShrink: 0 }} />
-                    <span>{outputText.slice(0, 50)}</span>
+                <div style={{ marginTop: 3 }}>
+                  <div style={{ paddingLeft: 5, borderLeft: '2px solid rgba(248,113,113,0.3)', background: errorExpanded ? 'rgba(248,113,113,0.04)' : 'transparent', borderRadius: '0 3px 3px 0', padding: '4px 6px 4px 5px' }}>
+                    <div style={{ fontSize: 8, color: 'var(--error)', opacity: .7, lineHeight: 1.3, display: 'flex', alignItems: 'flex-start', gap: 3 }}>
+                      <AlertCircle size={8} style={{ flexShrink: 0, marginTop: 1 }} />
+                      <span style={{ wordBreak: 'break-word', overflowY: errorExpanded ? 'auto' : 'hidden', maxHeight: errorExpanded ? 120 : undefined, display: errorExpanded ? 'block' : '-webkit-box', WebkitLineClamp: errorExpanded ? undefined : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {errorExpanded ? outputText.slice(0, 500) : outputText.slice(0, 50)}
+                      </span>
+                    </div>
+                    {outputText.length > 50 && (
+                      <button onClick={e => { e.stopPropagation(); setErrorExpanded(v => !v) }} onMouseDown={e => e.stopPropagation()}
+                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 8, color: 'rgba(248,113,113,0.6)', marginTop: 2 }}>
+                        {errorExpanded ? '▴ less' : '▾ more'}
+                      </button>
+                    )}
                   </div>
                   {onRetryStep && (
                     <button onClick={e => { e.stopPropagation(); onRetryStep!() }}
@@ -388,7 +429,7 @@ export default function CanvasNode({
                 <Btn onClick={e => { e.stopPropagation(); setShowNote(v => !v) }} style={{ fontSize: 9 }}>📝</Btn>
                 <span style={{ flex: 1 }} />
                 {durationMs !== undefined && <span style={{ fontSize: 7, color: 'var(--text-muted)', fontFamily: 'monospace', opacity: .4 }}>{durationMs < 1000 ? `${durationMs}ms` : `${(durationMs/1000).toFixed(1)}s`}</span>}
-                {status === 'running' && liveElapsedMs && Math.floor(liveElapsedMs/1000) >= 1 && <span style={{ fontSize: 7, color: 'var(--accent-muted)', fontFamily: 'monospace' }}>{Math.floor(liveElapsedMs/1000)}s</span>}
+                {status === 'running' && liveElapsedMs && Math.floor(liveElapsedMs/1000) >= 1 && <span style={{ fontSize: 7, color: 'var(--accent-muted)', fontFamily: 'monospace' }}>{liveElapsedMs >= 60000 ? `${Math.floor(liveElapsedMs/60000)}m ${Math.floor(liveElapsedMs/1000)%60}s` : `${(liveElapsedMs/1000).toFixed(1)}s`}</span>}
               </div>
             )}
 
@@ -421,6 +462,7 @@ export default function CanvasNode({
         <div style={{ position: 'absolute', left: -4, top: '50%', transform: 'translateY(-50%)', width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-primary)', border: '1.5px solid var(--border-strong)', opacity: hovered && !selected ? .8 : .35, transition: 'all .15s ease', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', left: '50%', bottom: -4, transform: 'translateX(-50%)', width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-primary)', border: '1.5px solid var(--border-strong)', opacity: hovered && !selected ? .8 : .35, transition: 'all .15s ease', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', right: -4, top: '50%', transform: 'translateY(-50%)', width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-primary)', border: '1.5px solid var(--border-strong)', opacity: hovered && !selected ? .8 : .35, transition: 'all .15s ease', pointerEvents: 'none' }} />
+        {pinned && <span style={{ position: 'absolute', top: 3, right: 20, fontSize: 8, color: '#f59e0b', pointerEvents: 'none', lineHeight: 1 }}>★</span>}
       </div>
 
       {ctxMenu && <CtxMenu x={ctxMenu.x} y={ctxMenu.y} collapsed={collapsed} hasOutput={!!outputText} status={status}
