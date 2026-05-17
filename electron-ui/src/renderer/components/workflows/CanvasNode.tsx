@@ -47,6 +47,8 @@ interface CanvasNodeProps {
   onMoveUp?: () => void
   onMoveDown?: () => void
   onRetryStep?: () => void
+  onColorChange?: (color: string) => void
+  onSelectSameType?: () => void
   staggerDelay?: number
 }
 
@@ -55,6 +57,9 @@ export const NODE_WIDTH = 220
 export const NODE_MIN_HEIGHT = 60
 export const NODE_COLLAPSED_HEIGHT = 26
 export const NODE_GAP_Y = 120
+
+// Color palette for node accent color picker
+const COLOR_PALETTE = ['', '#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#a78bfa', '#06b6d4'] as const
 
 // Type accent colors
 const TYPE_COLORS: Record<string, string> = {
@@ -87,7 +92,7 @@ export default function CanvasNode({
   onSelect, onDragStart, onToggleCollapse, onTitleChange, onMultiSelect,
   onReorderDragStart, onDeleteNode, onInsertBefore, onInsertAfter,
   onRetry, onRunFromStep, onPromptChange, onHeightChange, onDuplicate,
-  onMoveUp, onMoveDown, onRetryStep,
+  onMoveUp, onMoveDown, onRetryStep, onColorChange, onSelectSameType,
 }: CanvasNodeProps) {
   const t = useT()
   const [ctxMenu, setCtxMenu] = useState<{x:number;y:number}|null>(null)
@@ -171,7 +176,7 @@ export default function CanvasNode({
   const active = selected || status === 'running'
 
   const border = `1px solid ${selected ? 'rgba(99,102,241,.45)' : status === 'completed' ? 'rgba(34,197,94,.2)' : status === 'error' ? 'rgba(239,68,68,.2)' : 'var(--border)'}`
-  const borderLeft = `3px solid ${typeColor}`
+  const borderLeft = `3px solid ${step.nodeColor ? step.nodeColor : typeColor}`
   const shadow = justDone ? '0 0 0 2px rgba(34,197,94,.4), 0 4px 16px rgba(34,197,94,.12)'
     : highlighted ? '0 0 0 1.5px rgba(99,102,241,.35), 0 2px 8px rgba(99,102,241,.08)'
     : selected ? '0 0 0 1.5px rgba(99,102,241,.3), 0 4px 16px rgba(99,102,241,.08)'
@@ -234,7 +239,7 @@ export default function CanvasNode({
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%', overflow: 'hidden', paddingRight: 16 }}>
             <div style={{
               width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
-              background: statColor,
+              background: step.nodeColor && status === 'idle' ? step.nodeColor : statColor,
               ...(status === 'running' ? { animation: 'spin 1s linear infinite', width: 6, height: 6, borderRadius: 2 } : {}),
             }} />
             <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
@@ -250,7 +255,7 @@ export default function CanvasNode({
               {/* Status dot */}
               <div style={{
                 width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-                background: statColor,
+                background: step.nodeColor && status === 'idle' ? step.nodeColor : statColor,
                 ...(status === 'running' ? { animation: 'spin 1s linear infinite', borderRadius: 1.5 } : {}),
               }} />
               {/* Type badge */}
@@ -385,7 +390,7 @@ export default function CanvasNode({
                 </div>
               )}
 
-              {/* Typing dots */}
+              {/* Typing dots — shown when running (inside streaming block or standalone) */}
               {status === 'running' && !streamingText && (
                 <div style={{ display: 'flex', gap: 3, marginTop: 2 }}>
                   {[0,1,2].map(i => <div key={i} style={{ width: 3.5, height: 3.5, borderRadius: '50%', background: 'var(--accent)', opacity: 0.5, animation: `canvas-node-dots 1.2s ease-in-out ${i*.2}s infinite` }} />)}
@@ -425,6 +430,24 @@ export default function CanvasNode({
                 {onDuplicate && <Btn onClick={e => { e.stopPropagation(); onDuplicate!(step.id) }}><Copy size={9} /></Btn>}
                 <Btn onClick={e => { e.stopPropagation(); togglePin() }} style={{ color: pinned ? '#f59e0b' : undefined }}>{pinned ? <Star size={9} fill="#f59e0b" /> : <Star size={9} />}</Btn>
                 <Btn onClick={e => { e.stopPropagation(); setShowNote(v => !v) }} style={{ fontSize: 9 }}>📝</Btn>
+                {hovered && onColorChange && (
+                  <div style={{ display: 'flex', gap: 2, alignItems: 'center', marginLeft: 2 }} onMouseDown={e => e.stopPropagation()}>
+                    {COLOR_PALETTE.map(c => (
+                      <div
+                        key={c || 'default'}
+                        onClick={e => { e.stopPropagation(); onColorChange(c) }}
+                        style={{
+                          width: 8, height: 8, borderRadius: '50%',
+                          background: c || 'var(--bg-hover)',
+                          border: `1px solid ${step.nodeColor === (c || undefined) ? 'var(--text-primary)' : 'var(--border)'}`,
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                        }}
+                        title={c ? c : 'Default'}
+                      />
+                    ))}
+                  </div>
+                )}
                 <span style={{ flex: 1 }} />
                 {durationMs !== undefined && <span style={{ fontSize: 7, color: 'var(--text-muted)', fontFamily: 'monospace', opacity: .4 }}>{durationMs < 1000 ? `${durationMs}ms` : `${(durationMs/1000).toFixed(1)}s`}</span>}
                 {status === 'running' && liveElapsedMs && liveElapsedMs >= 1000 && <span style={{ fontSize: 7, color: 'var(--accent-muted)', fontFamily: 'monospace' }}>{formatDuration(liveElapsedMs)}</span>}

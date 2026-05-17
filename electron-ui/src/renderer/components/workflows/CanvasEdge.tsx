@@ -31,6 +31,7 @@ interface CanvasEdgeProps {
   sourceStepIndex?: number                     // tooltip: source step number
   targetStepIndex?: number                     // tooltip: target step number
   label?: string                               // condition/branch label shown always at midpoint
+  outputPreview?: string                       // source node output — sliced to 60 chars only when tooltip is visible
 }
 
 function formatOutputLength(n: number): string {
@@ -107,7 +108,7 @@ function edgeStyleFromSourceStatus(sourceStatus: string | undefined): SourceEdge
   }
 }
 
-export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, layoutDirection = 'vertical', onHoverChange, highlighted, onAddBetween, onDelete, outputLength, durationMs, sourceStepIndex, targetStepIndex, label }: CanvasEdgeProps) {
+export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, layoutDirection = 'vertical', onHoverChange, highlighted, onAddBetween, onDelete, outputLength, durationMs, sourceStepIndex, targetStepIndex, label, outputPreview }: CanvasEdgeProps) {
   const [isHoveredLocally, setIsHoveredLocally] = useState(false)
   // Iter 563: full source-status-driven style replaces the old binary isRunningFromSource approach
   const srcStyle = edgeStyleFromSourceStatus(sourceStatus)
@@ -403,13 +404,13 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
         )
       })()}
 
-      {/* Hover tooltip at midpoint — shows source → target step numbers */}
+      {/* Hover tooltip at midpoint — shows source → target step numbers + output preview */}
       {isHoveredLocally && (sourceStepIndex !== undefined || targetStepIndex !== undefined) && (
         <foreignObject
-          x={midX - 60}
-          y={label ? midY + 4 : midY - 16}
-          width={120}
-          height={32}
+          x={midX - 80}
+          y={label ? midY + 4 : midY - 28}
+          width={160}
+          height={outputPreview ? 52 : 32}
           style={{ overflow: 'visible', pointerEvents: 'none' }}
         >
           <div style={{
@@ -418,7 +419,7 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
             WebkitBackdropFilter: 'blur(12px)',
             border: '1px solid var(--border)',
             borderRadius: 6,
-            padding: '2px 8px',
+            padding: '3px 8px',
             fontSize: 11,
             color: 'var(--text-secondary)',
             textAlign: 'center',
@@ -426,6 +427,11 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
             boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
           }}>
             {sourceStepIndex !== undefined ? `Step ${sourceStepIndex + 1}` : ''} → {targetStepIndex !== undefined ? `Step ${targetStepIndex + 1}` : ''}
+            {outputPreview && (
+              <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left' }}>
+                {outputPreview.slice(0, 60)}
+              </div>
+            )}
           </div>
         </foreignObject>
       )}

@@ -268,7 +268,7 @@ export interface MemoryItem {
   source?: string         // optional: which session it came from
 }
 
-export type WorkflowNodeType = 'prompt' | 'condition' | 'parallel'
+export type WorkflowNodeType = 'prompt' | 'condition' | 'parallel' | 'note'
 
 export interface WorkflowStep {
   id: string              // 'step-' + timestamp + random
@@ -281,6 +281,9 @@ export interface WorkflowStep {
   canvasPos?: { x: number; y: number }   // user-dragged position override
   groupId?: string        // P4.1: group membership — steps sharing a groupId are visually grouped
   groupLabel?: string     // P4.1: display label for the group (only meaningful on first step of group)
+  nodeColor?: string      // user-assigned accent color for left border / status dot (CSS color string)
+  noteColor?: 'yellow' | 'blue' | 'green' | 'pink' | 'purple'  // sticky note accent color (for nodeType='note')
+  locked?: boolean        // if true, node cannot be dragged on the canvas
 }
 
 export interface Workflow {

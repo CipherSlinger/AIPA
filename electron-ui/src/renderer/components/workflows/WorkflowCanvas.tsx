@@ -214,6 +214,12 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   const showShortcutsRef = useRef(false)
   useEffect(() => { showShortcutsRef.current = showShortcuts }, [showShortcuts])
 
+  // Presentation mode (P key)
+  const [presentationMode, setPresentationMode] = useState(false)
+  const [presentationIdx, setPresentationIdx] = useState(0)
+  const presentationModeRef = useRef(false)
+  useEffect(() => { presentationModeRef.current = presentationMode }, [presentationMode])
+
   // P4.3: timeline panel
   const [showTimeline, setShowTimeline] = useState(false)
 
@@ -587,6 +593,33 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         }))
         undoRedo.replaceSteps([...workflow.steps, ...pasted])
       }
+
+      // Ctrl+A: select all nodes
+      if ((e.key === 'a' || e.key === 'A') && isMod && !e.shiftKey) {
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+        e.preventDefault()
+        if (workflow) {
+          layout.clearSelection()
+          workflow.steps.forEach(s => layout.selectNode(s.id, true))
+        }
+        return
+      }
+
+      // Ctrl+I: invert selection
+      if ((e.key === 'i' || e.key === 'I') && isMod && !e.shiftKey) {
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+        e.preventDefault()
+        if (workflow) {
+          const currentSelected = layout.selectedNodes
+          layout.clearSelection()
+          workflow.steps
+            .filter(s => !currentSelected.has(s.id))
+            .forEach(s => layout.selectNode(s.id, true))
+        }
+        return
+      }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
@@ -645,6 +678,54 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [])
+
+  // P key — toggle presentation mode
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key !== 'p' && e.key !== 'P') return
+      if (e.ctrlKey || e.metaKey) return
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+      e.preventDefault()
+      if (presentationModeRef.current) {
+        setPresentationMode(false)
+      } else {
+        setPresentationIdx(0)
+        setPresentationMode(true)
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [])
+
+  // Arrow keys during presentation mode — advance/go back/exit
+  useEffect(() => {
+    if (!presentationMode || !workflow) return
+    const steps = workflow.steps
+    // Auto-pan to current node on enter
+    if (steps[presentationIdx]) layout.autoPanToNode(steps[presentationIdx].id)
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault()
+        setPresentationIdx(prev => {
+          const next = Math.min(prev + 1, steps.length - 1)
+          if (steps[next]) layout.autoPanToNode(steps[next].id)
+          return next
+        })
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        setPresentationIdx(prev => {
+          const next = Math.max(prev - 1, 0)
+          if (steps[next]) layout.autoPanToNode(steps[next].id)
+          return next
+        })
+      } else if (e.key === 'Escape') {
+        setPresentationMode(false)
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [presentationMode, presentationIdx, workflow, layout])
 
   // P4.1: G key — group/ungroup multi-selected nodes
   useEffect(() => {
@@ -978,6 +1059,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   const viewBottom = viewTop + layout.containerSize.h / layout.zoom
 
   const totalSteps = workflow?.steps.length ?? 0
+
+  // Feature 1: Execution path tracing — show animated overlay when all steps complete
+  const showExecutionPath = execution.completedCount === execution.totalSteps &&
+    execution.totalSteps > 0 && !execution.isRunning
 
   const totalDurationMs = workflow
     ? workflow.steps.reduce((sum, step) => sum + (execution.stepDurations[step.id] ?? 0), 0)
@@ -1375,14 +1460,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
 
       {/* Dot grid background — moves with pan/zoom */}
       <svg
-        style={{
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0 }}
       >
         <defs>
           <pattern
@@ -1662,29 +1740,72 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             const edgeKey = `${prevStep.id}:${step.id}`
             // D8: highlight edge if hovered, and nodes connected to hovered edge
             const isHighlighted = hoveredEdgeKey === edgeKey
+
+            // Feature 1: Execution path overlay bezier — computed once per edge, rendered alongside CanvasEdge
+            let execOverlay: React.ReactNode = null
+            if (showExecutionPath && srcStatus === 'completed') {
+              let execPathD: string
+              if (layout.layoutDirection === 'horizontal') {
+                const startX = fromPos.x + fromPos.width
+                const startY = fromPos.y + fromPos.height / 2
+                const endX = toPos.x
+                const endY = toPos.y + toPos.height / 2
+                const cpX1 = startX + (endX - startX) * 0.4
+                const cpX2 = endX - (endX - startX) * 0.4
+                execPathD = `M ${startX} ${startY} C ${cpX1} ${startY}, ${cpX2} ${endY}, ${endX} ${endY}`
+              } else {
+                const startX = fromPos.x + fromPos.width / 2
+                const startY = fromPos.y + fromPos.height
+                const endX = toPos.x + toPos.width / 2
+                const endY = toPos.y
+                const cpY1 = startY + (endY - startY) * 0.4
+                const cpY2 = endY - (endY - startY) * 0.4
+                execPathD = `M ${startX} ${startY} C ${startX} ${cpY1}, ${endX} ${cpY2}, ${endX} ${endY}`
+              }
+              execOverlay = (
+                <path
+                  key={`exec-path-${prevStep.id}-${step.id}`}
+                  d={execPathD}
+                  fill="none"
+                  stroke="var(--success)"
+                  strokeWidth={3}
+                  strokeOpacity={0.25}
+                  strokeDasharray="6 4"
+                  style={{
+                    pointerEvents: 'none',
+                    animation: 'canvas-edge-dash-flow 2s linear infinite',
+                    filter: 'drop-shadow(0 0 4px rgba(74,222,128,0.4))',
+                  }}
+                />
+              )
+            }
+
             return (
-              <CanvasEdge
-                key={`edge-${prevStep.id}-${step.id}`}
-                from={fromPos}
-                to={toPos}
-                status={edgeStatus}
-                sourceStatus={srcStatus}
-                layoutDirection={layout.layoutDirection}
-                onHoverChange={(hovered) => setHoveredEdgeKey(hovered ? edgeKey : null)}
-                highlighted={isHighlighted}
-                // Direction 4: insert step between two existing steps
-                onAddBetween={onInsertBetween ? () => {
-                  onInsertBetween(prevStep.id, step.id)
-                } : undefined}
-                // Iter 542: delete edge — removes the target step from the workflow
-                onDelete={onDeleteSteps && !execution.isRunning ? () => onDeleteSteps([step.id]) : undefined}
-                // Direction 4: pass output length and duration from previous step
-                outputLength={execution.stepOutputs[prevStep.id]?.length}
-                durationMs={execution.stepDurations[prevStep.id]}
-                sourceStepIndex={idx - 1}
-                targetStepIndex={idx}
-                label={prevStep.condition ? `if: ${prevStep.condition.slice(0, 20)}` : undefined}
-              />
+              <React.Fragment key={`edge-group-${prevStep.id}-${step.id}`}>
+                <CanvasEdge
+                  from={fromPos}
+                  to={toPos}
+                  status={edgeStatus}
+                  sourceStatus={srcStatus}
+                  layoutDirection={layout.layoutDirection}
+                  onHoverChange={(hovered) => setHoveredEdgeKey(hovered ? edgeKey : null)}
+                  highlighted={isHighlighted}
+                  // Direction 4: insert step between two existing steps
+                  onAddBetween={onInsertBetween ? () => {
+                    onInsertBetween(prevStep.id, step.id)
+                  } : undefined}
+                  // Iter 542: delete edge — removes the target step from the workflow
+                  onDelete={onDeleteSteps && !execution.isRunning ? () => onDeleteSteps([step.id]) : undefined}
+                  // Direction 4: pass output length and duration from previous step
+                  outputLength={execution.stepOutputs[prevStep.id]?.length}
+                  durationMs={execution.stepDurations[prevStep.id]}
+                  sourceStepIndex={idx - 1}
+                  targetStepIndex={idx}
+                  label={prevStep.condition ? `if: ${prevStep.condition.slice(0, 20)}` : undefined}
+                  outputPreview={execution.stepOutputs[prevStep.id] || undefined}
+                />
+                {execOverlay}
+              </React.Fragment>
             )
           })}
         </g>
@@ -1791,14 +1912,17 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               collapsed={layout.collapsedNodes.has(step.id)}
               outputText={historyStepOutputs ? (historyStepOutputs[step.id] ?? execution.stepOutputs[step.id]) : execution.stepOutputs[step.id]}
               dimmed={
-                (effectiveHighlightStepIds !== null && effectiveHighlightStepIds !== undefined && !effectiveHighlightStepIds.has(step.id)) ||
-                (reorderDrag !== null && reorderDrag.stepId === step.id)
+                presentationMode
+                  ? workflow.steps[presentationIdx]?.id !== step.id
+                  : (effectiveHighlightStepIds !== null && effectiveHighlightStepIds !== undefined && !effectiveHighlightStepIds.has(step.id)) ||
+                    (reorderDrag !== null && reorderDrag.stepId === step.id)
               }
               highlighted={
-                searchQuery.trim().length > 0 &&
+                (presentationMode && workflow.steps[presentationIdx]?.id === step.id) ||
+                (searchQuery.trim().length > 0 &&
                 effectiveHighlightStepIds !== null &&
                 effectiveHighlightStepIds !== undefined &&
-                effectiveHighlightStepIds.has(step.id)
+                effectiveHighlightStepIds.has(step.id))
               }
               durationMs={historyStepDurations ? (historyStepDurations[step.id] ?? execution.stepDurations[step.id]) : execution.stepDurations[step.id]}
               isFirst={idx === 0}
@@ -1843,6 +1967,13 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               onRetryStep={onRetryStep && execution.stepStatuses[step.id] === 'error' && !execution.isRunning ? () => onRetryStep(step.id) : undefined}
               onRunFromStep={!execution.isRunning ? () => handleRunFromStep(idx) : undefined}
               onHeightChange={layout.updateNodeHeight}
+              onSelectSameType={onWorkflowUpdate ? () => {
+                const thisType = step.nodeType || 'prompt'
+                layout.clearSelection()
+                workflow.steps
+                  .filter(s => (s.nodeType || 'prompt') === thisType)
+                  .forEach(s => layout.selectNode(s.id, true))
+              } : undefined}
               onDuplicate={onWorkflowUpdate ? (stepId) => {
                 const srcIdx = workflow.steps.findIndex(s => s.id === stepId)
                 if (srcIdx === -1) return
@@ -1871,6 +2002,12 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                 const steps = [...workflow.steps]
                 ;[steps[idx], steps[idx + 1]] = [steps[idx + 1], steps[idx]]
                 onWorkflowUpdate({ ...workflow, steps })
+              } : undefined}
+              onColorChange={onWorkflowUpdate ? (color: string) => {
+                const updated = workflow.steps.map(s =>
+                  s.id === step.id ? { ...s, nodeColor: color || undefined } : s
+                )
+                onWorkflowUpdate({ ...workflow, steps: updated, updatedAt: Date.now() })
               } : undefined}
             />
             </div>
