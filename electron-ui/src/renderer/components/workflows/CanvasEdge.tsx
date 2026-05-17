@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, memo } from 'react'
+import { truncate } from '../../utils/stringUtils'
 
 // D8: edge hover highlights related nodes
 type EdgeStatus = 'idle' | 'active' | 'done' | 'running' | 'completed' | 'error'
@@ -42,6 +43,21 @@ function formatOutputLength(n: number): string {
 function formatDuration(ms: number): string {
   if (ms >= 1000) return `${(ms / 1000).toFixed(1)}s`
   return `${ms}ms`
+}
+
+type Rect = { x: number; y: number; width: number; height: number }
+
+export function buildBezierPath(from: Rect, to: Rect, layoutDirection: 'vertical' | 'horizontal'): string {
+  if (layoutDirection === 'horizontal') {
+    const sx = from.x + from.width, sy = from.y + from.height / 2
+    const ex = to.x, ey = to.y + to.height / 2
+    const cpX1 = sx + (ex - sx) * 0.4, cpX2 = ex - (ex - sx) * 0.4
+    return `M ${sx} ${sy} C ${cpX1} ${sy}, ${cpX2} ${ey}, ${ex} ${ey}`
+  }
+  const sx = from.x + from.width / 2, sy = from.y + from.height
+  const ex = to.x + to.width / 2, ey = to.y
+  const cpY1 = sy + (ey - sy) * 0.4, cpY2 = ey - (ey - sy) * 0.4
+  return `M ${sx} ${sy} C ${sx} ${cpY1}, ${ex} ${cpY2}, ${ex} ${ey}`
 }
 
 // Iter 563: derive edge stroke style from sourceStatus for full visual differentiation
@@ -108,35 +124,18 @@ function edgeStyleFromSourceStatus(sourceStatus: string | undefined): SourceEdge
   }
 }
 
-export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, layoutDirection = 'vertical', onHoverChange, highlighted, onAddBetween, onDelete, outputLength, durationMs, sourceStepIndex, targetStepIndex, label, outputPreview }: CanvasEdgeProps) {
+const CanvasEdge = memo(function CanvasEdge({ from, to, status = 'idle', sourceStatus, layoutDirection = 'vertical', onHoverChange, highlighted, onAddBetween, onDelete, outputLength, durationMs, sourceStepIndex, targetStepIndex, label, outputPreview }: CanvasEdgeProps) {
   const [isHoveredLocally, setIsHoveredLocally] = useState(false)
   // Iter 563: full source-status-driven style replaces the old binary isRunningFromSource approach
   const srcStyle = edgeStyleFromSourceStatus(sourceStatus)
 
-  let startX: number, startY: number, endX: number, endY: number, d: string
-  let midX: number, midY: number
-
-  if (layoutDirection === 'horizontal') {
-    startX = from.x + from.width
-    startY = from.y + from.height / 2
-    endX = to.x
-    endY = to.y + to.height / 2
-    midX = (startX + endX) / 2
-    midY = (startY + endY) / 2
-    const cpX1 = startX + (endX - startX) * 0.4
-    const cpX2 = endX - (endX - startX) * 0.4
-    d = `M ${startX} ${startY} C ${cpX1} ${startY}, ${cpX2} ${endY}, ${endX} ${endY}`
-  } else {
-    startX = from.x + from.width / 2
-    startY = from.y + from.height
-    endX = to.x + to.width / 2
-    endY = to.y
-    midX = (startX + endX) / 2
-    midY = (startY + endY) / 2
-    const cpY1 = startY + (endY - startY) * 0.4
-    const cpY2 = endY - (endY - startY) * 0.4
-    d = `M ${startX} ${startY} C ${startX} ${cpY1}, ${endX} ${cpY2}, ${endX} ${endY}`
-  }
+  const d = buildBezierPath(from, to, layoutDirection)
+  const startX = layoutDirection === 'horizontal' ? from.x + from.width : from.x + from.width / 2
+  const startY = layoutDirection === 'horizontal' ? from.y + from.height / 2 : from.y + from.height
+  const endX = layoutDirection === 'horizontal' ? to.x : to.x + to.width / 2
+  const endY = layoutDirection === 'horizontal' ? to.y + to.height / 2 : to.y
+  const midX = (startX + endX) / 2
+  const midY = (startY + endY) / 2
   const markerId = `canvas-arrowhead-${status}`
 
   // B3.4: done 状态主线加粗为 2 — still used by the highlighted glow path
@@ -429,7 +428,7 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
             {sourceStepIndex !== undefined ? `Step ${sourceStepIndex + 1}` : ''} → {targetStepIndex !== undefined ? `Step ${targetStepIndex + 1}` : ''}
             {outputPreview && (
               <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left' }}>
-                {outputPreview.slice(0, 60)}
+                {truncate(outputPreview, 60)}
               </div>
             )}
           </div>
@@ -514,7 +513,9 @@ export default function CanvasEdge({ from, to, status = 'idle', sourceStatus, la
       )}
     </g>
   )
-}
+})
+
+export default CanvasEdge
 
 export function CanvasEdgeDefs() {
   function markerColor(status: EdgeStatus): string {

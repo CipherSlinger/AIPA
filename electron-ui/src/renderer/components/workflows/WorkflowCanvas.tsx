@@ -5,7 +5,7 @@ import { useT } from '../../i18n'
 import { useChatStore } from '../../store'
 import { countWords } from '../../utils/stringUtils'
 import CanvasNode, { NODE_WIDTH, NODE_MIN_HEIGHT } from './CanvasNode'
-import CanvasEdge, { CanvasEdgeDefs } from './CanvasEdge'
+import CanvasEdge, { CanvasEdgeDefs, buildBezierPath } from './CanvasEdge'
 import CanvasProgressBar from './CanvasProgressBar'
 import CanvasToolbar from './CanvasToolbar'
 import Minimap from './Minimap'
@@ -207,7 +207,10 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   // Find overlay
   const [findOpen, setFindOpen] = useState(false)
   const [findQuery, setFindQuery] = useState('')
+  const [findMatchIndex, setFindMatchIndex] = useState(0)
+  const findMatchesRef = useRef<Array<{ step: WorkflowStep; idx: number }>>([])
   const findInputRef = React.useRef<HTMLInputElement>(null)
+  useEffect(() => { setFindMatchIndex(0) }, [findQuery])
 
   // P4.2: shortcuts panel
   const [showShortcuts, setShowShortcuts] = useState(false)
@@ -634,15 +637,33 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           if (!prev) setTimeout(() => findInputRef.current?.focus(), 50)
           return !prev
         })
+        return
       }
       if (e.key === 'Escape' && findOpen) {
         setFindOpen(false)
         setFindQuery('')
+        return
+      }
+      // n/N: cycle through find matches when overlay is open
+      if (findOpen && (e.key === 'n' || e.key === 'N') && !e.ctrlKey && !e.metaKey) {
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+        e.preventDefault()
+        setFindMatchIndex(prev => {
+          const total = findMatchesRef.current.length
+          if (total === 0) return 0
+          const next = e.shiftKey || e.key === 'N'
+            ? (prev - 1 + total) % total
+            : (prev + 1) % total
+          const match = findMatchesRef.current[next]
+          if (match) layout.autoPanToNode(match.step.id)
+          return next
+        })
       }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [findOpen])
+  }, [findOpen, layout])
 
   // P4.2: ? key — toggle shortcuts panel
   useEffect(() => {
@@ -1050,6 +1071,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         )
     : []
 
+  // Keep findMatchesRef in sync for stale-closure-safe access in n/N key handler
+  findMatchesRef.current = findMatches
+
   const zoomPercent = Math.round(layout.zoom * 100)
 
   // Direction 8: viewport culling helpers
@@ -1309,7 +1333,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
           />
           {findQuery && (
             <span style={{ fontSize: 10, color: findMatches.length > 0 ? 'var(--success)' : 'var(--error)', flexShrink: 0, fontWeight: 600 }}>
-              {findMatches.length}
+              {findMatches.length > 1 ? `${(findMatchIndex % findMatches.length) + 1}/${findMatches.length}` : findMatches.length}
             </span>
           )}
           <button
@@ -1744,24 +1768,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             // Feature 1: Execution path overlay bezier — computed once per edge, rendered alongside CanvasEdge
             let execOverlay: React.ReactNode = null
             if (showExecutionPath && srcStatus === 'completed') {
-              let execPathD: string
-              if (layout.layoutDirection === 'horizontal') {
-                const startX = fromPos.x + fromPos.width
-                const startY = fromPos.y + fromPos.height / 2
-                const endX = toPos.x
-                const endY = toPos.y + toPos.height / 2
-                const cpX1 = startX + (endX - startX) * 0.4
-                const cpX2 = endX - (endX - startX) * 0.4
-                execPathD = `M ${startX} ${startY} C ${cpX1} ${startY}, ${cpX2} ${endY}, ${endX} ${endY}`
-              } else {
-                const startX = fromPos.x + fromPos.width / 2
-                const startY = fromPos.y + fromPos.height
-                const endX = toPos.x + toPos.width / 2
-                const endY = toPos.y
-                const cpY1 = startY + (endY - startY) * 0.4
-                const cpY2 = endY - (endY - startY) * 0.4
-                execPathD = `M ${startX} ${startY} C ${startX} ${cpY1}, ${endX} ${cpY2}, ${endX} ${endY}`
-              }
+              const execPathD = buildBezierPath(fromPos, toPos, layout.layoutDirection)
               execOverlay = (
                 <path
                   key={`exec-path-${prevStep.id}-${step.id}`}

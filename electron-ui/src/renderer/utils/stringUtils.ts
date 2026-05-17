@@ -84,3 +84,8 @@ export function countWords(text: string): number {
   if (!t) return 0
   return t.split(/\s+/).length
 }
+
+/** Truncates text to maxChars, adding an ellipsis if truncated. */
+export function truncate(text: string, maxChars: number): string {
+  return text.length <= maxChars ? text : text.slice(0, maxChars) + '…'
+}

@@ -84,7 +84,7 @@ const STAT: Record<string, string> = {
   error: 'var(--error)',
 }
 
-export default function CanvasNode({
+function CanvasNode({
   step, index, x, y, width, selected, status = 'idle', presetKey,
   collapsed = false, outputText, dimmed = false, durationMs, stepDuration,
   multiSelected = false, focused = false, streamingText, liveElapsedMs,
@@ -186,6 +186,7 @@ export default function CanvasNode({
   const h = collapsed ? NODE_COLLAPSED_HEIGHT : undefined
   const mh = collapsed ? undefined : NODE_MIN_HEIGHT
 
+  const dotColor = step.nodeColor && status === 'idle' ? step.nodeColor : statColor
   const typeIcon = nodeType === 'condition' ? <GitBranch size={11} /> : nodeType === 'parallel' ? <Layers size={11} /> : null
   const typeLabel = nodeType === 'condition' ? 'IF' : nodeType === 'parallel' ? 'PAR' : ''
 
@@ -239,7 +240,7 @@ export default function CanvasNode({
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%', overflow: 'hidden', paddingRight: 16 }}>
             <div style={{
               width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
-              background: step.nodeColor && status === 'idle' ? step.nodeColor : statColor,
+              background: dotColor,
               ...(status === 'running' ? { animation: 'spin 1s linear infinite', width: 6, height: 6, borderRadius: 2 } : {}),
             }} />
             <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
@@ -255,7 +256,7 @@ export default function CanvasNode({
               {/* Status dot */}
               <div style={{
                 width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-                background: step.nodeColor && status === 'idle' ? step.nodeColor : statColor,
+                background: dotColor,
                 ...(status === 'running' ? { animation: 'spin 1s linear infinite', borderRadius: 1.5 } : {}),
               }} />
               {/* Type badge */}
@@ -390,7 +391,6 @@ export default function CanvasNode({
                 </div>
               )}
 
-              {/* Typing dots — shown when running (inside streaming block or standalone) */}
               {status === 'running' && !streamingText && (
                 <div style={{ display: 'flex', gap: 3, marginTop: 2 }}>
                   {[0,1,2].map(i => <div key={i} style={{ width: 3.5, height: 3.5, borderRadius: '50%', background: 'var(--accent)', opacity: 0.5, animation: `canvas-node-dots 1.2s ease-in-out ${i*.2}s infinite` }} />)}
@@ -495,6 +495,8 @@ export default function CanvasNode({
     </>
   )
 }
+
+export default React.memo(CanvasNode)
 
 // Tiny button helper
 function Btn({ children, onClick, style: s, onMouseDown }: { children: React.ReactNode; onClick?: (e: React.MouseEvent) => void; style?: React.CSSProperties; onMouseDown?: (e: React.MouseEvent) => void }) {
