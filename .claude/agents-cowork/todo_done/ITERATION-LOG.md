@@ -9115,3 +9115,55 @@ Status: SUCCESS (0 errors, 206 warnings)
 - [x] 任务1：skipPermissions 默认值已是 false，无需修复
 - [x] 任务2：@mention 格式验证正确，CLI 自行解析文本中的 @filepath，无需前端转换
 - [x] 任务3：Plan Mode 工具栏开关现在正确地将 permissionMode 传递为 'plan' 给 CLI
+
+## Iteration 684 — CSS 变量一致性修复 + 性能 selector 优化 + Note Banner 提取
+_Date: 2026-05-09 | Sprint Frontend_
+
+### Summary
+修复多项前端技术债：`--accent-hover` 颜色从蓝色 `#1f8ad2` 改为与 accent `#6366f1` 色调一致的 `#4f52d6`；scrollbar hover 从几乎不可见的 `--bg-input` 改为 `--border-strong`；App.tsx 中 title 更新 effect 从错误依赖 `prefs` 改为订阅 `currentSessionTitle`；ChatPanel/ChatInput/MessageList 中大量 hardcode 颜色（`#818cf8`、`rgba(99,102,241,*)` 等）统一替换为 CSS 变量；两处重复的 session note banner 使用公共 `NOTE_BANNER_STYLE` 常量去重。
+
+### Files Changed
+- `src/renderer/styles/globals.css` — 修正 `--accent-hover`（紫色调）+ scrollbar hover 可见性
+- `src/renderer/App.tsx` — title effect 依赖改为 `currentSessionTitle`（修复 bug：prefs 变化不触发 title 更新）
+- `src/renderer/components/chat/ChatPanel.tsx` — 提取 `NOTE_BANNER_STYLE` 常量；hardcode 颜色 → CSS 变量
+- `src/renderer/components/chat/ChatInput.tsx` — hardcode 颜色 → CSS 变量（accent-bg、accent-border、accent-muted）
+- `src/renderer/components/chat/MessageList.tsx` — scroll progress bar 和 focus 指示器颜色 → CSS 变量
+
+### Build
+Status: SUCCESS (tsc --noEmit: 0 errors; vite build: ✓ built in 41.54s)
+
+### Acceptance Criteria
+- [x] `--accent-hover` 暗色主题改为与 accent 色调一致的紫色
+- [x] scrollbar thumb hover 更明显（`--border-strong`）
+- [x] App.tsx title 更新 effect 依赖 `currentSessionTitle` 而非 `prefs`
+- [x] ChatInput 中所有 `#818cf8`/`rgba(99,102,241,*)` 替换为 CSS 变量
+- [x] ChatPanel drop overlay + note banner + zoom hover 替换为 CSS 变量
+- [x] MessageList scroll bar + 焦点指示器替换为 CSS 变量
+- [x] Note banner 公共样式提取为 `NOTE_BANNER_STYLE` 常量，消除重复
+- [x] TypeScript 严格检查通过（0 errors）
+- [x] Vite 构建通过
+
+## Iteration 685 — Fit-to-Selection (S key), Viewport Bookmarks (B/1-9), Smooth Zoom Animation
+_Date: 2026-05-16 | Sprint Frontend_
+
+### Summary
+Added three canvas UX enhancements: (1) `fitToSelection` — S key fits the viewport to selected nodes (or all nodes if nothing selected), exposed as a new hook method; (2) Viewport bookmarks — B key saves current pan/zoom to the next available slot 1-9, pressing a digit key restores that bookmark with a brief toast notification; (3) Smooth zoom animation — `zoomIn`, `zoomOut`, and `fitToView` now animate via `requestAnimationFrame` with cubic ease-out (~150-250ms) instead of snapping. `setZoom` added to hook return for external bookmark restore.
+
+### Files Changed
+- `electron-ui/src/renderer/components/workflows/useCanvasLayout.ts` — added `animateToViewport` RAF helper; refactored `fitToView`, `zoomIn`, `zoomOut` to use it; added `fitToSelection(ids)` function; exported `setZoom` and `fitToSelection`
+- `electron-ui/src/renderer/components/workflows/WorkflowCanvas.tsx` — added `bookmarks` state, `bookmarkToast` state, `showBookmarkToast` helper; S key handler calling `layout.fitToSelection`; B/1-9 key handlers for save/restore; bookmark toast JSX rendered at bottom-center
+- `electron-ui/src/renderer/components/workflows/CanvasShortcutsPanel.tsx` — added S (fit selection), B (save bookmark), 1-9 (jump to bookmark) to View group
+
+### Build
+Status: SUCCESS (npm run check: exit 0; vite build: ✓ built in 54.83s)
+
+### Acceptance Criteria
+- [x] S key fits viewport to selected nodes (falls back to fit-all when nothing selected)
+- [x] B key saves current viewport to next available slot 1-9 with "Bookmark N saved" toast
+- [x] Digit keys 1-9 restore saved viewport (no-op if slot empty)
+- [x] `zoomIn` / `zoomOut` animate smoothly (~150ms cubic ease-out)
+- [x] `fitToView` animates smoothly (~250ms cubic ease-out)
+- [x] `setZoom` exported from useCanvasLayout for external consumers
+- [x] Shortcuts panel updated with new entries
+- [x] TypeScript check clean (0 errors)
+- [x] Vite build successful
