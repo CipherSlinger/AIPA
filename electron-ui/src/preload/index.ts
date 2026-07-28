@@ -45,6 +45,12 @@ const electronAPI = {
   cliUpdateEnv: (args: { sessionId: string; vars: Record<string, string> }) =>
     ipcRenderer.invoke('cli:updateEnv', args),
 
+  // ── Codex-specific ─────────────────────────────
+  cliSteerTurn: (args: { sessionId: string; prompt: string }) =>
+    ipcRenderer.invoke('cli:steerTurn', args),
+  cliForkThread: (args: { sessionId: string; lastTurnId?: string }) =>
+    ipcRenderer.invoke('cli:forkThread', args) as Promise<{ success: boolean; threadId?: string; error?: string }>,
+
   // ── Speculation ───────────────────────────
   speculationIsSafe: (prompt: string) =>
     ipcRenderer.invoke('speculation:isSafe', { prompt }) as Promise<boolean>,
@@ -143,6 +149,9 @@ const electronAPI = {
       'cli:elicitation',
       'cli:worktreeState',
       'cli:taskCompleted',
+      // Codex-specific channels
+      'cli:itemStarted', 'cli:itemCompleted', 'cli:toolProgress',
+      'cli:threadStarted', 'cli:threadClosed', 'cli:messageStart',
     ]
     const handlers = channels.map((ch) => {
       const h = (_: unknown, d: Record<string, unknown>) => {

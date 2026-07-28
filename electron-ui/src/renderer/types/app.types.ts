@@ -106,7 +106,10 @@ export interface FileEntry {
 
 export type PermissionMode = 'default' | 'acceptEdits' | 'dontAsk' | 'plan' | 'bypassPermissions'
 
-export interface ClaudePrefs {
+/** Codex approval policy — maps to Codex CLI's approval modes */
+export type ApprovalMode = 'suggest' | 'auto-edit' | 'full-auto'
+
+export interface AppPrefs {
   apiKey: string
   model: string
   workingDir: string
@@ -115,14 +118,15 @@ export interface ClaudePrefs {
   fontSize: number
   fontFamily: string
   skipPermissions: boolean
-  permissionMode?: PermissionMode   // 5-level CLI permission mode (supersedes skipPermissions)
+  permissionMode?: PermissionMode   // legacy permission mode (mapped to approvalMode for Codex)
+  approvalMode?: ApprovalMode       // Codex-specific: suggest | auto-edit | full-auto
   verbose: boolean
   theme: 'vscode' | 'light' | 'system'
   onboardingDone?: boolean
-  thinkingLevel?: 'off' | 'adaptive'
-  systemPrompt?: string    // custom system prompt (passed via --append-system-prompt)
-  maxTurns?: number        // --max-turns
-  maxBudgetUsd?: number    // --max-budget-usd
+  thinkingLevel?: 'off' | 'adaptive'  // kept for UI compat; ignored by Codex
+  systemPrompt?: string    // custom system prompt (injected into first user message for Codex)
+  maxTurns?: number        // kept for UI compat; Codex uses different limits
+  maxBudgetUsd?: number    // kept for UI compat
   outputStyle?: 'default' | 'explanatory' | 'learning'  // output style: default (balanced), explanatory (insight blocks), learning (practice exercises)
   extendedThinking?: boolean  // enable extended thinking (passes --thinking-budget to CLI, default false)
   notifySound?: boolean     // play sound when response completes (default true)

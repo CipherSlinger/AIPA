@@ -22,7 +22,8 @@
       "Bash(echo \"exit: $?\")",
       "Bash(node_modules/.bin/electron --version)",
       "Bash(C:/Users/osr/Desktop/AIPA/electron-ui/node_modules/.bin/electron --version 2>&1)",
-      "Skill(commit-commands:commit)"
+      "Skill(commit-commands:commit)",
+      "Bash(npx tsc *)"
     ]
   }
 }

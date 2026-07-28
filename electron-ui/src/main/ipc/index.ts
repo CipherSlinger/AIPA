@@ -4,9 +4,11 @@ import * as os from 'os'
 import * as path from 'path'
 import { ptyManager } from '../pty/pty-manager'
 import { fallbackShellManager } from '../pty/fallback-shell'
+import { codexBridgeManager } from '../codex/codex-bridge'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { speculationManager, isSafeToSpeculate } from '../pty/speculation-bridge'
-import { readSettings, writeSettings, listSessions, loadSession, deleteSession, forkSession, renameSession, getMcpServers, setMcpServerEnabled, generateSessionTitle, generatePromptSuggestion, generateAwaySummary, rewindSession, searchSessions, detectTurnInterruption, getDreamConsolidationMtime } from '../sessions/session-reader'
+import { readSettings, writeSettings, listSessions as listClaudeSessions, loadSession as loadClaudeSession, deleteSession as deleteClaudeSession, forkSession as forkClaudeSession, renameSession, getMcpServers, setMcpServerEnabled, generateSessionTitle, generatePromptSuggestion, generateAwaySummary, rewindSession, searchSessions as searchClaudeSessions, detectTurnInterruption, getDreamConsolidationMtime } from '../sessions/session-reader'
+import { listSessions as listCodexSessions, loadSession as loadCodexSession, deleteSession as deleteCodexSession, forkSession as forkCodexSession, searchSessions as searchCodexSessions, readCodexConfig } from '../codex/codex-session-reader'
 import { getSessionStats } from '../sessions/session-stats'
 import { getApiKey, setApiKey, getPref, setPref, getAllPrefs, resetAllPrefs } from '../config/config-manager'
 import { readCLISettings, writeCLISettings } from '../config/cli-settings-manager'
@@ -185,7 +187,7 @@ function registerPtyHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
 }
 
 // ----------------------------------------
-// CLI stream-json handlers
+// CLI handlers — CodexBridge (primary) + legacy StreamBridge (fallback)
 // ----------------------------------------
 function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknown[]) => void): void {
   ipcMain.handle('cli:sendMessage', async (_e, args) => {
@@ -193,113 +195,69 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     if (args.flags) args.flags = validateFlags(args.flags)
     if (args.model) validateModelName(args.model)
 
-    const skipPermissions: boolean = !!(args.flags || []).includes('--dangerously-skip-permissions')
-    // permissionMode may be passed directly from renderer prefs
-    const permissionMode = args.permissionMode as string | undefined
+    // ── CodexBridge path (primary) ──
+    // Use CodexBridge when OPENAI_API_KEY is set or no explicit ANTHROPIC key
+    const useCodex = !args.env?.ANTHROPIC_API_KEY || args.env?.OPENAI_API_KEY
 
-    // Reuse existing bridge if one is active for this conversation
-    const existingBridgeId: string | undefined = args.activeBridgeId
-    if (existingBridgeId && streamBridgeManager.get(existingBridgeId)) {
-      const bridge = streamBridgeManager.get(existingBridgeId)!
-      bridge.sendFollowUp(args.prompt, args.sessionId)
-      return { success: true, sessionId: existingBridgeId }
+    if (useCodex) {
+      return registerCodexSendMessage(args, send)
     }
 
-    // Spawn new bridge
-    const bridgeId = `bridge-${Date.now()}`
-    const bridge = streamBridgeManager.create(bridgeId)
-
-    // Forward all events to renderer
-    bridge.on('textDelta', (d) => send('cli:assistantText', d))
-    bridge.on('thinkingDelta', (d) => send('cli:thinkingDelta', d))
-    bridge.on('toolUse', (d) => send('cli:toolUse', d))
-    bridge.on('toolResult', (d) => send('cli:toolResult', d))
-    bridge.on('messageStop', (d) => send('cli:messageEnd', d))
-    bridge.on('result', (d) => send('cli:result', d))
-    bridge.on('processExit', (d) => {
-      send('cli:processExit', d)
-      // StreamBridgeManager cleans itself up via its own processExit listener (already wired in .create())
-    })
-    bridge.on('stderr', (d) => send('cli:error', { sessionId: bridgeId, error: d }))
-    bridge.on('permissionRequest', (d) => send('cli:permissionRequest', d))
-    bridge.on('hookEvent', (d: unknown) => {
-      const w = BrowserWindow.getAllWindows()[0]
-      if (w && !w.isDestroyed()) w.webContents.send('cli:hookEvent', d)
-    })
-    bridge.on('hookCallback', (d) => send('cli:hookCallback', d))
-    bridge.on('mcpElicitation', (d) => send('cli:elicitation', d))
-    bridge.on('systemInit', (d) => {
-      send('cli:systemInit', d)
-      // Cache per-server tool lists for mcp:getTools handler
-      const initData = d as { mcpServers?: Array<{ name: string; status: string; tools?: string[] }> }
-      if (initData.mcpServers) {
-        for (const srv of initData.mcpServers) {
-          if (srv.tools && srv.tools.length > 0) {
-            mcpServerToolsCache[srv.name] = srv.tools
-          }
-        }
-      }
-    })
-    bridge.on('notification', (d) => send('cli:notification', d))
-    bridge.on('planApprovalRequest', (d) => send('cli:planApprovalRequest', d))
-    bridge.on('apiError', (d) => send('cli:apiError', d))
-    bridge.on('worktreeState', (d) => send('cli:worktreeState', d))
-    bridge.on('customTitle', (d) => send('cli:customTitle', d))
-    bridge.on('taskCompleted', (d) => send('cli:taskCompleted', d))
-
-    // Clawd desktop pet state notifications (Iteration 615)
-    // These are side-effects on the same events — existing renderer forwarding above is unchanged.
-    bridge.on('textDelta', () => notifyClawdState('thinking', bridgeId))
-    bridge.on('thinkingDelta', () => notifyClawdState('thinking', bridgeId))
-    bridge.on('toolUse', () => notifyClawdState('working', bridgeId))
-    bridge.on('result', () => notifyClawdState('happy', bridgeId))
-    bridge.on('apiError', () => notifyClawdState('error', bridgeId))
-    bridge.on('notification', () => notifyClawdState('notification', bridgeId))
-    bridge.on('processExit', () => notifyClawdState('idle', bridgeId))
-
-    // Inject API key from prefs only when neither key nor auth token is already set.
-    // Gateway scenario sets ANTHROPIC_API_KEY to '' intentionally — do not overwrite it.
-    const hasExplicitApiKey = args.env && 'ANTHROPIC_API_KEY' in args.env
-    const hasAuthToken = !!args.env?.ANTHROPIC_AUTH_TOKEN
-    if (!hasExplicitApiKey && !hasAuthToken) {
-      args.env = { ...(args.env || {}), ANTHROPIC_API_KEY: getApiKey() }
-    }
-
-    // Strip CLAUDECODE to allow nesting
-    args.env = { ...args.env, CLAUDECODE: '' }
-
-    try {
-      await bridge.sendMessage({
-        ...args,
-        skipPermissions,
-        permissionMode: permissionMode as import('../pty/stream-bridge').PermissionMode | undefined,
-        resumeSessionId: args.sessionId || undefined, // real Claude session ID
-        sessionId: bridgeId,                          // internal bridge ID
-      })
-      return { success: true, sessionId: bridgeId }
-    } catch (err) {
-      send('cli:error', { sessionId: bridgeId, error: String(err) })
-      return { success: false, error: String(err) }
-    }
+    // ── Legacy StreamBridge fallback ──
+    return registerLegacySendMessage(args, send)
   })
 
   ipcMain.handle('cli:abort', (_e, sessionId) => {
+    // Try CodexBridge first, then legacy
+    const codexBridge = codexBridgeManager.get(sessionId)
+    if (codexBridge) {
+      codexBridgeManager.abort(sessionId)
+      return
+    }
     streamBridgeManager.abort(sessionId)
   })
 
   ipcMain.handle('cli:respondPermission', (_e, { sessionId, requestId, allowed }) => {
+    const codexBridge = codexBridgeManager.get(sessionId)
+    if (codexBridge) {
+      codexBridge.respondApproval(requestId, allowed)
+      return
+    }
     const bridge = streamBridgeManager.get(sessionId)
     if (bridge) bridge.respondPermission(requestId, allowed)
   })
 
   ipcMain.handle('cli:endSession', (_e, sessionId) => {
+    const codexBridge = codexBridgeManager.get(sessionId)
+    if (codexBridge) {
+      codexBridge.endSession()
+      return
+    }
     const bridge = streamBridgeManager.get(sessionId)
-    if (bridge) {
-      bridge.endSession()
-      // don't delete from manager yet -- processExit event will fire and clean up
+    if (bridge) bridge.endSession()
+  })
+
+  // Codex-specific: steer an in-progress turn
+  ipcMain.handle('cli:steerTurn', (_e, { sessionId, prompt }: { sessionId: string; prompt: string }) => {
+    const codexBridge = codexBridgeManager.get(sessionId)
+    if (codexBridge) {
+      codexBridge.steerTurn(prompt).catch((err) => {
+        log.warn('steerTurn error:', String(err))
+      })
     }
   })
 
+  // Codex-specific: fork a thread
+  ipcMain.handle('cli:forkThread', async (_e, { sessionId, lastTurnId }: { sessionId: string; lastTurnId?: string }) => {
+    const codexBridge = codexBridgeManager.get(sessionId)
+    if (codexBridge) {
+      const newThreadId = await codexBridge.forkThread(lastTurnId)
+      return { success: true, threadId: newThreadId }
+    }
+    return { success: false, error: 'No active codex bridge' }
+  })
+
+  // Legacy handlers (kept for backward compat during migration)
   ipcMain.handle('cli:respondHookCallback', (_e, { sessionId, requestId, response }: { sessionId: string; requestId: string; response: Record<string, unknown> }) => {
     const bridge = streamBridgeManager.get(sessionId)
     if (bridge) bridge.respondHookCallback(requestId, response)
@@ -316,6 +274,11 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
   })
 
   ipcMain.handle('cli:cancelRequest', (_e, { sessionId, requestId }: { sessionId: string; requestId: string }) => {
+    const codexBridge = codexBridgeManager.get(sessionId)
+    if (codexBridge) {
+      codexBridge.interruptTurn().catch(() => {})
+      return
+    }
     const bridge = streamBridgeManager.get(sessionId)
     if (bridge) bridge.cancelRequest(requestId)
   })
@@ -326,14 +289,215 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
   })
 }
 
+// ── CodexBridge send message implementation ──────────
+
+async function registerCodexSendMessage(
+  args: Record<string, unknown>,
+  send: (ch: string, ...a: unknown[]) => void
+): Promise<{ success: boolean; sessionId?: string; error?: string }> {
+  const existingBridgeId = args.activeBridgeId as string | undefined
+
+  // Reuse existing bridge for follow-up messages
+  if (existingBridgeId) {
+    const existingBridge = codexBridgeManager.get(existingBridgeId)
+    if (existingBridge) {
+      try {
+        await existingBridge.sendFollowUp(args.prompt as string)
+        return { success: true, sessionId: existingBridgeId }
+      } catch (err) {
+        return { success: false, error: String(err) }
+      }
+    }
+  }
+
+  // Create new CodexBridge
+  const bridgeId = `codex-${Date.now()}`
+  const bridge = codexBridgeManager.create(bridgeId)
+
+  // Forward all events to renderer using same channel names as StreamBridge
+  bridge.on('textDelta', (d) => send('cli:assistantText', d))
+  bridge.on('thinkingDelta', (d) => send('cli:thinkingDelta', d))
+  bridge.on('toolUse', (d) => send('cli:toolUse', d))
+  bridge.on('toolResult', (d) => send('cli:toolResult', d))
+  bridge.on('messageStop', (d) => send('cli:messageEnd', d))
+  bridge.on('result', (d) => {
+    // Map codexThreadId → claudeSessionId for renderer compatibility
+    const mapped = { ...d, claudeSessionId: d.codexThreadId ?? d.threadId }
+    send('cli:result', mapped)
+  })
+  bridge.on('messageStart', (d) => send('cli:messageStart', d))
+  bridge.on('processExit', (d) => send('cli:processExit', d))
+  bridge.on('stderr', (d) => send('cli:error', { sessionId: bridgeId, error: d }))
+  bridge.on('permissionRequest', (d) => send('cli:permissionRequest', d))
+  bridge.on('systemInit', (d) => send('cli:systemInit', d))
+
+  // Codex-specific events
+  bridge.on('itemStarted', (d) => send('cli:itemStarted', d))
+  bridge.on('itemCompleted', (d) => send('cli:itemCompleted', d))
+  bridge.on('toolProgress', (d) => send('cli:toolProgress', d))
+  bridge.on('threadStarted', (d) => send('cli:threadStarted', d))
+  bridge.on('threadClosed', (d) => send('cli:threadClosed', d))
+
+  // Clawd desktop pet notifications
+  bridge.on('textDelta', () => notifyClawdState('thinking', bridgeId))
+  bridge.on('thinkingDelta', () => notifyClawdState('thinking', bridgeId))
+  bridge.on('toolUse', () => notifyClawdState('working', bridgeId))
+  bridge.on('result', () => notifyClawdState('happy', bridgeId))
+  bridge.on('processExit', () => notifyClawdState('idle', bridgeId))
+
+  // Inject OpenAI API key if not explicitly set
+  const env = (args.env as Record<string, string>) || {}
+  if (!env.OPENAI_API_KEY && !env.ANTHROPIC_API_KEY) {
+    env.OPENAI_API_KEY = getApiKey()
+  }
+
+  // Map permissionMode to Codex approvalPolicy
+  const permissionMode = args.permissionMode as string | undefined
+  let approvalPolicy: import('../codex/codex-bridge').ApprovalPolicy | undefined
+  switch (permissionMode) {
+    case 'bypassPermissions': approvalPolicy = 'never'; break
+    case 'acceptEdits': approvalPolicy = 'unless-allow-listed'; break
+    case 'dontAsk': approvalPolicy = 'never'; break
+    case 'default': approvalPolicy = 'on-request'; break
+    default: approvalPolicy = undefined
+  }
+
+  try {
+    await bridge.sendMessage({
+      prompt: args.prompt as string,
+      cwd: (args.cwd as string) || process.cwd(),
+      threadId: (args.sessionId as string) || undefined,
+      model: args.model as string | undefined,
+      env,
+      approvalPolicy,
+      personality: 'pragmatic',
+    })
+    return { success: true, sessionId: bridgeId }
+  } catch (err) {
+    send('cli:error', { sessionId: bridgeId, error: String(err) })
+    return { success: false, error: String(err) }
+  }
+}
+
+// ── Legacy StreamBridge send message (kept as fallback) ──
+
+async function registerLegacySendMessage(
+  args: Record<string, unknown>,
+  send: (ch: string, ...a: unknown[]) => void
+): Promise<{ success: boolean; sessionId?: string; error?: string }> {
+  const skipPermissions: boolean = !!(args.flags as string[] || []).includes('--dangerously-skip-permissions')
+  const permissionMode = args.permissionMode as string | undefined
+
+  const existingBridgeId = args.activeBridgeId as string | undefined
+  if (existingBridgeId && streamBridgeManager.get(existingBridgeId)) {
+    const bridge = streamBridgeManager.get(existingBridgeId)!
+    bridge.sendFollowUp(args.prompt as string, args.sessionId as string | undefined)
+    return { success: true, sessionId: existingBridgeId }
+  }
+
+  const bridgeId = `bridge-${Date.now()}`
+  const bridge = streamBridgeManager.create(bridgeId)
+
+  bridge.on('textDelta', (d) => send('cli:assistantText', d))
+  bridge.on('thinkingDelta', (d) => send('cli:thinkingDelta', d))
+  bridge.on('toolUse', (d) => send('cli:toolUse', d))
+  bridge.on('toolResult', (d) => send('cli:toolResult', d))
+  bridge.on('messageStop', (d) => send('cli:messageEnd', d))
+  bridge.on('result', (d) => send('cli:result', d))
+  bridge.on('processExit', (d) => send('cli:processExit', d))
+  bridge.on('stderr', (d) => send('cli:error', { sessionId: bridgeId, error: d }))
+  bridge.on('permissionRequest', (d) => send('cli:permissionRequest', d))
+  bridge.on('hookEvent', (d: unknown) => {
+    const w = BrowserWindow.getAllWindows()[0]
+    if (w && !w.isDestroyed()) w.webContents.send('cli:hookEvent', d)
+  })
+  bridge.on('hookCallback', (d) => send('cli:hookCallback', d))
+  bridge.on('mcpElicitation', (d) => send('cli:elicitation', d))
+  bridge.on('systemInit', (d) => {
+    send('cli:systemInit', d)
+    const initData = d as { mcpServers?: Array<{ name: string; status: string; tools?: string[] }> }
+    if (initData.mcpServers) {
+      for (const srv of initData.mcpServers) {
+        if (srv.tools && srv.tools.length > 0) mcpServerToolsCache[srv.name] = srv.tools
+      }
+    }
+  })
+  bridge.on('notification', (d) => send('cli:notification', d))
+  bridge.on('planApprovalRequest', (d) => send('cli:planApprovalRequest', d))
+  bridge.on('apiError', (d) => send('cli:apiError', d))
+  bridge.on('worktreeState', (d) => send('cli:worktreeState', d))
+  bridge.on('customTitle', (d) => send('cli:customTitle', d))
+  bridge.on('taskCompleted', (d) => send('cli:taskCompleted', d))
+
+  bridge.on('textDelta', () => notifyClawdState('thinking', bridgeId))
+  bridge.on('thinkingDelta', () => notifyClawdState('thinking', bridgeId))
+  bridge.on('toolUse', () => notifyClawdState('working', bridgeId))
+  bridge.on('result', () => notifyClawdState('happy', bridgeId))
+  bridge.on('apiError', () => notifyClawdState('error', bridgeId))
+  bridge.on('notification', () => notifyClawdState('notification', bridgeId))
+  bridge.on('processExit', () => notifyClawdState('idle', bridgeId))
+
+  const env = (args.env as Record<string, string>) || {}
+  const hasExplicitApiKey = 'ANTHROPIC_API_KEY' in env
+  const hasAuthToken = !!env.ANTHROPIC_AUTH_TOKEN
+  if (!hasExplicitApiKey && !hasAuthToken) {
+    env.ANTHROPIC_API_KEY = getApiKey()
+  }
+  env.CLAUDECODE = ''
+
+  try {
+    await bridge.sendMessage({
+      ...(args as any),
+      skipPermissions,
+      permissionMode: permissionMode as import('../pty/stream-bridge').PermissionMode | undefined,
+      resumeSessionId: (args.sessionId as string) || undefined,
+      sessionId: bridgeId,
+      env,
+    })
+    return { success: true, sessionId: bridgeId }
+  } catch (err) {
+    send('cli:error', { sessionId: bridgeId, error: String(err) })
+    return { success: false, error: String(err) }
+  }
+}
+
 // ----------------------------------------
 // Session handlers
 // ----------------------------------------
 function registerSessionHandlers(): void {
-  ipcMain.handle('session:list', () => listSessions())
-  ipcMain.handle('session:load', (_e, id) => loadSession(id))
-  ipcMain.handle('session:delete', (_e, id) => deleteSession(id))
-  ipcMain.handle('session:fork', (_e, { sessionId, upToMessageIndex }) => forkSession(sessionId, upToMessageIndex))
+  // Session listing: merge Codex + Claude sessions (Codex primary, Claude for migration period)
+  ipcMain.handle('session:list', () => {
+    const codexSessions = listCodexSessions()
+    const claudeSessions = listClaudeSessions()
+    // Deduplicate by sessionId, preferring Codex sessions
+    const seen = new Set(codexSessions.map(s => s.sessionId))
+    const merged = [...codexSessions]
+    for (const s of claudeSessions) {
+      if (!seen.has(s.sessionId)) merged.push(s)
+    }
+    return merged.sort((a, b) => b.timestamp - a.timestamp)
+  })
+
+  // Session loading: try Codex first, then Claude
+  ipcMain.handle('session:load', (_e, id) => {
+    const codexResult = loadCodexSession(id)
+    if (codexResult.length > 0) return codexResult
+    return loadClaudeSession(id)
+  })
+
+  // Session deletion: try both
+  ipcMain.handle('session:delete', (_e, id) => {
+    const codexDeleted = deleteCodexSession(id)
+    const claudeDeleted = deleteClaudeSession(id)
+    return codexDeleted || claudeDeleted
+  })
+
+  // Session fork: use Codex fork
+  ipcMain.handle('session:fork', (_e, { sessionId, upToMessageIndex }) => {
+    const codexResult = forkCodexSession(sessionId, upToMessageIndex)
+    if (codexResult) return codexResult
+    return forkClaudeSession(sessionId, upToMessageIndex)
+  })
   ipcMain.handle('session:rename', (_e, { sessionId, title }) => renameSession(sessionId, title))
   ipcMain.handle('session:generateTitle', async (_e: Electron.IpcMainInvokeEvent, { description }: { description: string }) => {
     const cliPath = getCliPath()
@@ -346,7 +510,10 @@ function registerSessionHandlers(): void {
   })
 
   ipcMain.handle('session:search', (_e: Electron.IpcMainInvokeEvent, { query, limit }: { query: string; limit?: number }) => {
-    return searchSessions(query, limit)
+    // Search both Codex and Claude sessions
+    const codexResults = searchCodexSessions(query, limit)
+    const claudeResults = searchClaudeSessions(query, limit)
+    return [...codexResults, ...claudeResults].slice(0, limit || 20)
   })
 
   ipcMain.handle('cli:generateSuggestion', async (_e: Electron.IpcMainInvokeEvent, { context }: { context: string }) => {

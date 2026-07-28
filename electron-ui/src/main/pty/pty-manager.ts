@@ -1,8 +1,6 @@
 import { EventEmitter } from 'events'
-import path from 'path'
-import os from 'os'
-import { getCliPath, getNodePath } from '../utils/cli-path'
-import { sanitizeEnv } from '../utils/cli-env'
+import { getCodexPath } from '../codex/codex-resolver'
+import { sanitizeCodexEnv } from '../codex/codex-env'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('pty-manager')
@@ -50,7 +48,6 @@ export interface PtyCreateArgs {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 class PtyManager extends EventEmitter {
   private sessions = new Map<string, any>()
-  private nodePath: string | null = null
 
   /** Check if the native PTY module loaded successfully */
   isAvailable(): boolean {
@@ -60,11 +57,6 @@ class PtyManager extends EventEmitter {
   /** Get the error message if PTY failed to load */
   getLoadError(): string | null {
     return ptyLoadError
-  }
-
-  private getNode(): string {
-    if (!this.nodePath) this.nodePath = getNodePath()
-    return this.nodePath
   }
 
   create(args: PtyCreateArgs): string {
@@ -81,24 +73,21 @@ class PtyManager extends EventEmitter {
       )
     }
 
-    const cliPath = getCliPath()
-    const cliArgs = [
-      cliPath,
-      ...(args.resumeSessionId ? ['--resume', args.resumeSessionId] : []),
-    ]
+    const codexPath = getCodexPath()
+    // Codex interactive mode — no additional args needed
+    // (thread/resume is handled via app-server protocol, not CLI flags)
+    const codexArgs: string[] = []
 
-    const env: Record<string, string> = sanitizeEnv({
+    const env: Record<string, string> = sanitizeCodexEnv({
       ...(args.env || {}),
       TERM: 'xterm-256color',
-      TERM_PROGRAM: 'claude-code-ui',
-      CLAUDE_CONFIG_DIR: path.join(os.homedir(), '.claude'),
+      TERM_PROGRAM: 'aipa-codex-ui',
     })
 
-    const nodePath = this.getNode()
-    log.debug(`PTY spawning: node=${nodePath}, cli=${cliPath}, cwd=${args.cwd}`)
+    log.debug(`PTY spawning: codex=${codexPath}, cwd=${args.cwd}`)
 
     try {
-      const ptyProcess = pty.spawn(nodePath, cliArgs, {
+      const ptyProcess = pty.spawn(codexPath, codexArgs, {
         name: 'xterm-256color',
         cols: args.cols,
         rows: args.rows,
@@ -122,9 +111,9 @@ class PtyManager extends EventEmitter {
       const msg = err instanceof Error ? err.message : String(err)
       if (msg.includes('File not found') || msg.includes('ENOENT')) {
         throw new Error(
-          `Node.js executable not found at "${nodePath}". ` +
-          `Please ensure Node.js is installed and available on your system PATH, ` +
-          `or set the CLAUDE_NODE_PATH environment variable to the full path of node.exe.`
+          `Codex CLI executable not found at "${codexPath}". ` +
+          `Please ensure Codex is installed (npm install -g @openai/codex) ` +
+          `or set the CODEX_CLI_PATH environment variable to the full path.`
         )
       }
       throw err

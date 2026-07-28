@@ -6,7 +6,8 @@ import { useT } from '../i18n'
 import { resolveProvider, sendCompletionNotification, playCompletionSound, getActiveApiKey, rotateApiKey } from './streamJsonUtils'
 import { useAutoCompact } from './useAutoCompact'
 import { useAutoMemory } from './useAutoMemory'
-import { parseTokenBudget } from '../utils/tokenUtils'
+// parseTokenBudget used by token display utilities
+// import { parseTokenBudget } from '../utils/tokenUtils'
 
 export function useStreamJson() {
   // Use individual selectors so this hook only re-renders when the specific
@@ -120,15 +121,8 @@ export function useStreamJson() {
     // Compute effective cwd: per-tab override > global prefs > home dir
     const currentTabForCwd = useChatStore.getState().tabs.find(t => t.id === useChatStore.getState().activeTabId)
     const effectiveCwdEarly = currentTabForCwd?.cwd || prefs.workingDir || ''
-    if (prefs.thinkingLevel === 'adaptive') {
-      flags.push('--thinking', 'adaptive')
-    }
-    // Extended thinking toggle (Iteration 378): pass --thinking-budget when enabled
-    if (prefs.extendedThinking) {
-      flags.push('--thinking-budget', '10000')
-    }
 
-    // Build combined system prompt: user system prompt + output style + memory context
+    // Build combined system prompt (injected as prefix to first user message for Codex)
     const systemPromptParts: string[] = []
 
     // Inject system presence: date, time, working directory, user name
@@ -153,29 +147,16 @@ export function useStreamJson() {
       systemPromptParts.push(prefs.systemPrompt.trim())
     }
 
-    // Inject output style modifier (Iteration 378: replaces responseTone)
+    // Inject output style modifier
     if (prefs.outputStyle && prefs.outputStyle !== 'default') {
       const stylePrompts: Record<string, string> = {
-        explanatory: `You are in Explanatory mode. After providing your main response, add an "Insight" callout block that explains the reasoning behind key decisions or provides deeper context. Format:
-
-> **Insight**: [Your explanatory insight here]
-
-Use this to help the user understand WHY something works a certain way, not just WHAT to do. Add 1-2 insight blocks per response when there are meaningful decision points to explain.`,
-        learning: `You are in Step-by-Step Learning mode. Break down complex topics into clear, numbered steps. After explaining a concept, add a "Practice" block that challenges the user to try something:
-
-> **Practice**: [A small exercise or challenge related to what was just explained]
-
-Keep exercises focused and achievable. The goal is active learning through doing, not passive reading.`,
+        explanatory: `You are in Explanatory mode. After providing your main response, add an "Insight" callout block that explains the reasoning behind key decisions or provides deeper context.`,
+        learning: `You are in Step-by-Step Learning mode. Break down complex topics into clear, numbered steps. After explaining a concept, add a "Practice" block that challenges the user to try something.`,
       }
       const stylePrompt = stylePrompts[prefs.outputStyle]
       if (stylePrompt) {
         systemPromptParts.push(`<output_style>\n${stylePrompt}\n</output_style>`)
       }
-    }
-
-    // Inject effort level via CLI --effort flag (replaces system prompt hack)
-    if (prefs.effortLevel && prefs.effortLevel !== 'auto') {
-      flags.push('--effort', prefs.effortLevel)
     }
 
     // Inject persistent memories as context
@@ -185,7 +166,7 @@ Keep exercises focused and achievable. The goal is active learning through doing
       const recentMemories = memories
         .filter(m => !m.pinned)
         .sort((a, b) => b.updatedAt - a.updatedAt)
-        .slice(0, 10) // max 10 non-pinned recent memories
+        .slice(0, 10)
       const allInjected = [...pinnedMemories, ...recentMemories]
       if (allInjected.length > 0) {
         const categoryLabels: Record<string, string> = {
@@ -203,57 +184,36 @@ Keep exercises focused and achievable. The goal is active learning through doing
       }
     }
 
-    // Inject custom append-system-prompt (Iteration 523)
-    // tempSystemPrompt (per-session) overrides the persistent appendSystemPrompt pref
+    // Custom appended system prompt
     const effectiveAppend = useChatStore.getState().tempSystemPrompt || prefs.appendSystemPrompt
     if (effectiveAppend?.trim()) {
       systemPromptParts.push(effectiveAppend.trim())
     }
 
-    if (systemPromptParts.length > 0) {
-      flags.push('--append-system-prompt', systemPromptParts.join('\n\n'))
-    }
+    // For Codex: system prompt is prepended to the user message (Codex doesn't have --append-system-prompt)
+    // System prompt parts will be prepended to the actual prompt below
 
-    // Inject disallowed tools (Iteration 527: tool access control)
-    if (prefs.disallowedTools && prefs.disallowedTools.length > 0) {
-      flags.push('--disallowedTools', prefs.disallowedTools.join(','))
-    }
-
-    if (prefs.maxTurns && prefs.maxTurns > 0) {
-      flags.push('--max-turns', String(prefs.maxTurns))
-    }
-    if (prefs.maxBudgetUsd && prefs.maxBudgetUsd > 0) {
-      flags.push('--max-budget-usd', String(prefs.maxBudgetUsd))
-    }
-
-    // Token budget shorthand parsing (#10): detect "+500k" / "use 2M tokens" in the prompt
-    // Inspired by Claude Code's utils/tokenBudget.ts
-    const tokenBudgetPattern = /(?:use\s+[\d.]+\s*[km]?\s*tokens?|[+][\d.]+\s*[km])/gi
-    const budgetMatch = prompt.match(tokenBudgetPattern)
-    if (budgetMatch) {
-      const tokens = parseTokenBudget(budgetMatch[0])
-      if (tokens && tokens >= 1000) {
-        flags.push('--max-tokens', String(tokens))
-      }
-    }
-
-    // Build actual prompt — if images or non-text file attachments present, encode as JSON content array
+    // Build actual prompt — prepend system prompt parts, handle attachments
     let actualPrompt: string
+
+    // Prepend system context to the user prompt (Codex doesn't support --append-system-prompt)
+    const systemPrefix = systemPromptParts.length > 0
+      ? systemPromptParts.join('\n\n') + '\n\n'
+      : ''
+
     const hasImageAttachments = attachments && attachments.length > 0
-    // Binary file attachments (PDF, images via file dialog with dataUrl) that need document/image blocks
     const binaryFileBlocks = (fileAttachments || []).filter(f => f.dataUrl && f.mimeType)
     const hasBinaryBlocks = binaryFileBlocks.length > 0
+
     if (hasImageAttachments || hasBinaryBlocks) {
-      const contentBlocks: unknown[] = [{ type: 'text', text: prompt }]
-      // Image paste attachments → image blocks
+      const contentBlocks: unknown[] = [{ type: 'text', text: systemPrefix + prompt }]
       for (const img of (attachments || [])) {
-        const base64 = img.dataUrl.split(',')[1] // strip data:image/png;base64,
+        const base64 = img.dataUrl.split(',')[1]
         contentBlocks.push({
           type: 'image',
           source: { type: 'base64', media_type: img.mimeType, data: base64 },
         })
       }
-      // Binary file attachments (e.g. PDF, images from file dialog) → document or image blocks
       for (const file of binaryFileBlocks) {
         const base64 = file.dataUrl!.split(',')[1]
         if (file.isImage) {
@@ -262,16 +222,15 @@ Keep exercises focused and achievable. The goal is active learning through doing
             source: { type: 'base64', media_type: file.mimeType, data: base64 },
           })
         } else {
-          // PDFs and other binary docs → document block
           contentBlocks.push({
             type: 'document',
             source: { type: 'base64', media_type: file.mimeType, data: base64 },
           })
         }
       }
-      actualPrompt = JSON.stringify(contentBlocks)  // stream-bridge will parse back to array
+      actualPrompt = JSON.stringify(contentBlocks)
     } else {
-      actualPrompt = prompt
+      actualPrompt = systemPrefix + prompt
     }
 
     // Route to appropriate provider based on model
@@ -312,8 +271,7 @@ Keep exercises focused and achievable. The goal is active learning through doing
       return result
     }
 
-    // Claude CLI provider: use existing cliSendMessage
-    // Determine effective cwd: per-tab override takes priority over global prefs
+    // Send via cliSendMessage (CodexBridge handles OpenAI, StreamBridge handles Claude)
     const currentTab = tabs.find(t => t.id === activeTabId)
     const effectiveCwd = currentTab?.cwd || prefs.workingDir || (await window.electronAPI.fsGetHome())
     const result = await window.electronAPI.cliSendMessage({
@@ -323,12 +281,10 @@ Keep exercises focused and achievable. The goal is active learning through doing
       activeBridgeId: activeBridgeIdRef.current ?? undefined,
       model: prefs.model,
       env: {
-        ...(getActiveApiKey() ? { ANTHROPIC_API_KEY: getActiveApiKey() } : {}),
+        // Provide both keys — CodexBridge uses OPENAI_API_KEY, legacy StreamBridge uses ANTHROPIC_API_KEY
+        ...(getActiveApiKey() ? { OPENAI_API_KEY: getActiveApiKey(), ANTHROPIC_API_KEY: getActiveApiKey() } : {}),
       },
       flags,
-      // When Plan Mode is active via the toolbar toggle, override permissionMode to 'plan'
-      // so the CLI starts with --permission-mode plan (planning only, no execution).
-      // Exception: if the user has explicitly chosen bypassPermissions, respect that override.
       permissionMode: (useChatStore.getState().isPlanMode && prefs.permissionMode !== 'bypassPermissions')
         ? 'plan'
         : (prefs.permissionMode || 'default'),

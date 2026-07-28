@@ -3,7 +3,7 @@
 // SessionStore and PrefsStore remain here (both are tiny).
 
 import { create } from 'zustand'
-import { ClaudePrefs, PermissionMode, SessionListItem } from '../types/app.types'
+import { AppPrefs, PermissionMode, SessionListItem } from '../types/app.types'
 
 // ── Re-exports from sub-modules ──────────────────
 export { useChatStore } from './chatStore'
@@ -41,9 +41,9 @@ export const useSessionStore = create<SessionState>((set) => ({
 
 // ── Prefs store ─────────────────────────────────
 interface PrefsState {
-  prefs: ClaudePrefs
+  prefs: AppPrefs
   loaded: boolean
-  setPrefs: (p: Partial<ClaudePrefs>) => void
+  setPrefs: (p: Partial<AppPrefs>) => void
   setLoaded: (v: boolean) => void
   setPermissionMode: (mode: PermissionMode) => void
   // Runtime state from CLI system.init event
@@ -56,9 +56,9 @@ interface PrefsState {
   setMcpServerTools: (tools: Record<string, string[]>) => void
 }
 
-const DEFAULT_PREFS: ClaudePrefs = {
+const DEFAULT_PREFS: AppPrefs = {
   apiKey: '',
-  model: 'claude-sonnet-4-6',
+  model: 'o4-mini',
   workingDir: '',
   sidebarWidth: 240,
   terminalWidth: 400,

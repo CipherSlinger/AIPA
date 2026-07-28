@@ -11,11 +11,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > **Read `README.md` for the full product vision and ultimate goal.**
 
-AIPA is a desktop AI personal assistant — not merely a GUI wrapper. The Claude Code CLI is the execution engine; the Electron + React app is the cockpit that makes the agent's power accessible to everyday users. See `README.md` → *Vision* section for the north star this project is built toward.
+AIPA is a desktop AI personal assistant — not merely a GUI wrapper. The OpenAI Codex CLI is the primary execution engine; the Electron + React app is the cockpit that makes the agent's power accessible to everyday users. See `README.md` → *Vision* section for the north star this project is built toward.
 
-The repo has two top-level concerns:
+The repo has these top-level concerns:
 
-- `package/` — the bundled Claude Code CLI (`cli.js`, ESM, Node 18+). Treat as read-only vendored code.
+- `codex/` — sparse checkout of OpenAI Codex (protocol reference; runtime binary from `@openai/codex` npm package).
+- `package/` — legacy Claude Code CLI (kept as fallback during migration). Will be removed.
 - `electron-ui/` — the Electron + React app that wraps the CLI. All active development happens here.
 
 ## Commands (run from `electron-ui/`)
@@ -63,9 +64,9 @@ Renderer (React/Vite)  ←→  Preload (contextBridge)  ←→  Main (Node.js)
 
 The main process wraps the CLI in two fundamentally different ways:
 
-1. **PTY mode** (`src/main/pty/pty-manager.ts`) — spawns `node cli.js [--resume <id>]` via `node-pty` with ConPTY. Used for the interactive terminal panel (xterm.js in the renderer). Raw terminal I/O, no JSON parsing.
+1. **PTY mode** (`src/main/pty/pty-manager.ts`) — spawns `codex` in interactive mode via `node-pty` with ConPTY. Used for the interactive terminal panel (xterm.js in the renderer). Raw terminal I/O, no JSON parsing.
 
-2. **Stream-JSON mode** (`src/main/pty/stream-bridge.ts`) — spawns `node cli.js --input-format stream-json --output-format stream-json --print` via `child_process.spawn`. Writes a user message JSON to stdin, parses NDJSON from stdout, emits typed events (`textDelta`, `toolUse`, `result`, etc.). Used for the structured chat panel.
+2. **App-Server mode** (`src/main/codex/codex-bridge.ts`) — spawns `codex app-server --stdio` via `child_process.spawn`. Speaks JSON-RPC 2.0 over stdio (newline-delimited JSON). Sends `initialize` → `thread/start` → `turn/start` requests, receives `turn/started`, `item/*`, `turn/completed` notifications. Used for the structured chat panel. Legacy StreamBridge (`src/main/pty/stream-bridge.ts`) remains as fallback for Claude CLI.
 
 ### IPC Surface
 
@@ -94,6 +95,8 @@ The main process compiles separately as CommonJS (`tsconfig.main.json`); the ren
 
 - **node-pty binaries** are copied from VS Code's bundled node-pty (not built from source). If you need to rebuild, use `npm run rebuild-pty` and target Electron v39+.
 - **electron-store must stay at v8** (CJS). v10+ is ESM-only and breaks the main process.
-- **CLI path resolution**: `pty-manager.ts` and `stream-bridge.ts` each walk a list of candidate paths relative to `__dirname` to locate `package/cli.js`. Override with `CLAUDE_CLI_PATH` env var.
-- **Session IDs**: There are two kinds — the internal `bridgeId` used within a single `StreamBridge` lifetime, and the real `claudeSessionId` from the CLI's `result` event (used to `--resume` across invocations).
+- **Codex CLI resolution**: `codex-resolver.ts` walks candidate paths to locate the codex binary (npm `@openai/codex` package → platform-specific native binary). Override with `CODEX_CLI_PATH` env var. The Codex binary is a Rust-compiled native executable, not a Node.js script.
+- **Session IDs**: There are two kinds — the internal `bridgeId` used within a single `CodexBridge` lifetime, and the `codexThreadId` (Codex thread ID) from the `thread/start` or `turn/completed` events. Codex uses `thread/resume` (not `--resume`) to continue sessions.
+- **API Keys**: Primary key is `OPENAI_API_KEY` (for Codex). Legacy `ANTHROPIC_API_KEY` is still supported via the StreamBridge fallback.
+- **Codex protocol**: JSON-RPC 2.0 over stdio (newline-delimited JSON, `"jsonrpc":"2.0"` header omitted on wire). See `codex/codex-rs/app-server/README.md` for the full protocol specification.
 - Do **not** set `NODE_ENV=development` when launching the built app — it makes Electron load `localhost:5173` instead of the built renderer files.
