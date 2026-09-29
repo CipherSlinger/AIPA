@@ -171,7 +171,7 @@ export default function WorkflowDetailPage() {
   }, [hasUnsavedChanges])
 
   const navigateBack = useCallback(() => {
-    useUiStore.getState().setMainView('chat')
+    useUiStore.getState().setActiveNavItem('workflows')
   }, [])
 
   const goBack = useCallback(() => {

@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, shell, app } from 'electron'
+import { ipcMain, BrowserWindow, shell, app, dialog } from 'electron'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
@@ -15,6 +15,9 @@ import { readCLISettings, writeCLISettings } from '../config/cli-settings-manage
 import { listMemoryFiles, readMemoryFile, writeMemoryFile, createMemoryFile, deleteMemoryFile } from '../sessions/memory-manager'
 import { checkIsGitRepo, listWorktrees, createWorktree, removeWorktree } from '../sessions/worktree-manager'
 import { listPlugins, setPluginEnabled, uninstallPlugin, registerLocalPlugin } from '../plugins/plugin-manager'
+import { initNavPluginManager, listNavPlugins, reloadNavPlugins, openPluginFolder } from '../plugins/nav-plugin-manager'
+import { migrateLegacyTasks, startWorkCalendarReminders } from '../plugins/work-calendar-reminders'
+import { readPluginData, writePluginData, fetchGithubCommits, scanFolderChanges, startPluginAi, abortPluginAi, type GithubCommitsArgs, type ScanFolderArgs } from '../plugins/plugin-services'
 import { getCliPath } from '../utils/cli-path'
 import { validateApiKey, validateModelName, validateFlags } from '../utils/validate'
 import { registerSkillsHandlers } from './skills-handlers'
@@ -76,6 +79,7 @@ export function registerAllHandlers(win: BrowserWindow): void {
     registerBackupHandlers()
     registerSpeculationHandlers()
     registerClawdHandlers()
+    registerNavPluginHandlers(win, send)
     log.info('All IPC handlers registered successfully')
   } catch (err) {
     log.error('Failed to register some IPC handlers:', String(err))
@@ -727,6 +731,84 @@ function registerConfigHandlers(): void {
     const key = `feedback.${messageId}`
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(setPref as any)(key, rating)
+  })
+}
+
+// ----------------------------------------
+// Nav Plugin handlers (Hot-Pluggable Left-Rail & Main View Plugins)
+// ----------------------------------------
+function registerNavPluginHandlers(win: BrowserWindow, send: (ch: string, ...a: unknown[]) => void): void {
+  const getWorkingDir = () => ((getPref as any)('workingDir') as string) || ''
+  initNavPluginManager(
+    getWorkingDir,
+    (plugins) => {
+      send('plugin:nav:updated', plugins)
+    }
+  )
+  // Tasks panel moved into the Work Calendar plugin — carry old data over
+  migrateLegacyTasks()
+  startWorkCalendarReminders(win)
+
+  safeHandle('plugin:nav:list', () => {
+    return listNavPlugins()
+  })
+  safeHandle('plugin:nav:reload', () => reloadNavPlugins(getWorkingDir()))
+  safeHandle('plugin:nav:openFolder', (_e, { pluginId }: { pluginId?: string } = {}) => {
+    return openPluginFolder(pluginId || '')
+  })
+
+  // ── Host capabilities for plugins (gated by manifest.permissions) ──
+  // PluginHostView already checks permissions; re-check here so a compromised
+  // renderer path can't reach capabilities a plugin never declared.
+  const requirePermission = (pluginId: string, permission: string): void => {
+    const plugin = listNavPlugins().find(p => p.manifest.id === pluginId)
+    if (!plugin) throw new Error(`Unknown plugin: ${pluginId}`)
+    if (!plugin.manifest.permissions?.includes(permission)) {
+      throw new Error(`Plugin ${pluginId} lacks "${permission}" permission`)
+    }
+  }
+
+  safeHandle('plugin:data:get', (_e, { pluginId, key }: { pluginId: string; key: string }) => {
+    requirePermission(pluginId, 'storage')
+    return readPluginData(pluginId, key)
+  })
+  safeHandle('plugin:data:set', (_e, { pluginId, key, value }: { pluginId: string; key: string; value: unknown }) => {
+    requirePermission(pluginId, 'storage')
+    writePluginData(pluginId, key, value)
+    return true
+  })
+  safeHandle('plugin:github:commits', (_e, { pluginId, args }: { pluginId: string; args: GithubCommitsArgs }) => {
+    requirePermission(pluginId, 'network')
+    return fetchGithubCommits(args)
+  })
+  safeHandle('plugin:fs:scanFolder', (_e, { pluginId, args }: { pluginId: string; args: ScanFolderArgs }) => {
+    requirePermission(pluginId, 'fs')
+    return scanFolderChanges(args)
+  })
+  safeHandle('plugin:fs:pickFolder', async (_e, { pluginId, title }: { pluginId: string; title?: string }) => {
+    requirePermission(pluginId, 'fs')
+    const result = win.isDestroyed()
+      ? await dialog.showOpenDialog({ title, properties: ['openDirectory'] })
+      : await dialog.showOpenDialog(win, { title, properties: ['openDirectory'] })
+    return result.canceled ? null : result.filePaths[0] ?? null
+  })
+  safeHandle('plugin:ai:generate', async (_e, { pluginId, requestId, prompt, instructions, model }: {
+    pluginId: string
+    requestId: string
+    prompt: string
+    instructions?: string
+    model?: string
+  }) => {
+    requirePermission(pluginId, 'ai')
+    const scopedId = `${pluginId}:${requestId}`
+    await startPluginAi(
+      { requestId: scopedId, prompt, instructions, model, apiKey: getApiKey() || undefined },
+      (event) => send('plugin:ai:event', { ...event, pluginId, requestId })
+    )
+    return { started: true }
+  })
+  safeHandle('plugin:ai:abort', (_e, { pluginId, requestId }: { pluginId: string; requestId: string }) => {
+    abortPluginAi(`${pluginId}:${requestId}`)
   })
 }
 

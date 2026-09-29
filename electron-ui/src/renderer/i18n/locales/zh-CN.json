@@ -14,7 +14,6 @@
     "expandNav": "展开侧边栏",
     "collapseNav": "收起",
     "channel": "通道",
-    "tasks": "任务",
     "changes": "变更"
   },
   "chat": {
@@ -2013,41 +2012,6 @@
     "today": "今日",
     "connected": "已连接",
     "idle": "空闲"
-  },
-  "tasks": {
-    "title": "任务",
-    "count": "{{count}} 个任务",
-    "addPlaceholder": "添加任务...",
-    "empty": "还没有任务，在上方添加一个吧！",
-    "completed": "已完成 ({{count}})",
-    "clearCompleted": "清除已完成",
-    "limitWarning": "接近任务上限 ({{count}}/100)"
-  },
-  "reminders": {
-    "title": "提醒",
-    "empty": "暂无活跃提醒",
-    "textPlaceholder": "提醒什么?",
-    "in5min": "5 分钟",
-    "in15min": "15 分钟",
-    "in30min": "30 分钟",
-    "in1hr": "1 小时",
-    "in2hr": "2 小时",
-    "cancel": "取消",
-    "fired": "提醒",
-    "now": "现在",
-    "inMinutes": "{{count}} 分钟后",
-    "inHours": "{{count}} 小时后",
-    "quickPresets": "快速",
-    "recurring": "定期重复",
-    "setRecurring": "设置"
-  },
-  "cronPresets": {
-    "every5min": "每5分钟",
-    "everyHour": "每小时",
-    "everyMorning": "每天早9点",
-    "weekdayMorning": "工作日早9点",
-    "everyNoon": "每天中午12点",
-    "everyEvening": "每天晚6点"
   },
   "dailyBriefing": {
     "goodMorning": "早上好!",

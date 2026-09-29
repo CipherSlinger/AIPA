@@ -8,6 +8,7 @@ import { useUiStore } from '../../store'
 import type { Persona } from '../../types/app.types'
 import { PERSONA_COLORS, EMOJI_PRESETS } from '../settings/personaConstants'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
+import PersonCharacterIcon from './PersonCharacterIcon'
 
 // ─── Keyframe injection (once per module) ─────────────────────────────────────
 const ANIM_ID = 'persona-sidebar-keyframes'
@@ -40,172 +41,152 @@ function getRoleBadge(persona: Persona) {
   return null
 }
 
-// ─── Compact persona card for the sidebar ─────────────────────────────────────
+// ─── Vivid Illustrated Persona Icon Tile ──────────────────────────────────────
 
-export interface PersonaSidebarCardProps {
+export interface PersonaIconTileProps {
   persona: Persona
   isActive: boolean
   isDeleting: boolean
   onDelete: (id: string) => void
 }
 
-export function PersonaSidebarCard({ persona, isActive, isDeleting, onDelete }: PersonaSidebarCardProps) {
+export function PersonaIconTile({ persona, isActive, isDeleting, onDelete }: PersonaIconTileProps) {
   const { t } = useI18n()
   const p = persona
   const [hovered, setHovered] = React.useState(false)
 
-  // Use localized name for installed presets
   const displayName = p.presetKey ? t(`persona.preset.${p.presetKey}`) : p.name
 
-  const modelLabel = MODEL_OPTIONS.find(m => m.id === p.model)?.labelKey
-    ? t(MODEL_OPTIONS.find(m => m.id === p.model)!.labelKey)
-    : p.model
+  const modelOption = MODEL_OPTIONS.find(m => m.id === p.model)
+  const modelLabel = modelOption?.labelKey ? t(modelOption.labelKey) : p.model
 
   const roleBadge = getRoleBadge(p)
-
-  // Build tooltip: name + model + first ~80 chars of system prompt
   const promptSnippet = p.systemPrompt.length > 80 ? p.systemPrompt.slice(0, 80) + '…' : p.systemPrompt
-  const cardTooltip = `${displayName} · ${modelLabel}\n${promptSnippet}`
+  const tileTooltip = `${displayName} (${roleBadge?.label || 'Agent'}) · ${modelLabel}\n${promptSnippet}`
 
   return (
     <div
-      onClick={() => useUiStore.getState().openPersonaEditor(p.id, 'chat')}
-      title={cardTooltip}
+      onClick={() => useUiStore.getState().openPersonaEditor(p.id, 'workflows')}
+      title={tileTooltip}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
+        position: 'relative',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        gap: 9,
-        padding: '8px 12px',
-        background: isActive
-          ? 'rgba(99,102,241,0.12)'
-          : 'var(--bg-hover)',
-        border: `1px solid ${isActive ? 'rgba(99,102,241,0.35)' : 'var(--glass-border)'}`,
-        borderRadius: 8,
-        transition: 'all 0.15s ease',
+        padding: '10px 6px 8px',
+        borderRadius: 12,
         cursor: 'pointer',
-        borderLeft: isActive ? '3px solid var(--accent, rgba(99,102,241,0.7))' : '3px solid transparent',
+        background: isActive
+          ? 'rgba(99,102,241,0.14)'
+          : hovered
+          ? 'var(--bg-hover)'
+          : 'var(--bg-card, rgba(255,255,255,0.03))',
+        border: isActive
+          ? `1.5px solid ${p.color || '#6366f1'}`
+          : hovered
+          ? '1.5px solid var(--border)'
+          : '1px solid var(--glass-border)',
         boxShadow: isActive
-          ? `0 0 0 1px ${p.color}30, 0 2px 8px rgba(0,0,0,0.25)`
-          : hovered ? '0 2px 8px rgba(0,0,0,0.25)' : '0 1px 3px rgba(0,0,0,0.18)',
+          ? `0 0 14px ${p.color}35, 0 2px 8px rgba(0,0,0,0.15)`
+          : hovered
+          ? '0 4px 12px rgba(0,0,0,0.18)'
+          : '0 1px 3px rgba(0,0,0,0.1)',
+        transform: hovered ? 'translateY(-2px)' : 'none',
+        transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+        userSelect: 'none',
         animation: 'personaCardIn 0.15s ease both',
       }}
     >
-      {/* Emoji avatar — circular with colored ring */}
-      <div className="persona-avatar" style={{
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        background: isActive ? 'rgba(99,102,241,0.15)' : `${p.color}28`,
-        border: `2px solid ${isActive ? 'rgba(99,102,241,0.30)' : `${p.color}60`}`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 15,
-        flexShrink: 0,
-        boxShadow: isActive ? '0 0 8px rgba(99,102,241,0.25)' : `0 0 6px ${p.color}40`,
-        transition: 'all 0.15s ease',
-      }}>
-        {p.emoji}
-      </div>
+      {/* Delete button on hover or when confirming delete */}
+      <button
+        onClick={e => { e.stopPropagation(); onDelete(p.id) }}
+        title={isDeleting ? t('persona.deleteConfirm') : t('persona.deletePersona')}
+        style={{
+          position: 'absolute',
+          top: 4,
+          right: 4,
+          width: 20,
+          height: 20,
+          borderRadius: '50%',
+          border: isDeleting ? '1px solid #f87171' : '1px solid var(--glass-border)',
+          background: isDeleting ? '#f87171' : 'var(--bg-primary)',
+          color: isDeleting ? '#ffffff' : 'var(--text-muted)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: hovered || isDeleting ? 1 : 0,
+          transition: 'all 0.15s ease',
+          zIndex: 5,
+        }}
+      >
+        {isDeleting ? <X size={9} /> : <Trash2 size={9} />}
+      </button>
 
-      {/* Info */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
-          <span style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: 'var(--text-primary)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            letterSpacing: '0.01em',
-          }}>
-            {displayName}
-          </span>
-          {/* Color-coded role badge for preset personas */}
-          {roleBadge && !isActive && (
-            <span style={{
-              fontSize: 7,
-              background: roleBadge.bg,
-              color: roleBadge.color,
-              padding: '1px 5px',
-              borderRadius: 6,
-              fontWeight: 700,
-              flexShrink: 0,
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              border: `1px solid ${roleBadge.color}40`,
-            }}>
-              {roleBadge.label}
-            </span>
-          )}
-          {isActive && (
-            <span style={{
-              fontSize: 8,
-              background: `linear-gradient(135deg, ${p.color}, ${p.color}cc)`,
-              color: 'var(--text-primary)',
-              padding: '1px 6px',
-              borderRadius: 8,
-              fontWeight: 700,
-              flexShrink: 0,
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-              boxShadow: `0 1px 4px ${p.color}55`,
-            }}>
-              {t('persona.active')}
-            </span>
-          )}
-        </div>
-        <div style={{
+      {/* Illustrated Person/Character Avatar */}
+      <PersonCharacterIcon
+        persona={p}
+        size={52}
+        isActive={isActive}
+        showBadge={true}
+      />
+
+      {/* Name Label */}
+      <div
+        style={{
+          marginTop: 6,
           fontSize: 11,
-          color: 'var(--text-muted)',
+          fontWeight: isActive ? 700 : 600,
+          color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+          textAlign: 'center',
+          width: '100%',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
-        }}>
-          {modelLabel}
-        </div>
+          letterSpacing: '0.01em',
+          lineHeight: 1.25,
+        }}
+      >
+        {displayName}
       </div>
 
-      {/* Action buttons — only visible on hover or when deleting */}
-      <div style={{ display: 'flex', gap: 2, flexShrink: 0, visibility: (hovered || isDeleting) ? 'visible' : 'hidden' }}>
-        <button
-          onClick={e => { e.stopPropagation(); onDelete(p.id) }}
-          title={isDeleting ? t('persona.deleteConfirm') : t('persona.deletePersona')}
-          style={{
-            width: 26,
-            height: 26,
-            borderRadius: 6,
-            border: isDeleting ? '1px solid rgba(252,165,165,0.4)' : '1px solid var(--glass-border)',
-            background: isDeleting ? 'rgba(252,165,165,0.15)' : 'transparent',
-            color: isDeleting ? '#fca5a5' : 'var(--text-faint)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.15s ease',
-            backdropFilter: 'blur(4px)',
-            WebkitBackdropFilter: 'blur(4px)',
-          }}
-          onMouseEnter={e => {
-            if (!isDeleting) {
-              e.currentTarget.style.background = 'rgba(252,165,165,0.12)'
-              e.currentTarget.style.borderColor = 'rgba(252,165,165,0.3)'
-              e.currentTarget.style.color = '#fca5a5'
-            }
-          }}
-          onMouseLeave={e => {
-            if (!isDeleting) {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.borderColor = 'var(--glass-border)'
-              e.currentTarget.style.color = 'var(--text-faint)'
-            }
-          }}
-        >
-          {isDeleting ? <X size={10} /> : <Trash2 size={10} />}
-        </button>
+      {/* Role Badge or Active tag */}
+      <div style={{ marginTop: 2, height: 14, display: 'flex', alignItems: 'center' }}>
+        {isActive ? (
+          <span style={{
+            fontSize: 8,
+            fontWeight: 700,
+            color: '#22c55e',
+            background: 'rgba(34,197,94,0.12)',
+            padding: '0 4px',
+            borderRadius: 4,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+          }}>
+            {t('persona.active')}
+          </span>
+        ) : roleBadge ? (
+          <span style={{
+            fontSize: 8,
+            fontWeight: 600,
+            color: roleBadge.color,
+            background: roleBadge.bg,
+            padding: '0 4px',
+            borderRadius: 4,
+            letterSpacing: '0.03em',
+          }}>
+            {roleBadge.label}
+          </span>
+        ) : (
+          <span style={{
+            fontSize: 8,
+            color: 'var(--text-faint)',
+          }}>
+            {modelLabel.split(' ')[0]}
+          </span>
+        )}
       </div>
     </div>
   )

@@ -16,6 +16,8 @@ export type { SidebarTab, NavItem } from './uiStore'
 export { useDepartmentStore } from './departmentStore'
 export type { Department } from './departmentStore'
 
+export { usePluginStore } from './pluginStore'
+
 // ── Session store ───────────────────────────────
 interface SessionState {
   sessions: SessionListItem[]
@@ -67,7 +69,7 @@ const DEFAULT_PREFS: AppPrefs = {
   skipPermissions: false,
   permissionMode: 'default',
   verbose: false,
-  theme: 'vscode',
+  theme: 'light',
   thinkingLevel: 'off',
   systemPrompt: '',
   maxTurns: undefined,

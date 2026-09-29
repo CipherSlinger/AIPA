@@ -1,13 +1,25 @@
 // DailySummaryCard — shows daily usage stats + tasks/reminders briefing on WelcomeScreen (Iteration 417, 466)
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { Calendar, X, MessageSquare, Layers, Zap, CheckSquare, Bell, ArrowRight } from 'lucide-react'
-import { useSessionStore, usePrefsStore, useUiStore } from '../../store'
+import { useSessionStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
-import type { TaskItem, ReminderItem } from '../sidebar/TasksPanel'
 
-// Stable empty arrays — prevent new reference when prefs key is absent
-const EMPTY_TASKS: TaskItem[] = []
-const EMPTY_REMINDERS: ReminderItem[] = []
+// Tasks and reminders live in the Work Calendar plugin data
+const WORK_CALENDAR_ID = 'aipa-work-calendar'
+interface CalendarTask { status: 'todo' | 'in_progress' | 'done'; updatedAt?: string }
+interface CalendarReminder { text: string; fireAt: number }
+
+function useWorkCalendarList<T>(key: string): T[] {
+  const [items, setItems] = useState<T[]>([])
+  useEffect(() => {
+    let alive = true
+    window.electronAPI.pluginDataGet(WORK_CALENDAR_ID, key)
+      .then(v => { if (alive && Array.isArray(v)) setItems(v as T[]) })
+      .catch(() => { /* plugin not installed */ })
+    return () => { alive = false }
+  }, [key])
+  return items
+}
 
 // Rotating productivity tips (20+)
 const TIPS = [
@@ -36,8 +48,8 @@ const TIPS = [
 export default function DailySummaryCard() {
   const t = useT()
   const sessions = useSessionStore(s => s.sessions)
-  const tasks: TaskItem[] = usePrefsStore(s => (s.prefs as any).tasks ?? EMPTY_TASKS)
-  const reminders: ReminderItem[] = usePrefsStore(s => (s.prefs as any).reminders ?? EMPTY_REMINDERS)
+  const tasks = useWorkCalendarList<CalendarTask>('tasks')
+  const reminders = useWorkCalendarList<CalendarReminder>('reminders')
 
   // Check if we should show the card
   const [dismissed, setDismissed] = useState(() => {
@@ -65,8 +77,8 @@ export default function DailySummaryCard() {
       .map(t => t.length > 25 ? t.slice(0, 25) + '...' : t)
 
     // Tasks stats
-    const pendingTasks = tasks.filter(tk => !tk.done).length
-    const completedToday = tasks.filter(tk => tk.done && tk.createdAt >= todayTs).length
+    const pendingTasks = tasks.filter(tk => tk.status !== 'done').length
+    const completedToday = tasks.filter(tk => tk.status === 'done' && !!tk.updatedAt && Date.parse(tk.updatedAt) >= todayTs).length
 
     // Next upcoming reminder
     const now = Date.now()
@@ -99,10 +111,7 @@ export default function DailySummaryCard() {
   }
 
   const navigateToTasks = () => {
-    const ui = useUiStore.getState()
-    ui.setSidebarOpen(true)
-    ui.setSidebarTab('tasks')
-    ui.setActiveNavItem('tasks')
+    useUiStore.getState().setActiveNavItem(`plugin:${WORK_CALENDAR_ID}`)
   }
 
   // Time-aware greeting

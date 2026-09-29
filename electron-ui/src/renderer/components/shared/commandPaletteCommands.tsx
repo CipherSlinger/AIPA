@@ -135,15 +135,6 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
       category: 'action',
     },
     {
-      id: 'open-channel',
-      name: t('command.openChannel'),
-      description: t('command.openChannelDesc'),
-      icon: <Radio size={14} />,
-      shortcut: 'Ctrl+7',
-      action: () => { setActiveNavItem('channel'); onClose() },
-      category: 'action',
-    },
-    {
       id: 'change-working-dir',
       name: t('command.changeWorkingDir'),
       description: t('command.changeWorkingDirDesc'),
@@ -256,10 +247,10 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
       id: 'toggle-theme',
       name: t('command.toggleTheme'),
       description: t('command.toggleThemeDesc'),
-      icon: (usePrefsStore.getState().prefs.theme || 'vscode') === 'light' ? <Moon size={14} /> : <Sun size={14} />,
+      icon: (usePrefsStore.getState().prefs.theme || 'light') === 'light' ? <Moon size={14} /> : <Sun size={14} />,
       shortcut: 'Ctrl+Shift+D',
       action: () => {
-        const cur = usePrefsStore.getState().prefs.theme || 'vscode'
+        const cur = usePrefsStore.getState().prefs.theme || 'light'
         const next = cur === 'light' ? 'vscode' : 'light'
         usePrefsStore.getState().setPrefs({ theme: next })
         window.electronAPI.prefsSet('theme', next)

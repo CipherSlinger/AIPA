@@ -14,7 +14,6 @@
     "channel": "Channel",
     "expandNav": "Expand sidebar",
     "collapseNav": "Collapse",
-    "tasks": "Tasks",
     "changes": "Changes"
   },
   "chat": {
@@ -1995,41 +1994,6 @@
     "today": "today",
     "connected": "Connected",
     "idle": "Idle"
-  },
-  "tasks": {
-    "title": "Tasks",
-    "count": "{{count}} tasks",
-    "addPlaceholder": "Add a task...",
-    "empty": "No tasks yet. Add one above!",
-    "completed": "Completed ({{count}})",
-    "clearCompleted": "Clear completed",
-    "limitWarning": "Approaching task limit ({{count}}/100)"
-  },
-  "reminders": {
-    "title": "Reminders",
-    "empty": "No active reminders",
-    "textPlaceholder": "What to remind?",
-    "in5min": "5 min",
-    "in15min": "15 min",
-    "in30min": "30 min",
-    "in1hr": "1 hour",
-    "in2hr": "2 hours",
-    "cancel": "Cancel",
-    "fired": "Reminder",
-    "now": "Now",
-    "inMinutes": "in {{count}} min",
-    "inHours": "in {{count}} hr",
-    "quickPresets": "Quick",
-    "recurring": "Recurring",
-    "setRecurring": "Set"
-  },
-  "cronPresets": {
-    "every5min": "Every 5 minutes",
-    "everyHour": "Every hour",
-    "everyMorning": "Every morning (9am)",
-    "weekdayMorning": "Weekdays at 9am",
-    "everyNoon": "Every day at noon",
-    "everyEvening": "Every evening (6pm)"
   },
   "dailyBriefing": {
     "goodMorning": "Good morning!",

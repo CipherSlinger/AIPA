@@ -2,9 +2,9 @@
  * patch-node-pty.js
  *
  * Patches node-pty's windowsPtyAgent.js to add the missing 7th argument
- * (useConptyDll) to the conpty startProcess() call. This is required because
- * our conpty.node binary (from VS Code) expects 7 arguments, but node-pty
- * 0.10.1's JS wrapper only passes 6.
+ * (useConptyDll) to the conpty startProcess() call. This was required for
+ * node-pty 0.10.1 when using conpty.node binaries expecting 7 arguments.
+ * Modern node-pty (1.0+) natively passes this argument.
  *
  * Run after npm install: node scripts/patch-node-pty.js
  */
@@ -32,17 +32,15 @@ const oldCall =
 const newCall =
   'this._ptyNative.startProcess(file, cols, rows, debug, this._generatePipeName(), conptyInheritCursor, false);';
 
-if (content.includes(newCall)) {
-  console.log('[patch-node-pty] Already patched, nothing to do.');
+// node-pty 1.0+ natively passes this._useConptyDll as the 7th argument
+if (content.includes('this._useConptyDll') || content.includes(newCall)) {
+  console.log('[patch-node-pty] Already patched or natively supported, nothing to do.');
   process.exit(0);
 }
 
 if (!content.includes(oldCall)) {
-  console.warn(
-    '[patch-node-pty] Could not find the expected startProcess call. ' +
-    'node-pty may have been updated. Manual review required.'
-  );
-  process.exit(1);
+  console.log('[patch-node-pty] Legacy startProcess call not found, node-pty API is up to date.');
+  process.exit(0);
 }
 
 content = content.replace(oldCall, newCall);

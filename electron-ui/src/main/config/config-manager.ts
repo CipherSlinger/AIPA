@@ -16,7 +16,7 @@ interface StoreSchema {
   skipPermissions: boolean
   permissionMode: 'default' | 'acceptEdits' | 'dontAsk' | 'plan' | 'bypassPermissions'
   verbose: boolean
-  theme: 'vscode' | 'modern' | 'minimal'
+  theme: 'vscode' | 'light' | 'system' | 'modern' | 'minimal'
   onboardingDone: boolean
   // Multi-model provider support (Iteration 301)
   modelProviders: unknown[]
@@ -41,7 +41,7 @@ const store = new Store<StoreSchema>({
     skipPermissions: false,
     permissionMode: 'default',
     verbose: false,
-    theme: 'vscode',
+    theme: 'light',
     onboardingDone: false,
     modelProviders: [],
     activeProviderId: 'claude-cli',
@@ -130,6 +130,15 @@ export function getPref<K extends keyof StoreSchema>(key: K): StoreSchema[K] {
 
 export function setPref<K extends keyof StoreSchema>(key: K, value: StoreSchema[K]): void {
   store.set(key, value)
+}
+
+/** Read/delete keys outside StoreSchema (e.g. legacy renderer-only prefs). */
+export function getRawPref(key: string): unknown {
+  return (store as unknown as { get: (k: string) => unknown }).get(key)
+}
+
+export function deleteRawPref(key: string): void {
+  (store as unknown as { delete: (k: string) => void }).delete(key)
 }
 
 export function getAllPrefs(): StoreSchema {

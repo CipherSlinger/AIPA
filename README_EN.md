@@ -1,8 +1,8 @@
 <p align="center">
   <h1 align="center">AIPA</h1>
   <p align="center">
-    <strong>AI Personal Assistant — your always-on desktop agent</strong><br/>
-    Ask anything. Automate anything. Get things done.
+    <strong>AI Personal Assistant — Your Always-On Desktop Agent Cockpit</strong><br/>
+    Ask anything. Automate anything. Drive terminal and code, get things done.
   </p>
   <p align="center">
     <img src="https://img.shields.io/badge/platform-Windows-blue" alt="Platform" />
@@ -15,264 +15,330 @@
 
 ---
 
-AIPA is not a chat window. It's a **desktop agent** that lives alongside you — reads and writes your files, runs shell commands, browses the web, chains tasks into workflows, and remembers context across sessions. Under the hood it drives the [Claude Code](https://claude.ai/code) CLI as its execution engine, wrapped in a polished Electron + React cockpit with support for Claude, OpenAI, DeepSeek, Ollama, and any OpenAI-compatible provider.
+AIPA is not a simple web-wrapper chat window. It is an **action-oriented desktop agent** that lives alongside you — reading and writing local files, executing shell commands, chaining tasks into automated workflows, and maintaining memory and preferences across sessions.
 
-> **The Claude Code CLI is the engine. AIPA is the cockpit.**
+Under the hood, it drives **OpenAI Codex CLI** and **Claude Code CLI** as dual-core execution engines, packaged inside a finely tuned Electron + React cockpit with native multi-model support for OpenAI, Claude, DeepSeek, Ollama, and any OpenAI-compatible provider.
 
----
-
-## What AIPA Can Do
-
-| | |
-|---|---|
-| **Chat & Execute** | Full conversational AI with tool-use visualization — watch the agent read files, run code, and browse the web in real time |
-| **Memory** | Persistent memory across sessions — preferences, facts, instructions, and context automatically injected into every conversation |
-| **Workflows** | Chain prompts into reusable multi-step pipelines with preset templates for common tasks |
-| **Notes** | Markdown notepad with categories, templates, and one-click save from any chat response |
-| **Multi-Model** | Switch between Claude, GPT-4, DeepSeek, or local Ollama models mid-session; Qwen via QR code quick setup |
-| **Always Available** | System tray with quick actions, global hotkeys (`Ctrl+Shift+Space` toggle, `Ctrl+Shift+G` clipboard ask), and desktop notifications |
-| **Tasks & Reminders** | Quick todo list with **3-state status** (pending/in_progress/completed) + 5s hide-delay, one-shot timed reminders + **cron recurring reminders** (5-field expressions, human-readable frequency labels, preset picker), daily briefing |
-| **Channel** | Connect Feishu and WeChat messaging channels via OpenClaw — configure, test, and manage from the sidebar |
+> 💡 **The CLI is the high-performance engine; AIPA is your intuitive cockpit.**
 
 ---
 
-## Highlights
+## 🏛️ System Architecture
 
-### Conversation
-- **Stream-JSON chat** with live tool-use cards — see every file read, command run, and web fetch as it happens
-- **Tool Use Summary Labels** — consecutive tool calls auto-grouped with human-readable operation summaries
-- **Structured Diff View** — file edits and writes shown in LCS-based unified diff format with color-coded add/delete lines and collapsible large diffs
-- **Custom System Prompt** — Settings → Advanced tab to configure a persistent append prompt (2000-char limit, 6 presets); ChatHeader button for per-session temporary override; effective prompt priority: temp > persistent, injected via `--append-system-prompt`
-- **Extended thinking** blocks, collapsible and auto-expanding during generation; one-click toggle in StatusBar
-- **Output Styles** — three response modes (default/explanatory/learning), quick-switch from toolbar
-- **Auto-Compaction** — automatically summarizes older messages when context window nears capacity (threshold configurable 60%-90%); **Microcompact** pre-processing trims long messages before summarization to reduce input tokens; **Time-gap microcompact** clears stale tool results across sessions idle for 30+ minutes
-- **Context Suggestions** — when context usage exceeds 70%, shows per-tool optimization tips (bash output, file reads, web fetches) with estimated token savings in a lightbulb popover
-- **Away Summary** — when you return after 5+ minutes away, automatically injects a purple summary card into the conversation showing what was happening
-- **Conversation Rewind** — right-click any assistant message → "Rewind to here" to trim the conversation to that point, syncing both in-memory state and persisted session; confirmation dialog prevents accidental use
-- **Keyboard message navigation** — `Ctrl+Up/Down` to step through messages, `Ctrl+Home/End` to jump to first/last, with visual focus indicator
-- **Edit & regenerate** any message; pick a different model before regenerating
-- **Read Aloud** via Web Speech API; **Quote Reply** by selecting text
-- **Permission prompts** — friendly allow/deny cards before any destructive tool use
-- **Permission Suggestions** — permission cards include CLI-suggested "Always Allow (Rule)" / "Always Deny" quick-action buttons; one click creates a persistent permission rule without opening Settings
-- **Hook Callback Approval** — PreToolUse/PostToolUse hooks requiring human intervention show an inline approve/block card directly in the chat; optional reason textarea; response relayed to the CLI in real time
-- **MCP Elicitation** — when an MCP server requests user input, an inline card collects structured form data (schema-driven fields or free-text) or opens a browser URL flow; submit/decline/cancel responses are relayed back to the MCP server
-- **System Diagnostics** — one-click health checks for CLI, API key, network, disk space, and system load
-- **API Error Visibility** — `overloaded_error` and `authentication_error` events from the CLI (previously silently dropped) now surface as toast notifications (warning for overload, error for auth failure), so users know exactly why a response stopped
-- **Copy Session ID** — a session ID badge in ChatHeader (shows 8-char prefix) copies the full session ID to clipboard on click; use it with `--resume` to manually resume any session
-- **Sub-agent Visualization (AgentToolCard)** — when Claude invokes the Agent tool, a dedicated card shows real-time elapsed timer (running/done/error states), task description summary, subagent_type badge, foreground (green) / background (orange) chip, Worktree isolation (blue) chip; collapsible full prompt preview (>150 chars) and output result (>200 chars); **sub-agent count badge** on Canvas nodes shows a Users icon with live sub-agent count during Agent tool execution
-- **File Read Card (FileReadCard)** — CLI `Read` tool calls render a dedicated card: file path display (directory dimmed, filename highlighted), line-range badge (offset/limit), first-20-lines code preview (expandable), copy button, in-progress state indicator
-- **File Write Card (FileWriteCard)** — CLI `Write` tool calls render a dedicated card: green theme, file path display, content preview (first 20 lines, expandable), copy button, "File written" confirmation badge
-- **Task Management Inline Cards (TaskCreate/Update/List/Get)** — CLI async task tools render inline cards in the chat stream: TaskCreate/TaskUpdate show status badges; TaskList/TaskGet render a Kanban 3-column view (pending/in_progress/completed) with animated status badges
-- **Startup Protection** — IPC pre-registration eliminates race conditions, non-blocking menu construction, 10s hard splash timeout, renderer error recovery, preferences reset for bulletproof launches
-- **Rich CLI Tool Cards** — specialized inline cards for every major CLI tool:
-  - `NotebookEdit` — filename header, cell type color badges (code=blue/markdown=purple), expandable source preview, edit_mode chip
-  - `WebBrowserTool` — action badge (navigate/click/type/screenshot), URL display, screenshot thumbnail or text preview
-  - `PowerShellTool` — rendered via Bash card routing for Windows PowerShell commands
-  - `CronCreate/Delete/List` — cron expression chip, prompt preview, recurring/one-shot badge, job ID; list result shows job rows
-  - `RemoteTriggerTool` — action chip (list/get/create/update/run with color coding), trigger_id, prompt preview, action-aware result display
-  - `SendMessage` — indigo left-border card, recipient (to field), message preview, Delivered/Failed status badge
+```mermaid
+graph TB
+    subgraph Desktop["🖥️ User Desktop Environment (Windows 10/11)"]
+        subgraph ElectronCockpit["🚀 AIPA Desktop Cockpit (Electron + React)"]
+            subgraph Renderer["Renderer Layer (React 18 + Vite + Zustand)"]
+                NavRail["Navigation Rail (NavRail)"]
+                MainView["Main Content View (MainView)"]
+                ChatPanel["Structured Chat / Tool Cards / LCS Diff"]
+                DeptDashboard["Department Dashboard"]
+                EmpGallery["Employees Character Icon Grid"]
+                CanvasWorkflow["Canvas Workflow Editor"]
+                PluginHost["Sandboxed Plugin Host"]
+            end
+            
+            subgraph Preload["Isolation Layer (Preload / contextBridge)"]
+                API["window.electronAPI (Type-safe IPC Bridge)"]
+            end
+            
+            subgraph MainProcess["Main Process (Node.js CJS)"]
+                PtyMgr["PTY Manager (node-pty ConPTY)"]
+                CodexBridge["Codex Bridge (JSON-RPC 2.0 stdio)"]
+                StreamBridge["Claude Bridge (NDJSON Stream)"]
+                NavPluginMgr["Hot-Pluggable Plugin Watcher (fs.watch)"]
+                ConfigMgr["Secure Config (DPAPI safeStorage)"]
+                ClawdPet["Clawd Desktop Pet Integration"]
+            end
+        end
 
-### Input Power Tools
-- **Slash commands** (`/`) with client-side commands: `/vim` toggle Vim editing, `/fast` switch to Haiku fast model, `/output-style` cycle response style, `/statusline` toggle status bar; **@mention** file picker
-- **Text snippets** — `::keyword` expands reusable blocks
-- **Text transforms** — make formal, casual, shorter, longer, or fix grammar with one click
-- **Inline calculator** — type `= 42 * 1.18`, press Tab to insert the result
-- **Task queue** — queue multiple prompts for sequential auto-execution
-- **Vim Modal Editing** — activate with `/vim`; Vim-style insert/normal mode in the input field; motion keys `h/j/k/l`, word jump `w/b`, line `0/$`, delete `x`/`dd`, undo `u`, insert/append `i`/`a`/`I`/`A`; NORMAL/INSERT mode badge shown in the input area
+        subgraph Engines["⚡ Execution Engines & Providers"]
+            CodexCLI["OpenAI Codex CLI (Rust Native Core · Primary Engine)"]
+            ClaudeCLI["Claude Code CLI (Fallback Engine)"]
+            LLMProviders["Multi-LLM Providers (OpenAI / Claude / DeepSeek / Ollama / Qwen)"]
+        end
 
-### Session Management
-- Browse, search, tag, pin, and bulk-delete past sessions
-- **Cross-session search** (`Ctrl+Shift+F`) across all JSONL history files
-- **Session Changes Panel** -- view files modified during the current session
-- **Collapsible date groups** -- sessions auto-grouped by time period (Today/Yesterday/This Week/Older) with collapse toggles and per-group counts
-- **Compact view** -- toggle compact mode to hide avatars and previews, showing only titles for maximum density
-- **Sort dropdown** -- single-click sort selection (Newest/Oldest/A-Z/Most Messages) via dropdown popover
-- **Context window monitor** -- progress bar + percentage badge + detail popover showing token usage, with one-click "start new session" when nearing the limit
-- **Streaming cursor** -- animated blinking cursor during AI response streaming, disappears on completion
-- **Session count badge** -- History nav tab shows total session count; pulsing activity dot when AI is streaming from another tab
-- **Session Fork** — right-click any message → "Fork from here", name the branch, new session starts with history up to that point; fork appears in sidebar
-- Export conversations as Markdown, HTML, or JSON
+        subgraph LocalEnv["💻 Local Operating System"]
+            Shell["Terminal Execution (PowerShell / Git Bash / CMD)"]
+            FS["Workspace File System (Atomic Read/Write / Diffs)"]
+            Git["Git Version Control / Worktree Isolation"]
+            MemoryStore["Persistent Memory (~/.claude/projects / memdir)"]
+        end
+    end
 
-### Personas & Memory
-- Up to 10 custom AI personas with name, emoji, model, system prompt, and badge color
-- **Preset localization** — 5 built-in persona names automatically switch with system language
-- Memory auto-injected into every conversation — pinned items + 10 most recent
-- **Auto-Memory Extraction** — optionally extracts durable memories (preferences, facts, instructions) from conversations automatically
-- **DreamTask Awareness** — the CLI's background auto-dream consolidation doesn't emit stream-json events; AIPA detects it by comparing `.consolidate-lock` mtime before and after each CLI session; on detection, a purple glass-morphism DreamTaskCard appears in the chat panel and an info toast notifies the user
-- **Memory Type Tags** — 4 semantic types (user/feedback/project/reference) with color badges, aligned with Claude Code's memory taxonomy
-- **Project Memory Partition** — Memory panel "Project" tab reads/writes `.claude/MEMORY.md` directly, syncing with Claude Code's project memory system
-- **Advisor Model** — configure a separate lighter model for background tasks (auto-compaction, memory extraction, away summaries) to keep costs low
-- **Remember This** — one-click save any response from the hover toolbar
-- **Contextual Tips** — smart feature discovery tips on the Welcome Screen, personalized to your usage patterns
-- **Prompt Suggestions** — AI-predicted follow-up suggestions after each response, shown as ghost text in the input field (Tab to accept)
-- **Speculative Execution** — pre-executes the predicted next prompt in an isolated sandbox; shows a collapsible preview card with response content, tool actions, and changed files; accept to inject the result into the conversation, reject to silently discard — the main session is never touched (opt-in in Settings)
-- **Thinking Depth** — low/medium/high effort levels controlling AI thinking investment
-- **Per-Model Cost Breakdown** — click cost in StatusBar to see token usage and cost breakdown by model
-
-### Workflows
-- Build multi-step prompt pipelines with the visual workflow editor
-- **Canvas Mode** — workflow steps displayed as a node graph with drag, pan, and zoom; real-time execution highlighting shows active/completed/pending nodes with a progress bar; zoom toward cursor, +/- buttons with keyboard shortcuts (+/−/0), status-colored edges (green=done, accent=active, muted=idle), moving dot-grid background, real AI output text in node sidebar; flowing dash animation on active edges; collapsible nodes (per-node or collapse-all/expand-all); right-click context menu with copy prompt/output; step list syncs live execution status; Run button disabled during execution; step search filter with canvas dim for non-matching nodes; per-step execution duration shown on nodes and sidebar
-  - **Error Awareness** — failed/aborted steps show a red badge and red left border on the node; sidebar displays "Execution Failed" with error details; inspect any failed step after abort
-  - **Node Position Persistence** — dragged node positions are saved to the workflow store (`canvasPos` field) and restored on next open — no need to re-arrange layouts
-  - **Keyboard Navigation** — use ↑↓ / Tab / Shift+Tab to move focus between nodes without clicking; review execution results step by step from the keyboard
-  - **Real-time Streaming Output in Sidebar** — click a running node to see live AI streaming text with a blinking cursor; automatically switches to final output on completion
-  - **Inline Title Editing** — double-click any node title to rename it in place; Enter to confirm, Escape to cancel; no editor required
-  - **Execution History Replay** — every run is auto-saved locally (up to 10 per workflow); the 🕐 button at the bottom-left lets you pick a past run and instantly replay all node outputs and durations
-  - **First/Last Node Visual Differentiation** — the first node gets an indigo left border + ▶ marker; the last node gets an amber border + ⚑ marker, making pipeline flow immediately clear
-  - **Viewport Culling** — off-screen nodes render as lightweight placeholders instead of full components, significantly improving frame rate when scrolling large workflows (50+ steps)
-  - **Context-Aware Toolbar** — a red "⏹ Abort" button appears on the left of the toolbar during execution; a green "▶ Rerun" button appears when all steps complete; both buttons auto-show/hide based on execution state
-  - **Sub-Agent Count Badge** — Canvas nodes show a Users icon badge with live sub-agent count when the Agent tool is actively running inside a step
-  - **6-State Edge Styling** — Canvas edges reflect execution status with distinct visuals: running=indigo animated flowing dash, success=green, error=red, skipped=gray dashed, pending=light gray
-- 6 preset workflows to get started instantly (weekly reports, code reviews, daily summaries, and more)
-- **Preset localization** — workflow names and descriptions automatically switch with system language
-
-### Skills Marketplace
-- 47 curated skills from Anthropic, OpenClaw, ClawhHub, and community contributors
-- One-click install from the built-in marketplace; filter by source and category
-- Built-in Skill Creator for designing custom skills interactively through chat
-
-### Channel (Feishu & WeChat)
-- Connect your **Feishu** workspace bot via webhook URL + App credentials
-- Connect your **WeChat** via the official Tencent OpenClaw WeChat CLI plugin (`@tencent-weixin/openclaw-weixin-cli`)
-- Configure, test, and manage both channels from the sidebar `Radio` icon (`Ctrl+7`)
-- Powered by OpenClaw integration
-
-### CLI Integration & Automation
-- **Hooks Configuration** — Settings → Hooks tab to visually manage all Claude Code CLI hooks (28 event types: PreToolUse, PostToolUse, Stop, etc.); multi-step add wizard supporting command/prompt/HTTP hook types; live hook execution progress shown in the chat panel
-- **MCP Server Manager** — Settings → MCP tab for full MCP server management (stdio/http/sse); add/delete/reconnect servers; expand tool lists per server; tool-use blocks auto-badge MCP-sourced tools with `[serverName]`; **Project MCP Config** — a dedicated sub-tab reads and edits the project-level `.mcp.json` file separately from the global `~/.claude/settings.json` mcpServers
-- **Tool Access Control** — Settings → Advanced tab with 4 preset modes (All Tools / Read Only / No Network / Analysis Only); per-tool checkboxes grouped by category; disabled tools injected via `--disallowedTools`
-- **Hook Callback Approval** — PreToolUse/PostToolUse hooks requiring human intervention show an inline approve/block card directly in the chat; optional reason textarea; response relayed to the CLI in real time
-- **MCP Elicitation** — when an MCP server requests user input, an inline card collects structured form data (schema-driven fields or free-text) or opens a browser URL flow; submit/decline/cancel responses are relayed back to the MCP server
-- **Sandbox Access Control** — Settings → Advanced tab adds a Sandbox panel: `sandbox.network` allowed domains (tag editor), `sandbox.filesystem` allowWrite/denyWrite/allowRead/denyRead path lists, `autoAllowBashIfSandboxed` and `allowUnsandboxedCommands` toggles; all written directly to `~/.claude/settings.json`
-
-### System Tray & Global Access
-- Minimize to system tray — AIPA stays ready in the background
-- `Ctrl+Shift+Space` toggles the window from any application
-- `Ctrl+Shift+G` reads clipboard and opens AIPA with the text pre-filled for instant analysis
-- Right-click tray icon for quick actions: new chat, recent sessions, theme toggle, clipboard ask
-- Desktop notifications when responses complete while the window is unfocused
+    Renderer -->|postMessage / IPC| Preload
+    Preload -->|IPC Channel| MainProcess
+    MainProcess -->|JSON-RPC 2.0 stdio| CodexCLI
+    MainProcess -->|NDJSON stdio| ClaudeCLI
+    MainProcess -->|HTTP / SSE| LLMProviders
+    CodexCLI --> Shell & FS & Git
+    ClaudeCLI --> Shell & FS & Git & MemoryStore
+```
 
 ---
 
-## Keyboard Shortcuts
+## 🖥️ Desktop Cockpit Layout
 
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+N` | New conversation |
-| `Ctrl+Shift+P` | Command palette |
-| `Ctrl+F` | Search current conversation |
-| `Ctrl+Shift+F` | Global cross-session search |
-| `Ctrl+Shift+R` | Regenerate response |
-| `Ctrl+Shift+E` | Export conversation |
-| `Ctrl+Shift+K` | Compact conversation context |
-| `Ctrl+Shift+C` | Collapse/expand all messages |
-| `Ctrl+Shift+B` | Toggle bookmarks panel |
-| `Ctrl+Shift+S` | Toggle stats panel |
-| `Ctrl+Shift+D` | Cycle theme (Dark / Light / System) |
-| `Ctrl+Shift+L` | Toggle language (en/zh-CN) |
-| `Ctrl+Shift+M` | Cycle model (Sonnet / Opus / Haiku) |
-| `Ctrl+Shift+T` | Pin window on top (always-on-top) |
-| `Ctrl+Shift+O` | Focus mode (hide sidebar + terminal) |
-| `Ctrl+B` | Toggle sidebar |
-| `Ctrl+,` | Open Settings |
-| `Ctrl+1–4` | History, Files, Notes, Skills |
-| `Ctrl+5–7` | Memory, Workflows, Channel |
-| `Ctrl+8` | Tasks |
-| `Ctrl+/` | Shortcut cheatsheet |
-| `Ctrl+Up/Down` | Step through messages (with focus indicator) |
-| `Ctrl+Home/End` | Jump to first/last message |
-| `Alt+Up/Down` | Jump to previous/next user message |
-| `PageUp/Down` | Page scroll in message list |
-| `Ctrl+Shift+Space` | Toggle AIPA window (global, works from any app) |
-| `Ctrl+Shift+G` | Clipboard quick action (global: reads clipboard, opens AIPA, sends to chat) |
+AIPA adopts a modern **two-column layout** eliminating redundant intermediate lists. All core features open directly in the full-screen primary workspace:
+
+```text
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│  AIPA — Desktop Agent Cockpit                                                    ─  □  ✕  │
+├──────┬─────────────────────────────────────────────────────────────────────────────────┤
+│ [🏢] │ Department Dashboard / Primary Chat Cockpit                                     │
+│ Dept │ ┌─────────────────────────────────────────────────────────────────────────────┐ │
+│      │ │ 🤖 Assistant                                                                │ │
+│ [👥] │ │ Refactoring module architecture...                                          │ │
+│ Emp  │ │ ┌─ 🛠️ Tool: Write (src/main/plugins/nav-plugin-manager.ts) ───────────────┐ │ │
+│      │ │ │ + export interface NavPluginManifest { ... }                           │ │ │
+│ [🧩] │ │ └────────────────────────────────────────────────────────────────────────┘ │ │
+│Skills│ └─────────────────────────────────────────────────────────────────────────────┘ │
+│      │                                                                                 │
+│ [🧠] │ ┌─ Employees Character Icon Grid ─────────────────────────────────────────────┐ │
+│Memory│ │  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐        │ │
+│      │ │  │ 👨‍💻 Coach  │   │ 👩‍🔬 Analyst│   │ 🎨 Creative│   │ 📚 Tutor │   │ ⚡ Productiv│   │ │
+│ [📅] │ │  │ Writing │   │ Research│   │ Partner │   │ Academic│   │  Coach  │        │ │
+│ Cal. │ │  └─────────┘   └─────────┘   └─────────┘   └─────────┘   └─────────┘        │ │
+│      │ └─────────────────────────────────────────────────────────────────────────────┘ │
+│ ───  │                                                                                 │
+│ [📝] │ ┌─ Canvas Workflow Editor ────────────────────────────────────────────────────┐ │
+│Notes │ │  [Node: Read Spec] ──(flowing line)──> [Node: Code Review] ──(done)──> [Done] │ │
+│ [🔌] │ └─────────────────────────────────────────────────────────────────────────────┘ │
+│Plugin│ ┌─ Interaction Input Area ────────────────────────────────────────────────────┐ │
+│ [⚙️]  │ Status: ● Ready | Thinking: Medium | Perm: Accept Edits | Cost: $0.04    [🐱 Clawd]│
+└──────┴─────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Quick Start
+## 🌟 Core Capabilities
 
+| Module | Core Features | Visual Presentation |
+|---|---|---|
+| **💬 Chat & Execution** | Stream-JSON real-time stream, dual-model switching, collapsible thinking chain, auto-compaction | Structured tool cards, LCS color-coded diff view, task checklist, interactive permission dialog |
+| **👥 Employees** | Character persona illustrations, role-tailored attire/hairstyles, glowing status aura | Responsive icon grid, floating elevation micro-animations, one-click persona activation |
+| **🎨 Canvas Workflows** | Multi-step prompt pipeline orchestration, topology graph, live output streaming, execution replay | Infinite zoom dot-grid canvas, animated bezier edge flow, inline step title rename |
+| **🔌 Zero-Compile Plugins** | Vanilla HTML5+CSS+JS, sandboxed isolation, postMessage bridge SDK, dynamic directory watching | Real-time sidebar icon registration, zero-build instant reload, host developer toolbar |
+| **🧩 Plugin Hub** | Unified plugin dashboard, 1-click launch, source inspection, and developer starter guide | Pre-installed at the bottom of NavRail, enables cross-plugin navigation |
+| **📅 Work Calendar Plugin** | Month view with cross-day task bars, drag-to-create tasks, Codex-streamed weekly/monthly reports, GitHub & local-folder work sources, person-day tracking | One-click report generation from week badges, preview / regenerate / pull sources, file-backed storage with JSON import/export |
+| **📝 Quick Notes Plugin** | Decoupled hot-pluggable plugin, live Markdown preview, category filters, pinning, AI prompt dispatch | Independent HTML micro-app, bottom NavRail placement, Ctrl+3 / Ctrl+Shift+N shortcut bindings |
+| **🧠 Memory Hierarchy** | Global memory, Project memory (`.claude/MEMORY.md`), structured memdir (User/Feedback/Project/Ref) | 4-tab memory console, DreamTask background consolidation detection, decay status dots |
+| **🐱 Clawd Pet** | Win32 desktop pet synced with AI thinking, execution, and idle moods | Consolidated taskbar icons, smooth sprite animations, unobtrusive companion |
+| **⚙️ Settings & Channels** | MCP tool servers, OpenClaw external channels, model keys, permissions consolidated | Streamlined into Settings (Settings → MCP / Channels), keeping navigation clean |
+
+---
+
+## 🔌 Zero-Compilation Hot-Pluggable Plugins
+
+AIPA introduces an accessible, zero-compilation plugin ecosystem. Authors write native HTML, CSS, and modern JavaScript without Node.js, Vite, or Webpack toolchains:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Dev as Developer / User
+    participant Folder as Plugin Folder (~/.aipa/plugins/<id>/)
+    participant Watcher as Main Process (nav-plugin-manager / fs.watch)
+    participant Nav as Navigation Rail (NavRail)
+    participant Host as Plugin Host View (PluginHostView)
+    participant Iframe as Sandboxed <iframe> (HTML/JS/CSS)
+    participant AI as AIPA Chat Core
+
+    Dev->>Folder: Add/Edit index.html & plugin.json (No build step required!)
+    Watcher->>Folder: File watcher detects change (Debounced)
+    Watcher->>Nav: IPC event broadcast (plugin:nav:updated)
+    Nav->>Nav: Icon instantly registers on NavRail (No app restart)
+    Dev->>Nav: Click plugin icon
+    Nav->>Host: Activate plugin host view
+    Host->>Iframe: Load file:///.../index.html (Strict sandbox isolation)
+    Host-->>Iframe: postMessage sync active theme ({ type: 'aipa:theme', theme: 'light' })
+    Iframe->>Host: postMessage prompt ({ type: 'aipa:sendPrompt', prompt: '...' })
+    Host->>AI: Autofill prompt into chat input and switch to conversation
+    Iframe->>Host: postMessage storage ({ type: 'aipa:storage:set', key, val })
+    Host->>Host: Provide persistent sandboxed LocalStorage
+```
+
+### Plugin Folder Layout
+Place your tool inside `~/.aipa/plugins/<plugin-id>/`:
+```text
+~/.aipa/plugins/
+├── welcome/               # 🧩 Plugin Hub (Pre-installed dashboard & developer starter)
+│   ├── plugin.json
+│   └── index.html
+├── notes/                 # 📝 Quick Notes (Official hot-pluggable plugin, Markdown + AI dispatch)
+│   ├── plugin.json
+│   └── index.html
+└── <custom-plugin>/       # 🛠️ Your Custom Micro-Tool (Zero-compilation)
+    ├── plugin.json        # Manifest (ID, name, icon, location)
+    ├── index.html         # Entry point (Pure HTML5)
+    ├── style.css          # Styling (inherits host CSS variables)
+    └── app.js             # Logic (communicates via window.postMessage)
+```
+
+### 🧩 Built-in Plugin Showcase
+1. **Plugin Hub**: Provides an overview dashboard of installed plugins, one-click launching, source folder navigation in explorer, and a 3-step developer starter guide.
+2. **Quick Notes**: Decoupled from hardcoded components into a hot-pluggable plugin featuring live Markdown editing/preview, category filtering (Work/Ideas/Study/Prompts/Todo), note pinning, and direct prompt dispatching to AI.
+3. **Work Calendar**: Migrated from a Feishu aPaaS full-stack app (NestJS + PostgreSQL + React) into a zero-compile plugin backed by host capabilities:
+   - **Calendar**: Monday-first month view with lane-packed cross-day task bars; click or drag across days to create tasks, click a bar to edit/delete; a day panel lists the selected date's tasks.
+   - **AI weekly/monthly reports**: The clock icon in each week column generates that week's report (material = tasks in the period + commits/file changes from bound work sources); the corner icon merges the month's weekly reports into a monthly report. Output streams from Codex and is saved automatically; the preview dialog offers *Pull sources*, *Regenerate* (overwrites in place), copy, and send-to-chat.
+   - **Work sources**: GitHub repos (owner/repo or URL, branch, author filter, token) and local folders (native folder picker, file filter); pull the current week and inspect results. Deleting a source unbinds its tasks.
+   - **Reminders**: The reminders from the former left-rail *Tasks* panel now live here — in N minutes, at a specific time, or recurring via cron. They are scheduled in the main process, so system notifications fire even when the plugin is closed; clicking one opens the Work Calendar. The old *Tasks* panel is removed; existing to-dos and reminders are imported into the Work Calendar on first launch, and `Ctrl+7` now opens the Work Calendar.
+   - **Tasks / Reports / Person-days**: stat cards, filters and inline status changes; report history with edit and `.md` export; weekly person-day entries with "auto-generate from tasks" (5 workdays split in 0.5 steps) and a monthly per-week rollup.
+   - **Settings**: model and prompt templates (`{{period}}` / `{{material}}`), JSON import/export (tokens excluded). If Codex has no login and no API key, generation fails immediately with a clear message instead of retrying forever.
+
+### Host capabilities (`aipa:invoke`)
+Plugins declare `permissions` in `plugin.json`, then call `postMessage({ type: 'aipa:invoke', requestId, method, payload })` and receive `{ type: 'aipa:response', requestId, ok, result | error }`. Permissions are checked in both PluginHostView and the main process.
+
+| method | permission | Description |
+|---|---|---|
+| `data.get` / `data.set` | `storage` | File-backed storage at `~/.aipa/plugin-data/<pluginId>/<key>.json` (atomic writes) |
+| `github.commits` | `network` | GitHub commits API from the main process (branch/author filter, token, 20s timeout) |
+| `fs.pickFolder` / `fs.scanFolder` | `fs` | Native folder picker; scan files modified in a date range with `*.ext` filters (skips node_modules/.git etc.) |
+| `ai.generate` / `ai.abort` | `ai` | One read-only, ephemeral Codex turn streamed back via `aipa:ai:event` (delta/status/done/error) |
+
+Multi-file plugins shipped with the app live in `electron-ui/src/main/plugins/builtin/<dir>/`, are copied to `dist` by `npm run build:plugins`, and installed into `~/.aipa/plugins/` on startup — only overwritten when the bundled version is newer. Plugin data in `plugin-data` survives upgrades.
+
+---
+
+## 👥 Employees Character Gallery
+
+Replacing vertical cards, AIPA visualizes agent personas through **expressive character avatars**:
+
+```text
+                  ┌──────────────────────────────────────────────┐
+                  │         Theme Radial Gradient Backdrop       │
+                  │                                              │
+                  │                 ╭───────────╮                │
+                  │                │ 💇 Haircuts │                │
+                  │                │(Tech crop / Bob / Wavy curls│
+                  │                 ╭───────────╮                │
+                  │                │  👀 Eyes   │                │
+                  │                │  😊 Smile  │                │
+                  │                 ╰───────────╯                │
+                  │               👔 Tailored Role Attire         │
+                  │           (Blazer / Turtleneck / Academic)   │
+                  │                                              │
+                  │                            ┌───────────┐     │
+                  │   🟢 Online Status Ring    │ ✍️ Role    │     │
+                  │   (Active Status Ring)     │   Badge   │     │
+                  │                            └───────────┘     │
+                  └──────────────────────────────────────────────┘
+```
+
+---
+
+## 🎨 Canvas Workflow Engine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle: Awaiting trigger
+    Idle --> Running: Click Run
+    
+    state Running {
+        [*] --> ExecutingNode: Activate step node
+        ExecutingNode --> LiveStreaming: Stream real-time output in sidebar
+        LiveStreaming --> NodeSuccess: Step completed
+        LiveStreaming --> NodeFailed: Error or user aborted (⏹)
+        
+        NodeSuccess --> ExecutingNode: Flow through animated bezier curve to next node
+        NodeFailed --> ErrorState: Red warning border & error details shown
+    }
+
+    NodeSuccess --> Completed: Pipeline complete
+    Completed --> HistoryArchive: Save run outputs & timestamps
+    HistoryArchive --> ReplayMode: Click 🕐 to replay any past run
+    ErrorState --> Idle: Retry after adjusting step prompt
+    ReplayMode --> [*]
+    Completed --> [*]
+```
+
+---
+
+## 🧠 Memory Hierarchy & DreamTask
+
+```mermaid
+graph LR
+    subgraph ActiveChat["⚡ Active Chat Context"]
+        CurrentSession["Current Session"]
+        AutoExtract["Auto-Extractor"]
+        CompactEngine["Context Compaction"]
+    end
+
+    subgraph MemoryArchitecture["🗄️ Multi-Tier Persistent Store"]
+        GlobalDoc["🌐 Global Memory (~/.claude/MEMORY.md)"]
+        ProjectDoc["📁 Project Memory (<repo>/.claude/MEMORY.md)"]
+        StructuredMem["🗂️ Structured memdir<br/>• User Profile<br/>• Feedback<br/>• Projects<br/>• References"]
+        RuleFiles["📜 Project Rules (CLAUDE.md)"]
+    end
+
+    subgraph BackgroundConsolidate["🌙 Background Consolidation"]
+        DreamConsolidate["DreamTask Auto-Consolidation"]
+        TimeDecay["Age Decay (Green / Yellow / Red Dots)"]
+    end
+
+    CurrentSession -->|Extract durable facts| AutoExtract
+    AutoExtract -->|Save items| StructuredMem
+    CurrentSession -->|Idle / close| DreamConsolidate
+    DreamConsolidate -->|Deduplicate & merge| GlobalDoc & ProjectDoc
+    TimeDecay -->|Prune stale items| StructuredMem
+    GlobalDoc & ProjectDoc & StructuredMem & RuleFiles -->|Inject slices| CurrentSession
+```
+
+---
+
+## ⌨️ Essential Keyboard Shortcuts
+
+| Shortcut | Description | Shortcut | Description |
+|---|---|---|---|
+| `Ctrl+N` | New conversation | `Ctrl+Shift+P` | Open command palette |
+| `Ctrl+K` | Session quick switcher (fuzzy search) | `Ctrl+F` | Search current chat |
+| `Ctrl+Shift+F` | Cross-session search across files | `Ctrl+Shift+R` | Regenerate response |
+| `Ctrl+Shift+K` | Compact context immediately | `Ctrl+Shift+O` | Focus mode (zen chat) |
+| `Ctrl+Shift+D` | Toggle theme (Dark / Light / System) | `Ctrl+Shift+L` | Toggle language (EN / ZH) |
+| `Ctrl+Shift+T` | Pin window (Always on top) | `Ctrl+,` | Open settings panel |
+| `Ctrl+1 ~ 7` | Switch primary cockpit view | `Ctrl+/` | View keyboard shortcuts help |
+| `Ctrl+Shift+Space` | **Global toggle AIPA window** | `Ctrl+Shift+G` | **Global clipboard query to AIPA** |
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone and Install
 ```bash
 git clone https://github.com/CipherSlinger/AIPA.git
 cd AIPA/electron-ui
 npm install
+```
+
+### 2. Build and Launch
+```bash
+# Build all targets (Main, Preload, Renderer)
 npm run build
+
+# Start the desktop application
 node_modules/.bin/electron dist/main/index.js
 ```
 
-Open **Settings** (`Ctrl+,`) on first launch and enter your Anthropic API key.
-
-### Dev Mode (Hot Reload)
-
+### 3. Development Mode (HMR)
 ```bash
-# Terminal 1
-npm run build:main && npm run build:preload && npx vite
+# Terminal 1: Start Vite renderer dev server
+npm run build:main && npm run build:preload && npm run dev:renderer
 
-# Terminal 2
+# Terminal 2: Run Electron pointing to Vite
 NODE_ENV=development node_modules/.bin/electron dist/main/index.js
 ```
 
-### Build Installer
+---
 
-```bash
-npm run dist:win   # → release/ directory
-```
+## 🛡️ Security
+
+- **Encrypted Secrets**: API keys stored with OS-level encryption (`electron.safeStorage` / Windows DPAPI).
+- **Process Sandbox**: Plugins execute in sandboxed `<iframe>`s with zero access to Node.js APIs.
+- **Granular Permissions**: 5-level tool permission control (Default / Accept Edits / Don't Ask / Plan Only / Bypass).
+- **Environment Sanitization**: Clean environment variable whitelists passed to child processes.
 
 ---
 
-## Requirements
+## 📄 License
 
-- Windows 10/11 x64
-- Node.js 18+ on PATH
-- Anthropic API key ([console.anthropic.com](https://console.anthropic.com/))
-- _Optional:_ OpenAI key, DeepSeek key, or local [Ollama](https://ollama.ai/) instance
-
----
-
-## Architecture
-
-```
-AIPA/
-  package/          # Bundled Claude Code CLI (vendored, read-only)
-  electron-ui/
-    src/
-      main/         # Node.js: PTY manager, stream-bridge, IPC, sessions, config
-      preload/      # contextBridge → window.electronAPI
-      renderer/     # React + Vite + Zustand + i18n
-    dist/           # Compiled output (not committed)
-```
-
-The CLI is bridged in two modes:
-
-| Mode | Panel | Mechanism |
-|------|-------|-----------|
-| **PTY** (node-pty) | Terminal | Raw ConPTY I/O → xterm.js |
-| **Stream-JSON** | Chat | NDJSON events → typed React state |
-
----
-
-## Design System
-
-AIPA uses a unified glass-morphism design system with complete light/dark theme support via CSS custom properties:
-
-- **CSS Design Token System** — 185+ components fully migrated to CSS custom properties; all hardcoded `rgba()` values replaced with semantic tokens (`var(--glass-bg-*)`, `var(--text-*)`, `var(--border)`, etc.); `Ctrl+Shift+D` cycles Dark / Light / System seamlessly
-- **Light/Dark Theme** — all cards, panels, and popovers render correctly in both themes with no hardcoded dark-mode colors leaking into light mode
-- **Glass backgrounds**: `var(--glass-bg-low)` / `var(--glass-bg-mid)` / `var(--glass-bg-deep)` with `backdropFilter: blur(12–20px)`
-- **Text opacity ladder**: `var(--text-primary)` / `var(--text-secondary)` / `var(--text-muted)` / `var(--text-faint)`
-- **Indigo accent**: `#6366f1`/`#818cf8`/`#a5b4fc` throughout
-- **Transitions**: Unified `0.15s ease` on all interactive elements
-- **clawd-on-desk Integration** — optional desktop pet that reflects AI state; animates through thinking / working / happy states as the assistant thinks, uses tools, and completes tasks
-
----
-
-## Security
-
-- API keys encrypted with OS keychain (`electron.safeStorage` / DPAPI)
-- Strict Content Security Policy — no XSS, no unauthorized external loads
-- Sandboxed renderer — no direct Node.js access
-- IPC path validation — file system handlers check against an allowed-directory list
-- Sanitized CLI environment — child processes receive only an explicit env allowlist
-
----
-
-## License
-
-MIT
+Distributed under the [MIT License](LICENSE).

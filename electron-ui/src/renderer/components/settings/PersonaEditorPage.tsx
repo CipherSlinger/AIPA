@@ -8,6 +8,7 @@ import { useI18n } from '../../i18n'
 import type { Persona } from '../../types/app.types'
 import { PERSONA_COLORS, EMOJI_PRESETS } from './personaConstants'
 import { MODEL_OPTIONS, INPUT_STYLE } from './settingsConstants'
+import PersonCharacterIcon from '../workflows/PersonCharacterIcon'
 
 const EMPTY_PERSONAS: Persona[] = []
 
@@ -76,6 +77,9 @@ export default function PersonaEditorPage() {
   const returnView = useUiStore(s => s.personaEditorReturnView)
   const goBack = () => {
     useUiStore.getState().setMainView(returnView)
+    if (returnView === 'workflows') {
+      useUiStore.getState().setActiveNavItem('workflows')
+    }
   }
 
   // Close on Escape
@@ -162,7 +166,7 @@ export default function PersonaEditorPage() {
       }}>
         <button
           onClick={goBack}
-          title={t('settings.backToChat')}
+          title={t('common.back')}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
@@ -216,24 +220,21 @@ export default function PersonaEditorPage() {
                 onMouseEnter={() => setAvatarHovered(true)}
                 onMouseLeave={() => setAvatarHovered(false)}
               >
-                <div style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: '50%',
-                  background: `${formColor}22`,
-                  border: avatarHovered
-                    ? '2px solid rgba(99,102,241,0.60)'
-                    : `2px solid ${formColor}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 36,
-                  cursor: 'default',
-                  transition: 'all 0.15s ease',
-                  overflow: 'hidden',
-                }}>
-                  {formEmoji}
-                </div>
+                <PersonCharacterIcon
+                  persona={{
+                    id: existing?.id || 'editor-preview',
+                    name: formName || 'Agent',
+                    emoji: formEmoji,
+                    model: formModel,
+                    systemPrompt: formPrompt,
+                    color: formColor,
+                    presetKey: existing?.presetKey,
+                    createdAt: 0,
+                    updatedAt: 0,
+                  }}
+                  size={80}
+                  showBadge={true}
+                />
                 {/* Camera icon overlay on hover */}
                 {avatarHovered && (
                   <div style={{

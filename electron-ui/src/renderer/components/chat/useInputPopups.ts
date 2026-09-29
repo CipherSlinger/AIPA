@@ -243,8 +243,8 @@ export function useInputPopups({
           useUiStore.getState().openSettingsAt('ai-engine')
           useUiStore.getState().addToast('info', 'Advisor model → AI Engine tab')
         } else if (cmd.name === '/theme') {
-          const current = usePrefsStore.getState().prefs.theme || 'vscode'
-          const next = current === 'vscode' ? 'light' : 'vscode' as 'vscode' | 'light'
+          const current = usePrefsStore.getState().prefs.theme || 'light'
+          const next = current === 'light' ? 'vscode' : 'light' as 'vscode' | 'light'
           usePrefsStore.getState().setPrefs({ theme: next })
           window.electronAPI?.prefsSet('theme', next)
           document.documentElement.setAttribute('data-theme', next === 'light' ? 'light' : 'dark')

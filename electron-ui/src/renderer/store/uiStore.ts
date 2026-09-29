@@ -1,9 +1,26 @@
 // UI store — extracted from store/index.ts (Iteration 440)
 import { create } from 'zustand'
 import { ToastItem, ToastType } from '../components/ui/Toast'
+import { usePluginStore } from './pluginStore'
 
-export type SidebarTab = 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'tasks' | 'changes'
-export type NavItem = 'chat' | 'department' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'channel' | 'tasks' | 'changes'
+export type SidebarTab = 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'changes'
+export type NavItem = 'chat' | 'department' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'changes' | `plugin:${string}`
+export type MainView =
+  | 'chat'
+  | 'department'
+  | 'workflows'
+  | 'notes'
+  | 'skills'
+  | 'memory'
+  | 'changes'
+  | 'files'
+  | 'settings'
+  | 'persona-editor'
+  | 'workflow-editor'
+  | 'workflow-detail'
+  | 'skill-creator'
+  | 'skill-marketplace'
+  | 'plugin'
 
 interface UiState {
   sidebarTab: SidebarTab
@@ -47,8 +64,8 @@ interface UiState {
   clearPendingSettingsTab: () => void
 
   // Main content area view (Iteration 412: settings; Iteration 414: editors; Iteration 460: workflow-detail; Iteration 534: notes; Iteration 535: skill-creator; department: department dashboard)
-  mainView: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail' | 'notes' | 'skill-creator' | 'skill-marketplace' | 'department'
-  setMainView: (view: 'chat' | 'settings' | 'persona-editor' | 'workflow-editor' | 'workflow-detail' | 'notes' | 'skill-creator' | 'skill-marketplace' | 'department') => void
+  mainView: MainView
+  setMainView: (view: MainView) => void
 
   // Track whether the current chat was entered from a department view (Iteration 538)
   fromDepartment: boolean
@@ -57,8 +74,8 @@ interface UiState {
   // Persona/Workflow editor: ID of item being edited (null = new)
   editingPersonaId: string | null
   editingWorkflowId: string | null
-  personaEditorReturnView: 'chat' | 'settings'
-  openPersonaEditor: (personaId: string | null, returnView?: 'chat' | 'settings') => void
+  personaEditorReturnView: 'chat' | 'settings' | 'workflows'
+  openPersonaEditor: (personaId: string | null, returnView?: 'chat' | 'settings' | 'workflows') => void
   openWorkflowEditor: (workflowId: string | null) => void
   openWorkflowDetail: (workflowId: string) => void
 
@@ -93,7 +110,7 @@ interface UiState {
 const savedSidebarTab = (() => {
   try {
     const saved = localStorage.getItem('aipa:sidebar-tab')
-    const valid = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'channel', 'tasks', 'changes']
+    const valid = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'changes']
     if (saved && valid.includes(saved)) return saved as UiState['sidebarTab']
   } catch { }
   return 'history' as const
@@ -138,24 +155,32 @@ export const useUiStore = create<UiState>((set) => ({
     if (item === 'settings') {
       return { settingsModalOpen: true }
     }
-    // Department opens the department dashboard in main content area (Iteration 612)
+    // Department opens the department dashboard in main content area
     if (item === 'department') {
-      return { activeNavItem: 'department', mainView: 'department' as const, sidebarTab: 'history' as const }
+      return { activeNavItem: 'department', mainView: 'department', sidebarTab: 'history', sidebarOpen: false }
     }
-    // Notes opens in the main content area (Iteration 534)
-    if (item === 'notes') {
-      // Toggle: if already in notes main view, go back to chat
-      if (s.mainView === 'notes') {
-        return { activeNavItem: 'chat', mainView: 'chat' as const }
+    // Chat/History opens chat panel in main content area
+    if (item === 'chat' || item === 'history') {
+      return {
+        activeNavItem: 'chat',
+        mainView: 'chat',
+        sidebarTab: 'history',
+        sidebarOpen: false,
+        unreadCounts: {},
+        unreadSessionCount: 0,
       }
-      try { localStorage.setItem('aipa:sidebar-tab', item) } catch { }
-      return { activeNavItem: item, sidebarTab: item, mainView: 'notes' as const }
     }
-    if (item === 'history' || item === 'files' || item === 'skills' || item === 'memory' || item === 'workflows' || item === 'channel' || item === 'tasks' || item === 'changes') {
+    // Notes opens via the Notes plugin in main view
+    if (item === 'notes') item = 'plugin:aipa-notes'
+    // Workflows, Skills, Memory, Changes, Files all open directly in main view
+    if (item === 'workflows' || item === 'skills' || item === 'memory' || item === 'changes' || item === 'files') {
       try { localStorage.setItem('aipa:sidebar-tab', item) } catch { }
-      // Clear all unread badges when viewing History
-      const extra = item === 'history' ? { unreadCounts: {} as Record<string, number>, unreadSessionCount: 0 } : {}
-      return { activeNavItem: item, sidebarTab: item, sidebarOpen: true, mainView: 'chat' as const, ...extra }
+      return { activeNavItem: item, sidebarTab: item, mainView: item, sidebarOpen: false }
+    }
+    // Hot-pluggable plugins open in main view
+    if (typeof item === 'string' && item.startsWith('plugin:')) {
+      usePluginStore.getState().setActivePluginId(item.slice('plugin:'.length))
+      return { activeNavItem: item, mainView: 'plugin', sidebarOpen: false }
     }
     return { activeNavItem: item }
   }),
@@ -176,8 +201,8 @@ export const useUiStore = create<UiState>((set) => ({
   setFromDepartment: (v) => set({ fromDepartment: v }),
   editingPersonaId: null,
   editingWorkflowId: null,
-  personaEditorReturnView: 'settings' as const,
-  openPersonaEditor: (personaId, returnView = 'settings') => set({ mainView: 'persona-editor', editingPersonaId: personaId, settingsModalOpen: false, personaEditorReturnView: returnView }),
+  personaEditorReturnView: 'workflows' as const,
+  openPersonaEditor: (personaId, returnView = 'workflows') => set({ mainView: 'persona-editor', editingPersonaId: personaId, settingsModalOpen: false, personaEditorReturnView: returnView }),
   openWorkflowEditor: (workflowId) => set({ mainView: 'workflow-editor', editingWorkflowId: workflowId, settingsModalOpen: false }),
   // Open workflow detail view in main panel (Iteration 460)
   openWorkflowDetail: (workflowId: string) => set({ mainView: 'workflow-detail' as const, editingWorkflowId: workflowId, settingsModalOpen: false }),

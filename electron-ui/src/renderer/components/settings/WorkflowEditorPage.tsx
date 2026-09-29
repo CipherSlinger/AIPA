@@ -88,7 +88,7 @@ export default function WorkflowEditorPage() {
   }, [existing])
 
   const goBack = () => {
-    useUiStore.getState().setMainView('settings')
+    useUiStore.getState().setActiveNavItem('workflows')
   }
 
   // Close on Escape
@@ -188,7 +188,7 @@ export default function WorkflowEditorPage() {
       }}>
         <button
           onClick={goBack}
-          title={t('settings.backToChat')}
+          title={t('common.back')}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--text-muted)', display: 'flex', alignItems: 'center',

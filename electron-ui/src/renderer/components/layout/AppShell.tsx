@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { useChatStore, useUiStore, usePrefsStore } from '../../store'
+import React, { useEffect } from 'react'
+import { useChatStore, useUiStore } from '../../store'
+import { usePluginStore } from '../../store/pluginStore'
 import { useT } from '../../i18n'
-import Sidebar from './Sidebar'
 import NavRail from './NavRail'
 import ChatPanel from '../chat/ChatPanel'
 import StatusBar from './StatusBar'
@@ -16,9 +16,12 @@ const NotesPanel = React.lazy(() => import('../notes/NotesPanel'))
 const SkillCreatorPage = React.lazy(() => import('../skills/SkillCreatorPage'))
 const SkillMarketplacePage = React.lazy(() => import('../skills/SkillMarketplacePage'))
 const DepartmentDashboard = React.lazy(() => import('../departments/DepartmentDashboard'))
-
-const MIN_SIDEBAR = 180
-const MAX_SIDEBAR = 400
+const WorkflowPanel = React.lazy(() => import('../workflows/WorkflowPanel'))
+const SkillsPanel = React.lazy(() => import('../skills/SkillsPanel'))
+const MemoryPanel = React.lazy(() => import('../memory/MemoryPanel'))
+const ChangesPanel = React.lazy(() => import('../sidebar/ChangesPanel'))
+const FileBrowser = React.lazy(() => import('../filebrowser/FileBrowser'))
+const PluginHostView = React.lazy(() => import('../plugins/PluginHostView'))
 
 /** Shimmer skeleton shown while lazy panels load */
 function PanelSkeleton() {
@@ -50,39 +53,20 @@ function PanelSkeleton() {
 
 export default function AppShell() {
   const t = useT()
-  const sidebarOpen = useUiStore(s => s.sidebarOpen)
-  const setSidebarOpen = useUiStore(s => s.setSidebarOpen)
   const focusMode = useUiStore(s => s.focusMode)
   const mainView = useUiStore(s => s.mainView)
   const closeSettings = useUiStore(s => s.closeSettingsModal)
   const currentSessionTitle = useChatStore(s => s.currentSessionTitle)
-  const [sidebarWidth, setSidebarWidth] = useState(240)
-  const [isDragging, setIsDragging] = useState(false)
-  const draggingRef = useRef<'sidebar' | null>(null)
 
-  // Read sidebarWidth from the already-loaded prefs store instead of making a
-  // redundant IPC call (which caused a double-load / timeout on Windows).
-  const storedSidebarWidth = usePrefsStore(s => s.prefs.sidebarWidth)
-  const prefsLoaded = usePrefsStore(s => s.loaded)
+  // Initialize hot-pluggable plugin listener
   useEffect(() => {
-    if (!prefsLoaded) return
-    if (storedSidebarWidth) {
-      setSidebarWidth(Math.min(Math.max(storedSidebarWidth, MIN_SIDEBAR), MAX_SIDEBAR))
-    }
-  }, [prefsLoaded, storedSidebarWidth])
-
-  // Auto-collapse sidebar (SessionPanel) on narrow windows
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 600 && useUiStore.getState().sidebarOpen) {
-        setSidebarOpen(false)
-      }
-    }
-    window.addEventListener('resize', handleResize)
-    // Check on mount too
-    handleResize()
-    return () => window.removeEventListener('resize', handleResize)
-  }, [setSidebarOpen])
+    const unsub = usePluginStore.getState().initPluginListener()
+    // Main asks to open a plugin (e.g. a Work Calendar reminder notification was clicked)
+    const unsubOpen = window.electronAPI.onPluginOpen((pluginId) => {
+      useUiStore.getState().setActiveNavItem(`plugin:${pluginId}`)
+    })
+    return () => { unsub(); unsubOpen() }
+  }, [])
 
   // Close settings/editor page on Escape
   useEffect(() => {
@@ -93,19 +77,28 @@ export default function AppShell() {
         if (mainView === 'department') {
           // Escape from department dashboard goes to chat
           useUiStore.getState().setMainView('chat')
-        } else if (mainView === 'workflow-detail') {
-          // Go back to chat from workflow detail
-          useUiStore.getState().setMainView('chat')
-        } else if (mainView === 'persona-editor' || mainView === 'workflow-editor') {
-          // Go back to settings, not chat
-          useUiStore.getState().setMainView('settings')
-        } else if (mainView === 'notes') {
-          // Go back to chat from notes main view
-          useUiStore.getState().setMainView('chat')
+        } else if (mainView === 'workflow-detail' || mainView === 'workflow-editor') {
+          // Go back to workflows from workflow detail or editor
+          useUiStore.getState().setActiveNavItem('workflows')
+        } else if (mainView === 'persona-editor') {
+          const returnView = useUiStore.getState().personaEditorReturnView
+          useUiStore.getState().setMainView(returnView)
+          if (returnView === 'workflows') {
+            useUiStore.getState().setActiveNavItem('workflows')
+          }
+        } else if (mainView === 'skill-creator' || mainView === 'skill-marketplace') {
+          // Go back to skills
+          useUiStore.getState().setActiveNavItem('skills')
+        } else if (
+          mainView === 'notes' ||
+          mainView === 'workflows' ||
+          mainView === 'skills' ||
+          mainView === 'memory' ||
+          mainView === 'changes' ||
+          mainView === 'files' ||
+          mainView === 'plugin'
+        ) {
           useUiStore.getState().setActiveNavItem('chat')
-        } else if (mainView === 'skill-creator') {
-          // Go back to chat from skill creator
-          useUiStore.getState().setMainView('chat')
         } else {
           closeSettings()
         }
@@ -114,33 +107,6 @@ export default function AppShell() {
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
   }, [mainView, closeSettings])
-
-  const startDrag = (which: 'sidebar') => (e: React.MouseEvent) => {
-    e.preventDefault()
-    draggingRef.current = which
-    setIsDragging(true)
-    const startX = e.clientX
-    const startWidth = sidebarWidth
-
-    const onMove = (ev: MouseEvent) => {
-      const delta = ev.clientX - startX
-      const newWidth = Math.min(Math.max(startWidth + delta, MIN_SIDEBAR), MAX_SIDEBAR)
-      setSidebarWidth(newWidth)
-    }
-
-    const onUp = (ev: MouseEvent) => {
-      draggingRef.current = null
-      setIsDragging(false)
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onUp)
-      const delta = ev.clientX - startX
-      const finalWidth = Math.min(Math.max(startWidth + delta, MIN_SIDEBAR), MAX_SIDEBAR)
-      window.electronAPI.prefsSet('sidebarWidth', finalWidth)
-    }
-
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup', onUp)
-  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden" style={{ background: 'var(--bg-chat)' }} role="application" aria-label="AIPA">
@@ -176,16 +142,13 @@ export default function AppShell() {
         </span>
       </div>
 
-      {/* Main content: NavRail + SessionPanel + ChatPanel */}
+      {/* Main content: NavRail + Main View Area */}
       <div
         style={{
           display: 'flex',
           flexDirection: 'row',
           flex: 1,
           overflow: 'hidden',
-          // Prevent text selection cursor during drag
-          userSelect: isDragging ? 'none' : undefined,
-          cursor: isDragging ? 'col-resize' : undefined,
         }}
       >
         {/* NavRail — always visible unless in focus mode */}
@@ -195,55 +158,7 @@ export default function AppShell() {
           </ErrorBoundary>
         )}
 
-        {/* SessionPanel (Sidebar) — toggleable via Ctrl+B, animated slide */}
-        {!focusMode && (
-          <>
-            <div
-              role="complementary"
-              aria-label={t('a11y.sessionList')}
-              style={{
-                width: sidebarOpen ? sidebarWidth : 0,
-                flexShrink: 0,
-                overflow: 'hidden',
-                background: 'var(--bg-chat)',
-                borderRight: sidebarOpen ? '1px solid var(--border)' : 'none',
-                transition: 'all 0.15s ease',
-                opacity: sidebarOpen ? 1 : 0,
-                position: 'relative',
-              }}
-            >
-              <Sidebar />
-              {/* Semi-transparent overlay during active drag */}
-              {isDragging && (
-                <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'var(--glass-bg-low)',
-                  pointerEvents: 'none',
-                }} />
-              )}
-            </div>
-            {/* Sidebar resize handle */}
-            {sidebarOpen && (
-            <div
-              className="resizer"
-              style={{
-                width: 4,
-                flexShrink: 0,
-                background: isDragging ? 'rgba(99,102,241,0.40)' : 'var(--bg-hover)',
-                cursor: 'col-resize',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseDown={startDrag('sidebar')}
-              onDoubleClick={() => { setSidebarWidth(240); window.electronAPI.prefsSet('sidebarWidth', 240) }}
-              onMouseEnter={(e) => { if (!isDragging) e.currentTarget.style.background = 'rgba(99,102,241,0.40)' }}
-              onMouseLeave={(e) => { if (!isDragging) e.currentTarget.style.background = 'var(--bg-hover)' }}
-            />
-            )}
-          </>
-        )}
-
-        {/* Main content area -- ChatPanel, Settings, or Editor pages */}
+        {/* Main content area -- ChatPanel, Department, Workflows, Skills, Notes, Memory, Channel, Changes, Files, Settings, or Editor pages */}
         <div
           id="main-content"
           role="main"
@@ -261,6 +176,42 @@ export default function AppShell() {
             <ErrorBoundary fallbackLabel="department dashboard">
               <React.Suspense fallback={<PanelSkeleton />}>
                 <DepartmentDashboard />
+              </React.Suspense>
+            </ErrorBoundary>
+          ) : mainView === 'workflows' ? (
+            <ErrorBoundary fallbackLabel="workflows panel">
+              <React.Suspense fallback={<PanelSkeleton />}>
+                <WorkflowPanel />
+              </React.Suspense>
+            </ErrorBoundary>
+          ) : mainView === 'skills' ? (
+            <ErrorBoundary fallbackLabel="skills panel">
+              <React.Suspense fallback={<PanelSkeleton />}>
+                <SkillsPanel />
+              </React.Suspense>
+            </ErrorBoundary>
+          ) : mainView === 'memory' ? (
+            <ErrorBoundary fallbackLabel="memory panel">
+              <React.Suspense fallback={<PanelSkeleton />}>
+                <MemoryPanel />
+              </React.Suspense>
+            </ErrorBoundary>
+          ) : mainView === 'changes' ? (
+            <ErrorBoundary fallbackLabel="changes panel">
+              <React.Suspense fallback={<PanelSkeleton />}>
+                <ChangesPanel />
+              </React.Suspense>
+            </ErrorBoundary>
+          ) : mainView === 'files' ? (
+            <ErrorBoundary fallbackLabel="files browser">
+              <React.Suspense fallback={<PanelSkeleton />}>
+                <FileBrowser />
+              </React.Suspense>
+            </ErrorBoundary>
+          ) : mainView === 'notes' ? (
+            <ErrorBoundary fallbackLabel="notes panel">
+              <React.Suspense fallback={<PanelSkeleton />}>
+                <NotesPanel />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'settings' ? (
@@ -327,12 +278,6 @@ export default function AppShell() {
                 <WorkflowDetailPage />
               </React.Suspense>
             </ErrorBoundary>
-          ) : mainView === 'notes' ? (
-            <ErrorBoundary fallbackLabel="notes panel">
-              <React.Suspense fallback={<PanelSkeleton />}>
-                <NotesPanel />
-              </React.Suspense>
-            </ErrorBoundary>
           ) : mainView === 'skill-creator' ? (
             <ErrorBoundary fallbackLabel="skill creator">
               <React.Suspense fallback={<PanelSkeleton />}>
@@ -343,6 +288,12 @@ export default function AppShell() {
             <ErrorBoundary fallbackLabel="skill marketplace">
               <React.Suspense fallback={<PanelSkeleton />}>
                 <SkillMarketplacePage />
+              </React.Suspense>
+            </ErrorBoundary>
+          ) : mainView === 'plugin' ? (
+            <ErrorBoundary fallbackLabel="plugin view">
+              <React.Suspense fallback={<PanelSkeleton />}>
+                <PluginHostView />
               </React.Suspense>
             </ErrorBoundary>
           ) : (

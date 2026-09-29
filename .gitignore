@@ -4,3 +4,4 @@ electron-ui/.superpowers/
 docs/superpowers/*
 .worktrees/
 electron-ui/docs/superpowers/
+CLAUDE.md

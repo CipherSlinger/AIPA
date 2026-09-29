@@ -104,7 +104,7 @@ export default function SettingsPanel() {
       model: 'claude-sonnet-4-6',
       fontSize: 14,
       fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-      theme: 'vscode' as const,
+      theme: 'light' as const,
       skipPermissions: true,
       verbose: false,
       workingDir: '',

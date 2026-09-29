@@ -34,7 +34,12 @@ const LINUX_WINDOW_TYPE = "toolbar";
 const GWL_EXSTYLE = -20;
 const WS_EX_APPWINDOW = 0x00040000;
 const WS_EX_TOOLWINDOW = 0x00000080;
-const SW_SHOW = 5;
+const SWP_NOSIZE = 0x0001;
+const SWP_NOMOVE = 0x0002;
+const SWP_NOZORDER = 0x0004;
+const SWP_NOACTIVATE = 0x0010;
+const SWP_FRAMECHANGED = 0x0020;
+const SW_SHOWNA = 8;
 const SW_HIDE = 0;
 
 let _win32ffi = null;
@@ -46,6 +51,7 @@ if (isWin) {
       GetWindowLongPtrW: user32.func("intptr __stdcall GetWindowLongPtrW(intptr hWnd, int nIndex)"),
       SetWindowLongPtrW: user32.func("intptr __stdcall SetWindowLongPtrW(intptr hWnd, int nIndex, intptr dwNewLong)"),
       ShowWindow: user32.func("bool __stdcall ShowWindow(intptr hWnd, int nCmdShow)"),
+      SetWindowPos: user32.func("bool __stdcall SetWindowPos(intptr hWnd, intptr hWndInsertAfter, int X, int Y, int cx, int cy, unsigned int uFlags)"),
       AllowSetForegroundWindow: user32.func("bool __stdcall AllowSetForegroundWindow(unsigned int dwProcessId)"),
     };
   } catch (err) {
@@ -78,9 +84,12 @@ function forceHideFromTaskbarWin(browserWin) {
       console.log("Clawd: taskbar FFI — exStyle 0x" + exStyle.toString(16), "→ 0x" + newExStyle.toString(16));
     }
 
-    // Step 2: Brief hide/show to force Windows to re-evaluate taskbar presence
-    _win32ffi.ShowWindow(hwnd, SW_HIDE);
-    _win32ffi.ShowWindow(hwnd, SW_SHOW);
+    // Step 2: Flush style changes without activating the window or adding to taskbar
+    if (_win32ffi.SetWindowPos) {
+      _win32ffi.SetWindowPos(hwnd, 0, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
+    } else {
+      _win32ffi.ShowWindow(hwnd, SW_SHOWNA);
+    }
   } catch (err) {
     console.warn("Clawd: forceHideFromTaskbar failed:", err.message);
   }
@@ -805,8 +814,8 @@ const _menuCtx = {
   openSettingsWindow: () => openSettingsWindow(),
 };
 const _menu = require("./menu")(_menuCtx);
-const { t, buildContextMenu, buildTrayMenu, rebuildAllMenus, createTray,
-        destroyTray, showPetContextMenu, popupMenuAt, ensureContextMenuOwner,
+const { t, buildContextMenu, buildTrayMenu, rebuildAllMenus,
+        showPetContextMenu, popupMenuAt, ensureContextMenuOwner,
         requestAppQuit, applyDockVisibility } = _menu;
 
 const MENU_AFFECTING_KEYS = new Set([
@@ -819,9 +828,7 @@ function wireSettingsSubscribers() {
     if ("size" in changes) currentSize = changes.size;
     if ("showTray" in changes) {
       showTray = changes.showTray;
-      try { changes.showTray ? createTray() : destroyTray(); } catch (err) {
-        console.warn("Clawd: tray toggle failed:", err && err.message);
-      }
+      // Embedded mode: tray controls are merged into AIPA's main tray.
     }
     if ("showDock" in changes) {
       showDock = changes.showDock;
@@ -1341,7 +1348,6 @@ function createWindow() {
   }
 
   buildContextMenu();
-  if (!isMac || showTray) createTray();
   ensureContextMenuOwner();
 
   // ── Create input window (hitWin) ──
@@ -1809,6 +1815,46 @@ module.exports = function createClawdIntegration(aipaContext) {
     getSessions: () => sessions,
     /** Get window refs */
     getWindows: () => ({ win, hitWin }),
+    /** Toggle pet visibility (show/hide) */
+    toggleVisibility: () => togglePetVisibility(),
+    /** Check if pet is currently hidden */
+    isPetHidden: () => petHidden,
+    /** Check if pet is currently in DND / sleep mode */
+    isDoNotDisturb: () => doNotDisturb,
+    /** Toggle DND / sleep mode */
+    toggleDoNotDisturb: () => doNotDisturb ? disableDoNotDisturb() : enableDoNotDisturb(),
+    /** Get current pet size string (e.g. 'P:10') */
+    getSize: () => currentSize,
+    /** Set pet size (e.g. 'P:5', 'P:8', 'P:10', 'P:15') */
+    setSize: (sizeKey) => _menu.resizeWindow(sizeKey),
+    /** Check if bubbles follow pet */
+    getBubbleFollow: () => bubbleFollowPet,
+    /** Set whether bubbles follow pet */
+    setBubbleFollow: (v) => {
+      bubbleFollowPet = v;
+      _settingsController.applyUpdate("bubbleFollowPet", v);
+    },
+    /** Check if sound effects are muted */
+    getSoundMuted: () => soundMuted,
+    /** Set sound effects muted */
+    setSoundMuted: (v) => {
+      soundMuted = v;
+      _settingsController.applyUpdate("soundMuted", v);
+    },
+    /** Open clawd settings window */
+    openSettings: () => openSettingsWindow(),
+    /** Reset pet position to screen bottom right */
+    resetPosition: () => {
+      if (!win || win.isDestroyed()) return;
+      const workArea = getPrimaryWorkAreaSafe() || SYNTHETIC_WORK_AREA;
+      const size = getCurrentPixelSize();
+      const x = workArea.x + workArea.width - size.width - 20;
+      const y = workArea.y + workArea.height - size.height - 20;
+      win.setBounds({ x, y, width: size.width, height: size.height });
+      syncHitWin();
+      if (bubbleFollowPet) repositionFloatingBubbles();
+      flushRuntimeStateToPrefs();
+    },
   };
 };
 

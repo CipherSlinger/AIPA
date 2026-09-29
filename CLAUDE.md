@@ -93,7 +93,7 @@ The main process compiles separately as CommonJS (`tsconfig.main.json`); the ren
 
 ## Critical Platform Notes
 
-- **node-pty binaries** are copied from VS Code's bundled node-pty (not built from source). If you need to rebuild, use `npm run rebuild-pty` and target Electron v39+.
+- **node-pty** uses v1.1.0 with official Node-API prebuilds (no Visual Studio C++ toolchain required). If you need to rebuild from source, use `npm run rebuild-pty` and target Electron v39+.
 - **electron-store must stay at v8** (CJS). v10+ is ESM-only and breaks the main process.
 - **Codex CLI resolution**: `codex-resolver.ts` walks candidate paths to locate the codex binary (npm `@openai/codex` package → platform-specific native binary). Override with `CODEX_CLI_PATH` env var. The Codex binary is a Rust-compiled native executable, not a Node.js script.
 - **Session IDs**: There are two kinds — the internal `bridgeId` used within a single `CodexBridge` lifetime, and the `codexThreadId` (Codex thread ID) from the `thread/start` or `turn/completed` events. Codex uses `thread/resume` (not `--resume`) to continue sessions.

@@ -29,8 +29,8 @@ if exist node_modules\.bin\tsc.cmd (
     echo   node_modules already populated, skipping npm install.
     echo   ^(Delete node_modules to force a fresh install.^)
 ) else (
-    echo   Running npm install --ignore-scripts ...
-    call npm install --ignore-scripts
+    echo   Running npm install ...
+    call npm install
     if !errorlevel! neq 0 (
         echo [ERROR] npm install failed.
         exit /b 1

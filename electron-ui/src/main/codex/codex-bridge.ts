@@ -30,6 +30,9 @@ export interface CodexSendMessageArgs {
   sandbox?: string           // 'readOnly' | 'workspaceWrite' | 'dangerFullAccess'
   permissions?: string       // experimental profile id (e.g. ':workspace')
   personality?: 'friendly' | 'pragmatic' | 'none'
+  ephemeral?: boolean        // don't persist the thread to Codex session history
+  requireAuth?: boolean      // fail fast via account/read when Codex has no credentials
+  developerInstructions?: string
   flags?: string[]           // unused, kept for interface compat
 }
 
@@ -58,6 +61,13 @@ interface JsonRpcNotification {
 }
 
 // ── Constants ────────────────────────────────────────
+
+export class CodexAuthError extends Error {}
+
+/** turn/start and turn/steer expect `UserInput[]`, not a bare string. */
+function toUserInput(prompt: string): Array<{ type: 'text'; text: string }> {
+  return [{ type: 'text', text: prompt }]
+}
 
 const REQUEST_TIMEOUT_MS = 60_000
 const INITIALIZE_TIMEOUT_MS = 15_000
@@ -103,6 +113,15 @@ export class CodexBridge extends EventEmitter {
     // Step 1: Initialize handshake
     await this._initialize()
 
+    // Without credentials Codex retries the model request indefinitely, so
+    // callers that can't show a login flow check up front.
+    if (args.requireAuth && !args.env.OPENAI_API_KEY) {
+      const account = await this._sendRequest('account/read', {}) as { account?: unknown; requiresOpenaiAuth?: boolean }
+      if (!account?.account && account?.requiresOpenaiAuth) {
+        throw new CodexAuthError('Codex is not signed in and no OpenAI API key is configured')
+      }
+    }
+
     // Step 2: Start or resume thread
     if (args.threadId) {
       await this._resumeThread(args.threadId, args)
@@ -136,7 +155,7 @@ export class CodexBridge extends EventEmitter {
     await this._sendRequest('turn/steer', {
       threadId: this.currentThreadId,
       turnId: this.currentTurnId,
-      input: prompt,
+      input: toUserInput(prompt),
     })
   }
 
@@ -268,6 +287,8 @@ export class CodexBridge extends EventEmitter {
     if (args.sandbox) params.sandbox = args.sandbox
     if (args.permissions) params.permissions = args.permissions
     if (args.personality) params.personality = args.personality
+    if (args.ephemeral) params.ephemeral = true
+    if (args.developerInstructions) params.developerInstructions = args.developerInstructions
 
     const result = await this._sendRequest('thread/start', params) as { thread?: { id: string } }
     this.currentThreadId = result?.thread?.id ?? null
@@ -294,7 +315,7 @@ export class CodexBridge extends EventEmitter {
 
     const result = await this._sendRequest('turn/start', {
       threadId: this.currentThreadId,
-      input: prompt,
+      input: toUserInput(prompt),
     }) as { turn?: { id: string } }
 
     this.currentTurnId = result?.turn?.id ?? null
@@ -537,6 +558,18 @@ export class CodexBridge extends EventEmitter {
 
       case 'thread/deleted': {
         this.emit('threadDeleted', { sessionId: sid, threadId: params.threadId })
+        break
+      }
+
+      // ── Turn errors (willRetry=true means Codex is reconnecting) ──
+      case 'error': {
+        const error = params.error as Record<string, unknown> | undefined
+        this.emit('turnError', {
+          sessionId: sid,
+          message: (error?.message as string) ?? 'Unknown error',
+          details: (error?.additionalDetails as string) ?? undefined,
+          willRetry: Boolean(params.willRetry),
+        })
         break
       }
 

@@ -31,12 +31,25 @@ const ptyNodeDebugPath = path.join(
   'pty.node'
 );
 
+const ptyNodePrebuildPath = path.join(
+  __dirname,
+  '..',
+  'node_modules',
+  'node-pty',
+  'prebuilds',
+  `${process.platform}-${process.arch}`,
+  'pty.node'
+);
+
 if (fs.existsSync(ptyNodePath)) {
   const stats = fs.statSync(ptyNodePath);
   console.log(`[verify-pty] pty.node found (Release, ${stats.size} bytes)`);
 } else if (fs.existsSync(ptyNodeDebugPath)) {
   const stats = fs.statSync(ptyNodeDebugPath);
   console.log(`[verify-pty] pty.node found (Debug, ${stats.size} bytes)`);
+} else if (fs.existsSync(ptyNodePrebuildPath)) {
+  const stats = fs.statSync(ptyNodePrebuildPath);
+  console.log(`[verify-pty] pty.node found (Prebuild, ${stats.size} bytes)`);
 } else {
   console.warn(
     '[verify-pty] WARNING: pty.node binary not found!\n' +

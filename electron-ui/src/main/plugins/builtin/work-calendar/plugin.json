@@ -1,0 +1,12 @@
+{
+  "id": "aipa-work-calendar",
+  "name": "工作日历",
+  "nameEn": "Work Calendar",
+  "version": "1.1.0",
+  "description": "月历管理跨天任务与提醒，AI 一键生成周报/月报，接入 GitHub 与本地文件夹工作源，按周/月维护人天投入",
+  "icon": "CalendarDays",
+  "location": "top",
+  "order": 3,
+  "main": "index.html",
+  "permissions": ["storage", "ai", "network", "fs", "chat", "toast"]
+}

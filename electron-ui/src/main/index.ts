@@ -1,6 +1,8 @@
 import { app, BrowserWindow, Menu, Tray, globalShortcut, nativeImage, shell, session, clipboard, Notification, screen } from 'electron'
 import path from 'path'
-import { initClawdIntegration, shutdownClawdIntegration } from './clawd-integration'
+import fs from 'fs'
+import { initClawdIntegration, shutdownClawdIntegration, getClawdSubmenu } from './clawd-integration'
+import { abortAllPluginAi } from './plugins/plugin-services'
 import { registerAllHandlers } from './ipc/index'
 import { ptyManager } from './pty/pty-manager'
 import { listSessions } from './sessions/session-reader'
@@ -25,11 +27,15 @@ function createWindow(): void {
   const savedBounds = getPref('windowBounds' as any) as { x: number; y: number; width: number; height: number; isMaximized: boolean } | null
 
   // Theme-aware startup: read saved theme to set correct initial colors
-  const savedTheme = (getPref as any)('theme') || 'vscode'
+  const savedTheme = (getPref as any)('theme') || 'light'
   const isLightTheme = savedTheme === 'light' || (savedTheme === 'system' && false) // system theme resolved in renderer
   const bgColor = isLightTheme ? '#f5f5f7' : '#1e1e1e'
   const overlayColor = isLightTheme ? '#f8f8f8' : '#2c2c2c'
   const overlaySymbol = isLightTheme ? '#1a1a1a' : '#cccccc'
+
+  const iconExt = process.platform === 'win32' ? 'icon.ico' : 'icon.png'
+  const buildDir = app.isPackaged ? path.join(process.resourcesPath, 'build') : path.join(__dirname, '../../build')
+  const iconFile = [iconExt, 'icon.png'].map(f => path.join(buildDir, f)).find(f => fs.existsSync(f))
 
   const windowOptions: Electron.BrowserWindowConstructorOptions = {
     width: savedBounds?.width || 1400,
@@ -38,6 +44,7 @@ function createWindow(): void {
     minHeight: 600,
     title: 'AIPA',
     backgroundColor: bgColor,
+    ...(iconFile ? { icon: iconFile } : {}),
     titleBarStyle: 'hidden',
     titleBarOverlay: {
       color: overlayColor,
@@ -128,7 +135,10 @@ function createWindow(): void {
   // setImmediate yields to the event loop so loadFile can begin rendering.
   setImmediate(() => {
     if (!mainWindow) return
-    try { initClawdIntegration(mainWindow) } catch (err) {
+    try {
+      initClawdIntegration(mainWindow)
+      rebuildTrayMenu()
+    } catch (err) {
       log.warn('initClawdIntegration failed (non-fatal):', String(err))
     }
   })
@@ -185,7 +195,8 @@ function setupCSP(): void {
     "font-src 'self' data:",
     "object-src 'none'",
     "base-uri 'self'",
-    "frame-src 'none'",
+    // Nav plugins render as file:// iframes from ~/.aipa/plugins
+    "frame-src 'self' file:",
   ].join('; ')
 
   const devCSP = [
@@ -197,6 +208,7 @@ function setupCSP(): void {
     "font-src 'self' data:",
     "object-src 'none'",
     "base-uri 'self'",
+    "frame-src 'self' file:",
   ].join('; ')
 
   const csp = isDev ? devCSP : prodCSP
@@ -358,6 +370,10 @@ function updateTrayTooltip(): void {
 function rebuildTrayMenu(): void {
   if (!tray) return
 
+  // Detect current locale
+  const prefLang = (getPref as any)('language')
+  const isZh = prefLang === 'zh-CN' || (prefLang !== 'en' && app.getLocale().toLowerCase().startsWith('zh'))
+
   // Fetch recent sessions (last 5, sorted by timestamp desc)
   let recentSessionItems: Electron.MenuItemConstructorOptions[] = []
   try {
@@ -373,22 +389,27 @@ function rebuildTrayMenu(): void {
         },
       }))
     } else {
-      recentSessionItems = [{ label: 'No recent sessions', enabled: false }]
+      recentSessionItems = [{ label: isZh ? '暂无最近会话' : 'No recent sessions', enabled: false }]
     }
   } catch {
-    recentSessionItems = [{ label: 'No recent sessions', enabled: false }]
+    recentSessionItems = [{ label: isZh ? '暂无最近会话' : 'No recent sessions', enabled: false }]
   }
 
   // Detect current theme
-  const currentTheme = (getPref as any)('theme') || 'vscode'
-  const themeLabel = currentTheme === 'light' ? 'Switch to Dark Theme' : 'Switch to Light Theme'
+  const currentTheme = (getPref as any)('theme') || 'light'
+  const themeLabel = isZh
+    ? (currentTheme === 'light' ? '切换为深色主题' : '切换为浅色主题')
+    : (currentTheme === 'light' ? 'Switch to Dark Theme' : 'Switch to Light Theme')
 
   // Get working directory
   const workingDir = (getPref as any)('workingDir') || require('os').homedir()
 
+  // Desktop Pet (Clawd) menu integration
+  const clawdSubmenu = getClawdSubmenu(isZh, () => rebuildTrayMenu())
+
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: 'Show AIPA',
+      label: isZh ? '显示 AIPA' : 'Show AIPA',
       click: () => {
         mainWindow?.show()
         mainWindow?.focus()
@@ -396,7 +417,7 @@ function rebuildTrayMenu(): void {
     },
     { type: 'separator' },
     {
-      label: 'New Chat',
+      label: isZh ? '新建会话' : 'New Chat',
       click: () => {
         mainWindow?.show()
         mainWindow?.focus()
@@ -404,7 +425,7 @@ function rebuildTrayMenu(): void {
       },
     },
     {
-      label: 'Ask about Clipboard',
+      label: isZh ? '询问剪贴板内容' : 'Ask about Clipboard',
       click: () => {
         const clipboardText = clipboard.readText().trim()
         mainWindow?.show()
@@ -415,9 +436,11 @@ function rebuildTrayMenu(): void {
       },
     },
     {
-      label: 'Recent Sessions',
+      label: isZh ? '最近会话' : 'Recent Sessions',
       submenu: recentSessionItems,
     },
+    { type: 'separator' },
+    clawdSubmenu,
     { type: 'separator' },
     {
       label: themeLabel,
@@ -430,14 +453,14 @@ function rebuildTrayMenu(): void {
       },
     },
     {
-      label: 'Open Working Directory',
+      label: isZh ? '打开工作目录' : 'Open Working Directory',
       click: () => {
         shell.openPath(workingDir)
       },
     },
     { type: 'separator' },
     {
-      label: 'Quit',
+      label: isZh ? '退出 AIPA' : 'Quit AIPA',
       click: () => {
         isQuitting = true
         app.quit()
@@ -528,5 +551,6 @@ app.on('before-quit', () => {
   // Run clawd cleanup hooks (registered during initClawdIntegration)
   try { shutdownClawdIntegration() } catch { /* best-effort */ }
   ptyManager.destroyAll()
+  abortAllPluginAi()
   globalShortcut.unregisterAll()
 })

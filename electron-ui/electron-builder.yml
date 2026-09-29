@@ -2,6 +2,8 @@ appId: com.anthropic.claude-code-ui
 productName: Claude Code UI
 copyright: © 2024 Anthropic PBC
 
+npmRebuild: false
+
 directories:
   output: release
   buildResources: build

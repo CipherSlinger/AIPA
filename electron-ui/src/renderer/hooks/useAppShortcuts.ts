@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
-import { usePrefsStore, useChatStore, useSessionStore, useUiStore } from '../store'
-import type { SidebarTab } from '../store'
+import { usePrefsStore, useChatStore, useSessionStore, useUiStore, usePluginStore } from '../store'
 import { useT } from '../i18n'
 
 /**
@@ -8,11 +7,8 @@ import { useT } from '../i18n'
  * These are always active regardless of which panel is focused.
  */
 export function useAppShortcuts(
-  toggleSidebar: () => void,
   toggleCommandPalette: () => void,
   toggleFocusMode: () => void,
-  setSidebarOpen: (open: boolean) => void,
-  setSidebarTab: (tab: SidebarTab) => void,
   setShowShortcuts: (fn: (prev: boolean) => boolean) => void,
   setPrefs: (prefs: Record<string, unknown>) => void,
 ) {
@@ -30,10 +26,15 @@ export function useAppShortcuts(
         e.preventDefault()
         useUiStore.getState().openSettingsModal()
       }
-      // Ctrl+B: Toggle sidebar
+      // Ctrl+B: Toggle focus mode or return to chat
       if (e.ctrlKey && !e.shiftKey && e.key === 'b') {
         e.preventDefault()
-        toggleSidebar()
+        const ui = useUiStore.getState()
+        if (ui.mainView !== 'chat') {
+          ui.setActiveNavItem('chat')
+        } else {
+          ui.toggleFocusMode()
+        }
       }
       // Ctrl+N: New conversation
       if (e.ctrlKey && !e.shiftKey && e.key === 'n') {
@@ -84,15 +85,13 @@ export function useAppShortcuts(
         e.preventDefault()
         toggleFocusMode()
       }
-      // Ctrl+Shift+N: Toggle Notes panel
+      // Ctrl+Shift+N: Toggle Notes plugin
       if (e.ctrlKey && e.shiftKey && e.key === 'N') {
         e.preventDefault()
         const ui = useUiStore.getState()
-        if (ui.sidebarOpen && ui.sidebarTab === 'notes') {
-          ui.setSidebarOpen(false)
+        if (ui.mainView === 'plugin' && usePluginStore.getState().activePluginId === 'aipa-notes') {
+          ui.setActiveNavItem('chat')
         } else {
-          ui.setSidebarOpen(true)
-          ui.setSidebarTab('notes')
           ui.setActiveNavItem('notes')
         }
       }
@@ -112,11 +111,11 @@ export function useAppShortcuts(
         e.preventDefault()
         window.dispatchEvent(new CustomEvent('aipa:export'))
       }
-      // Ctrl+Shift+D: Cycle theme (System -> Dark -> Light -> System)
+      // Ctrl+Shift+D: Cycle theme (Light -> System -> Dark -> Light)
       if (e.ctrlKey && e.shiftKey && e.key === 'D') {
         e.preventDefault()
-        const currentTheme = usePrefsStore.getState().prefs.theme || 'vscode'
-        const themeOrder: Array<'system' | 'vscode' | 'light'> = ['system', 'vscode', 'light']
+        const currentTheme = usePrefsStore.getState().prefs.theme || 'light'
+        const themeOrder: Array<'light' | 'system' | 'vscode'> = ['light', 'system', 'vscode']
         const currentIdx = themeOrder.indexOf(currentTheme as typeof themeOrder[number])
         const newTheme = themeOrder[(currentIdx + 1) % themeOrder.length]
         setPrefs({ theme: newTheme })
@@ -152,21 +151,15 @@ export function useAppShortcuts(
         ui.setAlwaysOnTop(newValue)
         ui.addToast('info', t(newValue ? 'window.pinnedOn' : 'window.pinnedOff'), 1500)
       }
-      // Ctrl+1-8: Switch sidebar tabs
-      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '8') {
+      // Ctrl+1-7: Switch main views
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '7') {
         e.preventDefault()
-        const tabs = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'channel', 'tasks'] as const
+        // Ctrl+7 opens the Work Calendar plugin (the Tasks panel moved there)
+        const tabs = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'plugin:aipa-work-calendar'] as const
         const idx = parseInt(e.key) - 1
         const tab = tabs[idx]
         if (tab) {
-          const ui = useUiStore.getState()
-          if (ui.sidebarOpen && ui.sidebarTab === tab) {
-            ui.setSidebarOpen(false)
-          } else {
-            ui.setSidebarOpen(true)
-            ui.setSidebarTab(tab as any)
-            ui.setActiveNavItem(tab)
-          }
+          useUiStore.getState().setActiveNavItem(tab === 'history' ? 'department' : tab)
         }
       }
       // / key: Focus session search (when not in an input)
@@ -177,8 +170,8 @@ export function useAppShortcuts(
         if (!inInput && !hasModal) {
           e.preventDefault()
           const ui = useUiStore.getState()
-          if (!ui.sidebarOpen || ui.sidebarTab !== 'history') {
-            ui.setActiveNavItem('history')
+          if (ui.mainView !== 'chat') {
+            ui.setActiveNavItem('chat')
           }
           window.dispatchEvent(new CustomEvent('aipa:globalSearchFocus'))
         }
@@ -228,5 +221,5 @@ export function useAppShortcuts(
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [setSidebarOpen, setSidebarTab, toggleSidebar, toggleCommandPalette, toggleFocusMode])
+  }, [toggleCommandPalette, toggleFocusMode])
 }

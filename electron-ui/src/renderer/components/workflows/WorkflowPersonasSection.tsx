@@ -12,7 +12,8 @@ import { useI18n } from '../../i18n'
 import type { Persona } from '../../types/app.types'
 import { PERSONA_COLORS, EMOJI_PRESETS, PERSONA_PRESETS } from '../settings/personaConstants'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
-import { PersonaSidebarCard, PersonaInlineForm } from './PersonaSidebarComponents'
+import { PersonaIconTile, PersonaInlineForm } from './PersonaSidebarComponents'
+import PersonCharacterIcon from './PersonCharacterIcon'
 
 // ─── Main exported section ─────────────────────────────────────────────────────
 
@@ -348,7 +349,7 @@ export default function WorkflowPersonasSection() {
             />
           )}
 
-          {/* Persona list */}
+          {/* Persona list in vivid icon grid format */}
           {personas.length === 0 && !showForm ? (
             <div style={{
               textAlign: 'center',
@@ -400,9 +401,14 @@ export default function WorkflowPersonasSection() {
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(82px, 1fr))',
+              gap: 8,
+              padding: '2px 0 4px',
+            }}>
               {personas.map((p) => (
-                <PersonaSidebarCard
+                <PersonaIconTile
                   key={p.id}
                   persona={p}
                   isActive={effectivePersonaId === p.id}
@@ -432,7 +438,7 @@ export default function WorkflowPersonasSection() {
                       padding: '5px 8px',
                       background: 'transparent',
                       border: '1px dashed var(--glass-border-md)',
-                      borderRadius: 6,
+                      borderRadius: 8,
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'all 0.15s ease',
@@ -440,9 +446,23 @@ export default function WorkflowPersonasSection() {
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'; e.currentTarget.style.background = 'rgba(99,102,241,0.06)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border-md)'; e.currentTarget.style.background = 'transparent' }}
                   >
-                    <span style={{ fontSize: 14 }}>{preset.emoji}</span>
+                    <PersonCharacterIcon
+                      persona={{
+                        id: `preset-preview-${i}`,
+                        name: preset.name,
+                        emoji: preset.emoji,
+                        model: preset.model,
+                        systemPrompt: preset.systemPrompt,
+                        color: preset.color,
+                        presetKey: preset.presetKey,
+                        createdAt: 0,
+                        updatedAt: 0,
+                      }}
+                      size={28}
+                      showBadge={false}
+                    />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {preset.presetKey ? t(`persona.preset.${preset.presetKey}`) : preset.name}
                       </div>
                     </div>

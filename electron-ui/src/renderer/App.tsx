@@ -26,8 +26,6 @@ export default function App() {
   const sessionSwitcherOpen = useUiStore(s => s.sessionSwitcherOpen)
   const setSessionSwitcherOpen = useUiStore(s => s.setSessionSwitcherOpen)
   const toggleFocusMode = useUiStore(s => s.toggleFocusMode)
-  const setSidebarOpen = useUiStore(s => s.setSidebarOpen)
-  const setSidebarTab = useUiStore(s => s.setSidebarTab)
   const toasts = useUiStore(s => s.toasts)
   const removeToast = useUiStore(s => s.removeToast)
   const t = useT()
@@ -269,7 +267,7 @@ export default function App() {
       }
     }
 
-    const theme = prefs.theme || 'vscode'
+    const theme = prefs.theme || 'light'
     if (theme === 'system') {
       const mq = window.matchMedia('(prefers-color-scheme: dark)')
       applyEffectiveTheme(mq.matches ? 'vscode' : 'light')
@@ -294,8 +292,7 @@ export default function App() {
 
   // Global keyboard shortcuts (extracted to hook)
   useAppShortcuts(
-    toggleSidebar, toggleCommandPalette, toggleFocusMode,
-    setSidebarOpen, setSidebarTab, setShowShortcuts, setPrefs,
+    toggleCommandPalette, toggleFocusMode, setShowShortcuts, setPrefs,
   )
 
   // Context health + cost threshold warnings (inspired by Claude Code)

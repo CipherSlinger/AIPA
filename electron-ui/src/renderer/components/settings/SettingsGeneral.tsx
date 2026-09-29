@@ -317,7 +317,7 @@ export default function SettingsGeneral({
         {field(t('settings.theme'), (
           <div style={{ display: 'flex', gap: 8 }}>
             {THEMES.map((theme) => {
-              const isActive = (local.theme || 'vscode') === theme.id
+              const isActive = (local.theme || 'light') === theme.id
               return (
                 <button
                   key={theme.id}

@@ -1,8 +1,8 @@
 <p align="center">
   <h1 align="center">AIPA</h1>
   <p align="center">
-    <strong>AI 个人助手 — 你的全天候桌面智能代理</strong><br/>
-    随问随答，随需随做，事事搞定。
+    <strong>AI 个人助手 — 你的全天候桌面智能驾驶舱</strong><br/>
+    随问随答，随需随做，驱动终端与代码，事事搞定。
   </p>
   <p align="center">
     <img src="https://img.shields.io/badge/平台-Windows-blue" alt="平台" />
@@ -15,272 +15,352 @@
 
 ---
 
-AIPA 不是一个聊天窗口，而是一个真正驻留在你桌面上的**智能代理** — 读写你的文件，执行 Shell 命令，浏览网页，将任务串联成工作流，并跨会话记住上下文。底层通过驱动 [Claude Code](https://claude.ai/code) CLI 作为执行引擎，外包一层精心打磨的 Electron + React 驾驶舱，支持 Claude、OpenAI、DeepSeek、Ollama 以及任意 OpenAI 兼容提供商。
+AIPA 不是一个简单的网页套壳聊天窗口，而是一个真正驻留在你桌面上的**执行级智能代理**。它能读写本地文件、执行 Shell 终端指令、智能调度工作流、管理自动化任务，并跨会话保留记忆与偏好。
 
-> **Claude Code CLI 是引擎，AIPA 是驾驶舱。**
+底座原生驱动 **OpenAI Codex CLI** 与 **Claude Code CLI** 作为双核执行引擎，外包一层精心打磨的 Electron + React 驾驶舱，同时无缝兼容 OpenAI、DeepSeek、Ollama 及任意 OpenAI 兼容模型。
 
----
-
-## AIPA 能做什么
-
-| | |
-|---|---|
-| **对话与执行** | 全功能对话 AI，带工具调用可视化 — 实时看到代理读取文件、运行代码、浏览网页的每一步 |
-| **持久记忆** | 跨会话的持久记忆 — 偏好、事实、指令、上下文自动注入每次对话 |
-| **工作流** | 将提示词串联成可复用的多步骤流水线，内含常用任务的预设模板 |
-| **笔记** | Markdown 笔记本，带分类、模板和一键从聊天保存 |
-| **多模型** | 会话中途随时切换 Claude、GPT-4、DeepSeek 或本地 Ollama 模型，千问通过二维码扫码快速接入 |
-| **随时待命** | 系统托盘快捷操作、全局快捷键（`Ctrl+Shift+Space` 唤起、`Ctrl+Shift+G` 剪贴板提问）、桌面通知 |
-| **任务与提醒** | 快速待办列表（**三状态**：待办/进行中/已完成，全部完成后 5 秒自动隐藏）、一次性定时提醒 + **Cron 循环提醒**（5 字段表达式，人类可读频率标签，带预设选择器）、每日简报 |
-| **通道** | 通过 OpenClaw 接入飞书和微信消息通道 — 从侧边栏配置、测试和管理 |
+> 💡 **CLI 是强劲引擎，AIPA 是直观易用的智能驾驶舱。**
 
 ---
 
-## 功能亮点
+## 🏛️ 系统架构总览
 
-### 对话
-- **Stream-JSON 聊天**，带实时工具调用卡片 — 每次文件读取、命令执行、网页请求都一目了然
-- **工具使用摘要标签** — 连续工具调用自动分组，折叠显示人类可读的操作摘要
-- **结构化 Diff 视图** — 文件编辑和写入操作以 LCS 统一 Diff 格式展示，色彩编码增/删行，可折叠大型差异
-- **自定义系统提示词** — 设置 → 高级 Tab 配置持久追加提示词（2000 字符上限，6 个预设），ChatHeader 一键设置会话临时覆盖；有效提示词优先级：临时 > 持久，通过 `--append-system-prompt` 注入 CLI
-- **扩展思考**块，可折叠，流式传输时自动展开；StatusBar 一键开关
-- **输出风格** — 三种回复风格（默认/详细解释/教学模式），工具栏快速切换
-- **自动压缩** — 上下文窗口接近容量上限时自动摘要较早消息，保持对话流畅（阈值可调 60%-90%）；压缩前先通过 **Microcompact** 预处理截断过长内容，减少输入 Token；**时间差 Microcompact** 自动清理空闲 30 分钟以上的过期工具调用结果
-- **上下文压缩按钮（Context Compact）** — TokenUsageBar 在上下文使用率 ≥ 75% 时显示橙色 COMPACT 按钮，≥ 90% 时切换为红色警示；点击直接向 CLI stdin 发送 `/compact` 命令，防止因 context 满额导致对话中断
-- **上下文建议** — 上下文使用率超过 70% 时，通过灯泡图标弹窗显示各工具（Shell 输出、文件读取、网页请求）的优化建议及预计节省 Token 数
-- **离开摘要** — 离开 5 分钟以上后返回，自动在对话中注入当前上下文的紫色摘要卡片
-- **对话回滚** — 右键助手消息 → "回退到此处"，将对话裁剪至该时间点并同步持久化存储；确认对话框防止误操作
-- **消息键盘导航** — `Ctrl+Up/Down` 逐条浏览消息，`Ctrl+Home/End` 跳转首尾，带视觉焦点指示器
-- **编辑与重新生成**任意消息；重新生成前可切换模型
-- **朗读**（Web Speech API）；**引用回复**（选中文本即可引用）
-- **权限提示** — 任何破坏性工具操作前显示友好的允许/拒绝卡片
-- **权限建议** — 权限卡片内嵌 CLI 推送的"始终允许（规则）"/"始终拒绝"快捷按钮，一键创建持久权限规则，无需进入设置
-- **权限模式选择器（Permission Mode）** — 取代默认的全量跳过权限模式，设置中提供 5 级权限控制（Default / Accept Edits / Don't Ask / Plan Only / Bypass Permissions），通过 `--permission-mode` 参数正确传递给 CLI，让用户精确掌控工具执行风险
-- **工具审批对话框（Tool Approval Dialog）** — 感知权限模式的实时工具审批弹窗，监听 Zustand store 中待处理的 PermissionMessage；bypassPermissions/dontAsk 模式下自动通过，其他模式下以对话框形式请求用户允许/拒绝
-- **钩子回调审批** — PreToolUse/PostToolUse 钩子脚本需要用户介入时，在聊天中内联显示批准/阻止卡片；支持可选原因文本框；响应实时回传给 CLI
-- **MCP 信息采集** — MCP 服务器请求用户输入时，在聊天中内联显示表单卡片；支持 Schema 驱动的结构化字段或自由文本，以及浏览器 URL 跳转流程；提交/拒绝/取消均实时回传给服务器
-- **会话初始化感知** — 解析 CLI `system.init` 事件，ChatHeader 实时显示实际生效模型名、MCP 连接状态（绿点=已连接/红点=失败）及可用工具列表，通过新增 IPC 通道 `cli:systemInit` 从主进程推送至渲染器；渲染器 store 同步更新 `activeModel` 和 `activeMcpServers` 字段
-- **CLI 通知 Toast** — 订阅 `cli:notification` IPC 通道，将 CLI stream-JSON `notification` 事件实时呈现为应用内 info toast 弹窗
-- **会话统计增强（Session Stats）** — 会话结束后展示完整统计面板：总费用（USD）、输入/输出 Token 数、缓存命中量、对话轮次、总耗时，以及被拒绝的权限请求列表（工具名 + 拒绝原因）
-- **权限规则 UI（Permission Rules）** — 设置 → 权限 Tab 可视化管理 allow/deny/ask 规则列表及默认权限模式（defaultMode）选择器；规则显示工具名、操作类型和路径，支持一键删除；写入 `~/.claude/settings.json`
-- **附加目录（additionalDirectories）** — 设置 → 权限 Tab 原生目录选择器，管理允许 Claude 访问的额外工作目录列表
-- **待办列表可视化（TodoWrite）** — Claude 调用 `TodoWrite` 工具时，聊天面板渲染结构化待办卡片；状态图标（待处理 ○ / 进行中 ◑ / 已完成 ✓）、优先级标记（高/中/低色彩徽章）一目了然
-- **子代理可视化（AgentToolCard）** — Claude 调用 Agent 工具时显示专用卡片：实时计时器（运行中/已完成/出错三态）、任务描述摘要、subagent_type 徽标、前台（绿色）/后台（橙色）chip、Worktree 隔离（蓝色）chip；可折叠展开完整提示词（>150 字符）和输出结果（>200 字符）
-- **文件读取卡片（FileReadCard）** — CLI `Read` 工具调用渲染专用卡片：文件路径（目录淡色+文件名高亮）、行范围徽标（offset/limit）、前20行代码预览（可展开全文）、复制按钮、读取中状态指示
-- **文件写入卡片（FileWriteCard）** — CLI `Write` 工具调用渲染专用卡片：绿色主题、文件路径展示、内容预览（前20行可展开）、复制按钮、\"File written\" 确认徽标
-- **SleepTool 卡片** — `SleepTool` 调用时显示紫色计时卡片，含脉冲\"Pausing...\"动画和等待完成徽标
-- **BriefTool 卡片** — `BriefTool`/`read_brief` 调用时显示青色内容卡片，展示 brief 文件路径和内容预览（可展开）
-- **ToolSearchTool 卡片** — `ToolSearchTool` 调用时显示石板灰元工具卡片，展示搜索查询并将结果渲染为工具名称徽章列表（可展开，支持原始文本回退）
-- **任务管理内联卡片（TaskCreate/Update/List/Get）** — CLI 异步任务管理工具在聊天流中渲染内联卡片：TaskCreate/Update 显示状态 badge；TaskList/TaskGet 渲染 Kanban 3 列视图（待办/进行中/已完成），状态徽章灰=待办、蓝色脉冲=进行中、绿=完成
-- **DreamTask 记忆整合感知** — CLI 的后台自动记忆整合（auto-dream）不发出 stream-json 事件，AIPA 通过在每次 CLI 会话前后对比 `.consolidate-lock` 文件 mtime 来检测；一旦发现 mtime 前进即展示紫色玻璃态 DreamTaskCard，并弹出 info toast 通知用户"后台记忆整合已完成"
-- **API 错误感知** — stream-bridge 新增 `overloaded_error` / `authentication_error` 事件处理，这两种之前静默丢弃的错误现在会以 toast 形式呈现（API 过载 warning、认证失败 error），不再让用户困惑于"响应为何停止"
-- **会话 ID 快速复制** — ChatHeader 中的 session ID 徽章（显示 8 位前缀）点击后复制完整 session ID 到剪贴板，配合 `--resume` 参数可随时手动恢复任意历史会话
-- **系统诊断** — 一键检查 CLI、API 密钥、网络、磁盘空间和系统负载
-- **关于页版本信息** — 同时显示 App 版本和 CLI 版本双徽章，并展示构建日期与 Git Commit Hash；Runtime 区新增 App 和 CLI 版本行，版本信息通过 Vite `define` 在编译期注入
-- **启动保护** — IPC 预注册消除竞态、非阻塞菜单构建、10 秒硬性闪屏超时、渲染器错误恢复、偏好设置重置，全方位杜绝卡死
+```mermaid
+graph TB
+    subgraph Desktop["🖥️ 用户桌面环境 (Windows 10/11)"]
+        subgraph ElectronCockpit["🚀 AIPA 智能驾驶舱 (Electron + React)"]
+            subgraph Renderer["渲染层 (React 18 + Vite + Zustand)"]
+                NavRail["左侧主导航 (NavRail)"]
+                MainView["主界面沉浸视图 (MainView)"]
+                ChatPanel["结构化对话 / 工具卡片 / LCS Diff"]
+                DeptDashboard["部门看板 (Department)"]
+                EmpGallery["员工形象磁贴网格 (Employees)"]
+                CanvasWorkflow["画布工作流编辑器 (Canvas Engine)"]
+                PluginHost["沙箱插件宿主 (Sandboxed iframe)"]
+            end
+            
+            subgraph Preload["安全隔离层 (Preload / contextBridge)"]
+                API["window.electronAPI (IPC 强类型通信)"]
+            end
+            
+            subgraph MainProcess["主进程 (Node.js CJS)"]
+                PtyMgr["PTY 管理器 (node-pty ConPTY)"]
+                CodexBridge["Codex 桥接器 (JSON-RPC 2.0 stdio)"]
+                StreamBridge["Claude 桥接器 (NDJSON Stream)"]
+                NavPluginMgr["插件热插拔监听 (fs.watch)"]
+                ConfigMgr["安全配置管理 (DPAPI 加密)"]
+                ClawdPet["桌面宠物集成 (Clawd Win32)"]
+            end
+        end
 
-### 输入增强工具
-- **Slash 命令增强**（`/`）— SlashCommandPopup 展示 18 个内置命令，分 Session / General / Settings / Stats 四组；用户在 `.claude/commands/` 目录下自定义的命令独立显示于「自定义命令」分组，绿色 **custom** 徽章加以区分；内置客户端命令：`/vim` 切换 Vim 编辑模式、`/fast` 切换至 Haiku 快速模型、`/output-style` 循环切换回复风格、`/statusline` 切换状态栏显示；**@提及**文件选择器
-- **文本片段** — `::关键词` 触发展开可复用文本块
-- **文本变换** — 一键变正式、随意、更短、更长或修正语法
-- **内联计算器** — 输入 `= 42 * 1.18`，按 Tab 插入结果
-- **任务队列** — 排队多条指令依次自动执行
-- **Vim 模态编辑** — 通过 `/vim` 指令激活；输入框支持 Vim 插入/普通模式；方向键 `h/j/k/l`、单词跳转 `w/b`、行首尾 `0/$`、删除 `x`/`dd`、撤销 `u`、插入 `i`/`a`/`I`/`A`；输入区显示 NORMAL/INSERT 模式标识
+        subgraph Engines["⚡ 执行引擎与模型服务"]
+            CodexCLI["OpenAI Codex CLI (Rust 原生内核 · 主引擎)"]
+            ClaudeCLI["Claude Code CLI (备用引擎)"]
+            LLMProviders["多模型接入 (OpenAI / Claude / DeepSeek / Ollama / 千问)"]
+        end
 
-### 会话管理
-- 浏览、搜索、标签、置顶、批量删除历史会话
-- **会话快速切换器**（`Ctrl+K`）— 模糊搜索最近会话，键盘操作快速跳转
-- **会话固定备注** — 每个会话可添加置顶备注，显示在聊天顶部
-- **跨会话搜索**（`Ctrl+Shift+F`）扫描所有 JSONL 历史文件
-- **会话变更面板** — 查看当前会话中修改的文件
-- **可折叠日期分组** — 会话按时间自动分组（今天/昨天/本周/更早），支持折叠展开，每组显示会话数量
-- **紧凑视图** — 一键切换紧凑模式，隐藏头像和预览，仅显示标题，提升信息密度
-- **排序下拉菜单** — 弹出式菜单一键选择排序方式（最新/最旧/字母/消息数），替代循环点击
-- **上下文窗口监控** — 进度条 + 百分比标签 + 详情弹窗，实时显示上下文使用量，接近上限时一键新建会话
-- **流式光标** — AI 回复流式输出时显示闪烁光标，回复结束即消失
-- **会话计数标记** — 历史导航标签显示总会话数，AI 流式回复时从其他标签页可看到活动脉冲指示器
-- **会话分叉** — 右键任意消息 → "从此处分叉"，弹出命名对话框，新会话包含该消息前的完整历史；分叉会话显示在侧边栏并标记来源
-- 导出为 Markdown、HTML 或 JSON
+        subgraph LocalEnv["💻 本地操作系统能力"]
+            Shell["终端执行 (PowerShell / Git Bash / CMD)"]
+            FS["本地工作区文件系统 (原子读写 / 差异比对)"]
+            Git["Git 版本控制 / Worktree 工作区隔离"]
+            MemoryStore["持久记忆存储 (~/.claude/projects / memdir)"]
+        end
+    end
 
-### 角色与记忆
-- 最多 10 个自定义 AI 角色，每个有名称、Emoji、模型、系统提示词和标记颜色
-- **预设角色国际化** — 5 个内置角色名称跟随系统语言自动切换
-- 记忆自动注入每次对话 — 置顶条目 + 最近 10 条
-- **自动记忆提取** — 开启后自动从对话中提取偏好、事实、指令等持久记忆
-- **记忆类型标签** — 4 种语义类型（用户/反馈/项目/参考）与颜色徽章，对齐 Claude Code 记忆分类体系
-- **记忆年龄衰减指示器** — 记忆条目左侧显示彩色圆点，绿=新鲜/黄=较旧/红=陈旧，帮助识别可能过期的记忆
-- **团队/私有范围徽章** — 记忆条目显示 team（版本控制共享）或 private（本地）范围徽章
-- **记忆面板重构（4 Tab）** — 全局记忆 / 项目记忆 / 结构化记忆（AI 自动写入的 memdir 目录）/ 指令文件（CLAUDE.md）四个独立 Tab；项目记忆直接读写 `.claude/MEMORY.md`；结构化记忆支持按 type 过滤（用户/反馈/项目/参考）；指令文件 Tab 分全局/项目/本地三个子 Tab，各自独立编辑
-- **记住此内容** — 从悬停工具栏一键保存任意回复
-- **情境化功能提示** — 欢迎页面智能推荐功能技巧，基于使用模式个性化展示
-- **提示建议** — 每次 AI 回复后自动预测用户下一条消息，以虚影文字显示在输入框中，按 Tab 接受
-- **投机执行（Speculative Execution）** — 在隔离沙箱中预执行预测的下一条提示词，以可折叠卡片预览回复内容、工具操作及受影响文件；接受即将结果注入对话，拒绝即静默丢弃，全程不污染主会话（设置中可选开启）
-- **思考深度调节** — 低/中/高三档，控制 AI 的思考投入度
-- **按模型成本明细** — StatusBar 点击费用即可查看各模型的 Token 用量和费用占比
-
-### 工作流
-- 可视化工作流编辑器，构建多步提示流水线
-- **Canvas 画布模式** — 工作流步骤以节点图形式呈现，支持拖拽、平移、缩放；运行时实时高亮当前执行节点，进度条显示整体进度；鼠标位置为中心缩放、+/- 按钮与键盘快捷键（+/−/0）、状态色彩边（绿=完成/强调=进行中/灰=待机）、随画布移动的点阵背景、侧边栏显示真实 AI 输出；执行中边线流动动画；节点可折叠/展开（单节点按钮或全部折叠/展开），节点右键菜单支持复制提示词/输出；左侧步骤列表实时同步执行状态色彩，Run 按钮执行中自动禁用并显示进度；步骤搜索过滤（非匹配节点在画布中降低透明度）；节点和侧边栏显示每步执行耗时
-  - **错误感知**（Direction 1）— 步骤执行失败/中止时，节点显示红色徽章和红色左边框；侧边栏状态区显示"执行失败"及错误提示；工具栏中止后可查看失败步骤详情
-  - **节点位置持久化**（Direction 2）— 拖拽重排后节点坐标自动写入工作流存储（`canvasPos` 字段），重新打开画布时恢复上次布局，无需重新整理
-  - **键盘导航**（Direction 3）— 在画布中使用 ↑↓ / Tab / Shift+Tab 在节点间移动焦点，无需鼠标点击即可逐步检查执行结果
-  - **侧边栏实时流式输出**（Direction 4）— 执行中点击节点，侧边栏实时显示当前步骤的 AI 流式输出，末尾闪烁光标；完成后自动切换为最终结果
-  - **节点标题内联编辑**（Direction 5）— 双击节点标题即可原地重命名，Enter 确认，Escape 取消，无需打开编辑器
-  - **执行历史回放**（Direction 6）— 每次运行结果自动保存到本地（每工作流最多 10 条），画布左下角🕐按钮可选择历史记录，所有节点输出和耗时即时切换为历史数据
-  - **起止节点视觉分化**（Direction 7）— 第一个节点左侧靛蓝边框 + ▶ 标记，最后一个节点琥珀色边框 + ⚑ 标记，流程起止一目了然
-  - **视口裁剪**（Direction 8）— 画面外节点以轻量占位替代全渲染，大型工作流（50+ 步骤）滚动时帧率显著提升
-  - **上下文感知工具栏**（Direction 9）— 执行中工具栏左侧出现红色"⏹ 中止"按钮；全部完成后显示绿色"▶ 再次运行"按钮；按钮随状态自动出现/消失
-- 6 个内置预设工作流，开箱即用（周报、代码审查、每日总结等）
-- **预设工作流国际化** — 名称和描述跟随系统语言自动切换
-
-### 技能市场
-- 来自 Anthropic、OpenClaw、ClawhHub 和社区的 47 个精选技能
-- 内置市场一键安装；按来源和分类筛选
-- 内置技能创建器，通过对话交互式设计自定义技能
-
-### CLI 集成与自动化
-- **钩子配置** — 设置 → 钩子 Tab 可视化管理所有 Claude Code CLI 钩子（PreToolUse、PostToolUse、Stop 等 27 种事件类型）；多步添加向导支持命令/HTTP/提示词/Agent 四种钩子类型；内联编辑、禁用全部钩子开关（disableAllHooks）；钩子触发次数徽章实时显示执行计数；钩子执行进度实时显示在聊天面板
-- **MCP 服务器管理** — 设置 → MCP Tab 全面管理 MCP 服务器（stdio/http/sse 三种类型）；一键添加/删除/重连；实时展示每个 MCP 服务器的工具列表（可折叠/展开），显示工具名称、描述与数量徽标；工具调用块自动显示 `[serverName]` 来源徽章
-- **工具访问控制** — 设置 → 高级 Tab 的工具访问控制区域，4 种预设模式（全部工具/只读/无网络/仅分析）；按分类（执行、文件写入、文件读取、网络等）精细化启用/禁用每个工具；通过 `--disallowedTools` 注入 CLI
-- **钩子回调审批** — PreToolUse/PostToolUse 钩子脚本需要用户介入时，在聊天中内联显示批准/阻止卡片；支持可选原因文本框；响应实时回传给 CLI
-- **MCP 信息采集** — MCP 服务器请求用户输入时，在聊天中内联显示表单卡片；支持 Schema 驱动的结构化字段或自由文本，以及浏览器 URL 跳转流程；提交/拒绝/取消均实时回传给服务器
-- **Settings 新增配置项** — 会话历史保留天数（cleanupPeriodDays，0 = 禁用自动清理）；AI 回复语言偏好（zh-CN / zh-TW / en / ja / ko / fr / de / es 或跟随系统），注入 `--append-system-prompt` 引导 Claude 以指定语言回复
-- **Git 归属设置（Git Attribution）** — 设置 → 通用 Tab 配置 commit/PR 归属模板，可自定义 Co-authored-by 行及相关开关
-- **Worktree 设置** — 设置 → 高级 Tab 新增 `symlinkDirectories` 和 `sparsePaths` 标签编辑器，管理 Worktree 隔离工作区配置
-- **钩子执行历史** — 设置 → 钩子 Tab 显示最近触发的钩子执行记录（时间戳 + 事件类型 + 状态）
-- **沙箱访问控制设置（Sandbox Settings）** — 设置 → 高级 Tab 新增 Sandbox 面板：`sandbox.network` 允许/拒绝域名列表（标签式编辑）；`sandbox.filesystem` allowWrite/denyWrite/allowRead/denyRead 路径列表；`autoAllowBashIfSandboxed` 和 `allowUnsandboxedCommands` Toggle 开关；直接写入 `~/.claude/settings.json`
-
-### 系统托盘与全局访问
-- 最小化到系统托盘 — AIPA 在后台随时待命
-- `Ctrl+Shift+Space` 在任意应用中切换窗口显示
-- `Ctrl+Shift+G` 读取剪贴板并打开 AIPA，自动填入文本进行即时分析
-- 右键托盘图标：新建对话、最近会话、主题切换、剪贴板提问
-- 窗口失焦时回复完成后推送桌面通知
+    Renderer -->|postMessage / IPC| Preload
+    Preload -->|IPC Channel| MainProcess
+    MainProcess -->|JSON-RPC 2.0 stdio| CodexCLI
+    MainProcess -->|NDJSON stdio| ClaudeCLI
+    MainProcess -->|HTTP / SSE| LLMProviders
+    CodexCLI --> Shell & FS & Git
+    ClaudeCLI --> Shell & FS & Git & MemoryStore
+```
 
 ---
 
-## 键盘快捷键
+## 🖥️ 桌面交互空间布局
 
-| 快捷键 | 操作 |
-|--------|------|
-| `Ctrl+N` | 新建对话 |
-| `Ctrl+Shift+P` | 命令面板 |
-| `Ctrl+F` | 搜索当前对话 |
-| `Ctrl+Shift+F` | 全局跨会话搜索 |
-| `Ctrl+Shift+R` | 重新生成回复 |
-| `Ctrl+Shift+E` | 导出对话 |
-| `Ctrl+Shift+K` | 压缩对话上下文 |
-| `Ctrl+Shift+C` | 全部折叠/展开消息 |
-| `Ctrl+Shift+B` | 切换书签面板 |
-| `Ctrl+Shift+S` | 切换统计面板 |
-| `Ctrl+Shift+D` | 切换主题（深色 / 浅色 / 跟随系统） |
-| `Ctrl+Shift+L` | 切换语言（中/英） |
-| `Ctrl+Shift+M` | 切换模型（Sonnet / Opus / Haiku） |
-| `Ctrl+Shift+T` | 置顶窗口（始终在最前） |
-| `Ctrl+K` | 会话快速切换器 |
-| `Ctrl+Shift+O` | 专注模式（隐藏侧边栏和终端） |
-| `Ctrl+B` | 切换侧边栏 |
-| `Ctrl+,` | 打开设置 |
-| `Ctrl+1–4` | 历史、文件、笔记、技能 |
-| `Ctrl+5–7` | 记忆、工作流、通道 |
-| `Ctrl+8` | 任务 |
-| `Ctrl+/` | 快捷键速查表 |
-| `Ctrl+Up/Down` | 逐条浏览消息（带焦点指示器） |
-| `Ctrl+Home/End` | 跳转到首/末条消息 |
-| `Alt+Up/Down` | 跳转到上/下一条用户消息 |
-| `PageUp/Down` | 按页滚动消息列表 |
-| `Ctrl+Shift+Space` | 切换 AIPA 窗口（全局快捷键，任意应用中可用） |
-| `Ctrl+Shift+G` | 剪贴板快捷操作（全局：读取剪贴板，打开 AIPA，发送至对话） |
+AIPA 采用现代**双栏无缝驾驶舱布局**，去除了繁琐的中间列表栏，使所有核心业务视图均可在主界面中以全屏沉浸模式操作：
+
+```text
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│  AIPA — 桌面智能代理驾驶舱                                                      ─  □  ✕  │
+├──────┬─────────────────────────────────────────────────────────────────────────────────┤
+│ [🏢] │ 部门看板 / 结构化交互主界面                                                     │
+│ 部门 │ ┌─────────────────────────────────────────────────────────────────────────────┐ │
+│      │ │ 🤖 Assistant                                                                │ │
+│ [👥] │ │ 正在为项目重构文件结构...                                                   │ │
+│ 员工 │ │ ┌─ 🛠️ Tool: Write (src/main/plugins/nav-plugin-manager.ts) ───────────────┐ │ │
+│      │ │ │ + export interface NavPluginManifest { ... }                           │ │ │
+│ [🧩] │ │ └────────────────────────────────────────────────────────────────────────┘ │ │
+│ 技能 │ └─────────────────────────────────────────────────────────────────────────────┘ │
+│      │                                                                                 │
+│ [🧠] │ ┌─ 员工形象中心 (Employees Grid) ─────────────────────────────────────────────┐ │
+│ 记忆 │ │  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐        │ │
+│      │ │  │ 👨‍💻 导师  │   │ 👩‍🔬 分析  │   │ 🎨 创意  │   │ 📚 助教  │   │ ⚡ 效能  │        │ │
+│ [📅] │ │  │ Writing │   │ Research│   │ Creative│   │  Tutor  │   │Productiv│        │ │
+│ 日历 │ │  └─────────┘   └─────────┘   └─────────┘   └─────────┘   └─────────┘        │ │
+│      │ └─────────────────────────────────────────────────────────────────────────────┘ │
+│ ───  │                                                                                 │
+│ [📝] │ ┌─ Canvas 工作流画布 ─────────────────────────────────────────────────────────┐ │
+│ 笔记 │ │  [Node: 读取需求] ──(流动边线)──> [Node: 代码审查] ──(完成)──> [Node: 生成报告]  │ │
+│ [🔌] │ └─────────────────────────────────────────────────────────────────────────────┘ │
+│ 插件 │                                                                                 │
+│ [⚙️]  │ 状态栏: ● 就绪 | 思考深度: 中 | 权限模式: Accept Edits | 消费: $0.04           [🐱 桌宠]│
+└──────┴─────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 快速开始
+## 🌟 核心能力矩阵
 
+| 模块 | 核心特性 | 呈现与交互形态 |
+|---|---|---|
+| **💬 智能对话与执行** | Stream-JSON 极速流式传输、双模型切换、思考链折叠展开、上下文自动压缩与时间差清理 | 结构化工具调用卡片、LCS 增量 Diff 视图、待办任务进度条、执行审批对话框 |
+| **👥 员工 (Employees)** | 角色拟人化形象、职业特征定制、发型/服饰/表情自适应、在线状态光圈 | 响应式自适应图标网格（Icon Grid），支持悬停升起、快捷编辑与一键设为当前会话 |
+| **🎨 Canvas 工作流** | 多步提示词流水线编排、节点连线拓扑图、实时流式输出预览、历史运行记录回放 | 无限缩放点阵画布、流向贝塞尔曲线动画、错误感知红框、双击原地重命名 |
+| **🔌 免编译热插��插件** | 纯 HTML5+CSS+JS 架构、沙箱安全隔离、双向 postMessage SDK、目录实时监听 | 侧边栏动态图标注册、免构建即改即生效、主界面独立宿主、系统工具栏（刷新/源码） |
+| **🧩 插件中心 (Plugin Hub)** | 集中展示、一键激活、查看源码、快速开发指引与插件目录管理 | 预置在左侧栏底部，支持跨插件跳转通信与目录直达 |
+| **📝 便签笔记插件 (Notes)** | 模块化热插拔插件架构、Markdown 即写即看、多分类归档、置顶、一键联动 AI 对话 | 独立免编译 HTML 微应用、侧边栏底部快速唤出、Ctrl+3 / Ctrl+Shift+N 快捷绑定 |
+| **📅 工作日历插件 (Work Calendar)** | 月历跨天任务条、拖动创建任务、Codex 流式生成周报/月报、GitHub 与本地文件夹工作源、人天周/月统计 | 周列报告状态徽标一键生成、报告预览/重新生成/一键拉取、数据本地文件持久化与 JSON 导入导出 |
+| **🧠 记忆与指令体系** | 全局记忆、项目记忆 (`.claude/MEMORY.md`)、结构化条目 (User/Feedback/Project/Ref) | 四 Tab 记忆工作台、DreamTask 自动整合感知、记忆新鲜度衰减圆点 |
+| **🐱 Clawd 桌面宠物** | 原生 Win32 桌宠联动，感知 AI 思考、工具调用与空闲发呆等真实状态 | 任务栏图标智能合并、随身动效、轻量无遮挡 |
+| **⚙️ 设置与通道生态** | MCP 工具服务器、OpenClaw/外部消息通道、模型密钥、权限规则集中管控 | 整合至设置中心（Settings → MCP / 通道），精简导航专注核心生产力 |
+
+---
+
+## 🔌 免编译热插拔插件系统
+
+AIPA 拥有极简、高可用的**免编译插件体系**。无需配置 Node.js、Vite、Webpack 等繁琐的构建链，使用任何文本编辑器编写原生 HTML/JS/CSS，保存即可实时生效：
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Dev as 开发者 / 用户
+    participant Folder as 插件目录 (~/.aipa/plugins/<id>/)
+    participant Watcher as 主进程 (nav-plugin-manager / fs.watch)
+    participant Nav as 导航栏 (NavRail)
+    participant Host as 插件主视图 (PluginHostView)
+    participant Iframe as 沙箱 <iframe> (原生 HTML/JS/CSS)
+    participant AI as AIPA 对话核心
+
+    Dev->>Folder: 放入/编辑 index.html & plugin.json (无需编译!)
+    Watcher->>Folder: 文件监听器感知变动 (Debounced)
+    Watcher->>Nav: 发送 IPC 通知 (plugin:nav:updated)
+    Nav->>Nav: 导航栏即时渲染插件图标 (无需重启应用)
+    Dev->>Nav: 点击插件图标
+    Nav->>Host: 主界面激活该插件视图
+    Host->>Iframe: 加载 file:///.../index.html (安全沙箱隔离)
+    Host-->>Iframe: postMessage 广播当前主题 ({ type: 'aipa:theme', theme: 'light' })
+    Iframe->>Host: postMessage 发送提示词 ({ type: 'aipa:sendPrompt', prompt: '...' })
+    Host->>AI: 自动填入主输入框并切换至对话界面
+    Iframe->>Host: postMessage 本地存储 ({ type: 'aipa:storage:set', key, val })
+    Host->>Host: 提供独立的 LocalStorage 数据持久化
+    Iframe->>Host: postMessage 宿主能力调用 ({ type: 'aipa:invoke', method, payload })
+    Host->>Host: 校验 plugin.json permissions → IPC 至主进程执行 → aipa:response 回传
+```
+
+### 宿主能力（`aipa:invoke`）
+插件在 `plugin.json` 的 `permissions` 中声明所需能力后，即可通过 `postMessage({ type: 'aipa:invoke', requestId, method, payload })` 调用主进程能力，结果以 `{ type: 'aipa:response', requestId, ok, result | error }` 返回。宿主（PluginHostView）与主进程会双重校验权限。
+
+| method | 权限 | 说明 |
+|---|---|---|
+| `data.get` / `data.set` | `storage` | 文件持久化，写入 `~/.aipa/plugin-data/<pluginId>/<key>.json`（原子写） |
+| `github.commits` | `network` | 主进程调用 GitHub commits API（支持分支/作者过滤/Token，20 秒超时） |
+| `fs.pickFolder` / `fs.scanFolder` | `fs` | 原生目录选择；按修改时间与 `*.ext` 过滤扫描文件变更（跳过 node_modules/.git 等） |
+| `ai.generate` / `ai.abort` | `ai` | 以只读沙箱 + ephemeral 线程运行一次 Codex，经 `aipa:ai:event`（delta/status/done/error）流式回传 |
+
+随应用发布的多文件插件放在 `electron-ui/src/main/plugins/builtin/<dir>/`，构建时由 `npm run build:plugins` 复制到 `dist`，启动时自动安装到 `~/.aipa/plugins/`；仅当内置版本号更高时才覆盖升级，插件数据保存在 `plugin-data` 中不受升级影响。
+
+### 插件目录规范
+每个插件只需一个普通文件夹，存放在 `~/.aipa/plugins/<id>/`：
+```text
+~/.aipa/plugins/
+├── welcome/               # 🧩 插件中心 (系统预置，浏览/管理插件生态)
+│   ├── plugin.json
+│   └── index.html
+├── notes/                 # 📝 便签笔记 (官方热插拔插件，Markdown + AI 对话联动)
+│   ├── plugin.json
+│   └── index.html
+├── work-calendar/         # 📅 工作日历 (官方预置，任务日历 + AI 周报/月报 + 工作源 + 人天)
+│   ├── plugin.json
+│   ├── index.html
+│   ├── style.css
+│   └── js/                # bridge / store / generation / views/*
+└── <custom-plugin>/       # 🛠️ 你的专属微工具 (免编译即写即用)
+    ├── plugin.json        # 插件清单（名称、图标、摆放位置）
+    ├── index.html         # 界面主入口（纯 HTML5）
+    ├── style.css          # 样式文件（可直接使用宿主 CSS 变量）
+    └── app.js             # 业务逻辑（通过 window.postMessage 与宿主通信）
+```
+
+### 🧩 官方预置插件示例
+1. **插件中心 (Plugin Hub)**：提供全局已安装插件仪表盘、一键进入/直达各插件视图、直接打开源码文件夹、以及极简 3 步开发者扩展指引。
+2. **便签笔记 (Quick Notes)**：从原有固定组件解耦为标准免编译插件，具备双栏编辑/预览、分类标签过滤（工作/灵感/学习/提示词/待办）、卡片置顶、以及「🤖 发送给 AI」一键联动主对话框深度分析。
+3. **工作日历 (Work Calendar)**：由原飞书 aPaaS 全栈应用（NestJS + PostgreSQL + React）迁移而来，改为纯前端插件 + 宿主能力：
+   - **日历**：周一对齐月视图，跨天任务条按 lane 布局；点击日期或按住拖动创建任务，点任务条编辑/删除；底部为当日任务面板。
+   - **AI 周报/月报**：周列时钟图标一键生成该周周报（素材 = 周期内任务 + 绑定工作源的提交/文件变更），左上角图标由本月周报合并生成月报；Codex 流式预览，完成后自动保存；预览弹窗支持「一键拉取」「重新生成」（覆盖原报告）、复制与发送到对话继续润色。
+   - **工作源**：GitHub 仓库（owner/repo 或仓库地址、分支、作者过滤、Token）与本地文件夹（原生选择目录、文件过滤），可拉取本周并查看结果；删除工作源会自动解绑任务。
+   - **提醒**：原左侧栏「任务」面板的提醒功能迁入此处，支持 N 分钟后、指定时间与 cron 周期提醒；由主进程后台调度，插件未打开也会弹出系统通知，点击通知直达工作日历。原「任务」面板已移除，旧待办与提醒在首次启动时自动导入工作日历，`Ctrl+7` 现在打开工作日历。
+   - **任务 / 报告 / 人天**：任务统计卡、筛选、行内改状态；历史报告查看/编辑/导出 .md；人天周视图增删改与「从任务自动生成」（5 个工作日按 0.5 步进均摊），月视图按周聚合。
+   - **设置**：生成模型、周报/月报提示词模板（`{{period}}` / `{{material}}`），数据 JSON 导入导出（不含 Token）。未登录 Codex 且未配置 API Key 时会立即提示，而不是无限重试。
+
+---
+
+## 👥 员工 (Employees) 形象化设计
+
+摒弃了传统单调、占空间的文本卡片列表，AIPA 全面采用了具有生动视觉特征的 **拟人化人物图标网格**：
+
+```text
+                  ┌──────────────────────────────────────────────┐
+                  │          主题色径向渐变底衬 (Glow)           │
+                  │                                              │
+                  │                 ╭───────────╮                │
+                  │                │ 💇 定制发型 │                │
+                  │                │(科技短发/波波头/卷发/中分)   │
+                  │                 ╭───────────╮                │
+                  │                │  👀 灵动眼眸│                │
+                  │                │  😊 亲切微笑│                │
+                  │                 ╰───────────╯                │
+                  │               👔 角色专属职业服饰            │
+                  │            (西装/高领毛衣/连帽衫/学士领)     │
+                  │                                              │
+                  │                            ┌───────────┐     │
+                  │   🟢 在线状态光环          │ ✍️ 职业徽标│     │
+                  │   (Active Status Ring)     │(笔/显微镜/画板) │
+                  │                            └───────────┘     │
+                  └──────────────────────────────────────────────┘
+```
+
+- **发型与职业风貌**：写作导师（知性短发）、数据分析师（利落波波头）、创意伙伴（艺术卷发与发带）、学习助教（严谨中分）。
+- **交互质感**：自适应磁贴（Icon Tile），自适应容器宽度排布，鼠标滑过柔和浮起，支持一键切换当前对话 Persona。
+
+---
+
+## 🎨 Canvas 工作流引擎
+
+可视化工作流画布支持将复杂的多步 AI 任务连接为自动化执���流：
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle: 等待用户触发
+    Idle --> Running: 点击运行 (Run)
+    
+    state Running {
+        [*] --> ExecutingNode: 激活首个任务节点
+        ExecutingNode --> LiveStreaming: 侧边栏实时查看 AI 流式生成
+        LiveStreaming --> NodeSuccess: 步骤成功执行
+        LiveStreaming --> NodeFailed: 步骤出错 / 用户点击中止 (⏹)
+        
+        NodeSuccess --> ExecutingNode: 沿着贝塞尔流动光线进入下一节点
+        NodeFailed --> ErrorState: 节点红色警示边框 + 错误详情呈现
+    }
+
+    NodeSuccess --> Completed: 全流程完成 (播放完成反馈)
+    Completed --> HistoryArchive: 自动保存执行输出与耗时
+    HistoryArchive --> ReplayMode: 点击 🕐 支持任意历史回放
+    ErrorState --> Idle: 排查原因后原地重试
+    ReplayMode --> [*]
+    Completed --> [*]
+```
+
+- **无限画布体验**：支持拖拽平移、滚轮缩放、节点折叠/展开、框选与双击原地修改标题。
+- **坐标持久化**：自定义排布坐标即时保存至 `canvasPos`，重开页面保持完美布局。
+
+---
+
+## 🧠 分层记忆与自主整合
+
+AIPA 拥有类似人类记忆的层次化沉淀机制，有效防止多轮对话后的上下文遗忘：
+
+```mermaid
+graph LR
+    subgraph ActiveChat["⚡ 活跃对话上下文"]
+        CurrentSession["当前会话"]
+        AutoExtract["自动偏好提取器"]
+        CompactEngine["上下文自适应压缩"]
+    end
+
+    subgraph MemoryArchitecture["🗄️ 多级持久存储"]
+        GlobalDoc["🌐 全局记忆 (~/.claude/MEMORY.md)"]
+        ProjectDoc["📁 项目记忆 (<repo>/.claude/MEMORY.md)"]
+        StructuredMem["🗂️ 结构化 memdir<br/>• 用户画像 (User)<br/>• 习惯反馈 (Feedback)<br/>• 业务项目 (Project)<br/>• 资料参考 (Reference)"]
+        RuleFiles["📜 项目指令规范 (CLAUDE.md)"]
+    end
+
+    subgraph BackgroundConsolidate["🌙 闲置与后台整合"]
+        DreamConsolidate["DreamTask 记忆自动消化合并"]
+        TimeDecay["时间衰减检测 (绿/黄/红状态球)"]
+    end
+
+    CurrentSession -->|提取关键结论| AutoExtract
+    AutoExtract -->|沉淀事实| StructuredMem
+    CurrentSession -->|空闲或关闭时| DreamConsolidate
+    DreamConsolidate -->|去重并归纳| GlobalDoc & ProjectDoc
+    TimeDecay -->|淘汰陈旧项| StructuredMem
+    GlobalDoc & ProjectDoc & StructuredMem & RuleFiles -->|智能切片注入| CurrentSession
+```
+
+---
+
+## ⌨️ 效率快捷键速查
+
+| 快捷键 | 功能描述 | 快捷键 | 功能描述 |
+|---|---|---|---|
+| `Ctrl+N` | 新建对话 | `Ctrl+Shift+P` | 唤起全局命令面板 |
+| `Ctrl+K` | 会话快速切换器（模糊搜索） | `Ctrl+F` | 检索当前会话内容 |
+| `Ctrl+Shift+F` | 全局跨会话文件搜索 | `Ctrl+Shift+R` | 重新生成回复（可换模型） |
+| `Ctrl+Shift+K` | 立即压缩上下文 (/compact) | `Ctrl+Shift+O` | 切换沉浸专注模式 |
+| `Ctrl+Shift+D` | 切换深色 / 浅色 / 系统主题 | `Ctrl+Shift+L` | 切换界面语言（中/英） |
+| `Ctrl+Shift+T` | 窗口置顶（保持最前） | `Ctrl+,` | 打开系统设置面板 |
+| `Ctrl+1 ~ 7` | 主界面视图快速切换 | `Ctrl+/` | 快捷键速查帮助弹窗 |
+| `Ctrl+Shift+Space` | **全局唤醒 / 隐藏 AIPA** | `Ctrl+Shift+G` | **全局读取剪贴板并提问** |
+
+---
+
+## 🚀 快速启动
+
+### 1. 克隆与安装
 ```bash
 git clone https://github.com/CipherSlinger/AIPA.git
 cd AIPA/electron-ui
 npm install
+```
+
+### 2. 编译并启动
+```bash
+# 一键编译所有目标（Main、Preload、Renderer）
 npm run build
+
+# ���动桌面应用程序
 node_modules/.bin/electron dist/main/index.js
 ```
 
-首次启动后，按 `Ctrl+,` 打开**设置**，填入你的 Anthropic API 密钥。
-
-### 开发模式（热更新）
-
+### 3. 开发热更新模式
 ```bash
-# 终端 1
-npm run build:main && npm run build:preload && npx vite
+# 终端 1：启动 Vite 开发服务
+npm run build:main && npm run build:preload && npm run dev:renderer
 
-# 终端 2
+# 终端 2：以开发模式载入 Electron
 NODE_ENV=development node_modules/.bin/electron dist/main/index.js
 ```
 
-### 打包安装包
-
+### 4. 构建 Windows 安装包
 ```bash
-npm run dist:win   # → release/ 目录
+npm run dist:win   # 产物生成在 release/ 目录下
 ```
 
 ---
 
-## 环境要求
+## 🛡️ 安全与沙箱机制
 
-- Windows 10/11 x64
-- Node.js 18+（需在 PATH 中）
-- Anthropic API 密钥（[console.anthropic.com](https://console.anthropic.com/)）
-- _可选：_ OpenAI 密钥、DeepSeek 密钥，或本地 [Ollama](https://ollama.ai/) 实例
-
----
-
-## 项目结构
-
-```
-AIPA/
-  package/          # 内置 Claude Code CLI（只读，已打包）
-  electron-ui/
-    src/
-      main/         # Node.js：PTY 管理、stream-bridge、IPC、会话、配置
-      preload/      # contextBridge → window.electronAPI
-      renderer/     # React + Vite + Zustand + i18n
-    dist/           # 编译产物（不提交）
-```
-
-CLI 通过两种模式桥接：
-
-| 模式 | 面板 | 机制 |
-|------|------|------|
-| **PTY**（node-pty） | 终端 | 原始 ConPTY I/O → xterm.js |
-| **Stream-JSON** | 对话 | NDJSON 事件 → 类型化 React 状态 |
+- **凭证安全**：API Key 采用操作系统级密钥链（`electron.safeStorage` / Windows DPAPI）加密存储。
+- **环境隔离**：第三方插件在受限的 Sandboxed `<iframe>` 中运行，严禁直接访问 Node.js 原生 API。
+- **权限可控**：提供 5 级工具权限控制（Default / Accept Edits / Don't Ask / Plan Only / Bypass），破坏性操作弹出直观卡片审核。
+- **执行安全**：子进程采用精简环境变量白名单，杜绝敏感密钥意外泄露。
 
 ---
 
-## Design System
+## 📄 开源许可证
 
-AIPA uses a unified glass-morphism design system with complete light/dark theme support via CSS custom properties:
-
-- **CSS 设计 Token 系统** — 185+ 个组件已完成 CSS 变量迁移，所有 `rgba()` 硬编码值替换为 `var(--glass-bg-*)` / `var(--text-*)` / `var(--border)` 等语义变量，`Ctrl+Shift+D` 在深色/浅色/跟随系统三种模式间无缝切换
-- **浅色主题（Light Theme）** — 卡片、面板、弹窗均以浅色背景 + 深色文字呈现，无硬编码暗色残留
-- **Glass backgrounds**: `var(--glass-bg-low)` / `var(--glass-bg-mid)` / `var(--glass-bg-deep)`，配合 `backdropFilter: blur(12–20px)`
-- **Text opacity ladder**: `var(--text-primary)` / `var(--text-secondary)` / `var(--text-muted)` / `var(--text-faint)`
-- **Shadow system**: L1–L4 layered depth shadows
-- **Indigo accent**: `var(--accent)`/`var(--accent-muted)`/`var(--accent-border)` throughout; `var(--success)` green, `var(--error)` red, `var(--warning)` amber
-- **Transitions**: Unified `0.15s ease` on all interactive elements
-- **Tabular numbers**: All numeric displays use `fontVariantNumeric: tabular-nums`
-- **clawd-on-desk 桌宠集成** — 可选开启桌面宠物，AI 思考/工具调用/完成时触发对应动画状态（thinking/working/happy）
-
----
-
-## 安全
-
-- API 密钥通过系统密钥链加密（`electron.safeStorage` / DPAPI）
-- 严格内容安全策略 — 阻止 XSS 和未授权外部资源
-- 沙箱化渲染进程 — 无直接 Node.js 访问
-- IPC 路径验证 — 文件系统处理器检查允许目录白名单
-- 净化 CLI 环境 — 子进程仅接收显式环境变量白名单
-
----
-
-## 许可证
-
-MIT
+本项目基于 [MIT 许可证](LICENSE) 分发。

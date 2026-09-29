@@ -13,6 +13,57 @@ export interface SystemInitData {
   plugins: string[]
 }
 
+export interface NavPluginManifest {
+  id: string
+  name: string
+  nameEn?: string
+  version?: string
+  description?: string
+  icon?: string
+  location?: 'top' | 'bottom'
+  order?: number
+  main: string
+  permissions?: string[]
+}
+
+export interface NavPlugin {
+  manifest: NavPluginManifest
+  dirPath: string
+  entryPath: string
+  source: 'global' | 'workspace'
+  valid: boolean
+  error?: string
+}
+
+export interface PluginPullItem {
+  title: string
+  desc: string
+}
+
+export interface PluginGithubCommitsArgs {
+  repo: string
+  branch?: string
+  author?: string
+  token?: string
+  since: string
+  until: string
+}
+
+export interface PluginScanFolderArgs {
+  folderPath: string
+  filter?: string
+  since: string
+  until: string
+}
+
+export interface PluginAiEvent {
+  pluginId: string
+  requestId: string
+  type: 'delta' | 'status' | 'done' | 'error'
+  text?: string
+  message?: string
+}
+
 const electronAPI = {
   // ── IPC readiness check ────────────────────
   ipcPing: () => ipcRenderer.invoke('ipc:ping') as Promise<{ ok: boolean; timestamp: number }>,
@@ -328,6 +379,45 @@ const electronAPI = {
     ipcRenderer.invoke('plugin:uninstall', { name }) as Promise<{ success: boolean }>,
   pluginRegisterLocal: (pluginPath: string) =>
     ipcRenderer.invoke('plugin:registerLocal', { pluginPath }),
+
+  // ── Nav Plugins (Hot-Pluggable Left-Rail & Main View Plugins) ─────────────
+  pluginNavList: () =>
+    ipcRenderer.invoke('plugin:nav:list') as Promise<NavPlugin[]>,
+  pluginNavReload: () =>
+    ipcRenderer.invoke('plugin:nav:reload') as Promise<NavPlugin[]>,
+  pluginNavOpenFolder: (pluginId?: string) =>
+    ipcRenderer.invoke('plugin:nav:openFolder', { pluginId }) as Promise<boolean>,
+  onPluginOpen: (callback: (pluginId: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, pluginId: string) => callback(pluginId)
+    ipcRenderer.on('plugin:open', handler)
+    return () => { ipcRenderer.removeListener('plugin:open', handler) }
+  },
+  onPluginNavUpdated: (callback: (plugins: NavPlugin[]) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, plugins: NavPlugin[]) => callback(plugins)
+    ipcRenderer.on('plugin:nav:updated', handler)
+    return () => { ipcRenderer.removeListener('plugin:nav:updated', handler) }
+  },
+
+  // ── Nav plugin host capabilities (permission-gated in main) ───────────────
+  pluginDataGet: (pluginId: string, key: string) =>
+    ipcRenderer.invoke('plugin:data:get', { pluginId, key }) as Promise<unknown>,
+  pluginDataSet: (pluginId: string, key: string, value: unknown) =>
+    ipcRenderer.invoke('plugin:data:set', { pluginId, key, value }) as Promise<boolean>,
+  pluginGithubCommits: (pluginId: string, args: PluginGithubCommitsArgs) =>
+    ipcRenderer.invoke('plugin:github:commits', { pluginId, args }) as Promise<PluginPullItem[]>,
+  pluginScanFolder: (pluginId: string, args: PluginScanFolderArgs) =>
+    ipcRenderer.invoke('plugin:fs:scanFolder', { pluginId, args }) as Promise<PluginPullItem[]>,
+  pluginPickFolder: (pluginId: string, title?: string) =>
+    ipcRenderer.invoke('plugin:fs:pickFolder', { pluginId, title }) as Promise<string | null>,
+  pluginAiGenerate: (args: { pluginId: string; requestId: string; prompt: string; instructions?: string; model?: string }) =>
+    ipcRenderer.invoke('plugin:ai:generate', args) as Promise<{ started: boolean }>,
+  pluginAiAbort: (pluginId: string, requestId: string) =>
+    ipcRenderer.invoke('plugin:ai:abort', { pluginId, requestId }) as Promise<void>,
+  onPluginAiEvent: (callback: (event: PluginAiEvent) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: PluginAiEvent) => callback(data)
+    ipcRenderer.on('plugin:ai:event', handler)
+    return () => { ipcRenderer.removeListener('plugin:ai:event', handler) }
+  },
 
   // ── Version info ────────────────────────
   versions: {

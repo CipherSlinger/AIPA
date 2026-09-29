@@ -6,9 +6,9 @@
  * AIPA's preference system and the clawd factory's public API.
  */
 
-import { BrowserWindow, app } from 'electron'
+import { BrowserWindow, app, MenuItemConstructorOptions } from 'electron'
 import * as path from 'path'
-import { getPref } from './config/config-manager'
+import { getPref, setPref } from './config/config-manager'
 import { createLogger } from './utils/logger'
 
 // Type declarations for global properties shared with clawd-factory.js
@@ -24,12 +24,25 @@ interface ClawdInstance {
   getState: () => unknown
   getSessions: () => Map<string, unknown>
   getWindows: () => { win: BrowserWindow | null; hitWin: BrowserWindow | null }
+  toggleVisibility: () => void
+  isPetHidden: () => boolean
+  isDoNotDisturb: () => boolean
+  toggleDoNotDisturb: () => void
+  getSize: () => string
+  setSize: (s: string) => void
+  getBubbleFollow: () => boolean
+  setBubbleFollow: (v: boolean) => void
+  getSoundMuted: () => boolean
+  setSoundMuted: (v: boolean) => void
+  openSettings: () => void
+  resetPosition: () => void
 }
 
 const log = createLogger('clawd-integration')
 
 let clawdInstance: ClawdInstance | null = null
 let clawdInitError: string | null = null
+let mainWindowRef: BrowserWindow | null = null
 
 /**
  * Initialize the embedded clawd desktop pet.
@@ -37,6 +50,7 @@ let clawdInitError: string | null = null
  * Only initializes if the user has clawd enabled in preferences.
  */
 export function initClawdIntegration(mainWindow: BrowserWindow): void {
+  mainWindowRef = mainWindow
   const clawdEnabled = getPref('clawdEnabled' as any) as boolean | undefined
   log.info('initClawdIntegration called, clawdEnabled =', clawdEnabled)
   if (!clawdEnabled) {
@@ -49,7 +63,9 @@ export function initClawdIntegration(mainWindow: BrowserWindow): void {
 
     // Patch module resolution so clawd can find htmlparser2/koffi from
     // the root node_modules/ (dist/main/ has no node_modules of its own).
-    const rootModules = path.resolve(__dirname, '..', 'node_modules')
+    const rootModules = app.isPackaged
+      ? path.join(app.getAppPath(), 'node_modules')
+      : path.resolve(__dirname, '..', '..', 'node_modules')
     if (!module.paths.includes(rootModules)) {
       module.paths.unshift(rootModules)
     }
@@ -160,4 +176,117 @@ export function shutdownClawdIntegration(): void {
  */
 export function getClawdInitError(): string | null {
   return clawdInitError
+}
+
+/**
+ * Generate desktop pet submenu items for AIPA's main system tray menu.
+ */
+export function getClawdSubmenu(
+  isZh: boolean,
+  onMenuAction?: () => void
+): MenuItemConstructorOptions {
+  if (!clawdInstance || !clawdInstance.isRunning()) {
+    return {
+      label: isZh ? '桌面宠物 (Clawd)' : 'Desktop Pet (Clawd)',
+      submenu: [
+        {
+          label: isZh ? '启动桌面宠物' : 'Launch Desktop Pet',
+          click: () => {
+            setPref('clawdEnabled' as any, true)
+            const mainWin = mainWindowRef
+            if (mainWin && !mainWin.isDestroyed()) {
+              initClawdIntegration(mainWin)
+            }
+            onMenuAction?.()
+          },
+        },
+      ],
+    }
+  }
+
+  const isHidden = clawdInstance.isPetHidden()
+  const isDnd = clawdInstance.isDoNotDisturb()
+  const currentSize = clawdInstance.getSize()
+  const bubbleFollow = clawdInstance.getBubbleFollow()
+  const soundMuted = clawdInstance.getSoundMuted()
+
+  const sizeOptions = [
+    { label: isZh ? '微型 (5%)' : 'Tiny (5%)', size: 'P:5' },
+    { label: isZh ? '小型 (8%)' : 'Small (8%)', size: 'P:8' },
+    { label: isZh ? '中型 (10%)' : 'Medium (10%)', size: 'P:10' },
+    { label: isZh ? '大型 (15%)' : 'Large (15%)', size: 'P:15' },
+  ]
+
+  return {
+    label: isZh ? '桌面宠物 (Clawd)' : 'Desktop Pet (Clawd)',
+    submenu: [
+      {
+        label: isHidden ? (isZh ? '显示桌宠' : 'Show Pet') : (isZh ? '隐藏桌宠' : 'Hide Pet'),
+        click: () => {
+          clawdInstance?.toggleVisibility()
+          onMenuAction?.()
+        },
+      },
+      {
+        label: isDnd ? (isZh ? '唤醒桌宠' : 'Wake Up Pet') : (isZh ? '让桌宠休眠 (免打扰)' : 'Sleep (Do Not Disturb)'),
+        click: () => {
+          clawdInstance?.toggleDoNotDisturb()
+          onMenuAction?.()
+        },
+      },
+      { type: 'separator' },
+      {
+        label: isZh ? '宠物大小' : 'Pet Size',
+        submenu: sizeOptions.map(opt => ({
+          label: opt.label,
+          type: 'radio' as const,
+          checked: currentSize === opt.size,
+          click: () => {
+            clawdInstance?.setSize(opt.size)
+            onMenuAction?.()
+          },
+        })),
+      },
+      {
+        label: isZh ? '气泡提示跟随' : 'Bubble Follows Pet',
+        type: 'checkbox' as const,
+        checked: bubbleFollow,
+        click: (item) => {
+          clawdInstance?.setBubbleFollow(item.checked)
+          onMenuAction?.()
+        },
+      },
+      {
+        label: isZh ? '静音音效' : 'Mute Sound Effects',
+        type: 'checkbox' as const,
+        checked: soundMuted,
+        click: (item) => {
+          clawdInstance?.setSoundMuted(item.checked)
+          onMenuAction?.()
+        },
+      },
+      { type: 'separator' },
+      {
+        label: isZh ? '重置位置 (回到右下角)' : 'Reset Position to Bottom Right',
+        click: () => {
+          clawdInstance?.resetPosition()
+        },
+      },
+      {
+        label: isZh ? '桌宠详细设置...' : 'Pet Settings...',
+        click: () => {
+          clawdInstance?.openSettings()
+        },
+      },
+      { type: 'separator' },
+      {
+        label: isZh ? '关闭桌宠' : 'Close Desktop Pet',
+        click: () => {
+          setPref('clawdEnabled' as any, false)
+          shutdownClawdIntegration()
+          onMenuAction?.()
+        },
+      },
+    ],
+  }
 }

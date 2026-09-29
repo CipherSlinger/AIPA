@@ -3,7 +3,7 @@
 //              StatusBarModelPicker, StatusBarPersonaPicker, StatusBarTokenPopup
 
 import React, { useState, useCallback } from 'react'
-import { PanelLeft, DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, Pin, Gauge, Brain, Calendar, Wifi, Archive, ClipboardList } from 'lucide-react'
+import { DollarSign, Clock, ArrowUp, ArrowDown, Recycle, Zap, Timer, Square, Pin, Gauge, Brain, Calendar, Wifi, Archive, ClipboardList } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore, useSessionStore } from '../../store'
 import { StandardChatMessage } from '../../types/app.types'
 import { useT } from '../../i18n'
@@ -49,8 +49,6 @@ export default function StatusBar() {
   const prefs = usePrefsStore(s => s.prefs)
   const setPrefs = usePrefsStore(s => s.setPrefs)
   const isPlanMode = useChatStore(s => s.isPlanMode)
-  const toggleSidebar = useUiStore(s => s.toggleSidebar)
-  const sidebarOpen = useUiStore(s => s.sidebarOpen)
   const alwaysOnTop = useUiStore(s => s.alwaysOnTop)
   const setAlwaysOnTop = useUiStore(s => s.setAlwaysOnTop)
   const t = useT()
@@ -77,7 +75,6 @@ export default function StatusBar() {
   const [showTokenPopup, setShowTokenPopup] = useState(false)
 
   // Hover states for clickable items (reactive, no imperative style mutations)
-  const [hoverSidebar, setHoverSidebar] = useState(false)
   const [hoverTokens, setHoverTokens] = useState(false)
   const [hoverCost, setHoverCost] = useState(false)
   const [hoverFocusTimer, setHoverFocusTimer] = useState(false)
@@ -171,24 +168,8 @@ export default function StatusBar() {
         flexShrink: 0,
       }}
     >
-      {/* Left Zone: Controls + Working Dir */}
+      {/* Left Zone: Working Dir */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-        <button
-          onClick={toggleSidebar}
-          title={t('toolbar.toggleSidebar')}
-          onMouseEnter={() => setHoverSidebar(true)}
-          onMouseLeave={() => setHoverSidebar(false)}
-          style={{
-            background: hoverSidebar ? 'var(--border)' : 'transparent',
-            border: 'none', color: hoverSidebar ? 'var(--text-primary)' : 'var(--text-secondary)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center',
-            padding: '2px 6px', borderRadius: 6,
-            opacity: sidebarOpen ? 1 : 0.6,
-            transition: 'all 0.15s ease',
-          }}
-        >
-          <PanelLeft size={12} />
-        </button>
         <span
           style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)', maxWidth: 120 }}
           title={dirLabel}

@@ -1,10 +1,23 @@
-import React, { useMemo } from 'react'
-import { Building2, NotebookPen, Puzzle, Brain, Workflow, Settings, User, PanelLeftClose, PanelLeftOpen, CheckSquare, GitBranch, Users } from 'lucide-react'
+import React from 'react'
+import {
+  Building2,
+  Puzzle,
+  Brain,
+  Settings,
+  User,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Users,
+} from 'lucide-react'
 import { useUiStore, useChatStore, usePrefsStore } from '../../store'
+import { usePluginStore } from '../../store/pluginStore'
 import { useT } from '../../i18n'
+import { getPluginIcon } from '../plugins/pluginIcons'
 import { AVATAR_PRESETS } from './avatarPresets'
 
 const AvatarPicker = React.lazy(() => import('./AvatarPicker'))
+
+const PLUGIN_HUB_ID = 'welcome-dashboard'
 
 interface NavItemProps {
   icon: React.ReactNode
@@ -238,18 +251,18 @@ export default function NavRail() {
   // when switching tabs because mainView was not cleared (Iteration 612 fix).
   const isHistoryActive = activeNavItem === 'history'
   const isDepartmentActive = activeNavItem === 'department'
-  const isNotesActive = activeNavItem === 'notes'
   const isSkillsActive = activeNavItem === 'skills'
   const isMemoryActive = activeNavItem === 'memory'
   const isWorkflowsActive = activeNavItem === 'workflows'
-  const isChannelActive = activeNavItem === 'channel'
-  const isTasksActive = activeNavItem === 'tasks'
-  const isChangesActive = activeNavItem === 'changes'
-  const changedFiles = useChatStore(s => s.changedFiles)
-  const changedFilesCount = useMemo(() => new Set(changedFiles.map(f => f.filePath)).size, [changedFiles])
   const isStreaming = useChatStore(s => s.isStreaming)
   const isSettingsActive = useUiStore(s => s.settingsModalOpen)
   const unreadSessionCount = useUiStore(s => s.unreadSessionCount)
+
+  // Hot-pluggable plugins — the Plugin Hub itself stays in the bottom section as a
+  // management entry; every plugin added through it goes to the top section.
+  const plugins = usePluginStore(s => s.plugins)
+  const topPlugins = plugins.filter(p => p.manifest.id !== PLUGIN_HUB_ID)
+  const bottomPlugins = plugins.filter(p => p.manifest.id === PLUGIN_HUB_ID)
 
   // All nav icons normalized to 18px
   const iconSize = 18
@@ -302,16 +315,6 @@ export default function NavRail() {
         expanded={navExpanded}
       />
 
-      {/* Notes */}
-      <NavItem
-        icon={<NotebookPen size={iconSize} strokeWidth={1.5} />}
-        label={t('nav.notes')}
-        shortcut="Ctrl+3"
-        isActive={isNotesActive}
-        onClick={() => setActiveNavItem('notes')}
-        expanded={navExpanded}
-      />
-
       {/* Skills */}
       <NavItem
         icon={<Puzzle size={iconSize} strokeWidth={1.5} />}
@@ -332,37 +335,24 @@ export default function NavRail() {
         expanded={navExpanded}
       />
 
-      {/* Channel */}
-      <NavItem
-        icon={<Workflow size={iconSize} strokeWidth={1.5} />}
-        label={t('nav.channel')}
-        shortcut="Ctrl+7"
-        isActive={isChannelActive}
-        onClick={() => setActiveNavItem('channel')}
-        expanded={navExpanded}
-      />
-
-      {/* Tasks (Iteration 465) */}
-      <NavItem
-        icon={<CheckSquare size={iconSize} strokeWidth={1.5} />}
-        label={t('nav.tasks')}
-        shortcut="Ctrl+8"
-        isActive={isTasksActive}
-        onClick={() => setActiveNavItem('tasks')}
-        expanded={navExpanded}
-      />
-
-      {/* Changes (Iteration 521) */}
-      <NavItem
-        icon={<GitBranch size={iconSize} strokeWidth={1.5} />}
-        label={t('nav.changes')}
-        shortcut="Ctrl+9"
-        isActive={isChangesActive}
-        onClick={() => setActiveNavItem('changes')}
-        badge={changedFilesCount > 0 ? changedFilesCount : undefined}
-        badgeColor="#6366f1"
-        expanded={navExpanded}
-      />
+      {/* Dynamic Top Plugins */}
+      {topPlugins.map((plugin) => {
+        const isPluginActive = activeNavItem === `plugin:${plugin.manifest.id}`
+        const shortcut = plugin.manifest.id === 'aipa-notes' ? 'Ctrl+3'
+          : plugin.manifest.id === 'aipa-work-calendar' ? 'Ctrl+7'
+          : undefined
+        return (
+          <NavItem
+            key={plugin.manifest.id}
+            icon={getPluginIcon(plugin.manifest.icon, iconSize)}
+            label={plugin.manifest.name}
+            shortcut={shortcut}
+            isActive={isPluginActive}
+            onClick={() => setActiveNavItem(`plugin:${plugin.manifest.id}`)}
+            expanded={navExpanded}
+          />
+        )
+      })}
 
       {/* Spacer — pushes avatar + settings + toggle to bottom */}
       <div style={{ flex: 1 }} />
@@ -375,6 +365,21 @@ export default function NavRail() {
         marginLeft: navExpanded ? -6 : -4,
         marginRight: navExpanded ? -6 : -4,
       }} />
+
+      {/* Dynamic Bottom Plugins */}
+      {bottomPlugins.map((plugin) => {
+        const isPluginActive = activeNavItem === `plugin:${plugin.manifest.id}`
+        return (
+          <NavItem
+            key={plugin.manifest.id}
+            icon={getPluginIcon(plugin.manifest.icon, iconSize)}
+            label={plugin.manifest.name}
+            isActive={isPluginActive}
+            onClick={() => setActiveNavItem(`plugin:${plugin.manifest.id}`)}
+            expanded={navExpanded}
+          />
+        )
+      })}
 
       {/* Avatar -- shows persona emoji, preset avatar, or generic user icon */}
       <div style={{ position: 'relative', flexShrink: 0, marginBottom: 2 }}>
