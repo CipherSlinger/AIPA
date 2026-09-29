@@ -373,7 +373,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             a.click()
             URL.revokeObjectURL(url)
           }}
-          title="Export sessions as JSON"
+          title={t('dept.exportSessionsTitle')}
           style={{
             display: 'flex',
             alignItems: 'center',
