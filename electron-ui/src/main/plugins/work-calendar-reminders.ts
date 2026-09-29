@@ -160,7 +160,7 @@ function fireDueReminders(win: BrowserWindow): void {
   const dueIds = new Set(due.map(r => r.id))
   const rescheduled = due
     .filter(r => r.cron)
-    .map(r => {
+    .map((r): CalendarReminder | null => {
       const next = nextFireTime(r.cron!, new Date(now))
       return next ? { ...r, fireAt: next.getTime(), lastFiredAt: now } : null
     })

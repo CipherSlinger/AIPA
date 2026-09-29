@@ -13,7 +13,7 @@
     "build:plugins": "node scripts/copy-builtin-plugins.js",
     "build:preload": "tsc -p tsconfig.preload.json",
     "build:renderer": "vite build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.main.json",
     "lint": "eslint src",
     "check": "npm run typecheck && npm run lint",
     "clear-prefs": "node -e \"const p=require('path').join(require('os').homedir(),'AppData/Roaming/Electron/claude-code-ui-prefs.json');try{require('fs').unlinkSync(p);console.log('cleared prefs')}catch{}\"",
