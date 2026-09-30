@@ -208,14 +208,6 @@ export function renameSession(sessionId: string, title: string): boolean {
   return false
 }
 
-export interface McpServerEntry {
-  name: string
-  command?: string
-  args?: string[]
-  disabled?: boolean
-  type?: string
-}
-
 /**
  * Detect turn interruption in a session's JSONL file.
  * Inspired by Claude Code's utils/conversationRecovery.ts detectTurnInterruption().
@@ -273,28 +265,9 @@ export function detectTurnInterruption(sessionId: string): TurnInterruptionResul
   return 'none'
 }
 
-export function getMcpServers(): McpServerEntry[] {
-  const settings = readSettings() as Record<string, unknown>
-  const mcpServers = settings.mcpServers as Record<string, Record<string, unknown>> | undefined
-  if (!mcpServers) return []
-  return Object.entries(mcpServers).map(([name, cfg]) => ({
-    name,
-    command: cfg.command as string | undefined,
-    args: cfg.args as string[] | undefined,
-    disabled: cfg.disabled as boolean | undefined,
-    type: cfg.type as string | undefined,
-  }))
-}
-
-export function setMcpServerEnabled(serverName: string, enabled: boolean): void {
-  const settings = readSettings() as Record<string, unknown>
-  const mcpServers = { ...(settings.mcpServers as Record<string, unknown> || {}) }
-  if (mcpServers[serverName]) {
-    mcpServers[serverName] = { ...(mcpServers[serverName] as Record<string, unknown>), disabled: !enabled }
-  }
-  if (!fs.existsSync(CLAUDE_DIR)) fs.mkdirSync(CLAUDE_DIR, { recursive: true })
-  fs.writeFileSync(SETTINGS_PATH, JSON.stringify({ ...settings, mcpServers }, null, 2), 'utf-8')
-}
+// MCP server reads/writes used to live here; they are now engine-routed so the
+// same UI can serve ~/.claude/settings.json or ~/.codex/config.toml.
+// See src/main/config/mcp-config.ts.
 
 export function generateSessionTitle(description: string, cliPath: string): Promise<string> {
   return new Promise((resolve) => {

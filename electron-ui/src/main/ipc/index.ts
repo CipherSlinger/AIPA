@@ -7,8 +7,9 @@ import { fallbackShellManager } from '../pty/fallback-shell'
 import { codexBridgeManager } from '../codex/codex-bridge'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { speculationManager, isSafeToSpeculate } from '../pty/speculation-bridge'
-import { readSettings, writeSettings, listSessions as listClaudeSessions, loadSession as loadClaudeSession, deleteSession as deleteClaudeSession, forkSession as forkClaudeSession, renameSession, getMcpServers, setMcpServerEnabled, generateSessionTitle, generatePromptSuggestion, generateAwaySummary, rewindSession, searchSessions as searchClaudeSessions, detectTurnInterruption, getDreamConsolidationMtime } from '../sessions/session-reader'
+import { readSettings, writeSettings, listSessions as listClaudeSessions, loadSession as loadClaudeSession, deleteSession as deleteClaudeSession, forkSession as forkClaudeSession, renameSession, generateSessionTitle, generatePromptSuggestion, generateAwaySummary, rewindSession, searchSessions as searchClaudeSessions, detectTurnInterruption, getDreamConsolidationMtime } from '../sessions/session-reader'
 import { listSessions as listCodexSessions, loadSession as loadCodexSession, deleteSession as deleteCodexSession, forkSession as forkCodexSession, searchSessions as searchCodexSessions, readCodexConfig } from '../codex/codex-session-reader'
+import { addMcpServer, getMcpConfigInfo, readMcpServers, removeMcpServer, setMcpServerEnabledRouted } from '../config/mcp-config'
 import { getSessionStats } from '../sessions/session-stats'
 import { getApiKey, setApiKey, getPref, setPref, getAllPrefs, resetAllPrefs } from '../config/config-manager'
 import { readCLISettings, writeCLISettings } from '../config/cli-settings-manager'
@@ -48,6 +49,15 @@ let handlersRegistered = false
 function safeHandle(channel: string, handler: (...args: any[]) => any): void {
   try { ipcMain.removeHandler(channel) } catch { /* no previous handler */ }
   ipcMain.handle(channel, handler)
+}
+
+/** Remember the tools each MCP server reported, for the `mcp:getTools` lookups. */
+function cacheMcpTools(initData: unknown): void {
+  const servers = (initData as { mcpServers?: Array<{ name: string; tools?: string[] }> })?.mcpServers
+  if (!servers) return
+  for (const srv of servers) {
+    if (srv.tools && srv.tools.length > 0) mcpServerToolsCache[srv.name] = srv.tools
+  }
 }
 
 export function registerAllHandlers(win: BrowserWindow): void {
@@ -333,8 +343,10 @@ async function registerCodexSendMessage(
   bridge.on('processExit', (d) => send('cli:processExit', d))
   bridge.on('stderr', (d) => send('cli:error', { sessionId: bridgeId, error: d }))
   bridge.on('permissionRequest', (d) => send('cli:permissionRequest', d))
-  bridge.on('systemInit', (d) => send('cli:systemInit', d))
-
+  bridge.on('systemInit', (d) => {
+    cacheMcpTools(d)
+    send('cli:systemInit', d)
+  })
   // Codex-specific events
   bridge.on('itemStarted', (d) => send('cli:itemStarted', d))
   bridge.on('itemCompleted', (d) => send('cli:itemCompleted', d))
@@ -418,13 +430,8 @@ async function registerLegacySendMessage(
   bridge.on('hookCallback', (d) => send('cli:hookCallback', d))
   bridge.on('mcpElicitation', (d) => send('cli:elicitation', d))
   bridge.on('systemInit', (d) => {
+    cacheMcpTools(d)
     send('cli:systemInit', d)
-    const initData = d as { mcpServers?: Array<{ name: string; status: string; tools?: string[] }> }
-    if (initData.mcpServers) {
-      for (const srv of initData.mcpServers) {
-        if (srv.tools && srv.tools.length > 0) mcpServerToolsCache[srv.name] = srv.tools
-      }
-    }
   })
   bridge.on('notification', (d) => send('cli:notification', d))
   bridge.on('planApprovalRequest', (d) => send('cli:planApprovalRequest', d))
@@ -587,7 +594,25 @@ function registerConfigHandlers(): void {
   // Locale detection for i18n
   ipcMain.handle('config:getLocale', () => app.getLocale())
 
-  ipcMain.handle('mcp:list', () => getMcpServers())
+  // ── MCP ──────────────────────────────────────────────────────────────────
+  // Every handler below is engine-routed (src/main/config/mcp-config.ts):
+  // Codex keeps servers in ~/.codex/config.toml, Claude in ~/.claude/settings.json.
+  safeHandle('mcp:configInfo', () => getMcpConfigInfo())
+
+  safeHandle('mcp:list', () => readMcpServers().map(srv => ({
+    name: srv.name,
+    command: srv.command,
+    args: srv.args,
+    url: srv.url,
+    type: srv.type,
+    disabled: srv.disabled,
+  })))
+
+  /** Full config, including transport details, for the Settings → MCP tab. */
+  safeHandle('mcp:readConfig', () => ({
+    ...getMcpConfigInfo(),
+    servers: readMcpServers(),
+  }))
 
   // ── CLI settings.json read/write (Iteration 518) ─────
   safeHandle('config:readCLISettings', () => {
@@ -607,54 +632,13 @@ function registerConfigHandlers(): void {
       return { error: String(err) }
     }
   })
-  ipcMain.handle('mcp:setEnabled', (_e: Electron.IpcMainInvokeEvent, { serverName, enabled }: { serverName: string; enabled: boolean }) => setMcpServerEnabled(serverName, enabled))
+  safeHandle('mcp:setEnabled', (_e, { serverName, enabled }: { serverName: string; enabled: boolean }) =>
+    setMcpServerEnabledRouted(serverName, enabled))
 
-  safeHandle('mcp:add', async (_e, { name, config }: { name: string; type: string; config: Record<string, unknown> }) => {
-    try {
-      const settingsPath = path.join(os.homedir(), '.claude', 'settings.json')
-      let settings: Record<string, unknown> = {}
-      try {
-        const raw = fs.readFileSync(settingsPath, 'utf-8')
-        settings = JSON.parse(raw)
-      } catch {
-        // file may not exist yet
-      }
-      if (!settings.mcpServers || typeof settings.mcpServers !== 'object') {
-        settings.mcpServers = {}
-      }
-      ;(settings.mcpServers as Record<string, unknown>)[name] = config
-      const tmpPath = settingsPath + '.tmp'
-      fs.writeFileSync(tmpPath, JSON.stringify(settings, null, 2), 'utf-8')
-      fs.renameSync(tmpPath, settingsPath)
-      return { success: true }
-    } catch (err) {
-      log.warn('mcp:add error:', String(err))
-      return { success: false, error: String(err) }
-    }
-  })
+  safeHandle('mcp:add', (_e, { name, config }: { name: string; type: string; config: Record<string, unknown> }) =>
+    addMcpServer(name, config))
 
-  safeHandle('mcp:remove', async (_e, { name }: { name: string }) => {
-    try {
-      const settingsPath = path.join(os.homedir(), '.claude', 'settings.json')
-      let settings: Record<string, unknown> = {}
-      try {
-        const raw = fs.readFileSync(settingsPath, 'utf-8')
-        settings = JSON.parse(raw)
-      } catch {
-        return { success: false, error: 'settings.json not found' }
-      }
-      if (settings.mcpServers && typeof settings.mcpServers === 'object') {
-        delete (settings.mcpServers as Record<string, unknown>)[name]
-      }
-      const tmpPath = settingsPath + '.tmp'
-      fs.writeFileSync(tmpPath, JSON.stringify(settings, null, 2), 'utf-8')
-      fs.renameSync(tmpPath, settingsPath)
-      return { success: true }
-    } catch (err) {
-      log.warn('mcp:remove error:', String(err))
-      return { success: false, error: String(err) }
-    }
-  })
+  safeHandle('mcp:remove', (_e, { name }: { name: string }) => removeMcpServer(name))
 
   safeHandle('mcp:getTools', async (_e, { serverName }: { serverName: string }) => {
     // Return tools from system.init cache; fall back to empty array if not yet populated

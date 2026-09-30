@@ -12,6 +12,7 @@ import { createInterface } from 'readline'
 import { EventEmitter } from 'events'
 import { getCodexPath } from './codex-resolver'
 import { sanitizeCodexEnv } from './codex-env'
+import { readCodexMcpServers } from '../config/codex-config-manager'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('codex-bridge')
@@ -71,6 +72,8 @@ function toUserInput(prompt: string): Array<{ type: 'text'; text: string }> {
 
 const REQUEST_TIMEOUT_MS = 60_000
 const INITIALIZE_TIMEOUT_MS = 15_000
+/** MCP tools are a nicety on the init event — never hold the handshake for them. */
+const MCP_STATUS_TIMEOUT_MS = 3_000
 
 // ── CodexBridge ──────────────────────────────────────
 
@@ -265,7 +268,7 @@ export class CodexBridge extends EventEmitter {
     this.emit('systemInit', {
       sessionId: this.bridgeSessionId,
       tools: [],
-      mcpServers: [],
+      mcpServers: await this._collectMcpServers(),
       model: (initResult.model as string) ?? '',
       permissionMode: 'default',
       cwd: '',
@@ -276,6 +279,57 @@ export class CodexBridge extends EventEmitter {
     })
 
     log.info('Codex app-server initialized successfully')
+  }
+
+  /**
+   * MCP servers Codex will load this session, read from ~/.codex/config.toml.
+   *
+   * The renderer's chat header and MCP panels are built around the Claude CLI's
+   * system.init payload, so we synthesise the same shape. `status` describes the
+   * configuration (enabled / disabled), not the live connection — Codex reports
+   * startup separately through `mcpServer/startupStatus/updated`, which we don't
+   * mirror yet. Tool lists come from `mcpServerStatus/list`, best-effort: servers
+   * may still be starting when we ask, so an empty list means "not discovered".
+   */
+  private async _collectMcpServers(): Promise<Array<{ name: string; status: string; tools?: string[] }>> {
+    const configured = readCodexMcpServers()
+    if (configured.length === 0) return []
+
+    const toolsByServer = await this._readMcpToolNames()
+
+    return configured.map(srv => {
+      const tools = toolsByServer[srv.name] ?? []
+      return {
+        name: srv.name,
+        status: srv.enabled ? 'connected' : 'disabled',
+        ...(tools.length > 0 ? { tools } : {}),
+      }
+    })
+  }
+
+  /** `mcpServerStatus/list` → { serverName: ['mcp__server__tool', …] }. */
+  private async _readMcpToolNames(): Promise<Record<string, string[]>> {
+    let timer: NodeJS.Timeout | undefined
+    try {
+      const result = await Promise.race([
+        this._sendRequest('mcpServerStatus/list', {}),
+        new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), MCP_STATUS_TIMEOUT_MS) }),
+      ]) as { data?: Array<{ name?: string; tools?: Record<string, unknown> }> } | null
+
+      const map: Record<string, string[]> = {}
+      for (const entry of result?.data ?? []) {
+        if (!entry?.name || !entry.tools) continue
+        // Mirror the CLI's model-facing tool naming so the renderer's
+        // `mcp__<server>__<tool>` prefix stripping keeps working.
+        const names = Object.keys(entry.tools).map(tool => `mcp__${entry.name}__${tool}`)
+        if (names.length > 0) map[entry.name] = names
+      }
+      return map
+    } catch {
+      return {}
+    } finally {
+      if (timer) clearTimeout(timer)
+    }
   }
 
   private async _startThread(args: CodexSendMessageArgs): Promise<void> {

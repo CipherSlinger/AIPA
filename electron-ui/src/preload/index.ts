@@ -13,6 +13,25 @@ export interface SystemInitData {
   plugins: string[]
 }
 
+/** Where MCP configuration lives for the active engine. */
+export interface McpConfigInfoData {
+  engine: 'codex' | 'claude'
+  path: string
+  format: 'json' | 'toml'
+  scope: 'global'
+}
+
+export interface McpServerConfigData {
+  name: string
+  type: 'stdio' | 'http' | 'sse'
+  command?: string
+  args?: string[]
+  env?: Record<string, string>
+  url?: string
+  headers?: Record<string, string>
+  disabled: boolean
+}
+
 export interface NavPluginManifest {
   id: string
   name: string
@@ -258,8 +277,15 @@ const electronAPI = {
   },
 
   // ── MCP ──────────────────────────────────
-  mcpList: () => ipcRenderer.invoke('mcp:list'),
-  mcpSetEnabled: (serverName: string, enabled: boolean) => ipcRenderer.invoke('mcp:setEnabled', { serverName, enabled }),
+  // Backed by ~/.codex/config.toml under the Codex engine and by
+  // ~/.claude/settings.json under Claude — see main/config/mcp-config.ts.
+  mcpConfigInfo: () =>
+    ipcRenderer.invoke('mcp:configInfo') as Promise<McpConfigInfoData>,
+  mcpReadConfig: () =>
+    ipcRenderer.invoke('mcp:readConfig') as Promise<McpConfigInfoData & { servers: McpServerConfigData[] }>,
+  mcpList: () => ipcRenderer.invoke('mcp:list') as Promise<McpServerConfigData[]>,
+  mcpSetEnabled: (serverName: string, enabled: boolean) =>
+    ipcRenderer.invoke('mcp:setEnabled', { serverName, enabled }) as Promise<{ success: boolean; error?: string }>,
   mcpAdd: (name: string, type: string, config: Record<string, unknown>) =>
     ipcRenderer.invoke('mcp:add', { name, type, config }) as Promise<{ success: boolean; error?: string }>,
   mcpRemove: (name: string) =>
