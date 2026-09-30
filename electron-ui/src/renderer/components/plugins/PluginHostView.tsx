@@ -8,7 +8,8 @@ import {
 } from 'lucide-react'
 import { usePluginStore } from '../../store/pluginStore'
 import { useUiStore, usePrefsStore } from '../../store'
-import { getPluginIconComponent } from './pluginIcons'
+import { getPluginIconComponent, getPluginDisplayName } from './pluginIcons'
+import { useI18n } from '../../i18n'
 
 type ElectronAPI = typeof window.electronAPI
 
@@ -52,6 +53,7 @@ export default function PluginHostView() {
   const setActiveNavItem = useUiStore(s => s.setActiveNavItem)
   const addToast = useUiStore(s => s.addToast)
   const theme = usePrefsStore(s => s.prefs.theme || 'light')
+  const { resolvedLocale, t } = useI18n()
 
   const plugin = plugins.find(p => p.manifest.id === activePluginId) || plugins[0]
   // Read the current plugin through a ref so the message listener is bound once
@@ -124,7 +126,7 @@ export default function PluginHostView() {
           setTimeout(() => {
             window.dispatchEvent(new CustomEvent('aipa:insertText', { detail: prompt }))
           }, 100)
-          addToast('success', '已发送至对话输入框')
+          addToast('success', t('pluginHost.sentToChat'))
         }
       } else if (data.type === 'aipa:openPlugin' || data.type === 'aipa:switchPlugin') {
         const targetId = data.payload?.pluginId || data.pluginId
@@ -152,7 +154,7 @@ export default function PluginHostView() {
 
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [sendThemeToIframe, addToast, openFolder])
+  }, [sendThemeToIframe, addToast, openFolder, t])
 
   const handleReload = () => {
     setIframeKey(k => k + 1)
@@ -172,7 +174,7 @@ export default function PluginHostView() {
         gap: 12,
       }}>
         <Puzzle size={40} style={{ opacity: 0.4 }} />
-        <div style={{ fontSize: 14, fontWeight: 600 }}>未找到指定插件</div>
+        <div style={{ fontSize: 14, fontWeight: 600 }}>{t('pluginHost.notFound')}</div>
         <button
           onClick={() => openFolder()}
           style={{
@@ -189,7 +191,7 @@ export default function PluginHostView() {
           }}
         >
           <FolderOpen size={14} />
-          打开插件目录
+          {t('pluginHost.openPluginsDir')}
         </button>
       </div>
     )
@@ -233,7 +235,7 @@ export default function PluginHostView() {
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
-              {plugin.manifest.name}
+              {getPluginDisplayName(plugin.manifest, resolvedLocale)}
             </span>
             {plugin.manifest.version && (
               <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
@@ -258,7 +260,7 @@ export default function PluginHostView() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button
             onClick={handleReload}
-            title="刷新插件页面"
+            title={t('pluginHost.reloadTitle')}
             style={{
               padding: '4px 8px',
               borderRadius: 6,
@@ -273,12 +275,12 @@ export default function PluginHostView() {
             }}
           >
             <RotateCw size={12} />
-            刷新
+            {t('pluginHost.reload')}
           </button>
 
           <button
             onClick={() => openFolder(plugin.manifest.id)}
-            title="打开插件所在文件夹"
+            title={t('pluginHost.openFolderTitle')}
             style={{
               padding: '4px 8px',
               borderRadius: 6,
@@ -293,12 +295,12 @@ export default function PluginHostView() {
             }}
           >
             <FolderOpen size={12} />
-            插件源码
+            {t('pluginHost.source')}
           </button>
 
           <button
             onClick={handleClose}
-            title="返回对话"
+            title={t('pluginHost.backToChat')}
             style={{
               width: 26,
               height: 26,
@@ -330,9 +332,9 @@ export default function PluginHostView() {
             gap: 12,
           }}>
             <AlertTriangle size={36} color="#f87171" />
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>插件加载失败</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{t('pluginHost.loadFailed')}</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 450, textAlign: 'center' }}>
-              {plugin.error || '未找到插件入口文件 index.html'}
+              {plugin.error || t('pluginHost.entryMissing')}
             </div>
             <button
               onClick={() => openFolder(plugin.manifest.id)}
@@ -348,16 +350,17 @@ export default function PluginHostView() {
                 fontWeight: 600,
               }}
             >
-              打开目录检查
+              {t('pluginHost.openDirToCheck')}
             </button>
           </div>
         ) : (
           <iframe
-            key={iframeKey}
+            // Locale is passed via ?lang=; a change remounts so the plugin renders in the new language
+            key={`${iframeKey}:${resolvedLocale}`}
             ref={iframeRef}
-            src={`file:///${plugin.entryPath.replace(/\\/g, '/')}`}
+            src={`file:///${plugin.entryPath.replace(/\\/g, '/')}?lang=${resolvedLocale}`}
             sandbox="allow-scripts allow-forms allow-same-origin allow-modals allow-popups allow-downloads"
-            title={plugin.manifest.name}
+            title={getPluginDisplayName(plugin.manifest, resolvedLocale)}
             style={{
               width: '100%',
               height: '100%',

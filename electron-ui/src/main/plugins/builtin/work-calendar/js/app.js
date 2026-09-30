@@ -38,7 +38,7 @@
     try { initial = sessionStorage.getItem('wc_view') || 'calendar' } catch (e) { /* ignore */ }
     show(initial)
   }).catch(function (err) {
-    main.innerHTML = '<div class="card empty" style="margin-top:40px">数据加载失败：' + WC.esc(WC.errMsg(err)) +
-      '<br><br><button class="btn" onclick="location.reload()">重试</button></div>'
+    main.innerHTML = WC.L('<div class="card empty" style="margin-top:40px">数据加载失败：', '<div class="card empty" style="margin-top:40px">Failed to load data: ') + WC.esc(WC.errMsg(err)) +
+      WC.L('<br><br><button class="btn" onclick="location.reload()">重试</button></div>', '<br><br><button class="btn" onclick="location.reload()">Retry</button></div>')
   })
 })()

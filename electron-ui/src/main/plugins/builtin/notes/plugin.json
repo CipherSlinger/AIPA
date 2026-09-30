@@ -1,0 +1,16 @@
+{
+  "id": "aipa-notes",
+  "name": "便签笔记",
+  "nameEn": "Quick Notes",
+  "version": "2.0.0",
+  "description": "轻量级 Markdown 便签笔记与灵感速记，支持多分类、置顶与一键联动 AI 对话",
+  "icon": "NotebookPen",
+  "location": "top",
+  "order": 2,
+  "main": "index.html",
+  "permissions": [
+    "chat",
+    "storage",
+    "toast"
+  ]
+}

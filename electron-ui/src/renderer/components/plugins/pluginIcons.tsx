@@ -33,3 +33,8 @@ export function getPluginIcon(iconName?: string, size = 18) {
   const Comp = getPluginIconComponent(iconName)
   return <Comp size={size} strokeWidth={1.5} />
 }
+
+/** Manifest name for the current UI language (`nameEn` when English, else `name`). */
+export function getPluginDisplayName(manifest: { name: string; nameEn?: string }, locale: 'en' | 'zh-CN'): string {
+  return locale === 'en' && manifest.nameEn ? manifest.nameEn : manifest.name
+}

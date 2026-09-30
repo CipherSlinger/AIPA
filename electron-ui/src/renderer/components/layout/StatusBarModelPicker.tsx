@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { ChevronUp, Check } from 'lucide-react'
 import { usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
+import FloatingPortal from '../ui/FloatingPortal'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
 
 // Per-model pricing tiers (inspired by Claude Code modelCost.ts)
@@ -48,6 +49,7 @@ export default function StatusBarModelPicker({ modelLabel, shortModel, isClaudeM
   const model = usePrefsStore(s => s.prefs.model)
   const [show, setShow] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const [providerModels, setProviderModels] = useState<ProviderGroup[]>([])
   const [hoveredModel, setHoveredModel] = useState<string | null>(null)
   const [chipHovered, setChipHovered] = useState(false)
@@ -55,7 +57,8 @@ export default function StatusBarModelPicker({ modelLabel, shortModel, isClaudeM
   useEffect(() => {
     if (!show) return
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      if (ref.current && !ref.current.contains(target) && !menuRef.current?.contains(target)) {
         setShow(false)
       }
     }
@@ -122,13 +125,10 @@ export default function StatusBarModelPicker({ modelLabel, shortModel, isClaudeM
         <ChevronUp size={8} style={{ opacity: 0.6, transform: show ? 'rotate(180deg)' : 'none', transition: 'all 0.15s ease' }} />
       </button>
       {show && (
+        <FloatingPortal ref={menuRef} anchorRef={ref} placement="above-end">
         <div
           className="popup-enter"
           style={{
-            position: 'absolute',
-            bottom: '100%',
-            right: 0,
-            marginBottom: 4,
             background: 'var(--popup-bg)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
@@ -137,7 +137,6 @@ export default function StatusBarModelPicker({ modelLabel, shortModel, isClaudeM
             boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
             padding: '4px 0',
             minWidth: 220,
-            zIndex: 200,
           }}
         >
           {(providerModels.length > 0 ? providerModels : [{ providerId: 'claude-cli', providerName: 'Claude', models: MODEL_OPTIONS.map(o => ({ id: o.id, name: o.id, provider: 'claude-cli' })) }]).map(group => (
@@ -196,6 +195,7 @@ export default function StatusBarModelPicker({ modelLabel, shortModel, isClaudeM
             </React.Fragment>
           ))}
         </div>
+        </FloatingPortal>
       )}
     </div>
   )

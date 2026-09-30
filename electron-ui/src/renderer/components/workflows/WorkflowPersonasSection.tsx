@@ -1,18 +1,19 @@
 /**
  * WorkflowPersonasSection
  *
- * Embedded in WorkflowPanel: persona management section (Iteration 376).
+ * Agents section of the Employees page (WorkflowPanel): persona card grid,
+ * presets and import/export. Create/edit happens on PersonaEditorPage.
  * Sub-components extracted to PersonaSidebarComponents.tsx (Iteration 386).
  */
 
 import React, { useState, useEffect } from 'react'
-import { Plus, ChevronDown, Download, Upload, Sparkles } from 'lucide-react'
+import { Download, Upload, Bot } from 'lucide-react'
 import { usePrefsStore, useUiStore, useChatStore } from '../../store'
 import { useI18n } from '../../i18n'
 import type { Persona } from '../../types/app.types'
-import { PERSONA_COLORS, EMOJI_PRESETS, PERSONA_PRESETS } from '../settings/personaConstants'
-import { MODEL_OPTIONS } from '../settings/settingsConstants'
-import { PersonaIconTile, PersonaInlineForm } from './PersonaSidebarComponents'
+import { PERSONA_PRESETS } from '../settings/personaConstants'
+import { PersonaIconTile } from './PersonaSidebarComponents'
+import { SectionHeader, ToolbarButton, AddCard, PresetCard, SubLabel } from './EmployeesShared'
 import PersonCharacterIcon from './PersonCharacterIcon'
 
 // ─── Main exported section ─────────────────────────────────────────────────────
@@ -33,79 +34,12 @@ export default function WorkflowPersonasSection() {
     setPersonas(prefs.personas || [])
   }, [prefs.personas])
 
-  // ── Collapsed / expanded section state ──────────────────────────────────────
-  const [collapsed, setCollapsed] = useState(false)
-
-  // ── Form state ──────────────────────────────────────────────────────────────
-  const [showForm, setShowForm] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-
-  const [formName, setFormName] = useState('')
-  const [formEmoji, setFormEmoji] = useState('🧑‍💼')
-  const [formModel, setFormModel] = useState('claude-sonnet-4-6')
-  const [formPrompt, setFormPrompt] = useState('')
-  const [formColor, setFormColor] = useState('#6366f1')
 
   const savePersonas = (updated: Persona[]) => {
     setPersonas(updated)
     setPrefs({ personas: updated })
     window.electronAPI.prefsSet('personas', updated)
-  }
-
-  const resetForm = () => {
-    setShowForm(false)
-    setEditingId(null)
-    setFormName('')
-    setFormEmoji('🧑‍💼')
-    setFormModel('claude-sonnet-4-6')
-    // Pre-fill system prompt with localized default template
-    setFormPrompt(t('persona.defaultSystemPrompt'))
-    setFormColor('#6366f1')
-  }
-
-  const startEdit = (p: Persona) => {
-    setEditingId(p.id)
-    setFormName(p.name)
-    setFormEmoji(p.emoji)
-    setFormModel(p.model)
-    setFormPrompt(p.systemPrompt)
-    setFormColor(p.color)
-    setShowForm(true)
-    setCollapsed(false)
-  }
-
-  const handleSubmit = () => {
-    const name = formName.trim()
-    if (!name || !formPrompt.trim()) return
-
-    if (editingId) {
-      const updated = personas.map(p =>
-        p.id === editingId
-          ? { ...p, name, emoji: formEmoji, model: formModel, systemPrompt: formPrompt.trim(), color: formColor, updatedAt: Date.now() }
-          : p
-      )
-      savePersonas(updated)
-      addToast('success', t('persona.updated'))
-    } else {
-      if (personas.length >= 10) {
-        addToast('error', t('persona.maxReached'))
-        return
-      }
-      const newPersona: Persona = {
-        id: `persona-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        name,
-        emoji: formEmoji,
-        model: formModel,
-        systemPrompt: formPrompt.trim(),
-        color: formColor,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      }
-      savePersonas([...personas, newPersona])
-      addToast('success', t('persona.created'))
-    }
-    resetForm()
   }
 
   const handleDelete = (id: string) => {
@@ -214,320 +148,76 @@ export default function WorkflowPersonasSection() {
     preset => !personas.some(p => p.presetKey === preset.presetKey || p.name === preset.name)
   )
 
+  const atLimit = personas.length >= 10
+
   return (
-    <div style={{
-      borderBottom: '1px solid var(--border)',
-      flexShrink: 0,
-    }}>
-      {/* Section header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '7px 12px',
-          cursor: 'pointer',
-          userSelect: 'none',
-        }}
-        onClick={() => setCollapsed(c => !c)}
-        onMouseEnter={e => (e.currentTarget.style.background = 'var(--glass-shimmer)')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.07em', borderLeft: '2px solid rgba(99,102,241,0.5)', paddingLeft: 8 }}>
-            {t('persona.title')}
-          </span>
-          {/* Team composition badge */}
-          {personas.length > 0 && (
-            <span style={{
-              fontSize: 9,
-              background: 'rgba(99,102,241,0.15)',
-              border: '1px solid rgba(99,102,241,0.25)',
-              color: '#818cf8',
-              padding: '1px 6px',
-              borderRadius: 6,
-              fontWeight: 700,
-              letterSpacing: '0.02em',
-              fontVariantNumeric: 'tabular-nums',
-              fontFeatureSettings: '"tnum"',
-            }}>
-              {personas.length} {personas.length === 1 ? 'agent' : 'agents'}
-            </span>
-          )}
-          {effectivePersonaId && (
-            <span
-              title={personas.find(p => p.id === effectivePersonaId)?.name ?? ''}
-              style={{
-                fontSize: 8,
-                background: '#6366f1',
-              color: 'var(--text-primary)',
-                padding: '1px 5px',
-                borderRadius: 6,
-                fontWeight: 700,
-              }}
-            >
-              {personas.find(p => p.id === effectivePersonaId)?.emoji ?? ''}
-            </span>
-          )}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          {/* Add button (stops collapse toggle) */}
-          {!collapsed && (
-            <button
-              onClick={e => {
-                e.stopPropagation()
-                resetForm()
-                setShowForm(v => !v)
-              }}
-              title={t('persona.addPersona')}
-              disabled={personas.length >= 10}
-              style={{
-                background: showForm && !editingId
-                  ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
-                  : 'var(--bg-input)',
-                border: showForm && !editingId
-                  ? '1px solid rgba(99,102,241,0.60)'
-                  : '1px solid var(--glass-border-md)',
-                borderRadius: 8,
-                padding: '2px 5px',
-                cursor: personas.length >= 10 ? 'not-allowed' : 'pointer',
-                color: showForm && !editingId ? 'var(--text-primary)' : 'var(--text-secondary)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 3,
-                opacity: personas.length >= 10 ? 0.4 : 1,
-                transition: 'all 0.15s ease',
-                backdropFilter: 'blur(4px)',
-                WebkitBackdropFilter: 'blur(4px)',
-                boxShadow: showForm && !editingId ? '0 0 0 3px rgba(99,102,241,0.10)' : 'none',
-              }}
-              onMouseEnter={e => {
-                if (personas.length < 10 && !(showForm && !editingId)) {
-                  e.currentTarget.style.background = 'var(--glass-border-md)'
-                  e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
-                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)'
-                  e.currentTarget.style.color = 'var(--text-primary)'
-                }
-              }}
-              onMouseLeave={e => {
-                if (!(showForm && !editingId)) {
-                  e.currentTarget.style.background = 'var(--bg-input)'
-                  e.currentTarget.style.borderColor = 'var(--glass-border-md)'
-                  e.currentTarget.style.boxShadow = 'none'
-                  e.currentTarget.style.color = 'var(--text-secondary)'
-                }
-              }}
-            >
-              <Plus size={11} />
-            </button>
-          )}
-          <ChevronDown
-            size={13}
-            style={{
-              color: 'var(--text-muted)',
-              transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
-              transition: 'all 0.15s ease',
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Body — only when expanded */}
-      {!collapsed && (
-        <div style={{ padding: '0 10px 8px' }}>
-          {/* Inline create/edit form */}
-          {showForm && (
-            <PersonaInlineForm
-              editingId={editingId}
-              formName={formName} setFormName={setFormName}
-              formEmoji={formEmoji} setFormEmoji={setFormEmoji}
-              formModel={formModel} setFormModel={setFormModel}
-              formPrompt={formPrompt} setFormPrompt={setFormPrompt}
-              formColor={formColor} setFormColor={setFormColor}
-              onSubmit={handleSubmit}
-              onCancel={resetForm}
-            />
-          )}
-
-          {/* Persona list in vivid icon grid format */}
-          {personas.length === 0 && !showForm ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '14px 8px 10px',
-              background: 'var(--glass-shimmer)',
-              border: '1px dashed var(--glass-border-md)',
-              borderRadius: 8,
-              margin: '2px 0 4px',
-            }}>
-              <div style={{ background: 'rgba(99,102,241,0.08)', borderRadius: 16, padding: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-                <Sparkles size={18} style={{ opacity: 0.5, display: 'block' }} />
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>{t('persona.noPersonas')}</div>
-              <div style={{ fontSize: 11, marginTop: 4, color: 'var(--text-muted)', lineHeight: 1.4 }}>{t('persona.noPersonasHint')}</div>
-              <button
-                onClick={() => { resetForm(); setShowForm(true) }}
-                style={{
-                  marginTop: 10,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  padding: '4px 10px',
-                  background: 'var(--bg-input)',
-                  border: '1px solid var(--glass-border-md)',
-                  borderRadius: 8,
-                  color: 'var(--text-secondary)',
-                  fontSize: 10,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  backdropFilter: 'blur(4px)',
-                  WebkitBackdropFilter: 'blur(4px)',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = 'var(--glass-border-md)'
-                  e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
-                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)'
-                  e.currentTarget.style.color = 'var(--text-primary)'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = 'var(--bg-input)'
-                  e.currentTarget.style.borderColor = 'var(--glass-border-md)'
-                  e.currentTarget.style.boxShadow = 'none'
-                  e.currentTarget.style.color = 'var(--text-secondary)'
-                }}
-              >
-                <Plus size={10} />
-                {t('persona.addPersona')}
-              </button>
-            </div>
-          ) : (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(82px, 1fr))',
-              gap: 8,
-              padding: '2px 0 4px',
-            }}>
-              {personas.map((p) => (
-                <PersonaIconTile
-                  key={p.id}
-                  persona={p}
-                  isActive={effectivePersonaId === p.id}
-                  isDeleting={deletingId === p.id}
-                  onDelete={handleDelete}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Available presets */}
-          {availablePresets.length > 0 && personas.length < 10 && (
-            <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-faint)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                {t('persona.presets')}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {availablePresets.map((preset, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleInstallPreset(preset)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 7,
-                      width: '100%',
-                      padding: '5px 8px',
-                      background: 'transparent',
-                      border: '1px dashed var(--glass-border-md)',
-                      borderRadius: 8,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.15s ease',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'; e.currentTarget.style.background = 'rgba(99,102,241,0.06)' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border-md)'; e.currentTarget.style.background = 'transparent' }}
-                  >
-                    <PersonCharacterIcon
-                      persona={{
-                        id: `preset-preview-${i}`,
-                        name: preset.name,
-                        emoji: preset.emoji,
-                        model: preset.model,
-                        systemPrompt: preset.systemPrompt,
-                        color: preset.color,
-                        presetKey: preset.presetKey,
-                        createdAt: 0,
-                        updatedAt: 0,
-                      }}
-                      size={28}
-                      showBadge={false}
-                    />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {preset.presetKey ? t(`persona.preset.${preset.presetKey}`) : preset.name}
-                      </div>
-                    </div>
-                    <Plus size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Export / Import */}
-          {personas.length > 0 && (
-            <div style={{ marginTop: 8, display: 'flex', gap: 5 }}>
-              <button
-                onClick={handleExport}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 4,
-                  padding: '4px 0',
-                  background: 'none',
-                  border: '1px solid var(--border)',
-                  borderRadius: 4,
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  fontSize: 9,
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
-              >
-                <Download size={10} />
+    <section>
+      <SectionHeader
+        icon={<Bot size={14} />}
+        title={t('employees.agents')}
+        subtitle={t('employees.agentsSub')}
+        count={personas.length}
+        actions={
+          <>
+            <ToolbarButton onClick={handleImport} disabled={atLimit}>
+              <Upload size={13} />
+              {t('persona.importPersonas')}
+            </ToolbarButton>
+            {personas.length > 0 && (
+              <ToolbarButton onClick={handleExport}>
+                <Download size={13} />
                 {t('persona.exportPersonas')}
-              </button>
-              <button
-                onClick={handleImport}
-                disabled={personas.length >= 10}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 4,
-                  padding: '4px 0',
-                  background: 'none',
-                  border: '1px solid var(--border)',
-                  borderRadius: 4,
-                  color: 'var(--text-muted)',
-                  cursor: personas.length >= 10 ? 'not-allowed' : 'pointer',
-                  fontSize: 9,
-                  opacity: personas.length >= 10 ? 0.4 : 1,
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={e => { if (personas.length < 10) { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'; e.currentTarget.style.color = 'var(--text-primary)' } }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
-              >
-                <Upload size={10} />
-                {t('persona.importPersonas')}
-              </button>
-            </div>
-          )}
+              </ToolbarButton>
+            )}
+          </>
+        }
+      />
+
+      {personas.length === 0 && (
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
+          {t('persona.noPersonasHint')}
         </div>
       )}
-    </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', gap: 12 }}>
+        {personas.map(p => (
+          <PersonaIconTile
+            key={p.id}
+            persona={p}
+            isActive={effectivePersonaId === p.id}
+            isDeleting={deletingId === p.id}
+            onDelete={handleDelete}
+          />
+        ))}
+        <AddCard
+          label={atLimit ? t('persona.maxReached') : t('employees.addAgent')}
+          onClick={() => useUiStore.getState().openPersonaEditor(null, 'workflows')}
+          disabled={atLimit}
+          minHeight={118}
+        />
+      </div>
+
+      {availablePresets.length > 0 && !atLimit && (
+        <>
+          <SubLabel>{t('employees.presetsAgents')}</SubLabel>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
+            {availablePresets.map((preset, i) => (
+              <PresetCard
+                key={preset.presetKey || i}
+                icon={
+                  <PersonCharacterIcon
+                    persona={{ ...preset, id: `preset-preview-${i}`, createdAt: 0, updatedAt: 0 }}
+                    size={30}
+                    showBadge={false}
+                  />
+                }
+                title={preset.presetKey ? t(`persona.preset.${preset.presetKey}`) : preset.name}
+                onClick={() => handleInstallPreset(preset)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </section>
   )
 }

@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { ChevronDown, Sparkles, Workflow as WorkflowIcon } from 'lucide-react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
+import FloatingPortal from '../ui/FloatingPortal'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import type { Persona, Workflow } from '../../types/app.types'
 
@@ -18,7 +19,8 @@ export default function PersonaPicker() {
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
   const sessionPersona = personas.find(p => p.id === sessionPersonaId)
 
-  useClickOutside(pickerRef, showPicker, useCallback(() => setShowPicker(false), []))
+  const menuRef = useRef<HTMLDivElement>(null)
+  useClickOutside(pickerRef, showPicker, useCallback(() => setShowPicker(false), []), [menuRef])
 
   // Allow external badge click to open the picker
   useEffect(() => {
@@ -104,14 +106,11 @@ export default function PersonaPicker() {
         <ChevronDown size={10} style={{ opacity: 0.6 }} />
       </button>
       {showPicker && (
+        <FloatingPortal ref={menuRef} anchorRef={pickerRef} placement="below-start">
         <div
           role="listbox"
           aria-label={t('persona.selectPersona')}
           style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            zIndex: 200,
             width: 260,
             background: 'var(--popup-bg)',
             backdropFilter: 'blur(20px)',
@@ -120,7 +119,6 @@ export default function PersonaPicker() {
             borderRadius: 12,
             boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
             padding: '4px 0',
-            marginTop: 4,
             animation: 'slideUp 0.15s ease',
           }}
         >
@@ -291,6 +289,7 @@ export default function PersonaPicker() {
             </>
           )}
         </div>
+        </FloatingPortal>
       )}
     </div>
   )

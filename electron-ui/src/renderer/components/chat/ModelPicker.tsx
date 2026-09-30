@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { ChevronDown, Settings } from 'lucide-react'
 import { usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
+import FloatingPortal from '../ui/FloatingPortal'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
 
@@ -78,7 +79,8 @@ export default function ModelPicker({ model }: ModelPickerProps) {
   const [providerGroups, setProviderGroups] = useState<ProviderGroup[]>([])
   const [loadFailed, setLoadFailed] = useState(false)
 
-  useClickOutside(pickerRef, showPicker, useCallback(() => setShowPicker(false), []))
+  const menuRef = useRef<HTMLDivElement>(null)
+  useClickOutside(pickerRef, showPicker, useCallback(() => setShowPicker(false), []), [menuRef])
 
   // Load multi-provider models when dropdown opens
   useEffect(() => {
@@ -203,14 +205,11 @@ export default function ModelPicker({ model }: ModelPickerProps) {
         <ChevronDown size={10} style={{ opacity: 0.6 }} />
       </button>
       {showPicker && (
+        <FloatingPortal ref={menuRef} anchorRef={pickerRef} placement="below-start">
         <div
           role="listbox"
           aria-label={t('chat.switchModel')}
           style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            zIndex: 200,
             width: 260,
             maxHeight: 400,
             overflowY: 'auto',
@@ -221,7 +220,6 @@ export default function ModelPicker({ model }: ModelPickerProps) {
             borderRadius: 12,
             boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
             padding: '4px 0',
-            marginTop: 4,
             animation: 'slideUp 0.15s ease-out',
           }}
         >
@@ -344,6 +342,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
             </button>
           </div>
         </div>
+        </FloatingPortal>
       )}
     </div>
   )

@@ -16,49 +16,49 @@
   var SCHEMA_VERSION = 1
 
   var DEFAULT_WEEKLY_PROMPT = [
-    '你是一位专业的周报撰写助手，擅长将工作素材整理成规范清晰的结构化周报。',
+    WC.L('你是一位专业的周报撰写助手，擅长将工作素材整理成规范清晰的结构化周报。', 'You are a professional weekly-report assistant who turns work material into a clear, well-structured weekly report.'),
     '',
-    '请基于以下提供的工作素材和时间周期生成一份中文周报：',
+    WC.L('请基于以下提供的工作素材和时间周期生成一份中文周报：', 'Based on the work material and period below, write a weekly report in English:'),
     '',
-    '时间周期：{{period}}',
-    '工作素材：',
+    WC.L('时间周期：{{period}}', 'Period: {{period}}'),
+    WC.L('工作素材：', 'Material:'),
     '{{material}}',
     '',
-    '生成要求：',
-    '1. 输出格式为标准Markdown，包含以下四个固定章节：',
-    '   # 本周工作总结',
-    '   # 任务完成情况',
-    '   # 进行中事项与风险',
-    '   # 下周计划',
+    WC.L('生成要求：', 'Requirements:'),
+    WC.L('1. 输出格式为标准Markdown，包含以下四个固定章节：', '1. Output standard Markdown with exactly these four sections:'),
+    WC.L('   # 本周工作总结', '   # Summary of This Week'),
+    WC.L('   # 任务完成情况', '   # Completed Tasks'),
+    WC.L('   # 进行中事项与风险', '   # In Progress & Risks'),
+    WC.L('   # 下周计划', '   # Next Week\'s Plan'),
     '',
-    '2. 内容要求：',
-    '   - 语言简洁专业，符合企业内部汇报风格',
-    '   - 所有内容严格基于提供的素材撰写，不得虚构或添加素材中不存在的信息',
-    '   - 若工作素材为空，则在周报开头明确说明「本周暂无任务记录」',
-    '   - 每个章节内容根据素材信息合理分类呈现，条理清晰',
+    WC.L('2. 内容要求：', '2. Content:'),
+    WC.L('   - 语言简洁专业，符合企业内部汇报风格', '   - Concise, professional language suitable for internal reporting'),
+    WC.L('   - 所有内容严格基于提供的素材撰写，不得虚构或添加素材中不存在的信息', '   - Base everything strictly on the material; do not invent anything that is not in it'),
+    WC.L('   - 若工作素材为空，则在周报开头明确说明「本周暂无任务记录」', '   - If the material is empty, state "No task records this week" at the top'),
+    WC.L('   - 每个章节内容根据素材信息合理分类呈现，条理清晰', '   - Organise each section logically based on the material'),
     '',
-    '3. 输出要求：',
-    '   - 直接输出周报内容，不需要额外的解释说明',
+    WC.L('3. 输出要求：', '3. Output:'),
+    WC.L('   - 直接输出周报内容，不需要额外的解释说明', '   - Output only the report, with no extra explanation'),
   ].join('\n')
 
   var DEFAULT_MONTHLY_PROMPT = [
-    '你是专业的月报撰写助手，需要基于用户提供的工作素材生成结构化的中文月报。',
+    WC.L('你是专业的月报撰写助手，需要基于用户提供的工作素材生成结构化的中文月报。', 'You are a professional monthly-report assistant. Write a structured monthly report in English from the work material provided.'),
     '',
-    '当前报告周期：{{period}}',
-    '工作素材：',
+    WC.L('当前报告周期：{{period}}', 'Report period: {{period}}'),
+    WC.L('工作素材：', 'Material:'),
     '{{material}}',
     '',
-    '生成要求：',
-    '1. 整体使用markdown格式排版，结构清晰',
-    '2. 必须包含以下四个核心章节：',
-    '   - 「本月工作总结」：对本月工作的整体概述',
-    '   - 「重点任务完成情况」：分点说明各项任务的进度、成果',
-    '   - 「问题与改进」：梳理工作中遇到的问题及对应的改进措施',
-    '   - 「下月工作计划」：明确下月的工作目标和重点任务安排',
-    '3. 语言简洁专业，符合职场正式报告风格',
-    '4. 所有内容必须严格基于提供的素材撰写，不得编造素材中没有的信息',
-    '5. 如果工作素材为空，请直接输出「本月暂无任务记录」',
-    '6. 直接输出月报内容，无需额外前缀或后缀说明',
+    WC.L('生成要求：', 'Requirements:'),
+    WC.L('1. 整体使用markdown格式排版，结构清晰', '1. Use Markdown with a clear structure'),
+    WC.L('2. 必须包含以下四个核心章节：', '2. Include these four sections:'),
+    WC.L('   - 「本月工作总结」：对本月工作的整体概述', '   - "Summary of This Month": an overview of the month'),
+    WC.L('   - 「重点任务完成情况」：分点说明各项任务的进度、成果', '   - "Key Tasks": progress and results of each task, as bullet points'),
+    WC.L('   - 「问题与改进」：梳理工作中遇到的问题及对应的改进措施', '   - "Issues & Improvements": problems encountered and how to address them'),
+    WC.L('   - 「下月工作计划」：明确下月的工作目标和重点任务安排', '   - "Next Month\'s Plan": goals and key tasks for next month'),
+    WC.L('3. 语言简洁专业，符合职场正式报告风格', '3. Concise, professional, formal report style'),
+    WC.L('4. 所有内容必须严格基于提供的素材撰写，不得编造素材中没有的信息', '4. Base everything strictly on the material; do not invent anything'),
+    WC.L('5. 如果工作素材为空，请直接输出「本月暂无任务记录」', '5. If the material is empty, output only "No task records this month"'),
+    WC.L('6. 直接输出月报内容，无需额外前缀或后缀说明', '6. Output only the report, with no extra preface or closing'),
   ].join('\n')
 
   var DEFAULT_SETTINGS = {
@@ -89,8 +89,8 @@
   }
 
   function assertMonday(weekStart) {
-    if (!D.isDateKey(weekStart)) fail('weekStart 参数非法，格式应为 YYYY-MM-DD')
-    if (D.weekStart(weekStart) !== weekStart) fail('weekStart 必须是周一')
+    if (!D.isDateKey(weekStart)) fail(WC.L('weekStart 参数非法，格式应为 YYYY-MM-DD', 'Invalid weekStart, expected YYYY-MM-DD'))
+    if (D.weekStart(weekStart) !== weekStart) fail(WC.L('weekStart 必须是周一', 'weekStart must be a Monday'))
   }
 
   function normalizeRepo(raw) {
@@ -162,15 +162,15 @@
     },
 
     _validateTask: function (t) {
-      if (!t.title || !t.title.trim()) fail('标题不能为空')
-      if (t.title.length > 200) fail('标题不能超过 200 个字符')
-      if ((t.description || '').length > 2000) fail('描述不能超过 2000 个字符')
-      if (!WC.STATUS[t.status]) fail('状态非法')
-      if (!WC.PRIORITY[t.priority]) fail('优先级非法')
-      if (t.startDate && !D.isDateKey(t.startDate)) fail('开始日期格式非法')
-      if (t.dueDate && !D.isDateKey(t.dueDate)) fail('截止日期格式非法')
-      if (t.startDate && t.dueDate && t.startDate > t.dueDate) fail('开始日期不能晚于截止日期')
-      if (t.workSourceId && !store.getSource(t.workSourceId)) fail('绑定的工作源不存在')
+      if (!t.title || !t.title.trim()) fail(WC.L('标题不能为空', 'Title is required'))
+      if (t.title.length > 200) fail(WC.L('标题不能超过 200 个字符', 'Title must be at most 200 characters'))
+      if ((t.description || '').length > 2000) fail(WC.L('描述不能超过 2000 个字符', 'Description must be at most 2000 characters'))
+      if (!WC.STATUS[t.status]) fail(WC.L('状态非法', 'Invalid status'))
+      if (!WC.PRIORITY[t.priority]) fail(WC.L('优先级非法', 'Invalid priority'))
+      if (t.startDate && !D.isDateKey(t.startDate)) fail(WC.L('开始日期格式非法', 'Invalid start date'))
+      if (t.dueDate && !D.isDateKey(t.dueDate)) fail(WC.L('截止日期格式非法', 'Invalid due date'))
+      if (t.startDate && t.dueDate && t.startDate > t.dueDate) fail(WC.L('开始日期不能晚于截止日期', 'Start date cannot be after the due date'))
+      if (t.workSourceId && !store.getSource(t.workSourceId)) fail(WC.L('绑定的工作源不存在', 'The bound work source does not exist'))
     },
 
     createTask: function (dto) {
@@ -194,7 +194,7 @@
 
     updateTask: function (id, patch) {
       var current = store.getTask(id)
-      if (!current) return Promise.reject(new Error('任务不存在'))
+      if (!current) return Promise.reject(new Error(WC.L('任务不存在', 'Task not found')))
       var next = Object.assign({}, current, patch, { updatedAt: nowIso() })
       if (patch.title !== undefined) next.title = String(patch.title).trim()
       if (patch.workSourceId !== undefined) next.workSourceId = patch.workSourceId || null
@@ -206,7 +206,7 @@
     removeTask: function (id) {
       var before = state.tasks.length
       state.tasks = state.tasks.filter(function (t) { return t.id !== id })
-      if (state.tasks.length === before) return Promise.reject(new Error('任务不存在'))
+      if (state.tasks.length === before) return Promise.reject(new Error(WC.L('任务不存在', 'Task not found')))
       return persist('tasks')
     },
 
@@ -230,8 +230,8 @@
     },
 
     createReport: function (dto) {
-      if (!dto.title || !dto.content || !WC.REPORT_TYPE[dto.reportType]) fail('缺少必填字段或 reportType 非法')
-      if (!D.isDateKey(dto.periodStart) || !D.isDateKey(dto.periodEnd)) fail('报告周期格式非法')
+      if (!dto.title || !dto.content || !WC.REPORT_TYPE[dto.reportType]) fail(WC.L('缺少必填字段或 reportType 非法', 'Missing required fields or invalid reportType'))
+      if (!D.isDateKey(dto.periodStart) || !D.isDateKey(dto.periodEnd)) fail(WC.L('报告周期格式非法', 'Invalid report period'))
       var report = {
         id: WC.uid(),
         reportType: dto.reportType,
@@ -248,9 +248,9 @@
 
     updateReport: function (id, patch) {
       var report = store.getReport(id)
-      if (!report) return Promise.reject(new Error('报告不存在'))
-      if (patch.title !== undefined && !String(patch.title).trim()) fail('title 不能为空')
-      if (patch.content !== undefined && !String(patch.content).trim()) fail('content 不能为空')
+      if (!report) return Promise.reject(new Error(WC.L('报告不存在', 'Report not found')))
+      if (patch.title !== undefined && !String(patch.title).trim()) fail(WC.L('title 不能为空', 'title is required'))
+      if (patch.content !== undefined && !String(patch.content).trim()) fail(WC.L('content 不能为空', 'content is required'))
       if (patch.title !== undefined) report.title = patch.title
       if (patch.content !== undefined) report.content = patch.content
       report.updatedAt = nowIso()
@@ -260,7 +260,7 @@
     removeReport: function (id) {
       var before = state.reports.length
       state.reports = state.reports.filter(function (r) { return r.id !== id })
-      if (state.reports.length === before) return Promise.reject(new Error('报告不存在'))
+      if (state.reports.length === before) return Promise.reject(new Error(WC.L('报告不存在', 'Report not found')))
       return persist('reports')
     },
 
@@ -272,18 +272,18 @@
 
     createSource: function (dto) {
       var name = String(dto.name || '').trim()
-      if (!name || name.length > 100) fail('工作源名称不能为空且不超过 100 字')
-      if (dto.sourceType !== 'github' && dto.sourceType !== 'folder') fail('sourceType 仅支持 github 或 folder')
+      if (!name || name.length > 100) fail(WC.L('工作源名称不能为空且不超过 100 字', 'Work source name is required (max 100 characters)'))
+      if (dto.sourceType !== 'github' && dto.sourceType !== 'folder') fail(WC.L('sourceType 仅支持 github 或 folder', 'sourceType must be github or folder'))
       var config = Object.assign({}, dto.config || {})
       if (dto.sourceType === 'github') {
         config.repo = normalizeRepo(config.repo)
-        if (!/^[\w.-]+\/[\w.-]+$/.test(config.repo)) fail('GitHub 仓库格式应为 owner/repo，如 CipherSlinger/AIPA')
+        if (!/^[\w.-]+\/[\w.-]+$/.test(config.repo)) fail(WC.L('GitHub 仓库格式应为 owner/repo，如 CipherSlinger/AIPA', 'GitHub repo must be owner/repo, e.g. CipherSlinger/AIPA'))
         config.branch = String(config.branch || '').trim() || 'main'
         config.author = String(config.author || '').trim()
         config.token = String(config.token || '').trim()
       } else {
         config.folderPath = String(config.folderPath || '').trim()
-        if (!config.folderPath) fail('请选择本地文件夹')
+        if (!config.folderPath) fail(WC.L('请选择本地文件夹', 'Please choose a local folder'))
         config.filter = String(config.filter || '').trim() || '*'
       }
       var source = { id: WC.uid(), name: name, sourceType: dto.sourceType, config: config, lastPull: null, createdAt: nowIso() }
@@ -295,7 +295,7 @@
     removeSource: function (id) {
       var before = state.sources.length
       state.sources = state.sources.filter(function (s) { return s.id !== id })
-      if (state.sources.length === before) return Promise.reject(new Error('工作源不存在'))
+      if (state.sources.length === before) return Promise.reject(new Error(WC.L('工作源不存在', 'Work source not found')))
       var touched = false
       state.tasks.forEach(function (t) {
         if (t.workSourceId === id) { t.workSourceId = null; touched = true }
@@ -320,7 +320,7 @@
     pullSource: function (id, weekStart) {
       assertMonday(weekStart)
       var source = store.getSource(id)
-      if (!source) return Promise.reject(new Error('工作源不存在'))
+      if (!source) return Promise.reject(new Error(WC.L('工作源不存在', 'Work source not found')))
       var weekEnd = D.addDays(weekStart, 6)
       return store.fetchSourceItems(source, weekStart, weekEnd).then(function (items) {
         source.lastPull = { pulledAt: nowIso(), weekStart: weekStart, weekEnd: weekEnd, itemCount: items.length, items: items }
@@ -335,8 +335,8 @@
      * if that fails, a matching lastPull is used and the error is recorded.
      */
     getMaterial: function (from, to) {
-      if (!D.isDateKey(from) || !D.isDateKey(to)) return Promise.reject(new Error('周期格式非法'))
-      if (from > to) return Promise.reject(new Error('start 不能晚于 end'))
+      if (!D.isDateKey(from) || !D.isDateKey(to)) return Promise.reject(new Error(WC.L('周期格式非法', 'Invalid period')))
+      if (from > to) return Promise.reject(new Error(WC.L('start 不能晚于 end', 'start cannot be after end')))
       var today = D.todayKey()
       var rows = state.tasks.filter(function (t) {
         if (spanOf(t)) return spanIntersects(t, from, to)
@@ -348,11 +348,11 @@
         completedTasks: [], inProgressTasks: [], overdueTasks: [], sourceMaterials: [],
       }
       rows.forEach(function (t) {
-        var label = t.title + '（优先级：' + WC.PRIORITY[t.priority] + '）' +
-          (t.description && t.description.trim() ? '：' + t.description.trim().slice(0, 200) : '')
+        var label = t.title + WC.L('（优先级：', ' (priority: ') + WC.PRIORITY[t.priority] + WC.L('）', ')') +
+          (t.description && t.description.trim() ? WC.L('：', ': ') + t.description.trim().slice(0, 200) : '')
         if (t.status === 'done') material.completedTasks.push(label)
         else if (t.dueDate && t.dueDate < today) material.overdueTasks.push(label)
-        else material.inProgressTasks.push(label + '（' + WC.STATUS[t.status] + '）')
+        else material.inProgressTasks.push(label + WC.L('（', ' (') + WC.STATUS[t.status] + WC.L('）', ')'))
       })
       material.completedCount = material.completedTasks.length
 
@@ -397,7 +397,7 @@
         if (!g || g.weekStart !== p.weekStart) {
           g = {
             weekStart: p.weekStart,
-            label: p.weekStart.slice(5, 7) + '月' + p.weekStart.slice(8) + '-' + D.addDays(p.weekStart, 6).slice(8),
+            label: D.fmtDot(p.weekStart) + '-' + D.addDays(p.weekStart, 6).slice(8),
             total: 0,
             items: [],
           }
@@ -411,13 +411,13 @@
     },
 
     _validateDays: function (days) {
-      if (!(days > 0) || days > 31) fail('投入天数必须大于 0 且不超过 31')
+      if (!(days > 0) || days > 31) fail(WC.L('投入天数必须大于 0 且不超过 31', 'Days must be greater than 0 and at most 31'))
     },
 
     createPersonDay: function (dto) {
       assertMonday(dto.weekStart)
       var desc = String(dto.workDesc || '').trim()
-      if (!desc) fail('工作内容不能为空')
+      if (!desc) fail(WC.L('工作内容不能为空', 'Work description is required'))
       var days = Number(dto.days)
       store._validateDays(days)
       var item = { id: WC.uid(), weekStart: dto.weekStart, workDesc: desc, days: days, category: dto.category || null, createdAt: nowIso() }
@@ -427,9 +427,9 @@
 
     updatePersonDay: function (id, patch) {
       var item = state.personDays.find(function (p) { return p.id === id })
-      if (!item) return Promise.reject(new Error('人天记录不存在'))
+      if (!item) return Promise.reject(new Error(WC.L('人天记录不存在', 'Person-day entry not found')))
       if (patch.workDesc !== undefined) {
-        if (!String(patch.workDesc).trim()) fail('工作内容不能为空')
+        if (!String(patch.workDesc).trim()) fail(WC.L('工作内容不能为空', 'Work description is required'))
         item.workDesc = String(patch.workDesc).trim()
       }
       if (patch.days !== undefined) {
@@ -442,25 +442,25 @@
     removePersonDay: function (id) {
       var before = state.personDays.length
       state.personDays = state.personDays.filter(function (p) { return p.id !== id })
-      if (state.personDays.length === before) return Promise.reject(new Error('人天记录不存在'))
+      if (state.personDays.length === before) return Promise.reject(new Error(WC.L('人天记录不存在', 'Person-day entry not found')))
       return persist('personDays')
     },
 
     /** Spread 5 workdays evenly over the week's tasks (0.5 steps, min 0.5). */
     autoGeneratePersonDays: function (weekStart) {
       assertMonday(weekStart)
-      if (store.listPersonDays(weekStart).length > 0) fail('该周已有人天记录，请先删除后重新生成')
+      if (store.listPersonDays(weekStart).length > 0) fail(WC.L('该周已有人天记录，请先删除后重新生成', 'This week already has person-day entries; delete them before regenerating'))
       var weekEnd = D.addDays(weekStart, 6)
       var tasks = state.tasks
         .filter(function (t) { return spanIntersects(t, weekStart, weekEnd) })
         .sort(function (a, b) { return a.createdAt.localeCompare(b.createdAt) })
-      if (!tasks.length) fail('本周暂无任务，无法自动生成人天')
+      if (!tasks.length) fail(WC.L('本周暂无任务，无法自动生成人天', 'No tasks this week, cannot auto-generate person-days'))
       var perTask = Math.max(0.5, Math.round((5 / tasks.length) * 2) / 2)
       var created = tasks.map(function (t) {
         return {
           id: WC.uid(),
           weekStart: weekStart,
-          workDesc: t.description && t.description.trim() ? t.title + '：' + t.description.slice(0, 60) : t.title,
+          workDesc: t.description && t.description.trim() ? t.title + WC.L('：', ': ') + t.description.slice(0, 60) : t.title,
           days: perTask,
           category: null,
           createdAt: nowIso(),
@@ -473,7 +473,11 @@
     // ── Settings / backup ─────────────────────────────
     saveSettings: function (patch) {
       state.settings = Object.assign({}, state.settings, patch)
-      return persist('settings')
+      // Store only customised prompts so an untouched template follows the UI language
+      var saved = Object.assign({}, state.settings)
+      if (saved.weeklyPrompt === DEFAULT_WEEKLY_PROMPT) delete saved.weeklyPrompt
+      if (saved.monthlyPrompt === DEFAULT_MONTHLY_PROMPT) delete saved.monthlyPrompt
+      return AIPA.data.set('settings', saved).then(emit)
     },
 
     exportData: function () {
@@ -495,9 +499,9 @@
     },
 
     importData: function (data) {
-      if (!data || data.app !== 'aipa-work-calendar') fail('不是工作日历导出的数据文件')
+      if (!data || data.app !== 'aipa-work-calendar') fail(WC.L('不是工作日历导出的数据文件', 'Not a Work Calendar export file'))
       COLLECTIONS.forEach(function (k) {
-        if (!Array.isArray(data[k])) fail('数据文件缺少 ' + k + ' 字段')
+        if (!Array.isArray(data[k])) fail(WC.L('数据文件缺少 ', 'Data file is missing the ') + k + WC.L(' 字段', ' field'))
       })
       COLLECTIONS.forEach(function (k) { state[k] = data[k] })
       if (data.settings) state.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings)

@@ -6,6 +6,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { ChevronUp, Check, User, GitBranch } from 'lucide-react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
+import FloatingPortal from '../ui/FloatingPortal'
 import type { Persona, Workflow } from '../../types/app.types'
 
 interface StatusBarPersonaPickerProps {
@@ -24,13 +25,15 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
   const sessionPersona = allPersonas.find(p => p.id === sessionPersonaId)
   const [show, setShow] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [chipHovered, setChipHovered] = useState(false)
 
   useEffect(() => {
     if (!show) return
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      if (ref.current && !ref.current.contains(target) && !menuRef.current?.contains(target)) {
         setShow(false)
       }
     }
@@ -110,13 +113,10 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
         <ChevronUp size={8} style={{ opacity: 0.6, transform: show ? 'rotate(180deg)' : 'none', transition: 'all 0.15s ease' }} />
       </button>
       {show && (
+        <FloatingPortal ref={menuRef} anchorRef={ref} placement="above-end">
         <div
           className="popup-enter"
           style={{
-            position: 'absolute',
-            bottom: '100%',
-            right: 0,
-            marginBottom: 4,
             background: 'var(--popup-bg)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
@@ -125,7 +125,6 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
             boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
             padding: '4px 0',
             minWidth: 200,
-            zIndex: 200,
           }}
         >
           {/* No Persona option */}
@@ -290,6 +289,7 @@ export default function StatusBarPersonaPicker({ personas, activePersona: _defau
             </>
           )}
         </div>
+        </FloatingPortal>
       )}
     </div>
   )

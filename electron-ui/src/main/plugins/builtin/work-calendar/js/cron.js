@@ -69,12 +69,12 @@
   WC.cron = {
     next: next,
     PRESETS: [
-      { label: '每天 09:00', cron: '0 9 * * *' },
-      { label: '工作日 09:00', cron: '0 9 * * 1-5' },
-      { label: '每天 12:00', cron: '0 12 * * *' },
-      { label: '每天 18:00', cron: '0 18 * * *' },
-      { label: '每周五 17:00', cron: '0 17 * * 5' },
-      { label: '每小时', cron: '0 * * * *' },
+      { label: WC.L('每天 09:00', 'Daily 09:00'), cron: '0 9 * * *' },
+      { label: WC.L('工作日 09:00', 'Weekdays 09:00'), cron: '0 9 * * 1-5' },
+      { label: WC.L('每天 12:00', 'Daily 12:00'), cron: '0 12 * * *' },
+      { label: WC.L('每天 18:00', 'Daily 18:00'), cron: '0 18 * * *' },
+      { label: WC.L('每周五 17:00', 'Fridays 17:00'), cron: '0 17 * * 5' },
+      { label: WC.L('每小时', 'Hourly'), cron: '0 * * * *' },
     ],
   }
 })()

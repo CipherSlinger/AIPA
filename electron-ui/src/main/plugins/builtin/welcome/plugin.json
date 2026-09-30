@@ -1,0 +1,16 @@
+{
+  "id": "welcome-dashboard",
+  "name": "插件中心",
+  "nameEn": "Plugin Hub",
+  "version": "2.0.0",
+  "description": "浏览、管理和快速进入 AIPA 免编译扩展插件生态",
+  "icon": "Blocks",
+  "location": "bottom",
+  "order": 1,
+  "main": "index.html",
+  "permissions": [
+    "chat",
+    "storage",
+    "toast"
+  ]
+}

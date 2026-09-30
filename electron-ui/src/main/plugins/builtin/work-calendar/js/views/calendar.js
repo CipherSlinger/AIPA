@@ -13,7 +13,7 @@
 
   var LANE_TOP = 30
   var LANE_HEIGHT = 18
-  var WEEK_NAMES = ['一', '二', '三', '四', '五', '六', '日']
+  var WEEK_NAMES = WC.WEEKDAY_SHORT
 
   var view = {
     year: new Date().getFullYear(),
@@ -67,11 +67,11 @@
     var busy = gen.isBusy()
     if (report) {
       return '<button class="rep-btn done" data-act="preview-report" data-id="' + report.id + '" title="' +
-        (kind === 'month' ? '本月月报已生成，点击预览' : '本周周报已生成，点击预览') + '">' + WC.icon('check', 15) + '</button>'
+        (kind === 'month' ? WC.L('本月月报已生成，点击预览', 'Monthly report ready — click to preview') : WC.L('本周周报已生成，点击预览', 'Weekly report ready — click to preview')) + '">' + WC.icon('check', 15) + '</button>'
     }
     return '<button class="rep-btn' + (busy ? ' busy' : '') + '" data-act="' + (kind === 'month' ? 'gen-monthly' : 'gen-weekly') + '"' +
       (key ? ' data-key="' + key + '"' : '') + ' title="' +
-      (kind === 'month' ? '本月月报未生成，点击由本月周报合并生成' : '本周周报未生成，点击 AI 生成') + '">' + WC.icon('clock', 15) + '</button>'
+      (kind === 'month' ? WC.L('本月月报未生成，点击由本月周报合并生成', 'No monthly report yet — click to build it from this month\'s weekly reports') : WC.L('本周周报未生成，点击 AI 生成', 'No weekly report yet — click to generate with AI')) + '">' + WC.icon('clock', 15) + '</button>'
   }
 
   function renderGrid() {
@@ -83,7 +83,7 @@
 
     html.push(
       '<div class="cal-weekhdr"><div class="cal-corner">' + reportBtn(store.findMonthlyReport(monthKey), 'month') + '</div>' +
-      '<div class="cal-days7">' + WEEK_NAMES.map(function (n) { return '<div class="cal-dayname">周' + n + '</div>' }).join('') + '</div></div>'
+      '<div class="cal-days7">' + WEEK_NAMES.map(function (n) { return '<div class="cal-dayname">' + (WC.isEn ? n : '周' + n) + '</div>' }).join('') + '</div></div>'
     )
 
     for (var row = 0; row < 6; row++) {
@@ -112,7 +112,7 @@
         if (!s.after) cls.push('round-r')
         if (t.status === 'done') cls.push('done')
         return '<button class="' + cls.join(' ') + '" data-act="edit-task" data-id="' + t.id + '" title="' +
-          WC.esc(t.title + '（' + s.span.startKey + ' 至 ' + s.span.endKey + '）') + '" style="background:' + WC.barColor(t.id) +
+          WC.esc(t.title + WC.L('（', ' (') + s.span.startKey + WC.L(' 至 ', ' to ') + s.span.endKey + WC.L('）', ')')) + '" style="background:' + WC.barColor(t.id) +
           ';left:calc(' + (s.startIdx / 7 * 100) + '% + 2px);width:calc(' + ((s.endIdx - s.startIdx + 1) / 7 * 100) + '% - 4px);top:' + (s.lane * LANE_HEIGHT) + 'px">' +
           (s.before ? '' : WC.esc(t.title)) + '</button>'
       }).join('')
@@ -144,7 +144,7 @@
     var tasks = store.tasksInRange(key, key)
     var list = tasks.map(function (t) {
       var s = store.spanOf(t)
-      var range = s.start === s.end ? '' : s.start.slice(5) + ' 至 ' + s.end.slice(5)
+      var range = s.start === s.end ? '' : s.start.slice(5) + WC.L(' 至 ', ' to ') + s.end.slice(5)
       var badge = t.status === 'done' ? 'badge-accent' : t.status === 'in_progress' ? '' : 'badge-outline'
       return '<li><button class="day-item" data-act="edit-task" data-id="' + t.id + '">' +
         '<span class="l"><span class="dot" style="background:' + WC.barColor(t.id) + '"></span>' +
@@ -152,7 +152,7 @@
         '<span class="badge ' + badge + '">' + WC.STATUS[t.status] + '</span></button></li>'
     }).join('')
     return '<div class="day-panel"><h3>' + D.fmtCN(key) + '<small>' + D.weekdayLabel(key) + '</small></h3>' +
-      '<div class="hint-line">' + WC.icon('info', 13) + '当日任务（' + tasks.length + '）· 在日历格上点击或按住拖动即可创建任务</div>' +
+      '<div class="hint-line">' + WC.icon('info', 13) + WC.L('当日任务（', 'Tasks (') + tasks.length + WC.L('）· 在日历格上点击或按住拖动即可创建任务</div>', ') · Click a day or drag across days to create a task</div>') +
       (tasks.length ? '<ul class="day-list">' + list + '</ul>' : '') + '</div>'
   }
 
@@ -161,13 +161,13 @@
     view.root.innerHTML =
       '<div class="cal' + (view.drag ? ' cal-dragging' : '') + '">' +
         '<div class="cal-head">' +
-          '<div class="cal-title">' + view.year + '年' + (view.month + 1) + '月</div>' +
+          '<div class="cal-title">' + WC.fmtMonth(view.year, view.month) + '</div>' +
           '<div class="cal-nav">' +
-            '<button class="btn btn-icon" data-act="prev" title="上一月">' + WC.icon('left') + '</button>' +
-            '<button class="btn" data-act="today">' + WC.icon('undo') + '回到今天</button>' +
-            '<button class="btn btn-icon" data-act="next" title="下一月">' + WC.icon('right') + '</button>' +
+            WC.L('<button class="btn btn-icon" data-act="prev" title="上一月">', '<button class="btn btn-icon" data-act="prev" title="Previous month">') + WC.icon('left') + '</button>' +
+            '<button class="btn" data-act="today">' + WC.icon('undo') + WC.L('回到今天</button>', 'Today</button>') +
+            WC.L('<button class="btn btn-icon" data-act="next" title="下一月">', '<button class="btn btn-icon" data-act="next" title="Next month">') + WC.icon('right') + '</button>' +
           '</div>' +
-          '<div class="cal-legend"><span style="color:var(--ok)">' + WC.icon('check', 13) + '已生成</span><span>' + WC.icon('clock', 13) + '未生成（点击 AI 生成）</span></div>' +
+          '<div class="cal-legend"><span style="color:var(--ok)">' + WC.icon('check', 13) + WC.L('已生成</span><span>', 'Generated</span><span>') + WC.icon('clock', 13) + WC.L('未生成（点击 AI 生成）</span></div>', 'Not generated (click to generate)</span></div>') +
         '</div>' +
         '<div data-grid>' + renderGrid() + '</div>' +
         renderDayPanel() +
@@ -200,18 +200,18 @@
     var priority = task ? task.priority : 'medium'
     var srcId = task ? task.workSourceId || '' : ''
     el.innerHTML =
-      '<input class="input title" data-f="title" placeholder="添加任务标题" maxlength="200" value="' + WC.esc(task ? task.title : '') + '">' +
-      '<div class="row"><input type="date" class="input" data-f="start" value="' + startKey + '"><span class="muted">至</span><input type="date" class="input" data-f="end" value="' + endKey + '"></div>' +
+      WC.L('<input class="input title" data-f="title" placeholder="添加任务标题" maxlength="200" value="', '<input class="input title" data-f="title" placeholder="Task title" maxlength="200" value="') + WC.esc(task ? task.title : '') + '">' +
+      '<div class="row"><input type="date" class="input" data-f="start" value="' + startKey + WC.L('"><span class="muted">至</span><input type="date" class="input" data-f="end" value="', '"><span class="muted">to</span><input type="date" class="input" data-f="end" value="') + endKey + '"></div>' +
       '<div class="row"><select class="select" data-f="status">' + WC.options(WC.STATUS, status) + '</select>' +
         '<select class="select" data-f="priority">' + WC.options(WC.PRIORITY, priority) + '</select></div>' +
-      '<div class="row"><select class="select" data-f="source"><option value="">不绑定工作源</option>' +
+      WC.L('<div class="row"><select class="select" data-f="source"><option value="">不绑定工作源</option>', '<div class="row"><select class="select" data-f="source"><option value="">No work source</option>') +
         sources.map(function (s) {
-          return '<option value="' + s.id + '"' + (s.id === srcId ? ' selected' : '') + '>' + WC.esc(s.name) + (s.sourceType === 'github' ? '（GitHub）' : '（文件夹）') + '</option>'
+          return '<option value="' + s.id + '"' + (s.id === srcId ? ' selected' : '') + '>' + WC.esc(s.name) + (s.sourceType === 'github' ? WC.L('（GitHub）', ' (GitHub)') : WC.L('（文件夹）', ' (folder)')) + '</option>'
         }).join('') + '</select></div>' +
       '<div class="actions">' +
-        (mode === 'edit' ? '<button class="btn btn-danger btn-sm" data-do="delete">' + WC.icon('trash', 13) + '删除</button>' : '<span></span>') +
-        '<span class="row" style="margin:0;gap:6px"><button class="btn btn-sm" data-do="cancel">取消</button>' +
-        '<button class="btn btn-primary btn-sm" data-do="save">' + (mode === 'edit' ? '保存' : '创建') + '</button></span>' +
+        (mode === 'edit' ? '<button class="btn btn-danger btn-sm" data-do="delete">' + WC.icon('trash', 13) + WC.L('删除</button>', 'Delete</button>') : '<span></span>') +
+        WC.L('<span class="row" style="margin:0;gap:6px"><button class="btn btn-sm" data-do="cancel">取消</button>', '<span class="row" style="margin:0;gap:6px"><button class="btn btn-sm" data-do="cancel">Cancel</button>') +
+        '<button class="btn btn-primary btn-sm" data-do="save">' + (mode === 'edit' ? WC.L('保存', 'Save') : WC.L('创建', 'Create')) + '</button></span>' +
       '</div>'
     document.getElementById('overlay-root').appendChild(el)
 
@@ -231,8 +231,8 @@
     function save() {
       if (busy) return
       var title = f('title').value.trim()
-      if (!title) { AIPA.toast('error', '请输入任务标题'); f('title').focus(); return }
-      if (!f('start').value || !f('end').value) { AIPA.toast('error', '请选择日期'); return }
+      if (!title) { AIPA.toast('error', WC.L('请输入任务标题', 'Please enter a task title')); f('title').focus(); return }
+      if (!f('start').value || !f('end').value) { AIPA.toast('error', WC.L('请选择日期', 'Please choose a date')); return }
       busy = true
       var payload = {
         title: title, status: f('status').value, priority: f('priority').value,
@@ -240,10 +240,10 @@
       }
       WC.attempt(function () { return mode === 'edit' ? store.updateTask(task.id, payload) : store.createTask(payload) })
         .then(function () {
-          AIPA.toast('success', mode === 'edit' ? '任务已更新' : '任务已创建')
+          AIPA.toast('success', mode === 'edit' ? WC.L('任务已更新', 'Task updated') : WC.L('任务已创建', 'Task created'))
           close()
         })
-        .catch(function (err) { busy = false; AIPA.toast('error', '保存任务失败：' + WC.errMsg(err)) })
+        .catch(function (err) { busy = false; AIPA.toast('error', WC.L('保存任务失败：', 'Failed to save task: ') + WC.errMsg(err)) })
     }
 
     el.addEventListener('click', function (e) {
@@ -254,8 +254,8 @@
       else if (act === 'save') save()
       else if (act === 'delete') {
         store.removeTask(task.id)
-          .then(function () { AIPA.toast('success', '任务已删除'); close() })
-          .catch(function (err) { AIPA.toast('error', '删除任务失败：' + WC.errMsg(err)) })
+          .then(function () { AIPA.toast('success', WC.L('任务已删除', 'Task deleted')); close() })
+          .catch(function (err) { AIPA.toast('error', WC.L('删除任务失败：', 'Failed to delete task: ') + WC.errMsg(err)) })
       }
     })
     f('title').addEventListener('keydown', function (e) {
@@ -298,13 +298,13 @@
     var isWeekly = report.reportType === 'weekly'
     var m = WC.modal({
       title: '<span style="color:var(--ok);display:flex">' + WC.icon('check', 16) + '</span>' + WC.esc(report.title),
-      sub: report.periodStart + ' 至 ' + report.periodEnd + (report.updatedAt ? ' · 更新于 ' + D.fmtDateTime(report.updatedAt) : ''),
+      sub: report.periodStart + WC.L(' 至 ', ' to ') + report.periodEnd + (report.updatedAt ? WC.L(' · 更新于 ', ' · updated ') + D.fmtDateTime(report.updatedAt) : ''),
       wide: true,
       tools:
-        (isWeekly ? '<button class="btn btn-sm" data-do="pull" title="拉取该周期任务所绑定的工作源">' + WC.icon('download', 13) + '一键拉取</button>' : '') +
-        '<button class="btn btn-sm" data-do="regen">' + WC.icon('refresh', 13) + '重新生成</button>' +
-        '<button class="btn btn-sm btn-icon" data-do="copy" title="复制 Markdown">' + WC.icon('copy', 13) + '</button>' +
-        '<button class="btn btn-sm btn-icon" data-do="chat" title="发送到 AI 对话继续润色">' + WC.icon('chat', 13) + '</button>',
+        (isWeekly ? WC.L('<button class="btn btn-sm" data-do="pull" title="拉取该周期任务所绑定的工作源">', '<button class="btn btn-sm" data-do="pull" title="Pull the work sources bound to tasks in this period">') + WC.icon('download', 13) + WC.L('一键拉取</button>', 'Pull sources</button>') : '') +
+        '<button class="btn btn-sm" data-do="regen">' + WC.icon('refresh', 13) + WC.L('重新生成</button>', 'Regenerate</button>') +
+        WC.L('<button class="btn btn-sm btn-icon" data-do="copy" title="复制 Markdown">', '<button class="btn btn-sm btn-icon" data-do="copy" title="Copy Markdown">') + WC.icon('copy', 13) + '</button>' +
+        WC.L('<button class="btn btn-sm btn-icon" data-do="chat" title="发送到 AI 对话继续润色">', '<button class="btn btn-sm btn-icon" data-do="chat" title="Send to AI chat to polish">') + WC.icon('chat', 13) + '</button>',
       body: '<div class="report-box md">' + WC.markdown(report.content) + '</div>',
     })
     m.el.addEventListener('click', function (e) {
@@ -312,14 +312,14 @@
       if (!btn) return
       var act = btn.getAttribute('data-do')
       if (act === 'copy') WC.copyText(report.content)
-      else if (act === 'chat') AIPA.sendPrompt('请帮我润色并完善下面这份' + WC.REPORT_TYPE[report.reportType] + '：\n\n' + report.content)
+      else if (act === 'chat') AIPA.sendPrompt(WC.L('请帮我润色并完善下面这份', 'Please polish and improve this ') + WC.REPORT_TYPE[report.reportType] + WC.L('：\n\n', ':\n\n') + report.content)
       else if (act === 'regen') { m.close(); gen.regenerate(report) }
       else if (act === 'pull') {
         btn.disabled = true
-        btn.innerHTML = '<span class="spinner"></span>正在拉取...'
+        btn.innerHTML = WC.L('<span class="spinner"></span>正在拉取...', '<span class="spinner"></span>Pulling...')
         gen.pullSourcesForPeriod(report.periodStart, report.periodEnd).then(function () {
           btn.disabled = false
-          btn.innerHTML = WC.icon('download', 13) + '一键拉取'
+          btn.innerHTML = WC.icon('download', 13) + WC.L('一键拉取', 'Pull sources')
         })
       }
     })

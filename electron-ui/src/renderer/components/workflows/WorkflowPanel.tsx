@@ -1,21 +1,17 @@
+// Employees page: Agents (personas) and Workflows as matching card grids.
 import React, { useMemo, useState } from 'react'
-import {
-  Workflow as WorkflowIcon,
-  Plus,
-  Search,
-  Users2,
-  ToggleLeft,
-  ToggleRight,
-} from 'lucide-react'
+import { Workflow as WorkflowIcon, Search, Users2, ClipboardPaste, Plus } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useUiStore } from '../../store'
+import type { Workflow } from '../../types/app.types'
 import { useWorkflowCrud } from './useWorkflowCrud'
-import { WORKFLOW_ICONS, MAX_NAME_LENGTH, MAX_DESC_LENGTH, PRESET_WORKFLOWS } from './workflowConstants'
-import WorkflowStepEditor from './WorkflowStepEditor'
-import WorkflowItem from './WorkflowItem'
+import { PRESET_WORKFLOWS } from './workflowConstants'
+import WorkflowCard from './WorkflowCard'
 import WorkflowPersonasSection from './WorkflowPersonasSection'
+import { SectionHeader, ToolbarButton, AddCard, PresetCard, SubLabel } from './EmployeesShared'
 
 type WorkflowCategory = 'singleAgent' | 'teamwork'
+type SortKey = 'recent' | 'name' | 'runs'
 
 const PRESET_EMOJIS: Record<string, string> = {
   weeklyReport: '📋',
@@ -29,99 +25,10 @@ const PRESET_EMOJIS: Record<string, string> = {
   contentPipeline: '✍️',
 }
 
-function PresetCard({
-  preset,
-  onInstall,
-  t,
-}: {
-  preset: { icon: string; name: string; presetKey?: string; steps: unknown[] }
-  onInstall: () => void
-  t: (key: string, params?: Record<string, string | number>) => string
-}) {
-  const [hovered, setHovered] = React.useState(false)
-  const key = preset.presetKey ?? ''
-  const emoji = PRESET_EMOJIS[key] ?? preset.icon
-  const name = key ? t(`workflow.preset.${key}`) : preset.name
-  const desc = key ? t(`workflow.preset.${key}Desc`) : ''
-  return (
-    <div
-      onClick={onInstall}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        background: hovered ? 'rgba(99,102,241,0.08)' : 'var(--bg-hover)',
-        border: `1px solid ${hovered ? 'rgba(99,102,241,0.3)' : 'var(--border)'}`,
-        borderRadius: 8,
-        padding: '8px 10px',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 8,
-        transition: 'all 0.15s ease',
-        position: 'relative',
-      }}
-    >
-      {/* Emoji circle */}
-      <div style={{
-        width: 32,
-        height: 32,
-        borderRadius: '50%',
-        background: 'var(--bg-active)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 16,
-        flexShrink: 0,
-      }}>
-        {emoji}
-      </div>
-      {/* Text block */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          fontSize: 12,
-          fontWeight: 700,
-          color: 'var(--text-primary)',
-          marginBottom: 2,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}>
-          {name}
-        </div>
-        {desc && (
-          <div style={{
-            fontSize: 11,
-            color: 'var(--text-muted)',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            lineHeight: 1.35,
-          }}>
-            {desc}
-          </div>
-        )}
-        {/* Step count badge */}
-        <div style={{
-          display: 'inline-block',
-          marginTop: 4,
-          fontSize: 10,
-          fontWeight: 700,
-          letterSpacing: '0.07em',
-          textTransform: 'uppercase' as const,
-          color: 'rgba(99,102,241,0.82)',
-          background: 'rgba(99,102,241,0.12)',
-          border: '1px solid rgba(99,102,241,0.2)',
-          borderRadius: 10,
-          padding: '1px 6px',
-          fontVariantNumeric: 'tabular-nums',
-          fontFeatureSettings: '"tnum"',
-        }}>
-          {preset.steps.length} {t('workflow.stepsLabel')}
-        </div>
-      </div>
-    </div>
-  )
+export const EMPLOYEE_GRID: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
+  gap: 12,
 }
 
 export default function WorkflowPanel() {
@@ -129,677 +36,194 @@ export default function WorkflowPanel() {
   const crud = useWorkflowCrud()
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
-      background: 'var(--bg-primary)',
-      borderRight: '1px solid var(--glass-border)',
-      overflow: 'hidden',
-    }}>
-      {/* Personas section — collapsible, sits above workflows */}
-      <WorkflowPersonasSection />
-      <WorkflowTabContent crud={crud} t={t} />
+    <div className="wf-panel-scroll" style={{ height: '100%', overflowY: 'auto', background: 'var(--bg-primary)', scrollbarWidth: 'thin' }}>
+      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '24px 28px 40px' }}>
+        {/* Page header */}
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+            {t('employees.pageTitle')}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.5 }}>
+            {t('employees.pageSub')}
+          </div>
+        </div>
+
+        <WorkflowPersonasSection />
+
+        <div style={{ height: 1, background: 'var(--glass-border)', margin: '28px 0 24px' }} />
+
+        <WorkflowsSection crud={crud} />
+      </div>
+      <style>{`
+        .wf-panel-scroll::-webkit-scrollbar { width: 6px; }
+        .wf-panel-scroll::-webkit-scrollbar-thumb { background: var(--bg-active); border-radius: 3px; }
+      `}</style>
     </div>
   )
 }
 
-/* Workflows tab content — extracted to keep the main component clean */
-function WorkflowTabContent({ crud, t }: {
-  crud: ReturnType<typeof useWorkflowCrud>;
-  t: (key: string, params?: Record<string, string | number>) => string;
-}) {
+function WorkflowsSection({ crud }: { crud: ReturnType<typeof useWorkflowCrud> }) {
+  const t = useT()
   const [category, setCategory] = useState<WorkflowCategory>('singleAgent')
-  const [sortBy, setSortBy] = useState<'recent' | 'name' | 'runs'>('recent')
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
-  const [importStatus, setImportStatus] = useState<string | null>(null)
+  const [sortBy, setSortBy] = useState<SortKey>('recent')
 
-  // Filter workflows by category
-  const categoryWorkflows = useMemo(() => {
-    return crud.filteredWorkflows.filter(wf =>
-      category === 'teamwork' ? wf.teamwork === true : !wf.teamwork
-    )
-  }, [crud.filteredWorkflows, category])
+  const inCategory = (wf: Workflow) => (category === 'teamwork' ? wf.teamwork === true : !wf.teamwork)
+  const allInCategory = useMemo(() => crud.workflows.filter(inCategory), [crud.workflows, category]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const allCategoryWorkflows = useMemo(() => {
-    return crud.workflows.filter(wf =>
-      category === 'teamwork' ? wf.teamwork === true : !wf.teamwork
-    )
-  }, [crud.workflows, category])
+  const visible = useMemo(() => {
+    const list = crud.filteredWorkflows.filter(inCategory)
+    if (sortBy === 'name') return list.sort((a, b) => a.name.localeCompare(b.name))
+    if (sortBy === 'runs') return list.sort((a, b) => b.runCount - a.runCount)
+    return list.sort((a, b) => b.updatedAt - a.updatedAt)
+  }, [crud.filteredWorkflows, category, sortBy]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const sortedWorkflows = useMemo(() => {
-    const wfs = [...categoryWorkflows]
-    if (sortBy === 'name') return wfs.sort((a, b) => a.name.localeCompare(b.name))
-    if (sortBy === 'runs') return wfs.sort((a, b) => b.runCount - a.runCount)
-    return wfs.sort((a, b) => b.updatedAt - a.updatedAt) // 'recent'
-  }, [categoryWorkflows, sortBy])
+  const presets = (category === 'teamwork' ? crud.PRESET_TEAMWORK_WORKFLOWS : PRESET_WORKFLOWS)
+    .filter(p => !crud.workflows.some(w => w.presetKey === p.presetKey || w.name === p.name))
 
-  const availableCategories = useMemo(() => {
-    const cats = new Set<string>()
-    categoryWorkflows.forEach(wf => { if ((wf as any).category) cats.add((wf as any).category) })
-    return Array.from(cats)
-  }, [categoryWorkflows])
+  const createNew = () => {
+    crud.setNewTeamwork(category === 'teamwork')
+    useUiStore.getState().openWorkflowEditor(null)
+  }
 
-  const filteredWorkflows = categoryFilter
-    ? sortedWorkflows.filter(wf => (wf as any).category === categoryFilter)
-    : sortedWorkflows
+  const importFromClipboard = async () => {
+    const toast = useUiStore.getState().addToast
+    try {
+      const data = JSON.parse(await navigator.clipboard.readText())
+      const valid = (Array.isArray(data) ? data : [data])
+        .filter((wf: unknown) => wf && typeof wf === 'object' && (wf as Record<string, unknown>).name && Array.isArray((wf as Record<string, unknown>).steps))
+        .map((wf: Record<string, unknown>) => ({
+          ...wf,
+          id: `wf-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          runCount: 0,
+        }))
+      const imported = crud.importWorkflows(valid as Workflow[])
+      if (imported > 0) toast('success', t('employees.imported', { count: imported }))
+      else toast('error', t('employees.importInvalid'))
+    } catch {
+      useUiStore.getState().addToast('error', t('employees.clipboardFailed'))
+    }
+  }
 
   return (
-    <>
-      {/* Workflows sub-header with search + create */}
-      <div style={{
-        padding: '12px 14px 8px',
-        borderBottom: '1px solid var(--glass-border)',
-        flexShrink: 0,
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 6,
-        }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.3 }}>
-              {t('workflow.title')}
-            </span>
-            <span style={{
-              fontSize: 9,
-              fontWeight: 700,
-              color: 'rgba(99,102,241,0.82)',
-              background: 'rgba(99,102,241,0.12)',
-              border: '1px solid rgba(99,102,241,0.2)',
-              borderRadius: 10,
-              padding: '1px 7px',
-              letterSpacing: 0.3,
-              lineHeight: 1.6,
-              flexShrink: 0,
-              fontVariantNumeric: 'tabular-nums',
-              fontFeatureSettings: '"tnum"',
-            }}>
-              {crud.workflows.length}
-            </span>
-          </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {importStatus && (
-              <div style={{
-                fontSize: 10,
-                color: importStatus.startsWith('✓') ? '#22c55e' : '#f87171',
-                padding: '2px 8px',
-                background: importStatus.startsWith('✓') ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                borderRadius: 4,
-                flexShrink: 0,
-                transition: 'all 0.15s ease',
-              }}>
-                {importStatus}
-              </div>
-            )}
-            <button
-              onClick={async () => {
-                try {
-                  const text = await navigator.clipboard.readText()
-                  const data = JSON.parse(text)
-                  const workflows = Array.isArray(data) ? data : [data]
-                  const valid = workflows.filter((wf: unknown) =>
-                    wf && typeof wf === 'object' && (wf as Record<string, unknown>).name && Array.isArray((wf as Record<string, unknown>).steps)
-                  ).map((wf: Record<string, unknown>) => ({
-                    ...wf,
-                    id: `wf-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
-                    runCount: 0,
-                  }))
-                  const imported = crud.importWorkflows(valid as import('../../types/app.types').Workflow[])
-                  if (imported > 0) {
-                    setImportStatus(`✓ Imported ${imported} workflow${imported > 1 ? 's' : ''}`)
-                  } else {
-                    setImportStatus('✗ Invalid workflow JSON')
-                  }
-                  setTimeout(() => setImportStatus(null), 3000)
-                } catch {
-                  setImportStatus('✗ Could not read clipboard')
-                  setTimeout(() => setImportStatus(null), 3000)
-                }
-              }}
-              title="Import workflow from clipboard (paste JSON)"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                padding: '5px 10px', borderRadius: 6,
-                border: '1px solid var(--glass-border)',
-                background: 'transparent',
-                color: 'var(--text-muted)', fontSize: 11,
-                cursor: 'pointer', flexShrink: 0,
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'
-                e.currentTarget.style.color = '#6366f1'
-                e.currentTarget.style.background = 'rgba(99,102,241,0.06)'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = 'var(--glass-border)'
-                e.currentTarget.style.color = 'var(--text-muted)'
-                e.currentTarget.style.background = 'transparent'
-              }}
-            >
-              ↑ Import
-            </button>
-            <button
-              onClick={() => {
-                crud.setNewTeamwork(category === 'teamwork')
-                useUiStore.getState().openWorkflowEditor(null)
-              }}
-              aria-label={t('workflow.create')}
-              style={{
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-                border: 'none',
-                borderRadius: 7,
-                padding: '5px 10px',
-                cursor: 'pointer',
-                color: 'var(--text-primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 11,
-                fontWeight: 600,
-                boxShadow: 'none',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(99,102,241,0.95), rgba(139,92,246,0.95))'
-                ;(e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'
-                ;(e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
-                ;(e.currentTarget as HTMLElement).style.boxShadow = 'none'
-                ;(e.currentTarget as HTMLElement).style.transform = 'translateY(0)'
-              }}
-            >
-              <Plus size={14} />
-            </button>
-          </div>
+    <section>
+      <SectionHeader
+        icon={<WorkflowIcon size={14} />}
+        title={t('employees.workflows')}
+        subtitle={t('employees.workflowsSub')}
+        count={crud.workflows.length}
+        actions={
+          <>
+            <ToolbarButton onClick={importFromClipboard} title={t('employees.importFromClipboard')}>
+              <ClipboardPaste size={13} />
+              {t('employees.import')}
+            </ToolbarButton>
+            <ToolbarButton onClick={createNew} primary>
+              <Plus size={13} />
+              {t('employees.addWorkflow')}
+            </ToolbarButton>
+          </>
+        }
+      />
+
+      {/* Filter bar: category segmented control, search, sort */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', padding: 2, borderRadius: 9, background: 'var(--bg-hover)', border: '1px solid var(--glass-border)' }}>
+          {(['singleAgent', 'teamwork'] as WorkflowCategory[]).map(cat => {
+            const on = category === cat
+            return (
+              <button
+                key={cat}
+                onClick={() => setCategory(cat)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5, height: 24, padding: '0 12px', borderRadius: 7, border: 'none',
+                  fontSize: 12, fontWeight: on ? 600 : 500, cursor: 'pointer', transition: 'all 0.15s ease',
+                  background: on ? 'var(--bg-primary)' : 'transparent',
+                  color: on ? '#818cf8' : 'var(--text-muted)',
+                  boxShadow: on ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+                }}
+              >
+                {cat === 'teamwork' ? <Users2 size={12} /> : <WorkflowIcon size={12} />}
+                {t(`workflow.${cat}`)}
+              </button>
+            )
+          })}
         </div>
 
-        {/* Category tabs: Single-Agent / Teamwork */}
-        <div style={{ display: 'flex', gap: 2, marginBottom: 6 }}>
-          {(['singleAgent', 'teamwork'] as WorkflowCategory[]).map(cat => (
-            <button
-              key={cat}
-              onClick={() => setCategory(cat)}
-              style={{
-                flex: 1,
-                padding: '3px 0',
-                fontSize: 10,
-                fontWeight: category === cat ? 600 : 400,
-                background: category === cat ? 'rgba(99,102,241,0.12)' : 'transparent',
-                border: `1px solid ${category === cat ? '#6366f1' : 'var(--glass-border)'}`,
-                borderRadius: 5,
-                color: category === cat ? '#6366f1' : 'var(--text-muted)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 4,
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {cat === 'teamwork' ? <Users2 size={10} /> : <WorkflowIcon size={10} />}
-              {t(`workflow.${cat}`)}
-            </button>
-          ))}
-        </div>
-
-        {/* Search */}
-        <div style={{ position: 'relative' }}>
-          <Search size={12} style={{
-            position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
-            color: 'var(--text-muted)', pointerEvents: 'none',
-          }} />
+        <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: 320 }}>
+          <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
           <input
             type="text"
             value={crud.searchQuery}
             onChange={e => crud.setSearchQuery(e.target.value)}
             placeholder={t('workflow.searchPlaceholder')}
             style={{
-              width: '100%', height: 28, paddingLeft: 26, paddingRight: 8,
-              background: 'var(--bg-hover)',
-              border: '1px solid var(--border)',
-              borderRadius: 8, fontSize: 11, color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              transition: 'all 0.15s ease',
+              width: '100%', height: 28, paddingLeft: 28, paddingRight: 10, boxSizing: 'border-box',
+              background: 'var(--bg-hover)', border: '1px solid var(--glass-border)', borderRadius: 8,
+              fontSize: 12, color: 'var(--text-primary)', outline: 'none', transition: 'all 0.15s ease',
             }}
-            onFocus={e => {
-              e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'
-              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)'
-            }}
-            onBlur={e => {
-              e.currentTarget.style.borderColor = 'var(--border)'
-              e.currentTarget.style.boxShadow = 'none'
-            }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+            onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }}
           />
         </div>
-      </div>
 
-      {/* Create form */}
-      {crud.showCreateForm && (
-        <div style={{
-          padding: '8px 12px',
-          borderBottom: '1px solid var(--glass-border)',
-          background: 'rgba(99,102,241,0.03)',
-          flexShrink: 0,
-          maxHeight: '50%',
-          overflowY: 'auto',
-        }}>
-          <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, maxWidth: '100%' }}>
-              {WORKFLOW_ICONS.map(icon => (
-                <button
-                  key={icon}
-                  onClick={() => crud.setNewIcon(icon)}
-                  style={{
-                    background: crud.newIcon === icon ? '#6366f1' : 'transparent',
-                    border: crud.newIcon === icon ? '1px solid #6366f1' : '1px solid var(--glass-border)',
-                    borderRadius: 4, padding: '2px 4px', fontSize: 14, cursor: 'pointer', lineHeight: 1,
-                  }}
-                >
-                  {icon}
-                </button>
-              ))}
-            </div>
-          </div>
-          <input
-            value={crud.newName}
-            onChange={e => crud.setNewName(e.target.value)}
-            placeholder={t('workflow.namePlaceholder')}
-            maxLength={MAX_NAME_LENGTH}
-            autoFocus
+        {allInCategory.length > 1 && (
+          <select
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value as SortKey)}
+            aria-label={t('employees.sortLabel')}
             style={{
-              width: '100%', height: 28, padding: '0 8px',
-              background: 'var(--bg-hover)', border: '1px solid var(--glass-border)',
-              borderRadius: 6, fontSize: 11, fontWeight: 500, color: 'var(--text-primary)',
-              outline: 'none', boxSizing: 'border-box', marginBottom: 4,
-            }}
-          />
-          <input
-            value={crud.newDesc}
-            onChange={e => crud.setNewDesc(e.target.value)}
-            placeholder={t('workflow.descPlaceholder')}
-            maxLength={MAX_DESC_LENGTH}
-            style={{
-              width: '100%', height: 28, padding: '0 8px',
-              background: 'var(--bg-hover)', border: '1px solid var(--glass-border)',
-              borderRadius: 6, fontSize: 10, color: 'var(--text-secondary)',
-              outline: 'none', boxSizing: 'border-box', marginBottom: 6,
-            }}
-          />
-          {/* Teamwork toggle */}
-          <button
-            type="button"
-            onClick={() => crud.setNewTeamwork(!crud.newTeamwork)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              background: 'transparent', border: 'none', padding: '2px 0',
-              cursor: 'pointer', marginBottom: 6,
-              color: crud.newTeamwork ? '#6366f1' : 'var(--text-muted)',
+              height: 28, padding: '0 8px', borderRadius: 8, fontSize: 12, cursor: 'pointer', marginLeft: 'auto',
+              background: 'var(--bg-hover)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)', outline: 'none',
             }}
           >
-            {crud.newTeamwork
-              ? <ToggleRight size={16} style={{ color: '#6366f1' }} />
-              : <ToggleLeft size={16} />
-            }
-            <span style={{ fontSize: 10, fontWeight: 600 }}>
-              {t('workflow.teamworkToggle')}
-            </span>
-            <Users2 size={10} style={{ opacity: 0.7 }} />
-          </button>
-          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>
-            {t('workflow.steps')}
-          </div>
-          <WorkflowStepEditor steps={crud.newSteps} setSteps={crud.setNewSteps} />
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4, marginTop: 8 }}>
-            <button
-              onClick={() => { crud.setShowCreateForm(false); crud.setNewName(''); crud.setNewDesc(''); crud.setNewTeamwork(false); crud.setNewSteps([{ id: `step-${Date.now()}`, title: t('workflow.stepLabel', { n: 1 }), prompt: '' }]) }}
-              style={{
-                background: 'transparent', border: '1px solid var(--glass-border)', borderRadius: 4,
-                padding: '3px 10px', fontSize: 10, color: 'var(--text-muted)', cursor: 'pointer',
-              }}
-            >
-              {t('workflow.cancel')}
-            </button>
-            <button
-              onClick={crud.createWorkflow}
-              disabled={!crud.newName.trim() || crud.newSteps.every(s => !s.prompt.trim())}
-              style={{
-                background: crud.newName.trim() ? '#6366f1' : 'var(--bg-active)',
-                border: 'none', borderRadius: 4, padding: '3px 12px', fontSize: 10, fontWeight: 600,
-                color: crud.newName.trim() ? 'var(--text-primary)' : 'var(--text-muted)',
-                cursor: crud.newName.trim() ? 'pointer' : 'not-allowed',
-                opacity: crud.newName.trim() ? 1 : 0.4,
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {t('workflow.save')}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Workflow list (Iteration 459: canvas removed, workflows open in main panel) */}
-        <div className="wf-panel-scroll" style={{ flex: 1, overflowY: 'auto', padding: '6px 8px', scrollbarWidth: 'thin' }}>
-          {/* Category filter tabs */}
-          {availableCategories.length > 1 && (
-            <div style={{ display: 'flex', gap: 4, padding: '0 0 8px', flexWrap: 'wrap' }}>
-              <button
-                onClick={() => setCategoryFilter(null)}
-                style={{
-                  fontSize: 10, padding: '2px 9px', borderRadius: 20, cursor: 'pointer',
-                  background: !categoryFilter ? 'rgba(99,102,241,0.15)' : 'var(--bg-active)',
-                  border: !categoryFilter ? '1px solid rgba(99,102,241,0.30)' : '1px solid var(--glass-border)',
-                  color: !categoryFilter ? '#818cf8' : 'var(--text-muted)',
-                  fontWeight: !categoryFilter ? 700 : 400,
-                  transition: 'all 0.15s ease',
-                }}
-              >All</button>
-              {availableCategories.map(cat => (
-                <button key={cat}
-                  onClick={() => setCategoryFilter(cat)}
-                  style={{
-                    fontSize: 10, padding: '2px 9px', borderRadius: 20, cursor: 'pointer',
-                    background: categoryFilter === cat ? 'rgba(99,102,241,0.15)' : 'var(--bg-active)',
-                    border: categoryFilter === cat ? '1px solid rgba(99,102,241,0.30)' : '1px solid var(--glass-border)',
-                    color: categoryFilter === cat ? '#818cf8' : 'var(--text-muted)',
-                    fontWeight: categoryFilter === cat ? 700 : 400,
-                    transition: 'all 0.15s ease',
-                    textTransform: 'capitalize',
-                  }}
-                >{cat}</button>
-              ))}
-            </div>
-          )}
-          {/* Sort controls */}
-          {categoryWorkflows.length > 0 && (
-            <div style={{ display: 'flex', gap: 4, marginBottom: 8, padding: '0 4px' }}>
-              {(['recent', 'name', 'runs'] as const).map(s => (
-                <button
-                  key={s}
-                  onClick={() => setSortBy(s)}
-                  style={{
-                    fontSize: 10,
-                    padding: '2px 8px',
-                    borderRadius: 6,
-                    border: `1px solid ${sortBy === s ? 'rgba(99,102,241,0.50)' : 'var(--glass-border)'}`,
-                    background: sortBy === s ? 'rgba(99,102,241,0.15)' : 'transparent',
-                    color: sortBy === s ? '#818cf8' : 'var(--text-muted)',
-                    cursor: 'pointer',
-                    fontWeight: sortBy === s ? 600 : 400,
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  {s === 'recent' ? t('session.sortNewest') : s === 'name' ? t('session.sortAlpha') : t('session.sortMsgs')}
-                </button>
-              ))}
-            </div>
-          )}
-          {categoryWorkflows.length === 0 && !crud.showCreateForm ? (
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            height: '50%', color: 'var(--text-faint)', gap: 8, padding: '0 16px',
-          }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-            <div style={{
-              background: 'var(--bg-active)',
-              borderRadius: 20,
-              padding: 20,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-            {category === 'teamwork'
-              ? <Users2 size={28} style={{ color: 'var(--text-faint)', animation: 'wf-pulse 2s ease-in-out infinite' }} />
-              : <WorkflowIcon size={28} style={{ color: 'var(--text-faint)', animation: 'wf-pulse 2s ease-in-out infinite' }} />
-            }
-            </div>
-            <span style={{ fontSize: 12, fontWeight: 600, textAlign: 'center', color: 'var(--text-faint)' }}>
-              {allCategoryWorkflows.length === 0 ? t('workflow.emptyState') : t('workflow.noResults')}
-            </span>
-            </div>
-            {allCategoryWorkflows.length === 0 && category === 'singleAgent' && (
-              <>
-                <span style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.65, textAlign: 'center' }}>
-                  {t('workflow.emptyHint')}
-                </span>
-                <button
-                  onClick={() => {
-                    crud.setNewTeamwork(false)
-                    useUiStore.getState().openWorkflowEditor(null)
-                  }}
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: 'var(--text-primary)',
-                    background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '6px 16px',
-                    cursor: 'pointer',
-                    marginTop: 4,
-                    boxShadow: '0 2px 8px rgba(99,102,241,0.35)',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(99,102,241,0.95), rgba(139,92,246,0.95))'
-                    ;(e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'
-                    ;(e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'
-                    ;(e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(99,102,241,0.35)'
-                    ;(e.currentTarget as HTMLElement).style.transform = 'translateY(0)'
-                  }}
-                >
-                  {t('workflow.create')} →
-                </button>
-                {/* Preset workflows */}
-                <div style={{ width: '100%', marginTop: 8 }}>
-                  <span style={{
-                    fontSize: 9,
-                    fontWeight: 700,
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    opacity: 0.7,
-                    paddingLeft: 8,
-                    borderLeft: '2px solid rgba(99,102,241,0.4)',
-                    display: 'block',
-                    marginBottom: 6,
-                  }}>
-                    {t('workflow.presets')}
-                  </span>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 6 }}>
-                    {PRESET_WORKFLOWS.map((preset, i) => (
-                      <PresetCard
-                        key={i}
-                        preset={preset}
-                        onInstall={() => crud.installPreset(preset)}
-                        t={t}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-            {allCategoryWorkflows.length === 0 && category === 'teamwork' && (
-              <>
-                <span style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.7, textAlign: 'center' }}>
-                  {t('workflow.teamworkEmptyHint')}
-                </span>
-                <div style={{ width: '100%', marginTop: 8 }}>
-                  <span style={{
-                    fontSize: 9,
-                    fontWeight: 700,
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    opacity: 0.7,
-                    paddingLeft: 8,
-                    borderLeft: '2px solid rgba(99,102,241,0.4)',
-                    display: 'block',
-                    marginBottom: 6,
-                  }}>
-                    {t('workflow.presets')}
-                  </span>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 6 }}>
-                    {crud.PRESET_TEAMWORK_WORKFLOWS.map((preset, i) => (
-                      <PresetCard
-                        key={i}
-                        preset={preset}
-                        onInstall={() => crud.installPreset(preset)}
-                        t={t}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        ) : (
-          filteredWorkflows.map(wf => (
-            <WorkflowItem
-              key={wf.id}
-              wf={wf}
-              isExpanded={crud.expandedId === wf.id}
-              isEditing={crud.editingId === wf.id}
-              crud={crud}
-            />
-          ))
+            <option value="recent">{t('employees.sortRecent')}</option>
+            <option value="name">{t('employees.sortName')}</option>
+            <option value="runs">{t('employees.sortRuns')}</option>
+          </select>
         )}
-
-        {/* Presets section (when workflows exist but not searching) — only for singleAgent */}
-        {allCategoryWorkflows.length > 0 && !crud.searchQuery && category === 'singleAgent' && (
-          <div style={{ padding: '8px 12px' }}>
-            <div style={{
-              fontSize: 9,
-              fontWeight: 700,
-              color: 'var(--text-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              opacity: 0.7,
-              paddingLeft: 8,
-              borderLeft: '2px solid rgba(99,102,241,0.4)',
-              marginBottom: 8,
-            }}>
-              {t('workflow.presets')}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-              {PRESET_WORKFLOWS.filter(p => !crud.workflows.some(w => w.presetKey === p.presetKey || w.name === p.name)).map((preset, i) => (
-                <PresetCard
-                  key={i}
-                  preset={preset}
-                  onInstall={() => crud.installPreset(preset)}
-                  t={t}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-        {/* Teamwork presets footer */}
-        {allCategoryWorkflows.length > 0 && !crud.searchQuery && category === 'teamwork' && (
-          <div style={{ padding: '8px 12px' }}>
-            <div style={{
-              fontSize: 9,
-              fontWeight: 700,
-              color: 'var(--text-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              opacity: 0.7,
-              paddingLeft: 8,
-              borderLeft: '2px solid rgba(99,102,241,0.4)',
-              marginBottom: 8,
-            }}>
-              {t('workflow.presets')}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-              {crud.PRESET_TEAMWORK_WORKFLOWS.filter(p => !crud.workflows.some(w => w.presetKey === p.presetKey || w.name === p.name)).map((preset, i) => (
-                <PresetCard
-                  key={i}
-                  preset={preset}
-                  onInstall={() => crud.installPreset(preset)}
-                  t={t}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-        </div>
-
-      {/* Footer */}
-      <div style={{
-        padding: '0',
-        borderTop: '1px solid var(--glass-border)',
-        flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
-      }}>
-        {/* New workflow CTA bar */}
-        <button
-          onClick={() => {
-            crud.setNewTeamwork(category === 'teamwork')
-            useUiStore.getState().openWorkflowEditor(null)
-          }}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            padding: '9px 12px',
-            background: 'transparent',
-            border: 'none',
-            borderBottom: '1px solid var(--glass-border)',
-            cursor: 'pointer',
-            color: 'var(--text-muted)',
-            fontSize: 11,
-            fontWeight: 600,
-            transition: 'all 0.15s ease',
-            letterSpacing: '0.02em',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(99,102,241,0.07)'
-            e.currentTarget.style.color = '#818cf8'
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.color = 'var(--text-muted)'
-          }}
-        >
-          <Plus size={13} />
-          {t('workflow.create')}
-        </button>
-        <div style={{
-          padding: '5px 12px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}>
-          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase' as const, color: 'var(--text-faint)' }}>
-            {t('workflow.footer')}
-          </span>
-          <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>
-            {t('workflow.inspired')}
-          </span>
-        </div>
       </div>
 
-      {/* CSS animations */}
-      <style>{`
-        @keyframes wf-pulse {
-          0%, 100% { opacity: 0.3; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(1.05); }
-        }
-        .wf-panel-scroll::-webkit-scrollbar { width: 4px; }
-        .wf-panel-scroll::-webkit-scrollbar-thumb { background: var(--bg-active); border-radius: 2px; }
-      `}</style>
-    </>
+      {/* Grid */}
+      {visible.length === 0 && crud.searchQuery ? (
+        <div style={{ padding: '28px 0', textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>{t('workflow.noResults')}</div>
+      ) : (
+        <>
+          {allInCategory.length === 0 && (
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
+              {category === 'teamwork' ? t('workflow.teamworkEmptyHint') : t('workflow.emptyHint')}
+            </div>
+          )}
+          <div style={EMPLOYEE_GRID}>
+            {visible.map(wf => (
+              <WorkflowCard key={wf.id} wf={wf} onDuplicate={crud.duplicateWorkflow} onDelete={crud.deleteWorkflow} />
+            ))}
+            {!crud.searchQuery && <AddCard label={t('employees.addWorkflow')} onClick={createNew} minHeight={148} />}
+          </div>
+        </>
+      )}
+
+      {/* Presets not yet installed */}
+      {presets.length > 0 && !crud.searchQuery && (
+        <>
+          <SubLabel>{t('employees.presetsWorkflows')}</SubLabel>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
+            {presets.map(preset => {
+              const key = preset.presetKey ?? ''
+              return (
+                <PresetCard
+                  key={key || preset.name}
+                  icon={<span style={{ width: 30, height: 30, borderRadius: 9, background: 'var(--bg-active)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{PRESET_EMOJIS[key] ?? preset.icon}</span>}
+                  title={key ? t(`workflow.preset.${key}`) : preset.name}
+                  subtitle={key ? t(`workflow.preset.${key}Desc`) : t('employees.steps', { count: preset.steps.length })}
+                  onClick={() => crud.installPreset(preset)}
+                />
+              )
+            })}
+          </div>
+        </>
+      )}
+    </section>
   )
 }

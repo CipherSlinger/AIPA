@@ -11,8 +11,8 @@ import {
 } from 'lucide-react'
 import { useUiStore, useChatStore, usePrefsStore } from '../../store'
 import { usePluginStore } from '../../store/pluginStore'
-import { useT } from '../../i18n'
-import { getPluginIcon } from '../plugins/pluginIcons'
+import { useT, useI18n } from '../../i18n'
+import { getPluginIcon, getPluginDisplayName } from '../plugins/pluginIcons'
 import { AVATAR_PRESETS } from './avatarPresets'
 
 const AvatarPicker = React.lazy(() => import('./AvatarPicker'))
@@ -234,6 +234,7 @@ export default function NavRail() {
     return pid ? personas.find(p => p.id === pid) : undefined
   })
   const t = useT()
+  const { resolvedLocale } = useI18n()
 
   const [showAvatarPicker, setShowAvatarPicker] = React.useState(false)
   const [avatarHovered, setAvatarHovered] = React.useState(false)
@@ -345,7 +346,7 @@ export default function NavRail() {
           <NavItem
             key={plugin.manifest.id}
             icon={getPluginIcon(plugin.manifest.icon, iconSize)}
-            label={plugin.manifest.name}
+            label={getPluginDisplayName(plugin.manifest, resolvedLocale)}
             shortcut={shortcut}
             isActive={isPluginActive}
             onClick={() => setActiveNavItem(`plugin:${plugin.manifest.id}`)}
@@ -373,7 +374,7 @@ export default function NavRail() {
           <NavItem
             key={plugin.manifest.id}
             icon={getPluginIcon(plugin.manifest.icon, iconSize)}
-            label={plugin.manifest.name}
+            label={getPluginDisplayName(plugin.manifest, resolvedLocale)}
             isActive={isPluginActive}
             onClick={() => setActiveNavItem(`plugin:${plugin.manifest.id}`)}
             expanded={navExpanded}

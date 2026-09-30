@@ -34,7 +34,7 @@
       var p = pending.get(d.requestId)
       pending.delete(d.requestId)
       if (d.ok) p.resolve(d.result)
-      else p.reject(new Error(d.error || '宿主调用失败'))
+      else p.reject(new Error(d.error || window.WC.L('宿主调用失败', 'Host call failed')))
     } else if (d.type === 'aipa:ai:event' && d.event) {
       var handler = aiHandlers.get(d.event.requestId)
       if (handler) handler(d.event)
@@ -63,7 +63,7 @@
       localStorage.setItem(LS_PREFIX + payload.key, JSON.stringify(payload.value))
       return Promise.resolve(true)
     }
-    return Promise.reject(new Error('该功能需要在 AIPA 中运行'))
+    return Promise.reject(new Error(window.WC.L('该功能需要在 AIPA 中运行', 'This feature requires running inside AIPA')))
   }
 
   /**
@@ -88,7 +88,7 @@
       if (ev.type === 'delta') { if (opts.onDelta) opts.onDelta(ev.text || '') }
       else if (ev.type === 'status') { if (opts.onStatus) opts.onStatus(ev.message || '') }
       else if (ev.type === 'done') settle(true, ev.text || '')
-      else if (ev.type === 'error') settle(false, new Error(ev.message || 'AI 生成失败'))
+      else if (ev.type === 'error') settle(false, new Error(ev.message || window.WC.L('AI 生成失败', 'AI generation failed')))
     })
 
     invoke('ai.generate', {
@@ -103,7 +103,7 @@
       abort: function () {
         if (settled) return
         invoke('ai.abort', { requestId: requestId }).catch(function () {})
-        settle(false, new Error('已取消生成'))
+        settle(false, new Error(window.WC.L('已取消生成', 'Generation cancelled')))
       },
     }
   }

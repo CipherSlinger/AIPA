@@ -4,6 +4,35 @@
 
   var WC = (window.WC = window.WC || {})
 
+  // ── Language (host passes ?lang=en|zh-CN; standalone falls back to the browser) ──
+  var lang = (function () {
+    try {
+      var q = new URLSearchParams(location.search).get('lang')
+      if (q) return q.indexOf('zh') === 0 ? 'zh' : 'en'
+    } catch (e) { /* ignore */ }
+    return (navigator.language || 'zh').toLowerCase().indexOf('zh') === 0 ? 'zh' : 'en'
+  })()
+  WC.lang = lang
+  WC.isEn = lang === 'en'
+  document.documentElement.lang = WC.isEn ? 'en' : 'zh-CN'
+  if (WC.isEn) {
+    // Static markup in index.html carries its English text in data-i18n
+    document.title = 'Work Calendar - AIPA Plugin'
+    document.querySelectorAll('[data-i18n]').forEach(function (el) { el.textContent = el.getAttribute('data-i18n') })
+  }
+  /** Pick the string for the current language. */
+  WC.L = function (zh, en) { return WC.isEn ? en : zh }
+  /** Same as L, with {name} placeholders. */
+  WC.Lf = function (zh, en, params) {
+    return WC.L(zh, en).replace(/\{(\w+)\}/g, function (m, k) { return params && params[k] != null ? String(params[k]) : m })
+  }
+  var MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  var WEEKDAYS_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  var WEEKDAYS_ZH = ['一', '二', '三', '四', '五', '六', '日']
+  WC.WEEKDAY_SHORT = WC.isEn ? WEEKDAYS_EN : WEEKDAYS_ZH
+  /** "2026年9月" / "Sep 2026" (month is 0-based). */
+  WC.fmtMonth = function (year, month) { return WC.isEn ? MONTHS_EN[month] + ' ' + year : year + '年' + (month + 1) + '月' }
+
   // ── Dates (all keys are local YYYY-MM-DD) ─────────────
   function pad(n) { return String(n).padStart(2, '0') }
   function toKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) }
@@ -29,10 +58,15 @@
   function dayDiff(fromKey, toKeyStr) {
     return Math.round((parseKey(toKeyStr) - parseKey(fromKey)) / 86400000)
   }
-  function weekdayLabel(key) { return '周' + '一二三四五六日'[(parseKey(key).getDay() + 6) % 7] }
+  function weekdayLabel(key) {
+    var i = (parseKey(key).getDay() + 6) % 7
+    return WC.isEn ? WEEKDAYS_EN[i] : '周' + WEEKDAYS_ZH[i]
+  }
   function fmtCN(key) {
     var d = parseKey(key)
-    return d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日'
+    return WC.isEn
+      ? MONTHS_EN[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear()
+      : d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日'
   }
   function fmtDot(key) { return key.slice(5).replace('-', '.') }
   function fmtDateTime(iso) {
@@ -61,7 +95,7 @@
   }
 
   WC.errMsg = function (err) {
-    return err instanceof Error ? err.message : String(err || '操作失败')
+    return err instanceof Error ? err.message : String(err || WC.L('操作失败', 'Operation failed'))
   }
 
   /** Run fn and always get a Promise back (store validation throws synchronously). */
@@ -69,10 +103,10 @@
     return new Promise(function (resolve) { resolve(fn()) })
   }
 
-  WC.STATUS = { todo: '待处理', in_progress: '进行中', done: '已完成' }
-  WC.PRIORITY = { low: '低', medium: '中', high: '高', urgent: '紧急' }
+  WC.STATUS = { todo: WC.L('待处理', 'To do'), in_progress: WC.L('进行中', 'In progress'), done: WC.L('已完成', 'Done') }
+  WC.PRIORITY = { low: WC.L('低', 'Low'), medium: WC.L('中', 'Medium'), high: WC.L('高', 'High'), urgent: WC.L('紧急', 'Urgent') }
   WC.PRIORITY_BADGE = { low: 'badge-outline', medium: '', high: 'badge-warn', urgent: 'badge-danger' }
-  WC.REPORT_TYPE = { weekly: '周报', monthly: '月报' }
+  WC.REPORT_TYPE = { weekly: WC.L('周报', 'Weekly'), monthly: WC.L('月报', 'Monthly') }
 
   var BAR_COLORS = ['#3b82f6', '#6366f1', '#8b5cf6', '#0ea5e9', '#14b8a6', '#0891b2']
   WC.barColor = function (id) {
@@ -249,7 +283,7 @@
         '<div class="modal-head"><div><div class="modal-title">' + opts.title + '</div>' +
           (opts.sub ? '<div class="modal-sub">' + opts.sub + '</div>' : '') + '</div>' +
           '<div class="modal-tools">' + (opts.tools || '') +
-            (opts.dismissible === false ? '' : '<button class="btn btn-ghost btn-icon btn-sm" data-close title="关闭">' + WC.icon('x') + '</button>') +
+            (opts.dismissible === false ? '' : WC.L('<button class="btn btn-ghost btn-icon btn-sm" data-close title="关闭">', '<button class="btn btn-ghost btn-icon btn-sm" data-close title="Close">') + WC.icon('x') + '</button>') +
           '</div></div>' +
         '<div class="modal-body">' + opts.body + '</div>' +
         (opts.foot ? '<div class="modal-foot">' + opts.foot + '</div>' : '') +
@@ -284,8 +318,8 @@
       var m = WC.modal({
         title: WC.esc(title),
         body: '<div style="font-size:13px;color:var(--text-2);line-height:1.7">' + WC.esc(message) + '</div>',
-        foot: '<button class="btn" data-close>取消</button>' +
-          '<button class="btn ' + (opts.danger ? 'btn-primary" style="background:var(--danger);border-color:var(--danger);color:#fff' : 'btn-primary') + '" data-ok>' + WC.esc(opts.okText || '确定') + '</button>',
+        foot: WC.L('<button class="btn" data-close>取消</button>', '<button class="btn" data-close>Cancel</button>') +
+          '<button class="btn ' + (opts.danger ? 'btn-primary" style="background:var(--danger);border-color:var(--danger);color:#fff' : 'btn-primary') + '" data-ok>' + WC.esc(opts.okText || WC.L('确定', 'OK')) + '</button>',
         onClose: function () { resolve(result) },
       })
       m.el.querySelector('[data-ok]').addEventListener('click', function () { result = true; m.close() })
@@ -293,7 +327,7 @@
   }
 
   WC.copyText = function (text) {
-    var done = function () { AIPA.toast('success', '已复制到剪贴板') }
+    var done = function () { AIPA.toast('success', WC.L('已复制到剪贴板', 'Copied to clipboard')) }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       return navigator.clipboard.writeText(text).then(done).catch(function () { legacyCopy(text); done() })
     }

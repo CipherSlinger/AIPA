@@ -15,25 +15,6 @@ export class PathAccessDeniedError extends Error {
 }
 
 /**
- * Known Claude model names. Add new models here as they are released.
- */
-const KNOWN_MODELS = new Set([
-  'claude-opus-4-5',
-  'claude-opus-4',
-  'claude-sonnet-4-6',
-  'claude-sonnet-4-5',
-  'claude-sonnet-4',
-  'claude-haiku-4-5',
-  'claude-haiku-4',
-  'claude-3-5-sonnet-20241022',
-  'claude-3-5-sonnet-20240620',
-  'claude-3-5-haiku-20241022',
-  'claude-3-opus-20240229',
-  'claude-3-sonnet-20240229',
-  'claude-3-haiku-20240307',
-])
-
-/**
  * Known CLI flags that are safe to pass through from the renderer.
  */
 const KNOWN_FLAGS = new Set([
@@ -109,12 +90,17 @@ export function safePath(requestedPath: string, allowedRoots: string[]): string 
 }
 
 /**
- * Validates a model name against the known allowlist.
+ * Model IDs come from several providers (Claude, OpenAI/Codex, custom providers) and
+ * change often, so check the shape rather than a fixed list. The value is passed as a
+ * JSON param to Codex or as the argument after `--model` to the Claude CLI, so reject
+ * anything that could be read as a flag or smuggle in odd characters.
  */
+const MODEL_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,127}$/
+
 export function validateModelName(model: string): string {
   if (!model) return model
-  if (!KNOWN_MODELS.has(model)) {
-    throw new Error(`Unknown model name: "${model}". Must be one of: ${[...KNOWN_MODELS].join(', ')}`)
+  if (typeof model !== 'string' || !MODEL_NAME_RE.test(model)) {
+    throw new Error(`Invalid model name: "${String(model).slice(0, 80)}"`)
   }
   return model
 }
