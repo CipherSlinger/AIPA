@@ -7,15 +7,16 @@ import SettingsAbout from './SettingsAbout'
 import SettingsStats from './SettingsStats'
 import PermissionsSettingsPanel from './PermissionsSettingsPanel'
 import SettingsAdvanced from './SettingsAdvanced'
-import HooksSettingsPanel from './HooksSettingsPanel'
+
+const MemoryPanel = React.lazy(() => import('../memory/MemoryPanel'))
 import SettingsPlugins from './SettingsPlugins'
 import SettingsSandbox from './SettingsSandbox'
 import SettingsProjectMcp from './SettingsProjectMcp'
 import SettingsAIEngine from './SettingsAIEngine'
 // Personas tab has been moved to the Workflows sidebar panel (Iteration 376)
 // MCP tab (global) has been moved to the Channels sidebar panel (Iteration 536)
-// Memory tab has been moved to the sidebar Memory panel (duplicate removed)
-type SettingsTab = 'general' | 'ai-engine' | 'permissions' | 'stats' | 'hooks' | 'plugins' | 'mcp' | 'advanced' | 'sandbox' | 'about'
+// Memory moved from the left rail into its own Settings tab (renders MemoryPanel)
+type SettingsTab = 'general' | 'ai-engine' | 'memory' | 'permissions' | 'stats' | 'plugins' | 'mcp' | 'advanced' | 'sandbox' | 'about'
 
 // Default emojis for migrated templates (Iteration 309: merge Templates into Personas)
 const MIGRATION_EMOJIS = ['\u{1F4DD}', '\u{1F4CB}', '\u{1F4CC}', '\u{1F4D6}', '\u{1F4DA}', '\u{1F3AF}', '\u{1F4A1}', '\u{2B50}', '\u{1F680}', '\u{1F3C6}']
@@ -35,7 +36,7 @@ export default function SettingsPanel() {
   const clearPendingSettingsTab = useUiStore(s => s.clearPendingSettingsTab)
   useEffect(() => {
     if (pendingSettingsTab) {
-      const valid: SettingsTab[] = ['general', 'ai-engine', 'permissions', 'stats', 'hooks', 'plugins', 'mcp', 'advanced', 'sandbox', 'about']
+      const valid: SettingsTab[] = ['general', 'ai-engine', 'memory', 'permissions', 'stats', 'plugins', 'mcp', 'advanced', 'sandbox', 'about']
       if (valid.includes(pendingSettingsTab as SettingsTab)) {
         setSettingsTab(pendingSettingsTab as SettingsTab)
       }
@@ -147,7 +148,7 @@ export default function SettingsPanel() {
         }}>
           {t('settings.title')}
         </div>
-        {(['general', 'ai-engine', 'permissions', 'stats', 'hooks', 'plugins', 'mcp', 'advanced', 'sandbox', 'about'] as const).map(tab => {
+        {(['general', 'ai-engine', 'memory', 'permissions', 'stats', 'plugins', 'mcp', 'advanced', 'sandbox', 'about'] as const).map(tab => {
           const isActive = settingsTab === tab
           const isHovered = hoveredTab === tab && !isActive
           return (
@@ -199,12 +200,17 @@ export default function SettingsPanel() {
             saved={saved}
             onSave={save}
           />
+        ) : settingsTab === 'memory' ? (
+          // MemoryPanel is a full-height panel with its own toolbar; cancel the content padding
+          <div style={{ margin: '-20px -24px', height: 'calc(100% + 40px)' }}>
+            <React.Suspense fallback={null}>
+              <MemoryPanel />
+            </React.Suspense>
+          </div>
         ) : settingsTab === 'permissions' ? (
           <PermissionsSettingsPanel />
         ) : settingsTab === 'stats' ? (
           <SettingsStats />
-        ) : settingsTab === 'hooks' ? (
-          <HooksSettingsPanel />
         ) : settingsTab === 'plugins' ? (
           <SettingsPlugins />
         ) : settingsTab === 'mcp' ? (

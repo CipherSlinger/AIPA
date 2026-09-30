@@ -6,8 +6,6 @@ import ErrorBoundary from '../shared/ErrorBoundary'
 // Lazy-load heavy sidebar panels (Iteration 198 — code-splitting)
 const FileBrowser = React.lazy(() => import('../filebrowser/FileBrowser'))
 const NotesPanel = React.lazy(() => import('../notes/NotesPanel'))
-const SkillsPanel = React.lazy(() => import('../skills/SkillsPanel'))
-const MemoryPanel = React.lazy(() => import('../memory/MemoryPanel'))
 const WorkflowPanel = React.lazy(() => import('../workflows/WorkflowPanel'))
 const ChangesPanel = React.lazy(() => import('../sidebar/ChangesPanel'))
 
@@ -57,18 +55,6 @@ export default function Sidebar() {
           <Suspense fallback={<PanelFallback />}>
             <NotesPanel />
           </Suspense>
-        )}
-        {sidebarTab === 'skills' && (
-          <Suspense fallback={<PanelFallback />}>
-            <SkillsPanel />
-          </Suspense>
-        )}
-        {sidebarTab === 'memory' && (
-          <ErrorBoundary fallbackLabel="memory panel">
-          <Suspense fallback={<PanelFallback />}>
-            <MemoryPanel />
-          </Suspense>
-          </ErrorBoundary>
         )}
         {sidebarTab === 'workflows' && (
           <Suspense fallback={<PanelFallback />}>

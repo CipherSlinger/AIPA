@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
 import { Workflow as WorkflowIcon, Maximize2, ChevronsUpDown, Download, Minimize2, LayoutGrid } from 'lucide-react'
 import { Workflow, WorkflowStep } from '../../types/app.types'
 import { useT } from '../../i18n'
@@ -117,6 +117,18 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
 
   // Direction 13: search query state
   const [searchQuery, setSearchQuery] = useState('')
+  // Height of the title strip, so the floating search box sits below it instead of on top of it
+  const headerStripRef = useRef<HTMLDivElement>(null)
+  const [headerStripHeight, setHeaderStripHeight] = useState(0)
+  useLayoutEffect(() => {
+    const el = headerStripRef.current
+    if (!el) return
+    const update = () => setHeaderStripHeight(el.offsetHeight)
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   // P2.1: full undo/redo system
   const undoRedo = useUndoRedo(workflow, onWorkflowUpdate)
@@ -1149,6 +1161,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     >
       {/* Canvas header strip — workflow name (inline-editable) + description */}
       <div
+        ref={headerStripRef}
         style={{
           position: 'absolute',
           top: 0,
@@ -1645,6 +1658,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         onImport={handleImport}
         onExportScript={handleExportScript}
         searchQuery={searchQuery}
+        searchTop={headerStripHeight + 4}
         onSearchChange={setSearchQuery}
         onClearOutputs={clearQueue}
         completedCount={execution.completedCount}
@@ -1659,7 +1673,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
       {searchMatchCount !== null && (
         <div style={{
           position: 'absolute',
-          top: (execution.isRunning || execution.completedCount > 0) ? 28 : 8,
+          top: headerStripHeight + 4 + ((execution.isRunning || execution.completedCount > 0) ? 20 : 0),
           left: 158,  // 搜索框宽度约 150px + 8px offset
           zIndex: 11,
           fontSize: 10,

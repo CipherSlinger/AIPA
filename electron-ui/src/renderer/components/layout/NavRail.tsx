@@ -1,8 +1,6 @@
 import React from 'react'
 import {
   Building2,
-  Puzzle,
-  Brain,
   Settings,
   User,
   PanelLeftClose,
@@ -252,8 +250,6 @@ export default function NavRail() {
   // when switching tabs because mainView was not cleared (Iteration 612 fix).
   const isHistoryActive = activeNavItem === 'history'
   const isDepartmentActive = activeNavItem === 'department'
-  const isSkillsActive = activeNavItem === 'skills'
-  const isMemoryActive = activeNavItem === 'memory'
   const isWorkflowsActive = activeNavItem === 'workflows'
   const isStreaming = useChatStore(s => s.isStreaming)
   const isSettingsActive = useUiStore(s => s.settingsModalOpen)
@@ -313,26 +309,6 @@ export default function NavRail() {
         shortcut="Ctrl+6"
         isActive={isWorkflowsActive}
         onClick={() => setActiveNavItem('workflows')}
-        expanded={navExpanded}
-      />
-
-      {/* Skills */}
-      <NavItem
-        icon={<Puzzle size={iconSize} strokeWidth={1.5} />}
-        label={t('nav.skills')}
-        shortcut="Ctrl+4"
-        isActive={isSkillsActive}
-        onClick={() => setActiveNavItem('skills')}
-        expanded={navExpanded}
-      />
-
-      {/* Memory */}
-      <NavItem
-        icon={<Brain size={iconSize} strokeWidth={1.5} />}
-        label={t('nav.memory')}
-        shortcut="Ctrl+5"
-        isActive={isMemoryActive}
-        onClick={() => setActiveNavItem('memory')}
         expanded={navExpanded}
       />
 

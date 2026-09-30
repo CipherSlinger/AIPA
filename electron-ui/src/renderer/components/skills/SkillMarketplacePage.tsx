@@ -15,7 +15,6 @@ import MarketplaceCard from './MarketplaceCard'
 
 export default function SkillMarketplacePage() {
   const t = useT()
-  const setMainView = useUiStore(s => s.setMainView)
   const addToast = useUiStore(s => s.addToast)
   const language = usePrefsStore(s => s.prefs.language)
 
@@ -50,9 +49,9 @@ export default function SkillMarketplacePage() {
     const setQuotedText = useUiStore.getState().setQuotedText
     const slashCmd = `/${skillName.replace(/\s+/g, '-').toLowerCase()}`
     setQuotedText(slashCmd)
-    setMainView('chat')
+    useUiStore.getState().setActiveNavItem('chat')
     addToast('success', t('skills.skillActivated'))
-  }, [addToast, t, setMainView])
+  }, [addToast, t])
 
   const filteredMarketplace = useMemo(() => {
     let list: MarketplaceSkill[] = MARKETPLACE_SKILLS
@@ -85,7 +84,7 @@ export default function SkillMarketplacePage() {
         flexShrink: 0,
       }}>
         <button
-          onClick={() => setMainView('chat')}
+          onClick={() => useUiStore.getState().setActiveNavItem('workflows')}
           style={{
             background: 'none',
             border: 'none',

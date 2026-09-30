@@ -222,8 +222,6 @@ export function useInputPopups({
           window.dispatchEvent(new CustomEvent('aipa:togglePlan'))
         } else if (cmd.name === '/permissions') {
           useUiStore.getState().openSettingsAt('permissions')
-        } else if (cmd.name === '/hooks') {
-          useUiStore.getState().openSettingsAt('hooks')
         } else if (cmd.name === '/mcp') {
           useUiStore.getState().openSettingsAt('mcp')
         } else if (cmd.name === '/sandbox') {

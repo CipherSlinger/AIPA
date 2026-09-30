@@ -2,7 +2,7 @@
  * CLI Settings Manager
  *
  * Reads and writes ~/.claude/settings.json with safety constraints:
- * - Only allows modification of whitelisted top-level fields (permissions, hooks)
+ * - Only allows modification of whitelisted top-level fields (permissions, language, env, ...)
  * - Atomic writes (write to tmp, then rename)
  * - Handles missing files gracefully
  *
@@ -16,7 +16,7 @@ import { createLogger } from '../utils/logger'
 const log = createLogger('cli-settings')
 
 // Only these top-level fields can be modified via the UI
-const WRITABLE_FIELDS = new Set(['permissions', 'hooks', 'language', 'cleanupPeriodDays', 'env'])
+const WRITABLE_FIELDS = new Set(['permissions', 'language', 'cleanupPeriodDays', 'env'])
 
 function getSettingsPath(): string {
   return path.join(os.homedir(), '.claude', 'settings.json')

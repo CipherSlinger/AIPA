@@ -1,14 +1,17 @@
-// Employees page: Agents (personas) and Workflows as matching card grids.
-import React, { useMemo, useState } from 'react'
+// Employees page: Experts (personas), Skills and Workflows as matching card grids.
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Workflow as WorkflowIcon, Search, Users2, ClipboardPaste, Plus } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useUiStore } from '../../store'
 import type { Workflow } from '../../types/app.types'
+import type { SkillInfo } from '../skills/skillsShared'
 import { useWorkflowCrud } from './useWorkflowCrud'
 import { PRESET_WORKFLOWS } from './workflowConstants'
 import WorkflowCard from './WorkflowCard'
 import WorkflowPersonasSection from './WorkflowPersonasSection'
-import { SectionHeader, ToolbarButton, AddCard, PresetCard, SubLabel } from './EmployeesShared'
+import { EmployeesSkillsSection, useEmployeeSkills } from './EmployeesSkillsSection'
+import SkillDetail from '../skills/SkillDetail'
+import { SectionHeader, ToolbarButton, AddCard, PresetCard, SubLabel, EMPLOYEE_GRID } from './EmployeesShared'
 
 type WorkflowCategory = 'singleAgent' | 'teamwork'
 type SortKey = 'recent' | 'name' | 'runs'
@@ -25,18 +28,68 @@ const PRESET_EMOJIS: Record<string, string> = {
   contentPipeline: '✍️',
 }
 
-export const EMPLOYEE_GRID: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
-  gap: 12,
-}
-
 export default function WorkflowPanel() {
   const t = useT()
   const crud = useWorkflowCrud()
+  const skillState = useEmployeeSkills()
+
+  // Opening a skill takes over the page, mirroring the old standalone Skills panel
+  const [selectedSkill, setSelectedSkill] = useState<SkillInfo | null>(null)
+  const [skillContent, setSkillContent] = useState('')
+  const [deletingSkillPath, setDeletingSkillPath] = useState<string | null>(null)
+
+  const openSkill = async (skill: SkillInfo) => {
+    setSelectedSkill(skill)
+    try {
+      const result = await window.electronAPI.skillsRead(skill.dirPath)
+      setSkillContent(result?.content || result?.error || t('skills.readError'))
+    } catch (err) {
+      setSkillContent(String(err))
+    }
+  }
+
+  const backFromSkill = () => {
+    setSelectedSkill(null)
+    setSkillContent('')
+    setDeletingSkillPath(null)
+  }
+
+  const handleDeleteSkill = async (dirPath: string) => {
+    if (deletingSkillPath !== dirPath) {
+      setDeletingSkillPath(dirPath)
+      setTimeout(() => setDeletingSkillPath(null), 3000)
+      return
+    }
+    if (await skillState.deleteSkill(dirPath)) backFromSkill()
+  }
+
+  // Jump to a section when another entry point (Ctrl+4, /skills, palette) landed here
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const pendingSection = useUiStore(s => s.pendingEmployeesSection)
+  useEffect(() => {
+    if (!pendingSection || selectedSkill) return
+    const el = scrollRef.current?.querySelector(`[data-employees-section="${pendingSection}"]`)
+    el?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    useUiStore.getState().clearPendingEmployeesSection()
+  }, [pendingSection, selectedSkill])
+
+  if (selectedSkill) {
+    return (
+      <div style={{ height: '100%' }}>
+        <SkillDetail
+          skill={selectedSkill}
+          skillContent={skillContent}
+          deletingSkillPath={deletingSkillPath}
+          onBack={backFromSkill}
+          onUseSkill={skillState.useSkill}
+          onDeleteSkill={handleDeleteSkill}
+        />
+      </div>
+    )
+  }
 
   return (
-    <div className="wf-panel-scroll" style={{ height: '100%', overflowY: 'auto', background: 'var(--bg-primary)', scrollbarWidth: 'thin' }}>
+    <div ref={scrollRef} className="wf-panel-scroll" style={{ height: '100%', overflowY: 'auto', background: 'var(--bg-primary)', scrollbarWidth: 'thin' }}>
       <div style={{ maxWidth: 1180, margin: '0 auto', padding: '24px 28px 40px' }}>
         {/* Page header */}
         <div style={{ marginBottom: 22 }}>
@@ -48,11 +101,21 @@ export default function WorkflowPanel() {
           </div>
         </div>
 
-        <WorkflowPersonasSection />
+        <div data-employees-section="agents">
+          <WorkflowPersonasSection />
+        </div>
 
         <div style={{ height: 1, background: 'var(--glass-border)', margin: '28px 0 24px' }} />
 
-        <WorkflowsSection crud={crud} />
+        <div data-employees-section="skills">
+          <EmployeesSkillsSection state={skillState} onOpenSkill={openSkill} />
+        </div>
+
+        <div style={{ height: 1, background: 'var(--glass-border)', margin: '28px 0 24px' }} />
+
+        <div data-employees-section="workflows">
+          <WorkflowsSection crud={crud} />
+        </div>
       </div>
       <style>{`
         .wf-panel-scroll::-webkit-scrollbar { width: 6px; }

@@ -3,15 +3,15 @@ import { create } from 'zustand'
 import { ToastItem, ToastType } from '../components/ui/Toast'
 import { usePluginStore } from './pluginStore'
 
-export type SidebarTab = 'history' | 'files' | 'notes' | 'skills' | 'memory' | 'workflows' | 'changes'
+export type SidebarTab = 'history' | 'files' | 'notes' | 'workflows' | 'changes'
+// 'skills' is kept as an alias: the Skills panel is now a section of the Employees
+// page, so entry points (Ctrl+4, /skills, command palette) resolve to 'workflows'.
 export type NavItem = 'chat' | 'department' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'changes' | `plugin:${string}`
 export type MainView =
   | 'chat'
   | 'department'
   | 'workflows'
   | 'notes'
-  | 'skills'
-  | 'memory'
   | 'changes'
   | 'files'
   | 'settings'
@@ -59,13 +59,17 @@ interface UiState {
   openSettingsModal: () => void
   closeSettingsModal: () => void
   // Pending settings tab — consumed by SettingsPanel on open to jump to a specific tab
-  pendingSettingsTab: 'general' | 'ai-engine' | 'permissions' | 'stats' | 'hooks' | 'plugins' | 'mcp' | 'advanced' | 'sandbox' | 'about' | null
-  openSettingsAt: (tab: 'general' | 'ai-engine' | 'permissions' | 'stats' | 'hooks' | 'plugins' | 'mcp' | 'advanced' | 'sandbox' | 'about') => void
+  pendingSettingsTab: 'general' | 'ai-engine' | 'memory' | 'permissions' | 'stats' | 'plugins' | 'mcp' | 'advanced' | 'sandbox' | 'about' | null
+  openSettingsAt: (tab: 'general' | 'ai-engine' | 'permissions' | 'stats' | 'plugins' | 'mcp' | 'advanced' | 'sandbox' | 'about') => void
   clearPendingSettingsTab: () => void
 
   // Main content area view (Iteration 412: settings; Iteration 414: editors; Iteration 460: workflow-detail; Iteration 534: notes; Iteration 535: skill-creator; department: department dashboard)
   mainView: MainView
   setMainView: (view: MainView) => void
+
+  // Which section of the Employees page to scroll to when arriving from another entry point
+  pendingEmployeesSection: 'skills' | 'agents' | 'workflows' | null
+  clearPendingEmployeesSection: () => void
 
   // Track whether the current chat was entered from a department view (Iteration 538)
   fromDepartment: boolean
@@ -110,11 +114,57 @@ interface UiState {
 const savedSidebarTab = (() => {
   try {
     const saved = localStorage.getItem('aipa:sidebar-tab')
-    const valid = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'changes']
+    const valid = ['history', 'files', 'notes', 'workflows', 'changes']
     if (saved && valid.includes(saved)) return saved as UiState['sidebarTab']
   } catch { }
   return 'history' as const
 })()
+
+
+type NavPatch = Partial<Pick<UiState, 'activeNavItem' | 'mainView' | 'sidebarTab' | 'sidebarOpen' | 'settingsModalOpen' | 'pendingSettingsTab' | 'pendingEmployeesSection' | 'unreadCounts' | 'unreadSessionCount'>>
+
+function resolveNav(_s: UiState, item: NavItem): NavPatch {
+  // Settings opens as a modal overlay, not in the sidebar
+  if (item === 'settings') {
+    return { settingsModalOpen: true, mainView: 'settings', activeNavItem: 'settings' }
+  }
+  // Department opens the department dashboard in main content area
+  if (item === 'department') {
+    return { activeNavItem: 'department', mainView: 'department', sidebarTab: 'history', sidebarOpen: false }
+  }
+  // Chat/History opens chat panel in main content area
+  if (item === 'chat' || item === 'history') {
+    return {
+      activeNavItem: 'chat',
+      mainView: 'chat',
+      sidebarTab: 'history',
+      sidebarOpen: false,
+      unreadCounts: {},
+      unreadSessionCount: 0,
+    }
+  }
+  // Notes opens via the Notes plugin in main view
+  if (item === 'notes') item = 'plugin:aipa-notes'
+  // Skills now live inside the Employees page — land there and scroll to the section
+  if (item === 'skills') {
+    return { activeNavItem: 'workflows', mainView: 'workflows', sidebarTab: 'workflows', sidebarOpen: false, pendingEmployeesSection: 'skills' }
+  }
+  // Workflows, Memory, Changes, Files all open directly in main view
+  // Memory lives in Settings now; old entry points (Ctrl+5, command palette) land on that tab
+  if (item === 'memory') {
+    return { settingsModalOpen: true, mainView: 'settings', activeNavItem: 'settings', pendingSettingsTab: 'memory' }
+  }
+  if (item === 'workflows' || item === 'changes' || item === 'files') {
+    try { localStorage.setItem('aipa:sidebar-tab', item) } catch { }
+    return { activeNavItem: item, sidebarTab: item, mainView: item, sidebarOpen: false }
+  }
+  // Hot-pluggable plugins open in main view
+  if (typeof item === 'string' && item.startsWith('plugin:')) {
+    usePluginStore.getState().setActivePluginId(item.slice('plugin:'.length))
+    return { activeNavItem: item, mainView: 'plugin', sidebarOpen: false }
+  }
+  return { activeNavItem: item }
+}
 
 export const useUiStore = create<UiState>((set) => ({
   sidebarTab: savedSidebarTab,
@@ -150,53 +200,24 @@ export const useUiStore = create<UiState>((set) => ({
     }))
   },
   removeToast: (id) => set((s) => ({ toasts: s.toasts.filter(t => t.id !== id) })),
-  setActiveNavItem: (item) => set((s) => {
-    // Settings opens as a modal overlay, not in the sidebar
-    if (item === 'settings') {
-      return { settingsModalOpen: true }
-    }
-    // Department opens the department dashboard in main content area
-    if (item === 'department') {
-      return { activeNavItem: 'department', mainView: 'department', sidebarTab: 'history', sidebarOpen: false }
-    }
-    // Chat/History opens chat panel in main content area
-    if (item === 'chat' || item === 'history') {
-      return {
-        activeNavItem: 'chat',
-        mainView: 'chat',
-        sidebarTab: 'history',
-        sidebarOpen: false,
-        unreadCounts: {},
-        unreadSessionCount: 0,
-      }
-    }
-    // Notes opens via the Notes plugin in main view
-    if (item === 'notes') item = 'plugin:aipa-notes'
-    // Workflows, Skills, Memory, Changes, Files all open directly in main view
-    if (item === 'workflows' || item === 'skills' || item === 'memory' || item === 'changes' || item === 'files') {
-      try { localStorage.setItem('aipa:sidebar-tab', item) } catch { }
-      return { activeNavItem: item, sidebarTab: item, mainView: item, sidebarOpen: false }
-    }
-    // Hot-pluggable plugins open in main view
-    if (typeof item === 'string' && item.startsWith('plugin:')) {
-      usePluginStore.getState().setActivePluginId(item.slice('plugin:'.length))
-      return { activeNavItem: item, mainView: 'plugin', sidebarOpen: false }
-    }
-    return { activeNavItem: item }
-  }),
+  // Any nav click leaves Settings, so its highlight never lingers next to the new item
+  setActiveNavItem: (item) => set((s) => ({ settingsModalOpen: false, ...resolveNav(s, item) })),
   setQuotedText: (text) => set({ quotedText: text }),
   setAlwaysOnTop: (v) => set({ alwaysOnTop: v }),
   terminalResumeSessionId: null,
   setTerminalResumeSessionId: (id) => set({ terminalResumeSessionId: id }),
   settingsModalOpen: false,
   setSettingsModalOpen: (v) => set({ settingsModalOpen: v }),
-  openSettingsModal: () => set({ settingsModalOpen: true, mainView: 'settings' }),
-  closeSettingsModal: () => set({ settingsModalOpen: false, mainView: 'chat' }),
+  // Settings takes over activeNavItem so the previously selected icon un-highlights
+  openSettingsModal: () => set({ settingsModalOpen: true, mainView: 'settings', activeNavItem: 'settings' }),
+  closeSettingsModal: () => set({ settingsModalOpen: false, mainView: 'chat', activeNavItem: 'chat' }),
   pendingSettingsTab: null,
-  openSettingsAt: (tab) => set({ settingsModalOpen: true, mainView: 'settings', pendingSettingsTab: tab }),
+  openSettingsAt: (tab) => set({ settingsModalOpen: true, mainView: 'settings', activeNavItem: 'settings', pendingSettingsTab: tab }),
   clearPendingSettingsTab: () => set({ pendingSettingsTab: null }),
   mainView: 'department' as const,
   setMainView: (view) => set({ mainView: view }),
+  pendingEmployeesSection: null,
+  clearPendingEmployeesSection: () => set({ pendingEmployeesSection: null }),
   fromDepartment: false,
   setFromDepartment: (v) => set({ fromDepartment: v }),
   editingPersonaId: null,

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Trash2, Archive, HelpCircle, Terminal, Zap, FileText, LayoutList, RotateCcw, Download, Compass, Shield, Webhook, Server, Brain, Cpu, DollarSign, BookOpen, FolderOpen, GitBranch, GitCommit, GitPullRequest, GitFork, Code, Settings, LogOut, LogIn, Keyboard, Rewind, History, Mic, Info, Layers, Flag, Eye, Stethoscope, LineChart, Palette, ClipboardList, Files } from 'lucide-react'
+import { Trash2, Archive, HelpCircle, Terminal, Zap, FileText, LayoutList, RotateCcw, Download, Compass, Shield, Server, Brain, Cpu, DollarSign, BookOpen, FolderOpen, GitBranch, GitCommit, GitPullRequest, GitFork, Code, Settings, LogOut, LogIn, Keyboard, Rewind, History, Mic, Info, Layers, Flag, Eye, Stethoscope, LineChart, Palette, ClipboardList, Files } from 'lucide-react'
 import { useT } from '../../i18n'
 
 export interface SlashCommand {
@@ -33,7 +33,6 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   // Settings
   { name: '/model', description: 'Open model picker', icon: Cpu, clientOnly: true, category: 'Settings' },
   { name: '/permissions', description: 'Open permissions settings', icon: Shield, clientOnly: true, category: 'Settings' },
-  { name: '/hooks', description: 'Open hooks settings', icon: Webhook, clientOnly: true, category: 'Settings' },
   { name: '/mcp', description: 'Open MCP project config', icon: Server, clientOnly: true, category: 'Settings' },
   { name: '/sandbox', description: 'Open sandbox settings', icon: Settings, clientOnly: true, category: 'Settings' },
   { name: '/ai-engine', description: 'Open AI engine / provider settings', icon: Cpu, clientOnly: true, category: 'Settings' },

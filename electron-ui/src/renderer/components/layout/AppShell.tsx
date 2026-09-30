@@ -17,8 +17,6 @@ const SkillCreatorPage = React.lazy(() => import('../skills/SkillCreatorPage'))
 const SkillMarketplacePage = React.lazy(() => import('../skills/SkillMarketplacePage'))
 const DepartmentDashboard = React.lazy(() => import('../departments/DepartmentDashboard'))
 const WorkflowPanel = React.lazy(() => import('../workflows/WorkflowPanel'))
-const SkillsPanel = React.lazy(() => import('../skills/SkillsPanel'))
-const MemoryPanel = React.lazy(() => import('../memory/MemoryPanel'))
 const ChangesPanel = React.lazy(() => import('../sidebar/ChangesPanel'))
 const FileBrowser = React.lazy(() => import('../filebrowser/FileBrowser'))
 const PluginHostView = React.lazy(() => import('../plugins/PluginHostView'))
@@ -87,13 +85,11 @@ export default function AppShell() {
             useUiStore.getState().setActiveNavItem('workflows')
           }
         } else if (mainView === 'skill-creator' || mainView === 'skill-marketplace') {
-          // Go back to skills
-          useUiStore.getState().setActiveNavItem('skills')
+          // Skills live in the Employees page — go back there
+          useUiStore.getState().setActiveNavItem('workflows')
         } else if (
           mainView === 'notes' ||
           mainView === 'workflows' ||
-          mainView === 'skills' ||
-          mainView === 'memory' ||
           mainView === 'changes' ||
           mainView === 'files' ||
           mainView === 'plugin'
@@ -182,18 +178,6 @@ export default function AppShell() {
             <ErrorBoundary fallbackLabel="workflows panel">
               <React.Suspense fallback={<PanelSkeleton />}>
                 <WorkflowPanel />
-              </React.Suspense>
-            </ErrorBoundary>
-          ) : mainView === 'skills' ? (
-            <ErrorBoundary fallbackLabel="skills panel">
-              <React.Suspense fallback={<PanelSkeleton />}>
-                <SkillsPanel />
-              </React.Suspense>
-            </ErrorBoundary>
-          ) : mainView === 'memory' ? (
-            <ErrorBoundary fallbackLabel="memory panel">
-              <React.Suspense fallback={<PanelSkeleton />}>
-                <MemoryPanel />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'changes' ? (

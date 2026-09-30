@@ -9,7 +9,6 @@ type CreationState = 'idle' | 'creating' | 'success' | 'error'
 
 export default function SkillCreatorPage() {
   const t = useT()
-  const setMainView = useUiStore(s => s.setMainView)
   const addToast = useUiStore(s => s.addToast)
 
   const [skillName, setSkillName] = useState('')
@@ -25,8 +24,8 @@ export default function SkillCreatorPage() {
   }, [])
 
   const handleCancel = useCallback(() => {
-    setMainView('chat')
-  }, [setMainView])
+    useUiStore.getState().setActiveNavItem('workflows')
+  }, [])
 
   const handleCreate = useCallback(async () => {
     const trimmedName = skillName.trim()
@@ -61,7 +60,7 @@ ${trimmedDesc}
         addToast('success', t('skill.createSuccess'))
         // Auto-navigate back to chat after brief success display
         setTimeout(() => {
-          setMainView('chat')
+          useUiStore.getState().setActiveNavItem('workflows')
         }, 1500)
       } else {
         setCreationState('error')
@@ -71,7 +70,7 @@ ${trimmedDesc}
       setCreationState('error')
       setErrorMsg(String(err))
     }
-  }, [skillName, skillDesc, addToast, t, setMainView])
+  }, [skillName, skillDesc, addToast, t])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {

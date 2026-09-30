@@ -89,6 +89,8 @@ interface CanvasToolbarProps {
   onExportScript?: () => void
   // Direction 13: search
   searchQuery?: string
+  /** Top offset for the search box (below the canvas title strip) */
+  searchTop?: number
   onSearchChange?: (q: string) => void
   // Clear step outputs
   onClearOutputs?: () => void
@@ -121,6 +123,7 @@ export default function CanvasToolbar({
   onImport,
   onExportScript,
   searchQuery,
+  searchTop = 8,
   onSearchChange,
   onClearOutputs,
   completedCount = 0,
@@ -153,7 +156,7 @@ export default function CanvasToolbar({
       {onSearchChange && (
         <div style={{
           position: 'absolute',
-          top: offsetTop ? 28 : 8,
+          top: searchTop + (offsetTop ? 20 : 0),
           left: 8,
           zIndex: 10,
           display: 'flex',
@@ -531,7 +534,7 @@ export default function CanvasToolbar({
         {!isRunning && completedCount > 0 && onClearOutputs && (
           <button
             onClick={onClearOutputs}
-            title="Clear all step outputs"
+            title={t('canvas.clearOutputsTitle')}
             style={{
               display: 'flex', alignItems: 'center', gap: 4,
               padding: '4px 8px', borderRadius: 6,
@@ -552,7 +555,7 @@ export default function CanvasToolbar({
               e.currentTarget.style.background = 'transparent'
             }}
           >
-            ✕ Clear
+            ✕ {t('canvas.clearOutputs')}
           </button>
         )}
         {/* Step count indicator */}
@@ -567,7 +570,7 @@ export default function CanvasToolbar({
             flexShrink: 0,
             fontVariantNumeric: 'tabular-nums',
           }}>
-            {stepCount} {stepCount === 1 ? 'step' : 'steps'}
+            {stepCount} {t(stepCount === 1 ? 'canvas.stepCountOne' : 'canvas.stepCountMany')}
           </span>
         )}
         {/* Keyboard shortcuts help button */}
@@ -576,8 +579,8 @@ export default function CanvasToolbar({
             <div style={separatorStyle} />
             <button
               onClick={(e) => { e.stopPropagation(); onToggleFullscreen() }}
-              aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-              title={isFullscreen ? 'Exit fullscreen (F11)' : 'Fullscreen canvas (F11)'}
+              aria-label={isFullscreen ? t('canvas.exitFullscreenLabel') : t('canvas.fullscreenLabel')}
+              title={isFullscreen ? t('canvas.exitFullscreenTitle') : t('canvas.fullscreenTitle')}
               style={{ ...toolbarBtnStyle, ...activeToggleStyle(isFullscreen) }}
               onMouseEnter={hoverIn}
               onMouseLeave={e => { const s = activeToggleStyle(isFullscreen); e.currentTarget.style.background = s.background as string; e.currentTarget.style.color = s.color as string; e.currentTarget.style.boxShadow = s.boxShadow as string }}
@@ -589,7 +592,7 @@ export default function CanvasToolbar({
         {onShowShortcuts && (
           <button
             onClick={(e) => { e.stopPropagation(); onShowShortcuts() }}
-            title="Keyboard shortcuts (?)"
+            title={t('canvas.shortcutsTitle')}
             style={toolbarBtnStyle}
             onMouseEnter={hoverIn}
             onMouseLeave={hoverOut}
@@ -597,18 +600,25 @@ export default function CanvasToolbar({
             <HelpCircle size={12} />
           </button>
         )}
+        {/* Timeline panel toggle — must stay inside this absolutely-positioned
+            group; as a sibling it fell into normal flow at the canvas top-left
+            corner and covered the workflow title label. */}
+        {onToggleTimeline && (
+          <>
+            <div style={separatorStyle} />
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleTimeline() }}
+              aria-label={t('canvas.timelineLabel')}
+              title={t('canvas.timelineTitle')}
+              style={{ ...toolbarBtnStyle, ...activeToggleStyle(showTimeline ?? false) }}
+              onMouseEnter={hoverIn}
+              onMouseLeave={e => { const s = activeToggleStyle(showTimeline ?? false); e.currentTarget.style.background = s.background as string; e.currentTarget.style.color = s.color as string; e.currentTarget.style.boxShadow = s.boxShadow as string }}
+            >
+              <BarChart2 size={13} />
+            </button>
+          </>
+        )}
       </div>
-      {onToggleTimeline && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onToggleTimeline() }}
-          title="Execution timeline (T)"
-          style={{ ...toolbarBtnStyle, ...activeToggleStyle(showTimeline ?? false) }}
-          onMouseEnter={hoverIn}
-          onMouseLeave={e => { const s = activeToggleStyle(showTimeline ?? false); e.currentTarget.style.background = s.background as string; e.currentTarget.style.color = s.color as string; e.currentTarget.style.boxShadow = s.boxShadow as string }}
-        >
-          <BarChart2 size={13} />
-        </button>
-      )}
     </>
   )
 }

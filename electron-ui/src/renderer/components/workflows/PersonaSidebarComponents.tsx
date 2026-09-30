@@ -62,7 +62,7 @@ export function PersonaIconTile({ persona, isActive, isDeleting, onDelete }: Per
 
   const roleBadge = getRoleBadge(p)
   const promptSnippet = p.systemPrompt.length > 80 ? p.systemPrompt.slice(0, 80) + '…' : p.systemPrompt
-  const tileTooltip = `${displayName} (${roleBadge?.label || 'Agent'}) · ${modelLabel}\n${promptSnippet}`
+  const tileTooltip = `${displayName} (${roleBadge?.label || t('persona.title')}) · ${modelLabel}\n${promptSnippet}`
 
   return (
     <div

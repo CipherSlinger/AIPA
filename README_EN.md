@@ -92,11 +92,11 @@ AIPA adopts a modern **two-column layout** eliminating redundant intermediate li
 │ [👥] │ │ Refactoring module architecture...                                          │ │
 │ Emp  │ │ ┌─ 🛠️ Tool: Write (src/main/plugins/nav-plugin-manager.ts) ───────────────┐ │ │
 │      │ │ │ + export interface NavPluginManifest { ... }                           │ │ │
-│ [🧩] │ │ └────────────────────────────────────────────────────────────────────────┘ │ │
-│Skills│ └─────────────────────────────────────────────────────────────────────────────┘ │
+│      │ │ └────────────────────────────────────────────────────────────────────────┘ │ │
+│      │ └─────────────────────────────────────────────────────────────────────────────┘ │
 │      │                                                                                 │
-│ [🧠] │ ┌─ Employees Character Icon Grid ─────────────────────────────────────────────┐ │
-│Memory│ │  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐        │ │
+│      │ ┌─ Employees Character Icon Grid ─────────────────────────────────────────────┐ │
+│      │ │  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐        │ │
 │      │ │  │ 👨‍💻 Coach  │   │ 👩‍🔬 Analyst│   │ 🎨 Creative│   │ 📚 Tutor │   │ ⚡ Productiv│   │ │
 │ [📅] │ │  │ Writing │   │ Research│   │ Partner │   │ Academic│   │  Coach  │        │ │
 │ Cal. │ │  └─────────┘   └─────────┘   └─────────┘   └─────────┘   └─────────┘        │ │
@@ -117,15 +117,15 @@ AIPA adopts a modern **two-column layout** eliminating redundant intermediate li
 | Module | Core Features | Visual Presentation |
 |---|---|---|
 | **💬 Chat & Execution** | Stream-JSON real-time stream, dual-model switching, collapsible thinking chain, auto-compaction | Structured tool cards, LCS color-coded diff view, task checklist, interactive permission dialog |
-| **👥 Employees** | Character persona illustrations, role-tailored attire/hairstyles, glowing status aura | The Employees page shows Agents and Workflows as matching card grids: workflow cards show step and run counts with hover edit/duplicate/delete and one-click run; a dashed card at the end recruits an agent or creates a workflow, with suggested presets below |
+| **👥 Employees** | Character persona illustrations, role-tailored attire/hairstyles, glowing status aura | The Employees page shows Experts, Skills and Workflows as matching card grids (the standalone Skills panel was merged in): a skill card feeds its slash command into chat or opens the full SKILL.md, expert cards can be edited or recruited, workflow cards show step and run counts with hover edit/duplicate/delete and one-click run; a dashed card at the end creates a new item, with suggested presets below |
 | **🎨 Canvas Workflows** | Multi-step prompt pipeline orchestration, topology graph, live output streaming, execution replay | Infinite zoom dot-grid canvas, animated bezier edge flow, inline step title rename |
 | **🔌 Zero-Compile Plugins** | Vanilla HTML5+CSS+JS, sandboxed isolation, postMessage bridge SDK, dynamic directory watching | Real-time sidebar icon registration, zero-build instant reload, host developer toolbar |
 | **🧩 Plugin Hub** | Unified plugin dashboard, 1-click launch, source inspection, and developer starter guide | Pre-installed at the bottom of NavRail, enables cross-plugin navigation; UI and plugin names follow the app language (EN/ZH) |
 | **📅 Work Calendar Plugin** | Month view with cross-day task bars, drag-to-create tasks, Codex-streamed weekly/monthly reports, GitHub & local-folder work sources, person-day tracking | One-click report generation from week badges, preview / regenerate / pull sources, file-backed storage with JSON import/export |
 | **📝 Quick Notes Plugin** | Decoupled hot-pluggable plugin, live Markdown preview, category filters, pinning, AI prompt dispatch | Independent HTML micro-app, upper NavRail placement, Ctrl+3 / Ctrl+Shift+N shortcut bindings, bilingual |
-| **🧠 Memory Hierarchy** | Global memory, Project memory (`.claude/MEMORY.md`), structured memdir (User/Feedback/Project/Ref) | 4-tab memory console, DreamTask background consolidation detection, decay status dots |
+| **🧠 Memory Hierarchy** | Global memory, Project memory (`.claude/MEMORY.md`), structured memdir (User/Feedback/Project/Ref) | 4-tab memory console (under Settings → Memory, `Ctrl+5`), DreamTask background consolidation detection, decay status dots; under the Codex engine only Personal memories are injected into messages |
 | **🐱 Clawd Pet** | Win32 desktop pet synced with AI thinking, execution, and idle moods | Consolidated taskbar icons, smooth sprite animations, unobtrusive companion |
-| **⚙️ Settings & Channels** | MCP tool servers, OpenClaw external channels, model keys, permissions consolidated | Streamlined into Settings (Settings → MCP / Channels), keeping navigation clean |
+| **⚙️ Settings & Channels** | MCP tool servers, OpenClaw external channels, model keys, permissions consolidated | Streamlined into Settings (Settings → MCP / Channels), keeping navigation clean; the Hooks page was removed (hooks are only read by the Claude CLI from `~/.claude/settings.json` and have no effect under the Codex engine) |
 
 ---
 

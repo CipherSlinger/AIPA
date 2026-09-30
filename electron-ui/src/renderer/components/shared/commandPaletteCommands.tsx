@@ -6,7 +6,7 @@ import {
   FolderOpen, Zap, Trash2, HelpCircle, Cpu, Sparkles,
   Brain, Workflow, Play, NotebookPen, ClipboardPaste, Radio,
   Sun, Moon, Languages, Copy, Pin, StickyNote, ArrowUpDown,
-  FileText, Stethoscope, Pencil, BarChart2, Shield, Webhook,
+  FileText, Stethoscope, Pencil, BarChart2, Shield,
   Database, DollarSign, SkipBack, RefreshCw,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
@@ -395,14 +395,6 @@ export function buildSlashCommands(args: Pick<CommandBuilderArgs, 't' | 'onClose
       description: t('command.permissionsDesc', { default: 'View and manage tool permissions' }),
       icon: <Shield size={14} />,
       action: () => { onSendSlashCommand('/permissions'); onClose() },
-      category: 'slash',
-    },
-    {
-      id: 'slash-hooks',
-      name: '/hooks',
-      description: t('command.hooksDesc', { default: 'Manage Claude lifecycle hooks' }),
-      icon: <Webhook size={14} />,
-      action: () => { onSendSlashCommand('/hooks'); onClose() },
       category: 'slash',
     },
     {

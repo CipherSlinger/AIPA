@@ -4,6 +4,7 @@ import type { StepStatus } from './useWorkflowExecution'
 import type { WorkflowStep } from '../../types/app.types'
 import { formatDuration } from '../layout/statusBarConstants'
 import { countWords } from '../../utils/stringUtils'
+import { useT } from '../../i18n'
 
 export interface CanvasTimelineProps {
   steps: WorkflowStep[]
@@ -31,6 +32,7 @@ export default function CanvasTimeline({
   onClose,
   onStepClick,
 }: CanvasTimelineProps) {
+  const t = useT()
   const validSteps = useMemo(
     () => steps.filter(s => (stepDurations[s.id] ?? 0) > 0),
     [steps, stepDurations]
@@ -86,7 +88,7 @@ export default function CanvasTimeline({
         }}
       >
         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
-          Execution Timeline
+          {t('canvas.timelineHeading')}
         </span>
         {totalWords > 0 && (
           <span style={{
@@ -116,8 +118,8 @@ export default function CanvasTimeline({
         )}
         <button
           onClick={e => { e.stopPropagation(); onClose() }}
-          aria-label="Close timeline"
-          title="Close timeline"
+          aria-label={t('canvas.timelineClose')}
+          title={t('canvas.timelineClose')}
           style={{
             background: 'none',
             border: 'none',
@@ -149,7 +151,7 @@ export default function CanvasTimeline({
             fontSize: 11,
             color: 'var(--text-muted)',
           }}>
-            No completed steps yet
+            {t('canvas.timelineEmpty')}
           </div>
         ) : (
           <div style={{ padding: '4px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>

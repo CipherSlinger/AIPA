@@ -5,6 +5,13 @@ import { Plus } from 'lucide-react'
 
 export const ACCENT = '#6366f1'
 
+/** Responsive card grid shared by every Employees page section. */
+export const EMPLOYEE_GRID: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
+  gap: 12,
+}
+
 /** Base look for every card on the page; hovered/active states lift and tint it. */
 export function cardStyle(hovered: boolean, active = false, accent = ACCENT): React.CSSProperties {
   return {
