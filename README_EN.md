@@ -33,7 +33,7 @@ graph TB
                 NavRail["Navigation Rail (NavRail)"]
                 MainView["Main Content View (MainView)"]
                 ChatPanel["Structured Chat / Tool Cards / LCS Diff"]
-                DeptDashboard["Department Dashboard"]
+                OrgChart["Organization Chart"]
                 EmpGallery["Employees Character Icon Grid"]
                 CanvasWorkflow["Canvas Workflow Editor"]
                 PluginHost["Sandboxed Plugin Host"]
@@ -86,7 +86,7 @@ AIPA adopts a modern **two-column layout** eliminating redundant intermediate li
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │  AIPA — Desktop Agent Cockpit                                                    ─  □  ✕  │
 ├──────┬─────────────────────────────────────────────────────────────────────────────────┤
-│ [🏢] │ Department Dashboard / Primary Chat Cockpit                                     │
+│ [🏢] │ Org Chart / Company Map → Department Roster                                     │
 │ Dept │ ┌─────────────────────────────────────────────────────────────────────────────┐ │
 │      │ │ 🤖 Assistant                                                                │ │
 │ [👥] │ │ Refactoring module architecture...                                          │ │
@@ -118,6 +118,7 @@ AIPA adopts a modern **two-column layout** eliminating redundant intermediate li
 |---|---|---|
 | **💬 Chat & Execution** | Stream-JSON real-time stream, dual-model switching, collapsible thinking chain, auto-compaction | Structured tool cards, LCS color-coded diff view, task checklist, interactive permission dialog |
 | **👥 Employees** | Character persona illustrations, role-tailored attire/hairstyles, glowing status aura | The Employees page shows Experts, Skills and Workflows as matching card grids (the standalone Skills panel was merged in): a skill card feeds its slash command into chat or opens the full SKILL.md, expert cards can be edited or recruited, workflow cards show step and run counts with hover edit/duplicate/delete and one-click run; a dashed card at the end creates a new item, with suggested presets below |
+| **🏢 Org Chart** | Company-style department map, trunk→bus→drop connector lines, 2/4 columns auto-fitted to container width, per-department color and stable emoji | Shows departments only (employees stay collapsed); clicking a card drills into that department's employee roster, and hovering offers direct recruit, a stats popover and employee export |
 | **🎨 Canvas Workflows** | Multi-step prompt pipeline orchestration, topology graph, live output streaming, execution replay | Infinite zoom dot-grid canvas, animated bezier edge flow, inline step title rename |
 | **🔌 Zero-Compile Plugins** | Vanilla HTML5+CSS+JS, sandboxed isolation, postMessage bridge SDK, dynamic directory watching | Real-time sidebar icon registration, zero-build instant reload, host developer toolbar |
 | **🧩 Plugin Hub** | Unified plugin dashboard, 1-click launch, source inspection, and developer starter guide | Pre-installed at the bottom of NavRail, enables cross-plugin navigation; UI and plugin names follow the app language (EN/ZH) |
@@ -199,6 +200,34 @@ Plugins declare `permissions` in `plugin.json`, then call `postMessage({ type: '
 | `ai.generate` / `ai.abort` | `ai` | One read-only, ephemeral Codex turn streamed back via `aipa:ai:event` (delta/status/done/error) |
 
 Multi-file plugins shipped with the app live in `electron-ui/src/main/plugins/builtin/<dir>/`, are copied to `dist` by `npm run build:plugins`, and installed into `~/.aipa/plugins/` on startup — only overwritten when the bundled version is newer. Plugin data in `plugin-data` survives upgrades.
+
+---
+
+## 🏢 Organization Chart
+
+The Departments view is a **company map**: a company HQ node sits on top, a trunk drops from it into a horizontal bus, and a drop line connects each bus end to a department card. This level shows **departments only** — the employees (sessions) inside them stay collapsed, so "which departments exist" is readable at a glance.
+
+```text
+                        ┌──────────────────────────┐
+                        │      🏢  AIPA Company     │
+                        │ 3 departments · 14 staff  │
+                        └────────────┬─────────────┘
+                                     │  trunk
+              ┌──────────────────────┴──────────────────────┐  ← bus
+              │                                             │
+        ┌─────┴─────┐                                 ┌─────┴─────┐
+        │🧪 R&D Center│                                │🎨 Design Lab│
+        │  D:/projects│                                │  D:/design  │
+        │👥 11  💬 3122│                               │ 👥 3  💬 2017│
+        └───────────┘                                 └───────────┘
+```
+
+- **Width-aware columns**: 4 cards per row when the container is wide enough, 2 otherwise; a partial row is centred, and the trunk only runs through the gap between cards, never across them
+- **Card contents**: department emoji (stable per department ID), name, working directory, employee and message counts, last-active time, plus a pulsing dot when the department is active
+- **Hover actions**: hovering a card reveals “+ Recruit” (start a new employee/session in that department) and “Enter ›”
+- **Click to drill in**: opens that department's employee roster, grouped by TODAY / YESTERDAY / THIS WEEK, listing **every employee (session)** in the department with search, export and recruit
+- **Stats popover**: the chart button on each card shows staff count, today's active, total messages, last active and the directory, and exports `<department>_employees.json`
+- **Add department**: the toolbar's “+ New Department” (or the `N` key) takes a name and directory, then drills straight into the new department
 
 ---
 
