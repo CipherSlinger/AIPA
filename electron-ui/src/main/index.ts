@@ -22,6 +22,27 @@ Object.defineProperty(global, '__aipaIsQuitting', {
   configurable: true,
 })
 
+/**
+ * Resolve a file from `build/` in both layouts: unpackaged runs read it from the
+ * repo, packaged runs from `resources/build` (see extraResources in
+ * electron-builder.yml).
+ */
+function resolveBuildAsset(name: string): string | null {
+  const buildDir = app.isPackaged ? path.join(process.resourcesPath, 'build') : path.join(__dirname, '../../build')
+  const asset = path.join(buildDir, name)
+  return fs.existsSync(asset) ? asset : null
+}
+
+/** Window / taskbar icon: the multi-resolution .ico on Windows, PNG elsewhere. */
+function resolveAppIcon(): string | null {
+  const order = process.platform === 'win32' ? ['icon.ico', 'icon.png'] : ['icon.png', 'icon.ico']
+  for (const name of order) {
+    const asset = resolveBuildAsset(name)
+    if (asset) return asset
+  }
+  return null
+}
+
 function createWindow(): void {
   // Restore saved window bounds, or use defaults
   const savedBounds = getPref('windowBounds' as any) as { x: number; y: number; width: number; height: number; isMaximized: boolean } | null
@@ -33,9 +54,7 @@ function createWindow(): void {
   const overlayColor = isLightTheme ? '#f8f8f8' : '#2c2c2c'
   const overlaySymbol = isLightTheme ? '#1a1a1a' : '#cccccc'
 
-  const iconExt = process.platform === 'win32' ? 'icon.ico' : 'icon.png'
-  const buildDir = app.isPackaged ? path.join(process.resourcesPath, 'build') : path.join(__dirname, '../../build')
-  const iconFile = [iconExt, 'icon.png'].map(f => path.join(buildDir, f)).find(f => fs.existsSync(f))
+  const iconFile = resolveAppIcon()
 
   const windowOptions: Electron.BrowserWindowConstructorOptions = {
     width: savedBounds?.width || 1400,
@@ -326,14 +345,20 @@ function rebuildAppMenu(recentSessionItems: Electron.MenuItemConstructorOptions[
 }
 
 function createTray(): void {
-  // Create a 16x16 tray icon using nativeImage
-  // Simple blue circle icon generated programmatically
-  const iconSize = 16
-  const canvas = `<svg xmlns="http://www.w3.org/2000/svg" width="${iconSize}" height="${iconSize}" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#2563eb"/><text x="8" y="12" text-anchor="middle" font-size="10" font-weight="bold" fill="white" font-family="sans-serif">A</text></svg>`
-  const dataUrl = `data:image/svg+xml;base64,${Buffer.from(canvas).toString('base64')}`
-  const trayIcon = nativeImage.createFromDataURL(dataUrl)
+  // build/tray.png is a 32x32 glyph — Windows scales it to the 16/20/24px the
+  // taskbar asks for at the current DPI. It must be a raster file:
+  // nativeImage.createFromDataURL cannot decode SVG, and an undecodable source
+  // leaves an invisible tray icon (a blank slot in the notification area).
+  const trayAsset = resolveBuildAsset('tray.png') ?? resolveAppIcon()
+  const trayIcon = trayAsset ? nativeImage.createFromPath(trayAsset) : nativeImage.createEmpty()
+  if (trayIcon.isEmpty()) {
+    log.warn('createTray: no usable icon found in build/ — skipping tray')
+    return
+  }
 
-  tray = new Tray(trayIcon.resize({ width: 16, height: 16 }))
+  // Hand Windows 32px and let it scale down for the tray (16px at 100% DPI, 24px
+  // at 150%) — upscaling a 16px source would be visibly soft.
+  tray = new Tray(trayIcon.resize({ width: 32, height: 32 }))
   tray.setToolTip('AIPA - AI Personal Assistant')
 
   // Build tray menu with placeholder, then rebuild async with real session data

@@ -20,6 +20,15 @@ extraResources:
     to: "cli"
     filter:
       - "**/*"
+  # Icons are read at runtime from `resources/build` (see resolveBuildAsset in
+  # src/main/index.ts) — `files` only ships dist/ and node_modules/, so without
+  # this the window and tray icons would be missing in packaged builds.
+  - from: "build"
+    to: "build"
+    filter:
+      - "icon.ico"
+      - "icon.png"
+      - "tray.png"
 
 win:
   target:

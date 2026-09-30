@@ -59,7 +59,7 @@ function createPng(size, renderFn) {
     const rowOffset = y * rowBytes;
     raw[rowOffset] = 0; // Filter: None
     for (let x = 0; x < width; x++) {
-      const [r, g, b, a] = renderFn(x / (width - 1), y / (height - 1));
+      const [r, g, b, a] = renderFn(x / (width - 1), y / (height - 1), size);
       const pxOffset = rowOffset + 1 + x * 4;
       raw[pxOffset] = Math.max(0, Math.min(255, Math.round(r)));
       raw[pxOffset + 1] = Math.max(0, Math.min(255, Math.round(g)));
@@ -157,29 +157,68 @@ function renderAipaIcon(u, v) {
   return [bgR, bgG, bgB, Math.round(bgAlpha * 255)];
 }
 
-function generateIconFiles() {
-  const buildDir = path.join(__dirname, '..', 'build');
-  if (!fs.existsSync(buildDir)) {
-    fs.mkdirSync(buildDir, { recursive: true });
+/**
+ * Renders the system-tray glyph at normalized coordinates u, v in [0, 1].
+ *
+ * The tray renders at 16-24px, where the app icon's squircle border, antenna and
+ * mouth turn to mush — so this variant drops them and draws a much larger bot
+ * head inside a rounder badge. Below 24px the head grows further still.
+ */
+function renderTrayIcon(u, v, size) {
+  const x = (u - 0.5) * 2;
+  const y = (v - 0.5) * 2;
+  const tiny = size < 24;
+
+  const squircle = Math.pow(Math.abs(x), 3.0) + Math.pow(Math.abs(y), 3.0);
+  const bgThreshold = 0.82;
+  const feather = 0.06;
+  if (squircle > bgThreshold + feather) {
+    return [0, 0, 0, 0];
+  }
+  let bgAlpha = 1;
+  if (squircle > bgThreshold) {
+    bgAlpha = 1 - (squircle - bgThreshold) / feather;
   }
 
-  // Resolutions for Windows .ico
-  const sizes = [16, 32, 48, 64, 128, 256];
-  const pngBuffers = sizes.map(sz => createPng(sz, renderAipaIcon));
+  // Same indigo → violet gradient as the app icon.
+  const gradT = Math.max(0, Math.min(1, (x + y + 1.4) / 2.8));
+  const bgR = 99 + (139 - 99) * gradT;
+  const bgG = 102 + (92 - 102) * gradT;
+  const bgB = 241 + (246 - 241) * gradT;
 
-  // Write high-res 256x256 PNG as build/icon.png
-  const iconPngPath = path.join(buildDir, 'icon.png');
-  fs.writeFileSync(iconPngPath, pngBuffers[pngBuffers.length - 1]);
-  console.log(`[generate-icons] Generated ${iconPngPath} (${pngBuffers[pngBuffers.length - 1].length} bytes)`);
+  // Bot head — bigger than in the app icon so it survives at 16px.
+  const headW = tiny ? 0.54 : 0.46;
+  const headH = tiny ? 0.42 : 0.36;
+  const headR = tiny ? 0.22 : 0.18;
+  const hdx = Math.max(0, Math.abs(x) - (headW - headR));
+  const hdy = Math.max(0, Math.abs(y - 0.04) - (headH - headR));
+  const isHead = Math.hypot(hdx, hdy) < headR;
 
-  // Build .ico format
-  // Header: 6 bytes
+  // Antenna only when there is enough resolution to render it as a shape.
+  const isAntenna = !tiny && (
+    Math.hypot(x, y - (-0.64)) < 0.075 ||
+    (Math.abs(x) < 0.03 && y >= -0.62 && y <= -0.42)
+  );
+
+  if (isHead || isAntenna) {
+    const eyeR = tiny ? 0.115 : 0.095;
+    const eye = Math.hypot(x - 0.23, y - 0.02) < eyeR || Math.hypot(x + 0.23, y - 0.02) < eyeR;
+    if (eye) return [49, 46, 129, Math.round(bgAlpha * 255)];
+    return [248, 250, 252, Math.round(bgAlpha * 255)];
+  }
+
+  return [bgR, bgG, bgB, Math.round(bgAlpha * 255)];
+}
+
+/** Pack PNG buffers into a multi-resolution .ico. */
+function createIco(sizes, renderFn) {
+  const pngBuffers = sizes.map(sz => createPng(sz, renderFn));
+
   const header = Buffer.alloc(6);
   header.writeUInt16LE(0, 0); // reserved
   header.writeUInt16LE(1, 2); // type 1 = icon
   header.writeUInt16LE(sizes.length, 4); // count
 
-  // Directory entries: 16 bytes each
   const dirSize = 16 * sizes.length;
   let currentOffset = 6 + dirSize;
   const dirBuffers = [];
@@ -200,10 +239,34 @@ function generateIconFiles() {
     currentOffset += png.length;
   }
 
-  const icoBuffer = Buffer.concat([header, ...dirBuffers, ...pngBuffers]);
+  return { buffer: Buffer.concat([header, ...dirBuffers, ...pngBuffers]), pngBuffers };
+}
+
+function generateIconFiles() {
+  const buildDir = path.join(__dirname, '..', 'build');
+  if (!fs.existsSync(buildDir)) {
+    fs.mkdirSync(buildDir, { recursive: true });
+  }
+
+  // ── App icon ──────────────────────────────────────────────────────────────
+  const appSizes = [16, 32, 48, 64, 128, 256];
+  const app = createIco(appSizes, renderAipaIcon);
+
+  const iconPngPath = path.join(buildDir, 'icon.png');
+  fs.writeFileSync(iconPngPath, app.pngBuffers[app.pngBuffers.length - 1]);
+  console.log(`[generate-icons] Generated ${iconPngPath} (${app.pngBuffers[app.pngBuffers.length - 1].length} bytes)`);
+
   const iconIcoPath = path.join(buildDir, 'icon.ico');
-  fs.writeFileSync(iconIcoPath, icoBuffer);
-  console.log(`[generate-icons] Generated ${iconIcoPath} (${icoBuffer.length} bytes, ${sizes.length} resolutions)`);
+  fs.writeFileSync(iconIcoPath, app.buffer);
+  console.log(`[generate-icons] Generated ${iconIcoPath} (${app.buffer.length} bytes, ${appSizes.length} resolutions)`);
+
+  // ── Tray icon ─────────────────────────────────────────────────────────────
+  // A plain 32x32 PNG: Windows asks for 16/20/24/32px depending on DPI, and a
+  // 32px source downscales cleanly to all of them. (An .ico would be decoded by
+  // Electron into a single bitmap anyway, so it buys nothing here.)
+  const trayPngPath = path.join(buildDir, 'tray.png');
+  fs.writeFileSync(trayPngPath, createPng(32, renderTrayIcon));
+  console.log(`[generate-icons] Generated ${trayPngPath} (${fs.statSync(trayPngPath).size} bytes)`);
 }
 
 generateIconFiles();
