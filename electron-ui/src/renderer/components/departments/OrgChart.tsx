@@ -5,10 +5,20 @@
 // (sessions) are deliberately *not* listed at this level — clicking a card
 // drills into that department, where the full roster lives.
 //
-// The tree is drawn with plain absolutely-positioned lines whose coordinates are
-// computed from the measured container width, so the bus and the drops always
-// land on the card centres. Columns are kept even (2 or 4) so the centre trunk
-// runs down the gap between the two middle cards.
+// The tree re-flows as departments are added, so it never degenerates into a
+// long ribbon of cards. Two shapes, picked from how many departments there are
+// and how much room the pane has:
+//
+//   1 row  — symmetric: HQ centred, a trunk dropping straight into the middle of
+//            the row, with a bus spanning the card centres.
+//   2+ rows — a rail: the trunk runs down the left edge and every row hangs off
+//            it on its own bus. Column count comes from the measured width, and
+//            the rows are balanced so the last one never holds a single stray
+//            card. Past DENSE_FROM departments the cards themselves compact and
+//            more columns fit.
+//
+// Card and connector coordinates are computed in pixels from the measured
+// container width (a percentage bus would drift off the card centres by the gap).
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   BarChart3, Building2, ChevronRight, FolderOpen, MessageSquare, Plus, Search, Users, X,
@@ -20,16 +30,26 @@ import { cardStyle, ToolbarButton } from '../workflows/EmployeesShared'
 import { baseName, dirToSlug } from './deptUtils'
 
 const ACCENT = '#6366f1'
-/** Minimum card width; drives how many columns fit per row. */
-const CARD_MIN = 240
 /** Horizontal gap between cards in a row. */
 const GAP = 16
-/** Vertical trunk length above a row's bus line. */
-const TRUNK = 28
-/** Vertical drop length from the bus line down to a card. */
-const DROP = 28
-/** Gap between two rows of departments. */
-const ROW_GAP = 26
+/** Below this card width a card stops being readable, so a column is dropped. */
+const CARD_MIN_FULL = 216
+const CARD_MIN_DENSE = 180
+/** Cards stop growing past this width — otherwise one department gets a billboard. */
+const CARD_MAX_FULL = 400
+const CARD_MAX_DENSE = 300
+const MAX_COLS_FULL = 4
+const MAX_COLS_DENSE = 5
+/** Department count at which cards compact to keep the whole tree on screen. */
+const DENSE_FROM = 9
+/** X of the rail in the multi-row layout, and the gap between rail and cards. */
+const RAIL_X = 26
+const RAIL_GAP = 26
+
+/** Connector lengths — tightened in dense mode to keep many rows compact. */
+interface TreeMetrics { trunk: number; drop: number; rowGap: number }
+const METRICS_FULL: TreeMetrics = { trunk: 28, drop: 28, rowGap: 26 }
+const METRICS_DENSE: TreeMetrics = { trunk: 20, drop: 20, rowGap: 16 }
 
 /** Deterministic emoji per department, so a card keeps its face across reloads. */
 const DEPT_EMOJI = ['🏢', '🧪', '🎨', '📊', '🛠️', '📈', '🧠', '🔬', '🚀', '📦', '💡', '🗂️', '🛰️', '🧰', '📐', '🎯', '🧩', '⚙️']
@@ -57,6 +77,77 @@ function relativeTime(timestamp: number | undefined, t: (key: string) => string)
   const days = Math.floor(hours / 24)
   if (days < 7) return `${days}${t('session.daysAgo')}`
   return new Date(timestamp).toLocaleDateString()
+}
+
+// ── Layout ──────────────────────────────────────────────────────────────────
+
+interface TreeLayout {
+  /** Card count per row — always sums to the number of departments. */
+  rows: number[]
+  cols: number
+  cardWidth: number
+  /** Left edge of the card area (top-left of the first card). */
+  cardLeft: number
+  /** X of the trunk: the pane centre in single-row mode, the rail otherwise. */
+  spineX: number
+  single: boolean
+  metrics: TreeMetrics
+}
+
+/**
+ * Split `count` cards into rows of at most `cols`, then even out a lone trailing
+ * card — `4 + 1` reads as a stray, `3 + 2` reads as deliberate. Only safe with
+ * 3+ columns, since borrowing would otherwise leave the row above with one card.
+ */
+function balanceRows(count: number, cols: number): number[] {
+  const rows: number[] = []
+  for (let left = count; left > 0;) {
+    const take = Math.min(cols, left)
+    rows.push(take)
+    left -= take
+  }
+  if (rows.length >= 2 && rows[rows.length - 1] === 1 && cols >= 3) {
+    rows[rows.length - 2] -= 1
+    rows[rows.length - 1] = 2
+  }
+  return rows
+}
+
+function computeLayout(width: number, count: number, dense: boolean): TreeLayout | null {
+  if (width <= 0 || count <= 0) return null
+  const cardMin = dense ? CARD_MIN_DENSE : CARD_MIN_FULL
+  const cardMax = dense ? CARD_MAX_DENSE : CARD_MAX_FULL
+  const maxCols = dense ? MAX_COLS_DENSE : MAX_COLS_FULL
+  const railOffset = RAIL_X + RAIL_GAP
+
+  const colsWithin = (avail: number) =>
+    Math.max(1, Math.min(maxCols, Math.floor((avail + GAP) / (cardMin + GAP))))
+
+  // The rail costs a lane on the left, so first ask how many columns fit with it
+  // taken out. If everything still lands on one row, the rail is unnecessary and
+  // the full width is available again.
+  const colsWithRail = colsWithin(width - railOffset)
+  const single = count <= colsWithRail
+  const cols = single ? colsWithin(width) : colsWithRail
+
+  const rows = balanceRows(count, cols)
+  const avail = width - (single ? 0 : railOffset)
+  const cardWidth = Math.min(cardMax, Math.max(0, (avail - (cols - 1) * GAP) / cols))
+  const rowWidth = count * cardWidth + (count - 1) * GAP
+  return {
+    rows,
+    cols,
+    cardWidth,
+    cardLeft: single ? Math.max(0, (width - rowWidth) / 2) : railOffset,
+    spineX: single ? width / 2 : RAIL_X,
+    single,
+    metrics: dense ? METRICS_DENSE : METRICS_FULL,
+  }
+}
+
+/** Centre x of each card in a row of `size`, in container coordinates. */
+function rowCenters(size: number, cardWidth: number, cardLeft: number): number[] {
+  return Array.from({ length: size }, (_, i) => cardLeft + i * (cardWidth + GAP) + cardWidth / 2)
 }
 
 // ── Connector lines ─────────────────────────────────────────────────────────
@@ -101,12 +192,14 @@ interface DeptCardProps {
   sessions: SessionListItem[]
   sessionsLoading: boolean
   hasActiveSession: boolean
+  /** Compact card for the many-department layout. */
+  dense: boolean
   onEnter: () => void
   onRecruit: () => void
   onStats: (e: React.MouseEvent) => void
 }
 
-function DeptCard({ dept, sessions, sessionsLoading, hasActiveSession, onEnter, onRecruit, onStats }: DeptCardProps) {
+function DeptCard({ dept, sessions, sessionsLoading, hasActiveSession, dense, onEnter, onRecruit, onStats }: DeptCardProps) {
   const t = useT()
   const [hovered, setHovered] = useState(false)
   const color = dept.color || ACCENT
@@ -124,7 +217,7 @@ function DeptCard({ dept, sessions, sessionsLoading, hasActiveSession, onEnter, 
         ...cardStyle(hovered),
         display: 'flex',
         flexDirection: 'column',
-        minHeight: 132,
+        minHeight: dense ? 108 : 132,
         overflow: 'hidden',
         borderColor: hovered ? `${color}88` : undefined,
       }}
@@ -132,11 +225,11 @@ function DeptCard({ dept, sessions, sessionsLoading, hasActiveSession, onEnter, 
       {/* Department colour accent */}
       <div style={{ height: 3, flexShrink: 0, background: `linear-gradient(90deg, ${color}, ${color}33)` }} />
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 13px 10px', flex: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: dense ? 8 : 10, padding: dense ? '10px 11px 8px' : '12px 13px 10px', flex: 1 }}>
         <span style={{
-          width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+          width: dense ? 30 : 36, height: dense ? 30 : 36, borderRadius: dense ? 8 : 10, flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 18, lineHeight: 1,
+          fontSize: dense ? 15 : 18, lineHeight: 1,
           background: `${color}1f`, border: `1px solid ${color}33`,
           transform: hovered ? 'scale(1.06)' : 'scale(1)',
           transition: 'transform 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -146,7 +239,7 @@ function DeptCard({ dept, sessions, sessionsLoading, hasActiveSession, onEnter, 
 
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', ...ELLIPSIS }}>
+            <span style={{ fontSize: dense ? 12 : 13, fontWeight: 700, color: 'var(--text-primary)', ...ELLIPSIS }}>
               {dept.name}
             </span>
             {hasActiveSession && (
@@ -184,8 +277,8 @@ function DeptCard({ dept, sessions, sessionsLoading, hasActiveSession, onEnter, 
       {/* Footer: headcount, messages, and on hover the drill-in / recruit actions */}
       <div style={{
         flexShrink: 0,
-        display: 'flex', alignItems: 'center', gap: 12,
-        padding: '8px 13px',
+        display: 'flex', alignItems: 'center', gap: dense ? 9 : 12,
+        padding: dense ? '6px 11px' : '8px 13px',
         borderTop: '1px solid var(--glass-border)',
         fontSize: 11, color: 'var(--text-muted)',
         minHeight: 33,
@@ -281,28 +374,12 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
     return departments.filter(d => d.name.toLowerCase().includes(q) || d.directory.toLowerCase().includes(q))
   }, [departments, deptSearch])
 
-  // Even column counts only, so the centre trunk always falls in a gap.
-  const perRow = width >= 4 * CARD_MIN + 3 * GAP ? 4 : 2
-  const rows = useMemo(() => {
-    const chunks: typeof filteredDepts[] = []
-    for (let i = 0; i < filteredDepts.length; i += perRow) chunks.push(filteredDepts.slice(i, i + perRow))
-    return chunks
-  }, [filteredDepts, perRow])
-
-  /**
-   * Geometry of one row: cards always keep the width they would have in a full
-   * row, and a partially filled row is centred, so two departments sit under the
-   * company node instead of clinging to the left edge.
-   */
-  const rowGeometry = (count: number) => {
-    if (width <= 0 || count === 0 || perRow <= 0) return null
-    const cardWidth = (width - (perRow - 1) * GAP) / perRow
-    if (cardWidth <= 0) return null
-    const rowWidth = count * cardWidth + (count - 1) * GAP
-    const left = (width - rowWidth) / 2
-    const centers = Array.from({ length: count }, (_, i) => left + i * (cardWidth + GAP) + cardWidth / 2)
-    return { cardWidth, rowWidth, centers }
-  }
+  // Past DENSE_FROM cards on screen the whole tree compacts so it still fits.
+  const dense = filteredDepts.length >= DENSE_FROM
+  const layout = useMemo(
+    () => computeLayout(width, filteredDepts.length, dense),
+    [width, filteredDepts.length, dense],
+  )
 
   const closeAdd = () => { setShowAddDept(false); setNewDeptName(''); setNewDeptDir('') }
 
@@ -350,8 +427,10 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
   return (
     <div style={{ flex: 1, overflow: 'auto', background: 'var(--bg-chat)' }}>
       <div style={{
-        maxWidth: 1080,
-        minWidth: 2 * CARD_MIN + GAP + 48,
+        // Wider pane once the tree needs several columns; a narrow pane falls back
+        // to a single column rather than forcing a horizontal scrollbar.
+        maxWidth: dense ? 1360 : 1180,
+        minWidth: CARD_MIN_FULL + 48,
         margin: '0 auto',
         padding: '18px 24px 40px',
       }}>
@@ -493,8 +572,12 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
           </div>
         ) : (
           <div ref={setTreeEl}>
-            {/* Company node */}
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
+            {/* Company node — centred above a single row, pushed left over the rail otherwise */}
+            <div style={{
+              display: 'flex',
+              justifyContent: layout && !layout.single ? 'flex-start' : 'center',
+              paddingLeft: layout && !layout.single ? Math.max(0, layout.spineX - 24) : 0,
+            }}>
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '12px 18px', borderRadius: 14,
@@ -532,63 +615,101 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
               </div>
             </div>
 
-            {/* Department rows, hanging off the centre trunk */}
-            {rows.map((row, rowIndex) => {
-              const isLastRow = rowIndex === rows.length - 1
-              const geo = rowGeometry(row.length)
-              const mid = width / 2
-              const busFrom = geo ? Math.min(mid, geo.centers[0]) : 0
-              const busTo = geo ? Math.max(mid, geo.centers[geo.centers.length - 1]) : 0
-              // The trunk only continues through this row when it runs in the gap
-              // between two cards — otherwise it would be drawn across a card.
-              const trunkIsClear = geo ? geo.centers.every(c => Math.abs(c - mid) > geo.cardWidth / 2) : false
-              return (
-                <div
-                  key={rowIndex}
-                  style={{ position: 'relative', paddingBottom: isLastRow ? 0 : ROW_GAP }}
-                >
-                  {geo && (
-                    <>
-                      <VLine x={mid} top={0} height={TRUNK} />
-                      <HLine from={busFrom} to={busTo} top={TRUNK} />
-                      {geo.centers.map((x, i) => <VLine key={i} x={x} top={TRUNK} height={DROP} />)}
-                      {/* Keep the trunk going through the card band (centre gap) into the next row */}
-                      {!isLastRow && trunkIsClear && <VLine x={mid} top={TRUNK} stretch />}
-                    </>
-                  )}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: geo
-                      ? `repeat(${row.length}, ${geo.cardWidth}px)`
-                      : `repeat(${row.length}, minmax(0, 1fr))`,
-                    gap: GAP,
-                    width: geo?.rowWidth,
-                    margin: geo ? '0 auto' : undefined,
-                    paddingTop: TRUNK + DROP,
-                  }}>
-                    {row.map(dept => {
-                      const sessions = sessionsByDept[dept.id] ?? []
-                      return (
-                        <DeptCard
-                          key={dept.id}
-                          dept={dept}
-                          sessions={sessions}
-                          sessionsLoading={sessionsLoading}
-                          hasActiveSession={sessions.some(s => s.sessionId === currentSessionId)}
-                          onEnter={() => onSelectDept(dept.id)}
-                          onRecruit={() => onNewSessionInDept(dept.id)}
-                          onStats={e => {
-                            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                            setStatsPos({ x: rect.right + 8, y: rect.top })
-                            setStatsDeptId(statsDeptId === dept.id ? null : dept.id)
-                          }}
+            {/* Department rows hanging off the trunk */}
+            {layout && (() => {
+              const { cardWidth, cardLeft, spineX, single, metrics } = layout
+              let cardIndex = 0
+              return layout.rows.map((size, rowIndex) => {
+                const isLastRow = rowIndex === layout.rows.length - 1
+                const centers = rowCenters(size, cardWidth, cardLeft)
+                const cards = filteredDepts.slice(cardIndex, cardIndex + size)
+                cardIndex += size
+                return (
+                  <div
+                    key={rowIndex}
+                    style={{ position: 'relative', paddingBottom: isLastRow ? 0 : metrics.rowGap }}
+                  >
+                    {single ? (
+                      <>
+                        <VLine x={spineX} top={0} height={metrics.trunk} />
+                        <HLine
+                          from={Math.min(spineX, centers[0])}
+                          to={Math.max(spineX, centers[centers.length - 1])}
+                          top={metrics.trunk}
                         />
-                      )
-                    })}
+                      </>
+                    ) : (
+                      <>
+                        {/* Rail: runs the height of every row but the last (which stops at its bus) */}
+                        <VLine x={spineX} top={0} height={isLastRow ? metrics.trunk : undefined} stretch={!isLastRow} />
+                        <HLine from={spineX} to={centers[centers.length - 1]} top={metrics.trunk} />
+                      </>
+                    )}
+                    {centers.map((x, i) => <VLine key={i} x={x} top={metrics.trunk} height={metrics.drop} />)}
+
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: `repeat(${size}, ${cardWidth}px)`,
+                      gap: GAP,
+                      marginLeft: cardLeft,
+                      paddingTop: metrics.trunk + metrics.drop,
+                    }}>
+                      {cards.map(dept => {
+                        const sessions = sessionsByDept[dept.id] ?? []
+                        return (
+                          <DeptCard
+                            key={dept.id}
+                            dept={dept}
+                            sessions={sessions}
+                            sessionsLoading={sessionsLoading}
+                            hasActiveSession={sessions.some(s => s.sessionId === currentSessionId)}
+                            dense={dense}
+                            onEnter={() => onSelectDept(dept.id)}
+                            onRecruit={() => onNewSessionInDept(dept.id)}
+                            onStats={e => {
+                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                              setStatsPos({ x: rect.right + 8, y: rect.top })
+                              setStatsDeptId(statsDeptId === dept.id ? null : dept.id)
+                            }}
+                          />
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })
+            })()}
+
+            {/* Width not measured yet — lay the cards out without connectors */}
+            {!layout && filteredDepts.length > 0 && (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${Math.min(filteredDepts.length, MAX_COLS_FULL)}, minmax(0, 1fr))`,
+                gap: GAP,
+                marginTop: METRICS_FULL.trunk + METRICS_FULL.drop,
+              }}>
+                {filteredDepts.map(dept => {
+                  const sessions = sessionsByDept[dept.id] ?? []
+                  return (
+                    <DeptCard
+                      key={dept.id}
+                      dept={dept}
+                      sessions={sessions}
+                      sessionsLoading={sessionsLoading}
+                      hasActiveSession={sessions.some(s => s.sessionId === currentSessionId)}
+                      dense={dense}
+                      onEnter={() => onSelectDept(dept.id)}
+                      onRecruit={() => onNewSessionInDept(dept.id)}
+                      onStats={e => {
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                        setStatsPos({ x: rect.right + 8, y: rect.top })
+                        setStatsDeptId(statsDeptId === dept.id ? null : dept.id)
+                      }}
+                    />
+                  )
+                })}
+              </div>
+            )}
 
             {filteredDepts.length === 0 && (
               <div style={{ padding: '24px 10px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12, opacity: 0.65 }}>

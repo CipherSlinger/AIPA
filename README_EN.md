@@ -118,7 +118,7 @@ AIPA adopts a modern **two-column layout** eliminating redundant intermediate li
 |---|---|---|
 | **💬 Chat & Execution** | Stream-JSON real-time stream, dual-model switching, collapsible thinking chain, auto-compaction | Structured tool cards, LCS color-coded diff view, task checklist, interactive permission dialog |
 | **👥 Employees** | Character persona illustrations, role-tailored attire/hairstyles, glowing status aura | The Employees page shows Experts, Skills and Workflows as matching card grids (the standalone Skills panel was merged in): a skill card feeds its slash command into chat or opens the full SKILL.md, expert cards can be edited or recruited, workflow cards show step and run counts with hover edit/duplicate/delete and one-click run; a dashed card at the end creates a new item, with suggested presets below |
-| **🏢 Org Chart** | Company-style department map, trunk→bus→drop connector lines, 2/4 columns auto-fitted to container width, per-department color and stable emoji | Shows departments only (employees stay collapsed); clicking a card drills into that department's employee roster, and hovering offers direct recruit, a stats popover and employee export |
+| **🏢 Org Chart** | Company-style department map, trunk→bus→drop connector lines, layout adapts to both container width and department count (centred single row / left-rail multi-row), per-department color and stable emoji | Shows departments only (employees stay collapsed); clicking a card drills into that department's employee roster, and hovering offers direct recruit, a stats popover and employee export |
 | **🎨 Canvas Workflows** | Multi-step prompt pipeline orchestration, topology graph, live output streaming, execution replay | Infinite zoom dot-grid canvas, animated bezier edge flow, inline step title rename |
 | **🔌 Zero-Compile Plugins** | Vanilla HTML5+CSS+JS, sandboxed isolation, postMessage bridge SDK, dynamic directory watching | Real-time sidebar icon registration, zero-build instant reload, host developer toolbar |
 | **🧩 Plugin Hub** | Unified plugin dashboard, 1-click launch, source inspection, and developer starter guide | Pre-installed at the bottom of NavRail, enables cross-plugin navigation; UI and plugin names follow the app language (EN/ZH) |
@@ -207,6 +207,8 @@ Multi-file plugins shipped with the app live in `electron-ui/src/main/plugins/bu
 
 The Departments view is a **company map**: a company HQ node sits on top, a trunk drops from it into a horizontal bus, and a drop line connects each bus end to a department card. This level shows **departments only** — the employees (sessions) inside them stay collapsed, so "which departments exist" is readable at a glance.
 
+With few departments (a single centred row, trunk dropping from the middle):
+
 ```text
                         ┌──────────────────────────┐
                         │      🏢  AIPA Company     │
@@ -222,7 +224,29 @@ The Departments view is a **company map**: a company HQ node sits on top, a trun
         └───────────┘                                 └───────────┘
 ```
 
-- **Width-aware columns**: 4 cards per row when the container is wide enough, 2 otherwise; a partial row is centred, and the trunk only runs through the gap between cards, never across them
+With more departments it switches to a **rail layout** (the trunk runs down the left through every row, one bus per row, and a drop line carries each bus into its card):
+
+```text
+  ┌─────────────┐
+  │   AIPA HQ   │
+  └──────┬──────┘
+         │
+         ├──────────┬───────────────┬───────────────┬
+                    │               │               │
+              ┌───────────┐  ┌─────────────┐  ┌───────────┐
+              │R&D Center │  │ Design Lab  │  │ Marketing │
+              └───────────┘  └─────────────┘  └───────────┘
+         │
+         ├──────────┬───────────────┬
+                    │               │
+              ┌───────────┐  ┌─────────────┐
+              │  Finance  │  │    Legal    │
+              └───────────┘  └─────────────┘
+```
+
+- **Adaptive layout**: the column count follows both the container width and the department count — up to 4 per row, switching into a dense mode at 9+ departments (up to 5 per row with tighter cards); a light set of departments sits centred under a mid-pane trunk, while a larger set switches to a left rail with one bus per row
+- **Balanced rows**: departments are spread evenly across rows so the last row never ends up with a single stray card (5 departments become 3 + 2, not 4 + 1)
+- **Auto-sizing cards**: 216–400px normally, 180–300px in dense mode; the chart reflows live as the window resizes, with no overflow and no dead space
 - **Card contents**: department emoji (stable per department ID), name, working directory, employee and message counts, last-active time, plus a pulsing dot when the department is active
 - **Hover actions**: hovering a card reveals “+ Recruit” (start a new employee/session in that department) and “Enter ›”
 - **Click to drill in**: opens that department's employee roster, grouped by TODAY / YESTERDAY / THIS WEEK, listing **every employee (session)** in the department with search, export and recruit
