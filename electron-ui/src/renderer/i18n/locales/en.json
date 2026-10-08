@@ -2335,6 +2335,7 @@
     "enter": "Enter",
     "backToDept": "Back to department",
     "confirmDelete": "Delete this department?",
+    "confirmDeleteCompany": "Delete this company?",
     "pendingSessionOpen": "Open",
     "recruitTitle": "Recruit an Employee",
     "recruitSubtitle": "Describe what this employee is responsible for and the skills it should bring. On confirm, the description becomes its first task — the employee starts working right away.",
@@ -2403,6 +2404,8 @@
     "positionDismiss": "Remove position",
     "backToParent": "Back to parent",
     "deleteCascade": "This department still has {{count}} teams; their records are removed as well.",
+    "deleteCascadeCompany": "This company still has {{depts}} departments; their records are removed as well.",
+    "deleteCascadeCompanyTeams": "This company still has {{depts}} departments and {{teams}} teams; their records are removed as well.",
     "deleteKeepsFolder": "Only the record is removed — the folder and the sessions in it stay on disk."
   },
   "archive": {

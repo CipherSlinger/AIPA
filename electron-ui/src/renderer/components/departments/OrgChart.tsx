@@ -466,10 +466,22 @@ function DeptCard({
 
 // ── One company's section ───────────────────────────────────────────────────
 
-interface OrgSectionProps {
+/** One HQ card and the departments hanging off it. */
+interface SectionGroup {
+  key: string
   /** The HQ card's title — a real company name, or the generic one. */
   title: string
+  /**
+   * The company record this section belongs to. Absent for the legacy section,
+   * which is a synthetic grouping of unparented departments rather than a node —
+   * there is nothing there to delete, so it gets no HQ action.
+   */
+  node?: Department
   departments: Department[]
+}
+
+/** The group carries everything the section needs to draw its HQ. */
+interface OrgSectionProps extends Omit<SectionGroup, 'key'> {
   teamsByDept: Record<string, Department[]>
   sessionsByDept: Record<string, SessionListItem[]>
   sessionsLoading: boolean
@@ -483,10 +495,11 @@ interface OrgSectionProps {
 }
 
 function OrgSection({
-  title, departments, teamsByDept, sessionsByDept, sessionsLoading, currentSessionId,
+  title, node, departments, teamsByDept, sessionsByDept, sessionsLoading, currentSessionId,
   width, dense, onSelectDept, onRecruit, onStats, onDelete,
 }: OrgSectionProps) {
   const t = useT()
+  const [hqHovered, setHqHovered] = useState(false)
   const layout = useMemo(() => computeLayout(width, departments.length, dense), [width, departments.length, dense])
 
   // The section's own totals, teams included — a team is a real desk with real
@@ -509,13 +522,17 @@ function OrgSection({
         justifyContent: layout && !layout.single ? 'flex-start' : 'center',
         paddingLeft: layout && !layout.single ? Math.max(0, layout.spineX - 24) : 0,
       }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          padding: '12px 18px', borderRadius: 14,
-          background: 'linear-gradient(135deg, rgba(99,102,241,0.16), rgba(139,92,246,0.10))',
-          border: '1px solid rgba(99,102,241,0.34)',
-          boxShadow: '0 6px 22px rgba(99,102,241,0.16)',
-        }}>
+        <div
+          onMouseEnter={() => setHqHovered(true)}
+          onMouseLeave={() => setHqHovered(false)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '12px 18px', borderRadius: 14,
+            background: 'linear-gradient(135deg, rgba(99,102,241,0.16), rgba(139,92,246,0.10))',
+            border: '1px solid rgba(99,102,241,0.34)',
+            boxShadow: '0 6px 22px rgba(99,102,241,0.16)',
+          }}
+        >
           <span style={{
             width: 40, height: 40, borderRadius: 12, flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
@@ -543,6 +560,26 @@ function OrgSection({
               </span>
             ))}
           </span>
+
+          {/* Deleting a company takes the whole section with it — every
+              department below, and every team below those. It is the widest
+              action in the chart, so it is the most thoroughly hidden. */}
+          {node && (
+            <button
+              onClick={e => { e.stopPropagation(); onDelete(node.id, e) }}
+              title={t('dept.delete')}
+              style={{
+                flexShrink: 0, padding: 5, borderRadius: 7, border: 'none',
+                background: 'transparent', color: 'rgba(255,255,255,0.5)',
+                cursor: 'pointer', display: 'flex', transition: 'all 0.15s ease',
+                opacity: hqHovered ? 1 : 0, pointerEvents: hqHovered ? 'auto' : 'none',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.background = 'rgba(248,113,113,0.16)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; e.currentTarget.style.background = 'transparent' }}
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -743,11 +780,12 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
   }, [departments])
 
   /** The sections to draw: one per company, plus the legacy top-level one. */
-  const groups = useMemo(() => {
+  const groups = useMemo<SectionGroup[]>(() => {
     const companies = departments.filter(d => kindOf(d) === 'company')
-    const out = companies.map(company => ({
+    const out: SectionGroup[] = companies.map(company => ({
       key: company.id,
       title: company.name,
+      node: company,
       departments: childrenOf(departments, company.id).filter(d => kindOf(d) !== 'team'),
     }))
     // Departments with no company above them — every install that predates
@@ -1049,6 +1087,7 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
               <OrgSection
                 key={group.key}
                 title={group.title}
+                node={group.node}
                 departments={sectionDepts[group.key] ?? []}
                 teamsByDept={teamsByDept}
                 sessionsByDept={sessionsByDept}
@@ -1179,9 +1218,16 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
           drops its record, which is what keeps this recoverable: nothing the
           department ever wrote is destroyed. */}
       {deleteDeptId && (() => {
-        const dept = departments.find(d => d.id === deleteDeptId)
-        if (!dept) return null
-        const childCount = descendantIds(departments, dept.id).size - 1
+        const node = departments.find(d => d.id === deleteDeptId)
+        if (!node) return null
+        // What disappears with it, broken down by kind — a company takes its
+        // departments, and those departments take their teams, so a single
+        // "N items" count would hide how far the cascade actually reaches.
+        const doomed = descendantIds(departments, node.id)
+        const below = departments.filter(d => d.id !== node.id && doomed.has(d.id))
+        const depts = below.filter(d => kindOf(d) === 'department').length
+        const teams = below.filter(d => kindOf(d) === 'team').length
+        const isCompany = kindOf(node) === 'company'
         return (
           <div
             style={{
@@ -1204,7 +1250,7 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
               <AlertTriangle size={13} style={{ color: '#f87171', flexShrink: 0 }} />
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', ...ELLIPSIS }}>
-                {dept.name}
+                {node.name}
               </span>
               <button
                 onClick={() => setDeleteDeptId(null)}
@@ -1214,11 +1260,15 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
               </button>
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              {t('dept.confirmDelete')}
+              {t(isCompany ? 'dept.confirmDeleteCompany' : 'dept.confirmDelete')}
             </div>
-            {childCount > 0 && (
+            {below.length > 0 && (
               <div style={{ fontSize: 11, color: '#f87171', marginTop: 6, lineHeight: 1.6 }}>
-                {t('dept.deleteCascade', { count: String(childCount) })}
+                {isCompany
+                  ? teams > 0
+                    ? t('dept.deleteCascadeCompanyTeams', { depts: String(depts), teams: String(teams) })
+                    : t('dept.deleteCascadeCompany', { depts: String(depts) })
+                  : t('dept.deleteCascade', { count: String(teams) })}
               </div>
             )}
             <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
@@ -1227,7 +1277,7 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
             <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
               <button
                 onClick={() => {
-                  removeDepartment(dept.id)
+                  removeDepartment(node.id)
                   setDeleteDeptId(null)
                 }}
                 style={{

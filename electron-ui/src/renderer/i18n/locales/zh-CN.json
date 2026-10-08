@@ -2339,6 +2339,7 @@
     "searchDepts": "搜索部门...",
     "noSearchResults": "无匹配员工",
     "confirmDelete": "确认删除该部门？",
+    "confirmDeleteCompany": "确认删除该公司？",
     "deleteConfirm": "删除",
     "deleteSession": "解雇员工",
     "empWorking": "工作中",
@@ -2421,6 +2422,8 @@
     "positionDismiss": "移除岗位",
     "backToParent": "返回上级",
     "deleteCascade": "该部门下还有 {{count}} 个团队，将一并移除记录。",
+    "deleteCascadeCompany": "该公司下还有 {{depts}} 个部门，将一并移除记录。",
+    "deleteCascadeCompanyTeams": "该公司下还有 {{depts}} 个部门、{{teams}} 个团队，将一并移除记录。",
     "deleteKeepsFolder": "只移除记录，磁盘上的文件夹与其中的会话都会保留。"
   },
   "archive": {
