@@ -1,19 +1,16 @@
 // DepartmentDashboard — the single-department view: the roster of employees
 // (sessions) belonging to the department the user drilled into from the
-// organization chart (OrgChart.tsx).
+// organization chart (OrgChart.tsx). Employees are shown as standing figures
+// (EmployeeFigure) rather than generic session cards.
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Building2, FolderOpen, MessageSquarePlus, ChevronRight, ArrowLeft, Search, X } from 'lucide-react'
+import { Building2, FolderOpen, MessageSquarePlus, ArrowLeft, Search, X } from 'lucide-react'
 import { useDepartmentStore, useSessionStore, useChatStore, useUiStore, usePrefsStore } from '../../store'
 import { SessionListItem } from '../../types/app.types'
-import SessionCard from './SessionCard'
+import EmployeeFigure, { PendingFigure, SkeletonFigure } from './EmployeeFigure'
 import OrgChart from './OrgChart'
 import { dirToSlug } from './deptUtils'
 import { useT } from '../../i18n'
 import { parseSessionMessages } from '../sessions/sessionUtils'
-
-// Stable fallback for sessionColorLabels — avoids creating a new {} on every selector call
-// (inline `?? {}` in a Zustand selector causes infinite re-renders because {} !== {})
-const EMPTY_COLOR_LABELS: Record<string, string> = {}
 
 // Shared core logic for opening a session in a department directory.
 // Extracted here so DeptView and OrgChart don't duplicate the implementation.
@@ -38,72 +35,6 @@ interface PendingSession {
   createdAt: number
 }
 
-function PendingSessionCard({ onEnter, onCancel }: { onEnter: () => void; onCancel: () => void }) {
-  const t = useT()
-  const [hovered, setHovered] = useState(false)
-  return (
-    <div
-      style={{
-        width: '100%',
-        minHeight: 130,
-        borderRadius: 10,
-        border: '1.5px dashed rgba(99,102,241,0.5)',
-        background: hovered ? 'rgba(99,102,241,0.09)' : 'rgba(99,102,241,0.04)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        cursor: 'pointer',
-        padding: '12px 14px 11px 14px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-        transition: 'border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease',
-        position: 'relative',
-        boxShadow: hovered ? '0 4px 16px rgba(99,102,241,0.2)' : 'none',
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={onEnter}
-    >
-      {/* Cancel button */}
-      <button
-        onClick={e => { e.stopPropagation(); onCancel() }}
-        title="Cancel"
-        style={{
-          position: 'absolute',
-          top: 8, right: 8,
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          color: 'var(--text-muted)',
-          padding: 3,
-          borderRadius: 4,
-          display: 'flex',
-          alignItems: 'center',
-          transition: 'color 0.15s ease',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
-        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
-      >
-        <X size={12} />
-      </button>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <MessageSquarePlus size={14} color="#818cf8" style={{ flexShrink: 0 }} />
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#818cf8', lineHeight: 1.4 }}>
-          {t('dept.newSession')}
-        </span>
-      </div>
-      <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.55 }}>
-        {t('dept.pendingSessionHint')}
-      </span>
-      <div style={{ marginTop: 'auto', paddingTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-        <span style={{ fontSize: 10, color: '#6366f1', fontWeight: 600 }}>{t('dept.pendingSessionOpen')}</span>
-        <ChevronRight size={10} color="#6366f1" />
-      </div>
-    </div>
-  )
-}
-
 // ── Single Department View ──────────────────────────────────────────────────
 interface DeptViewProps {
   deptId: string
@@ -124,7 +55,6 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
   const currentSessionId = useChatStore(s => s.currentSessionId)
   const isStreaming = useChatStore(s => s.isStreaming)
   const setPrefs = usePrefsStore(s => s.setPrefs)
-  const sessionColorLabels = usePrefsStore(s => s.prefs?.sessionColorLabels ?? EMPTY_COLOR_LABELS)
 
   const deptSessions = useMemo((): SessionListItem[] => {
     if (!dept) return []
@@ -708,21 +638,9 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
         )}
 
         {sessionsLoading ? (
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            {[1, 2, 3].map(i => (
-              <div
-                key={i}
-                style={{
-                  width: 240,
-                  minHeight: 130,
-                  borderRadius: 12,
-                  background: 'linear-gradient(90deg, var(--bg-hover) 25%, var(--border) 50%, var(--bg-hover) 75%)',
-                  backgroundSize: '200% 100%',
-                  border: '1.5px solid var(--bg-hover)',
-                  animation: 'shimmer 1.6s ease-in-out infinite',
-                }}
-              />
-            ))}
+          <div className="emp-roster">
+            {[0, 1, 2].map(i => <SkeletonFigure key={i} />)}
+            <div className="emp-floor" />
           </div>
         ) : deptSessions.length === 0 && pendingSessions.length === 0 ? (
           <div style={{
@@ -805,7 +723,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
           </div>
         ) : (
           (() => {
-            const renderSessionCard = (session: SessionListItem) => (
+            const renderEmployee = (session: SessionListItem) => (
               <div
                 key={session.sessionId}
                 style={{ position: 'relative' }}
@@ -822,7 +740,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
                 {selectMode && (
                   <div style={{
                     position: 'absolute',
-                    top: 8, left: 8,
+                    top: 0, left: 0,
                     width: 18, height: 18,
                     borderRadius: 4,
                     border: `2px solid ${selectedSessions.has(session.sessionId) ? '#6366f1' : 'var(--border)'}`,
@@ -837,33 +755,26 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
                   </div>
                 )}
                 <div style={{ opacity: selectMode ? 0.85 : 1, pointerEvents: selectMode ? 'none' : 'auto' }}>
-                  <div style={{
-                    borderRadius: 12,
-                    overflow: 'hidden',
-                    borderLeft: sessionColorLabels[session.sessionId]
-                      ? `4px solid ${sessionColorLabels[session.sessionId]}`
-                      : undefined,
-                  }}>
-                    <SessionCard
-                      session={session}
-                      isActive={!selectMode && session.sessionId === currentSessionId}
-                      isStreaming={!selectMode && session.sessionId === currentSessionId && isStreaming}
-                      onClick={selectMode ? () => {} : () => onOpenSession(session)}
-                      isLoading={loadingSessionId === session.sessionId}
-                      onDelete={selectMode ? undefined : () => onDeleteSession?.(session.sessionId)}
-                    />
-                  </div>
+                  <EmployeeFigure
+                    session={session}
+                    isActive={!selectMode && session.sessionId === currentSessionId}
+                    isStreaming={!selectMode && session.sessionId === currentSessionId && isStreaming}
+                    onClick={selectMode ? () => {} : () => onOpenSession(session)}
+                    isLoading={loadingSessionId === session.sessionId}
+                    onDelete={selectMode ? undefined : () => onDeleteSession?.(session.sessionId)}
+                  />
                 </div>
               </div>
             )
 
             if (sortOrder !== 'recent') {
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+                <div className="emp-roster">
                   {pendingSessions.map(ps => (
-                    <PendingSessionCard key={ps.id} onEnter={() => enterNewSession(ps.id)} onCancel={() => setPendingSessions(prev => prev.filter(p => p.id !== ps.id))} />
+                    <PendingFigure key={ps.id} onEnter={() => enterNewSession(ps.id)} onCancel={() => setPendingSessions(prev => prev.filter(p => p.id !== ps.id))} />
                   ))}
-                  {pinnedFilteredSessions.map(renderSessionCard)}
+                  {pinnedFilteredSessions.map(renderEmployee)}
+                  <div className="emp-floor" />
                 </div>
               )
             }
@@ -897,10 +808,11 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
                     }}>
                       {t('session.today')}
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+                    <div className="emp-roster">
                       {pendingSessions.map(ps => (
-                        <PendingSessionCard key={ps.id} onEnter={() => enterNewSession(ps.id)} onCancel={() => setPendingSessions(prev => prev.filter(p => p.id !== ps.id))} />
+                        <PendingFigure key={ps.id} onEnter={() => enterNewSession(ps.id)} onCancel={() => setPendingSessions(prev => prev.filter(p => p.id !== ps.id))} />
                       ))}
+                      <div className="emp-floor" />
                     </div>
                   </div>
                 )}
@@ -915,8 +827,9 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
                     }}>
                       {group.label}
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-                      {group.sessions.map(renderSessionCard)}
+                    <div className="emp-roster">
+                      {group.sessions.map(renderEmployee)}
+                      <div className="emp-floor" />
                     </div>
                   </div>
                 ))}
@@ -1025,10 +938,6 @@ export default function DepartmentDashboard() {
         @keyframes dept-empty-in {
           from { opacity: 0; transform: translateY(8px); }
           to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes shimmer {
-          0%   { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
         }
       `}</style>
 

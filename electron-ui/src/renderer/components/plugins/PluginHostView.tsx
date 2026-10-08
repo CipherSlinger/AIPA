@@ -5,10 +5,12 @@ import {
   X,
   AlertTriangle,
   Puzzle,
+  FileCode,
 } from 'lucide-react'
 import { usePluginStore } from '../../store/pluginStore'
 import { useUiStore, usePrefsStore } from '../../store'
 import { getPluginIconComponent, getPluginDisplayName } from './pluginIcons'
+import PluginSourcePreview from './PluginSourcePreview'
 import { useI18n } from '../../i18n'
 
 type ElectronAPI = typeof window.electronAPI
@@ -43,9 +45,25 @@ function errorMessage(err: unknown): string {
   return raw.replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '')
 }
 
+/** Shared chrome for the toolbar buttons; each spreads it and overrides only
+ *  the state-dependent background/border/color. */
+const TOOLBAR_BTN: React.CSSProperties = {
+  padding: '4px 8px',
+  borderRadius: 6,
+  fontSize: 11,
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 4,
+}
+
 export default function PluginHostView() {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [iframeKey, setIframeKey] = useState(0)
+  // Source preview overlays the plugin frame (which stays mounted, so the
+  // running plugin keeps its state while you read its files). Per-plugin, so it
+  // resets on switch.
+  const [showSource, setShowSource] = useState(false)
 
   const plugins = usePluginStore(s => s.plugins)
   const activePluginId = usePluginStore(s => s.activePluginId)
@@ -156,6 +174,9 @@ export default function PluginHostView() {
     return () => window.removeEventListener('message', handleMessage)
   }, [sendThemeToIframe, addToast, openFolder, t])
 
+  // Reset the source preview when the active plugin changes
+  useEffect(() => { setShowSource(false) }, [activePluginId])
+
   const handleReload = () => {
     setIframeKey(k => k + 1)
   }
@@ -262,16 +283,10 @@ export default function PluginHostView() {
             onClick={handleReload}
             title={t('pluginHost.reloadTitle')}
             style={{
-              padding: '4px 8px',
-              borderRadius: 6,
+              ...TOOLBAR_BTN,
               background: 'transparent',
               border: '1px solid var(--border)',
               color: 'var(--text-secondary)',
-              fontSize: 11,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
             }}
           >
             <RotateCw size={12} />
@@ -279,22 +294,17 @@ export default function PluginHostView() {
           </button>
 
           <button
-            onClick={() => openFolder(plugin.manifest.id)}
-            title={t('pluginHost.openFolderTitle')}
+            onClick={() => setShowSource(v => !v)}
+            title={t('pluginHost.sourceTitle')}
+            aria-pressed={showSource}
             style={{
-              padding: '4px 8px',
-              borderRadius: 6,
-              background: 'transparent',
-              border: '1px solid var(--border)',
-              color: 'var(--text-secondary)',
-              fontSize: 11,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
+              ...TOOLBAR_BTN,
+              background: showSource ? 'rgba(99,102,241,0.14)' : 'transparent',
+              border: `1px solid ${showSource ? 'rgba(99,102,241,0.45)' : 'var(--border)'}`,
+              color: showSource ? '#818cf8' : 'var(--text-secondary)',
             }}
           >
-            <FolderOpen size={12} />
+            <FileCode size={12} />
             {t('pluginHost.source')}
           </button>
 
@@ -371,6 +381,19 @@ export default function PluginHostView() {
               sendThemeToIframe()
             }}
           />
+        )}
+
+        {/* Overlaid rather than swapped in: the frame above stays mounted, so an
+            open source view never reboots the plugin (it keeps its state). */}
+        {showSource && (
+          <div style={{ position: 'absolute', inset: 0, background: 'var(--bg-primary)' }}>
+            <PluginSourcePreview
+              key={plugin.manifest.id}
+              plugin={plugin}
+              onClose={() => setShowSource(false)}
+              onOpenFolder={() => openFolder(plugin.manifest.id)}
+            />
+          </div>
         )}
       </div>
     </div>

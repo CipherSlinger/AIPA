@@ -8,8 +8,12 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
+import type { EventEmitter } from 'events'
 import { net } from 'electron'
 import { CodexBridge, CodexAuthError } from '../codex/codex-bridge'
+import { StreamBridge } from '../pty/stream-bridge'
+import { buildCliEnv, migrateProviderConfig, type ModelProviderConfig } from '../providers/types'
+import { getPref } from '../config/config-manager'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('plugin-services')
@@ -214,7 +218,7 @@ export async function scanFolderChanges(args: ScanFolderArgs): Promise<PullItem[
   return found.map(({ title, desc }) => ({ title, desc }))
 }
 
-// ── One-shot AI generation via Codex ─────────────────
+// ── One-shot AI generation ───────────────────────────
 
 export type PluginAiEvent =
   | { requestId: string; type: 'delta'; text: string }
@@ -232,29 +236,30 @@ export interface PluginAiArgs {
 
 const AI_TIMEOUT_MS = 5 * 60 * 1000
 
+// Shared failure wording for both AI paths, so the two branches stay in step.
+const AI_TIMEOUT_MESSAGE = 'AI 生成超时（5 分钟），请重试'
+const AI_FAILED_MESSAGE = 'AI 生成失败'
+const AI_EMPTY_MESSAGE = '生成内容为空，请重试'
+const AI_CANCELLED_MESSAGE = '已取消生成'
+
 const DEFAULT_AI_INSTRUCTIONS =
   'You are a writing assistant embedded in a desktop plugin. ' +
   'Answer directly with the requested text only. ' +
   'Do not run shell commands, read files, or call any tools.'
 
-const aiRuns = new Map<string, CodexBridge>()
+/** Live runs by request id — the value aborts that run. */
+const aiRuns = new Map<string, () => void>()
 
 /**
- * Run a single ephemeral, read-only Codex turn and stream the agent's text back.
- * The thread is ephemeral so plugin generations never show up in chat history.
+ * Per-run bookkeeping shared by both AI paths: a one-shot `finish` guard (the
+ * first terminal event wins), the 5-minute timeout, and the stderr tail used in
+ * error messages.
  */
-export async function startPluginAi(args: PluginAiArgs, emit: (e: PluginAiEvent) => void): Promise<void> {
-  const { requestId } = args
-  if (aiRuns.has(requestId)) throw new Error(`Duplicate AI request id: ${requestId}`)
-
-  const bridge = new CodexBridge(`plugin-ai-${requestId}`)
-  aiRuns.set(requestId, bridge)
-
-  // Deltas arrive without itemId; a completed agentMessage re-sends the full
-  // text with its itemId. Keep only the latest message so preambles like
-  // "I'll write the report…" don't leak into the result.
-  let streaming = ''
-  let lastCompleted = ''
+function createRun(
+  requestId: string,
+  bridge: EventEmitter & { abort: () => void },
+  emit: (e: PluginAiEvent) => void,
+): { finish: (event: PluginAiEvent) => void; stderrTail: () => string } {
   let finished = false
   let lastStderr = ''
 
@@ -268,8 +273,163 @@ export async function startPluginAi(args: PluginAiArgs, emit: (e: PluginAiEvent)
   }
 
   const timer = setTimeout(() => {
-    finish({ requestId, type: 'error', message: 'AI 生成超时（5 分钟），请重试' })
+    finish({ requestId, type: 'error', message: AI_TIMEOUT_MESSAGE })
   }, AI_TIMEOUT_MS)
+
+  bridge.on('stderr', (text: string) => {
+    lastStderr = text.trim().split('\n').pop() || lastStderr
+  })
+
+  return { finish, stderrTail: () => lastStderr }
+}
+
+function pluginAiCwd(): string {
+  const cwd = path.join(os.homedir(), '.aipa', 'plugin-data')
+  fs.mkdirSync(cwd, { recursive: true })
+  return cwd
+}
+
+/**
+ * Which provider should serve a plugin AI turn, and with which model.
+ *
+ * Mirrors the chat's `resolveProvider()`: when the requested model (or the
+ * app's active model) belongs to an enabled provider other than the built-in
+ * Claude CLI — i.e. an AI gateway or a compatible endpoint — that provider
+ * serves the turn. Without this, a gateway-only setup fails the Codex auth
+ * check even though chat works, because plugin AI never saw the gateway.
+ *
+ * The resolved model is returned too: a gateway usually serves only the models
+ * it advertises, so the CLI must be told which one to ask for.
+ */
+function resolvePluginAiTarget(model?: string): { config: ModelProviderConfig; model: string } | null {
+  const target = (model || '').trim() || (getPref('model') || '').trim()
+  if (!target) return null
+  const saved = (getPref('modelProviders') as unknown[] | undefined) ?? []
+  for (const entry of saved) {
+    const config = migrateProviderConfig(entry as Record<string, unknown>)
+    if (config.id === 'claude-cli' || !config.enabled) continue
+    if ((config.models ?? []).some(m => m.id === target)) return { config, model: target }
+  }
+  return null
+}
+
+/**
+ * Run one ephemeral generation and stream the agent's text back.
+ *
+ * Routing follows the active provider config: gateway / compatible setups run
+ * through the Claude CLI on that provider's own credentials, everything else
+ * falls back to a one-shot read-only Codex turn. Neither path keeps a session,
+ * so plugin generations never show up in chat history.
+ */
+export async function startPluginAi(args: PluginAiArgs, emit: (e: PluginAiEvent) => void): Promise<void> {
+  const { requestId } = args
+  if (aiRuns.has(requestId)) throw new Error(`Duplicate AI request id: ${requestId}`)
+
+  const target = resolvePluginAiTarget(args.model)
+  return target
+    ? startProviderAi(args, emit, target.config, target.model)
+    : startCodexAi(args, emit)
+}
+
+/** Provider path — Claude CLI carrying the provider's env (base URL + token). */
+async function startProviderAi(
+  args: PluginAiArgs,
+  emit: (e: PluginAiEvent) => void,
+  config: ModelProviderConfig,
+  model: string
+): Promise<void> {
+  const { requestId } = args
+  const bridge = new StreamBridge(`plugin-ai-${requestId}`)
+
+  // Deltas drive the live preview; the CLI's result event carries the finished
+  // answer verbatim, which is what we return.
+  let streaming = ''
+  let completedText = ''
+  let cancelled = false
+
+  const abort = () => {
+    cancelled = true
+    try { bridge.endSession() } catch { /* stdin may already be closed */ }
+    bridge.abort()
+  }
+  aiRuns.set(requestId, abort)
+
+  const { finish, stderrTail } = createRun(requestId, bridge, emit)
+
+  bridge.on('textDelta', (d: { text?: string }) => {
+    if (!d?.text) return
+    streaming += d.text
+    emit({ requestId, type: 'delta', text: streaming })
+  })
+  bridge.on('result', (d: { subtype?: string; event?: { result?: unknown } }) => {
+    const raw = d.event?.result
+    if (typeof raw === 'string' && raw.trim()) completedText = raw
+    const text = (completedText || streaming).trim()
+    if (d.subtype !== 'success') {
+      finish({ requestId, type: 'error', message: text || AI_FAILED_MESSAGE })
+    } else if (!text) {
+      finish({ requestId, type: 'error', message: AI_EMPTY_MESSAGE })
+    } else {
+      finish({ requestId, type: 'done', text })
+    }
+  })
+
+  try {
+    // bypassPermissions is what makes StreamBridge run one-shot (--print with
+    // stdin closed). `--tools ""` disables every tool, so a plugin prompt can
+    // never touch the filesystem — the same guarantee the Codex path's
+    // read-only sandbox gave. The tool-free instruction goes in as a system
+    // prompt as well, for models that ignore the empty tool list.
+    await bridge.sendMessage({
+      prompt: args.prompt,
+      cwd: pluginAiCwd(),
+      model,
+      env: { ...buildCliEnv(config), CLAUDECODE: '' },
+      permissionMode: 'bypassPermissions',
+      flags: [
+        '--tools', '',
+        ...(args.instructions ? ['--append-system-prompt', args.instructions] : []),
+      ],
+    })
+  } catch (err) {
+    const tail = stderrTail()
+    finish({
+      requestId,
+      type: 'error',
+      message: cancelled
+        ? AI_CANCELLED_MESSAGE
+        : `${AI_FAILED_MESSAGE}：${err instanceof Error ? err.message : String(err)}${tail ? `（${tail}）` : ''}`,
+    })
+    return
+  }
+
+  // Process exited without a usable result event.
+  const text = (completedText || streaming).trim()
+  const tail = stderrTail()
+  finish(text
+    ? { requestId, type: 'done', text }
+    : {
+        requestId,
+        type: 'error',
+        message: cancelled
+          ? AI_CANCELLED_MESSAGE
+          : `${AI_EMPTY_MESSAGE}${tail ? `（${tail}）` : ''}`,
+      })
+}
+
+/** Codex path — used when no gateway / compatible provider owns the model. */
+async function startCodexAi(args: PluginAiArgs, emit: (e: PluginAiEvent) => void): Promise<void> {
+  const { requestId } = args
+  const bridge = new CodexBridge(`plugin-ai-${requestId}`)
+  aiRuns.set(requestId, () => { bridge.interruptTurn().catch(() => bridge.abort()) })
+
+  // Deltas arrive without itemId; a completed agentMessage re-sends the full
+  // text with its itemId. Keep only the latest message so preambles like
+  // "I'll write the report…" don't leak into the result.
+  let streaming = ''
+  let lastCompleted = ''
+
+  const { finish, stderrTail } = createRun(requestId, bridge, emit)
 
   bridge.on('textDelta', (d: { text: string; itemId?: string }) => {
     if (d.itemId) {
@@ -290,36 +450,30 @@ export async function startPluginAi(args: PluginAiArgs, emit: (e: PluginAiEvent)
   bridge.on('result', (d: { status?: string; event?: { turn?: { error?: { message?: string } } } }) => {
     const text = (lastCompleted || streaming).trim()
     if (d.status === 'failed') {
-      finish({ requestId, type: 'error', message: d.event?.turn?.error?.message || 'AI 生成失败' })
+      finish({ requestId, type: 'error', message: d.event?.turn?.error?.message || AI_FAILED_MESSAGE })
     } else if (d.status === 'interrupted') {
-      finish({ requestId, type: 'error', message: '已取消生成' })
+      finish({ requestId, type: 'error', message: AI_CANCELLED_MESSAGE })
     } else if (!text) {
-      finish({ requestId, type: 'error', message: '生成内容为空，请重试' })
+      finish({ requestId, type: 'error', message: AI_EMPTY_MESSAGE })
     } else {
       finish({ requestId, type: 'done', text })
     }
-  })
-  bridge.on('stderr', (text: string) => {
-    lastStderr = text.trim().split('\n').pop() || lastStderr
   })
   bridge.on('processExit', (d: { code?: number | null }) => {
     finish({
       requestId,
       type: 'error',
-      message: `Codex 进程意外退出（code ${d.code ?? 'null'}）${lastStderr ? `：${lastStderr}` : ''}`,
+      message: `Codex 进程意外退出（code ${d.code ?? 'null'}）${stderrTail() ? `：${stderrTail()}` : ''}`,
     })
   })
 
   const env: Record<string, string> = {}
   if (args.apiKey) env.OPENAI_API_KEY = args.apiKey
 
-  const cwd = path.join(os.homedir(), '.aipa', 'plugin-data')
-  fs.mkdirSync(cwd, { recursive: true })
-
   try {
     await bridge.sendMessage({
       prompt: args.prompt,
-      cwd,
+      cwd: pluginAiCwd(),
       model: args.model || undefined,
       env,
       approvalPolicy: 'never',
@@ -334,19 +488,17 @@ export async function startPluginAi(args: PluginAiArgs, emit: (e: PluginAiEvent)
       requestId,
       type: 'error',
       message: err instanceof CodexAuthError
-        ? 'Codex 尚未登录，也未配置 OpenAI API Key。请在 AIPA 设置中填写 API Key，或在终端执行 codex login 后重试'
+        ? 'Codex 尚未登录，也未配置 OpenAI API Key。请在 AIPA 设置中填写 API Key，或在「模型提供商」中把网关 / 兼容接口设为当前模型，或执行 codex login 后重试'
         : `启动 Codex 失败：${err instanceof Error ? err.message : String(err)}`,
     })
   }
 }
 
 export function abortPluginAi(requestId: string): void {
-  const bridge = aiRuns.get(requestId)
-  if (!bridge) return
-  bridge.interruptTurn().catch(() => bridge.abort())
+  aiRuns.get(requestId)?.()
 }
 
 export function abortAllPluginAi(): void {
-  for (const bridge of aiRuns.values()) bridge.abort()
+  for (const abort of [...aiRuns.values()]) abort()
   aiRuns.clear()
 }

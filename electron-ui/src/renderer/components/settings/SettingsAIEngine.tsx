@@ -1,12 +1,15 @@
 // SettingsAIEngine — AI Engine settings tab (Iteration 652)
 // Contains model selector, API key, advisor model, thinking mode, max turns,
 // budget limit, AI reply language — moved from SettingsGeneral.
-// Also wraps SettingsProviders for provider/API-key config.
-// Iteration 683: added availableModels enterprise whitelist section.
-// Iteration 688: added appendSystemPrompt textarea + availableModels tag editor.
+// Provider / API-key config (SettingsProviders) renders as a sub-section of the
+// same group, above the page's save button.
+// Iteration 688: added appendSystemPrompt textarea.
+// The apiKeyHelper / outputStyle / availableModels inputs were removed: the
+// writable-field whitelist in cli-settings-manager.ts rejects all three, so the
+// controls persisted nothing. Edit those fields in ~/.claude/settings.json.
 
-import React, { useState, useEffect, useRef, Suspense } from 'react'
-import { Brain, Eye, EyeOff, Save, Cpu, X, Plus } from 'lucide-react'
+import React, { useState, useEffect, Suspense } from 'react'
+import { Brain, Eye, EyeOff, Save, Cpu } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { MODEL_OPTIONS, INPUT_STYLE } from './settingsConstants'
 import SettingsGroup from './SettingsGroup'
@@ -35,28 +38,15 @@ export default function SettingsAIEngine({
 
   // aiReplyLanguage — reads/writes `language` field in ~/.claude/settings.json via IPC
   const [aiReplyLanguage, setAiReplyLanguage] = useState<string>('')
-  // cliOutputStyle — reads/writes `outputStyle` field in ~/.claude/settings.json via IPC
-  const [cliOutputStyle, setCliOutputStyle] = useState<string>('auto')
-  // apiKeyHelper — reads/writes `apiKeyHelper` field in ~/.claude/settings.json via IPC
-  const [apiKeyHelper, setApiKeyHelper] = useState<string>('')
-  // appendSystemPrompt — reads/writes `appendSystemPrompt` in prefsStore (CLI --append-system-prompt)
-  // availableModels — reads/writes `availableModels` array in ~/.claude/settings.json via IPC
-  const [availableModels, setAvailableModels] = useState<string[]>([])
-  const [newModelInput, setNewModelInput] = useState<string>('')
-  const [addingModel, setAddingModel] = useState(false)
+  // appendSystemPrompt lives in prefsStore (CLI --append-system-prompt)
+  // Note: fields the CLI reads from settings.json (apiKeyHelper, outputStyle,
+  // availableModels) are not editable here — the main process whitelist in
+  // cli-settings-manager.ts rejects them, so a UI control would silently no-op.
 
   useEffect(() => {
     window.electronAPI.configReadCLISettings().then((cliSettings: Record<string, unknown>) => {
       const lang = typeof cliSettings.language === 'string' ? cliSettings.language : ''
       setAiReplyLanguage(lang)
-      const style = typeof cliSettings.outputStyle === 'string' ? cliSettings.outputStyle : 'auto'
-      setCliOutputStyle(style)
-      const helper = typeof cliSettings.apiKeyHelper === 'string' ? cliSettings.apiKeyHelper : ''
-      setApiKeyHelper(helper)
-      const models = Array.isArray(cliSettings.availableModels)
-        ? (cliSettings.availableModels as unknown[]).filter((m): m is string => typeof m === 'string')
-        : []
-      setAvailableModels(models)
     }).catch(() => {})
   }, [])
 
@@ -100,26 +90,6 @@ export default function SettingsAIEngine({
         )}
 
         <SettingsApiKeyPool field={field} />
-
-        {field(
-          t('settings.apiKeyHelper'),
-          <input
-            type="text"
-            value={apiKeyHelper}
-            onChange={(e) => {
-              const next = e.target.value
-              setApiKeyHelper(next)
-              window.electronAPI.configWriteCLISettings({ apiKeyHelper: next }).catch(() => {})
-            }}
-            placeholder="/usr/local/bin/get-api-key.sh"
-            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
-            style={{ ...INPUT_STYLE }}
-          />,
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            {t('settings.apiKeyHelperDesc')}
-          </span>
-        )}
 
         {field(t('settings.model'), (
           <select value={local.model} onChange={(e) => updateLocal({ model: e.target.value })} style={{ ...INPUT_STYLE }}>
@@ -253,148 +223,32 @@ export default function SettingsAIEngine({
           </span>
         )}
 
-        {field(
-          t('settings.cliOutputStyle'),
-          <select
-            value={cliOutputStyle}
-            onChange={(e) => {
-              const next = e.target.value
-              setCliOutputStyle(next)
-              window.electronAPI.configWriteCLISettings({ outputStyle: next }).catch(() => {})
-            }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
-            style={{
-              background: 'var(--bg-hover)',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              color: 'var(--text-primary)',
-              padding: '6px 10px',
-              fontSize: 13,
-              outline: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              appearance: 'none',
-              WebkitAppearance: 'none',
-              width: '100%',
-            }}
-          >
-            <option value="auto">{t('settings.cliOutputStyleAuto')}</option>
-            <option value="text">{t('settings.cliOutputStyleText')}</option>
-            <option value="json">{t('settings.cliOutputStyleJson')}</option>
-            <option value="Explanatory">{t('settings.cliOutputStyleExplanatory')}</option>
-            <option value="Learning">{t('settings.cliOutputStyleLearning')}</option>
-          </select>,
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            {t('settings.cliOutputStyleHint')}
-          </span>
-        )}
+        {/* Providers live in this same group — one AI Engine card rather than a
+            second collapsible section stacked underneath it. */}
+        <div style={{ paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
+            textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6,
+          }}>
+            <Cpu size={12} />
+            {t('settings.groups.providers')}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 10 }}>
+            {t('settings.aiEngineProvidersDesc')}
+          </div>
 
-        {/* availableModels — enterprise model whitelist */}
-        {field(
-          t('settings.availableModels'),
-          <div>
-            {/* Tag list */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, minHeight: 24, marginBottom: 6 }}>
-              {availableModels.map((model, idx) => (
-                <span
-                  key={`model-tag-${idx}`}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                    background: 'rgba(99,102,241,0.12)', color: 'rgba(129,140,248,1)',
-                    border: '1px solid rgba(99,102,241,0.25)',
-                    borderRadius: 5, padding: '3px 8px',
-                    fontSize: 11, fontWeight: 500, fontFamily: 'monospace',
-                  }}
-                >
-                  {model.length > 45 ? model.slice(0, 45) + '…' : model}
-                  <button
-                    onClick={() => {
-                      const next = availableModels.filter((_, i) => i !== idx)
-                      setAvailableModels(next)
-                      window.electronAPI.configWriteCLISettings({ availableModels: next }).catch(() => {})
-                    }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', color: 'inherit', opacity: 0.55, transition: 'opacity 0.15s ease' }}
-                    onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
-                    onMouseLeave={e => { e.currentTarget.style.opacity = '0.55' }}
-                    aria-label={`Remove ${model}`}
-                  >
-                    <X size={10} />
-                  </button>
-                </span>
-              ))}
-              {availableModels.length === 0 && !addingModel && (
-                <span style={{ fontSize: 11, color: 'var(--text-faint)', fontStyle: 'italic', padding: '3px 0' }}>
-                  None configured (all models allowed)
-                </span>
-              )}
+          <Suspense fallback={
+            <div style={{ padding: 20, color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>
+              {t('settings.aiEngineProvidersLoading')}
             </div>
-            {/* Add input */}
-            {addingModel ? (
-              <div style={{ display: 'flex', gap: 6 }}>
-                <input
-                  autoFocus
-                  value={newModelInput}
-                  onChange={e => setNewModelInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      const trimmed = newModelInput.trim()
-                      if (trimmed && !availableModels.includes(trimmed)) {
-                        const next = [...availableModels, trimmed]
-                        setAvailableModels(next)
-                        window.electronAPI.configWriteCLISettings({ availableModels: next }).catch(() => {})
-                      }
-                      setNewModelInput('')
-                      setAddingModel(false)
-                    }
-                    if (e.key === 'Escape') { setAddingModel(false); setNewModelInput('') }
-                  }}
-                  placeholder="claude-opus-4-5"
-                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
-                  style={{ flex: 1, padding: '6px 10px', fontSize: 12, background: 'var(--bg-hover)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-primary)', fontFamily: 'monospace', outline: 'none', transition: 'border-color 0.15s ease, box-shadow 0.15s ease' }}
-                />
-                <button
-                  onClick={() => {
-                    const trimmed = newModelInput.trim()
-                    if (trimmed && !availableModels.includes(trimmed)) {
-                      const next = [...availableModels, trimmed]
-                      setAvailableModels(next)
-                      window.electronAPI.configWriteCLISettings({ availableModels: next }).catch(() => {})
-                    }
-                    setNewModelInput('')
-                    setAddingModel(false)
-                  }}
-                  disabled={!newModelInput.trim()}
-                  style={{ padding: '6px 12px', fontSize: 11, fontWeight: 600, background: newModelInput.trim() ? 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' : 'var(--bg-input)', border: newModelInput.trim() ? 'none' : '1px solid var(--border)', borderRadius: 6, color: newModelInput.trim() ? 'var(--text-bright)' : 'var(--text-faint)', cursor: newModelInput.trim() ? 'pointer' : 'not-allowed', transition: 'all 0.15s ease' }}
-                >
-                  Add
-                </button>
-                <button
-                  onClick={() => { setAddingModel(false); setNewModelInput('') }}
-                  style={{ padding: '6px 10px', fontSize: 11, background: 'var(--bg-hover)', border: '1px solid var(--glass-border)', borderRadius: 6, color: 'var(--text-faint)', cursor: 'pointer', transition: 'all 0.15s ease' }}
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setAddingModel(true)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--bg-hover)', border: '1px solid var(--glass-border-md)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 500, color: 'var(--text-faint)', transition: 'all 0.15s ease' }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-faint)' }}
-              >
-                <Plus size={11} /> Add Model
-              </button>
-            )}
-          </div>,
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            {t('settings.availableModelsHint')}
-          </span>
-        )}
+          }>
+            <SettingsProviders />
+          </Suspense>
+        </div>
       </SettingsGroup>
 
-      {/* Save button */}
+      {/* Save button — applies to every field on this page */}
       <button
         onClick={onSave}
         aria-label={saved ? t('settings.saved') : t('settings.save')}
@@ -414,32 +268,6 @@ export default function SettingsAIEngine({
         <Save size={13} />
         {saved ? t('settings.saved') : t('settings.save')}
       </button>
-
-      {/* Divider */}
-      <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
-
-      {/* Provider config section */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <Cpu size={15} color="#818cf8" />
-        <span style={{
-          fontSize: 13, fontWeight: 700, color: 'var(--text-primary)',
-          letterSpacing: '-0.01em',
-        }}>
-          AI 引擎 / AI Engine
-        </span>
-      </div>
-
-      <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 4 }}>
-        Configure AI providers, API keys, base URLs, and connection health. Changes take effect immediately.
-      </div>
-
-      <Suspense fallback={
-        <div style={{ padding: 20, color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>
-          Loading provider settings...
-        </div>
-      }>
-        <SettingsProviders />
-      </Suspense>
     </div>
   )
 }

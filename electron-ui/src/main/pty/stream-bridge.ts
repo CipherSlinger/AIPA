@@ -51,7 +51,7 @@ export class StreamBridge extends EventEmitter {
       '--output-format', 'stream-json',
       '--permission-prompt-tool', 'stdio',
       ...permissionFlags,
-      ...(isSessionMode ? [] : ['--print']),
+      ...(isSessionMode ? [] : ['--print', '--verbose']),
       ...(args.resumeSessionId ? ['--resume', args.resumeSessionId] : []),
       ...(args.model ? ['--model', args.model] : []),
       ...(args.flags || []),

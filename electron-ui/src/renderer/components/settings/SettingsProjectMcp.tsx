@@ -355,14 +355,15 @@ export default function SettingsProjectMcp() {
           return
         }
 
-        const raw = await window.electronAPI.fsReadFile(path) as string | { error: string }
-        if (typeof raw !== 'string') {
+        // fs:readFile resolves to { content } on success and { error } on failure
+        const raw = await window.electronAPI.fsReadFile(path)
+        if (typeof raw?.content !== 'string') {
           setError(t('settings.mcpPage.readFailed') + (raw?.error ?? ''))
           setLoading(false)
           return
         }
 
-        const parsed = JSON.parse(raw) as McpJson
+        const parsed = JSON.parse(raw.content) as McpJson
         if (!parsed.mcpServers || typeof parsed.mcpServers !== 'object') {
           setError(t('settings.mcpPage.missingKey'))
           setLoading(false)

@@ -1,5 +1,25 @@
 // Settings panel constants — extracted from SettingsPanel.tsx (Iteration 198)
 
+/**
+ * Canonical settings rail order, with each tab's label key alongside its id.
+ * SettingsPanel renders this list and the UI store types deep links
+ * (`openSettingsAt` / `pendingSettingsTab`) against it, so a tab only ever needs
+ * to be added in one place — and the rail needs no per-tab label special case.
+ */
+export const SETTINGS_TABS = [
+  { id: 'general', labelKey: 'settings.tabs.general' },
+  { id: 'ai-engine', labelKey: 'settings.tabs.ai-engine' },
+  { id: 'memory', labelKey: 'settings.tabs.memory' },
+  { id: 'permissions', labelKey: 'settings.tabs.permissions' },
+  { id: 'stats', labelKey: 'settings.tabs.stats' },
+  // Plugins and MCP servers share this page, hence the label key's name.
+  { id: 'plugins', labelKey: 'settings.tabs.pluginsAndMcp' },
+  { id: 'advanced', labelKey: 'settings.tabs.advanced' },
+  { id: 'about', labelKey: 'settings.tabs.about' },
+] as const
+
+export type SettingsTab = typeof SETTINGS_TABS[number]['id']
+
 export const TAG_PRESETS_SETTINGS = [
   { id: 'tag-1', color: '#3b82f6', defaultKey: 'tags.work' },
   { id: 'tag-2', color: '#22c55e', defaultKey: 'tags.personal' },

@@ -1,6 +1,7 @@
 // UI store — extracted from store/index.ts (Iteration 440)
 import { create } from 'zustand'
 import { ToastItem, ToastType } from '../components/ui/Toast'
+import type { SettingsTab } from '../components/settings/settingsConstants'
 import { usePluginStore } from './pluginStore'
 
 export type SidebarTab = 'history' | 'files' | 'notes' | 'workflows' | 'changes'
@@ -59,8 +60,8 @@ interface UiState {
   openSettingsModal: () => void
   closeSettingsModal: () => void
   // Pending settings tab — consumed by SettingsPanel on open to jump to a specific tab
-  pendingSettingsTab: 'general' | 'ai-engine' | 'memory' | 'permissions' | 'stats' | 'plugins' | 'mcp' | 'advanced' | 'sandbox' | 'about' | null
-  openSettingsAt: (tab: 'general' | 'ai-engine' | 'permissions' | 'stats' | 'plugins' | 'mcp' | 'advanced' | 'sandbox' | 'about') => void
+  pendingSettingsTab: SettingsTab | null
+  openSettingsAt: (tab: SettingsTab) => void
   clearPendingSettingsTab: () => void
 
   // Main content area view (Iteration 412: settings; Iteration 414: editors; Iteration 460: workflow-detail; Iteration 534: notes; Iteration 535: skill-creator; department: department dashboard)

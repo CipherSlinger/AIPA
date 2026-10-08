@@ -794,3 +794,133 @@ mark.search-current-match {
   --canvas-node-type-agent:      #ec4899;
   --canvas-node-type-group:      #14b8a6;
 }
+
+/* ========================================================================
+   Employee figures — the roster in a department drill-down
+   Each employee (session) stands as a little person; all animation is CSS
+   so a roster of N employees costs no per-hover React work.
+   ======================================================================== */
+.emp-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 108px;
+  padding: 6px 4px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+.emp-tile:hover,
+.emp-tile:focus-visible {
+  transform: translateY(-3px);
+  background: var(--bg-hover);
+  outline: none;
+}
+
+/* The figurine: gentle idle breathing, anchored at the feet. */
+.emp-figure {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation: emp-breathe 3.4s ease-in-out infinite;
+}
+@keyframes emp-breathe {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50%      { transform: translateY(-1.2px) scaleY(1.015); }
+}
+
+/* Blink — a quick squash of the eyes. */
+.emp-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: emp-blink 4.6s ease-in-out infinite;
+}
+@keyframes emp-blink {
+  0%, 91%, 100% { transform: scaleY(1); }
+  94%           { transform: scaleY(0.08); }
+}
+
+/* Halo — idle employees get a faint one on hover, a working one always. */
+.emp-halo {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: opacity 0.18s ease;
+}
+.emp-tile:hover .emp-halo { opacity: 0.45; }
+.emp-tile.emp-working .emp-halo {
+  opacity: 0.7;
+  animation: emp-halo-spin 7s linear infinite;
+}
+@keyframes emp-halo-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* A working employee breathes faster and taps away at the keyboard. */
+.emp-tile.emp-working .emp-figure { animation-duration: 2.2s; }
+.emp-tile.emp-working .emp-arm-r {
+  transform-box: fill-box;
+  transform-origin: top center;
+  animation: emp-type 0.9s ease-in-out infinite;
+}
+@keyframes emp-type {
+  0%, 100% { transform: rotate(-5deg); }
+  50%      { transform: rotate(6deg); }
+}
+
+/* Hover-revealed chrome: pin + open/dismiss. */
+.emp-actions {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.emp-tile:hover .emp-actions,
+.emp-tile:focus-within .emp-actions { opacity: 1; }
+
+/* Recruiting slot — a dashed outline where the next employee will stand. */
+.emp-ghost .emp-ghost-body {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  transition: stroke 0.18s ease;
+}
+.emp-ghost:hover .emp-ghost-body { stroke: #818cf8; }
+.emp-ghost:hover .emp-figure { animation: none; }
+
+/* Loading placeholder — the same silhouette, filled and pulsing. */
+.emp-skeleton .emp-ghost-body {
+  fill: var(--bg-hover);
+  stroke: none;
+  animation: emp-skeleton-pulse 1.6s ease-in-out infinite;
+}
+.emp-skeleton .emp-figure { animation: none; }
+@keyframes emp-skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .emp-figure,
+  .emp-eye,
+  .emp-halo,
+  .emp-arm-r,
+  .emp-skeleton .emp-ghost-body {
+    animation: none !important;
+    transition: none !important;
+  }
+  .emp-tile { transition: none !important; }
+}
+
+/* Roster row: figurines stand side by side on a shared floor line. */
+.emp-roster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 4px 10px;
+}
+.emp-floor {
+  flex: 0 0 100%;
+  height: 1px;
+  margin: 0 6px;
+  background: linear-gradient(90deg, transparent, var(--border) 10%, var(--border) 90%, transparent);
+}

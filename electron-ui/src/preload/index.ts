@@ -165,7 +165,12 @@ const electronAPI = {
     ipcRenderer.invoke('config:writeCLISettings', patch) as Promise<{ success?: boolean; error?: string }>,
 
   // ── File system ──────────────────────────
-  fsListDir: (dirPath: string) => ipcRenderer.invoke('fs:listDir', dirPath),
+  // Shape matches renderer's FileEntry (src/renderer/types/app.types.ts) — declared
+  // inline so preload keeps no runtime dependency on renderer modules.
+  fsListDir: (dirPath: string) =>
+    ipcRenderer.invoke('fs:listDir', dirPath) as Promise<
+      Array<{ name: string; isDirectory: boolean; isFile: boolean; path: string }>
+    >,
   fsShowOpenDialog: () => ipcRenderer.invoke('fs:showOpenDialog'),
   fsShowOpenFileDialog: (filters?: { name: string; extensions: string[] }[], multiSelections?: boolean) =>
     ipcRenderer.invoke('fs:showOpenFileDialog', { filters, multiSelections }),
@@ -174,7 +179,7 @@ const electronAPI = {
   fsWriteFile: (filePath: string, content: string) =>
     ipcRenderer.invoke('fs:writeFile', { filePath, content }),
   fsReadFile: (filePath: string) =>
-    ipcRenderer.invoke('fs:readFile', filePath),
+    ipcRenderer.invoke('fs:readFile', filePath) as Promise<{ content?: string; error?: string }>,
   fsGetHome: () => ipcRenderer.invoke('fs:getHome'),
   fsEnsureDir: (dirPath: string) => ipcRenderer.invoke('fs:ensureDir', dirPath),
   fsListCommands: (workingDir: string) => ipcRenderer.invoke('fs:listCommands', workingDir),

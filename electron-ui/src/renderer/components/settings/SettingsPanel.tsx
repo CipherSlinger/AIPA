@@ -10,13 +10,12 @@ import SettingsAdvanced from './SettingsAdvanced'
 
 const MemoryPanel = React.lazy(() => import('../memory/MemoryPanel'))
 import SettingsPlugins from './SettingsPlugins'
-import SettingsSandbox from './SettingsSandbox'
 import SettingsProjectMcp from './SettingsProjectMcp'
 import SettingsAIEngine from './SettingsAIEngine'
+import { SETTINGS_TABS, type SettingsTab } from './settingsConstants'
 // Personas tab has been moved to the Workflows sidebar panel (Iteration 376)
-// MCP tab (global) has been moved to the Channels sidebar panel (Iteration 536)
+// MCP config now lives inside the Plugins tab instead of its own rail entry.
 // Memory moved from the left rail into its own Settings tab (renders MemoryPanel)
-type SettingsTab = 'general' | 'ai-engine' | 'memory' | 'permissions' | 'stats' | 'plugins' | 'mcp' | 'advanced' | 'sandbox' | 'about'
 
 // Default emojis for migrated templates (Iteration 309: merge Templates into Personas)
 const MIGRATION_EMOJIS = ['\u{1F4DD}', '\u{1F4CB}', '\u{1F4CC}', '\u{1F4D6}', '\u{1F4DA}', '\u{1F3AF}', '\u{1F4A1}', '\u{2B50}', '\u{1F680}', '\u{1F3C6}']
@@ -36,10 +35,7 @@ export default function SettingsPanel() {
   const clearPendingSettingsTab = useUiStore(s => s.clearPendingSettingsTab)
   useEffect(() => {
     if (pendingSettingsTab) {
-      const valid: SettingsTab[] = ['general', 'ai-engine', 'memory', 'permissions', 'stats', 'plugins', 'mcp', 'advanced', 'sandbox', 'about']
-      if (valid.includes(pendingSettingsTab as SettingsTab)) {
-        setSettingsTab(pendingSettingsTab as SettingsTab)
-      }
+      setSettingsTab(pendingSettingsTab)
       clearPendingSettingsTab()
     }
   }, [pendingSettingsTab, clearPendingSettingsTab])
@@ -148,16 +144,16 @@ export default function SettingsPanel() {
         }}>
           {t('settings.title')}
         </div>
-        {(['general', 'ai-engine', 'memory', 'permissions', 'stats', 'plugins', 'mcp', 'advanced', 'sandbox', 'about'] as const).map(tab => {
-          const isActive = settingsTab === tab
-          const isHovered = hoveredTab === tab && !isActive
+        {SETTINGS_TABS.map(tab => {
+          const isActive = settingsTab === tab.id
+          const isHovered = hoveredTab === tab.id && !isActive
           return (
             <button
-              key={tab}
+              key={tab.id}
               role="tab"
               aria-selected={isActive}
-              onClick={() => setSettingsTab(tab)}
-              onMouseEnter={() => setHoveredTab(tab)}
+              onClick={() => setSettingsTab(tab.id)}
+              onMouseEnter={() => setHoveredTab(tab.id)}
               onMouseLeave={() => setHoveredTab(null)}
               style={{
                 background: isActive
@@ -176,7 +172,7 @@ export default function SettingsPanel() {
                 width: '100%',
               }}
             >
-              {t(`settings.tabs.${tab}`)}
+              {t(tab.labelKey)}
             </button>
           )
         })}
@@ -212,13 +208,14 @@ export default function SettingsPanel() {
         ) : settingsTab === 'stats' ? (
           <SettingsStats />
         ) : settingsTab === 'plugins' ? (
-          <SettingsPlugins />
-        ) : settingsTab === 'mcp' ? (
-          <SettingsProjectMcp />
+          // Plugins and MCP share one page: installed plugins on top, MCP servers below
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <SettingsPlugins />
+            <div style={{ height: 1, background: 'var(--border)' }} />
+            <SettingsProjectMcp />
+          </div>
         ) : settingsTab === 'advanced' ? (
           <SettingsAdvanced />
-        ) : settingsTab === 'sandbox' ? (
-          <SettingsSandbox />
         ) : (
           <SettingsAbout
             onResetDefaults={handleResetDefaults}

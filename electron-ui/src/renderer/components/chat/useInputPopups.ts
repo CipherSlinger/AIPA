@@ -223,9 +223,8 @@ export function useInputPopups({
         } else if (cmd.name === '/permissions') {
           useUiStore.getState().openSettingsAt('permissions')
         } else if (cmd.name === '/mcp') {
-          useUiStore.getState().openSettingsAt('mcp')
-        } else if (cmd.name === '/sandbox') {
-          useUiStore.getState().openSettingsAt('sandbox')
+          // MCP servers are a section of the Plugins settings tab
+          useUiStore.getState().openSettingsAt('plugins')
         } else if (cmd.name === '/ai-engine' || cmd.name === '/providers') {
           useUiStore.getState().openSettingsAt('ai-engine')
         } else if (cmd.name === '/memory') {

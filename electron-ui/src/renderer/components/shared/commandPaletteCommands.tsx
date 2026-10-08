@@ -406,14 +406,6 @@ export function buildSlashCommands(args: Pick<CommandBuilderArgs, 't' | 'onClose
       category: 'slash',
     },
     {
-      id: 'slash-sandbox',
-      name: '/sandbox',
-      description: t('command.sandboxDesc', { default: 'Open sandbox execution settings' }),
-      icon: <Shield size={14} />,
-      action: () => { onSendSlashCommand('/sandbox'); onClose() },
-      category: 'slash',
-    },
-    {
       id: 'slash-ai-engine',
       name: '/ai-engine',
       description: t('command.aiEngineDesc', { default: 'Open AI engine and provider settings' }),

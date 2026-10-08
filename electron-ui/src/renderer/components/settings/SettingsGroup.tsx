@@ -66,14 +66,23 @@ export default function SettingsGroup({ title, icon, children, groupKey }: Setti
           : <ChevronRight size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
         }
       </button>
+      {/* A 0fr → 1fr grid track animates to the content's natural height, so a
+          tall group is never clipped (a fixed max-height cap would cut it off). */}
       <div style={{
-        overflow: 'hidden',
-        maxHeight: expanded ? 2000 : 0,
-        opacity: expanded ? 1 : 0,
-        transition: 'max-height 0.15s ease, opacity 0.15s ease',
-        padding: expanded ? '4px 16px 14px' : '0 16px',
+        display: 'grid',
+        gridTemplateRows: expanded ? '1fr' : '0fr',
+        transition: 'grid-template-rows 0.15s ease',
       }}>
-        {children}
+        <div style={{
+          overflow: 'hidden',
+          minHeight: 0,
+          opacity: expanded ? 1 : 0,
+          transition: 'opacity 0.15s ease',
+        }}>
+          <div style={{ padding: '4px 16px 14px' }}>
+            {children}
+          </div>
+        </div>
       </div>
     </div>
   )
