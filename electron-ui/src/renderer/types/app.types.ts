@@ -4,6 +4,8 @@ export interface SessionListItem {
   timestamp: number
   project: string
   projectSlug: string
+  /** The session's real working directory when the engine reports one (Codex does). */
+  cwd?: string
   title?: string
   messageCount?: number
   firstTimestamp?: number

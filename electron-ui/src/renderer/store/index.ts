@@ -13,8 +13,8 @@ export { getTabScrollTop } from './chatStore'
 export { useUiStore } from './uiStore'
 export type { SidebarTab, NavItem } from './uiStore'
 
-export { useDepartmentStore } from './departmentStore'
-export type { Department } from './departmentStore'
+export { useDepartmentStore, descendantIds } from './departmentStore'
+export type { Department, OrgNodeKind, Position } from './departmentStore'
 
 export { usePluginStore } from './pluginStore'
 

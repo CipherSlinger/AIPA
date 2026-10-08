@@ -900,6 +900,18 @@ mark.search-current-match {
   .emp-tile { transition: none !important; }
 }
 
+/* Vacancy — a seat with nobody in it yet. Outlined rather than filled (the
+   silhouette has no default fill, so without this it would render solid black),
+   and deliberately still: a breathing outline would read as a real employee. */
+.emp-ghost .emp-ghost-body {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+.emp-ghost .emp-figure { animation: none; }
+.emp-ghost:hover .emp-ghost-body { stroke: #818cf8; }
+
 /* Roster row: figurines stand side by side on a shared floor line. */
 .emp-roster {
   display: flex;

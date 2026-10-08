@@ -1,10 +1,10 @@
 // DepartmentPanel — sidebar panel listing departments (部门) and allowing add/edit/delete
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { Building2, Plus, MoreHorizontal, Pencil, Trash2, FolderOpen, Check, X, FolderPlus, ChevronsUpDown, ChevronsDownUp, GripVertical, ChevronRight, LayoutGrid, LogIn } from 'lucide-react'
-import { useDepartmentStore, useSessionStore, Department } from '../../store'
+import { useDepartmentStore, useSessionStore, descendantIds, Department } from '../../store'
 import { useUiStore } from '../../store'
 import { useT } from '../../i18n'
-import { DEPT_COLORS, baseName, normalizePath } from './deptUtils'
+import { DEPT_COLORS, baseName, sessionMatchesDir } from './deptUtils'
 import DeptTemplatePicker from './DeptTemplatePicker'
 
 const SCROLLBAR_STYLE = `
@@ -412,6 +412,14 @@ function DepartmentRow({
   const updateDepartment = useDepartmentStore(s => s.updateDepartment)
   const removeDepartment = useDepartmentStore(s => s.removeDepartment)
   const setMainView = useUiStore(s => s.setMainView)
+
+  // How many records vanish with this one. Deleting is a cascade now, so the
+  // confirmation has to say what else is going, not just this node.
+  const allDepts = useDepartmentStore(s => s.departments)
+  const childCount = useMemo(
+    () => descendantIds(allDepts, dept.id).size - 1,
+    [allDepts, dept.id],
+  )
 
   const select = () => {
     setActiveDepartmentId(dept.id)
@@ -829,6 +837,13 @@ function DepartmentRow({
           }}
         >
           <div style={{ fontSize: 12, color: 'var(--text-primary)', marginBottom: 8 }}>{t('dept.confirmDelete')}</div>
+          {/* Deleting a node takes its subtree with it. Say so before it happens —
+              the folders stay on disk, but the records do not come back. */}
+          {childCount > 0 && (
+            <div style={{ fontSize: 11, color: '#f87171', marginBottom: 8, lineHeight: 1.5 }}>
+              {t('dept.deleteCascade', { count: String(childCount) })}
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={() => { removeDepartment(dept.id); setConfirmDelete(false); if (isActive) useUiStore.getState().setMainView('chat') }}
               style={{ flex: 1, padding: '5px 0', borderRadius: 5, border: 'none', background: '#f87171', color: 'rgba(255,255,255,0.95)', fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease' }}
@@ -890,8 +905,8 @@ export default function DepartmentPanel() {
   const deptStats = useMemo(() => {
     const stats: Record<string, { count: number; lastActive: number; unreadCount: number }> = {}
     for (const dept of departments) {
-      const deptDir = normalizePath(dept.directory, homeDir)
-      const deptSessions = sessions.filter(s => normalizePath(s.project, homeDir) === deptDir)
+      const dir = dept.directory
+      const deptSessions = sessions.filter(s => sessionMatchesDir(s, dir, homeDir))
       const unreadCount = deptSessions.filter(s => (unreadCounts[s.sessionId] ?? 0) > 0).length
       stats[dept.id] = {
         count: deptSessions.length,

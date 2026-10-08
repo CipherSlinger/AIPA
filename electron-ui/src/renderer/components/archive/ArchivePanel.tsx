@@ -2,11 +2,15 @@
 //
 // Every department roster answers "who works here"; this answers "what has this
 // company actually done, and who did it". A record is a session, because a
-// session *is* an employee's run at a task, and it is attributed to the
-// department whose folder it ran in. That attribution is derived, not stored:
-// `dirToSlug(dept.directory) === session.projectSlug` is the only join between
-// the two (see deptUtils). Sessions in folders no department owns are not lost —
-// they land in an explicit 未分派 group.
+// session *is* an employee's run at a task, and it is attributed to the node
+// whose folder it ran in. That attribution is derived, not stored — see
+// `findDeptForSession` in deptUtils for the one join between the two. Sessions in
+// folders no node owns are not lost: they land in an explicit 未分派 group.
+//
+// Records are *grouped* by the top of their branch, not by the leaf that owns
+// them. Once an org has three levels, grouping by leaf would shred one company's
+// ledger into a row of 研发部 / 前端组 / 后端组 groups with no visible relation;
+// the leaf is shown per record instead, and the group is the company.
 
 import React, { useCallback, useMemo, useState } from 'react'
 import {
@@ -23,7 +27,7 @@ import {
 import { useDepartmentStore, usePrefsStore, useSessionStore, type Department } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
 import { useT, useI18n } from '../../i18n'
-import { deptBySlug, deptEmoji } from '../departments/deptUtils'
+import { deptByNormDir, deptBySlug, deptEmoji, findDeptForSession, kindOf, rootOf } from '../departments/deptUtils'
 import { openSessionCore } from '../departments/openSessionCore'
 
 const ELLIPSIS: React.CSSProperties = {
@@ -38,13 +42,16 @@ const UNASSIGNED = '__unassigned__'
 
 interface ArchiveRecord {
   session: SessionListItem
+  /** The node whose folder the session ran in — the leaf, for the sub-label. */
   dept: Department | null
+  /** The top of that node's branch — what the record is grouped under. */
+  root: Department | null
   archived: boolean
 }
 
 interface ArchiveGroup {
   /** null for the 未分派 group. */
-  dept: Department | null
+  root: Department | null
   records: ArchiveRecord[]
   /** Newest timestamp in the group — the ledger reads best newest-company-first. */
   latest: number
@@ -95,6 +102,7 @@ export default function ArchivePanel() {
   const departments = useDepartmentStore(s => s.departments)
   const sessions = useSessionStore(s => s.sessions)
   const sessionsLoading = useSessionStore(s => s.loading)
+  const homeDir = useSessionStore(s => s.homeDir)
   const archivedSessions = usePrefsStore(s => s.prefs.archivedSessions) || []
   const setPrefs = usePrefsStore(s => s.setPrefs)
 
@@ -107,15 +115,21 @@ export default function ArchivePanel() {
 
   const archivedSet = useMemo(() => new Set(archivedSessions), [archivedSessions])
   const slugIndex = useMemo(() => deptBySlug(departments), [departments])
+  const dirIndex = useMemo(() => deptByNormDir(departments, homeDir), [departments, homeDir])
+  const byId = useMemo(() => new Map(departments.map(d => [d.id, d])), [departments])
 
   // Every session is a record. Attribution is a lookup, never stored.
   const allRecords: ArchiveRecord[] = useMemo(
-    () => sessions.map(session => ({
-      session,
-      dept: slugIndex.get(session.projectSlug) ?? null,
-      archived: archivedSet.has(session.sessionId),
-    })),
-    [sessions, slugIndex, archivedSet],
+    () => sessions.map(session => {
+      const dept = findDeptForSession(session, slugIndex, dirIndex, homeDir)
+      return {
+        session,
+        dept,
+        root: dept ? rootOf(dept, byId) : null,
+        archived: archivedSet.has(session.sessionId),
+      }
+    }),
+    [sessions, slugIndex, dirIndex, homeDir, archivedSet, byId],
   )
 
   const records = useMemo(() => {
@@ -124,29 +138,30 @@ export default function ArchivePanel() {
     return allRecords.filter(r => {
       if (!showArchived && r.archived) return false
       if (timeRange !== 'all' && r.session.timestamp < cutoff) return false
-      if (deptFilter === UNASSIGNED ? r.dept !== null : deptFilter !== 'all' && r.dept?.id !== deptFilter) return false
+      // The filter picks a branch, so anything anywhere under it matches.
+      if (deptFilter === UNASSIGNED ? r.dept !== null : deptFilter !== 'all' && r.root?.id !== deptFilter) return false
       if (!q) return true
       const haystack = `${r.session.title || ''}\n${r.session.lastPrompt || ''}\n${r.session.project || ''}`
       return haystack.toLowerCase().includes(q)
     })
   }, [allRecords, query, timeRange, showArchived, deptFilter])
 
-  // Group by department, newest-worked group first, 未分派 always last.
+  // Group by the top of each branch, newest-worked group first, 未分派 last.
   const groups: ArchiveGroup[] = useMemo(() => {
-    const byDept = new Map<string, ArchiveGroup>()
+    const byRoot = new Map<string, ArchiveGroup>()
     for (const record of records) {
-      const key = record.dept?.id ?? UNASSIGNED
-      let group = byDept.get(key)
+      const key = record.root?.id ?? UNASSIGNED
+      let group = byRoot.get(key)
       if (!group) {
-        group = { dept: record.dept, records: [], latest: 0 }
-        byDept.set(key, group)
+        group = { root: record.root, records: [], latest: 0 }
+        byRoot.set(key, group)
       }
       group.records.push(record)
       group.latest = Math.max(group.latest, record.session.timestamp)
     }
-    return [...byDept.values()].sort((a, b) => {
-      if (!a.dept) return 1
-      if (!b.dept) return -1
+    return [...byRoot.values()].sort((a, b) => {
+      if (!a.root) return 1
+      if (!b.root) return -1
       return b.latest - a.latest
     })
   }, [records])
@@ -154,8 +169,15 @@ export default function ArchivePanel() {
   const summary = useMemo(() => {
     const weekCutoff = Date.now() - TIME_WINDOWS.week
     const week = allRecords.filter(r => r.session.timestamp >= weekCutoff).length
-    const deptIds = new Set(allRecords.map(r => r.dept?.id).filter(Boolean) as string[])
-    return { total: allRecords.length, depts: deptIds.size, week }
+    const rootIds = new Set(allRecords.map(r => r.root?.id).filter(Boolean) as string[])
+    return { total: allRecords.length, roots: rootIds.size, week }
+  }, [allRecords])
+
+  /** The filter's options — one per branch that actually holds work. */
+  const filterTargets = useMemo(() => {
+    const seen = new Map<string, Department>()
+    for (const r of allRecords) if (r.root) seen.set(r.root.id, r.root)
+    return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name))
   }, [allRecords])
 
   const unassignedCount = useMemo(
@@ -183,11 +205,13 @@ export default function ArchivePanel() {
 
   const exportLedger = useCallback(() => {
     const data = groups.map(group => ({
-      department: group.dept?.name ?? t('archive.unassigned'),
-      directory: group.dept?.directory ?? null,
+      company: group.root?.name ?? t('archive.unassigned'),
+      directory: group.root?.directory ?? null,
       tasks: group.records.map(r => ({
         title: recordTitle(r.session, t('session.untitled')),
         employee: employeeTag(r.session.sessionId),
+        // Which desk inside that company the work happened at.
+        department: r.dept?.name ?? null,
         sessionId: r.session.sessionId,
         project: r.session.project,
         lastPrompt: r.session.lastPrompt,
@@ -196,7 +220,7 @@ export default function ArchivePanel() {
         archived: r.archived,
       })),
     }))
-    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), departments: data }, null, 2)], { type: 'application/json' })
+    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), companies: data }, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -232,7 +256,7 @@ export default function ArchivePanel() {
         <span style={{ flex: 1, fontSize: 11, color: 'var(--text-muted)', ...ELLIPSIS }}>
           {t('archive.summary', {
             total: String(summary.total),
-            depts: String(summary.depts),
+            depts: String(summary.roots),
             week: String(summary.week),
           })}
         </span>
@@ -266,7 +290,7 @@ export default function ArchivePanel() {
           }}
         >
           <option value="all">{t('archive.allDepartments')}</option>
-          {departments.map(d => (
+          {filterTargets.map(d => (
             <option key={d.id} value={d.id}>{d.name}</option>
           ))}
           <option value={UNASSIGNED}>{t('archive.unassigned')}</option>
@@ -340,11 +364,11 @@ export default function ArchivePanel() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             {groups.map(group => {
-              const key = group.dept?.id ?? UNASSIGNED
+              const key = group.root?.id ?? UNASSIGNED
               const isCollapsed = !!collapsed[key]
               return (
                 <div key={key}>
-                  {/* Group header */}
+                  {/* Group header — the company (or a legacy top-level department) */}
                   <button
                     onClick={() => setCollapsed(c => ({ ...c, [key]: !c[key] }))}
                     style={{
@@ -354,10 +378,19 @@ export default function ArchivePanel() {
                     }}
                   >
                     {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-                    <span style={{ fontSize: 13, lineHeight: 1 }}>{group.dept ? deptEmoji(group.dept.id) : '📭'}</span>
+                    <span style={{ fontSize: 13, lineHeight: 1 }}>{group.root ? deptEmoji(group.root.id) : '📭'}</span>
                     <span style={{ fontSize: 12, fontWeight: 700 }}>
-                      {group.dept?.name ?? t('archive.unassigned')}
+                      {group.root?.name ?? t('archive.unassigned')}
                     </span>
+                    {group.root && kindOf(group.root) === 'company' && (
+                      <span style={{
+                        fontSize: 9, padding: '1px 6px', borderRadius: 999,
+                        border: '1px solid rgba(99,102,241,0.28)', background: 'rgba(99,102,241,0.08)',
+                        color: '#818cf8',
+                      }}>
+                        {t('dept.companyTag')}
+                      </span>
+                    )}
                     <span style={{
                       fontSize: 10, padding: '1px 7px', borderRadius: 999,
                       background: 'var(--bg-hover)', border: '1px solid var(--border)',
@@ -365,9 +398,9 @@ export default function ArchivePanel() {
                     }}>
                       {group.records.length}
                     </span>
-                    {group.dept && (
+                    {group.root && (
                       <span style={{ fontSize: 10, color: 'var(--text-faint)', ...ELLIPSIS, maxWidth: 260 }}>
-                        {group.dept.directory}
+                        {group.root.directory}
                       </span>
                     )}
                   </button>
@@ -506,8 +539,24 @@ function ArchiveRow({
         #{employeeTag(session.sessionId)}
       </span>
 
-      {/* Assigned records carry their department in the group header above, so only
-          the unassigned ones need the folder spelled out per row. */}
+      {/* Which desk inside the group's company this was worked at. Only shown when
+          the record sat below the group node — a top-level department's own work
+          would otherwise repeat its own name on every row. */}
+      {record.dept && record.dept.id !== record.root?.id && (
+        <span
+          title={record.dept.directory}
+          style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-faint)', maxWidth: 180 }}
+        >
+          <FolderOpen size={10} />
+          <span style={ELLIPSIS}>
+            {kindOf(record.dept) === 'team'
+              ? `${record.dept.name} · ${t('dept.team')}`
+              : record.dept.name}
+          </span>
+        </span>
+      )}
+
+      {/* Unassigned records have no group to carry their folder, so spell it out. */}
       {!record.dept && (
         <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-faint)', maxWidth: 200 }}>
           <FolderOpen size={10} />

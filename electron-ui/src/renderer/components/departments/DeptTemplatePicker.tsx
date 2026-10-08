@@ -1,10 +1,14 @@
 // DeptTemplatePicker — the dialog that turns "I have an empty org chart" into a
-// working company structure in one step.
+// whole company in one step.
 //
-// It is deliberately the *only* place that seeds departments: the empty org
+// It is deliberately the *only* place that seeds an org tree: the empty org
 // chart, the "new department" panel and the sidebar form all open this same
 // dialog, so there is one code path that writes folders and one place to explain
 // what is about to happen on disk.
+//
+// A template creates the company → department → team folders and hangs ghost
+// positions on them. Nothing is sent to a model here: a position is a title plus
+// a brief, and it only costs anything when the user hires it.
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -17,9 +21,7 @@ import {
   FolderInput,
   FolderOpen,
   Loader2,
-  Megaphone,
   PenLine,
-  Sparkles,
   ShoppingCart,
   SquareDashed,
   type LucideIcon,
@@ -28,22 +30,21 @@ import { useSessionStore } from '../../store'
 import { useI18n } from '../../i18n'
 import { joinPath } from './deptUtils'
 import {
-  DEPT_PRESETS,
+  COMPANY_TEMPLATES,
   PRESET_BASE_DIR_NAME,
-  applyPreset,
+  applyTemplate,
   existingDirsPreview,
   importExistingDirs,
   markDeptSetupChosen,
-  pendingPresetDepartments,
+  previewTemplate,
+  type PreviewNode,
 } from './deptPresets'
 
 const DOMAIN_ICONS: Record<string, LucideIcon> = {
   software: Code,
   content: PenLine,
-  marketing: Megaphone,
-  research: FlaskConical,
   ecommerce: ShoppingCart,
-  personal: Sparkles,
+  research: FlaskConical,
 }
 
 type Choice = { kind: 'preset'; id: string } | { kind: 'import' } | { kind: 'blank' }
@@ -52,7 +53,7 @@ interface DeptTemplatePickerProps {
   onClose: () => void
   /** Fired once folders are on disk; `created` is how many departments landed. */
   onApplied: (created: number) => void
-  /** Pre-select a domain — lets a card in the empty state open straight onto it. */
+  /** Pre-select a company type — lets a card in the empty state open straight onto it. */
   initialPresetId?: string
 }
 
@@ -63,7 +64,7 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
 
   const [choice, setChoice] = useState<Choice>(() => ({
     kind: 'preset',
-    id: DEPT_PRESETS.some(p => p.id === initialPresetId) ? initialPresetId! : DEPT_PRESETS[0].id,
+    id: COMPANY_TEMPLATES.some(p => p.id === initialPresetId) ? initialPresetId! : COMPANY_TEMPLATES[0].id,
   }))
   const [baseDir, setBaseDir] = useState('')
   const [busy, setBusy] = useState(false)
@@ -80,18 +81,23 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
     return () => { alive = false }
   }, [])
 
-  const preset = choice.kind === 'preset' ? DEPT_PRESETS.find(p => p.id === choice.id) ?? null : null
+  const tpl = choice.kind === 'preset' ? COMPANY_TEMPLATES.find(p => p.id === choice.id) ?? null : null
   const existingDirs = useMemo(() => existingDirsPreview(sessions, homeDir), [sessions, homeDir])
 
-  // What the primary button is about to create, shown before it is clicked.
-  // Departments that already exist at this path are excluded — the preview must
-  // not promise work that will be skipped.
-  const preview: Array<{ name: string; color: string }> = useMemo(() => {
-    if (preset) return pendingPresetDepartments(preset, resolvedLocale, baseDir)
-    if (choice.kind === 'import') return existingDirs.map(d => ({ name: d.name, color: '#6366f1' }))
-    return []
-  }, [preset, choice.kind, existingDirs, resolvedLocale, baseDir])
-  const disabled = preview.length === 0 && choice.kind !== 'blank' && !busy
+  // What the primary button is about to create. Nodes whose folder already
+  // exists are kept but not counted, so the preview never promises work that
+  // will be skipped.
+  const preview = useMemo(
+    () => (tpl ? previewTemplate(tpl, resolvedLocale, baseDir) : null),
+    [tpl, resolvedLocale, baseDir],
+  )
+  const counts = preview?.counts
+  const willCreate = counts ? counts.departments + counts.teams : 0
+  /** How many departments the primary button is promising to register. */
+  const createCount = choice.kind === 'import' ? existingDirs.length : willCreate
+  const disabled = busy
+    || (choice.kind === 'preset' && willCreate === 0)
+    || (choice.kind === 'import' && existingDirs.length === 0)
 
   const browse = async () => {
     const picked = await window.electronAPI.fsShowOpenDialog()
@@ -115,21 +121,21 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
       return
     }
 
-    if (!preset) return
+    if (!tpl) return
     if (!baseDir.trim()) { setError(t('dept.presets.baseDirRequired')); return }
 
     setBusy(true)
     try {
-      const result = await applyPreset(preset, baseDir.trim(), resolvedLocale)
-      // Zero created with zero failures means every folder was already a
-      // department — nothing went wrong, there was just nothing left to do.
-      if (result.created === 0 && result.failed.length > 0) {
+      const result = await applyTemplate(tpl, baseDir.trim(), resolvedLocale)
+      // Zero created with failures means nothing landed; zero created with no
+      // failures means every folder was already a node — nothing went wrong.
+      if (result.departments === 0 && result.teams === 0 && result.failed.length > 0) {
         setFailed(result.failed)
         setError(t('dept.presets.allFailed'))
         setBusy(false)
         return
       }
-      onApplied(result.created)
+      onApplied(result.departments)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
       setBusy(false)
@@ -177,6 +183,38 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
     </button>
   )
 
+  // One row of the structure preview. Existing nodes stay visible but dimmed —
+  // the user needs to see that the tree is understood, not that it is missing.
+  const previewRow = (node: PreviewNode, depth: number): React.ReactNode => (
+    <React.Fragment key={`${depth}-${node.name}`}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        paddingLeft: depth * 14,
+        opacity: node.exists ? 0.42 : 1,
+        fontSize: 11.5,
+        color: node.kind === 'company' ? 'var(--text-primary)' : 'var(--text-secondary)',
+        fontWeight: node.kind === 'company' ? 700 : 500,
+        lineHeight: 1.9,
+      }}>
+        {node.kind === 'team'
+          ? <span style={{ color: 'var(--text-faint)', flexShrink: 0 }}>└</span>
+          : <span style={{ width: 6, height: 6, borderRadius: '50%', background: node.color, flexShrink: 0 }} />}
+        <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{node.name}</span>
+        {node.positionCount > 0 && (
+          <span style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-muted)' }}>
+            {t('dept.presets.positionsSuffix', { count: String(node.positionCount) })}
+          </span>
+        )}
+        {node.exists && (
+          <span style={{ flexShrink: 0, fontSize: 9.5, color: 'var(--text-faint)', border: '1px solid var(--border)', borderRadius: 999, padding: '0 5px' }}>
+            {t('dept.presets.existsTag')}
+          </span>
+        )}
+      </div>
+      {node.children.map(child => previewRow(child, depth + 1))}
+    </React.Fragment>
+  )
+
   const dialog = (
     <div
       style={{
@@ -213,8 +251,8 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
 
         {/* Body */}
         <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-            {DEPT_PRESETS.map(p => {
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+            {COMPANY_TEMPLATES.map(p => {
               const Icon = DOMAIN_ICONS[p.id] || Building2
               const active = choice.kind === 'preset' && choice.id === p.id
               return card(
@@ -248,27 +286,56 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
           </div>
 
           {/* What is about to be created */}
-          {preview.length > 0 && (
+          {preview && (
             <div style={{
-              border: '1px solid var(--border)', borderRadius: 10, padding: '9px 12px',
-              background: 'var(--bg-hover)', display: 'flex', flexDirection: 'column', gap: 6,
+              border: '1px solid var(--border)', borderRadius: 10,
+              background: 'var(--bg-hover)', display: 'flex', flexDirection: 'column',
+              overflow: 'hidden',
             }}>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                {t('dept.presets.willCreate', { count: String(preview.length) })}
+              <span style={{
+                fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
+                color: 'var(--text-muted)', padding: '9px 12px 6px',
+              }}>
+                {t('dept.presets.previewTitle')}
               </span>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {preview.map(d => (
-                  <span key={d.name} style={{
-                    display: 'flex', alignItems: 'center', gap: 5,
-                    padding: '3px 9px', borderRadius: 999,
-                    border: '1px solid var(--border)', background: 'var(--bg-primary)',
-                    fontSize: 11, color: 'var(--text-secondary)',
-                  }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: d.color, flexShrink: 0 }} />
-                    {d.name}
-                  </span>
-                ))}
+              {/* Only the tree scrolls. The title and the totals stay pinned: a
+                  nine-department company is far taller than this box, and the
+                  totals are the one line the dialog exists to communicate. */}
+              <div style={{
+                maxHeight: 196, overflowY: 'auto', padding: '0 12px',
+                display: 'flex', flexDirection: 'column', gap: 4,
+              }}>
+                {previewRow(preview.root, 0)}
               </div>
+              <span style={{
+                fontSize: 10.5, color: 'var(--text-muted)',
+                padding: '7px 12px 9px', borderTop: '1px solid var(--border)',
+              }}>
+                {counts && (counts.departments + counts.teams > 0
+                  ? t('dept.presets.totals', {
+                    depts: String(counts.departments),
+                    teams: String(counts.teams),
+                    positions: String(counts.positions),
+                  })
+                  : t('dept.presets.allExist'))}
+              </span>
+            </div>
+          )}
+
+          {/* Import preview — no tree, just the folders that would be adopted */}
+          {choice.kind === 'import' && existingDirs.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {existingDirs.map(d => (
+                <span key={d.directory} style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '3px 9px', borderRadius: 999,
+                  border: '1px solid var(--border)', background: 'var(--bg-primary)',
+                  fontSize: 11, color: 'var(--text-secondary)',
+                }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366f1', flexShrink: 0 }} />
+                  {d.name}
+                </span>
+              ))}
             </div>
           )}
 
@@ -356,7 +423,7 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
               ? t('dept.presets.creating')
               : choice.kind === 'blank' ? t('dept.presets.blank')
               : disabled ? t('dept.presets.allExist')
-              : t('dept.presets.create', { count: String(preview.length) })}
+              : t('dept.presets.create', { count: String(createCount) })}
           </button>
         </div>
       </div>

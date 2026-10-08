@@ -20,6 +20,8 @@ export interface SessionListItem {
   timestamp: number
   project: string
   projectSlug: string
+  /** Unused for Claude sessions (their project dir name IS the slug), kept for a shared shape. */
+  cwd?: string
   title?: string
   messageCount?: number
   firstTimestamp?: number

@@ -3,44 +3,62 @@
 // organization chart (OrgChart.tsx). Employees are shown as standing figures
 // (EmployeeFigure) rather than generic session cards.
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Building2, FolderOpen, MessageSquarePlus, ArrowLeft, Search, X } from 'lucide-react'
-import { useDepartmentStore, useSessionStore, useChatStore, useUiStore, usePrefsStore } from '../../store'
+import { Building2, FolderOpen, MessageSquarePlus, ArrowLeft, ChevronRight, Search, Users, X } from 'lucide-react'
+import { useDepartmentStore, useSessionStore, useChatStore, useUiStore, usePrefsStore, type Position } from '../../store'
 import { SessionListItem } from '../../types/app.types'
 import EmployeeFigure, { SkeletonFigure } from './EmployeeFigure'
+import GhostPositionTile from './GhostPositionTile'
 import OrgChart from './OrgChart'
 import RecruitEmployeeModal from './RecruitEmployeeModal'
-import { dirToSlug } from './deptUtils'
+import { kindOf, sessionMatchesDir, teamsOf } from './deptUtils'
 import { openSessionCore } from './openSessionCore'
 import { useT } from '../../i18n'
 
 // ── Single Department View ──────────────────────────────────────────────────
+// Stable fallback — avoids a new [] on every render, which would invalidate the
+// memo that filters these.
+const NO_POSITIONS: Position[] = []
+
 interface DeptViewProps {
   deptId: string
   onBack: () => void
   onOpenSession: (session: SessionListItem) => void
+  /** Drill into another node — the parent in the breadcrumb, or a child team. */
+  onSelectDept: (deptId: string) => void
   loadingSessionId?: string | null
   onDeleteSession?: (sessionId: string) => void
   autoNewSession?: boolean
 }
 
-function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSession, autoNewSession }: DeptViewProps) {
+function DeptView({ deptId, onBack, onOpenSession, onSelectDept, loadingSessionId, onDeleteSession, autoNewSession }: DeptViewProps) {
   const t = useT()
   const departments = useDepartmentStore(s => s.departments)
   const dept = departments.find(d => d.id === deptId) ?? null
 
   const allSessions = useSessionStore(s => s.sessions)
   const sessionsLoading = useSessionStore(s => s.loading)
+  const homeDir = useSessionStore(s => s.homeDir)
   const currentSessionId = useChatStore(s => s.currentSessionId)
   const isStreaming = useChatStore(s => s.isStreaming)
   const setPrefs = usePrefsStore(s => s.setPrefs)
+  const removePosition = useDepartmentStore(s => s.removePosition)
+
+  // A department's child teams are separate desks with their own directories, so
+  // a team node is a valid place to be — the breadcrumb above shows where.
+  const parentDept = dept?.parentId ? departments.find(d => d.id === dept.parentId) ?? null : null
+  const childTeams = useMemo(
+    () => (dept ? teamsOf(departments, dept.id) : []),
+    [departments, dept],
+  )
+  const openPositions = dept?.positions ?? NO_POSITIONS
 
   const deptSessions = useMemo((): SessionListItem[] => {
     if (!dept) return []
-    const deptSlug = dirToSlug(dept.directory)
+    const dir = dept.directory
     return allSessions
-      .filter(s => s.projectSlug === deptSlug)
+      .filter(s => sessionMatchesDir(s, dir, homeDir))
       .sort((a, b) => b.timestamp - a.timestamp)
-  }, [allSessions, dept])
+  }, [allSessions, dept, homeDir])
 
   const [searchQuery, setSearchQuery] = useState('')
   const [searchFocused, setSearchFocused] = useState(false)
@@ -71,6 +89,16 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
     return [...pinned, ...unpinned]
   }, [filteredSessions])
 
+  // Unfilled positions are searched by title and brief. They are never sorted
+  // into a timestamp group — a position has no timestamp, so it stays pinned at
+  // the top of the roster under its own heading.
+  const matchPositions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return openPositions
+    return openPositions.filter(p =>
+      p.title.toLowerCase().includes(q) || p.brief.toLowerCase().includes(q))
+  }, [openPositions, searchQuery])
+
   // Recruiting is a conversation with the recruiter, not an immediate session:
   // the dialog collects (or has the model write) the job description first.
   const newSession = useCallback(() => {
@@ -86,21 +114,37 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // One-shot on mount only
 
+  // The hand-off to chat, shared by recruiting and by hiring a ghost position:
+  // the node becomes the working directory and `brief` becomes the first message
+  // the freshly mounted ChatPanel sends. ChatPanel consumes the brief once it is
+  // mounted, so the caller does not need to wait for a session id back.
+  const startWork = useCallback((directory: string, brief: string) => {
+    setPrefs({ workingDir: directory })
+    window.electronAPI.prefsSet('workingDir', directory)
+    useChatStore.getState().clearMessages()
+    // New session from dept view: set fromDepartment so the back button shows in chat (Iteration 538)
+    useUiStore.getState().setFromDepartment(true)
+    useUiStore.getState().setPendingRecruitBrief(brief || null)
+    useUiStore.getState().setMainView('chat')
+  }, [setPrefs])
+
   // Confirm: the job description becomes the employee's first message, so the
   // new session opens in chat with the brief already on its way.
   const confirmRecruit = useCallback((brief: string) => {
     if (!dept) return
     setRecruitOpen(false)
-    setPrefs({ workingDir: dept.directory })
-    window.electronAPI.prefsSet('workingDir', dept.directory)
-    useChatStore.getState().clearMessages()
-    // New session from dept view: set fromDepartment so the back button shows in chat (Iteration 538)
-    useUiStore.getState().setFromDepartment(true)
-    // Hand the brief over before the view swaps — ChatPanel is not mounted yet,
-    // and it consumes this once it is.
-    useUiStore.getState().setPendingRecruitBrief(brief || null)
-    useUiStore.getState().setMainView('chat')
-  }, [dept, setPrefs])
+    startWork(dept.directory, brief)
+  }, [dept, startWork])
+
+  // Hiring a ghost position is the same hand-off, minus the dialog — the brief
+  // was written when the template was applied. Dropping the position right away
+  // is safe: the session is guaranteed to be created, and the real employee
+  // appears with the next session-list refresh.
+  const hirePosition = useCallback((position: Position) => {
+    if (!dept) return
+    startWork(dept.directory, position.brief)
+    removePosition(dept.id, position.id)
+  }, [dept, startWork, removePosition])
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -191,6 +235,29 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
 
         {/* Dept name + dir */}
         <div style={{ flex: 1, overflow: 'hidden' }}>
+          {/* Breadcrumb — a team is a desk of its own, so its page needs to say
+              which department it belongs to and offer the way back up. */}
+          {parentDept && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>
+              <button
+                onClick={() => onSelectDept(parentDept.id)}
+                title={t('dept.backToParent')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 2,
+                  background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                  color: 'var(--text-muted)', fontSize: 10, maxWidth: 160,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#818cf8' }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+              >
+                <ArrowLeft size={9} />
+                {parentDept.name}
+              </button>
+              <ChevronRight size={9} style={{ opacity: 0.5, flexShrink: 0 }} />
+              <span style={{ opacity: 0.7 }}>{t('dept.team')}</span>
+            </div>
+          )}
           <div style={{
             fontSize: 15,
             fontWeight: 700,
@@ -447,8 +514,10 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
           </span>
         </div>
 
-        {/* Stats row */}
-        {deptSessions.length > 0 && (
+        {/* Stats row. Open positions get their own tile: they are seats we are
+            counting, not employees, so they are never folded into the session
+            totals above them. */}
+        {(deptSessions.length > 0 || openPositions.length > 0) && (
           <div
             style={{
               display: 'flex',
@@ -498,6 +567,14 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
                 value: deptSessions.reduce((sum, s) => sum + (s.messageCount ?? 0), 0),
                 color: 'var(--text-primary)',
               },
+              ...(openPositions.length > 0 ? [{
+                label: t('dept.positionOpen'),
+                value: openPositions.length,
+              }] : []),
+              ...(childTeams.length > 0 ? [{
+                label: t('dept.teams'),
+                value: childTeams.length,
+              }] : []),
             ].map(stat => (
               <div key={stat.label} style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1, textAlign: 'center' }}>
                 <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
@@ -508,6 +585,40 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Teams. Without this, a team could only be reached from the org chart,
+            and a department page would look like the teams did not exist. */}
+        {childTeams.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+            {childTeams.map(team => {
+              const teamCount = allSessions.filter(s => sessionMatchesDir(s, team.directory, homeDir)).length
+              const teamOpen = team.positions?.length ?? 0
+              const color = team.color || dept.color || '#6366f1'
+              return (
+                <button
+                  key={team.id}
+                  onClick={() => onSelectDept(team.id)}
+                  title={team.directory}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    maxWidth: 220, padding: '4px 10px', borderRadius: 999,
+                    border: `1px solid ${color}44`, background: `${color}12`,
+                    color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = `${color}22` }}
+                  onMouseLeave={e => { e.currentTarget.style.background = `${color}12` }}
+                >
+                  <Users size={11} style={{ flexShrink: 0, color }} />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{team.name}</span>
+                  <span style={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{teamCount}</span>
+                  {teamOpen > 0 && (
+                    <span style={{ color, fontVariantNumeric: 'tabular-nums' }}>· {t('dept.positionOpen')} {teamOpen}</span>
+                  )}
+                </button>
+              )
+            })}
           </div>
         )}
 
@@ -627,7 +738,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             {[0, 1, 2].map(i => <SkeletonFigure key={i} />)}
             <div className="emp-floor" />
           </div>
-        ) : deptSessions.length === 0 ? (
+        ) : deptSessions.length === 0 && openPositions.length === 0 ? (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -692,7 +803,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
               {t('dept.newSession')}
             </button>
           </div>
-        ) : pinnedFilteredSessions.length === 0 && searchQuery ? (
+        ) : pinnedFilteredSessions.length === 0 && matchPositions.length === 0 && searchQuery ? (
           <div style={{
             padding: '40px 16px',
             textAlign: 'center',
@@ -752,11 +863,45 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
               </div>
             )
 
+            // Unfilled positions lead the roster in every sort order: the seat is
+            // already at the desk, it just has nobody in it yet.
+            const ghostGroup = matchPositions.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  fontSize: 10, fontWeight: 700, color: 'var(--text-muted)',
+                  textTransform: 'uppercase', letterSpacing: '0.07em',
+                  marginBottom: 10,
+                  paddingLeft: 8,
+                  borderLeft: `2px dashed ${dept.color || '#6366f1'}`,
+                }}>
+                  {t('dept.positionOpen')}
+                  <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0, opacity: 0.7 }}>
+                    {matchPositions.length}
+                  </span>
+                </div>
+                <div className="emp-roster">
+                  {matchPositions.map(pos => (
+                    <GhostPositionTile
+                      key={pos.id}
+                      position={{ ...pos, color: pos.color || dept.color }}
+                      onHire={() => hirePosition(pos)}
+                      onDismiss={() => removePosition(dept.id, pos.id)}
+                    />
+                  ))}
+                  <div className="emp-floor" />
+                </div>
+              </div>
+            )
+
             if (sortOrder !== 'recent') {
               return (
-                <div className="emp-roster">
-                  {pinnedFilteredSessions.map(renderEmployee)}
-                  <div className="emp-floor" />
+                <div>
+                  {ghostGroup}
+                  <div className="emp-roster">
+                    {pinnedFilteredSessions.map(renderEmployee)}
+                    <div className="emp-floor" />
+                  </div>
                 </div>
               )
             }
@@ -779,6 +924,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
 
             return (
               <div>
+                {ghostGroup}
                 {groups.map(group => (
                   <div key={group.label} style={{ marginBottom: 20 }}>
                     <div style={{
@@ -918,6 +1064,7 @@ export default function DepartmentDashboard() {
           <DeptView
             deptId={selectedDeptId}
             onBack={handleBack}
+            onSelectDept={handleSelectDept}
             onOpenSession={session => handleOpenSession(session, departments.find(d => d.id === selectedDeptId)?.directory ?? '')}
             loadingSessionId={loadingSession}
             onDeleteSession={handleDeleteSession}
@@ -961,7 +1108,9 @@ export default function DepartmentDashboard() {
               padding: '2px 10px',
               flexShrink: 0,
             }}>
-              {departments.length} {t('dept.title')}
+              {/* Only real departments count here — companies and teams are
+                  structure, not the thing the badge is naming. */}
+              {departments.filter(d => kindOf(d) === 'department').length} {t('dept.title')}
             </span>
           </div>
           <OrgChart

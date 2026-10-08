@@ -118,8 +118,8 @@ AIPA adopts a modern **two-column layout** eliminating redundant intermediate li
 |---|---|---|
 | **💬 Chat & Execution** | Stream-JSON real-time stream, dual-model switching, collapsible thinking chain, auto-compaction | Structured tool cards, LCS color-coded diff view, task checklist, interactive permission dialog |
 | **👥 HR (People Ops)** | Character persona illustrations, role-tailored attire/hairstyles, glowing status aura | The HR page shows Experts, Skills and Workflows as matching card grids (the standalone Skills panel was merged in): a skill card feeds its slash command into chat or opens the full SKILL.md, expert cards can be edited or recruited, workflow cards show step and run counts with hover edit/duplicate/delete and one-click run; a dashed card at the end creates a new item, with suggested presets below |
-| **🏢 Org Chart** | Company-style department map, trunk→bus→drop connector lines, layout adapts to both container width and department count (centred single row / left-rail multi-row), per-department color and stable emoji | Shows departments only (employees stay collapsed); clicking a card drills into that department's employee roster, and hovering offers direct recruit, a stats popover and employee export. The roster itself renders each employee as a **little yellow helper** (one eye or two, height, hair and mouth hashed from the session id, always-on breathing, and a spinning halo plus typing arm while replying) |
-| **📁 Archive** | Company-wide task ledger: every session is filed under its department and employee, derived live with no extra storage layer, filterable by department / time / archive state / free text, grouped by department with an explicit unassigned bucket | Reach it from the left nav’s “Archive” entry or `Ctrl+8`; each row shows the task title, an employee short-hash, time and turn count, and opens that session on click; rows can be archived inline and exported as `aipa_archive_<date>.json` |
+| **🏢 Org Chart** | Company-style department map, trunk→bus→drop connector lines, layout adapts to both container width and department count (centred single row / left-rail multi-row), per-department color and stable emoji; **company → department → team** across three levels, one section per applied template, team strips (a real sub-tree with its own bus and drops) and “open position” badges under each card | Shows departments only (employees stay collapsed); clicking a card drills into that department's employee roster, and hovering offers direct recruit, a stats popover and employee export. The roster itself renders each employee as a **little yellow helper** (one eye or two, height, hair and mouth hashed from the session id, always-on breathing, and a spinning halo plus typing arm while replying), with dimmed “open positions” standing in their own group until hired |
+| **📁 Archive** | Company-wide task ledger: every session is filed under its **company / department / team**, derived live with no extra storage layer, filterable by organisation / time / archive state / free text, grouped by company with an explicit unassigned bucket | Reach it from the left nav’s “Archive” entry or `Ctrl+8`; each row shows the task title, its department · team, an employee short-hash, time and turn count, and opens that session on click; rows can be archived inline and exported as `aipa_archive_<date>.json` |
 | **🎨 Canvas Workflows** | Multi-step prompt pipeline orchestration, topology graph, live output streaming, execution replay | Infinite zoom dot-grid canvas, animated bezier edge flow, inline step title rename |
 | **🔌 Zero-Compile Plugins** | Vanilla HTML5+CSS+JS, sandboxed isolation, postMessage bridge SDK, dynamic directory watching, AI edit drawer | Real-time sidebar icon registration, zero-build instant reload, host developer toolbar (reload + built-in source preview: file tree with line numbers, one-click copy or reveal folder + **Edit**: chat with the AI in a right-hand drawer to change the plugin, reloaded automatically when a turn lands) |
 | **🧩 Plugin Hub** | Unified plugin dashboard, 1-click launch, source inspection, and developer starter guide | Pre-installed at the bottom of NavRail, enables cross-plugin navigation; UI and plugin names follow the app language (EN/ZH) |
@@ -235,7 +235,7 @@ No new editing machinery is involved — a plugin is just HTML/CSS/JS on disk, s
 
 ## 🏢 Organization Chart
 
-The Departments view is a **company map**: a company HQ node sits on top, a trunk drops from it into a horizontal bus, and a drop line connects each bus end to a department card. This level shows **departments only** — the employees (sessions) inside them stay collapsed, so "which departments exist" is readable at a glance.
+The Departments view is a **company map**: a company HQ node sits on top, a trunk drops from it into a horizontal bus, and a drop line connects each bus end to a department card. This level keeps the employees (sessions) collapsed, so "which departments exist" is readable at a glance; flip the level toggle to “Departments + Teams” and each card grows its own teams beneath it.
 
 With few departments (a single centred row, trunk dropping from the middle):
 
@@ -274,15 +274,37 @@ With more departments it switches to a **rail layout** (the trunk runs down the 
               └───────────┘  └─────────────┘
 ```
 
+One level further down sit the department's own teams (level toggle “Departments + Teams”):
+
+```text
+                        ┌───────────────────┐
+                        │   🚀 Engineering  │
+                        │ 👥 5  💬 100  🎯 2 │  ← 🎯 = open positions
+                        └─────────┬─────────┘
+                                  │  trunk
+                        ┌─────────┴─────────┐  ← bus
+                        │                   │
+                   ┌────┴────┐         ┌────┴────┐
+                   │🔗Frontend│         │🔗Backend │
+                   │ 3 · 1 open│        │ 2 · 1 open│
+                   └─────────┘         └─────────┘
+```
+
 - **Adaptive layout**: the column count follows both the container width and the department count — up to 4 per row, switching into a dense mode at 9+ departments (up to 5 per row with tighter cards); a light set of departments sits centred under a mid-pane trunk, while a larger set switches to a left rail with one bus per row
+- **One section per company**: apply several company templates and each gets its own section with its own HQ card. The HQ shows the **real company name** (Software Company, Content Studio, …) and the section totals cover that company alone — departments, staff (teams included) and messages. A legacy user's flat top-level departments land in the last section and look exactly as they did before
+- **Level toggle, “Departments” / “Departments + Teams”**: the default draws departments only; switching reveals a **team strip** under each department card — a trunk out of the card's bottom centre, a horizontal bus, and a drop into the centre of every team chip. The chips are equal width (`(cardWidth - gaps) / n`), so the bus can be placed without measuring the DOM; past three teams the rest collapse into a `+N` chip that opens that department's full roster
+- **A chip is an entry point**: it shows the team name and its employee count (plus “N open” when it has positions), and clicking it opens **that team's own roster**
+- **Honest counting**: a card's stats cover only the sessions in that node's own directory (each team has its own), and open positions are shown as a separate faint badge — **never folded into the headcount**
 - **Balanced rows**: departments are spread evenly across rows so the last row never ends up with a single stray card (5 departments become 3 + 2, not 4 + 1)
 - **Auto-sizing cards**: 216–400px normally, 180–300px in dense mode; the chart reflows live as the window resizes, with no overflow and no dead space
 - **Card contents**: department emoji (stable per department ID), name, working directory, employee and message counts, last-active time, plus a pulsing dot when the department is active
 - **Hover actions**: hovering a card reveals “+ Recruit” (start a new employee/session in that department) and “Enter ›”
 - **Click to drill in**: opens that department's employee roster, grouped by TODAY / YESTERDAY / THIS WEEK, listing **every employee (session)** in the department with search, export and recruit
+- **An “Open positions” group**: while the node still carries positions, this section lists first, **above** the time groups — a dimmed, faceless figure with the job title and “Open”, sized exactly like a real employee so that hiring reads as one person walking into a seat rather than the whole row shifting. A single click hires it: that job description goes out as the first message, the real session appears and the ghost is gone. A position can also be removed outright, behind a two-step confirm
+- **A department page is a team page**: teams have their own directory, so arriving from a team chip shows that team's own roster — the header carries a “Engineering › Team” breadcrumb with a back link, and a team bar in the page switches between teams without returning to the chart
 - **Recruiting starts with a job description**: “+ Recruit” (or `N`) opens a dialog asking what this employee is responsible for and which skills it should bring. Its “✨ AI polish” button rewrites the draft into a clearer job description — streamed live into the field and stoppable at any point — and on confirm that text is sent as the employee's **first message**, so the employee starts working immediately. Left blank, it just creates an employee waiting for its first task
 - **Stats popover**: the chart button on each card shows staff count, today's active, total messages, last active and the directory, and exports `<department>_employees.json`
-- **Add department**: the toolbar’s “+ New Department” (or the `N` key) opens a panel whose “From template” entry applies a built-in department structure in one step; you can also type a name and directory by hand and drill straight in
+- **Add department**: the toolbar’s “+ New Department” (or the `N` key) opens a panel whose “From template” entry applies a built-in **company template** in one step; you can also type a name and directory by hand and drill straight in
 
 The roster you land on shows little yellow helpers, not cards — each employee stands on a shared floor line:
 
@@ -295,38 +317,48 @@ The roster you land on shows little yellow helpers, not cards — each employee 
  bald     tuft
                        ↑ replying: halo spinning, right arm typing
 ```
-### 📐 Built-in Department Presets
+### 🏗️ Company Templates
 
-A fresh AIPA opens on an empty org chart, and every department is three decisions invented from nothing (name, working directory, colour). The presets answer all three at once: **pick a domain → pick a root folder → done**.
+A fresh AIPA opens on an empty org chart, and building a company from nothing means inventing a dozen names, a dozen folders and an entire hierarchy. The templates turn that into one click: **pick a company type → pick a root folder → done**.
 
 ```text
-┌─ 📐 Create departments from a template ──────────────────────────────┐
-│  ┌────────┐ ┌────────┐ ┌────────┐                                    │
-│  │💻 Soft-│ │✍️ Con- │ │📣 Mark-│  ← six domain templates,           │
-│  │  ware  │ │  tent  │ │ eting  │    one per kind of team            │
-│  └────────┘ └────────┘ └────────┘                                    │
-│  ┌────────┐ ┌────────┐ ┌────────┐                                    │
-│  │🔬 Re-  │ │🛒 Ecom-│ │✨ Per- │                                    │
-│  │ search │ │ merce  │ │ sonal  │                                    │
-│  └────────┘ └────────┘ └────────┘                                    │
+┌─ 🏗️ Start from a company ────────────────────────────────────────────┐
+│  ┌──────────────┐ ┌──────────────┐                                   │
+│  │ </> Software │ │ ✍️ Content   │  ← four company types, each       │
+│  │     Company  │ │    Studio    │    covering every function        │
+│  └──────────────┘ └──────────────┘                                   │
+│  ┌──────────────┐ ┌──────────────┐                                   │
+│  │ 🛒 E-commerce│ │ ⚗️ Research  │                                   │
+│  │     Company  │ │    Team      │                                   │
+│  └──────────────┘ └──────────────┘                                   │
 │  ┌──────────────────────┐ ┌──────────────────────┐                   │
-│  │📁 Use my existing    │ │⬚ Start blank         │                   │
-│  │   folders (5)        │ │                      │                   │
+│  │📂 Use my existing    │ │⬚ Start blank         │                   │
+│  │   folders            │ │                      │                   │
 │  └──────────────────────┘ └──────────────────────┘                   │
 │                                                                      │
-│ Will create 4 departments                                            │
-│  ● Product   ● Engineering   ● QA   ● DevOps                         │
+│ About to create                                                      │
+│  ● Software Company                                                  │
+│    ● Product 2 open                                                  │
+│    ● Design 1 open                                                   │
+│      └ Design System 1 open                                          │
+│    ● Engineering 1 open                                              │
+│    …                                                                 │
+│ Will create 9 departments · 3 teams · 13 open positions              │
 │                                                                      │
 │ Root folder  [ C:/Users/me/AIPA          ] [ Choose folder ]         │
-│            Each department gets a folder of the same name inside it. │
+│           Company folders are created inside this root, e.g.         │
+│           “AIPA/Software Company/Engineering/Backend”                │
 │                                                                      │
-│                     [ Cancel ]  [ Create 4 departments ]             │
+│                     [ Cancel ]  [ Create 12 nodes ]                  │
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Six domain templates**: software (Product / Engineering / QA / DevOps), content, marketing, research, e-commerce and personal — each carrying four department names and colours
-- **Real folders on disk**: confirming makes one directory per department, defaulting to `~/AIPA`, so the departments are immediately recruitable instead of empty shells
-- **Applying twice does not double the company**: a folder that already belongs to a department is skipped, and the preview subtracts it; with nothing left to do the primary button greys out as “All already exist”
+- **Four company types**: Software Company, Content Studio, E-commerce Company and Research Team — each covering **every function a company actually needs**. The software one alone creates Product, Design, Engineering, QA, DevOps, Data, Security, Customer Success and Marketing, rather than a handful of departments in one field
+- **Company → department → team, all three levels at once**: a team is a subfolder (`~/AIPA/Software Company/Engineering/Backend/`) that owns employees and sessions just like a department
+- **Positions hang first, work later**: the template also writes a job title and a job description onto every node, shown in the roster as a dimmed “open position”. **Applying a template makes zero model calls** — the session is only created when you click “Hire”, and that description becomes the employee's first message
+- **Real folders on disk**: confirming creates the directories parent-first (defaulting to `~/AIPA`), so the nodes are immediately recruitable
+- **Applying twice is idempotent**: a node whose folder already exists is skipped and honestly subtracted from the preview (greyed out); with nothing left to do the primary button greys out as “All already exist”
+- **A second template is welcome**: the next company lands in a sibling folder under the same root and renders as a second section of the chart — the first company is untouched
 - **Use my existing folders**: turns the directories your past sessions ran in into departments in one go — this used to happen silently in the background and is now an explicit choice
 - **Start blank**: for building your own structure; the dialog will not come back
 - **One dialog, three entry points**: the empty org chart, the org chart’s “New Department” panel and the sidebar’s add-department form all open it
@@ -377,30 +409,31 @@ HR hangs under no department — it looks sideways at **everyone in the company*
 
 ## 📁 Archive (Task Ledger)
 
-The Archive is the **company-wide ledger of work**: an employee is a session, so every row is a session, and its attribution is derived live from “department directory → session projectSlug” rather than stored a second time — renaming a department directory cannot leave stale ownership behind. Which project, which department it was assigned to, which employee ran it, when, and over how many turns, all read in one place.
+The Archive is the **company-wide ledger of work**: an employee is a session, so every row is a session, and its attribution is derived live from “the session's directory → the org node that owns it” rather than stored a second time — preferring the engine's real working directory (Codex) and falling back to `dirToSlug(node directory) === session projectSlug` (a Claude project folder is already named after that slug). Renaming a department directory cannot leave stale ownership behind. Which project, which department it was assigned to, which employee ran it, when, and over how many turns, all read in one place.
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────┐
-│ 📁 Archive        47 tasks · 3 departments · 12 this week    [Export]│
+│ 📁 Archive        47 tasks · 2 companies · 12 this week      [Export]│
 ├──────────────────────────────────────────────────────────────────────┤
-│ [ All departments ▾ ] [All] [Today] [Week] [Month] [Show archived]   │
+│ [ All orgs ▾ ] [All] [Today] [Week] [Month] [Show archived]          │
 │                                                    🔍 Search…        │
 ├──────────────────────────────────────────────────────────────────────┤
-│ 🧪 R&D Center                                            11 tasks    │
-│   Reconnect logic in pty-manager      #a3f21c  Today 14:02  18 turns›│
-│   Document the app-server protocol    #7d0e55  Yest. 20:11   6 turns›│
-│ 🎨 Design Lab                                             3 tasks    │
-│   Redo the palette and glass surfaces #c91b02  Tue 11:40    24 turns›│
-│ 📁 Unassigned                                             2 tasks    │
-│   A few one-off questions             #4188aa  D:/scratch    2 turns›│
+│ 🏢 Software Company                                       14 tasks    │
+│   Reconnect logic in pty-manager  R&D · Backend #a3f21c Today  18 turn│
+│   Document the app-server protocol  R&D        #7d0e55 Yest.    6 turn│
+│   Redo the palette and glass        Design · System #c91b02 Tue  24 tu│
+│ 🏢 Content Studio                                          3 tasks    │
+│   Ten candidate angles for the meeting  Editorial #9911ab Mon   9 turn│
+│ 📁 Unassigned                                              2 tasks    │
+│   A few one-off questions          D:/scratch  #4188aa Today    2 turn│
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Derived live, no new storage**: departments and sessions are joined by `dirToSlug(department directory) === session projectSlug`; the department table still lives only in local storage, so the archive never becomes a second source of truth
-- **Grouped by department**: an “Unassigned” group always sits last, collecting sessions that ran outside every department directory instead of dropping them
-- **Four filters**: department (all / each one / unassigned), time (all / today / this week / this month), whether archived rows show, and a search over titles and first prompts
+- **Derived live, no new storage**: departments and sessions are joined by `sessionMatchesDir(session, node directory, homeDir)` (real `cwd` first, slug comparison as the fallback); the department table still lives only in local storage, so the archive never becomes a second source of truth
+- **Grouped by company (root node)**: a row shows the task, the employee and the time, with the owning “R&D · Backend” written as a small label after the title; every department and team of one company sits under one heading rather than fragmenting into three groups that cannot see each other. An “Unassigned” group always sits last, collecting sessions that ran outside every node directory instead of dropping them
+- **Four filters**: organisation (all / each company / unassigned), time (all / today / this week / this month), whether archived rows show, and a search over titles and first prompts
 - **Click a row to reopen that session**: it loads the conversation history and switches to the chat panel; opening from the Archive does not show the “back to department” button, since that button's destination is the department view — somewhere you never came from
-- **Archive and export**: any row can be flagged archived from the row itself (hidden by default, filterable at any time); export writes `aipa_archive_<date>.json`, grouped by department, with title, employee, session id, directory, turn count and timestamp
+- **Archive and export**: any row can be flagged archived from the row itself (hidden by default, filterable at any time); export writes `aipa_archive_<date>.json`, grouped by company with each task's department/team, carrying title, employee, session id, directory, turn count and timestamp
 - **Getting there**: the “Archive” entry in the left nav, the command palette, or `Ctrl+8`
 
 ---

@@ -39,8 +39,9 @@ export interface CodexSessionListItem {
   sessionId: string        // thread ID (e.g. "thr_abc123")
   lastPrompt: string       // first user message preview
   timestamp: number        // creation time (epoch ms)
-  project: string          // project name (derived from cwd)
-  projectSlug: string      // slug-ified project name
+  project: string          // the session's working directory, or its basename
+  projectSlug: string      // dirToSlug-style encoding of the project path
+  cwd?: string             // real working directory, when the index reports one
   title?: string           // user-set thread name
   messageCount?: number    // approximate message count
   firstTimestamp?: number  // first message timestamp
@@ -111,8 +112,12 @@ export function listSessions(): CodexSessionListItem[] {
         timestamp: typeof entry.createdAt === 'number'
           ? entry.createdAt
           : entry.createdAt ? new Date(entry.createdAt).getTime() : Date.now(),
-        project: extractProjectName(entry.cwd),
-        projectSlug: slugify(extractProjectName(entry.cwd)),
+        // The index carries the real cwd; keep it whole so the renderer can join
+        // it against a department directory. The basename alone cannot identify
+        // a folder, and slugify() of a non-ASCII name is empty.
+        project: entry.cwd || extractProjectName(entry.cwd),
+        projectSlug: entry.cwd ? pathToSlug(entry.cwd) : slugify(extractProjectName(entry.cwd)),
+        cwd: entry.cwd || undefined,
         title: entry.name || undefined,
         messageCount: entry.messageCount,
       })
@@ -349,6 +354,16 @@ function slugify(text: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
+}
+
+/**
+ * Encode a directory path the way Claude names its project folders — every path
+ * separator and the Windows drive colon becomes a hyphen, so
+ * "D:\projects\AIPA" → "D--projects-AIPA". Mirrors `dirToSlug` in the renderer;
+ * the two must stay in step, since a mismatch silently empties every roster.
+ */
+function pathToSlug(dir: string): string {
+  return dir.replace(/[/\\:]/g, '-')
 }
 
 /**
