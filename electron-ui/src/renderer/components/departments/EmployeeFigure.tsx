@@ -1,10 +1,12 @@
 // EmployeeFigure — one employee (a session) standing in a department roster.
 //
 // Replaces the generic SessionCard inside a department drill-down: instead of a
-// text card, each employee is a small standing figurine. The look is derived
-// deterministically from the session id, so the same employee always comes back
-// as the same person, and every animation lives in globals.css (.emp-*) rather
-// than in per-tile React state — a roster of 50 costs no re-renders on hover.
+// text card, each employee is a little yellow helper — one pill-shaped body
+// carrying both head and torso, goggles, denim overalls, black gloves. The look
+// is derived deterministically from the session id (one eye or two, height,
+// hair, denim shade, mouth), so the same employee always comes back as the same
+// character, and every animation lives in globals.css (.emp-*) rather than in
+// per-tile React state — a roster of 50 costs no re-renders on hover.
 
 import React, { useMemo, useState } from 'react'
 import { MessageSquare, Pin, Trash2 } from 'lucide-react'
@@ -17,14 +19,16 @@ import { usePrefsStore } from '../../store'
 const EMPTY_COLOR_LABELS: Record<string, string> = {}
 const LABEL_COLORS = ['#f87171', '#f97316', '#fbbf24', '#22c55e', '#6366f1', '#a78bfa', '#ec4899']
 
-// Palettes sampled by the id hash — enough variety that a roster reads as a
-// group of different people, few enough that everyone still looks on-model.
-const SKIN = ['#f7dfc8', '#f2d3b4', '#e8bd97', '#d9a273', '#c08552', '#8d5a3b']
-const HAIR = ['#2f2a26', '#4a3423', '#6b4423', '#8b5e34', '#1f1f24', '#7b7b85', '#a8632a']
-const SHIRT = ['#6366f1', '#8b5cf6', '#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444', '#ec4899', '#22c55e', '#64748b']
-const PANTS = ['#334155', '#3f3f46', '#1e293b', '#4c1d95', '#0f766e']
+// Palette sampled by the id hash — enough variety that a roster reads as a
+// crowd of distinct helpers, few enough that everyone still looks on-model.
+const BODY = ['#f7d64a', '#f4cf3c', '#f9df66']
+const DENIM = ['#4a76c4', '#3d63ad', '#5680cc', '#41659f']
+const STRAP = ['#4b5563', '#334155', '#5b6472']
+const TUFT = ['#2a2118', '#1f1f24', '#3a2a1c']
+const HEIGHTS = [1, 0.93, 0.86]
+const GLOVE = '#2b303b'
 
-/** FNV-1a — same session id always yields the same person. */
+/** FNV-1a — same session id always yields the same character. */
 function hashId(id: string): number {
   let h = 2166136261
   for (let i = 0; i < id.length; i++) {
@@ -35,106 +39,126 @@ function hashId(id: string): number {
 }
 
 interface Look {
-  skin: string
-  hair: string
-  shirt: string
-  pants: string
-  hairStyle: number
-  glasses: boolean
-  beard: boolean
-  tie: boolean
-  smile: number
+  body: string
+  denim: string
+  strap: string
+  tuft: string
+  /** Vertical scale — the roster is more fun when they are not all the same height. */
+  height: number
+  eyes: 1 | 2
+  hair: number
+  mouth: number
 }
 
 function lookFor(sessionId: string): Look {
   const h = hashId(sessionId)
   const pick = <T,>(arr: readonly T[], shift: number): T => arr[(h >>> shift) % arr.length]
   return {
-    skin: pick(SKIN, 0),
-    hair: pick(HAIR, 3),
-    shirt: pick(SHIRT, 6),
-    pants: pick(PANTS, 9),
-    hairStyle: (h >>> 12) % 4,
-    glasses: (h >>> 14) % 5 === 0,
-    beard: (h >>> 16) % 7 === 0,
-    tie: (h >>> 18) % 3 === 0,
-    smile: (h >>> 20) % 3,
+    body: pick(BODY, 0),
+    denim: pick(DENIM, 3),
+    strap: pick(STRAP, 6),
+    tuft: pick(TUFT, 9),
+    height: pick(HEIGHTS, 11),
+    eyes: (h >>> 13) % 2 === 0 ? 1 : 2,
+    hair: (h >>> 15) % 4,
+    mouth: (h >>> 17) % 3,
   }
 }
 
-/** The figurine itself. Feet sit at y=89 so several tiles line up on a floor. */
+/**
+ * The character itself. Feet sit at y=89 so several tiles line up on one floor;
+ * the whole body is scaled about that line so a short helper keeps its feet down.
+ */
 function Figure({ look, glow }: { look: Look; glow: string }) {
-  const mouth = '#8a5a44'
   return (
     <svg width={76} height={104} viewBox="0 0 64 108" style={{ display: 'block', overflow: 'visible' }}>
-      {/* Rotating halo — faint on hover, always spinning while working. */}
-      <circle
-        className="emp-halo"
-        cx="32" cy="48" r="29"
-        fill="none" stroke="#818cf8" strokeWidth="1.3" strokeDasharray="7 9"
-      />
-      {/* Floor glow: the session's color label, when it has one. */}
-      <ellipse cx="32" cy="90.5" rx="16" ry="3.2" fill={glow} opacity="0.55" />
+      <g transform={`translate(32 89) scale(1 ${look.height}) translate(-32 -89)`}>
+        {/* Rotating halo — faint on hover, always spinning while working. */}
+        <circle
+          className="emp-halo"
+          cx="32" cy="42" r="29"
+          fill="none" stroke="#818cf8" strokeWidth="1.3" strokeDasharray="7 9"
+        />
+        {/* Floor glow: the session's color label, when it has one. */}
+        <ellipse cx="32" cy="90.5" rx="15" ry="3.2" fill={glow} opacity="0.55" />
 
-      <g className="emp-figure">
-        {/* Legs and shoes */}
-        <rect x="25.4" y="60" width="5.4" height="26" rx="2.7" fill={look.pants} />
-        <rect x="33.2" y="60" width="5.4" height="26" rx="2.7" fill={look.pants} />
-        <rect x="23.2" y="84" width="9.6" height="5" rx="2.5" fill="#1f2430" />
-        <rect x="31.2" y="84" width="9.6" height="5" rx="2.5" fill="#1f2430" />
+        <g className="emp-figure">
+          {/* Legs and boots */}
+          <rect x="23.6" y="64" width="7.4" height="20" rx="3.4" fill={look.denim} />
+          <rect x="33" y="64" width="7.4" height="20" rx="3.4" fill={look.denim} />
+          <rect x="20.6" y="82.4" width="11.4" height="6.6" rx="3.3" fill={GLOVE} />
+          <rect x="32" y="82.4" width="11.4" height="6.6" rx="3.3" fill={GLOVE} />
 
-        {/* Arms — the right one types while the employee is working */}
-        <rect className="emp-arm-l" x="16.4" y="40.5" width="5" height="19.5" rx="2.5" fill={look.shirt} />
-        <rect className="emp-arm-r" x="42.6" y="40.5" width="5" height="19.5" rx="2.5" fill={look.shirt} />
-        <circle cx="18.9" cy="61" r="2.9" fill={look.skin} />
-        <circle cx="45.1" cy="61" r="2.9" fill={look.skin} />
+          {/* Body — one pill carrying head and torso, like the classic shape */}
+          <rect x="18" y="12" width="28" height="58" rx="14" fill={look.body} />
 
-        {/* Torso */}
-        <rect x="21.4" y="39" width="21.2" height="23" rx="6.5" fill={look.shirt} />
-        <path d="M27.2 39.7q4.8 3.8 9.6 0" fill="none" stroke="rgba(255,255,255,0.38)" strokeWidth="1.2" />
-        {look.tie && <path d="M32 43l2.5 2.3-2.5 11.6-2.5-11.6z" fill="rgba(255,255,255,0.6)" />}
-        <circle cx="32" cy="50.5" r="0.9" fill="rgba(255,255,255,0.45)" />
-        <circle cx="32" cy="56.5" r="0.9" fill="rgba(255,255,255,0.45)" />
+          {/* Denim overalls: trouser block, shoulder straps, bib and its buttons */}
+          <path d="M18,54 H46 V56 A14,14 0 0 1 18,56 Z" fill={look.denim} />
+          <path d="M26,43 L22,33" stroke={look.denim} strokeWidth="3.6" strokeLinecap="round" />
+          <path d="M38,43 L42,33" stroke={look.denim} strokeWidth="3.6" strokeLinecap="round" />
+          <rect x="25.4" y="40" width="13.2" height="15" rx="3" fill={look.denim} />
+          <circle cx="27.6" cy="42.8" r="1.2" fill="#eef2fa" opacity="0.85" />
+          <circle cx="36.4" cy="42.8" r="1.2" fill="#eef2fa" opacity="0.85" />
 
-        {/* Neck and head. The hair circle sits higher and the face circle covers
-            most of it, which leaves a hairline cap without any path work. */}
-        <rect x="29.4" y="33.6" width="5.2" height="6.4" rx="2" fill={look.skin} />
-        <circle cx={look.hairStyle === 3 ? 29.4 : 32} cy={look.hairStyle === 3 ? 25.6 : 27} r="10.7" fill={look.hair} />
-        <circle cx="32" cy="29.6" r="9.4" fill={look.skin} />
-        {look.hairStyle === 1 && (
-          <>
-            <rect x="21.8" y="26" width="3.8" height="14" rx="1.9" fill={look.hair} />
-            <rect x="38.4" y="26" width="3.8" height="14" rx="1.9" fill={look.hair} />
-          </>
-        )}
-        {look.hairStyle === 2 && <circle cx="32" cy="15.8" r="3.5" fill={look.hair} />}
-        <circle cx="22.1" cy="30.2" r="1.7" fill={look.skin} />
-        <circle cx="41.9" cy="30.2" r="1.7" fill={look.skin} />
+          {/* Arms — short, ending in black gloves. The right one types while working. */}
+          <rect x="12.8" y="36" width="5.4" height="18" rx="2.7" fill={look.body} />
+          <rect className="emp-arm-r" x="45.8" y="36" width="5.4" height="18" rx="2.7" fill={look.body} />
+          <circle cx="15.5" cy="55.4" r="3.3" fill={GLOVE} />
+          <circle cx="48.5" cy="55.4" r="3.3" fill={GLOVE} />
 
-        {/* Face */}
-        <ellipse className="emp-eye" cx="28.4" cy="29.8" rx="1.5" ry="1.8" fill="#20202a" />
-        <ellipse className="emp-eye" cx="35.6" cy="29.8" rx="1.5" ry="1.8" fill="#20202a" />
-        {look.glasses && (
-          <g stroke="#3b3f52" strokeWidth="1" fill="none">
-            <circle cx="28.4" cy="29.8" r="3.5" />
-            <circle cx="35.6" cy="29.8" r="3.5" />
-            <line x1="31.9" y1="29.8" x2="32.1" y2="29.8" />
-          </g>
-        )}
-        {look.beard && (
-          <path
-            d="M26.6 33.4a5.8 5.8 0 0 0 10.8 0c0 4.6-2.5 7.4-5.4 7.4s-5.4-2.8-5.4-7.4z"
-            fill={look.hair}
-            opacity="0.9"
-          />
-        )}
-        {look.smile === 0 && (
-          <path d="M29 34.4q3 2.3 6 0" fill="none" stroke={mouth} strokeWidth="1.1" strokeLinecap="round" />
-        )}
-        {look.smile === 1 && (
-          <line x1="29.6" y1="34.9" x2="34.4" y2="34.9" stroke={mouth} strokeWidth="1.1" strokeLinecap="round" />
-        )}
-        {look.smile === 2 && <path d="M28.8 34.2q3.2 3.4 6.4 0z" fill={mouth} />}
+          {/* Mouth */}
+          {look.mouth === 0 && (
+            <>
+              <path d="M27.2,34.6 Q32,38.8 36.8,34.6 Q32,41.2 27.2,34.6 Z" fill="#fdfdfd" />
+              <path d="M26.4,33.8 Q32,40.4 37.6,33.8" fill="none" stroke="#3f3125" strokeWidth="1.5" strokeLinecap="round" />
+            </>
+          )}
+          {look.mouth === 1 && (
+            <path d="M28.4,33.8 Q32,37.8 35.6,33.8" fill="none" stroke="#3f3125" strokeWidth="1.5" strokeLinecap="round" />
+          )}
+          {look.mouth === 2 && <ellipse cx="32" cy="35.8" rx="3.2" ry="2.5" fill="#5a3f2f" />}
+
+          {/* Goggles — band first so the lenses sit on top of it */}
+          <rect x="16" y="20" width="32" height="8" rx="4" fill={look.strap} />
+          {look.eyes === 1 ? (
+            <>
+              <circle cx="32" cy="24" r="8.4" fill="#c8d2e0" />
+              <g className="emp-eye">
+                <circle cx="32" cy="24" r="7" fill="#fbfdff" />
+                <circle cx="32" cy="24.2" r="3.3" fill="#7a4a24" />
+                <circle cx="32" cy="24.4" r="1.6" fill="#1a1a20" />
+                <circle cx="30.6" cy="22.8" r="0.9" fill="#ffffff" />
+              </g>
+            </>
+          ) : (
+            [25.6, 38.4].map(cx => (
+              <g key={cx}>
+                <circle cx={cx} cy="24" r="6.4" fill="#c8d2e0" />
+                <g className="emp-eye">
+                  <circle cx={cx} cy="24" r="5.2" fill="#fbfdff" />
+                  <circle cx={cx} cy="24.2" r="2.5" fill="#7a4a24" />
+                  <circle cx={cx} cy="24.4" r="1.2" fill="#1a1a20" />
+                  <circle cx={cx - 1.1} cy="22.9" r="0.7" fill="#ffffff" />
+                </g>
+              </g>
+            ))
+          )}
+
+          {/* Hair — a few strands from the crown, or none at all */}
+          {look.hair === 1 && (
+            <g stroke={look.tuft} strokeWidth="1.7" strokeLinecap="round" fill="none">
+              <path d="M29.6,13.2 L28.4,6.8" />
+              <path d="M32,12.4 L32,5.4" />
+              <path d="M34.4,13.2 L35.6,6.8" />
+            </g>
+          )}
+          {look.hair === 2 && (
+            <path d="M32,12.6 C31.4,8.8 32.6,5.8 34.6,4.6" fill="none" stroke={look.tuft} strokeWidth="1.8" strokeLinecap="round" />
+          )}
+          {look.hair === 3 && (
+            <path d="M27,13.6 C25,9.4 27,6.4 30.6,5.4" fill="none" stroke={look.tuft} strokeWidth="1.8" strokeLinecap="round" />
+          )}
+        </g>
       </g>
     </svg>
   )
@@ -327,18 +351,20 @@ export default function EmployeeFigure({
   )
 }
 
-/** The headless silhouette shared by the recruiting slot and the loading ghosts. */
+/** The outline shared by the recruiting slot and the loading ghosts. */
 function GhostSilhouette() {
   return (
     <svg width={76} height={104} viewBox="0 0 64 108" style={{ display: 'block' }}>
-      <ellipse className="emp-ghost-body" cx="32" cy="90.5" rx="11" ry="3.2" />
-      <g className="emp-figure">
-        <circle className="emp-ghost-body" cx="32" cy="27" r="10.4" />
-        <rect className="emp-ghost-body" x="21.4" y="40" width="21.2" height="22" rx="6.5" />
-        <rect className="emp-ghost-body" x="16.6" y="41.5" width="4.6" height="18" rx="2.3" />
-        <rect className="emp-ghost-body" x="42.8" y="41.5" width="4.6" height="18" rx="2.3" />
-        <rect className="emp-ghost-body" x="25.4" y="62" width="5.2" height="24" rx="2.6" />
-        <rect className="emp-ghost-body" x="33.4" y="62" width="5.2" height="24" rx="2.6" />
+      <g transform="translate(32 89) scale(1 0.94) translate(-32 -89)">
+        <ellipse className="emp-ghost-body" cx="32" cy="90.5" rx="11" ry="3.2" />
+        <g className="emp-figure">
+          <rect className="emp-ghost-body" x="23.6" y="64" width="7.4" height="20" rx="3.4" />
+          <rect className="emp-ghost-body" x="33" y="64" width="7.4" height="20" rx="3.4" />
+          <rect className="emp-ghost-body" x="18" y="12" width="28" height="58" rx="14" />
+          <rect className="emp-ghost-body" x="12.8" y="36" width="5.4" height="18" rx="2.7" />
+          <rect className="emp-ghost-body" x="45.8" y="36" width="5.4" height="18" rx="2.7" />
+          <circle className="emp-ghost-body" cx="32" cy="24" r="7.6" />
+        </g>
       </g>
     </svg>
   )

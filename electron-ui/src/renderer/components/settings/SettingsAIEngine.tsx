@@ -91,6 +91,30 @@ export default function SettingsAIEngine({
 
         <SettingsApiKeyPool field={field} />
 
+        {/* Providers sit above Model — this is where a key gets added and where
+            the resulting list of every configured key lives. */}
+        <div style={{ paddingTop: 14, paddingBottom: 14, borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
+            textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6,
+          }}>
+            <Cpu size={12} />
+            {t('settings.groups.providers')}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 10 }}>
+            {t('settings.aiEngineProvidersDesc')}
+          </div>
+
+          <Suspense fallback={
+            <div style={{ padding: 20, color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>
+              {t('settings.aiEngineProvidersLoading')}
+            </div>
+          }>
+            <SettingsProviders />
+          </Suspense>
+        </div>
+
         {field(t('settings.model'), (
           <select value={local.model} onChange={(e) => updateLocal({ model: e.target.value })} style={{ ...INPUT_STYLE }}>
             {MODEL_OPTIONS.map((m) => <option key={m.id} value={m.id}>{t(m.labelKey)}</option>)}
@@ -223,29 +247,6 @@ export default function SettingsAIEngine({
           </span>
         )}
 
-        {/* Providers live in this same group — one AI Engine card rather than a
-            second collapsible section stacked underneath it. */}
-        <div style={{ paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
-            textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6,
-          }}>
-            <Cpu size={12} />
-            {t('settings.groups.providers')}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 10 }}>
-            {t('settings.aiEngineProvidersDesc')}
-          </div>
-
-          <Suspense fallback={
-            <div style={{ padding: 20, color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>
-              {t('settings.aiEngineProvidersLoading')}
-            </div>
-          }>
-            <SettingsProviders />
-          </Suspense>
-        </div>
       </SettingsGroup>
 
       {/* Save button — applies to every field on this page */}
