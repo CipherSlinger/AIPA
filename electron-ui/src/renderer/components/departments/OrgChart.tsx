@@ -27,9 +27,9 @@
 // container width (a percentage bus would drift off the card centres by the gap).
 import React, { useEffect, useMemo, useState } from 'react'
 import {
-  BarChart3, Building2, ChevronRight, FolderOpen, LayoutGrid, MessageSquare, Network, Plus, Search, UserPlus, Users, X,
+  AlertTriangle, BarChart3, Building2, ChevronRight, FolderOpen, LayoutGrid, MessageSquare, Network, Plus, Search, Trash2, UserPlus, Users, X,
 } from 'lucide-react'
-import { useChatStore, useDepartmentStore, useSessionStore, type Department } from '../../store'
+import { descendantIds, useChatStore, useDepartmentStore, useSessionStore, type Department } from '../../store'
 import { SessionListItem } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { cardStyle, ToolbarButton } from '../workflows/EmployeesShared'
@@ -310,17 +310,15 @@ interface DeptCardProps {
   hasActiveSession: boolean
   /** Compact card for the many-department layout. */
   dense: boolean
-  /** Team count, shown only when the chart is expanded to the second level. */
-  teamCount: number
-  showTeams: boolean
   onEnter: () => void
   onRecruit: () => void
   onStats: (e: React.MouseEvent) => void
+  onDelete: (e: React.MouseEvent) => void
 }
 
 function DeptCard({
-  dept, sessions, sessionsLoading, hasActiveSession, dense, teamCount, showTeams,
-  onEnter, onRecruit, onStats,
+  dept, sessions, sessionsLoading, hasActiveSession, dense,
+  onEnter, onRecruit, onStats, onDelete,
 }: DeptCardProps) {
   const t = useT()
   const [hovered, setHovered] = useState(false)
@@ -395,6 +393,26 @@ function DeptCard({
         >
           <BarChart3 size={13} />
         </button>
+
+        {/* Delete, revealed on hover only — it is the one destructive action on
+            the card, and it sits away from the footer's recruit/enter pair so a
+            mis-aimed click lands on nothing rather than on this. Confirmation
+            lives in a popover outside the card (the card clips its overflow). */}
+        <button
+          onClick={e => { e.stopPropagation(); onDelete(e) }}
+          onMouseDown={e => e.stopPropagation()}
+          title={t('dept.delete')}
+          style={{
+            flexShrink: 0, padding: 4, borderRadius: 6, border: 'none',
+            background: 'transparent', color: 'var(--text-muted)',
+            cursor: 'pointer', display: 'flex', transition: 'all 0.15s ease',
+            opacity: hovered ? 1 : 0, pointerEvents: hovered ? 'auto' : 'none',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.background = 'rgba(248,113,113,0.12)' }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
+        >
+          <Trash2 size={13} />
+        </button>
       </div>
 
       {/* Footer: headcount, messages, and on hover the drill-in / recruit actions.
@@ -417,11 +435,6 @@ function DeptCard({
         {openPositions > 0 && (
           <span title={t('dept.positions')} style={{ display: 'flex', alignItems: 'center', gap: 4, fontVariantNumeric: 'tabular-nums', color }}>
             <UserPlus size={11} />{openPositions}
-          </span>
-        )}
-        {showTeams && teamCount > 0 && (
-          <span title={t('dept.teams')} style={{ display: 'flex', alignItems: 'center', gap: 4, fontVariantNumeric: 'tabular-nums' }}>
-            <Network size={11} />{teamCount}
           </span>
         )}
 
@@ -463,15 +476,15 @@ interface OrgSectionProps {
   currentSessionId: string | null
   width: number
   dense: boolean
-  showTeams: boolean
   onSelectDept: (id: string) => void
   onRecruit: (id: string) => void
   onStats: (deptId: string, e: React.MouseEvent) => void
+  onDelete: (deptId: string, e: React.MouseEvent) => void
 }
 
 function OrgSection({
   title, departments, teamsByDept, sessionsByDept, sessionsLoading, currentSessionId,
-  width, dense, showTeams, onSelectDept, onRecruit, onStats,
+  width, dense, onSelectDept, onRecruit, onStats, onDelete,
 }: OrgSectionProps) {
   const t = useT()
   const layout = useMemo(() => computeLayout(width, departments.length, dense), [width, departments.length, dense])
@@ -578,7 +591,6 @@ function OrgSection({
               }}>
                 {cards.map(dept => {
                   const sessions = sessionsByDept[dept.id] ?? []
-                  const teams = teamsByDept[dept.id] ?? []
                   return (
                     <DeptCard
                       key={dept.id}
@@ -587,11 +599,10 @@ function OrgSection({
                       sessionsLoading={sessionsLoading}
                       hasActiveSession={sessions.some(s => s.sessionId === currentSessionId)}
                       dense={dense}
-                      teamCount={teams.length}
-                      showTeams={showTeams}
                       onEnter={() => onSelectDept(dept.id)}
                       onRecruit={() => onRecruit(dept.id)}
                       onStats={e => onStats(dept.id, e)}
+                      onDelete={e => onDelete(dept.id, e)}
                     />
                   )
                 })}
@@ -600,7 +611,7 @@ function OrgSection({
                     above keeps the same height — a strip hangs off one card, but
                     the space it needs is shared by the whole row. Columns without
                     teams get an empty cell, which costs nothing. */}
-                {showTeams && cards.map(dept => {
+                {cards.map(dept => {
                   const teams = teamsByDept[dept.id] ?? []
                   return teams.length > 0 ? (
                     <TeamStrip
@@ -631,7 +642,6 @@ function OrgSection({
         }}>
           {departments.map(dept => {
             const sessions = sessionsByDept[dept.id] ?? []
-            const teams = teamsByDept[dept.id] ?? []
             return (
               <DeptCard
                 key={dept.id}
@@ -640,11 +650,10 @@ function OrgSection({
                 sessionsLoading={sessionsLoading}
                 hasActiveSession={sessions.some(s => s.sessionId === currentSessionId)}
                 dense={dense}
-                teamCount={teams.length}
-                showTeams={showTeams}
                 onEnter={() => onSelectDept(dept.id)}
                 onRecruit={() => onRecruit(dept.id)}
                 onStats={e => onStats(dept.id, e)}
+                onDelete={e => onDelete(dept.id, e)}
               />
             )
           })}
@@ -668,8 +677,6 @@ export interface OrgChartProps {
   onNewSessionInDept: (deptId: string) => void
 }
 
-const LEVEL_KEY = 'aipa:org-level'
-
 export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartProps) {
   const t = useT()
   const departments = useDepartmentStore(s => s.departments)
@@ -678,6 +685,7 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
   const homeDir = useSessionStore(s => s.homeDir)
   const currentSessionId = useChatStore(s => s.currentSessionId)
   const addNewDept = useDepartmentStore(s => s.addDepartment)
+  const removeDepartment = useDepartmentStore(s => s.removeDepartment)
 
   const [deptSearch, setDeptSearch] = useState('')
   const [showAddDept, setShowAddDept] = useState(false)
@@ -689,20 +697,12 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
   const [presetSeed, setPresetSeed] = useState<string | undefined>(undefined)
   const [statsDeptId, setStatsDeptId] = useState<string | null>(null)
   const [statsPos, setStatsPos] = useState({ x: 0, y: 0 })
+  // Deletion is confirmed in a popover, not in the card: the card clips its own
+  // overflow, and a department with teams takes them with it — the count of what
+  // is about to disappear has to be visible before the click that does it.
+  const [deleteDeptId, setDeleteDeptId] = useState<string | null>(null)
+  const [deletePos, setDeletePos] = useState({ x: 0, y: 0 })
   const [width, setWidth] = useState(0)
-  // Second level: draw each department's teams under its card. Off by default,
-  // which is exactly how the chart looked before teams existed.
-  const [showTeams, setShowTeams] = useState(() => {
-    try { return localStorage.getItem(LEVEL_KEY) === 'teams' } catch { return false }
-  })
-
-  const toggleLevel = () => {
-    setShowTeams(prev => {
-      const next = !prev
-      try { localStorage.setItem(LEVEL_KEY, next ? 'teams' : 'dept') } catch {}
-      return next
-    })
-  }
 
   // Callback ref (not useRef) because the tree only mounts once there is at
   // least one department — a mount-time effect would observe nothing forever.
@@ -841,10 +841,23 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
     return () => document.removeEventListener('mousedown', close)
   }, [statsDeptId])
 
+  useEffect(() => {
+    if (!deleteDeptId) return
+    const close = () => setDeleteDeptId(null)
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [deleteDeptId])
+
   const openStats = React.useCallback((deptId: string, e: React.MouseEvent) => {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     setStatsPos({ x: rect.right + 8, y: rect.top })
     setStatsDeptId(prev => (prev === deptId ? null : deptId))
+  }, [])
+
+  const openDelete = React.useCallback((deptId: string, e: React.MouseEvent) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    setDeletePos({ x: rect.right + 8, y: rect.top })
+    setDeleteDeptId(deptId)
   }, [])
 
   return (
@@ -890,32 +903,6 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
                 <X size={11} />
               </button>
             )}
-          </div>
-
-          {/* Level toggle — the second level is opt-in so the default chart stays
-              exactly as compact as it was before teams existed. */}
-          <div style={{
-            display: 'flex', flexShrink: 0, padding: 2, borderRadius: 8,
-            border: '1px solid var(--border)', background: 'var(--bg-hover)',
-          }}>
-            {[
-              { on: false, label: t('dept.level.dept') },
-              { on: true, label: t('dept.level.withTeams') },
-            ].map(opt => (
-              <button
-                key={String(opt.on)}
-                onClick={() => { if (showTeams !== opt.on) toggleLevel() }}
-                style={{
-                  padding: '4px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                  fontSize: 11, fontWeight: 600,
-                  background: showTeams === opt.on ? 'rgba(99,102,241,0.18)' : 'transparent',
-                  color: showTeams === opt.on ? '#818cf8' : 'var(--text-muted)',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                {opt.label}
-              </button>
-            ))}
           </div>
 
           <ToolbarButton onClick={() => (showAddDept ? closeAdd() : setShowAddDept(true))} primary title={t('dept.addTitle')}>
@@ -1069,10 +1056,10 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
                 currentSessionId={currentSessionId}
                 width={width}
                 dense={dense}
-                showTeams={showTeams}
                 onSelectDept={onSelectDept}
                 onRecruit={onNewSessionInDept}
                 onStats={openStats}
+                onDelete={openDelete}
               />
             ))}
 
@@ -1187,6 +1174,84 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
           onApplied={() => setShowPresets(false)}
         />
       )}
+
+      {/* Delete confirmation. The folders stay on disk — deleting a node only
+          drops its record, which is what keeps this recoverable: nothing the
+          department ever wrote is destroyed. */}
+      {deleteDeptId && (() => {
+        const dept = departments.find(d => d.id === deleteDeptId)
+        if (!dept) return null
+        const childCount = descendantIds(departments, dept.id).size - 1
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              left: Math.min(deletePos.x, window.innerWidth - 280),
+              top: Math.min(deletePos.y, window.innerHeight - 190),
+              zIndex: 210,
+              width: 268,
+              background: 'var(--glass-bg-deep)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              border: '1px solid rgba(248,113,113,0.45)',
+              borderRadius: 10,
+              padding: '12px 14px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+              animation: 'slideUp 0.15s ease',
+            }}
+            onMouseDown={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+              <AlertTriangle size={13} style={{ color: '#f87171', flexShrink: 0 }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', ...ELLIPSIS }}>
+                {dept.name}
+              </span>
+              <button
+                onClick={() => setDeleteDeptId(null)}
+                style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2, fontSize: 14, lineHeight: 1 }}
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              {t('dept.confirmDelete')}
+            </div>
+            {childCount > 0 && (
+              <div style={{ fontSize: 11, color: '#f87171', marginTop: 6, lineHeight: 1.6 }}>
+                {t('dept.deleteCascade', { count: String(childCount) })}
+              </div>
+            )}
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
+              {t('dept.deleteKeepsFolder')}
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+              <button
+                onClick={() => {
+                  removeDepartment(dept.id)
+                  setDeleteDeptId(null)
+                }}
+                style={{
+                  flex: 1, padding: '5px 8px', borderRadius: 5, cursor: 'pointer',
+                  border: '1px solid rgba(248,113,113,0.5)', background: 'rgba(248,113,113,0.12)',
+                  color: '#f87171', fontSize: 10.5, fontWeight: 700,
+                }}
+              >
+                {t('dept.deleteConfirm')}
+              </button>
+              <button
+                onClick={() => setDeleteDeptId(null)}
+                style={{
+                  flex: 1, padding: '5px 8px', borderRadius: 5, cursor: 'pointer',
+                  border: '1px solid var(--border)', background: 'var(--bg-primary)',
+                  color: 'var(--text-muted)', fontSize: 10.5, fontWeight: 600,
+                }}
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

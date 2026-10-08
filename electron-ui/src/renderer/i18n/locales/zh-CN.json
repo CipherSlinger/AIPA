@@ -2413,10 +2413,6 @@
       "existsTag": "已存在",
       "positionsSuffix": "{{count}} 个待上岗"
     },
-    "level": {
-      "dept": "部门",
-      "withTeams": "部门 + 团队"
-    },
     "team": "团队",
     "teams": "团队",
     "positions": "待上岗",
@@ -2424,7 +2420,8 @@
     "positionHire": "上岗",
     "positionDismiss": "移除岗位",
     "backToParent": "返回上级",
-    "deleteCascade": "该部门下还有 {{count}} 个团队，将一并移除记录（磁盘文件夹保留）。"
+    "deleteCascade": "该部门下还有 {{count}} 个团队，将一并移除记录。",
+    "deleteKeepsFolder": "只移除记录，磁盘上的文件夹与其中的会话都会保留。"
   },
   "archive": {
     "summary": "共 {{total}} 项任务 · {{groups}} 个组织 · 本周 {{week}} 项",

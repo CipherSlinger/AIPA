@@ -2395,10 +2395,6 @@
       "existsTag": "exists",
       "positionsSuffix": "{{count}} open"
     },
-    "level": {
-      "dept": "Departments",
-      "withTeams": "Departments + teams"
-    },
     "team": "team",
     "teams": "Teams",
     "positions": "Open",
@@ -2406,7 +2402,8 @@
     "positionHire": "Hire",
     "positionDismiss": "Remove position",
     "backToParent": "Back to parent",
-    "deleteCascade": "This department still has {{count}} teams; their records go too (folders on disk are kept)."
+    "deleteCascade": "This department still has {{count}} teams; their records are removed as well.",
+    "deleteKeepsFolder": "Only the record is removed — the folder and the sessions in it stay on disk."
   },
   "archive": {
     "summary": "{{total}} tasks · {{groups}} orgs · {{week}} this week",
