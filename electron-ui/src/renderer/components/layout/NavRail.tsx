@@ -1,11 +1,12 @@
 import React from 'react'
 import {
+  Archive,
   Building2,
   Settings,
   User,
+  UserCog,
   PanelLeftClose,
   PanelLeftOpen,
-  Users,
 } from 'lucide-react'
 import { useUiStore, useChatStore, usePrefsStore } from '../../store'
 import { usePluginStore } from '../../store/pluginStore'
@@ -302,13 +303,23 @@ export default function NavRail() {
         expanded={navExpanded}
       />
 
-      {/* Employees (Workflows) */}
+      {/* HR — the company's roster of employees, not a department */}
       <NavItem
-        icon={<Users size={iconSize} strokeWidth={1.5} />}
+        icon={<UserCog size={iconSize} strokeWidth={1.5} />}
         label={t('nav.employees')}
         shortcut="Ctrl+6"
         isActive={isWorkflowsActive}
         onClick={() => setActiveNavItem('workflows')}
+        expanded={navExpanded}
+      />
+
+      {/* Archive — the company-wide ledger of finished work */}
+      <NavItem
+        icon={<Archive size={iconSize} strokeWidth={1.5} />}
+        label={t('nav.archive')}
+        shortcut="Ctrl+8"
+        isActive={activeNavItem === 'archive'}
+        onClick={() => setActiveNavItem('archive')}
         expanded={navExpanded}
       />
 

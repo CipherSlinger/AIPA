@@ -2,6 +2,8 @@
 // Kept in its own module so OrgChart.tsx and DepartmentDashboard.tsx can both
 // use them without importing each other.
 
+import type { Department } from '../../store'
+
 /**
  * Encode a real directory path to Claude's project slug format.
  * Claude replaces all path separators (/ and \) and the Windows drive colon (:)
@@ -12,6 +14,47 @@
  */
 export function dirToSlug(dir: string): string {
   return dir.replace(/[/\\:]/g, '-')
+}
+
+/**
+ * Index departments by their slug, so a session can find the department that
+ * owns it in one lookup. This slug join is the ONLY link between the two — a
+ * session carries no department id.
+ */
+export function deptBySlug(departments: Department[]): Map<string, Department> {
+  const map = new Map<string, Department>()
+  for (const dept of departments) map.set(dirToSlug(dept.directory), dept)
+  return map
+}
+
+/** Expand a leading `~` against the user's home directory and normalise separators. */
+export function normalizePath(p: string, homeDir?: string): string {
+  let normalized = p.replace(/\\/g, '/')
+  if (homeDir && normalized.startsWith('~/')) {
+    normalized = homeDir.replace(/\/+$/, '') + normalized.slice(1)
+  } else if (homeDir && normalized === '~') {
+    normalized = homeDir.replace(/\/+$/, '')
+  }
+  return normalized.replace(/\/+$/, '')
+}
+
+/** Join a directory and a child segment with the separator the base already uses. */
+export function joinPath(base: string, child: string): string {
+  const trimmed = base.replace(/[/\\]+$/, '')
+  const sep = trimmed.includes('\\') && !trimmed.includes('/') ? '\\' : '/'
+  return `${trimmed}${sep}${child}`
+}
+
+/** Rotation palette for auto-assigned department colors. */
+export const DEPT_COLORS = ['#6366f1', '#fbbf24', '#4ade80', '#f87171', '#818cf8', '#a78bfa', '#ec4899', '#14b8a6']
+
+/** Deterministic emoji per department, so a card keeps its face across reloads. */
+const DEPT_EMOJI = ['🏢', '🧪', '🎨', '📊', '🛠️', '📈', '🧠', '🔬', '🚀', '📦', '💡', '🗂️', '🛰️', '🧰', '📐', '🎯', '🧩', '⚙️']
+
+export function deptEmoji(id: string): string {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0
+  return DEPT_EMOJI[hash % DEPT_EMOJI.length]
 }
 
 /** Last path segment of a directory, for compact display. */

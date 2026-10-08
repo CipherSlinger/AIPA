@@ -7,10 +7,11 @@ import { usePluginStore } from './pluginStore'
 export type SidebarTab = 'history' | 'files' | 'notes' | 'workflows' | 'changes'
 // 'skills' is kept as an alias: the Skills panel is now a section of the Employees
 // page, so entry points (Ctrl+4, /skills, command palette) resolve to 'workflows'.
-export type NavItem = 'chat' | 'department' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'changes' | `plugin:${string}`
+export type NavItem = 'chat' | 'department' | 'archive' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'changes' | `plugin:${string}`
 export type MainView =
   | 'chat'
   | 'department'
+  | 'archive'
   | 'workflows'
   | 'notes'
   | 'changes'
@@ -45,6 +46,13 @@ interface UiState {
   // Quote reply: text to prefill into the input bar
   quotedText: string | null
   setQuotedText: (text: string | null) => void
+
+  // A newly recruited employee's job description, handed from the department view
+  // to the chat view. ChatPanel mounts on the far side of that view switch, so
+  // the brief waits here until the composer is alive enough to send it as the
+  // employee's first message.
+  pendingRecruitBrief: string | null
+  setPendingRecruitBrief: (text: string | null) => void
 
   // Always-on-top (pin window)
   alwaysOnTop: boolean
@@ -133,6 +141,10 @@ function resolveNav(_s: UiState, item: NavItem): NavPatch {
   if (item === 'department') {
     return { activeNavItem: 'department', mainView: 'department', sidebarTab: 'history', sidebarOpen: false }
   }
+  // Archive opens the company-wide task ledger
+  if (item === 'archive') {
+    return { activeNavItem: 'archive', mainView: 'archive', sidebarOpen: false }
+  }
   // Chat/History opens chat panel in main content area
   if (item === 'chat' || item === 'history') {
     return {
@@ -204,6 +216,8 @@ export const useUiStore = create<UiState>((set) => ({
   // Any nav click leaves Settings, so its highlight never lingers next to the new item
   setActiveNavItem: (item) => set((s) => ({ settingsModalOpen: false, ...resolveNav(s, item) })),
   setQuotedText: (text) => set({ quotedText: text }),
+  pendingRecruitBrief: null,
+  setPendingRecruitBrief: (text) => set({ pendingRecruitBrief: text }),
   setAlwaysOnTop: (v) => set({ alwaysOnTop: v }),
   terminalResumeSessionId: null,
   setTerminalResumeSessionId: (id) => set({ terminalResumeSessionId: id }),

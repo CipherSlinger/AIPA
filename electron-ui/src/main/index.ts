@@ -3,6 +3,7 @@ import path from 'path'
 import fs from 'fs'
 import { initClawdIntegration, shutdownClawdIntegration, getClawdSubmenu } from './clawd-integration'
 import { abortAllPluginAi } from './plugins/plugin-services'
+import { endAllPluginEdits } from './plugins/plugin-edit-session'
 import { registerAllHandlers } from './ipc/index'
 import { ptyManager } from './pty/pty-manager'
 import { listSessions } from './sessions/session-reader'
@@ -577,5 +578,6 @@ app.on('before-quit', () => {
   try { shutdownClawdIntegration() } catch { /* best-effort */ }
   ptyManager.destroyAll()
   abortAllPluginAi()
+  endAllPluginEdits()
   globalShortcut.unregisterAll()
 })

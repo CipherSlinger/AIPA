@@ -83,6 +83,22 @@ export interface PluginAiEvent {
   message?: string
 }
 
+/** Stream events of the recruit dialog's "polish the job description" call. */
+export interface RecruitPolishEvent {
+  requestId: string
+  type: 'delta' | 'status' | 'done' | 'error'
+  text?: string
+  message?: string
+}
+
+/** Stream events of an edit-drawer chat (cwd = the plugin folder). */
+export type PluginEditEvent =
+  | { pluginId: string; type: 'delta'; text: string }
+  | { pluginId: string; type: 'tool'; name: string; detail: string }
+  | { pluginId: string; type: 'status'; message: string }
+  | { pluginId: string; type: 'done'; text: string }
+  | { pluginId: string; type: 'error'; message: string }
+
 const electronAPI = {
   // ── IPC readiness check ────────────────────
   ipcPing: () => ipcRenderer.invoke('ipc:ping') as Promise<{ ok: boolean; timestamp: number }>,
@@ -448,6 +464,32 @@ const electronAPI = {
     const handler = (_event: Electron.IpcRendererEvent, data: PluginAiEvent) => callback(data)
     ipcRenderer.on('plugin:ai:event', handler)
     return () => { ipcRenderer.removeListener('plugin:ai:event', handler) }
+  },
+
+  // ── Recruit dialog: polish a drafted job description ──
+  recruitPolish: (args: { requestId: string; draft: string; deptName: string; locale?: string; model?: string }) =>
+    ipcRenderer.invoke('recruit:polish:start', args) as Promise<{ started: boolean }>,
+  recruitPolishAbort: (requestId: string) =>
+    ipcRenderer.invoke('recruit:polish:abort', { requestId }) as Promise<void>,
+  onRecruitPolishEvent: (callback: (event: RecruitPolishEvent) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: RecruitPolishEvent) => callback(data)
+    ipcRenderer.on('recruit:polish:event', handler)
+    return () => { ipcRenderer.removeListener('recruit:polish:event', handler) }
+  },
+
+  // ── Edit drawer: an AI chat whose cwd is the plugin folder ──
+  pluginEditStart: (args: { pluginId: string; prompt: string; model?: string }) =>
+    ipcRenderer.invoke('plugin:edit:start', args) as Promise<{ started: boolean }>,
+  pluginEditSend: (pluginId: string, prompt: string) =>
+    ipcRenderer.invoke('plugin:edit:send', { pluginId, prompt }) as Promise<{ sent: boolean }>,
+  pluginEditAbort: (pluginId: string) =>
+    ipcRenderer.invoke('plugin:edit:abort', { pluginId }) as Promise<void>,
+  pluginEditClose: (pluginId: string) =>
+    ipcRenderer.invoke('plugin:edit:close', { pluginId }) as Promise<void>,
+  onPluginEditEvent: (callback: (event: PluginEditEvent) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: PluginEditEvent) => callback(data)
+    ipcRenderer.on('plugin:edit:event', handler)
+    return () => { ipcRenderer.removeListener('plugin:edit:event', handler) }
   },
 
   // ── Version info ────────────────────────

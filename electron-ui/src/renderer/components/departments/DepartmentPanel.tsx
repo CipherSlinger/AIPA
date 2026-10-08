@@ -1,9 +1,11 @@
 // DepartmentPanel — sidebar panel listing departments (部门) and allowing add/edit/delete
 import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { Building2, Plus, MoreHorizontal, Pencil, Trash2, FolderOpen, Check, X, FolderPlus, ChevronsUpDown, ChevronsDownUp, GripVertical, ChevronRight, LogIn } from 'lucide-react'
+import { Building2, Plus, MoreHorizontal, Pencil, Trash2, FolderOpen, Check, X, FolderPlus, ChevronsUpDown, ChevronsDownUp, GripVertical, ChevronRight, LayoutGrid, LogIn } from 'lucide-react'
 import { useDepartmentStore, useSessionStore, Department } from '../../store'
 import { useUiStore } from '../../store'
 import { useT } from '../../i18n'
+import { DEPT_COLORS, baseName, normalizePath } from './deptUtils'
+import DeptTemplatePicker from './DeptTemplatePicker'
 
 const SCROLLBAR_STYLE = `
   .dept-panel-scroll::-webkit-scrollbar,
@@ -17,26 +19,6 @@ const SCROLLBAR_STYLE = `
     to   { opacity: 1; transform: translateY(0) scale(1); }
   }
 `
-
-// DEPARTMENT_COLORS: rotation palette for auto-assigned colors
-const DEPT_COLORS = ['#6366f1', '#fbbf24', '#4ade80', '#f87171', '#818cf8', '#a78bfa', '#ec4899', '#14b8a6']
-
-// Extract folder name from a full path (last segment)
-function folderName(p: string): string {
-  const norm = p.replace(/\\/g, '/')
-  const parts = norm.replace(/\/+$/, '').split('/')
-  return parts[parts.length - 1] || p
-}
-
-function normalizePath(p: string, homeDir?: string): string {
-  let normalized = p.replace(/\\/g, '/')
-  if (homeDir && normalized.startsWith('~/')) {
-    normalized = homeDir.replace(/\/+$/, '') + normalized.slice(1)
-  } else if (homeDir && normalized === '~') {
-    normalized = homeDir.replace(/\/+$/, '')
-  }
-  return normalized.replace(/\/+$/, '')
-}
 
 function formatLastActive(ts: number, t: (key: string) => string): string {
   const diff = Date.now() - ts
@@ -65,12 +47,13 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
   const [nameFocused, setNameFocused] = useState(false)
+  const [showPresets, setShowPresets] = useState(false)
 
   const pickDir = async () => {
     const p = await window.electronAPI.fsShowOpenDialog()
     if (p) {
       setDirectory(p)
-      if (!name.trim()) setName(folderName(p))
+      if (!name.trim()) setName(baseName(p))
     }
   }
 
@@ -81,7 +64,7 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
     try {
       await window.electronAPI.fsEnsureDir(newFolderPath.trim())
       setDirectory(newFolderPath.trim())
-      if (!name.trim()) setName(folderName(newFolderPath.trim()))
+      if (!name.trim()) setName(baseName(newFolderPath.trim()))
       setNewFolderMode(false)
     } catch (e) {
       setCreateError(String(e))
@@ -112,8 +95,23 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
         marginBottom: 10,
         textTransform: 'uppercase',
         letterSpacing: '0.07em',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
       }}>
-        {t('dept.addTitle')}
+        <span style={{ flex: 1 }}>{t('dept.addTitle')}</span>
+        {/* Same picker as the org chart — one code path writes the folders. */}
+        <button
+          onClick={() => setShowPresets(true)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: '#818cf8', fontSize: 10, textTransform: 'none', letterSpacing: 'normal',
+            fontWeight: 600, padding: 0,
+          }}
+        >
+          <LayoutGrid size={10} />{t('dept.presets.fromTemplate')}
+        </button>
       </div>
 
       {/* Name input */}
@@ -370,6 +368,13 @@ function AddDepartmentForm({ onDone }: { onDone: () => void }) {
           {t('dept.cancel')}
         </button>
       </div>
+
+      {showPresets && (
+        <DeptTemplatePicker
+          onClose={() => setShowPresets(false)}
+          onApplied={() => { setShowPresets(false); setMainView('department'); onDone() }}
+        />
+      )}
     </div>
   )
 }
@@ -851,7 +856,6 @@ export default function DepartmentPanel() {
   const t = useT()
   const departments = useDepartmentStore(s => s.departments)
   const activeDepartmentId = useDepartmentStore(s => s.activeDepartmentId)
-  const addDepartment = useDepartmentStore(s => s.addDepartment)
   const reorderDepartments = useDepartmentStore(s => s.reorderDepartments)
   const sessions = useSessionStore(s => s.sessions)
   const homeDir = useSessionStore(s => s.homeDir)
@@ -897,26 +901,6 @@ export default function DepartmentPanel() {
     }
     return stats
   }, [departments, sessions, homeDir, unreadCounts])
-
-  // Auto-import sessions into departments by project directory when no departments exist
-  useEffect(() => {
-    if (departments.length > 0) return
-    if (sessions.length === 0) return
-
-    // Collect unique project directories from sessions
-    const dirs = new Map<string, string>() // directory → derived name
-    for (const s of sessions) {
-      if (s.project && !dirs.has(s.project)) {
-        dirs.set(s.project, folderName(s.project))
-      }
-    }
-    if (dirs.size === 0) return
-
-    let colorIdx = 0
-    dirs.forEach((name, directory) => {
-      addDepartment({ name, directory, color: DEPT_COLORS[colorIdx++ % DEPT_COLORS.length] })
-    })
-  }, [sessions, departments.length]) // only run when sessions load or departments change
 
   // Keyboard shortcut: press N to open the create-department form
   useEffect(() => {

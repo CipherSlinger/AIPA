@@ -19,6 +19,8 @@ export function useChatPanelEvents(
 ) {
   const addToast = useUiStore(s => s.addToast)
   const setPinnedNoteId = useUiStore(s => s.setPinnedNoteId)
+  const pendingRecruitBrief = useUiStore(s => s.pendingRecruitBrief)
+  const setPendingRecruitBrief = useUiStore(s => s.setPendingRecruitBrief)
   const t = useT()
 
   // Listen for external send prompt events (from SelectionToolbar)
@@ -32,6 +34,16 @@ export function useChatPanelEvents(
     window.addEventListener('aipa:sendPrompt', handler)
     return () => window.removeEventListener('aipa:sendPrompt', handler)
   }, [sendMessage, isStreaming])
+
+  // A newly recruited employee's job description is written in the department
+  // view and sent from here: that view unmounts on the way to chat, so the brief
+  // is parked in the store until the composer exists to receive it. Claim it
+  // (clear first) so a remount can never send it twice.
+  useEffect(() => {
+    if (!pendingRecruitBrief || isStreaming) return
+    setPendingRecruitBrief(null)
+    sendMessage(pendingRecruitBrief)
+  }, [pendingRecruitBrief, isStreaming, sendMessage, setPendingRecruitBrief])
 
   // Listen for "Pin note to session" events from command palette (Iteration 434)
   useEffect(() => {

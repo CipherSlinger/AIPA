@@ -21,13 +21,15 @@
 // container width (a percentage bus would drift off the card centres by the gap).
 import React, { useEffect, useMemo, useState } from 'react'
 import {
-  BarChart3, Building2, ChevronRight, FolderOpen, MessageSquare, Plus, Search, Users, X,
+  BarChart3, Building2, ChevronRight, FolderOpen, LayoutGrid, MessageSquare, Plus, Search, Users, X,
 } from 'lucide-react'
 import { useChatStore, useDepartmentStore, useSessionStore } from '../../store'
 import { SessionListItem } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { cardStyle, ToolbarButton } from '../workflows/EmployeesShared'
-import { baseName, dirToSlug } from './deptUtils'
+import { baseName, deptEmoji, dirToSlug } from './deptUtils'
+import DeptTemplatePicker from './DeptTemplatePicker'
+import { DEPT_PRESETS, hasChosenDeptSetup } from './deptPresets'
 
 const ACCENT = '#6366f1'
 /** Horizontal gap between cards in a row. */
@@ -51,14 +53,8 @@ interface TreeMetrics { trunk: number; drop: number; rowGap: number }
 const METRICS_FULL: TreeMetrics = { trunk: 28, drop: 28, rowGap: 26 }
 const METRICS_DENSE: TreeMetrics = { trunk: 20, drop: 20, rowGap: 16 }
 
-/** Deterministic emoji per department, so a card keeps its face across reloads. */
-const DEPT_EMOJI = ['🏢', '🧪', '🎨', '📊', '🛠️', '📈', '🧠', '🔬', '🚀', '📦', '💡', '🗂️', '🛰️', '🧰', '📐', '🎯', '🧩', '⚙️']
-
-function deptEmoji(id: string): string {
-  let hash = 0
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0
-  return DEPT_EMOJI[hash % DEPT_EMOJI.length]
-}
+/** Deterministic emoji per department lives in deptUtils so the archive ledger
+ * can show the same face without importing this whole chart. */
 
 const ELLIPSIS: React.CSSProperties = {
   overflow: 'hidden',
@@ -336,6 +332,10 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
   const [showAddDept, setShowAddDept] = useState(false)
   const [newDeptName, setNewDeptName] = useState('')
   const [newDeptDir, setNewDeptDir] = useState('')
+  // Template picker. `presetSeed` is the domain the picker opens on — the empty
+  // state's cards each seed their own, the toolbar entry seeds none.
+  const [showPresets, setShowPresets] = useState(false)
+  const [presetSeed, setPresetSeed] = useState<string | undefined>(undefined)
   const [statsDeptId, setStatsDeptId] = useState<string | null>(null)
   const [statsPos, setStatsPos] = useState({ x: 0, y: 0 })
   const [width, setWidth] = useState(0)
@@ -380,6 +380,16 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
     () => computeLayout(width, filteredDepts.length, dense),
     [width, filteredDepts.length, dense],
   )
+
+  // First run: a brand-new install lands on an empty chart with nothing to click
+  // that explains itself, so open the picker once. Waiting for sessions to finish
+  // loading matters — that is what tells us whether to offer "reuse my existing
+  // folders". After any choice (`blank` included) the flag silences this for good.
+  useEffect(() => {
+    if (departments.length > 0 || sessionsLoading || hasChosenDeptSetup()) return
+    setPresetSeed(undefined)
+    setShowPresets(true)
+  }, [departments.length, sessionsLoading])
 
   const closeAdd = () => { setShowAddDept(false); setNewDeptName(''); setNewDeptDir('') }
 
@@ -483,7 +493,19 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
             display: 'flex', flexDirection: 'column', gap: 9,
             animation: 'slideUp 0.15s ease',
           }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>{t('dept.addTitle')}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ flex: 1, fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>{t('dept.addTitle')}</div>
+              <button
+                onClick={() => { closeAdd(); setPresetSeed(undefined); setShowPresets(true) }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: '#818cf8', fontSize: 11,
+                }}
+              >
+                <LayoutGrid size={11} />{t('dept.presets.fromTemplate')}
+              </button>
+            </div>
             <input
               autoFocus
               placeholder={t('dept.namePlaceholder')}
@@ -548,9 +570,11 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
           </div>
         )}
 
-        {/* Empty state — no department at all */}
+        {/* Empty state — no department at all. The fastest way out is a ready-made
+            structure, so the domains are offered right here instead of buried
+            behind the "new department" form. */}
         {departments.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: '56px 20px', textAlign: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '48px 20px', textAlign: 'center' }}>
             <div style={{
               width: 76, height: 76, borderRadius: 22,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -560,15 +584,39 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
             </div>
             <div>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>
-                {t('dept.noSelection')}
+                {t('dept.presets.emptyTitle')}
               </div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', opacity: 0.8, lineHeight: 1.65, maxWidth: 280 }}>
-                {t('dept.noSelectionHint')}
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', opacity: 0.8, lineHeight: 1.65, maxWidth: 320 }}>
+                {t('dept.presets.emptyHint')}
               </div>
             </div>
-            <ToolbarButton onClick={() => setShowAddDept(true)} primary>
-              <Plus size={13} />{t('dept.add')}
-            </ToolbarButton>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', maxWidth: 560 }}>
+              {DEPT_PRESETS.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => { setPresetSeed(p.id); setShowPresets(true) }}
+                  style={{
+                    padding: '7px 14px', borderRadius: 9, cursor: 'pointer',
+                    border: '1px solid rgba(99,102,241,0.28)', background: 'rgba(99,102,241,0.07)',
+                    color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.16)'; e.currentTarget.style.color = '#818cf8' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.07)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+                >
+                  {t(p.labelKey)}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => { setPresetSeed(undefined); setShowPresets(true) }}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--text-muted)', fontSize: 12, textDecoration: 'underline',
+                textUnderlineOffset: 3,
+              }}
+            >
+              {t('dept.presets.browseAll')}
+            </button>
           </div>
         ) : (
           <div ref={setTreeEl}>
@@ -812,6 +860,14 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
           </div>
         )
       })()}
+
+      {showPresets && (
+        <DeptTemplatePicker
+          initialPresetId={presetSeed}
+          onClose={() => setShowPresets(false)}
+          onApplied={() => setShowPresets(false)}
+        />
+      )}
     </div>
   )
 }

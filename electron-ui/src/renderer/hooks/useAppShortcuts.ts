@@ -151,11 +151,11 @@ export function useAppShortcuts(
         ui.setAlwaysOnTop(newValue)
         ui.addToast('info', t(newValue ? 'window.pinnedOn' : 'window.pinnedOff'), 1500)
       }
-      // Ctrl+1-7: Switch main views
-      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '7') {
+      // Ctrl+1-8: Switch main views
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '8') {
         e.preventDefault()
         // Ctrl+7 opens the Work Calendar plugin (the Tasks panel moved there)
-        const tabs = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'plugin:aipa-work-calendar'] as const
+        const tabs = ['history', 'files', 'notes', 'skills', 'memory', 'workflows', 'plugin:aipa-work-calendar', 'archive'] as const
         const idx = parseInt(e.key) - 1
         const tab = tabs[idx]
         if (tab) {

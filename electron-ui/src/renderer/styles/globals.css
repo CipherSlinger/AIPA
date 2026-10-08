@@ -876,18 +876,7 @@ mark.search-current-match {
 .emp-tile:hover .emp-actions,
 .emp-tile:focus-within .emp-actions { opacity: 1; }
 
-/* Recruiting slot — a dashed outline where the next employee will stand. */
-.emp-ghost .emp-ghost-body {
-  fill: none;
-  stroke: var(--border);
-  stroke-width: 1.5;
-  stroke-dasharray: 4 3;
-  transition: stroke 0.18s ease;
-}
-.emp-ghost:hover .emp-ghost-body { stroke: #818cf8; }
-.emp-ghost:hover .emp-figure { animation: none; }
-
-/* Loading placeholder — the same silhouette, filled and pulsing. */
+/* Loading placeholder — the silhouette, filled and pulsing. */
 .emp-skeleton .emp-ghost-body {
   fill: var(--bg-hover);
   stroke: none;

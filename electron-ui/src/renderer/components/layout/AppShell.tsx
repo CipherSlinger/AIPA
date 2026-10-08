@@ -16,6 +16,7 @@ const NotesPanel = React.lazy(() => import('../notes/NotesPanel'))
 const SkillCreatorPage = React.lazy(() => import('../skills/SkillCreatorPage'))
 const SkillMarketplacePage = React.lazy(() => import('../skills/SkillMarketplacePage'))
 const DepartmentDashboard = React.lazy(() => import('../departments/DepartmentDashboard'))
+const ArchivePanel = React.lazy(() => import('../archive/ArchivePanel'))
 const WorkflowPanel = React.lazy(() => import('../workflows/WorkflowPanel'))
 const ChangesPanel = React.lazy(() => import('../sidebar/ChangesPanel'))
 const FileBrowser = React.lazy(() => import('../filebrowser/FileBrowser'))
@@ -172,6 +173,12 @@ export default function AppShell() {
             <ErrorBoundary fallbackLabel="department dashboard">
               <React.Suspense fallback={<PanelSkeleton />}>
                 <DepartmentDashboard />
+              </React.Suspense>
+            </ErrorBoundary>
+          ) : mainView === 'archive' ? (
+            <ErrorBoundary fallbackLabel="archive panel">
+              <React.Suspense fallback={<PanelSkeleton />}>
+                <ArchivePanel />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'workflows' ? (

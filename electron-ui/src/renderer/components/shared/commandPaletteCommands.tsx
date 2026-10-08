@@ -4,7 +4,7 @@ import React from 'react'
 import {
   Plus, Download, PanelLeft, Settings, History,
   FolderOpen, Zap, Trash2, HelpCircle, Cpu, Sparkles,
-  Brain, Workflow, Play, NotebookPen, ClipboardPaste, Radio,
+  Brain, Workflow, Play, NotebookPen, ClipboardPaste, Radio, Archive,
   Sun, Moon, Languages, Copy, Pin, StickyNote, ArrowUpDown,
   FileText, Stethoscope, Pencil, BarChart2, Shield,
   Database, DollarSign, SkipBack, RefreshCw,
@@ -132,6 +132,15 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
       icon: <Workflow size={14} />,
       shortcut: 'Ctrl+6',
       action: () => { setActiveNavItem('workflows'); onClose() },
+      category: 'action',
+    },
+    {
+      id: 'open-archive',
+      name: t('command.openArchive'),
+      description: t('command.openArchiveDesc'),
+      icon: <Archive size={14} />,
+      shortcut: 'Ctrl+8',
+      action: () => { setActiveNavItem('archive'); onClose() },
       category: 'action',
     },
     {

@@ -6,11 +6,13 @@ import {
   AlertTriangle,
   Puzzle,
   FileCode,
+  Sparkles,
 } from 'lucide-react'
 import { usePluginStore } from '../../store/pluginStore'
 import { useUiStore, usePrefsStore } from '../../store'
 import { getPluginIconComponent, getPluginDisplayName } from './pluginIcons'
 import PluginSourcePreview from './PluginSourcePreview'
+import PluginEditDrawer from './PluginEditDrawer'
 import { useI18n } from '../../i18n'
 
 type ElectronAPI = typeof window.electronAPI
@@ -64,6 +66,8 @@ export default function PluginHostView() {
   // running plugin keeps its state while you read its files). Per-plugin, so it
   // resets on switch.
   const [showSource, setShowSource] = useState(false)
+  // AI edit drawer: chats with the agent, whose cwd is this plugin's folder.
+  const [showEdit, setShowEdit] = useState(false)
 
   const plugins = usePluginStore(s => s.plugins)
   const activePluginId = usePluginStore(s => s.activePluginId)
@@ -175,11 +179,11 @@ export default function PluginHostView() {
   }, [sendThemeToIframe, addToast, openFolder, t])
 
   // Reset the source preview when the active plugin changes
-  useEffect(() => { setShowSource(false) }, [activePluginId])
+  useEffect(() => { setShowSource(false); setShowEdit(false) }, [activePluginId])
 
-  const handleReload = () => {
+  const handleReload = useCallback(() => {
     setIframeKey(k => k + 1)
-  }
+  }, [])
 
   const handleClose = () => setActiveNavItem('chat')
 
@@ -309,6 +313,21 @@ export default function PluginHostView() {
           </button>
 
           <button
+            onClick={() => setShowEdit(v => !v)}
+            title={t('pluginHost.editTitle')}
+            aria-pressed={showEdit}
+            style={{
+              ...TOOLBAR_BTN,
+              background: showEdit ? 'rgba(99,102,241,0.14)' : 'transparent',
+              border: `1px solid ${showEdit ? 'rgba(99,102,241,0.45)' : 'var(--border)'}`,
+              color: showEdit ? '#818cf8' : 'var(--text-secondary)',
+            }}
+          >
+            <Sparkles size={12} />
+            {t('pluginHost.edit')}
+          </button>
+
+          <button
             onClick={handleClose}
             title={t('pluginHost.backToChat')}
             style={{
@@ -329,41 +348,43 @@ export default function PluginHostView() {
         </div>
       </div>
 
-      {/* Plugin Main Area */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        {!plugin.valid ? (
-          <div style={{
-            padding: 32,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-            gap: 12,
-          }}>
-            <AlertTriangle size={36} color="#f87171" />
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{t('pluginHost.loadFailed')}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 450, textAlign: 'center' }}>
-              {plugin.error || t('pluginHost.entryMissing')}
+      {/* Plugin Main Area — a flex row, so the edit drawer takes its width off the
+          plugin rather than covering it: the frame always stays fully visible. */}
+      <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
+        <div style={{ flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden' }}>
+          {!plugin.valid ? (
+            <div style={{
+              padding: 32,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              gap: 12,
+            }}>
+              <AlertTriangle size={36} color="#f87171" />
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{t('pluginHost.loadFailed')}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 450, textAlign: 'center' }}>
+                {plugin.error || t('pluginHost.entryMissing')}
+              </div>
+              <button
+                onClick={() => openFolder(plugin.manifest.id)}
+                style={{
+                  marginTop: 8,
+                  padding: '6px 14px',
+                  borderRadius: 8,
+                  background: '#6366f1',
+                  color: '#fff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              >
+                {t('pluginHost.openDirToCheck')}
+              </button>
             </div>
-            <button
-              onClick={() => openFolder(plugin.manifest.id)}
-              style={{
-                marginTop: 8,
-                padding: '6px 14px',
-                borderRadius: 8,
-                background: '#6366f1',
-                color: '#fff',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              {t('pluginHost.openDirToCheck')}
-            </button>
-          </div>
-        ) : (
+          ) : (
           <iframe
             // Locale is passed via ?lang=; a change remounts so the plugin renders in the new language
             key={`${iframeKey}:${resolvedLocale}`}
@@ -381,19 +402,32 @@ export default function PluginHostView() {
               sendThemeToIframe()
             }}
           />
-        )}
+          )}
 
-        {/* Overlaid rather than swapped in: the frame above stays mounted, so an
-            open source view never reboots the plugin (it keeps its state). */}
-        {showSource && (
-          <div style={{ position: 'absolute', inset: 0, background: 'var(--bg-primary)' }}>
-            <PluginSourcePreview
-              key={plugin.manifest.id}
-              plugin={plugin}
-              onClose={() => setShowSource(false)}
-              onOpenFolder={() => openFolder(plugin.manifest.id)}
-            />
-          </div>
+          {/* Overlaid rather than swapped in: the frame above stays mounted, so an
+              open source view never reboots the plugin (it keeps its state). */}
+          {showSource && (
+            <div style={{ position: 'absolute', inset: 0, background: 'var(--bg-primary)' }}>
+              <PluginSourcePreview
+                key={plugin.manifest.id}
+                plugin={plugin}
+                onClose={() => setShowSource(false)}
+                onOpenFolder={() => openFolder(plugin.manifest.id)}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Edit drawer — a flex sibling, not an overlay: the plugin frame is
+            squeezed to the remaining width and stays fully visible. It also keeps
+            running, so a finished turn can just reload it to show the change. */}
+        {showEdit && (
+          <PluginEditDrawer
+            key={plugin.manifest.id}
+            plugin={plugin}
+            onClose={() => setShowEdit(false)}
+            onChanged={handleReload}
+          />
         )}
       </div>
     </div>

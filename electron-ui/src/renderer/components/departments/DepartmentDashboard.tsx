@@ -6,34 +6,12 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Building2, FolderOpen, MessageSquarePlus, ArrowLeft, Search, X } from 'lucide-react'
 import { useDepartmentStore, useSessionStore, useChatStore, useUiStore, usePrefsStore } from '../../store'
 import { SessionListItem } from '../../types/app.types'
-import EmployeeFigure, { PendingFigure, SkeletonFigure } from './EmployeeFigure'
+import EmployeeFigure, { SkeletonFigure } from './EmployeeFigure'
 import OrgChart from './OrgChart'
+import RecruitEmployeeModal from './RecruitEmployeeModal'
 import { dirToSlug } from './deptUtils'
+import { openSessionCore } from './openSessionCore'
 import { useT } from '../../i18n'
-import { parseSessionMessages } from '../sessions/sessionUtils'
-
-// Shared core logic for opening a session in a department directory.
-// Extracted here so DeptView and OrgChart don't duplicate the implementation.
-async function openSessionCore(session: SessionListItem, deptDirectory: string): Promise<void> {
-  useUiStore.getState().setMainView('chat')
-  useUiStore.getState().closeSettingsModal()
-  // Requirement 3: mark that we entered chat from a department view
-  useUiStore.getState().setFromDepartment(true)
-  const raw = await window.electronAPI.sessionLoad(session.sessionId)
-  const chatMessages = parseSessionMessages(raw)
-  useChatStore.getState().clearMessages()
-  useChatStore.getState().loadHistory(chatMessages)
-  useChatStore.getState().setSessionId(session.sessionId)
-  useUiStore.getState().clearUnreadForSession(session.sessionId)
-  usePrefsStore.getState().setPrefs({ workingDir: deptDirectory })
-  window.electronAPI.prefsSet('workingDir', deptDirectory)
-}
-
-// ── Pending Session (new session card not yet navigated to) ──────────────────
-interface PendingSession {
-  id: string
-  createdAt: number
-}
 
 // ── Single Department View ──────────────────────────────────────────────────
 interface DeptViewProps {
@@ -69,7 +47,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
   const [selectedSessions, setSelectedSessions] = useState<Set<string>>(new Set())
   const [selectMode, setSelectMode] = useState(false)
   const [sortOrder, setSortOrder] = useState<'recent' | 'oldest' | 'msgs'>('recent')
-  const [pendingSessions, setPendingSessions] = useState<PendingSession[]>([])
+  const [recruitOpen, setRecruitOpen] = useState(false)
 
   const sortedSessions = useMemo(() => {
     const arr = [...deptSessions]
@@ -93,12 +71,14 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
     return [...pinned, ...unpinned]
   }, [filteredSessions])
 
+  // Recruiting is a conversation with the recruiter, not an immediate session:
+  // the dialog collects (or has the model write) the job description first.
   const newSession = useCallback(() => {
     if (!dept) return
-    setPendingSessions(prev => [{ id: `pending-${Date.now()}`, createdAt: Date.now() }, ...prev])
+    setRecruitOpen(true)
   }, [dept])
 
-  // Auto-create a pending session card when coming from OrgChart "New Session" button
+  // Open the recruit dialog when coming from OrgChart's "Recruit" button
   useEffect(() => {
     if (autoNewSession && dept) {
       newSession()
@@ -106,14 +86,19 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // One-shot on mount only
 
-  const enterNewSession = useCallback((pendingId: string) => {
+  // Confirm: the job description becomes the employee's first message, so the
+  // new session opens in chat with the brief already on its way.
+  const confirmRecruit = useCallback((brief: string) => {
     if (!dept) return
-    setPendingSessions(prev => prev.filter(p => p.id !== pendingId))
+    setRecruitOpen(false)
     setPrefs({ workingDir: dept.directory })
     window.electronAPI.prefsSet('workingDir', dept.directory)
     useChatStore.getState().clearMessages()
     // New session from dept view: set fromDepartment so the back button shows in chat (Iteration 538)
     useUiStore.getState().setFromDepartment(true)
+    // Hand the brief over before the view swaps — ChatPanel is not mounted yet,
+    // and it consumes this once it is.
+    useUiStore.getState().setPendingRecruitBrief(brief || null)
     useUiStore.getState().setMainView('chat')
   }, [dept, setPrefs])
 
@@ -642,7 +627,7 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             {[0, 1, 2].map(i => <SkeletonFigure key={i} />)}
             <div className="emp-floor" />
           </div>
-        ) : deptSessions.length === 0 && pendingSessions.length === 0 ? (
+        ) : deptSessions.length === 0 ? (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -770,9 +755,6 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
             if (sortOrder !== 'recent') {
               return (
                 <div className="emp-roster">
-                  {pendingSessions.map(ps => (
-                    <PendingFigure key={ps.id} onEnter={() => enterNewSession(ps.id)} onCancel={() => setPendingSessions(prev => prev.filter(p => p.id !== ps.id))} />
-                  ))}
                   {pinnedFilteredSessions.map(renderEmployee)}
                   <div className="emp-floor" />
                 </div>
@@ -797,25 +779,6 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
 
             return (
               <div>
-                {pendingSessions.length > 0 && (
-                  <div style={{ marginBottom: 20 }}>
-                    <div style={{
-                      fontSize: 10, fontWeight: 700, color: 'var(--text-muted)',
-                      textTransform: 'uppercase', letterSpacing: '0.07em',
-                      marginBottom: 10,
-                      paddingLeft: 8,
-                      borderLeft: `2px solid ${dept.color || '#6366f1'}`,
-                    }}>
-                      {t('session.today')}
-                    </div>
-                    <div className="emp-roster">
-                      {pendingSessions.map(ps => (
-                        <PendingFigure key={ps.id} onEnter={() => enterNewSession(ps.id)} onCancel={() => setPendingSessions(prev => prev.filter(p => p.id !== ps.id))} />
-                      ))}
-                      <div className="emp-floor" />
-                    </div>
-                  </div>
-                )}
                 {groups.map(group => (
                   <div key={group.label} style={{ marginBottom: 20 }}>
                     <div style={{
@@ -838,6 +801,15 @@ function DeptView({ deptId, onBack, onOpenSession, loadingSessionId, onDeleteSes
           })()
         )}
       </div>
+
+      {recruitOpen && (
+        <RecruitEmployeeModal
+          deptName={dept.name}
+          deptColor={dept.color}
+          onCancel={() => setRecruitOpen(false)}
+          onConfirm={confirmRecruit}
+        />
+      )}
     </div>
   )
 }
@@ -978,9 +950,6 @@ export default function DepartmentDashboard() {
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: 'block', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em', lineHeight: 1.25 }}>
                 {t('dept.orgChart')}
-              </span>
-              <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>
-                {t('dept.orgHint')}
               </span>
             </span>
             <span style={{

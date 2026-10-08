@@ -34,7 +34,7 @@ graph TB
                 MainView["Main Content View (MainView)"]
                 ChatPanel["Structured Chat / Tool Cards / LCS Diff"]
                 OrgChart["Organization Chart"]
-                EmpGallery["Employees Character Icon Grid"]
+                EmpGallery["HR (People Ops)"]
                 CanvasWorkflow["Canvas Workflow Editor"]
                 PluginHost["Sandboxed Plugin Host"]
             end
@@ -90,12 +90,12 @@ AIPA adopts a modern **two-column layout** eliminating redundant intermediate li
 │ Dept │ ┌─────────────────────────────────────────────────────────────────────────────┐ │
 │      │ │ 🤖 Assistant                                                                │ │
 │ [👥] │ │ Refactoring module architecture...                                          │ │
-│ Emp  │ │ ┌─ 🛠️ Tool: Write (src/main/plugins/nav-plugin-manager.ts) ───────────────┐ │ │
-│      │ │ │ + export interface NavPluginManifest { ... }                           │ │ │
-│      │ │ └────────────────────────────────────────────────────────────────────────┘ │ │
+│ HR   │ │ ┌─ 🛠️ Tool: Write (src/main/plugins/nav-plugin-manager.ts) ───────────────┐ │ │
+│ [📁] │ │ │ + export interface NavPluginManifest { ... }                           │ │  │
+│ Arch │ │ └────────────────────────────────────────────────────────────────────────┘ │  │
 │      │ └─────────────────────────────────────────────────────────────────────────────┘ │
 │      │                                                                                 │
-│      │ ┌─ Employees Character Icon Grid ─────────────────────────────────────────────┐ │
+│      │ ┌─ Employee Roster (HR)   ─────────────────────────────────────────────┐ │
 │      │ │  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐        │ │
 │      │ │  │ 👨‍💻 Coach  │   │ 👩‍🔬 Analyst│   │ 🎨 Creative│   │ 📚 Tutor │   │ ⚡ Productiv│   │ │
 │ [📅] │ │  │ Writing │   │ Research│   │ Partner │   │ Academic│   │  Coach  │        │ │
@@ -117,10 +117,11 @@ AIPA adopts a modern **two-column layout** eliminating redundant intermediate li
 | Module | Core Features | Visual Presentation |
 |---|---|---|
 | **💬 Chat & Execution** | Stream-JSON real-time stream, dual-model switching, collapsible thinking chain, auto-compaction | Structured tool cards, LCS color-coded diff view, task checklist, interactive permission dialog |
-| **👥 Employees** | Character persona illustrations, role-tailored attire/hairstyles, glowing status aura | The Employees page shows Experts, Skills and Workflows as matching card grids (the standalone Skills panel was merged in): a skill card feeds its slash command into chat or opens the full SKILL.md, expert cards can be edited or recruited, workflow cards show step and run counts with hover edit/duplicate/delete and one-click run; a dashed card at the end creates a new item, with suggested presets below |
+| **👥 HR (People Ops)** | Character persona illustrations, role-tailored attire/hairstyles, glowing status aura | The HR page shows Experts, Skills and Workflows as matching card grids (the standalone Skills panel was merged in): a skill card feeds its slash command into chat or opens the full SKILL.md, expert cards can be edited or recruited, workflow cards show step and run counts with hover edit/duplicate/delete and one-click run; a dashed card at the end creates a new item, with suggested presets below |
 | **🏢 Org Chart** | Company-style department map, trunk→bus→drop connector lines, layout adapts to both container width and department count (centred single row / left-rail multi-row), per-department color and stable emoji | Shows departments only (employees stay collapsed); clicking a card drills into that department's employee roster, and hovering offers direct recruit, a stats popover and employee export. The roster itself renders each employee as a **little yellow helper** (one eye or two, height, hair and mouth hashed from the session id, always-on breathing, and a spinning halo plus typing arm while replying) |
+| **📁 Archive** | Company-wide task ledger: every session is filed under its department and employee, derived live with no extra storage layer, filterable by department / time / archive state / free text, grouped by department with an explicit unassigned bucket | Reach it from the left nav’s “Archive” entry or `Ctrl+8`; each row shows the task title, an employee short-hash, time and turn count, and opens that session on click; rows can be archived inline and exported as `aipa_archive_<date>.json` |
 | **🎨 Canvas Workflows** | Multi-step prompt pipeline orchestration, topology graph, live output streaming, execution replay | Infinite zoom dot-grid canvas, animated bezier edge flow, inline step title rename |
-| **🔌 Zero-Compile Plugins** | Vanilla HTML5+CSS+JS, sandboxed isolation, postMessage bridge SDK, dynamic directory watching | Real-time sidebar icon registration, zero-build instant reload, host developer toolbar (reload + built-in source preview: file tree with line numbers, one-click copy or reveal folder) |
+| **🔌 Zero-Compile Plugins** | Vanilla HTML5+CSS+JS, sandboxed isolation, postMessage bridge SDK, dynamic directory watching, AI edit drawer | Real-time sidebar icon registration, zero-build instant reload, host developer toolbar (reload + built-in source preview: file tree with line numbers, one-click copy or reveal folder + **Edit**: chat with the AI in a right-hand drawer to change the plugin, reloaded automatically when a turn lands) |
 | **🧩 Plugin Hub** | Unified plugin dashboard, 1-click launch, source inspection, and developer starter guide | Pre-installed at the bottom of NavRail, enables cross-plugin navigation; UI and plugin names follow the app language (EN/ZH) |
 | **📅 Work Calendar Plugin** | Month view with cross-day task bars, drag-to-create tasks, AI-streamed weekly/monthly reports, GitHub & local-folder work sources, person-day tracking | One-click report generation from week badges, preview / regenerate / pull sources, file-backed storage with JSON import/export |
 | **📝 Quick Notes Plugin** | Decoupled hot-pluggable plugin, live Markdown preview, category filters, pinning, AI prompt dispatch | Independent HTML micro-app, upper NavRail placement, Ctrl+3 / Ctrl+Shift+N shortcut bindings, bilingual |
@@ -201,6 +202,35 @@ Plugins declare `permissions` in `plugin.json`, then call `postMessage({ type: '
 
 Multi-file plugins shipped with the app live in `electron-ui/src/main/plugins/builtin/<dir>/`, are copied to `dist` by `npm run build:plugins`, and installed into `~/.aipa/plugins/` on startup — only overwritten when the bundled version is newer. Plugin data in `plugin-data` survives upgrades.
 
+### 🤖 AI edit drawer (`plugin:edit:*`)
+
+To the right of **Source** in the plugin toolbar sits **Edit**: it slides an AI chat drawer in from the right, where you describe the change you want in plain language and the AI rewrites the plugin's files in place.
+
+No new editing machinery is involved — a plugin is just HTML/CSS/JS on disk, so "chat your way to a plugin change" *is* an ordinary multi-turn conversation whose working directory is the plugin folder:
+
+```text
+┌─ Plugin host (PluginHostView) ──────────────────────────┬─ AI edit drawer ───────┐
+│  [⟳ Reload] [</> Source] [✨ Edit] [✕]                   │  ✨ Edit with AI [📂][✕]│
+│                                                          │  ┌──────────────────┐  │
+│   (the plugin iframe keeps running; it reloads          │  │ make the header  │  │
+│    automatically once an edit lands)                     │  │ dark             │  │
+│                                                          │  └──────────────────┘  │
+│                                                          │  🔧 read  index.html   │
+│                                                          │  🔧 apply_patch …      │
+│                                                          │  Header colours are    │
+│                                                          │  now dark.             │
+│                                                          │  ┌──────────────────┐  │
+│                                                          │  │ Enter to send …  │  │
+│                                                          └───────────────────────┘
+```
+
+- **Working directory = the plugin folder**: the main process starts one Codex session per plugin with `cwd` = `plugin.dirPath` (resolved from its own plugin scan, never from a renderer-supplied path), so the agent can read and rewrite that plugin's files. A standing brief constrains it to that folder, forbids changing the manifest `id`, and asks it to summarise each turn in a sentence or two.
+- **Live**: every tool call in a turn (file reads, file edits) streams to the drawer over `plugin:edit:event` as a `🔧 tool + filename` line, and the prose answer streams the same way.
+- **Applied immediately**: when a turn finishes the drawer asks the host to reload the iframe, so the plugin comes back running the new code — no manual reload.
+- **Never covers the plugin**: the drawer is a **flex sibling** of the plugin frame, not an overlay — opening it squeezes the iframe into the remaining width, so the plugin stays fully visible and you can watch it while you describe the change.
+- **Multi-turn and interruptible**: keep asking follow-ups in the same drawer (one session keeps the context); *Stop* calls `plugin:edit:abort`, closing the drawer ends the session. The session is ephemeral and **never** appears in chat history.
+- **Channels**: `plugin:edit:start` (first message, opens the session) / `plugin:edit:send` (follow-up) / `plugin:edit:abort` / `plugin:edit:close`, with all events on `plugin:edit:event` (`delta` / `tool` / `status` / `done` / `error`). Unlike `ai.generate`, this is the *host* editing a plugin at the user's request, so the plugin does not need to declare the `ai` permission — the same trust level as the source preview.
+
 ---
 
 ## 🏢 Organization Chart
@@ -250,20 +280,57 @@ With more departments it switches to a **rail layout** (the trunk runs down the 
 - **Card contents**: department emoji (stable per department ID), name, working directory, employee and message counts, last-active time, plus a pulsing dot when the department is active
 - **Hover actions**: hovering a card reveals “+ Recruit” (start a new employee/session in that department) and “Enter ›”
 - **Click to drill in**: opens that department's employee roster, grouped by TODAY / YESTERDAY / THIS WEEK, listing **every employee (session)** in the department with search, export and recruit
+- **Recruiting starts with a job description**: “+ Recruit” (or `N`) opens a dialog asking what this employee is responsible for and which skills it should bring. Its “✨ AI polish” button rewrites the draft into a clearer job description — streamed live into the field and stoppable at any point — and on confirm that text is sent as the employee's **first message**, so the employee starts working immediately. Left blank, it just creates an employee waiting for its first task
 - **Stats popover**: the chart button on each card shows staff count, today's active, total messages, last active and the directory, and exports `<department>_employees.json`
-- **Add department**: the toolbar's “+ New Department” (or the `N` key) takes a name and directory, then drills straight into the new department
+- **Add department**: the toolbar’s “+ New Department” (or the `N` key) opens a panel whose “From template” entry applies a built-in department structure in one step; you can also type a name and directory by hand and drill straight in
 
 The roster you land on shows little yellow helpers, not cards — each employee stands on a shared floor line:
 
 ```text
-   ◯      ◯      ◯          ◯      ◯        ◯
-  /|\    /|\    /|\        /|\    /|\      /|\
-  / \    / \    / \        / \    / \      / \
- ──●──────●●─────○──────────●──────●────────○─────   floor / colour-label glow
- one-eye  two-eye  tall    three hairs  short    recruiting
+   ◯      ◯      ◯          ◯      ◯
+  /|\    /|\    /|\        /|\    /|\
+  / \    / \    / \        / \    / \
+ ──●──────●●─────○──────────●──────●─────   floor / colour-label glow
+ one-eye  two-eye  tall    three hairs  short
  bald     tuft
                        ↑ replying: halo spinning, right arm typing
 ```
+### 📐 Built-in Department Presets
+
+A fresh AIPA opens on an empty org chart, and every department is three decisions invented from nothing (name, working directory, colour). The presets answer all three at once: **pick a domain → pick a root folder → done**.
+
+```text
+┌─ 📐 Create departments from a template ──────────────────────────────┐
+│  ┌────────┐ ┌────────┐ ┌────────┐                                    │
+│  │💻 Soft-│ │✍️ Con- │ │📣 Mark-│  ← six domain templates,           │
+│  │  ware  │ │  tent  │ │ eting  │    one per kind of team            │
+│  └────────┘ └────────┘ └────────┘                                    │
+│  ┌────────┐ ┌────────┐ ┌────────┐                                    │
+│  │🔬 Re-  │ │🛒 Ecom-│ │✨ Per- │                                    │
+│  │ search │ │ merce  │ │ sonal  │                                    │
+│  └────────┘ └────────┘ └────────┘                                    │
+│  ┌──────────────────────┐ ┌──────────────────────┐                   │
+│  │📁 Use my existing    │ │⬚ Start blank         │                   │
+│  │   folders (5)        │ │                      │                   │
+│  └──────────────────────┘ └──────────────────────┘                   │
+│                                                                      │
+│ Will create 4 departments                                            │
+│  ● Product   ● Engineering   ● QA   ● DevOps                         │
+│                                                                      │
+│ Root folder  [ C:/Users/me/AIPA          ] [ Choose folder ]         │
+│            Each department gets a folder of the same name inside it. │
+│                                                                      │
+│                     [ Cancel ]  [ Create 4 departments ]             │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+- **Six domain templates**: software (Product / Engineering / QA / DevOps), content, marketing, research, e-commerce and personal — each carrying four department names and colours
+- **Real folders on disk**: confirming makes one directory per department, defaulting to `~/AIPA`, so the departments are immediately recruitable instead of empty shells
+- **Applying twice does not double the company**: a folder that already belongs to a department is skipped, and the preview subtracts it; with nothing left to do the primary button greys out as “All already exist”
+- **Use my existing folders**: turns the directories your past sessions ran in into departments in one go — this used to happen silently in the background and is now an explicit choice
+- **Start blank**: for building your own structure; the dialog will not come back
+- **One dialog, three entry points**: the empty org chart, the org chart’s “New Department” panel and the sidebar’s add-department form all open it
+
 
 - **Figurines instead of cards**: every employee is a little yellow helper — one pill-shaped body carrying both head and torso, goggles, denim overalls with a bib, black gloves and boots. The look is hashed from the session id: one eye or two, height, hair (three strands / one tuft / side part / bald), denim shade and mouth all vary, so the same employee always comes back as the same character and a department reads as a crowd of distinct helpers
 - **Always-on breathing**: each figure breathes gently (a slight rise plus an occasional blink), phase-offset by its hash so a row never pulses in unison. While an employee is replying its breathing speeds up, its right arm starts typing and its halo spins — who is working is visible at a glance
@@ -271,30 +338,70 @@ The roster you land on shows little yellow helpers, not cards — each employee 
 
 ---
 
-## 👥 Employees Character Gallery
+## 👥 HR (People Operations)
 
-Replacing vertical cards, AIPA visualizes agent personas through **expressive character avatars**:
+HR hangs under no department — it looks sideways at **everyone in the company**: three card grids side by side for Experts, Skills and Workflows. The roster of one particular department is reached by drilling into it from the org chart.
 
 ```text
-                  ┌──────────────────────────────────────────────┐
-                  │         Theme Radial Gradient Backdrop       │
-                  │                                              │
-                  │                 ╭───────────╮                │
-                  │                │ 💇 Haircuts │                │
-                  │                │(Tech crop / Bob / Wavy curls│
-                  │                 ╭───────────╮                │
-                  │                │  👀 Eyes   │                │
-                  │                │  😊 Smile  │                │
-                  │                 ╰───────────╯                │
-                  │               👔 Tailored Role Attire         │
-                  │           (Blazer / Turtleneck / Academic)   │
-                  │                                              │
-                  │                            ┌───────────┐     │
-                  │   🟢 Online Status Ring    │ ✍️ Role    │     │
-                  │   (Active Status Ring)     │   Badge   │     │
-                  │                            └───────────┘     │
-                  └──────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│ 👥 HR                                                                │
+│ Manage the company's staff: experts are specialists you can switch   │
+│ to in chat, skills are the prompt packages they carry, and workflows │
+│ chain multi-step tasks into reusable pipelines.                      │
+├──────────────────────────────────────────────────────────────────────┤
+│ 🧑💼 Experts                                         [ + Recruit ]   │
+│  Each expert owns a domain, with its own expertise, prompt, model.   │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐                         │
+│  │  Coder │ │ Writer │ │Analyst │ │Product │ ← click to switch role  │
+│  └────────┘ └────────┘ └────────┘ └────────┘                         │
+│                                                                      │
+│ 🧰 Skills                                           [ + New skill ]  │
+│  Reusable prompt packages (SKILL.md), invoked by slash command.      │
+│  ┌────────┐ ┌────────┐ ┌────────┐                                    │
+│  │  Code  │ │ Weekly │ │  Doc   │                                    │
+│  │ Review │ │ Report │ │Translat│                                    │
+│  └────────┘ └────────┘ └────────┘                                    │
+│                                                                      │
+│ 🔀 Workflows                                       [ + New workflow ]│
+│  Chains prompts into a pipeline that runs as a task queue.           │
+│  ┌────────────────┐ ┌────────────────┐                               │
+│  │ Weekly Report  │ │  Code Review   │ ← singleAgent / teamwork      │
+│  └────────────────┘ └────────────────┘                               │
+└──────────────────────────────────────────────────────────────────────┘
 ```
+
+- **Experts are employees you can switch roles with**: each carries its own expertise, prompt and model, and clicking one moves the current chat into that role; the cards wear a theme-tinted backdrop and a role badge so the job is readable at a glance
+- **Skills are the prompt packages an employee carries**: stored as `SKILL.md` and invoked from chat with a slash command; opening a card shows the full text, and a two-step confirm deletes it
+- **Workflows chain multi-step tasks into reusable pipelines**: single-agent (`singleAgent`) and multi-agent (`teamwork`) flavours, sortable by recently updated / name / runs, and importable by pasting JSON from the clipboard
+- **Getting there**: the “HR” entry in the left nav, or search “HR” in the command palette
+
+## 📁 Archive (Task Ledger)
+
+The Archive is the **company-wide ledger of work**: an employee is a session, so every row is a session, and its attribution is derived live from “department directory → session projectSlug” rather than stored a second time — renaming a department directory cannot leave stale ownership behind. Which project, which department it was assigned to, which employee ran it, when, and over how many turns, all read in one place.
+
+```text
+┌──────────────────────────────────────────────────────────────────────┐
+│ 📁 Archive        47 tasks · 3 departments · 12 this week    [Export]│
+├──────────────────────────────────────────────────────────────────────┤
+│ [ All departments ▾ ] [All] [Today] [Week] [Month] [Show archived]   │
+│                                                    🔍 Search…        │
+├──────────────────────────────────────────────────────────────────────┤
+│ 🧪 R&D Center                                            11 tasks    │
+│   Reconnect logic in pty-manager      #a3f21c  Today 14:02  18 turns›│
+│   Document the app-server protocol    #7d0e55  Yest. 20:11   6 turns›│
+│ 🎨 Design Lab                                             3 tasks    │
+│   Redo the palette and glass surfaces #c91b02  Tue 11:40    24 turns›│
+│ 📁 Unassigned                                             2 tasks    │
+│   A few one-off questions             #4188aa  D:/scratch    2 turns›│
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+- **Derived live, no new storage**: departments and sessions are joined by `dirToSlug(department directory) === session projectSlug`; the department table still lives only in local storage, so the archive never becomes a second source of truth
+- **Grouped by department**: an “Unassigned” group always sits last, collecting sessions that ran outside every department directory instead of dropping them
+- **Four filters**: department (all / each one / unassigned), time (all / today / this week / this month), whether archived rows show, and a search over titles and first prompts
+- **Click a row to reopen that session**: it loads the conversation history and switches to the chat panel; opening from the Archive does not show the “back to department” button, since that button's destination is the department view — somewhere you never came from
+- **Archive and export**: any row can be flagged archived from the row itself (hidden by default, filterable at any time); export writes `aipa_archive_<date>.json`, grouped by department, with title, employee, session id, directory, turn count and timestamp
+- **Getting there**: the “Archive” entry in the left nav, the command palette, or `Ctrl+8`
 
 ---
 
@@ -367,7 +474,7 @@ graph LR
 | `Ctrl+Shift+K` | Compact context immediately | `Ctrl+Shift+O` | Focus mode (zen chat) |
 | `Ctrl+Shift+D` | Toggle theme (Dark / Light / System) | `Ctrl+Shift+L` | Toggle language (EN / ZH) |
 | `Ctrl+Shift+T` | Pin window (Always on top) | `Ctrl+,` | Open settings panel |
-| `Ctrl+1 ~ 7` | Switch primary cockpit view | `Ctrl+/` | View keyboard shortcuts help |
+| `Ctrl+1 ~ 8` | Switch primary cockpit view (`Ctrl+8` = Archive) | `Ctrl+/` | View keyboard shortcuts help |
 | `Ctrl+Shift+Space` | **Global toggle AIPA window** | `Ctrl+Shift+G` | **Global clipboard query to AIPA** |
 
 ---
