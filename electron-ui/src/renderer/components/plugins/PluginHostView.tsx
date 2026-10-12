@@ -244,7 +244,7 @@ export default function PluginHostView() {
         flexShrink: 0,
         userSelect: 'none',
       }}>
-        {/* Left: Icon, Name, Version, Source */}
+        {/* Left: Icon, Name, Version */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
             width: 26,
@@ -267,17 +267,6 @@ export default function PluginHostView() {
                 v{plugin.manifest.version}
               </span>
             )}
-            <span style={{
-              fontSize: 9,
-              padding: '1px 5px',
-              borderRadius: 4,
-              background: plugin.source === 'workspace' ? 'rgba(34,197,94,0.1)' : 'rgba(99,102,241,0.1)',
-              color: plugin.source === 'workspace' ? '#22c55e' : '#818cf8',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-            }}>
-              {plugin.source}
-            </span>
           </div>
         </div>
 
