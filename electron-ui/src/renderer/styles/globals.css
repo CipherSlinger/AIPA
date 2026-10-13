@@ -362,6 +362,12 @@ code:not(pre code) {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Right-side drawer (settings → AI Engine → provider detail) */
+@keyframes drawerIn {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
 /* Streaming indicator pulse */
 @keyframes pulse {
   0%, 100% { transform: scale(1); }

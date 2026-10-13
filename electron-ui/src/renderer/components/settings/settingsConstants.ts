@@ -66,3 +66,47 @@ export const INPUT_STYLE: React.CSSProperties = {
   boxSizing: 'border-box',
   transition: 'all 0.15s ease',
 }
+
+// ── Providers ────────────────────────────────────────────────────────────────
+// Shared by SettingsProviders (the list) and ProviderEditDrawer (the detail
+// panel). They live here rather than in either component so the drawer can
+// import them without creating a cycle back through the list.
+
+export type ProviderScenario = 'official' | 'gateway'
+
+export interface ProviderConfig {
+  id: string
+  name: string
+  scenario: ProviderScenario
+  baseUrl?: string
+  apiKey?: string
+  authToken?: string
+  model?: string
+  models: { id: string; name: string; provider: string }[]
+  enabled: boolean
+  isDefault?: boolean
+  failoverPriority?: number
+}
+
+export interface ProviderHealthStatus {
+  providerId: string
+  status: 'healthy' | 'degraded' | 'down'
+  lastCheck: number
+  lastError?: string
+}
+
+export const BUILT_IN_IDS = ['claude-cli', 'gateway', 'openai', 'ollama', 'deepseek', 'qwen']
+
+export const SCENARIO_COLORS: Record<ProviderScenario, string> = {
+  official: '#818cf8',
+  gateway: '#fbbf24',
+}
+
+/** "Get an API key" deep links, keyed by built-in provider id. */
+export const PROVIDER_KEY_LINKS: Record<string, string> = {
+  'claude-cli': 'https://console.anthropic.com/settings/keys',
+  'openai': 'https://platform.openai.com/api-keys',
+  'deepseek': 'https://platform.deepseek.com/api_keys',
+  'qwen': 'https://dashscope.console.aliyun.com/apiKey',
+  'ollama': 'https://ollama.ai/download',
+}

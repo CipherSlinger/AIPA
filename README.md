@@ -127,7 +127,7 @@ AIPA 采用现代**双栏无缝驾驶舱布局**，去除了繁琐的中间列�
 | **📅 工作日历插件 (Work Calendar)** | 月历跨天任务条、拖动创建任务、AI 流式生成周报/月报、GitHub 与本地文件夹工作源、人天周/月统计 | 周列报告状态徽标一键生成、报告预览/重新生成/一键拉取、数据本地文件持久化与 JSON 导入导出 |
 | **🧠 记忆与指令体系** | 全局记忆、项目记忆 (`.claude/MEMORY.md`)、结构化条目 (User/Feedback/Project/Ref) | 四 Tab 记忆工作台（位于「设置 → 记忆」，`Ctrl+5` 直达）、DreamTask 自动整合感知、记忆新鲜度衰减圆点；Codex 引擎下仅「个人」记忆会随消息注入 |
 | **🐱 Clawd 桌面宠物** | 原生 Win32 桌宠联动，感知 AI 思考、工具调用与空闲发呆等真实状态 | 任务栏图标智能合并、随身动效、轻量无遮挡 |
-| **⚙️ 设置与通道生态** | MCP 工具服务器、OpenClaw/外部消息通道、模型密钥、权限规则集中管控 | 整合至设置中心（Settings → 插件与 MCP / 通道），插件与 MCP 服务器同页管理，AI 引擎页把提供商配置提到 **Model 上方**（在「API 密钥池 / 添加密钥」下方）——密钥在这里添加，已配置的全部密钥也在这里列表展示，选完密钥再往下选模型，精简导航专注核心生产力；MCP 配置按引擎落盘——Codex 引擎写入 `~/.codex/config.toml` 的 `[mcp_servers.*]` 表并回填到 `systemInit`，Claude 引擎仍用 `~/.claude/settings.json`；原 Hooks 配置页已移除（钩子仅由 Claude CLI 读取 `~/.claude/settings.json`，Codex 引擎完全不生效）；原「沙箱」设置页与一批写入被白名单静默忽略的输入框（API Key Helper、输出风格、可用模型、文件建议、状态栏、默认 Shell、忽略 .gitignore、提交署名、Worktree 等）一并移除，设置项只保留真正落盘生效的部分 |
+| **⚙️ 设置与通道生态** | MCP 工具服务器、OpenClaw/外部消息通道、模型密钥、权限规则集中管控 | 整合至设置中心（Settings → 插件与 MCP / 通道），插件与 MCP 服务器同页管理，AI 引擎页把提供商配置提到 **Model 上方**（在「API 密钥池 / 添加密钥」下方）——密钥在这里添加，已配置的全部密钥也在这里列表展示，选完密钥再往下选模型，精简导航专注核心生产力；提供商列表由**卡片**改为**紧凑列表**——每行只保留健康状态色点、名称、模型数徽标、测试连接与启用开关，点击任意一行从右侧滑出**配置抽屉**承载全部字段（连接模式 / API Key / Auth Token / API 地址 / 获取模型 / 状态），列表因此始终保有「有哪些提供商、各自什么状态」的全局视野；MCP 配置按引擎落盘——Codex 引擎写入 `~/.codex/config.toml` 的 `[mcp_servers.*]` 表并回填到 `systemInit`，Claude 引擎仍用 `~/.claude/settings.json`；原 Hooks 配置页已移除（钩子仅由 Claude CLI 读取 `~/.claude/settings.json`，Codex 引擎完全不生效）；原「沙箱」设置页与一批写入被白名单静默忽略的输入框（API Key Helper、输出风格、可用模型、文件建议、状态栏、默认 Shell、忽略 .gitignore、提交署名、Worktree 等）一并移除，设置项只保留真正落盘生效的部分 |
 
 ---
 

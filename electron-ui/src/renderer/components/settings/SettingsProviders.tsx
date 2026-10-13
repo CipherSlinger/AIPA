@@ -1,80 +1,39 @@
-import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react'
+// Settings → AI Engine → Providers.
+//
+// A scannable list, one row per provider, grouped by scenario. Every editable
+// field lives in ProviderEditDrawer, which opens when a row is clicked — the
+// row itself never expands, so the list stays readable no matter how many
+// providers are configured.
+
+import React, { useState, useEffect, useCallback } from 'react'
 import { useI18n } from '../../i18n'
 import { useUiStore } from '../../store'
 import Toggle from '../ui/Toggle'
-import { Trash2, RefreshCw, ChevronDown, ChevronRight, Eye, EyeOff, ExternalLink, Plus } from 'lucide-react'
-
-const QRCodeDisplay = lazy(() => import('../ui/QRCodeDisplay'))
-
-type ProviderScenario = 'official' | 'gateway'
-
-interface ProviderConfig {
-  id: string
-  name: string
-  scenario: ProviderScenario
-  baseUrl?: string
-  apiKey?: string
-  authToken?: string
-  model?: string
-  models: { id: string; name: string; provider: string }[]
-  enabled: boolean
-  isDefault?: boolean
-  failoverPriority?: number
-}
-
-interface HealthStatus {
-  providerId: string
-  status: 'healthy' | 'degraded' | 'down'
-  lastCheck: number
-  lastError?: string
-}
-
-const BUILT_IN_IDS = ['claude-cli', 'gateway', 'openai', 'ollama', 'deepseek', 'qwen']
-
-const PROVIDER_KEY_LINKS: Record<string, string> = {
-  'claude-cli': 'https://console.anthropic.com/settings/keys',
-  'openai': 'https://platform.openai.com/api-keys',
-  'deepseek': 'https://platform.deepseek.com/api_keys',
-  'qwen': 'https://dashscope.console.aliyun.com/apiKey',
-  'ollama': 'https://ollama.ai/download',
-}
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  background: 'var(--bg-hover)',
-  border: '1px solid var(--border)',
-  borderRadius: 7,
-  padding: '7px 10px',
-  color: 'var(--text-primary)',
-  fontSize: 12,
-  outline: 'none',
-  boxSizing: 'border-box',
-  transition: 'all 0.15s ease',
-}
-
-const SCENARIO_COLORS: Record<ProviderScenario, string> = {
-  official: '#818cf8',
-  gateway: '#fbbf24',
-}
+import { pushEscapeHandler } from '../ui/escapeStack'
+import ProviderEditDrawer from './ProviderEditDrawer'
+import { Plus, RefreshCw, ChevronRight } from 'lucide-react'
+import {
+  BUILT_IN_IDS,
+  SCENARIO_COLORS,
+  type ProviderConfig,
+  type ProviderHealthStatus,
+  type ProviderScenario,
+} from './settingsConstants'
 
 export default function SettingsProviders() {
   const { t } = useI18n()
   const [providers, setProviders] = useState<ProviderConfig[]>([])
-  const [healthMap, setHealthMap] = useState<Record<string, HealthStatus>>({})
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [showKeyMap, setShowKeyMap] = useState<Record<string, boolean>>({})
+  const [healthMap, setHealthMap] = useState<Record<string, ProviderHealthStatus>>({})
+  const [activeId, setActiveId] = useState<string | null>(null)
   const [testing, setTesting] = useState<string | null>(null)
-  const [editDraft, setEditDraft] = useState<Record<string, Partial<ProviderConfig>>>({})
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
-  const [fetchingModels, setFetchingModels] = useState<string | null>(null)
   const [modelModal, setModelModal] = useState<{ providerId: string; models: string[] } | null>(null)
 
   const loadConfigs = useCallback(() => {
     window.electronAPI.providerListConfigs().then((configs: ProviderConfig[]) => {
       setProviders(configs)
     })
-    window.electronAPI.providerHealthStatuses().then((statuses: HealthStatus[]) => {
-      const map: Record<string, HealthStatus> = {}
+    window.electronAPI.providerHealthStatuses().then((statuses: ProviderHealthStatus[]) => {
+      const map: Record<string, ProviderHealthStatus> = {}
       for (const s of statuses) map[s.providerId] = s
       setHealthMap(map)
     })
@@ -98,8 +57,8 @@ export default function SettingsProviders() {
   const handleTestConnection = useCallback(async (providerId: string) => {
     setTesting(providerId)
     try {
-      const results: HealthStatus[] = await window.electronAPI.providerHealthCheck()
-      const map: Record<string, HealthStatus> = {}
+      const results: ProviderHealthStatus[] = await window.electronAPI.providerHealthCheck()
+      const map: Record<string, ProviderHealthStatus> = {}
       for (const s of results) map[s.providerId] = s
       setHealthMap(map)
       const result = map[providerId]
@@ -114,54 +73,15 @@ export default function SettingsProviders() {
     setTesting(null)
   }, [t])
 
-  const handleSaveProvider = useCallback(async (providerId: string) => {
-    const draft = editDraft[providerId]
-    if (!draft) return
-    const current = providers.find(p => p.id === providerId)
-    if (!current) return
-    const updated = { ...current, ...draft }
-    // Auto-enable when credential is set for the first time
-    const hasCredential = (draft.apiKey && draft.apiKey.trim()) || (draft.authToken && draft.authToken.trim())
-    if (hasCredential && !current.enabled) {
-      updated.enabled = true
-    }
-    await window.electronAPI.providerUpsert(updated)
-    setProviders(prev => prev.map(p => p.id === providerId ? updated : p))
-    setEditDraft(prev => {
-      const next = { ...prev }
-      delete next[providerId]
-      return next
-    })
-    useUiStore.getState().addToast('success', t('provider.saved'))
+  // The drawer owns the toast; the list just takes the new object.
+  const handleSaved = useCallback((updated: ProviderConfig) => {
+    setProviders(prev => prev.map(p => p.id === updated.id ? updated : p))
+  }, [])
 
-    // Auto-fetch models when baseUrl is configured and set first as default
-    const baseUrl = (updated.baseUrl || '').trim()
-    if (updated.enabled && baseUrl) {
-      const apiKey = (updated.apiKey || '').trim()
-      const authToken = (updated.authToken || '').trim()
-      try {
-        const result = await (window.electronAPI as any).providerFetchRemoteModels({ baseUrl, apiKey, authToken })
-        if (result.success && result.models && result.models.length > 0) {
-          // Set the first model as default
-          await window.electronAPI.prefsSet('model', result.models[0])
-          useUiStore.getState().addToast('success', t('provider.modelsLoaded', { count: result.models.length }))
-        }
-      } catch {
-        // Silently ignore — model fetch failure should not block saving
-      }
-    }
-
-    if (updated.enabled && hasCredential) {
-      handleTestConnection(providerId)
-    }
-  }, [editDraft, providers, t, handleTestConnection])
-
-  const handleDeleteProvider = useCallback(async (providerId: string) => {
-    await window.electronAPI.providerRemove(providerId)
+  const handleDeleted = useCallback((providerId: string) => {
     setProviders(prev => prev.filter(p => p.id !== providerId))
-    setDeleteConfirm(null)
-    useUiStore.getState().addToast('success', t('provider.deleted'))
-  }, [t])
+    setActiveId(null)
+  }, [])
 
   const handleAddCustomProvider = useCallback(async () => {
     const newId = `custom-${Date.now()}`
@@ -177,40 +97,20 @@ export default function SettingsProviders() {
     }
     await window.electronAPI.providerUpsert(newProvider)
     setProviders(prev => [...prev, newProvider])
-    setExpandedId(newId)
+    setActiveId(newId)
     useUiStore.getState().addToast('success', t('provider.saved'))
   }, [t])
 
-  const handleFetchRemoteModels = useCallback(async (provider: ProviderConfig) => {
-    const baseUrl = (editDraft[provider.id]?.baseUrl ?? provider.baseUrl ?? '').trim()
-    if (!baseUrl) {
-      useUiStore.getState().addToast('error', 'Please enter a Base URL first')
-      return
-    }
-    setFetchingModels(provider.id)
-    try {
-      const apiKey = (editDraft[provider.id]?.apiKey ?? provider.apiKey ?? '').trim()
-      const authToken = (editDraft[provider.id]?.authToken ?? provider.authToken ?? '').trim()
-      const result = await (window.electronAPI as any).providerFetchRemoteModels({ baseUrl, apiKey, authToken })
-      if (result.success && result.models.length > 0) {
-        setModelModal({ providerId: provider.id, models: result.models })
-      } else if (result.success) {
-        useUiStore.getState().addToast('info', 'No models returned from endpoint')
-      } else {
-        useUiStore.getState().addToast('error', `Failed: ${result.error}`)
-      }
-    } catch (err) {
-      useUiStore.getState().addToast('error', `Error: ${String(err)}`)
-    }
-    setFetchingModels(null)
-  }, [editDraft])
-
-  const updateDraft = useCallback((providerId: string, field: string, value: unknown) => {
-    setEditDraft(prev => ({
-      ...prev,
-      [providerId]: { ...(prev[providerId] || {}), [field]: value },
-    }))
+  const closeDrawer = useCallback(() => setActiveId(null), [])
+  const handleOpenModelPicker = useCallback((providerId: string, models: string[]) => {
+    setModelModal({ providerId, models })
   }, [])
+
+  // Escape closes the picker first, then the drawer, then the settings modal.
+  useEffect(() => {
+    if (!modelModal) return
+    return pushEscapeHandler(() => setModelModal(null))
+  }, [modelModal])
 
   const getHealthDot = (providerId: string): { color: string; label: string } => {
     const health = healthMap[providerId]
@@ -222,386 +122,135 @@ export default function SettingsProviders() {
     }
   }
 
-  // Provider card — shared between all scenarios
-  const renderProviderCard = (provider: ProviderConfig) => {
-    const isExpanded = expandedId === provider.id
+  const renderProviderRow = (provider: ProviderConfig) => {
     const isBuiltIn = BUILT_IN_IDS.includes(provider.id)
     const healthDot = getHealthDot(provider.id)
-    const draft = editDraft[provider.id] || {}
-    const currentName = draft.name ?? provider.name
-    const currentBaseUrl = draft.baseUrl ?? provider.baseUrl ?? ''
-    const currentApiKey = draft.apiKey ?? provider.apiKey ?? ''
-    const currentAuthToken = draft.authToken ?? provider.authToken ?? ''
-    const hasDraftChanges = Object.keys(draft).length > 0
     const modelCount = provider.models?.length ?? 0
 
-    // Health status chip style
-    const statusStyle: React.CSSProperties = healthMap[provider.id]
-      ? healthMap[provider.id].status === 'healthy'
-        ? { background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)', color: '#4ade80', borderRadius: 20, padding: '2px 8px', fontSize: 10, fontWeight: 600 }
-        : healthMap[provider.id].status === 'down'
-          ? { background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', borderRadius: 20, padding: '2px 8px', fontSize: 10, fontWeight: 600 }
-          : { background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)', color: '#fbbf24', borderRadius: 20, padding: '2px 8px', fontSize: 10, fontWeight: 600 }
-      : { color: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }
+    const openDrawer = () => setActiveId(provider.id)
 
     return (
       <div
         key={provider.id}
+        role="button"
+        tabIndex={0}
+        aria-haspopup="dialog"
+        aria-label={provider.name}
+        onClick={openDrawer}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            openDrawer()
+          }
+        }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.30)' }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
         style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '9px 12px',
+          marginBottom: 6,
+          borderRadius: 10,
+          border: '1px solid var(--border)',
           background: 'var(--glass-bg-low)',
-          border: '1px solid ' + (isExpanded ? 'rgba(99,102,241,0.30)' : 'var(--border)'),
-          borderRadius: 12,
-          marginBottom: 12,
-          overflow: 'hidden',
+          cursor: 'pointer',
           transition: 'all 0.15s ease',
-          boxShadow: isExpanded ? '0 4px 16px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.2)',
         }}
       >
-        {/* Header row */}
-        <div
-          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', cursor: 'pointer' }}
-          onClick={() => setExpandedId(isExpanded ? null : provider.id)}
-        >
-          {isExpanded
-            ? <ChevronDown size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-            : <ChevronRight size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-          }
-          <span title={healthDot.label} style={{
-            width: 7, height: 7, borderRadius: '50%',
-            background: healthDot.color, flexShrink: 0, display: 'inline-block',
-          }} />
-          <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
-            {provider.name}
+        <span title={healthDot.label} style={{
+          width: 7, height: 7, borderRadius: '50%',
+          background: healthDot.color, flexShrink: 0, display: 'inline-block',
+        }} />
+
+        <span style={{
+          flex: 1, minWidth: 0,
+          fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {provider.name}
+        </span>
+
+        {modelCount > 0 && (
+          <span style={{
+            background: 'rgba(99,102,241,0.12)', color: '#a5b4fc',
+            borderRadius: 10, padding: '2px 7px', fontSize: 10, fontWeight: 600, flexShrink: 0,
+          }}>
+            {t('provider.modelCount', { count: modelCount })}
           </span>
-          {modelCount > 0 && (
-            <span style={{
-              background: 'rgba(99,102,241,0.12)', color: '#a5b4fc',
-              borderRadius: 10, padding: '2px 7px', fontSize: 10, fontWeight: 600,
-            }}>
-              {modelCount} models
-            </span>
-          )}
-          {healthMap[provider.id] && (
-            <span style={statusStyle}>
-              {healthMap[provider.id].status}
-            </span>
-          )}
-          {!isBuiltIn && (
-            <span style={{
-              fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 6,
-              background: 'rgba(99,102,241,0.12)', color: '#a5b4fc',
-              border: '1px solid rgba(99,102,241,0.2)',
-            }}>
-              {t('provider.custom')}
-            </span>
-          )}
-          <div onClick={e => e.stopPropagation()}>
-            <Toggle value={provider.enabled} onChange={() => handleToggleEnabled(provider)} aria-label={t('provider.enabled')} />
-          </div>
+        )}
+
+        {!isBuiltIn && (
+          <span style={{
+            fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 6, flexShrink: 0,
+            background: 'rgba(99,102,241,0.12)', color: '#a5b4fc',
+            border: '1px solid rgba(99,102,241,0.2)',
+          }}>
+            {t('provider.custom')}
+          </span>
+        )}
+
+        <button
+          onClick={e => { e.stopPropagation(); handleTestConnection(provider.id) }}
+          disabled={testing === provider.id}
+          aria-label={t('provider.testConnection')}
+          title={t('provider.testConnection')}
+          onMouseEnter={e => { if (testing !== provider.id) { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = '#a5b4fc' } }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 26, height: 24, borderRadius: 6, flexShrink: 0,
+            background: 'transparent', border: '1px solid var(--border)',
+            color: 'var(--text-muted)',
+            cursor: testing === provider.id ? 'wait' : 'pointer',
+            opacity: testing === provider.id ? 0.6 : 1,
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <RefreshCw size={11} style={{ animation: testing === provider.id ? 'spin 1s linear infinite' : 'none' }} />
+        </button>
+
+        <div onClick={e => e.stopPropagation()} style={{ flexShrink: 0 }}>
+          <Toggle value={provider.enabled} onChange={() => handleToggleEnabled(provider)} aria-label={t('provider.enabled')} />
         </div>
 
-        {/* Expanded config */}
-        {isExpanded && (
-          <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 10, borderTop: '1px solid var(--border)' }}>
-            <div style={{ height: 10 }} />
-
-            {/* Name — editable for custom providers */}
-            {!isBuiltIn && (
-              <div>
-                <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', marginBottom: 5 }}>
-                  {t('provider.title')}
-                </label>
-                <input
-                  type="text"
-                  value={currentName}
-                  onChange={e => updateDraft(provider.id, 'name', e.target.value)}
-                  style={inputStyle}
-                />
-              </div>
-            )}
-
-            {/* Scenario switcher — for claude-cli: allow toggling between official and gateway */}
-            {provider.id === 'claude-cli' && (
-              <div>
-                <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', marginBottom: 5 }}>
-                  {t('provider.connectionMode')}
-                </label>
-                <div style={{ display: 'flex', gap: 4, background: 'var(--bg-hover)', borderRadius: 8, padding: 3 }}>
-                  {(['official', 'gateway'] as const).map(sc => {
-                    const currentScenario = (draft.scenario ?? provider.scenario) as ProviderScenario
-                    const isActive = currentScenario === sc
-                    return (
-                      <button
-                        key={sc}
-                        onClick={() => updateDraft(provider.id, 'scenario', sc)}
-                        style={{
-                          flex: 1, padding: '5px 8px', borderRadius: 6, border: 'none',
-                          background: isActive ? `rgba(${sc === 'official' ? '99,102,241' : '251,191,36'},0.18)` : 'transparent',
-                          color: isActive ? SCENARIO_COLORS[sc] : 'var(--text-muted)',
-                          fontSize: 11, fontWeight: isActive ? 700 : 400, cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        {t(`provider.scenario.${sc}`)}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* API Key — official scenario */}
-            {((draft.scenario ?? provider.scenario) as ProviderScenario) === 'official' && (
-              <div>
-                <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', marginBottom: 5 }}>
-                  {t('provider.apiKey')}
-                </label>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <input
-                    type={showKeyMap[provider.id] ? 'text' : 'password'}
-                    value={currentApiKey}
-                    onChange={e => updateDraft(provider.id, 'apiKey', e.target.value)}
-                    style={{ ...inputStyle, flex: 1, fontFamily: 'monospace' }}
-                    placeholder="sk-..."
-                  />
-                  <button
-                    onClick={() => setShowKeyMap(prev => ({ ...prev, [provider.id]: !prev[provider.id] }))}
-                    style={{
-                      background: 'var(--bg-hover)', border: '1px solid var(--border)',
-                    }}
-                  >
-                    {showKeyMap[provider.id] ? <EyeOff size={13} /> : <Eye size={13} />}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Auth Token — gateway scenario */}
-            {((draft.scenario ?? provider.scenario) as ProviderScenario) === 'gateway' && (
-              <>
-                <div>
-                  <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', marginBottom: 5 }}>
-                    {t('provider.authToken')}
-                  </label>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <input
-                      type={showKeyMap[`${provider.id}-token`] ? 'text' : 'password'}
-                      value={currentAuthToken}
-                      onChange={e => updateDraft(provider.id, 'authToken', e.target.value)}
-                      style={{ ...inputStyle, flex: 1, fontFamily: 'monospace' }}
-                      placeholder="Bearer ..."
-                    />
-                    <button
-                      onClick={() => setShowKeyMap(prev => ({ ...prev, [`${provider.id}-token`]: !prev[`${provider.id}-token`] }))}
-                      style={{
-                        background: 'var(--bg-hover)', border: '1px solid var(--border)',
-                      }}
-                    >
-                      {showKeyMap[`${provider.id}-token`] ? <EyeOff size={13} /> : <Eye size={13} />}
-                    </button>
-                  </div>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
-                    {t('provider.authTokenHint')}
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* Base URL — gateway scenario */}
-            {((draft.scenario ?? provider.scenario) as ProviderScenario) === 'gateway' && (
-              <div>
-                <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', marginBottom: 5 }}>
-                  {t('provider.baseUrl')}
-                </label>
-                <input
-                  type="text"
-                  value={currentBaseUrl}
-                  onChange={e => updateDraft(provider.id, 'baseUrl', e.target.value)}
-                  style={inputStyle}
-                  placeholder="https://..."
-                />
-              </div>
-            )}
-
-            {/* Fetch models button — gateway scenario */}
-            {((draft.scenario ?? provider.scenario) as ProviderScenario) === 'gateway' && (
-              <div>
-                <button
-                  onClick={() => handleFetchRemoteModels(provider)}
-                  disabled={fetchingModels === provider.id}
-                  onMouseEnter={e => { if (fetchingModels !== provider.id) { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = '#a5b4fc' } }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                    padding: '5px 12px', borderRadius: 6,
-                    background: 'var(--border)', border: '1px solid var(--border)',
-                    color: 'var(--text-muted)', cursor: fetchingModels === provider.id ? 'wait' : 'pointer',
-                    fontSize: 11, fontWeight: 500,
-                    opacity: fetchingModels === provider.id ? 0.6 : 1,
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <RefreshCw size={11} style={{ animation: fetchingModels === provider.id ? 'spin 1s linear infinite' : 'none' }} />
-                  {fetchingModels === provider.id ? '获取模型中...' : '获取可用模型'}
-                </button>
-              </div>
-            )}
-
-            {/* Qwen QR Code quick setup */}
-            {provider.id === 'qwen' && (
-              <div style={{
-                background: 'var(--bg-hover)', border: '1px solid var(--border)',
-                borderRadius: 8, padding: 12,
-                display: 'flex', alignItems: 'center', gap: 16,
-              }}>
-                <Suspense fallback={<div style={{ width: 110, height: 110 }} />}>
-                  <QRCodeDisplay url="https://dashscope.console.aliyun.com/apiKey" size={110} label={t('provider.qrScanLabel')} />
-                </Suspense>
-                <div style={{ flex: 1, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4, fontSize: 12 }}>
-                    {t('provider.qwenQuickSetup')}
-                  </div>
-                  {t('provider.qwenQuickSetupDesc')}
-                </div>
-              </div>
-            )}
-
-            {/* Get API Key link */}
-            {isBuiltIn && PROVIDER_KEY_LINKS[provider.id] && (
-              <div>
-                <button
-                  onClick={() => window.electronAPI.shellOpenExternal(PROVIDER_KEY_LINKS[provider.id])}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = '#a5b4fc' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'rgba(99,102,241,0.6)' }}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                    padding: '5px 12px', borderRadius: 6,
-                    background: 'rgba(99,102,241,0.08)', border: '1px solid var(--border)',
-                    color: 'rgba(99,102,241,0.60)', cursor: 'pointer', fontSize: 11, fontWeight: 500,
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <ExternalLink size={11} />
-                  {t('provider.getApiKey')}
-                </button>
-              </div>
-            )}
-
-            {/* Action buttons */}
-            <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
-              <button
-                onClick={() => handleTestConnection(provider.id)}
-                disabled={testing === provider.id}
-                onMouseEnter={e => { if (testing !== provider.id) { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = '#a5b4fc' } }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '6px 12px', borderRadius: 6,
-                  background: 'var(--border)', border: '1px solid var(--border)',
-                  color: 'var(--text-muted)',
-                  cursor: testing === provider.id ? 'wait' : 'pointer',
-                  fontSize: 11, fontWeight: 500,
-                  opacity: testing === provider.id ? 0.6 : 1,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <RefreshCw size={11} style={{ animation: testing === provider.id ? 'spin 1s linear infinite' : 'none' }} />
-                {t('provider.testConnection')}
-              </button>
-
-              {hasDraftChanges && (
-                <button
-                  onClick={() => handleSaveProvider(provider.id)}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.95), rgba(139,92,246,0.95))'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
-                  style={{
-                    padding: '6px 14px', borderRadius: 6,
-                    background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-                    border: 'none',
-                    color: 'var(--text-primary)', cursor: 'pointer', fontSize: 11, fontWeight: 600,
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  {t('provider.save')}
-                </button>
-              )}
-
-              {!isBuiltIn && (
-                deleteConfirm === provider.id ? (
-                  <button
-                    onClick={() => handleDeleteProvider(provider.id)}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.25)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.45)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(239,68,68,0.20)' }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.30)'; e.currentTarget.style.boxShadow = 'none' }}
-                    style={{
-                      padding: '6px 12px', borderRadius: 6,
-                      background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.30)',
-                      color: '#fca5a5', cursor: 'pointer', fontSize: 11, fontWeight: 600,
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    {t('provider.deleteConfirm')}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setDeleteConfirm(provider.id)}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; e.currentTarget.style.color = '#fca5a5' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 4,
-                      padding: '6px 10px', borderRadius: 6,
-                      background: 'var(--border)', border: '1px solid var(--border)',
-                      color: 'var(--text-muted)', cursor: 'pointer', fontSize: 11,
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    <Trash2 size={11} />
-                  </button>
-                )
-              )}
-            </div>
-          </div>
-        )}
+        <ChevronRight size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
       </div>
     )
   }
 
-  const officialProviders = providers.filter(p => p.scenario === 'official')
-  const gatewayProviders = providers.filter(p => p.scenario === 'gateway')
-
-  const renderScenarioSection = (
-    scenario: ProviderScenario,
-    items: ProviderConfig[],
-  ) => (
-    <div style={{ marginBottom: 16 }}>
-      {/* Section header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <span style={{
-          width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
-          background: SCENARIO_COLORS[scenario], display: 'inline-block',
-        }} />
-        <span style={{
-          fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
-          textTransform: 'uppercase', color: 'var(--text-muted)',
-        }}>
-          {t(`provider.scenario.${scenario}`)}
-        </span>
-        <div style={{ flex: 1, height: 1, background: 'var(--bg-hover)' }} />
+  const renderScenarioSection = (scenario: ProviderScenario, items: ProviderConfig[]) => {
+    if (items.length === 0) return null
+    return (
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+            background: SCENARIO_COLORS[scenario], display: 'inline-block',
+          }} />
+          <span style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
+            textTransform: 'uppercase', color: 'var(--text-muted)',
+          }}>
+            {t(`provider.scenario.${scenario}`)}
+          </span>
+          <div style={{ flex: 1, height: 1, background: 'var(--bg-hover)' }} />
+        </div>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.5, paddingLeft: 16 }}>
+          {t(`provider.scenarioHint.${scenario}`)}
+        </div>
+        {items.map(renderProviderRow)}
       </div>
+    )
+  }
 
-      {/* Scenario description */}
-      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.5, paddingLeft: 18 }}>
-        {t(`provider.scenarioHint.${scenario}`)}
-      </div>
-
-      {/* Provider cards */}
-      {items.map(renderProviderCard)}
-    </div>
-  )
+  const activeProvider = activeId ? providers.find(p => p.id === activeId) : undefined
 
   return (
     <div>
-      {renderScenarioSection('official', officialProviders)}
-      {renderScenarioSection('gateway', gatewayProviders)}
+      {renderScenarioSection('official', providers.filter(p => p.scenario === 'official'))}
+      {renderScenarioSection('gateway', providers.filter(p => p.scenario === 'gateway'))}
+
       <button
         onClick={handleAddCustomProvider}
         style={{
@@ -627,7 +276,26 @@ export default function SettingsProviders() {
         {t('provider.addCustom')}
       </button>
 
-      {/* Model picker modal */}
+      {/* Detail drawer. Rendered as a sibling here — NOT inside a positioned or
+          transformed wrapper — so its `position: absolute` still anchors to the
+          settings modal. See the layout note in ProviderEditDrawer. */}
+      {activeProvider && (
+        <ProviderEditDrawer
+          key={activeProvider.id}
+          provider={activeProvider}
+          health={healthMap[activeProvider.id]}
+          testing={testing === activeProvider.id}
+          onClose={closeDrawer}
+          onTest={handleTestConnection}
+          onSaved={handleSaved}
+          onDeleted={handleDeleted}
+          onOpenModelPicker={handleOpenModelPicker}
+        />
+      )}
+
+      {/* Model picker. Deliberately a sibling of the drawer: the drawer panel's
+          entry animation makes it a containing block for `position: fixed`, so
+          nesting this inside would clip it to the panel's width. */}
       {modelModal && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 1000,
@@ -643,7 +311,7 @@ export default function SettingsProviders() {
             boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
           }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>
-              发现 {modelModal.models.length} 个模型
+              {t('provider.foundModels', { count: modelModal.models.length })}
             </div>
             <div style={{ flex: 1, overflow: 'auto', marginBottom: 14, display: 'flex', flexDirection: 'column', gap: 4 }}>
               {modelModal.models.map(m => (
@@ -659,8 +327,8 @@ export default function SettingsProviders() {
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setModelModal(null)}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
                 style={{
                   padding: '6px 14px', borderRadius: 6,
                   background: 'var(--border)',
@@ -668,18 +336,17 @@ export default function SettingsProviders() {
                   cursor: 'pointer', fontSize: 12, transition: 'all 0.15s ease',
                 }}
               >
-                取消
+                {t('common.cancel')}
               </button>
               <button
                 onClick={() => {
-                  // Load models into the provider
                   const provider = providers.find(p => p.id === modelModal.providerId)
                   if (!provider) return
                   const updatedModels = modelModal.models.map(id => ({ id, name: id, provider: provider.id }))
                   const updated = { ...provider, models: updatedModels }
                   window.electronAPI.providerUpsert(updated)
                   setProviders(prev => prev.map(p => p.id === provider.id ? updated : p))
-                  useUiStore.getState().addToast('success', `已加载 ${modelModal.models.length} 个模型`)
+                  useUiStore.getState().addToast('success', t('provider.modelsLoaded', { count: modelModal.models.length }))
                   setModelModal(null)
                 }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.95), rgba(139,92,246,0.95))'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
@@ -692,7 +359,7 @@ export default function SettingsProviders() {
                   transition: 'all 0.15s ease',
                 }}
               >
-                加载全部模型
+                {t('provider.loadAllModels')}
               </button>
             </div>
           </div>
