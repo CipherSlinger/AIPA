@@ -452,7 +452,7 @@
     "displayName": "Display Name",
     "displayNamePlaceholder": "Your name (shown in greeting)",
     "displayNameHint": "Personalize the welcome screen greeting with your name",
-    "language": "Language / 语言",
+    "language": "Language",
     "languageSystem": "System Default",
     "languageEn": "English",
     "languageZhCN": "简体中文",
