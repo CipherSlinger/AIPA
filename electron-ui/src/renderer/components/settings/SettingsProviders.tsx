@@ -147,8 +147,16 @@ export default function SettingsProviders() {
             openDrawer()
           }
         }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.30)' }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
+        onMouseEnter={e => {
+          e.currentTarget.style.borderColor = 'rgba(99,102,241,0.30)'
+          e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.25), 0 6px 18px -6px rgba(0,0,0,0.5)'
+          e.currentTarget.style.transform = 'translateY(-1px)'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.borderColor = 'var(--border)'
+          e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.25)'
+          e.currentTarget.style.transform = 'translateY(0)'
+        }}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -157,14 +165,22 @@ export default function SettingsProviders() {
           marginBottom: 6,
           borderRadius: 10,
           border: '1px solid var(--border)',
+          // Same contact + ambient shadow ladder as the workflow cards, so a
+          // provider row reads as part of the same surface family.
           background: 'var(--glass-bg-low)',
+          backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0) 46%)',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.25)',
           cursor: 'pointer',
-          transition: 'all 0.15s ease',
+          transition: 'border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease',
         }}
       >
         <span title={healthDot.label} style={{
           width: 7, height: 7, borderRadius: '50%',
-          background: healthDot.color, flexShrink: 0, display: 'inline-block',
+          background: healthDot.color,
+          // A soft ring makes the status readable at a glance instead of
+          // relying on the reader to compare 7px dots across rows.
+          boxShadow: `0 0 0 3px ${healthDot.color}22, 0 0 6px ${healthDot.color}55`,
+          flexShrink: 0, display: 'inline-block',
         }} />
 
         <span style={{
@@ -273,8 +289,16 @@ export default function SettingsProviders() {
           justifyContent: 'center',
           transition: 'all 0.15s ease',
         }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; e.currentTarget.style.color = '#a5b4fc' }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+        onMouseEnter={e => {
+          e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'
+          e.currentTarget.style.color = '#a5b4fc'
+          e.currentTarget.style.background = 'rgba(99,102,241,0.06)'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.borderColor = 'var(--border)'
+          e.currentTarget.style.color = 'var(--text-muted)'
+          e.currentTarget.style.background = 'transparent'
+        }}
       >
         <Plus size={13} />
         {t('provider.addCustom')}
