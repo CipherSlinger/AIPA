@@ -70,6 +70,29 @@ export function validateWithinAllowedDirs(p: string, allowed: string[]): string 
 }
 
 /**
+ * Separator-aware containment check: is `target` strictly inside `root`?
+ *
+ * Uses path.relative rather than a string prefix so `~/.claude-evil` is not
+ * mistaken for a child of `~/.claude`, and rejects the root itself, `..`
+ * escapes, and results that land on another drive (absolute).
+ */
+export function isPathInside(root: string, target: string): boolean {
+  const rel = path.relative(path.resolve(root), path.resolve(target))
+  return rel !== '' && rel !== '..' && !rel.startsWith('..' + path.sep) && !path.isAbsolute(rel)
+}
+
+/**
+ * Session IDs become file names (`<id>.jsonl`) and directory names. Restrict
+ * them to a single safe path segment so `../..` can never escape the sessions
+ * directory before a read or a recursive delete.
+ */
+const SESSION_ID_RE = /^[A-Za-z0-9_-]+$/
+
+export function isValidSessionId(sessionId: unknown): sessionId is string {
+  return typeof sessionId === 'string' && SESSION_ID_RE.test(sessionId)
+}
+
+/**
  * Combined path safety check: resolves, normalizes, and enforces allowed roots.
  * Throws PathAccessDeniedError if the path is outside the sandbox.
  */

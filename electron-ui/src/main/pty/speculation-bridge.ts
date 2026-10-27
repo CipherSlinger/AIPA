@@ -67,6 +67,9 @@ export class SpeculationBridge {
   private toolActions: SpecToolAction[] = []
   private currentToolAction: Partial<SpecToolAction> | null = null
   private timer: ReturnType<typeof setTimeout> | null = null
+  /** Working directory this speculation was started for. Accept merges here —
+   *  never into a path supplied by the renderer at accept time. */
+  private realCwd: string | null = null
 
   readonly id: string
 
@@ -86,6 +89,7 @@ export class SpeculationBridge {
     env: Record<string, string>,
   ): Promise<SpeculationResult> {
     this.startTime = Date.now()
+    this.realCwd = realCwd
 
     // Create isolated temp dir (overlay simulation)
     this.overlayDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aipa-spec-'))
@@ -176,12 +180,17 @@ export class SpeculationBridge {
     this._cleanup()
   }
 
-  /** Copy overlay files that differ from realCwd into realCwd (accept) */
-  mergeToReal(realCwd: string): string[] {
-    if (!this.overlayDir || !fs.existsSync(this.overlayDir)) return []
+  /** Copy overlay files that differ from the run's own cwd into it (accept) */
+  mergeToReal(): string[] {
+    const realCwd = this.realCwd
+    if (!realCwd || !this.overlayDir || !fs.existsSync(this.overlayDir)) return []
     const merged: string[] = []
     this._walkDir(this.overlayDir, (overlayPath) => {
       const rel = path.relative(this.overlayDir!, overlayPath)
+      // `rel` comes from the overlay tree the CLI wrote, but it is still
+      // attacker-influenced (prompt-injected file names); refuse anything that
+      // escapes the target directory.
+      if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) return
       const realPath = path.join(realCwd, rel)
       try {
         const overlayContent = fs.readFileSync(overlayPath)

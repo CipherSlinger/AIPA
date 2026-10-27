@@ -34,6 +34,10 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       output: {
+        // The vendored deps are listed explicitly because Rollup's default
+        // chunking folds them into whichever entry chunk imports them, which
+        // leaves one oversized index chunk that has to be downloaded and parsed
+        // before the first paint of the shell.
         manualChunks: {
           'vendor-icons': ['lucide-react'],
           'vendor-markdown': ['react-markdown', 'remark-gfm', 'rehype-highlight', 'highlight.js'],

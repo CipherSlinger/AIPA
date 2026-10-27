@@ -131,7 +131,7 @@ export function useSpeculation(
     activeIdRef.current = null
 
     try {
-      const merged = await window.electronAPI.speculationAccept(id, cwd)
+      const merged = await window.electronAPI.speculationAccept(id)
       setStatus('accepted')
       // Hold the accepted result for ChatPanel to inject as pre-filled exchange
       const accepted = { ...result, changedFiles: merged?.merged || result.changedFiles }

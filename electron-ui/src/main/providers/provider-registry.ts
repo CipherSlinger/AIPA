@@ -183,6 +183,29 @@ export class ProviderRegistry {
   serializeConfigs(): ModelProviderConfig[] {
     return Array.from(this.configs.values())
   }
+
+  /**
+   * Serialize configs for the renderer: same shape, credentials stripped.
+   * The UI only needs to know whether a credential is set, not its value.
+   */
+  serializeConfigsForRenderer(): ModelProviderConfig[] {
+    return redactProviderSecrets(Array.from(this.configs.values()))
+  }
+}
+
+/**
+ * Strip provider credentials before they cross the IPC boundary.
+ * `hasApiKey` / `hasAuthToken` let the UI render "configured" state and keep the
+ * "entering a credential enables the provider" flow working without exposing it.
+ */
+export function redactProviderSecrets(configs: ModelProviderConfig[]): ModelProviderConfig[] {
+  return configs.map(c => ({
+    ...c,
+    apiKey: '',
+    authToken: '',
+    hasApiKey: Boolean(c.apiKey),
+    hasAuthToken: Boolean(c.authToken),
+  }))
 }
 
 // Singleton instance

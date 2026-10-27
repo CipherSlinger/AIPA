@@ -365,8 +365,7 @@ function showToast(message, { error = false, ttl = 3500 } = {}) {
   node.textContent = message;
   toastStack.appendChild(node);
   // Force reflow then add visible class so the transition runs.
-  // eslint-disable-next-line no-unused-expressions
-  node.offsetHeight;
+  void node.offsetHeight;
   node.classList.add("visible");
   setTimeout(() => {
     node.classList.remove("visible");

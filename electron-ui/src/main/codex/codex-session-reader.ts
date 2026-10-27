@@ -14,6 +14,7 @@
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
+import { isPathInside, isValidSessionId } from '../utils/validate'
 
 // ── Constants ────────────────────────────────────────
 
@@ -106,6 +107,9 @@ export function listSessions(): CodexSessionListItem[] {
   const indexEntries = readSessionIndex()
   if (indexEntries.length > 0) {
     for (const entry of indexEntries) {
+      // An index entry with a non-segment id can never be loaded or deleted
+      // safely, so keep it out of the list.
+      if (!isValidSessionId(entry.threadId)) continue
       sessions.push({
         sessionId: entry.threadId,
         lastPrompt: entry.preview || entry.name || '',
@@ -179,10 +183,17 @@ export function listSessions(): CodexSessionListItem[] {
 
 // ── Session Loading ──────────────────────────────────
 
+/** Session files may only live under the sessions or archived-sessions roots. */
+function isSessionPathSafe(filePath: string): boolean {
+  return isPathInside(getSessionsDir(), filePath) || isPathInside(getArchivedDir(), filePath)
+}
+
 /**
  * Load the full message history of a session.
  */
 export function loadSession(sessionId: string): CodexSessionMessage[] {
+  if (!isValidSessionId(sessionId)) return []
+
   // Check sessions directory first, then archived
   const candidates = [
     path.join(getSessionsDir(), `${sessionId}.jsonl`),
@@ -203,7 +214,7 @@ export function loadSession(sessionId: string): CodexSessionMessage[] {
   }
 
   for (const filePath of candidates) {
-    if (fs.existsSync(filePath)) {
+    if (isSessionPathSafe(filePath) && fs.existsSync(filePath)) {
       return parseSessionMessages(filePath)
     }
   }
@@ -217,6 +228,10 @@ export function loadSession(sessionId: string): CodexSessionMessage[] {
  * Delete a session file.
  */
 export function deleteSession(sessionId: string): boolean {
+  // Without this a "../.." id would resolve outside CODEX_HOME and the
+  // recursive rm below could delete an arbitrary directory.
+  if (!isValidSessionId(sessionId)) return false
+
   const candidates = [
     path.join(getSessionsDir(), `${sessionId}.jsonl`),
     path.join(getSessionsDir(), sessionId),
@@ -225,7 +240,7 @@ export function deleteSession(sessionId: string): boolean {
 
   let deleted = false
   for (const p of candidates) {
-    if (fs.existsSync(p)) {
+    if (isSessionPathSafe(p) && fs.existsSync(p)) {
       try {
         const stat = fs.statSync(p)
         if (stat.isDirectory()) {
@@ -233,6 +248,7 @@ export function deleteSession(sessionId: string): boolean {
         } else {
           fs.unlinkSync(p)
         }
+        summaryCache.delete(p)
         deleted = true
       } catch { /* ignore */ }
     }
@@ -265,6 +281,7 @@ export function searchSessions(query: string, limit = 20): CodexSessionListItem[
  * Note: For richer forking, use the app-server thread/fork API via CodexBridge.
  */
 export function forkSession(sessionId: string, upToMessageIndex: number): { newSessionId: string; messages: CodexSessionMessage[] } | null {
+  if (!isValidSessionId(sessionId)) return null
   const messages = loadSession(sessionId)
   if (messages.length === 0) return null
 
@@ -303,30 +320,58 @@ export function readCodexConfig(): CodexConfig {
 
 // ── Helpers ──────────────────────────────────────────
 
+// ── Session summary cache ──
+//
+// The fallback scan parses every transcript in full just to produce a list
+// row, and the renderer re-lists after every turn. Key the derived summary on
+// mtime+size so only transcripts that changed are re-parsed.
+const summaryCache = new Map<string, {
+  mtimeMs: number
+  size: number
+  item: CodexSessionListItem | null
+}>()
+
 function parseSessionFile(sessionId: string, filePath: string): CodexSessionListItem | null {
+  let stat: fs.Stats
   try {
-    const messages = parseSessionMessages(filePath)
-    if (messages.length === 0) return null
-
-    const firstUserMsg = messages.find(m => m.role === 'user' || m.type === 'userMessage')
-    const lastPrompt = firstUserMsg
-      ? String(firstUserMsg.content || '').slice(0, 100)
-      : ''
-
-    const firstTimestamp = messages[0]?.timestamp || fs.statSync(filePath).mtimeMs
-
-    return {
-      sessionId,
-      lastPrompt,
-      timestamp: firstTimestamp,
-      project: '',
-      projectSlug: '',
-      messageCount: messages.length,
-      firstTimestamp,
-    }
+    stat = fs.statSync(filePath)
   } catch {
     return null
   }
+  const cached = summaryCache.get(filePath)
+  if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
+    // Copy: callers decorate the row with project/archived fields, and the
+    // cached copy must stay pristine for the next caller.
+    return cached.item ? { ...cached.item } : null
+  }
+
+  let item: CodexSessionListItem | null = null
+  try {
+    const messages = parseSessionMessages(filePath)
+    if (messages.length > 0) {
+      const firstUserMsg = messages.find(m => m.role === 'user' || m.type === 'userMessage')
+      const lastPrompt = firstUserMsg
+        ? String(firstUserMsg.content || '').slice(0, 100)
+        : ''
+
+      const firstTimestamp = messages[0]?.timestamp || stat.mtimeMs
+
+      item = {
+        sessionId,
+        lastPrompt,
+        timestamp: firstTimestamp,
+        project: '',
+        projectSlug: '',
+        messageCount: messages.length,
+        firstTimestamp,
+      }
+    }
+  } catch {
+    item = null
+  }
+
+  summaryCache.set(filePath, { mtimeMs: stat.mtimeMs, size: stat.size, item })
+  return item ? { ...item } : null
 }
 
 function parseSessionMessages(filePath: string): CodexSessionMessage[] {

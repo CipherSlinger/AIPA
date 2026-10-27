@@ -58,6 +58,17 @@ function registerOpencodePlugin(options = {}) {
     }
   }
 
+  // The plugin source ships separately from this installer. If hooks/
+  // opencode-plugin/ is absent (it is not part of this checkout/build), writing
+  // its path into the user's opencode.json would make opencode fail to load a
+  // plugin every session. Treat it as a documented no-op instead.
+  let pluginSourceExists = false;
+  try { pluginSourceExists = fs.statSync(pluginDir).isDirectory(); } catch {}
+  if (!pluginSourceExists) {
+    console.log(`Clawd: opencode plugin source not found at ${pluginDir} — skipping registration (no changes made)`);
+    return { added: false, skipped: true, created: false, configPath, pluginDir };
+  }
+
   let settings = {};
   let created = false;
   try {

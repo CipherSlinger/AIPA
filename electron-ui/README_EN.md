@@ -32,6 +32,7 @@ AIPA is not a simple chat UI wrapper. The Claude Code CLI is the true execution 
 ### Chat Interface
 
 - **Real-time streaming**: Incremental text rendering with RAF-throttled performance optimization
+- **Instant session list**: Summaries (title, last prompt, time, message count) are cached to `~/.aipa/cache/` and keyed on `mtime + size`, so only transcripts that actually changed are re-parsed — 4,000+ sessions list in ~50 ms warm instead of rescanning the whole corpus on every launch
 - **Multi-tab conversations**: Maintain up to 8 independent sessions in one window
 - **Auto-save drafts**: Saves on blur, restores when you return
 - **Input history** (↑/↓): Browse previously sent messages

@@ -17,6 +17,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
 import { createLogger } from '../utils/logger'
+import { isPathInside } from '../utils/validate'
 
 const log = createLogger('memory-manager')
 
@@ -114,8 +115,47 @@ export function listMemoryFiles(scope?: 'global' | 'project' | 'all'): MemoryFil
   return [...listGlobalMemories(), ...listProjectMemories()]
 }
 
+/**
+ * Resolve a memory file path, rejecting anything outside the two memory roots:
+ *   ~/.claude/memory
+ *   ~/.claude/projects/<projectHash>/memory
+ * A plain prefix check is not enough — `~/.claude-evil/x` starts with `~/.claude`.
+ */
+function resolveMemoryPath(filePath: string): string {
+  if (typeof filePath !== 'string' || !filePath.trim()) {
+    throw new Error('Invalid memory file path')
+  }
+  const resolved = path.resolve(filePath)
+  const allowedRoots = [getGlobalMemoryDir(), ...getProjectMemoryDirs()]
+  if (!allowedRoots.some(root => isPathInside(root, resolved))) {
+    throw new Error('Path outside memory directories is not allowed')
+  }
+  return resolved
+}
+
+/** The `memory` subdirectory of every project, plus nothing else. */
+function getProjectMemoryDirs(): string[] {
+  const projectsDir = path.join(getClaudeDir(), 'projects')
+  if (!fs.existsSync(projectsDir)) return []
+  try {
+    return fs.readdirSync(projectsDir)
+      .filter(hash => isValidProjectHash(hash))
+      .map(hash => path.join(projectsDir, hash, 'memory'))
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Project directory names are Claude's sanitised cwd slugs, but only a single
+ * path segment is ever valid as a directory name.
+ */
+function isValidProjectHash(hash: string): boolean {
+  return !!hash && !hash.includes('/') && !hash.includes('\\') && hash !== '.' && hash !== '..'
+}
+
 export function readMemoryFile(filePath: string): string {
-  return fs.readFileSync(filePath, 'utf-8')
+  return fs.readFileSync(resolveMemoryPath(filePath), 'utf-8')
 }
 
 function buildMemoryFileContent(name: string, description: string, type: string, body: string): string {
@@ -126,12 +166,13 @@ export function writeMemoryFile(
   filePath: string,
   content: string,
 ): void {
-  const dir = path.dirname(filePath)
+  const safe = resolveMemoryPath(filePath)
+  const dir = path.dirname(safe)
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-  const tmp = filePath + '.tmp.' + Date.now()
+  const tmp = safe + '.tmp.' + Date.now()
   fs.writeFileSync(tmp, content, 'utf-8')
-  fs.renameSync(tmp, filePath)
-  log.info('writeMemoryFile:', filePath)
+  fs.renameSync(tmp, safe)
+  log.info('writeMemoryFile:', safe)
 }
 
 export function createMemoryFile(
@@ -145,7 +186,7 @@ export function createMemoryFile(
   let dir: string
   if (scope === 'global') {
     dir = getGlobalMemoryDir()
-  } else if (projectHash) {
+  } else if (projectHash && isValidProjectHash(projectHash)) {
     dir = path.join(getClaudeDir(), 'projects', projectHash, 'memory')
   } else {
     dir = getGlobalMemoryDir()
@@ -161,11 +202,8 @@ export function createMemoryFile(
 }
 
 export function deleteMemoryFile(filePath: string): void {
-  // Safety: only allow deletion within ~/.claude/
-  const claudeDir = getClaudeDir()
-  if (!path.resolve(filePath).startsWith(path.resolve(claudeDir))) {
-    throw new Error('Path outside ~/.claude/ is not allowed')
-  }
-  fs.unlinkSync(filePath)
-  log.info('deleteMemoryFile:', filePath)
+  // Safety: only allow deletion of memory files in the known memory roots.
+  const safe = resolveMemoryPath(filePath)
+  fs.unlinkSync(safe)
+  log.info('deleteMemoryFile:', safe)
 }

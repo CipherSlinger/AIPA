@@ -22,13 +22,18 @@ const log = createLogger('plugin-services')
 
 const SAFE_SEGMENT = /^[A-Za-z0-9._-]{1,80}$/
 
+/** SAFE_SEGMENT also allows "." / ".." — those must never name a path segment. */
+function isSafeSegment(segment: string): boolean {
+  return SAFE_SEGMENT.test(segment) && segment !== '.' && segment !== '..'
+}
+
 function getPluginDataDir(pluginId: string): string {
-  if (!SAFE_SEGMENT.test(pluginId)) throw new Error(`Invalid plugin id: ${pluginId}`)
+  if (!isSafeSegment(pluginId)) throw new Error(`Invalid plugin id: ${pluginId}`)
   return path.join(os.homedir(), '.aipa', 'plugin-data', pluginId)
 }
 
 function getDataFile(pluginId: string, key: string): string {
-  if (!SAFE_SEGMENT.test(key)) throw new Error(`Invalid data key: ${key}`)
+  if (!isSafeSegment(key)) throw new Error(`Invalid data key: ${key}`)
   return path.join(getPluginDataDir(pluginId), `${key}.json`)
 }
 
@@ -477,7 +482,9 @@ async function startCodexAi(args: PluginAiArgs, emit: (e: PluginAiEvent) => void
       model: args.model || undefined,
       env,
       approvalPolicy: 'never',
-      sandbox: 'read-only',
+      // Codex protocol values are camelCase ('readOnly'); the old kebab-case
+      // string was rejected by the server, silently falling back to config.toml.
+      sandbox: 'readOnly',
       personality: 'none',
       ephemeral: true,
       requireAuth: true,

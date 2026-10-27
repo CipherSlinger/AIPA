@@ -355,6 +355,9 @@ export class CodexBridge extends EventEmitter {
     }
     if (args.model) params.model = args.model
     if (args.approvalPolicy) params.approvalPolicy = args.approvalPolicy
+    // Resuming without the sandbox would silently inherit whatever the user's
+    // ~/.codex/config.toml says (possibly danger-full-access), so carry it over.
+    if (args.sandbox) params.sandbox = args.sandbox
     if (args.personality) params.personality = args.personality
 
     const result = await this._sendRequest('thread/resume', params) as { thread?: { id: string } }

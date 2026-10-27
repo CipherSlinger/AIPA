@@ -1,12 +1,15 @@
-import { app, BrowserWindow, Menu, Tray, globalShortcut, nativeImage, shell, session, clipboard, Notification, screen } from 'electron'
+import { app, BrowserWindow, Menu, Tray, globalShortcut, nativeImage, shell, session, clipboard, Notification, screen, protocol } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import { initClawdIntegration, shutdownClawdIntegration, getClawdSubmenu } from './clawd-integration'
 import { abortAllPluginAi } from './plugins/plugin-services'
+import { listNavPlugins } from './plugins/nav-plugin-manager'
+import { decodePluginPath, pluginHost } from './plugins/plugin-url'
 import { endAllPluginEdits } from './plugins/plugin-edit-session'
 import { registerAllHandlers } from './ipc/index'
 import { ptyManager } from './pty/pty-manager'
 import { listSessions } from './sessions/session-reader'
+import { saveNow as saveSessionIndexNow } from './sessions/session-index-cache'
 import { getPref, setPref } from './config/config-manager'
 import { createLogger } from './utils/logger'
 
@@ -187,9 +190,33 @@ function createWindow(): void {
   }, 10000)
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
+    openExternalSafely(url)
     return { action: 'deny' }
   })
+
+  // A renderer that can navigate itself can also hand off a file:// URL to an
+  // OS handler; keep the window on the app's own document.
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (!isAppUrl(url)) {
+      event.preventDefault()
+      openExternalSafely(url)
+    }
+  })
+  mainWindow.webContents.on('will-redirect', (event, url) => {
+    if (!isAppUrl(url)) event.preventDefault()
+  })
+  // Deny every web permission by default: no device, location, or notification
+  // capability is needed (desktop notifications go through
+  // `windowShowNotification`). The one exception is clipboard *writes* — the copy
+  // buttons in Chat, the source preview and the plugins break without it, and a
+  // write only puts user-selected text on the clipboard. Clipboard reads and all
+  // other permissions stay denied on both the request and the check path;
+  // Chromium consults the check handler for same-origin writes.
+  const CLIPBOARD_WRITE = 'clipboard-sanitized-write'
+  mainWindow.webContents.session.setPermissionRequestHandler((_wc, permission, callback) => {
+    callback(permission === CLIPBOARD_WRITE)
+  })
+  mainWindow.webContents.session.setPermissionCheckHandler((_wc, permission) => permission === CLIPBOARD_WRITE)
 
   mainWindow.on('closed', () => {
     mainWindow = null
@@ -215,8 +242,8 @@ function setupCSP(): void {
     "font-src 'self' data:",
     "object-src 'none'",
     "base-uri 'self'",
-    // Nav plugins render as file:// iframes from ~/.aipa/plugins
-    "frame-src 'self' file:",
+    // Nav plugins are served by the app's own `aipa-plugin:` scheme.
+    "frame-src 'self' aipa-plugin:",
   ].join('; ')
 
   const devCSP = [
@@ -228,12 +255,22 @@ function setupCSP(): void {
     "font-src 'self' data:",
     "object-src 'none'",
     "base-uri 'self'",
-    "frame-src 'self' file:",
+    "frame-src 'self' aipa-plugin:",
   ].join('; ')
 
   const csp = isDev ? devCSP : prodCSP
 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    // Plugin frames are served by our own protocol handler, which sets this
+    // header explicitly — and that header is the plugin's only CSP (the frame
+    // has its own document, so the app page's policy does not apply there).
+    // Overwriting it here stripped the plugin's policy *and* injected
+    // `frame-src 'self' aipa-plugin:` into the plugin itself, which made the
+    // app refuse to load the frame at all.
+    if (details.url.startsWith(`${PLUGIN_SCHEME}://`)) {
+      callback({ responseHeaders: details.responseHeaders })
+      return
+    }
     callback({
       responseHeaders: {
         ...details.responseHeaders,
@@ -529,12 +566,153 @@ function registerGlobalHotkey(): void {
   }
 }
 
+/**
+ * Open a URL outside the app, but only for schemes that are safe to hand to the
+ * OS. Without this allowlist, renderer content (or a prompt-injected plugin)
+ * can pass `file:` / `ms-msdt:` / `search-ms:` and get the shell to execute or
+ * open something other than a web page.
+ */
+function openExternalSafely(rawUrl: string): void {
+  let parsed: URL
+  try {
+    parsed = new URL(rawUrl)
+  } catch {
+    log.warn('Refused to open malformed URL:', rawUrl)
+    return
+  }
+  if (!['http:', 'https:', 'mailto:'].includes(parsed.protocol)) {
+    log.warn('Refused to open non-web URL:', parsed.protocol)
+    return
+  }
+  shell.openExternal(rawUrl).catch(err => log.warn('openExternal failed:', String(err)))
+}
+
+/** Is `url` a document the app itself loaded (renderer bundle or Vite server)? */
+function isAppUrl(rawUrl: string): boolean {
+  try {
+    const url = new URL(rawUrl)
+    if (isDev) return url.origin === 'http://localhost:5173'
+    if (url.protocol !== 'file:') return false
+    const rendererDir = path.resolve(__dirname, '../renderer')
+    const target = path.resolve(decodeURIComponent(url.pathname).replace(/^\/([A-Za-z]:)/, '$1'))
+    const rel = path.relative(rendererDir, target)
+    return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Dedicated scheme for plugin iframes
+ * (`aipa-plugin://p-<slug>-<hash>/C:/…/plugin/index.html`).
+ *
+ * Why not `file://`: a file-backed frame with `allow-same-origin` inherits the
+ * renderer's origin, so a plugin could reach `window.parent`'s document and the
+ * app's own `localStorage`. A custom scheme gives each plugin a real, distinct
+ * origin (one host per plugin, see `plugin-url.ts`), so it can keep
+ * `allow-same-origin` — which `localStorage` requires — while `parent.document`
+ * and sibling plugins stay out of reach. The `aipa:invoke` postMessage bridge is
+ * the only host channel, and `postMessage` needs no shared origin.
+ *
+ * Only files inside a plugin directory discovered by the scanner are served.
+ */
+const PLUGIN_SCHEME = 'aipa-plugin'
+
+const PLUGIN_MIME: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+}
+
+function registerPluginScheme(): void {
+  protocol.registerSchemesAsPrivileged([{
+    scheme: PLUGIN_SCHEME,
+    privileges: { standard: true, secure: true, supportFetchAPI: true },
+  }])
+}
+
+function servePluginProtocol(): void {
+  protocol.handle(PLUGIN_SCHEME, async (request) => {
+    try {
+      const url = new URL(request.url)
+      const plugins = listNavPlugins()
+      // The host names the plugin: resolving the file against that plugin's own
+      // directory is what isolates one plugin's assets from another's.
+      const plugin = plugins.find(p => pluginHost(p.manifest.id) === url.host)
+      if (!plugin) {
+        log.warn(`Blocked aipa-plugin request for unknown host: ${url.host}`)
+        return new Response('Forbidden', { status: 403 })
+      }
+      const filePath = path.resolve(decodePluginPath(url.pathname))
+      const rel = path.relative(path.resolve(plugin.dirPath), filePath)
+      if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) {
+        log.warn(`Blocked plugin asset escaping ${plugin.dirPath}: ${filePath}`)
+        return new Response('Forbidden', { status: 403 })
+      }
+      const data = await fs.promises.readFile(filePath)
+      const ext = path.extname(filePath).toLowerCase()
+      const mime = PLUGIN_MIME[ext] || 'application/octet-stream'
+      return new Response(data, {
+        headers: {
+          'content-type': mime,
+          // A plugin editing its own files must see the change on reload.
+          'cache-control': 'no-store',
+          // The frame's own document needs its own policy: scripts and styles
+          // only from the plugin's origin, no network egress at all (plugins
+          // reach the host through the postMessage bridge, not fetch), and
+          // inline script allowed because plugin authors ship single-file HTML.
+          ...(ext === '.html'
+            ? {
+                'content-security-policy': [
+                  "default-src 'self'",
+                  "script-src 'self' 'unsafe-inline'",
+                  "style-src 'self' 'unsafe-inline'",
+                  "img-src 'self' data: blob:",
+                  "font-src 'self' data:",
+                  "connect-src 'none'",
+                  "object-src 'none'",
+                  "base-uri 'none'",
+                  "frame-src 'none'",
+                ].join('; '),
+              }
+            : {}),
+        },
+      })
+    } catch (err) {
+      log.warn('aipa-plugin request failed:', String(err))
+      return new Response('Not found', { status: 404 })
+    }
+  })
+}
+
+registerPluginScheme()
+
 app.whenReady().then(() => {
   // Ensure Windows groups all windows from this process under one taskbar button.
   // Must match the appId used in electron-builder.yml and be set before any
   // BrowserWindow is created.
   if (process.platform === 'win32') {
     app.setAppUserModelId('com.anthropic.claude-code-ui')
+  }
+
+  try {
+    servePluginProtocol()
+  } catch (err) {
+    log.warn('registerPluginProtocol failed (non-fatal):', String(err))
   }
 
   try {
@@ -576,6 +754,11 @@ app.on('before-quit', () => {
   isQuitting = true
   // Run clawd cleanup hooks (registered during initClawdIntegration)
   try { shutdownClawdIntegration() } catch { /* best-effort */ }
+  // The session list no longer flushes its summary index inline (that was
+  // ~400ms of blocking work on the first list of a launch); the debounced
+  // writer does it, but a quit before the debounce fires would lose the
+  // whole cold scan and pay for it again next launch.
+  try { saveSessionIndexNow() } catch { /* best-effort */ }
   ptyManager.destroyAll()
   abortAllPluginAi()
   endAllPluginEdits()

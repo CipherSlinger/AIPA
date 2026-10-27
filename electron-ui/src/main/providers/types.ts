@@ -25,6 +25,10 @@ export interface ModelProviderConfig {
   isDefault?: boolean
   /** Failover priority (lower = higher priority) */
   failoverPriority?: number
+  /** Renderer-facing marker: a credential is stored in the main process. */
+  hasApiKey?: boolean
+  /** Renderer-facing marker: an auth token is stored in the main process. */
+  hasAuthToken?: boolean
 }
 
 export interface ModelInfo {

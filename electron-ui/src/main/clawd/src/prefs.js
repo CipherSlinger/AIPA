@@ -50,7 +50,11 @@ const SCHEMA = {
   lang: { type: "string", default: "en", enum: ["en", "zh", "ko"] },
   showTray: { type: "boolean", default: true },
   showDock: { type: "boolean", default: true },
-  manageClaudeHooksAutomatically: { type: "boolean", default: true },
+  // Opt-in: installing hooks writes into ~/.claude/settings.json (and other
+  // agents' config dirs), which must never happen without the user asking for
+  // it. The settings panel's "Manage Claude hooks automatically" switch turns
+  // this on; until then the server installs nothing.
+  manageClaudeHooksAutomatically: { type: "boolean", default: false },
   autoStartWithClaude: { type: "boolean", default: false },
   // System-backed: actual truth lives in OS login items / autostart files.
   // `openAtLoginHydrated` starts false; main.js's startup hydrate helper imports
@@ -167,6 +171,15 @@ function migrate(raw) {
     out.positionSaved =
       (typeof out.x === "number" && out.x !== 0) ||
       (typeof out.y === "number" && out.y !== 0);
+  }
+  // v1 backfill: hook management was opt-OUT before this field became opt-in,
+  // so a prefs file without the key belongs to a user who already had hooks
+  // installed. Leaving it to the new `false` default would silently stop
+  // re-registering their hooks — and, because the HTTP permission hook now
+  // needs the shared token, their installed hook would start getting 401 on
+  // every approval. Grandfather them as opted in; only new installs start off.
+  if (out.manageClaudeHooksAutomatically === undefined) {
+    out.manageClaudeHooksAutomatically = true;
   }
   // Future migrations slot in here as `if (out.version < N) { ... out.version = N }`.
   return out;

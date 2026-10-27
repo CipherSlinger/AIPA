@@ -5,7 +5,7 @@
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
-const { resolveNodeBin, buildPermissionUrl, DEFAULT_SERVER_PORT, readRuntimePort } = require("./server-config");
+const { resolveNodeBin, buildPermissionUrl, DEFAULT_SERVER_PORT, ensureAuthToken, readAuthToken, readRuntimePort } = require("./server-config");
 const { writeJsonAtomic, asarUnpackedPath, extractExistingNodeBin } = require("./json-utils");
 const MARKER = "codebuddy-hook.js";
 const HTTP_MARKER = "/permission";
@@ -124,6 +124,20 @@ function registerCodeBuddyHooks(options = {}) {
   // Register PermissionRequest HTTP hook (blocking, for permission bubble)
   const hookPort = readRuntimePort() || DEFAULT_SERVER_PORT;
   const permissionUrl = buildPermissionUrl(hookPort);
+  // Server requires a bearer token on POSTs; the agent process cannot see our
+  // env, so the current token is stored literally and refreshed below.
+  ensureAuthToken();
+  const token = readAuthToken();
+  const permissionHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+  const syncHeaders = (h) => {
+    if (!token) return;
+    const current = h.headers && typeof h.headers === "object" ? h.headers : {};
+    if (current.Authorization !== permissionHeaders.Authorization) {
+      h.headers = { ...current, ...permissionHeaders };
+      updated++;
+      changed = true;
+    }
+  };
   const permEvent = "PermissionRequest";
   if (!Array.isArray(settings.hooks[permEvent])) {
     settings.hooks[permEvent] = [];
@@ -139,19 +153,21 @@ function registerCodeBuddyHooks(options = {}) {
         if (!h.url.includes(HTTP_MARKER)) continue;
         permFound = true;
         if (h.url !== permissionUrl) { h.url = permissionUrl; updated++; changed = true; }
+        syncHeaders(h);
         break;
       }
     }
     if (!permFound && entry.type === "http" && typeof entry.url === "string" && entry.url.includes(HTTP_MARKER)) {
       permFound = true;
       if (entry.url !== permissionUrl) { entry.url = permissionUrl; updated++; changed = true; }
+      syncHeaders(entry);
     }
     if (permFound) break;
   }
   if (!permFound) {
     settings.hooks[permEvent].push({
       matcher: "",
-      hooks: [{ type: "http", url: permissionUrl, timeout: 600 }],
+      hooks: [{ type: "http", url: permissionUrl, ...(token ? { headers: permissionHeaders } : {}), timeout: 600 }],
     });
     added++;
     changed = true;

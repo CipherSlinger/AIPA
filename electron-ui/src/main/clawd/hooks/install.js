@@ -6,7 +6,7 @@
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
-const { buildPermissionUrl, DEFAULT_SERVER_PORT, PERMISSION_PATH, readRuntimePort, resolveNodeBin } = require("./server-config");
+const { buildPermissionUrl, DEFAULT_SERVER_PORT, ensureAuthToken, PERMISSION_PATH, readAuthToken, readRuntimePort, resolveNodeBin } = require("./server-config");
 const { writeJsonAtomic, asarUnpackedPath } = require("./json-utils");
 
 // Hooks supported by all Claude Code versions
@@ -426,27 +426,36 @@ function removeMatchingHttpHooks(entries, predicate) {
   return { entries: nextEntries, removed, changed };
 }
 
-function syncHttpHook(entries, expectedUrl) {
+function syncHttpHook(entries, expectedUrl, expectedHeaders) {
   let found = false;
   let changed = false;
+  const applyExpected = (hook) => {
+    if (hook.url !== expectedUrl) {
+      hook.url = expectedUrl;
+      changed = true;
+    }
+    if (expectedHeaders && Object.keys(expectedHeaders).length > 0) {
+      const current = hook.headers && typeof hook.headers === "object" ? hook.headers : {};
+      // Merge rather than replace: the user may have added their own headers.
+      const expectedKey = Object.keys(expectedHeaders)[0];
+      if (current[expectedKey] !== expectedHeaders[expectedKey]) {
+        hook.headers = { ...current, ...expectedHeaders };
+        changed = true;
+      }
+    }
+  };
   if (!Array.isArray(entries)) return { found, changed };
   for (const entry of entries) {
     if (!entry || typeof entry !== "object") continue;
     if (isClawdPermissionHook(entry)) {
       found = true;
-      if (entry.url !== expectedUrl) {
-        entry.url = expectedUrl;
-        changed = true;
-      }
+      applyExpected(entry);
     }
     if (!Array.isArray(entry.hooks)) continue;
     for (const hook of entry.hooks) {
       if (!isClawdPermissionHook(hook)) continue;
       found = true;
-      if (hook.url !== expectedUrl) {
-        hook.url = expectedUrl;
-        changed = true;
-      }
+      applyExpected(hook);
     }
   }
   return { found, changed };
@@ -455,6 +464,18 @@ function syncHttpHook(entries, expectedUrl) {
 function getHookServerPort(explicitPort) {
   return Number.isInteger(explicitPort) ? explicitPort : (readRuntimePort() || DEFAULT_SERVER_PORT);
 }
+
+/**
+ * Headers the HTTP permission hook must send. The server requires a bearer
+ * token on every mutating request; the agent execs this hook from a terminal,
+ * where our env vars are not visible, so the current token is stored literally.
+ * `syncHttpHook` rewrites the header in place when the token changes.
+ */
+function buildPermissionHookHeaders() {
+  const token = readAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 
 // HTTP hooks: PermissionRequest uses bidirectional HTTP hook for permission decisions.
 // Claude Code fires PermissionRequest for tools needing approval (primarily Bash).
@@ -465,6 +486,9 @@ const HTTP_HOOKS = {
     hook: {
       type: "http",
       url: "http://127.0.0.1:23333/permission",
+      // The server rejects unauthenticated POSTs; see buildPermissionHookHeaders().
+      // Evaluated per call so a token minted after module load is still picked up.
+      get headers() { return buildPermissionHookHeaders(); },
       timeout: 600,
     },
   },
@@ -534,6 +558,9 @@ function reconcileVersionedHooks(settings, supportedEvents, versionInfo) {
  */
 function registerHooks(options = {}) {
   const settingsPath = options.settingsPath || path.join(os.homedir(), ".claude", "settings.json");
+  // Manual installs (`node hooks/install.js`) run without the HTTP server, so
+  // make sure the shared secret the hook will echo exists before we serialize.
+  ensureAuthToken();
   const hookPort = getHookServerPort(options.port);
   const hookScript = asarUnpackedPath(path.resolve(__dirname, "clawd-hook.js").replace(/\\/g, "/"));
 
@@ -681,7 +708,7 @@ function registerHooks(options = {}) {
     }
 
     const desiredHook = { ...hook, url: buildPermissionUrl(hookPort) };
-    const httpSync = syncHttpHook(settings.hooks[event], desiredHook.url);
+    const httpSync = syncHttpHook(settings.hooks[event], desiredHook.url, desiredHook.headers);
     if (httpSync.found) {
       if (httpSync.changed) {
         updated++;
@@ -692,9 +719,11 @@ function registerHooks(options = {}) {
       continue;
     }
 
+    // `{ ...desiredHook }` materializes the getter's current value into a
+    // plain JSON-friendly object (spread reads own accessors).
     settings.hooks[event].push({
       matcher,
-      hooks: [desiredHook],
+      hooks: [{ ...desiredHook }],
     });
     added++;
   }

@@ -245,6 +245,9 @@ const updateRegistry = {
         if (value) {
           deps.syncClaudeHooksNow();
           deps.startClaudeSettingsWatcher();
+          // The switch is the single opt-in for every agent integration; now
+          // that the user asked for it, sync the non-Claude tools too.
+          if (typeof deps.syncOtherAgentHooks === "function") deps.syncOtherAgentHooks({ force: true });
         } else {
           deps.stopClaudeSettingsWatcher();
         }
@@ -771,6 +774,8 @@ function installHooks(_payload, deps) {
   }
   try {
     deps.syncClaudeHooksNow();
+    // Explicit install action — same consent as flipping the switch on.
+    if (typeof deps.syncOtherAgentHooks === "function") deps.syncOtherAgentHooks({ force: true });
     return { status: "ok" };
   } catch (err) {
     return { status: "error", message: `installHooks: ${err && err.message}` };

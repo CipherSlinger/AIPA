@@ -5,6 +5,8 @@ import { buildCliEnv } from '../providers/types'
 import type { ModelProviderConfig } from '../providers'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { createLogger } from '../utils/logger'
+import { safePath, getAllowedFsRoots, isValidSessionId, validateModelName } from '../utils/validate'
+import os from 'os'
 
 const log = createLogger('ipc:providers')
 
@@ -15,9 +17,9 @@ export function registerProviderHandlers(win: BrowserWindow, send: (ch: string, 
     log.warn('Failed to initialize provider registry:', String(err))
   })
 
-  // Get all provider configs
+  // Get all provider configs (credentials redacted — see redactProviderSecrets)
   ipcMain.handle('provider:listConfigs', () => {
-    return providerRegistry.getAllConfigs()
+    return providerRegistry.serializeConfigsForRenderer()
   })
 
   // Get all available models across all providers
@@ -28,7 +30,19 @@ export function registerProviderHandlers(win: BrowserWindow, send: (ch: string, 
   // Update a provider config
   ipcMain.handle('provider:upsert', async (_e, config: ModelProviderConfig) => {
     try {
-      await providerRegistry.upsertProvider(config)
+      // listConfigs redacts credentials, so the renderer often sends back '' for
+      // a provider that already has them. Treat an empty value as "unchanged"
+      // rather than wiping the stored secret.
+      const existing = providerRegistry.getConfig(config.id)
+      const merged: ModelProviderConfig = {
+        ...config,
+        apiKey: config.apiKey?.trim() ? config.apiKey : existing?.apiKey ?? '',
+        authToken: config.authToken?.trim() ? config.authToken : existing?.authToken ?? '',
+      }
+      // Renderer-facing markers, not settings — never persist them.
+      delete merged.hasApiKey
+      delete merged.hasAuthToken
+      await providerRegistry.upsertProvider(merged)
       const allConfigs = providerRegistry.serializeConfigs()
       setPref('modelProviders', allConfigs)
       return { success: true }
@@ -74,6 +88,8 @@ export function registerProviderHandlers(win: BrowserWindow, send: (ch: string, 
     providerId: string
     cwd?: string
     resumeSessionId?: string
+    /** System prompt parts assembled by the renderer (presence, memories, output style). */
+    systemPrompt?: string
   }) => {
     const config = providerRegistry.getConfig(args.providerId)
     if (!config) {
@@ -102,13 +118,31 @@ export function registerProviderHandlers(win: BrowserWindow, send: (ch: string, 
     // Strip CLAUDECODE to allow nesting
     const env = { ...providerEnv, CLAUDECODE: '' }
 
+    // StreamBridge has no --append-system-prompt support, so the system prompt
+    // travels as a prefix on the prompt (same convention the Codex path uses).
+    const prompt = args.systemPrompt?.trim()
+      ? `${args.systemPrompt.trim()}\n\n${args.prompt}`
+      : args.prompt
+
     try {
+      // `cwd` becomes the CLI's working directory and `resumeSessionId` becomes
+      // its `--resume` argv value; both arrive from the renderer, so validate
+      // them here rather than letting a prompt-injected page root the CLI
+      // anywhere on disk or hand it an arbitrary argument.
+      const cwd = safePath(
+        args.cwd || (getPref('workingDir') as string) || os.homedir(),
+        getAllowedFsRoots(getPref('workingDir') as string | undefined),
+      )
+      const resumeSessionId = args.resumeSessionId
+      if (resumeSessionId !== undefined && !isValidSessionId(resumeSessionId)) {
+        return { success: false, error: 'Invalid resume session id' }
+      }
       await bridge.sendMessage({
-        prompt: args.prompt,
-        cwd: args.cwd || process.cwd(),
-        resumeSessionId: args.resumeSessionId,
+        prompt,
+        cwd,
+        resumeSessionId,
         sessionId,
-        model: args.model,
+        model: args.model ? validateModelName(args.model) : undefined,
         env,
         skipPermissions: false,
       })
@@ -176,8 +210,21 @@ export function registerProviderHandlers(win: BrowserWindow, send: (ch: string, 
     return claudeModels.length > 0 ? claudeModels : null
   }
 
-  ipcMain.handle('provider:fetchRemoteModels', async (_e, { baseUrl, apiKey, authToken }: { baseUrl: string; apiKey?: string; authToken?: string }) => {
-    const key = apiKey?.trim() || authToken?.trim()
+  ipcMain.handle('provider:fetchRemoteModels', async (_e, { baseUrl, apiKey, authToken, providerId }: { baseUrl: string; apiKey?: string; authToken?: string; providerId?: string }) => {
+    // Credentials are redacted from listConfigs, so a save-triggered fetch may
+    // arrive without them. Fall back to the stored secret for that provider —
+    // but only toward the URL that secret was stored for. Otherwise a caller
+    // could name any `baseUrl` and have the stored key sent there as a bearer
+    // header, which turns this handler into a credential-exfiltration gadget.
+    const stored = providerId ? providerRegistry.getConfig(providerId) : undefined
+    const supplied = apiKey?.trim() || authToken?.trim()
+    if (!supplied) {
+      const storedBase = stored?.baseUrl?.trim()
+      if (!storedBase || new URL(storedBase).origin !== new URL(baseUrl).origin) {
+        return { success: false, models: [], error: 'credential_origin_mismatch' }
+      }
+    }
+    const key = supplied || stored?.apiKey?.trim() || stored?.authToken?.trim()
     const authHeader = key ? `Bearer ${key}` : undefined
     const strategies = [
       () => tryOpenAIModels(baseUrl, authHeader),

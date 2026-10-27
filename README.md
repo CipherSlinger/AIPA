@@ -116,7 +116,7 @@ AIPA 采用现代**双栏无缝驾驶舱布局**，去除了繁琐的中间列�
 
 | 模块 | 核心特性 | 呈现与交互形态 |
 |---|---|---|
-| **💬 智能对话与执行** | Stream-JSON 极速流式传输、双模型切换、思考链折叠展开、上下文自动压缩与时间差清理 | 结构化工具调用卡片、LCS 增量 Diff 视图、待办任务进度条、执行审批对话框 |
+| **💬 智能对话与执行** | Stream-JSON 极速流式传输、双模型切换、思考链折叠展开、上下文自动压缩与时间差清理；流式分片按帧批量追加而不重建消息数组，列表索引、词数统计与文件变更解析均按消息缓存，长会话仍保持顺滑 | 结构化工具调用卡片、LCS 增量 Diff 视图、待办任务进度条、执行审批对话框 |
 | **👥 人事部 (HR)** | 角色拟人化形象、职业特征定制、发型/服饰/表情自适应、在线状态光圈 | 员工页由「专家」「技能」「工作流」三块统一卡片网格组成（原独立技能面板已并入）：技能卡片一键把斜杠命令投喂到对话、点击查看 SKILL.md 全文，专家卡片可编辑/招募，工作流卡片显示步骤数/运行次数并可一键运行；末尾虚线卡片直接新建，下方为推荐预设 |
 | **🏢 组织架构 (Org Chart)** | 部门级「公司模拟图」、主干→母线→支线连接线、随容器宽度与部门数量自适应排版（单行居中 / 多行左侧主干机架式）、部门色标与稳定表情图标；**公司 → 部门 → 团队**三层，套用公司模板即成一节，卡片下恒定挂出团队条（含母线/下垂线的真实子图）与「待上岗」岗位角标 | 只显示部门卡片（不展开员工），点击卡片下钻进入该部门员工名册；卡片悬停可「招募」新员工、打开部门统计弹窗、导出员工列表，或**删除该部门**（卡片外弹出确认框，报出将一并移除的团队数）；总部卡片同法可**整节删除整家公司**（公司+全部部门+其下团队，磁盘文件夹与会话保留）；下钻后的员工名册以**小黄人人像**展示（单眼/双眼、高矮、发型、嘴巴按会话 ID 稳定生成，常驻呼吸动画，正在回复的人像光环旋转、右手敲键盘），虚化的「待上岗」人像站成独立一区，点一下才真正上岗 |
 | **📁 档案部 (Archive)** | 全公司任务总账：以会话为粒度自动归集到**公司/部门/团队**，实时推导不新增存储层、组织/时间/归档状态/全文四维筛选、按公司分组并附未分派收容 | 左侧导航「档案部」或 `Ctrl+8` 进入；每行显示任务标题、所属部门·团队、员工短哈希、时间与轮数，点击直接回到那次会话；行内可标记归档，可导出 `aipa_archive_<date>.json` |
@@ -152,7 +152,7 @@ sequenceDiagram
     Nav->>Nav: 导航栏即时渲染插件图标 (无需重启应用)
     Dev->>Nav: 点击插件图标
     Nav->>Host: 主界面激活该插件视图
-    Host->>Iframe: 加载 file:///.../index.html (安全沙箱隔离)
+    Host->>Iframe: 加载 aipa-plugin://p-<id>-<hash>/... (每插件独立 origin 的沙箱隔离)
     Host-->>Iframe: postMessage 广播当前主题 ({ type: 'aipa:theme', theme: 'light' })
     Iframe->>Host: postMessage 发送提示词 ({ type: 'aipa:sendPrompt', prompt: '...' })
     Host->>AI: 自动填入主输入框并切换至对话界面
@@ -171,6 +171,8 @@ sequenceDiagram
 | `github.commits` | `network` | 主进程调用 GitHub commits API（支持分支/作者过滤/Token，20 秒超时） |
 | `fs.pickFolder` / `fs.scanFolder` | `fs` | 原生目录选择；按修改时间与 `*.ext` 过滤扫描文件变更（跳过 node_modules/.git 等） |
 | `ai.generate` / `ai.abort` | `ai` | 以 ephemeral 方式生成一次文本，经 `aipa:ai:event`（delta/status/done/error）流式回传。按对话相同的路由选择引擎：模型属于已启用的网关 / 兼容接口时走该提供商（Claude CLI + 其 base URL 与 token），否则走只读沙箱的 Codex |
+
+> 插件页面的资源通过 `aipa-plugin://p-<id>-<hash>/<绝对路径>` 提供，相对路径（`./js/app.js`、`style.css`）照常可用。每个插件 id 对应一个固定 host，因此同一插件的 `localStorage` 在改版、移动目录后依然保留；插件若需跨版本迁移旧数据，可在启动时通过 `aipa:storage:get` 向宿主取回（内置便签插件已内置这条一次性迁移）。
 
 随应用发布的多文件插件放在 `electron-ui/src/main/plugins/builtin/<dir>/`，构建时由 `npm run build:plugins` 复制到 `dist`，启动时自动安装到 `~/.aipa/plugins/`；仅当内置版本号更高时才覆盖升级，插件数据保存在 `plugin-data` 中不受升级影响。
 
@@ -524,7 +526,8 @@ graph LR
 
 ### 1. 克隆与安装
 ```bash
-git clone https://github.com/CipherSlinger/AIPA.git
+# `codex/` 是指向 openai/codex 的子模块（仅作协议参考，运行时不依赖它）
+git clone --recurse-submodules https://github.com/CipherSlinger/AIPA.git
 cd AIPA/electron-ui
 npm install
 ```
@@ -556,10 +559,14 @@ npm run dist:win   # 产物生成在 release/ 目录下
 
 ## 🛡️ 安全与沙箱机制
 
-- **凭证安全**：API Key 采用操作系统级密钥链（`electron.safeStorage` / Windows DPAPI）加密存储。
-- **环境隔离**：第三方插件在受限的 Sandboxed `<iframe>` 中运行，严禁直接访问 Node.js 原生 API。
+- **凭证安全**：API Key 采用操作系统级密钥链（`electron.safeStorage` / Windows DPAPI）加密存储，且**永不跨 IPC 交给渲染进程**——提供商配置传到界面时凭据被清空，只保留「已配置」标记。
+- **环境隔离**：第三方插件在受限的 Sandboxed `<iframe>` 中运行，严禁直接访问 Node.js 原生 API。插件由应用自有的 `aipa-plugin:` 协议提供，每个插件按其 id 获得独立的 origin，既保住 `localStorage` 等 Web 存储，又让插件之间、插件与主界面之间无法互读 DOM 或存储。
+- **路径约束**：主进程对会话 ID、记忆文件、技能目录、worktree、插件目录统一做分隔符感知的包含性校验（`isPathInside`），杜绝 `../` 越界读写与递归删除。
 - **权限可控**：提供 5 级工具权限控制（Default / Accept Edits / Don't Ask / Plan Only / Bypass），破坏性操作弹出直观卡片审核。
-- **执行安全**：子进程采用精简环境变量白名单，杜绝敏感密钥意外泄露。
+- **执行安全**：子进程采用精简环境变量白名单，杜绝敏感密钥意外泄露；Codex 每轮显式传 `sandbox`（工作区可写 / 计划模式只读），不再静默继承 `~/.codex/config.toml` 中可能为全盘访问的设置。
+- **本地桥接鉴权**：Clawd 状态服务器（`127.0.0.1:23333+`）只接受回环对端、校验 `Host` 头（阻断 DNS rebinding）、拒绝浏览器 `Origin`，所有写请求需携带 `~/.clawd/auth-token`（0600）中的 Bearer 令牌，请求体另设大小上限。该服务只在用户显式开启「自动管理 Claude 钩子」后才写入 `~/.claude/settings.json`；旧版本升级用户的既有选择会被沿用，不会被静默关停。
+- **截图需用户同意**：`window:captureScreen` 首次调用弹出原生对话框（中英随界面语言），同意后本次运行内有效，拒绝则返回空；该许可不写入偏好设置，避免渲染进程自行放行。
+- **外链与窗口**：`window.open` 与页面跳转仅放行 `http/https/mailto`，其余协议一律拒绝；渲染进程默认拒绝所有权限申请（摄像头、麦克风、定位、通知等）。
 
 ---
 

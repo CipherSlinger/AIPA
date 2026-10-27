@@ -49,6 +49,10 @@ export interface NavPlugin {
   manifest: NavPluginManifest
   dirPath: string
   entryPath: string
+  /** Entry URL on the app's dedicated `aipa-plugin:` scheme. Loading the plugin
+   *  through this custom origin (instead of file://) lets the iframe drop
+   *  allow-same-origin without losing relative asset and localStorage access. */
+  url: string
   source: 'global' | 'workspace'
   valid: boolean
   error?: string
@@ -142,8 +146,8 @@ const electronAPI = {
     ipcRenderer.invoke('speculation:isSafe', { prompt }) as Promise<boolean>,
   speculationRun: (args: { id: string; prompt: string; cwd: string; model: string; env: Record<string, string> }) =>
     ipcRenderer.invoke('speculation:run', args),
-  speculationAccept: (id: string, cwd: string) =>
-    ipcRenderer.invoke('speculation:accept', { id, cwd }) as Promise<{ merged: string[] }>,
+  speculationAccept: (id: string) =>
+    ipcRenderer.invoke('speculation:accept', { id }) as Promise<{ merged: string[] }>,
   speculationReject: (id: string) =>
     ipcRenderer.invoke('speculation:reject', { id }),
   speculationAbort: (id: string) =>

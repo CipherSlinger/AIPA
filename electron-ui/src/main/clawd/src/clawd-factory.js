@@ -175,6 +175,7 @@ const _settingsController = createSettingsController({
     installAutoStart: _installAutoStartHook,
     uninstallAutoStart: _uninstallAutoStartHook,
     syncClaudeHooksNow: () => _server.syncClawdHooks(),
+    syncOtherAgentHooks: (options) => _server.syncOtherAgentHooks(options),
     uninstallClaudeHooksNow: _uninstallClaudeHooksNow,
     startClaudeSettingsWatcher: () => _server.startClaudeSettingsWatcher(),
     stopClaudeSettingsWatcher: () => _server.stopClaudeSettingsWatcher(),
@@ -873,7 +874,10 @@ function wireSettingsSubscribers() {
     try {
       for (const bw of BrowserWindow.getAllWindows()) {
         if (!bw.isDestroyed() && bw.webContents && !bw.webContents.isDestroyed()) {
-          bw.webContents.send("settings-changed", { changes, snapshot: _settingsController.getSnapshot() });
+          bw.webContents.send("settings-changed", {
+            changes,
+            snapshot: { ..._settingsController.getSnapshot(), hooksInstalled: _server.areClaudeHooksInstalled() },
+          });
         }
       }
     } catch (err) {
@@ -1101,7 +1105,11 @@ function _previewAnimationOverride(payload) {
 }
 
 // ── IPC: settings panel write entry points ──
-ipcMain.handle("settings:get-snapshot", () => _settingsController.getSnapshot());
+ipcMain.handle("settings:get-snapshot", () => ({
+  ..._settingsController.getSnapshot(),
+  // Derived status, not a stored pref: false until the user opts in.
+  hooksInstalled: _server.areClaudeHooksInstalled(),
+}));
 ipcMain.handle("settings:update", (_event, payload) => {
   if (!payload || typeof payload !== "object") {
     return { status: "error", message: "settings:update payload must be { key, value }" };

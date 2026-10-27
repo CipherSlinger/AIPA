@@ -12,16 +12,19 @@ import { listSessions as listCodexSessions, loadSession as loadCodexSession, del
 import { addMcpServer, getMcpConfigInfo, readMcpServers, removeMcpServer, setMcpServerEnabledRouted } from '../config/mcp-config'
 import { getSessionStats } from '../sessions/session-stats'
 import { getApiKey, setApiKey, getPref, setPref, getAllPrefs, resetAllPrefs } from '../config/config-manager'
+import { redactProviderSecrets } from '../providers'
+import type { ModelProviderConfig } from '../providers'
 import { readCLISettings, writeCLISettings } from '../config/cli-settings-manager'
 import { listMemoryFiles, readMemoryFile, writeMemoryFile, createMemoryFile, deleteMemoryFile } from '../sessions/memory-manager'
 import { checkIsGitRepo, listWorktrees, createWorktree, removeWorktree } from '../sessions/worktree-manager'
 import { listPlugins, setPluginEnabled, uninstallPlugin, registerLocalPlugin } from '../plugins/plugin-manager'
 import { initNavPluginManager, listNavPlugins, reloadNavPlugins, openPluginFolder } from '../plugins/nav-plugin-manager'
+import { pluginUrl } from '../plugins/plugin-url'
 import { migrateLegacyTasks, startWorkCalendarReminders } from '../plugins/work-calendar-reminders'
 import { readPluginData, writePluginData, fetchGithubCommits, scanFolderChanges, startPluginAi, abortPluginAi, type GithubCommitsArgs, type ScanFolderArgs } from '../plugins/plugin-services'
 import { startPluginEdit, sendPluginEdit, abortPluginEdit, endPluginEdit } from '../plugins/plugin-edit-session'
 import { getCliPath } from '../utils/cli-path'
-import { validateApiKey, validateModelName, validateFlags } from '../utils/validate'
+import { validateApiKey, validateModelName, validateFlags, safePath, getAllowedFsRoots, isValidSessionId } from '../utils/validate'
 import { registerSkillsHandlers } from './skills-handlers'
 import { registerProviderHandlers } from './provider-handlers'
 import { registerFsHandlers } from './fs-handlers'
@@ -207,9 +210,27 @@ function registerPtyHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
 // ----------------------------------------
 function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknown[]) => void): void {
   ipcMain.handle('cli:sendMessage', async (_e, args) => {
-    // Validate and sanitize renderer-supplied flags and model (defence-in-depth)
-    if (args.flags) args.flags = validateFlags(args.flags)
-    if (args.model) validateModelName(args.model)
+    // Validate and sanitize renderer-supplied flags, model, cwd and resume id
+    // (defence-in-depth). `cwd` becomes the CLI's working directory and
+    // `sessionId` becomes its `--resume` argument, so neither may pass through
+    // raw. Validation used to throw out of the handler, which reaches the
+    // renderer as a raw "Error invoking remote method" rejection.
+    try {
+      if (args.flags) args.flags = validateFlags(args.flags)
+      if (args.model) validateModelName(args.model)
+      if (args.cwd) {
+        args.cwd = safePath(
+          args.cwd,
+          getAllowedFsRoots(getPref('workingDir') as string | undefined),
+        )
+      }
+      if (args.sessionId && !isValidSessionId(args.sessionId)) {
+        return { success: false, error: 'Invalid session id' }
+      }
+    } catch (err) {
+      log.warn('cli:sendMessage rejected:', String(err))
+      return { success: false, error: String(err) }
+    }
 
     // ── CodexBridge path (primary) ──
     // Use CodexBridge when OPENAI_API_KEY is set or no explicit ANTHROPIC key
@@ -307,6 +328,30 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
 
 // ── CodexBridge send message implementation ──────────
 
+/**
+ * Map a renderer permission mode onto an explicit Codex sandbox.
+ *
+ * Codex defaults `sandbox` from ~/.codex/config.toml when the field is omitted,
+ * which can be danger-full-access even for approvalPolicy 'never'. Passing it
+ * explicitly keeps "approve nothing" from also meaning "write anywhere".
+ * `acceptEdits` keeps workspace writes (that is its whole point); bypass/dontAsk
+ * are also workspace-scoped — full disk access stays a config.toml decision the
+ * user makes deliberately, not something the UI silently opts them into.
+ */
+function resolveCodexSandbox(permissionMode: string | undefined): string {
+  switch (permissionMode) {
+    case 'bypassPermissions':
+    case 'dontAsk':
+    case 'acceptEdits':
+    case 'default':
+      return 'workspaceWrite'
+    case 'plan':
+      return 'readOnly'
+    default:
+      return 'workspaceWrite'
+  }
+}
+
 async function registerCodexSendMessage(
   args: Record<string, unknown>,
   send: (ch: string, ...a: unknown[]) => void
@@ -380,6 +425,10 @@ async function registerCodexSendMessage(
     default: approvalPolicy = undefined
   }
 
+  // Sandbox must be explicit: without it the turn inherits ~/.codex/config.toml,
+  // which may be danger-full-access even under approvalPolicy 'never'.
+  const sandbox = resolveCodexSandbox(permissionMode)
+
   try {
     await bridge.sendMessage({
       prompt: args.prompt as string,
@@ -388,6 +437,7 @@ async function registerCodexSendMessage(
       model: args.model as string | undefined,
       env,
       approvalPolicy,
+      sandbox,
       personality: 'pragmatic',
     })
     return { success: true, sessionId: bridgeId }
@@ -480,53 +530,90 @@ async function registerLegacySendMessage(
 function registerSessionHandlers(): void {
   // Session listing: merge Codex + Claude sessions (Codex primary, Claude for migration period)
   ipcMain.handle('session:list', () => {
-    const codexSessions = listCodexSessions()
-    const claudeSessions = listClaudeSessions()
-    // Deduplicate by sessionId, preferring Codex sessions
-    const seen = new Set(codexSessions.map(s => s.sessionId))
-    const merged = [...codexSessions]
-    for (const s of claudeSessions) {
-      if (!seen.has(s.sessionId)) merged.push(s)
+    try {
+      const codexSessions = listCodexSessions()
+      const claudeSessions = listClaudeSessions()
+      // Deduplicate by sessionId, preferring Codex sessions
+      const seen = new Set(codexSessions.map(s => s.sessionId))
+      const merged = [...codexSessions]
+      for (const s of claudeSessions) {
+        if (!seen.has(s.sessionId)) merged.push(s)
+      }
+      return merged.sort((a, b) => b.timestamp - a.timestamp)
+    } catch (err) {
+      log.warn('session:list error:', String(err))
+      return []
     }
-    return merged.sort((a, b) => b.timestamp - a.timestamp)
   })
 
   // Session loading: try Codex first, then Claude
   ipcMain.handle('session:load', (_e, id) => {
-    const codexResult = loadCodexSession(id)
-    if (codexResult.length > 0) return codexResult
-    return loadClaudeSession(id)
+    try {
+      const codexResult = loadCodexSession(id)
+      if (codexResult.length > 0) return codexResult
+      return loadClaudeSession(id)
+    } catch (err) {
+      log.warn('session:load error:', String(err))
+      return []
+    }
   })
 
   // Session deletion: try both
   ipcMain.handle('session:delete', (_e, id) => {
-    const codexDeleted = deleteCodexSession(id)
-    const claudeDeleted = deleteClaudeSession(id)
-    return codexDeleted || claudeDeleted
+    try {
+      const codexDeleted = deleteCodexSession(id)
+      const claudeDeleted = deleteClaudeSession(id)
+      return codexDeleted || claudeDeleted
+    } catch (err) {
+      log.warn('session:delete error:', String(err))
+      return false
+    }
   })
 
   // Session fork: use Codex fork
   ipcMain.handle('session:fork', (_e, { sessionId, upToMessageIndex }) => {
-    const codexResult = forkCodexSession(sessionId, upToMessageIndex)
-    if (codexResult) return codexResult
-    return forkClaudeSession(sessionId, upToMessageIndex)
+    try {
+      const codexResult = forkCodexSession(sessionId, upToMessageIndex)
+      if (codexResult) return codexResult
+      return forkClaudeSession(sessionId, upToMessageIndex)
+    } catch (err) {
+      log.warn('session:fork error:', String(err))
+      return null
+    }
   })
-  ipcMain.handle('session:rename', (_e, { sessionId, title }) => renameSession(sessionId, title))
+  ipcMain.handle('session:rename', (_e, { sessionId, title }) => {
+    try {
+      return renameSession(sessionId, title)
+    } catch (err) {
+      log.warn('session:rename error:', String(err))
+      return false
+    }
+  })
   ipcMain.handle('session:generateTitle', async (_e: Electron.IpcMainInvokeEvent, { description }: { description: string }) => {
     const cliPath = getCliPath()
     return generateSessionTitle(description, cliPath)
   })
 
   ipcMain.handle('session:rewind', async (_e: Electron.IpcMainInvokeEvent, { sessionId, beforeTimestamp }: { sessionId: string; beforeTimestamp: string }) => {
-    const cliPath = getCliPath()
-    return rewindSession(sessionId, beforeTimestamp, cliPath)
+    try {
+      const cliPath = getCliPath()
+      return await rewindSession(sessionId, beforeTimestamp, cliPath)
+    } catch (err) {
+      log.warn('session:rewind error:', String(err))
+      return { success: false, error: String(err) }
+    }
   })
 
   ipcMain.handle('session:search', (_e: Electron.IpcMainInvokeEvent, { query, limit }: { query: string; limit?: number }) => {
-    // Search both Codex and Claude sessions
-    const codexResults = searchCodexSessions(query, limit)
-    const claudeResults = searchClaudeSessions(query, limit)
-    return [...codexResults, ...claudeResults].slice(0, limit || 20)
+    try {
+      // Search both Codex and Claude sessions
+      const codexResults = searchCodexSessions(query, limit)
+      const claudeResults = searchClaudeSessions(query, limit)
+      return [...codexResults, ...claudeResults].slice(0, limit || 20)
+    } catch (err) {
+      log.warn('session:search error:', String(err))
+      return []
+    }
   })
 
   ipcMain.handle('cli:generateSuggestion', async (_e: Electron.IpcMainInvokeEvent, { context }: { context: string }) => {
@@ -539,11 +626,21 @@ function registerSessionHandlers(): void {
     return generateAwaySummary(context, cliPath)
   })
   ipcMain.handle('session:detectInterruption', (_e: Electron.IpcMainInvokeEvent, { sessionId }: { sessionId: string }) => {
-    return detectTurnInterruption(sessionId)
+    try {
+      return detectTurnInterruption(sessionId)
+    } catch (err) {
+      log.warn('session:detectInterruption error:', String(err))
+      return 'none'
+    }
   })
 
   ipcMain.handle('session:getStats', async () => {
-    return getSessionStats()
+    try {
+      return getSessionStats()
+    } catch (err) {
+      log.warn('session:getStats error:', String(err))
+      return null
+    }
   })
 
   // DreamTask detection: returns the mtime of the .consolidate-lock file that
@@ -580,13 +677,35 @@ function registerConfigHandlers(): void {
   })
 
   ipcMain.handle('prefs:get', (_e, key) => {
-    try { return getPref(key) } catch (err) { log.warn('prefs:get error:', String(err)); return null }
+    try {
+      // Same redaction as prefs:getAll — a single-key read must not become a
+      // side door for the credential fields.
+      if (key === 'apiKeyEncrypted' || key === 'apiKey') return ''
+      if (key === 'modelProviders') {
+        const providers = getPref('modelProviders')
+        return Array.isArray(providers)
+          ? redactProviderSecrets(providers as ModelProviderConfig[])
+          : []
+      }
+      return getPref(key)
+    } catch (err) { log.warn('prefs:get error:', String(err)); return null }
   })
   ipcMain.handle('prefs:set', (_e, key, value) => {
     try { setPref(key, value) } catch (err) { log.warn('prefs:set error:', String(err)) }
   })
   ipcMain.handle('prefs:getAll', () => {
-    try { return getAllPrefs() } catch (err) { log.warn('prefs:getAll error:', String(err)); return {} }
+    try {
+      // Never hand the encrypted API key (or any other secret) to the renderer.
+      // The renderer only needs to know whether a key exists — see config:getEnv.
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { apiKeyEncrypted, apiKey, modelProviders, ...safe } = getAllPrefs()
+      return {
+        ...safe,
+        modelProviders: Array.isArray(modelProviders)
+          ? redactProviderSecrets(modelProviders as ModelProviderConfig[])
+          : [],
+      }
+    } catch (err) { log.warn('prefs:getAll error:', String(err)); return {} }
   })
   ipcMain.handle('prefs:resetAll', () => {
     resetAllPrefs()
@@ -610,10 +729,21 @@ function registerConfigHandlers(): void {
     disabled: srv.disabled,
   })))
 
-  /** Full config, including transport details, for the Settings → MCP tab. */
+  /**
+   * Full config, including transport details, for the Settings → MCP tab.
+   *
+   * `env` and `headers` are where MCP servers keep their credentials
+   * (`GITHUB_TOKEN`, `Authorization: Bearer …`), so the renderer only learns
+   * which keys are set — the values never cross the bridge. `mcp:list` already
+   * omits them; this channel must not become the way around it.
+   */
   safeHandle('mcp:readConfig', () => ({
     ...getMcpConfigInfo(),
-    servers: readMcpServers(),
+    servers: readMcpServers().map(srv => ({
+      ...srv,
+      env: srv.env ? redactKeys(srv.env) : undefined,
+      headers: srv.headers ? redactKeys(srv.headers) : undefined,
+    })),
   }))
 
   // ── CLI settings.json read/write (Iteration 518) ─────
@@ -662,39 +792,89 @@ function registerConfigHandlers(): void {
 
   // ── Memory ──────────────────────────────────────────────────────────────
   safeHandle('memory:list', (_e, { scope }: { scope?: 'global' | 'project' | 'all' }) => {
-    return listMemoryFiles(scope || 'all')
+    try {
+      return listMemoryFiles(scope || 'all')
+    } catch (err) {
+      log.warn('memory:list error:', String(err))
+      return []
+    }
   })
   safeHandle('memory:read', (_e, { filePath }: { filePath: string }) => {
-    return readMemoryFile(filePath)
+    try {
+      return readMemoryFile(filePath)
+    } catch (err) {
+      log.warn('memory:read error:', String(err))
+      return { error: String(err) }
+    }
   })
   safeHandle('memory:write', (_e, { filePath, content }: { filePath: string; content: string }) => {
-    writeMemoryFile(filePath, content)
-    return { success: true }
+    try {
+      writeMemoryFile(filePath, content)
+      return { success: true }
+    } catch (err) {
+      log.warn('memory:write error:', String(err))
+      return { success: false, error: String(err) }
+    }
   })
   safeHandle('memory:create', (_e, { name, description, type, body, scope, projectHash }: {
     name: string; description: string; type: string; body: string; scope: 'global' | 'project'; projectHash?: string
   }) => {
-    const filePath = createMemoryFile(name, description, type, body, scope, projectHash)
-    return { success: true, filePath }
+    try {
+      const filePath = createMemoryFile(name, description, type, body, scope, projectHash)
+      return { success: true, filePath }
+    } catch (err) {
+      log.warn('memory:create error:', String(err))
+      return { success: false, error: String(err) }
+    }
   })
   safeHandle('memory:delete', (_e, { filePath }: { filePath: string }) => {
-    deleteMemoryFile(filePath)
-    return { success: true }
+    try {
+      deleteMemoryFile(filePath)
+      return { success: true }
+    } catch (err) {
+      log.warn('memory:delete error:', String(err))
+      return { success: false, error: String(err) }
+    }
   })
 
   // ── Worktree ─────────────────────────────────────────────────────────────
+  // `cwd` becomes the working directory of `git worktree add/remove`, so it has
+  // to be inside the roots the user has actually opened. Every handler also
+  // reports failures as data: worktree-manager throws on "not a git repo" and
+  // on a bad branch name, and a raw IPC rejection shows the renderer an
+  // "Error invoking remote method" string instead of something to display.
+  const worktreeCwd = (cwd: string): string =>
+    safePath(cwd, getAllowedFsRoots(getPref('workingDir') as string | undefined))
   safeHandle('worktree:isGitRepo', (_e, { cwd }: { cwd: string }) => {
-    return { isGit: checkIsGitRepo(cwd) }
+    try {
+      return { isGit: checkIsGitRepo(worktreeCwd(cwd)) }
+    } catch (err) {
+      log.warn('worktree:isGitRepo rejected:', String(err))
+      return { isGit: false }
+    }
   })
   safeHandle('worktree:list', (_e, { cwd }: { cwd: string }) => {
-    return listWorktrees(cwd)
+    try {
+      return listWorktrees(worktreeCwd(cwd))
+    } catch (err) {
+      log.warn('worktree:list error:', String(err))
+      return []
+    }
   })
   safeHandle('worktree:create', async (_e, { cwd, name }: { cwd: string; name: string }) => {
-    return createWorktree(cwd, name)
+    try {
+      return createWorktree(worktreeCwd(cwd), name)
+    } catch (err) {
+      return { success: false, error: String(err) }
+    }
   })
   safeHandle('worktree:remove', (_e, { cwd, worktreePath, force }: { cwd: string; worktreePath: string; force: boolean }) => {
-    removeWorktree(cwd, worktreePath, force)
-    return { success: true }
+    try {
+      removeWorktree(worktreeCwd(cwd), worktreePath, force)
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: String(err) }
+    }
   })
 
   // ── Plugin ───────────────────────────────────────────────────────────────
@@ -710,12 +890,20 @@ function registerConfigHandlers(): void {
     return { success: true }
   })
   safeHandle('plugin:registerLocal', (_e, { pluginPath }: { pluginPath: string }) => {
-    return registerLocalPlugin(pluginPath)
+    // The path is read, persisted to ~/.claude/plugins.json and later loaded by
+    // the plugin scanner, so it must stay inside the roots the user has opened
+    // rather than anywhere on disk (including UNC paths).
+    try {
+      const safe = safePath(pluginPath, getAllowedFsRoots(getPref('workingDir') as string | undefined))
+      return registerLocalPlugin(safe)
+    } catch (err) {
+      log.warn('plugin:registerLocal rejected:', String(err))
+      return { success: false, error: String(err) }
+    }
   })
 
   ipcMain.handle('feedback:rate', (_e: Electron.IpcMainInvokeEvent, { messageId, rating }: { messageId: string; rating: 'up' | 'down' | null }) => {
     const key = `feedback.${messageId}`
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(setPref as any)(key, rating)
   })
 }
@@ -723,22 +911,29 @@ function registerConfigHandlers(): void {
 // ----------------------------------------
 // Nav Plugin handlers (Hot-Pluggable Left-Rail & Main View Plugins)
 // ----------------------------------------
+/**
+ * Attach the custom-scheme URL to every plugin before it reaches the renderer,
+ * so the iframe src is built in one place and can never drift from the protocol
+ * handler's host scheme.
+ */
+function withPluginUrls<T extends { manifest: { id: string }; entryPath: string }>(plugins: T[]): (T & { url: string })[] {
+  return plugins.map(p => ({ ...p, url: pluginUrl(p.manifest.id, p.entryPath) }))
+}
+
 function registerNavPluginHandlers(win: BrowserWindow, send: (ch: string, ...a: unknown[]) => void): void {
   const getWorkingDir = () => ((getPref as any)('workingDir') as string) || ''
   initNavPluginManager(
     getWorkingDir,
     (plugins) => {
-      send('plugin:nav:updated', plugins)
+      send('plugin:nav:updated', withPluginUrls(plugins))
     }
   )
   // Tasks panel moved into the Work Calendar plugin — carry old data over
   migrateLegacyTasks()
   startWorkCalendarReminders(win)
 
-  safeHandle('plugin:nav:list', () => {
-    return listNavPlugins()
-  })
-  safeHandle('plugin:nav:reload', () => reloadNavPlugins(getWorkingDir()))
+  safeHandle('plugin:nav:list', () => withPluginUrls(listNavPlugins()))
+  safeHandle('plugin:nav:reload', () => withPluginUrls(reloadNavPlugins(getWorkingDir())))
   safeHandle('plugin:nav:openFolder', (_e, { pluginId }: { pluginId?: string } = {}) => {
     return openPluginFolder(pluginId || '')
   })
@@ -768,8 +963,16 @@ function registerNavPluginHandlers(win: BrowserWindow, send: (ch: string, ...a: 
     return fetchGithubCommits(args)
   })
   safeHandle('plugin:fs:scanFolder', (_e, { pluginId, args }: { pluginId: string; args: ScanFolderArgs }) => {
-    requirePermission(pluginId, 'fs')
-    return scanFolderChanges(args)
+    // `fs` permission is a manifest self-declaration; containment is enforced
+    // separately so a plugin cannot enumerate the whole disk through it.
+    try {
+      requirePermission(pluginId, 'fs')
+      const folderPath = safePath(args.folderPath, getAllowedFsRoots(getPref('workingDir') as string | undefined))
+      return scanFolderChanges({ ...args, folderPath })
+    } catch (err) {
+      log.warn('plugin:fs:scanFolder rejected:', String(err))
+      return { success: false, error: String(err) }
+    }
   })
   safeHandle('plugin:fs:pickFolder', async (_e, { pluginId, title }: { pluginId: string; title?: string }) => {
     requirePermission(pluginId, 'fs')
@@ -847,6 +1050,11 @@ function registerShellHandlers(): void {
     try {
       const parsed = new URL(url)
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
+      // Link previews come from chat transcripts, i.e. from content an agent
+      // produced. Without this a crafted link could make the main process
+      // probe loopback services or the cloud metadata endpoint from inside
+      // the user's network and report the result back as a page title.
+      if (isPrivateHost(parsed.hostname)) return null
       const https = require('https')
       const http = require('http')
       const mod = parsed.protocol === 'https:' ? https : http
@@ -906,6 +1114,28 @@ function registerShellHandlers(): void {
   })
 }
 
+/** Loopback, link-local and RFC-1918 hosts must never be fetched for previews. */
+function isPrivateHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, '')
+  if (host === 'localhost' || host.endsWith('.localhost') || host === '0.0.0.0') return true
+  // IPv6 loopback / unspecified / unique-local / link-local
+  if (host === '::1' || host === '::' || host.startsWith('fc') || host.startsWith('fd') || host.startsWith('fe80')) return true
+  const v4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+  if (!v4) return false
+  const [a, b] = [Number(v4[1]), Number(v4[2])]
+  if (a === 10 || a === 127 || a === 0) return true
+  if (a === 169 && b === 254) return true // link-local incl. 169.254.169.254 metadata
+  if (a === 172 && b >= 16 && b <= 31) return true
+  if (a === 192 && b === 168) return true
+  if (a === 100 && b >= 64 && b <= 127) return true
+  return false
+}
+
+/** Replace every value in a key→secret map with a marker, keeping the keys. */
+function redactKeys(map: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.keys(map).map(k => [k, '***']))
+}
+
 // ----------------------------------------
 // Speculation handlers (Iteration 489)
 // ----------------------------------------
@@ -944,10 +1174,12 @@ function registerSpeculationHandlers(): void {
   })
 
   // Accept: merge overlay files back to real cwd
-  safeHandle('speculation:accept', (_e, { id, cwd }: { id: string; cwd: string }) => {
+  safeHandle('speculation:accept', (_e, { id }: { id: string }) => {
     const bridge = speculationManager.get(id)
     if (!bridge) return { merged: [] }
-    const merged = bridge.mergeToReal(cwd)
+    // The merge target is the cwd the speculation was started for, held by the
+    // main process — never a path the renderer supplies at accept time.
+    const merged = bridge.mergeToReal()
     speculationManager.remove(id)
     return { merged }
   })

@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const fs = require("fs");
 const http = require("http");
 const os = require("os");
@@ -10,7 +11,18 @@ const SERVER_PORT_COUNT = 5;
 const SERVER_PORTS = Array.from({ length: SERVER_PORT_COUNT }, (_, i) => DEFAULT_SERVER_PORT + i);
 const STATE_PATH = "/state";
 const PERMISSION_PATH = "/permission";
-const RUNTIME_CONFIG_PATH = path.join(os.homedir(), ".clawd", "runtime.json");
+
+// Both the server and the hook scripts run as the same desktop user, so a
+// token file in the user's home is the one location each side can resolve
+// without knowing the other's install path (the hooks are ordinary Node
+// processes launched by Claude/Cursor/Gemini, and have no access to Electron's
+// `app.getPath('userData')`). `~/.clawd/` is created 0700 and the token 0600
+// on POSIX; on Windows the per-user profile ACL provides the equivalent
+// isolation (Node's chmod only toggles the read-only bit there).
+const CLAWD_DIR = path.join(os.homedir(), ".clawd");
+const AUTH_TOKEN_PATH = path.join(CLAWD_DIR, "auth-token");
+const AUTH_TOKEN_MIN_LENGTH = 32;
+const RUNTIME_CONFIG_PATH = path.join(CLAWD_DIR, "runtime.json");
 
 function normalizePort(value) {
   const port = Number(value);
@@ -34,6 +46,88 @@ function readRuntimeConfig() {
   } catch {
     return null;
   }
+}
+
+// ── Shared-secret auth for the local HTTP server ──
+//
+// The server binds to 127.0.0.1, but loopback is not an authorization
+// boundary: any process running as this user — including a browser page via
+// DNS rebinding or a malicious local tool — can POST /permission and approve
+// tool use on the user's behalf. Mutating endpoints therefore require a
+// bearer token that only processes able to read the user's profile can obtain.
+
+function isValidAuthToken(value) {
+  return typeof value === "string" && value.length >= AUTH_TOKEN_MIN_LENGTH;
+}
+
+/**
+ * Read the shared server token written by the running Clawd/AIPA instance.
+ * Returns null when the file is missing/unreadable — callers should then send
+ * no Authorization header and let the request fail closed with 401.
+ */
+function readAuthToken() {
+  try {
+    const token = fs.readFileSync(AUTH_TOKEN_PATH, "utf8").trim();
+    return isValidAuthToken(token) ? token : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Create (or replace) the shared server token.
+ *
+ * The token is deliberately persistent across launches: the optional HTTP
+ * hook that Claude Code / CodeBuddy read from the agent's settings.json has to
+ * carry the secret literally (those agents run in the user's terminal and
+ * cannot read Electron's userData or resolve our env vars), so rotating it on
+ * every start would break permission bubbles until the next settings sync.
+ * `ensureAuthToken()` is what startup calls; this function exists for forced
+ * rotation and tests.
+ */
+function writeAuthToken() {
+  const token = crypto.randomBytes(32).toString("hex");
+  fs.mkdirSync(CLAWD_DIR, { recursive: true, mode: 0o700 });
+  try { fs.chmodSync(CLAWD_DIR, 0o700); } catch {}
+  const tmpPath = path.join(CLAWD_DIR, `.auth-token.${process.pid}.${Date.now()}.tmp`);
+  try {
+    fs.writeFileSync(tmpPath, token, { encoding: "utf8", mode: 0o600 });
+    try { fs.chmodSync(tmpPath, 0o600); } catch {}
+    fs.renameSync(tmpPath, AUTH_TOKEN_PATH);
+    try { fs.chmodSync(AUTH_TOKEN_PATH, 0o600); } catch {}
+    return token;
+  } catch {
+    try { fs.unlinkSync(tmpPath); } catch {}
+    return null;
+  }
+}
+
+/**
+ * Return the shared token, generating one on first run. Tightens the file
+ * mode if an older install left it group/world-readable.
+ */
+function ensureAuthToken() {
+  const existing = readAuthToken();
+  if (existing) {
+    try { fs.chmodSync(AUTH_TOKEN_PATH, 0o600); } catch {}
+    return existing;
+  }
+  return writeAuthToken();
+}
+
+function clearAuthToken() {
+  try {
+    fs.unlinkSync(AUTH_TOKEN_PATH);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Authorization header for hook → server POSTs (empty object when no token). */
+function buildAuthHeaders(token) {
+  const value = isValidAuthToken(token) ? token : readAuthToken();
+  return value ? { Authorization: `Bearer ${value}` } : {};
 }
 
 function readRuntimePort() {
@@ -163,6 +257,9 @@ function probePort(port, timeoutMs, callback, options = {}) {
 
 function postStateToPort(port, payload, timeoutMs, callback, options = {}) {
   const httpRequest = options.httpRequest || http.request;
+  const authHeaders = options.authToken !== undefined
+    ? buildAuthHeaders(options.authToken)
+    : buildAuthHeaders();
   const req = httpRequest(
     {
       hostname: "127.0.0.1",
@@ -172,6 +269,7 @@ function postStateToPort(port, payload, timeoutMs, callback, options = {}) {
       headers: {
         "Content-Type": "application/json",
         "Content-Length": Buffer.byteLength(payload),
+        ...authHeaders,
       },
       timeout: timeoutMs,
     },
@@ -351,6 +449,7 @@ function resolveNodeBin(options = {}) {
 }
 
 module.exports = {
+  AUTH_TOKEN_PATH,
   CLAWD_SERVER_HEADER,
   CLAWD_SERVER_ID,
   DEFAULT_SERVER_PORT,
@@ -358,16 +457,22 @@ module.exports = {
   RUNTIME_CONFIG_PATH,
   SERVER_PORTS,
   STATE_PATH,
+  buildAuthHeaders,
   buildPermissionUrl,
+  clearAuthToken,
   clearRuntimeConfig,
   discoverClawdPort,
+  ensureAuthToken,
   getPortCandidates,
+  isValidAuthToken,
   postStateToRunningServer,
   probePort,
+  readAuthToken,
   readHostPrefix,
   readRuntimePort,
   resolveNodeBin,
   splitPortCandidates,
   postStateToPort,
+  writeAuthToken,
   writeRuntimeConfig,
 };

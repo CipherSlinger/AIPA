@@ -4,10 +4,11 @@
  * Wraps `git worktree` commands to create/list/remove git worktrees
  * in the .claude/worktrees/ subdirectory (matching Claude Code CLI convention).
  */
-import { execFileSync, execSync } from 'child_process'
+import { execFileSync } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
 import { createLogger } from '../utils/logger'
+import { isPathInside } from '../utils/validate'
 
 const log = createLogger('worktree-manager')
 
@@ -95,9 +96,10 @@ export function createWorktree(cwd: string, name: string): { path: string; branc
 export function removeWorktree(cwd: string, worktreePath: string, force: boolean): void {
   if (!isGitRepo(cwd)) throw new Error('Not a git repository')
 
-  // Safety: only allow removal of worktrees in .claude/worktrees/
+  // Safety: only allow removal of worktrees in .claude/worktrees/.
+  // isPathInside is separator-aware, so sibling prefixes are rejected too.
   const worktreesDir = getWorktreesDir(cwd)
-  if (!path.resolve(worktreePath).startsWith(path.resolve(worktreesDir))) {
+  if (!isPathInside(worktreesDir, worktreePath)) {
     throw new Error('Can only remove worktrees created by AIPA (in .claude/worktrees/)')
   }
 

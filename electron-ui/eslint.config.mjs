@@ -28,7 +28,9 @@ export default [
 
       // Basic TS rules
       '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      // `varsIgnorePattern: '^_'` lets rest-destructuring omit keys by renaming
+    // them to `_x` — the idiomatic way to drop fields from an object.
+    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
 
       // Catch inline object/array literals as Zustand selector fallbacks.
       // Pattern: useXxxStore(s => expr ?? {}) or useXxxStore(s => expr ?? [])

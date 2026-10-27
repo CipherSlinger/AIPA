@@ -1,6 +1,7 @@
 // src/server.js — HTTP server + routes (/state, /permission, /health)
 // Extracted from main.js L1337-1528
 
+const crypto = require("crypto");
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
@@ -10,10 +11,72 @@ const {
   CLAWD_SERVER_ID,
   DEFAULT_SERVER_PORT,
   clearRuntimeConfig,
+  ensureAuthToken,
   getPortCandidates,
   readRuntimePort,
   writeRuntimeConfig,
 } = require("../hooks/server-config");
+
+// Request body caps. Kept as constants so the parser can bail before buffering
+// an attacker-sized payload.
+const MAX_STATE_BODY_BYTES = 1024;
+const MAX_PERMISSION_BODY_BYTES = 524288;
+
+/** Constant-time comparison so a local attacker can't recover the token byte-by-byte. */
+function tokensMatch(expected, received) {
+  if (typeof expected !== "string" || typeof received !== "string") return false;
+  const a = Buffer.from(expected, "utf8");
+  const b = Buffer.from(received, "utf8");
+  if (a.length !== b.length) return false;
+  try {
+    return crypto.timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Extract the bearer token from an Authorization header, falling back to the
+ * X-AIPA-Token header (handy for tools that can only set custom headers).
+ */
+function extractRequestToken(req) {
+  const auth = req.headers && req.headers["authorization"];
+  if (typeof auth === "string") {
+    const match = auth.match(/^Bearer\s+(.+)$/i);
+    if (match) return match[1].trim();
+  }
+  const custom = req.headers && req.headers["x-aipa-token"];
+  return typeof custom === "string" ? custom.trim() : null;
+}
+
+/**
+ * Reject requests that a browser could have originated. A page cannot forge
+ * the Host header, and it always attaches an Origin to cross-origin POSTs, so
+ * requiring `Host: 127.0.0.1:<port>`/`localhost:<port>` and an absent (or
+ * same-origin) Origin closes the DNS-rebinding path even before the token
+ * check runs.
+ */
+function isLocalHostHeader(hostHeader, port) {
+  if (typeof hostHeader !== "string" || !hostHeader) return false;
+  const expected = new Set([`127.0.0.1:${port}`, `localhost:${port}`]);
+  return expected.has(hostHeader.toLowerCase());
+}
+
+function isBrowserOrigin(originHeader, port) {
+  if (originHeader === undefined || originHeader === null) return false;
+  if (typeof originHeader !== "string") return true;
+  // Non-browser clients (hook scripts) never send Origin. Anything that does
+  // is a web context; only our own loopback page is tolerated, and no page
+  // the app ships needs to call these endpoints.
+  try {
+    const origin = new URL(originHeader);
+    return !(origin.protocol === "http:"
+      && (origin.hostname === "127.0.0.1" || origin.hostname === "localhost")
+      && origin.port === String(port));
+  } catch {
+    return true;
+  }
+}
 
 // ExitPlanMode (Plan Review) and AskUserQuestion (elicitation) happen to
 // travel through /permission, but they're UX flows — not approvals the
@@ -53,8 +116,17 @@ let settingsWatcher = null;
 let settingsWatchDebounceTimer = null;
 let settingsWatchLastSyncTime = 0;
 
+// Strict opt-in: an absent/undefined value (older prefs files, tests that do
+// not pass the flag) means "do not touch the user's agent configs".
 function shouldManageClaudeHooks() {
-  return ctx.manageClaudeHooksAutomatically !== false;
+  return ctx.manageClaudeHooksAutomatically === true;
+}
+
+// Non-Claude agents (Gemini/Cursor/CodeBuddy/Kiro/opencode) share the same
+// opt-in switch — there is no separate per-agent consent UI, and silently
+// rewriting those tools' configs is exactly what the opt-in exists to prevent.
+function shouldManageOtherAgentHooks() {
+  return ctx.manageClaudeHooksAutomatically === true;
 }
 
 function getClaudeSettingsDir() {
@@ -75,6 +147,9 @@ function getHookServerPort() {
 
 function syncClawdHooks() {
   try {
+    // The HTTP permission hook embeds the shared token, so make sure one
+    // exists before the installer serializes the settings file.
+    ensureAuthToken();
     if (typeof ctx.syncClawdHooksImpl === "function") {
       return ctx.syncClawdHooksImpl({
         autoStart: ctx.autoStartWithClaude,
@@ -160,6 +235,38 @@ function syncOpencodePlugin() {
   }
 }
 
+/**
+ * Sync every non-Claude agent we support.
+ *
+ * `force` is for callers acting on the user's own click (the settings toggle
+ * runs its effect *before* the new value is committed, so the ctx getter still
+ * reads the old value at that point).
+ */
+function syncOtherAgentHooks(options) {
+  if (!(options && options.force) && !shouldManageOtherAgentHooks()) return;
+  syncGeminiHooks();
+  syncCursorHooks();
+  syncCodeBuddyHooks();
+  syncKiroHooks();
+  syncOpencodePlugin();
+}
+
+/**
+ * Does ~/.claude/settings.json currently contain our hooks? Reported to the
+ * settings panel. Deliberately reports false while hook management is off,
+ * even if stale entries from an earlier opt-in are still on disk — the UI must
+ * not imply that hooks are being managed when they are not.
+ */
+function areClaudeHooksInstalled() {
+  if (!shouldManageClaudeHooks()) return false;
+  try {
+    const raw = fsApi.readFileSync(getClaudeSettingsPath(), "utf-8");
+    return raw.includes(HOOK_MARKER);
+  } catch {
+    return false;
+  }
+}
+
 function sendStateHealthResponse(res) {
   const body = JSON.stringify({ ok: true, app: CLAWD_SERVER_ID, port: getHookServerPort() });
   res.writeHead(200, {
@@ -237,7 +344,58 @@ function startClaudeSettingsWatcher() {
 }
 
 function startHttpServer() {
+  // Load (or mint on first run) the shared secret before accepting traffic.
+  // Hook scripts read the same file (see hooks/server-config.js) and the
+  // optional HTTP hook carries a copy, so the token deliberately survives
+  // restarts — see ensureAuthToken().
+  const authToken = typeof ctx.authToken === "string" && ctx.authToken
+    ? ctx.authToken
+    : ensureAuthToken();
+
+  function rejectForbidden(req, res) {
+    req.resume(); // drain any body so keep-alive connections stay usable
+    res.writeHead(403, { [CLAWD_SERVER_HEADER]: CLAWD_SERVER_ID });
+    res.end("forbidden");
+  }
+
+  function rejectUnauthorized(req, res) {
+    req.resume();
+    res.writeHead(401, { [CLAWD_SERVER_HEADER]: CLAWD_SERVER_ID });
+    res.end("unauthorized");
+  }
+
   httpServer = createHttpServer((req, res) => {
+    const requestPort = activeServerPort || readRuntimePortFn() || DEFAULT_SERVER_PORT;
+
+    // ── Boundary checks, before any body is read ──
+    // The listener is bound to 127.0.0.1, but check the peer too so a future
+    // bind change (or a proxy) cannot silently expose the endpoints.
+    // Host must name the loopback listener: browsers set it from the URL, so
+    // this blocks DNS-rebinding pages that resolve their own hostname to
+    // 127.0.0.1. Origin is refused outright unless it is our own loopback
+    // page (nothing the app ships calls these endpoints from a web context).
+    const peer = req.socket && req.socket.remoteAddress;
+    const isLoopbackPeer = peer === "127.0.0.1" || peer === "::1" || peer === "::ffff:127.0.0.1";
+    if (!isLoopbackPeer
+      || !isLocalHostHeader(req.headers && req.headers.host, requestPort)
+      || isBrowserOrigin(req.headers && req.headers.origin, requestPort)) {
+      rejectForbidden(req, res);
+      return;
+    }
+    if (req.method !== "GET" && req.method !== "POST") {
+      req.resume();
+      res.writeHead(405, { [CLAWD_SERVER_HEADER]: CLAWD_SERVER_ID, Allow: "GET, POST" });
+      res.end();
+      return;
+    }
+    // GET /state stays open: it is the liveness probe used by hook scripts to
+    // discover the port (hooks/server-config.js probePort) and carries no
+    // data. Every mutating request below must present the shared token.
+    if (req.method === "POST" && !tokensMatch(authToken, extractRequestToken(req))) {
+      rejectUnauthorized(req, res);
+      return;
+    }
+
     if (req.method === "GET" && req.url === "/state") {
       sendStateHealthResponse(res);
     } else if (req.method === "POST" && req.url === "/state") {
@@ -247,7 +405,7 @@ function startHttpServer() {
       req.on("data", (chunk) => {
         if (tooLarge) return;
         bodySize += chunk.length;
-        if (bodySize > 1024) { tooLarge = true; return; }
+        if (bodySize > MAX_STATE_BODY_BYTES) { tooLarge = true; return; }
         body += chunk;
       });
       req.on("end", () => {
@@ -320,7 +478,7 @@ function startHttpServer() {
       req.on("data", (chunk) => {
         if (tooLarge) return;
         bodySize += chunk.length;
-        if (bodySize > 524288) { tooLarge = true; return; }
+        if (bodySize > MAX_PERMISSION_BODY_BYTES) { tooLarge = true; return; }
         body += chunk;
       });
       req.on("end", () => {
@@ -588,16 +746,14 @@ function startHttpServer() {
     // reads+parses+writes a config JSON (50-150ms cumulative on slow disks),
     // and all five operate on independent files for independent agents, so
     // none of them need to block the HTTP server from accepting traffic.
+    // Nothing is written to any agent's config unless the user opted in
+    // (Settings → Startup → Manage Claude hooks automatically).
     setImmediateFn(() => {
       if (shouldManageClaudeHooks()) {
         syncClawdHooks();
         startClaudeSettingsWatcher();
       }
-      syncGeminiHooks();
-      syncCursorHooks();
-      syncCodeBuddyHooks();
-      syncKiroHooks();
-      syncOpencodePlugin();
+      syncOtherAgentHooks();
     });
   });
 
@@ -606,6 +762,9 @@ function startHttpServer() {
 
 function cleanup() {
   clearRuntimeConfigFn();
+  // The auth token is intentionally left on disk: hooks already installed in
+  // ~/.claude/settings.json (and friends) carry it, and they must keep working
+  // across restarts now that hook management is opt-in.
   stopClaudeSettingsWatcher();
   if (httpServer) httpServer.close();
 }
@@ -614,6 +773,9 @@ return {
   startHttpServer,
   getHookServerPort,
   syncClawdHooks,
+  syncOtherAgentHooks,
+  shouldManageClaudeHooks,
+  areClaudeHooksInstalled,
   syncGeminiHooks,
   syncCursorHooks,
   syncCodeBuddyHooks,
@@ -626,4 +788,11 @@ return {
 
 };
 
-module.exports.__test = { shouldBypassCCBubble, shouldBypassOpencodeBubble };
+module.exports.__test = {
+  shouldBypassCCBubble,
+  shouldBypassOpencodeBubble,
+  extractRequestToken,
+  isLocalHostHeader,
+  isBrowserOrigin,
+  tokensMatch,
+};

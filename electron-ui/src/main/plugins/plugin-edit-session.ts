@@ -196,6 +196,10 @@ export async function startPluginEdit(
       model: args.model || undefined,
       env,
       approvalPolicy: 'never',
+      // Unattended turn over attacker-influenced plugin source: without an
+      // explicit sandbox this inherits ~/.codex/config.toml (possibly
+      // danger-full-access), turning a prompt-injection comment into RCE.
+      sandbox: 'workspaceWrite',
       personality: 'pragmatic',
       ephemeral: true,
       requireAuth: true,

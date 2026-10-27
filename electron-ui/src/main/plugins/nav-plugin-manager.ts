@@ -12,6 +12,8 @@ let cachedPlugins: NavPlugin[] = []
 let watcherList: fs.FSWatcher[] = []
 let updateCallback: ((plugins: NavPlugin[]) => void) | null = null
 let debounceTimer: NodeJS.Timeout | null = null
+// The working dir captured at init, so fallback rescans don't drop workspace plugins.
+let currentWorkingDir: string | undefined
 
 function getGlobalPluginsDir(): string {
   return path.join(os.homedir(), '.aipa', 'plugins')
@@ -171,6 +173,7 @@ export function initNavPluginManager(
   } catch {}
   ensureDefaultPlugins(globalDir)
   const workingDir = getWorkingDir()
+  currentWorkingDir = workingDir
   const initial = scanAllPlugins(workingDir)
   setupWatchers(workingDir)
   return initial
@@ -199,15 +202,19 @@ export function reloadNavPlugins(workingDir?: string): NavPlugin[] {
  */
 export function openPluginFolder(pluginId?: string): boolean {
   if (pluginId) {
+    // Only open a directory the scanner actually discovered. Never join the
+    // caller-supplied id onto a base directory: shell.openPath() launches
+    // executables on Windows, so a traversal id would be arbitrary code execution.
     const plugin = cachedPlugins.find(p => p.manifest.id === pluginId || path.basename(p.dirPath) === pluginId)
     if (plugin && fs.existsSync(plugin.dirPath)) {
       shell.openPath(plugin.dirPath)
       return true
     }
-    const cleanId = pluginId.replace(/^aipa-/, '')
-    const directPath = path.join(getGlobalPluginsDir(), cleanId)
-    if (fs.existsSync(directPath)) {
-      shell.openPath(directPath)
+    // Fall back to a rescan so a just-installed plugin is still found.
+    const rescanned = scanAllPlugins(currentWorkingDir)
+    const found = rescanned.find(p => p.manifest.id === pluginId || path.basename(p.dirPath) === pluginId)
+    if (found && fs.existsSync(found.dirPath)) {
+      shell.openPath(found.dirPath)
       return true
     }
   }

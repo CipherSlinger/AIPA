@@ -267,26 +267,48 @@
         }
       } catch (e) {}
 
-      if (!notes || notes.length === 0) {
-        notes = IS_EN ? DEFAULT_NOTES_EN : DEFAULT_NOTES;
-        persist();
-      }
-
-      activeId = notes[0] ? notes[0].id : null;
-      renderNotesList();
-      loadActiveNote();
-
       // Listen for theme
       window.addEventListener('message', (e) => {
         if (e.data && e.data.type === 'aipa:theme') {
           document.documentElement.setAttribute('data-theme', e.data.theme);
         }
+        // One-time migration: plugins now run on their own aipa-plugin: origin,
+        // so the localStorage they used before that change is gone. Notes were
+        // mirrored to the host on every save — recover them, then keep using
+        // local storage as before.
+        if (e.data && e.data.type === 'aipa:storage:response' && e.data.requestId === 'migrate-notes') {
+          if (!notes || notes.length === 0) {
+            if (Array.isArray(e.data.value) && e.data.value.length > 0) {
+              notes = e.data.value;
+              persist();
+            }
+            start();
+          }
+        }
       });
+
+      if (!notes || notes.length === 0) {
+        window.parent.postMessage({ type: 'aipa:storage:get', requestId: 'migrate-notes', payload: { key: 'notes_list' } }, '*');
+        // Host may be unavailable (opened outside AIPA): seed defaults shortly.
+        setTimeout(function () { if (!notes || notes.length === 0) start(); }, 300);
+      } else {
+        start();
+      }
 
       // Report ready
       if (window.parent) {
         window.parent.postMessage({ type: 'aipa:ready' }, '*');
       }
+    }
+
+    function start() {
+      if (!notes || notes.length === 0) {
+        notes = IS_EN ? DEFAULT_NOTES_EN : DEFAULT_NOTES;
+        persist();
+      }
+      activeId = notes[0] ? notes[0].id : null;
+      renderNotesList();
+      loadActiveNote();
     }
 
     function persist() {

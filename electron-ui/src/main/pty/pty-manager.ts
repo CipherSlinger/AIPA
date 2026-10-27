@@ -7,7 +7,6 @@ const log = createLogger('pty-manager')
 
 // Lazy-load node-pty: the native .node binary may not exist on all platforms
 // (requires electron-rebuild or platform-specific compilation)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let pty: any = null
 let ptyLoadError: string | null = null
 
@@ -31,7 +30,6 @@ try {
 }
 
 // Lazy import electron.app to avoid circular deps
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _electronApp: any
 try { _electronApp = require('electron').app } catch {}
 
@@ -45,7 +43,6 @@ export interface PtyCreateArgs {
   resumeSessionId?: string
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 class PtyManager extends EventEmitter {
   private sessions = new Map<string, any>()
 

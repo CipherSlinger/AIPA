@@ -1,5 +1,7 @@
 import { ipcMain } from 'electron'
 import { createLogger } from '../utils/logger'
+import { getPref } from '../config/config-manager'
+import { getAllowedFsRoots, isPathInside, safePath } from '../utils/validate'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
@@ -85,30 +87,52 @@ function scanSkillsDir(dir: string, source: 'personal' | 'project'): SkillInfo[]
   return skills
 }
 
+/**
+ * The only directories skills may be read from / deleted out of.
+ * A per-tab cwd may not be persisted yet, so the renderer-supplied workingDir
+ * is accepted too — but only after sandboxing it against the allowed FS roots.
+ */
+function getSkillsRoots(workingDir?: string): string[] {
+  const roots = [path.join(os.homedir(), '.claude', 'skills')]
+  const dirs = [getPref('workingDir') as string, workingDir]
+  for (const dir of dirs) {
+    if (!dir || !dir.trim()) continue
+    try {
+      safePath(dir, getAllowedFsRoots(getPref('workingDir') as string))
+      roots.push(path.join(dir, '.claude', 'skills'))
+    } catch (err) {
+      log.warn('skills: rejected unsafe workingDir:', String(err))
+    }
+  }
+  return roots
+}
+
 export function registerSkillsHandlers(): void {
   ipcMain.handle('skills:list', (_e, workingDir?: string) => {
-    const personalDir = path.join(os.homedir(), '.claude', 'skills')
-    const projectDirs: string[] = []
-    if (workingDir && workingDir.trim()) {
-      projectDirs.push(path.join(workingDir, '.claude', 'skills'))
-    }
+    // getSkillsRoots drops any workingDir outside the allowed FS roots.
+    const roots = getSkillsRoots(workingDir)
     const skills: SkillInfo[] = [
-      ...scanSkillsDir(personalDir, 'personal'),
-      ...projectDirs.flatMap(d => scanSkillsDir(d, 'project')),
+      ...scanSkillsDir(roots[0], 'personal'),
+      ...roots.slice(1).flatMap(d => scanSkillsDir(d, 'project')),
     ]
     return skills
   })
 
   ipcMain.handle('skills:read', (_e, dirPath: string) => {
     try {
-      const skillPath = path.join(dirPath, 'SKILL.md')
-      if (!fs.existsSync(skillPath)) {
-        // Maybe SKILL.md is in the dirPath itself (top-level)
-        if (fs.existsSync(dirPath) && dirPath.endsWith('SKILL.md')) {
-          return { content: fs.readFileSync(dirPath, 'utf-8') }
-        }
-        return { error: 'SKILL.md not found' }
+      // Restrict reads to a skills root: either the skill directory itself
+      // (dirPath/SKILL.md) or a top-level SKILL.md file inside the root.
+      const resolved = path.resolve(dirPath)
+      const roots = getSkillsRoots()
+      const atRoot = roots.some(root => path.resolve(root) === resolved)
+      if (!atRoot && !roots.some(root => isPathInside(root, resolved))) {
+        return { error: 'Path outside skills directories is not allowed' }
       }
+      if (path.basename(resolved) === 'SKILL.md') {
+        return { content: fs.readFileSync(resolved, 'utf-8') }
+      }
+      const skillPath = path.join(resolved, 'SKILL.md')
+      if (!fs.existsSync(skillPath)) return { error: 'SKILL.md not found' }
       return { content: fs.readFileSync(skillPath, 'utf-8') }
     } catch (err) {
       return { error: String(err) }
@@ -131,10 +155,11 @@ export function registerSkillsHandlers(): void {
 
   ipcMain.handle('skills:delete', (_e, dirPath: string) => {
     try {
-      // Only allow deleting from personal skills directory
+      // Only allow deleting a child of the personal skills directory — never
+      // the directory itself, and never a sibling like ~/.claude/skills-evil.
       const personalDir = path.join(os.homedir(), '.claude', 'skills')
       const resolved = path.resolve(dirPath)
-      if (!resolved.startsWith(personalDir)) {
+      if (!isPathInside(personalDir, resolved)) {
         return { error: 'Can only delete personal skills' }
       }
       if (fs.existsSync(resolved)) {

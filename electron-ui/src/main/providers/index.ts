@@ -1,4 +1,4 @@
-export { providerRegistry, ProviderRegistry } from './provider-registry'
+export { providerRegistry, ProviderRegistry, redactProviderSecrets } from './provider-registry'
 export type {
   ModelProviderConfig,
   ModelInfo,

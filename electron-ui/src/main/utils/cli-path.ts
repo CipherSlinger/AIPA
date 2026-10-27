@@ -3,7 +3,6 @@ import fs from 'fs'
 import { execSync } from 'child_process'
 
 // Lazy import electron.app to avoid circular deps
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _electronApp: any
 try { _electronApp = require('electron').app } catch {}
 
