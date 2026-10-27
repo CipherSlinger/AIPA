@@ -9167,3 +9167,40 @@ Status: SUCCESS (npm run check: exit 0; vite build: ✓ built in 54.83s)
 - [x] Shortcuts panel updated with new entries
 - [x] TypeScript check clean (0 errors)
 - [x] Vite build successful
+
+## Iteration 686 — WeChat Companion Feasibility Prototype (Backend)
+_Date: 2026-10-27 | Sprint Backend_
+
+### Summary
+Delivered a feasibility study plus a runnable backend skeleton for the "WeChat AI reply companion". Two new main-process modules track the Windows foreground window and decide whether the user is actively typing in WeChat. No screenshotting, OCR, model calls, or UI wiring — the prototype stops exactly at the plumbing boundary. The design document records that screen-capture + OCR is the only viable path, that decrypting the local database is explicitly rejected, and that UI Automation and global keyboard hooks were empirically disproven on this machine.
+
+### Files Changed
+- `electron-ui/src/main/awareness/window-tracker.ts` (new) — koffi/user32 foreground tracking; `onForegroundChange`, `getForeground`, `getIdleMs`; SetWinEventHook + 500ms poll fallback; lazy Windows-only native init
+- `electron-ui/src/main/awareness/wechat-detect.ts` (new) — `WeChatDetector.sample()` / `onActivityChange()`; matches `Weixin.exe` + `Qt51514QWindowIcon`; idle threshold 400ms, optional sustained-typing debounce
+- `docs/wechat-companion.md` (new) — feasibility analysis, product shape, trigger conditions, privacy boundary, risk list, phased plan
+
+### API Changes
+None. No IPC channels registered; `src/main/ipc/index.ts` untouched by design.
+
+### Build
+Status: SUCCESS
+- `tsc -p tsconfig.main.json` — clean
+- `tsc -p tsconfig.preload.json` — clean
+- `vite build` — ✓ built in 6.12s
+- `npm run check` — 0 errors, 128 warnings (matches baseline)
+
+### Key Empirical Findings
+- `PrintWindow(PW_RENDERFULLCONTENT)` returns a correct WeChat frame even when the window is fully occluded (98.1% ink, identical OCR output to foreground)
+- `Windows.Media.Ocr` with `zh-Hans-CN` works: 60–150ms per 687x588 window, ~85–92% CJK accuracy
+- One-shot PowerShell OCR costs 460–510ms; a persistent worker drops warm requests to 87–145ms
+- `SetWinEventHook` callbacks fire inside the Electron main process but never in plain `node` (no message pump) — the module documents and compensates for this
+- WeChat `db_storage/*.db` files are encrypted (non-SQLite header), confirming path 2 would require extracting keys from the live process
+
+### Acceptance Criteria
+- [x] Build passes (main + preload + renderer)
+- [x] `npm run check` reports 0 errors
+- [x] Non-Windows platforms never load user32/koffi (verified by code path + platform guard)
+- [x] No global keyboard hook implemented
+- [x] No screenshot / OCR / AI call implemented
+- [x] No IPC or UI integration; `src/main/ipc/index.ts` unchanged
+- [x] Temporary verification scripts removed after use
