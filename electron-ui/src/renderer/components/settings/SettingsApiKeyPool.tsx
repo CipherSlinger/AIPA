@@ -26,7 +26,7 @@ const glassInputStyle: React.CSSProperties = {
 
 export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
   const t = useT()
-  const { setPrefs } = usePrefsStore()
+  const setPrefs = usePrefsStore(s => s.setPrefs)
   const prefs = usePrefsStore(s => s.prefs)
   const [apiKeyPool, setApiKeyPool] = useState<ApiKeyEntry[]>(prefs.apiKeyPool || [])
   const [newKeyLabel, setNewKeyLabel] = useState('')

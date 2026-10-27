@@ -97,9 +97,10 @@ function RunSummaryCard({ run }: { run: WorkflowRun }) {
 
   return (
     <div style={{
-      background: 'var(--glass-bg-low)',
-      borderBottom: '1px solid var(--border)',
-      padding: '8px 12px',
+      background: 'rgba(99,102,241,0.045)',
+      borderBottom: '1px solid var(--glass-border)',
+      borderLeft: `2px solid ${run.success ? 'rgba(34,197,94,0.5)' : 'rgba(239,68,68,0.5)'}`,
+      padding: '8px 12px 9px',
     }}>
       {/* Summary row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -132,13 +133,14 @@ function RunSummaryCard({ run }: { run: WorkflowRun }) {
                     {formatDuration(ms)}
                   </span>
                 </div>
-                <div style={{ height: 3, background: 'var(--bg-hover)', borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ height: 3, background: 'rgba(255,255,255,0.055)', borderRadius: 2, overflow: 'hidden' }}>
                   <div style={{
                     height: '100%',
                     width: `${pct}%`,
-                    background: 'linear-gradient(90deg, rgba(99,102,241,0.70), rgba(139,92,246,0.55))',
+                    background: 'linear-gradient(90deg, rgba(99,102,241,0.75), rgba(139,92,246,0.60))',
                     borderRadius: 2,
-                    transition: 'all 0.15s ease',
+                    boxShadow: '0 0 6px rgba(99,102,241,0.35)',
+                    transition: 'width 0.3s ease',
                   }} />
                 </div>
               </div>
@@ -192,25 +194,34 @@ export default function WorkflowRunHistory({
           padding: '3px 8px',
           background: isReplay
             ? 'rgba(99,102,241,0.18)'
-            : 'var(--bg-secondary)',
+            : 'rgba(255,255,255,0.035)',
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
           border: isReplay
             ? '1px solid rgba(99,102,241,0.5)'
-            : '1px solid var(--border)',
-          borderRadius: 6,
+            : '1px solid var(--glass-border-md)',
+          borderRadius: 7,
           cursor: 'pointer',
           color: isReplay ? '#818cf8' : 'var(--text-muted)',
           fontSize: 10,
           fontWeight: 500,
-          transition: 'all 0.15s ease',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+          transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease',
           whiteSpace: 'nowrap',
         }}
         onMouseEnter={e => {
-          if (!isReplay) { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.borderColor = 'var(--border)' }
+          if (!isReplay) {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.075)'
+            e.currentTarget.style.borderColor = 'var(--border-strong)'
+            e.currentTarget.style.color = 'var(--text-secondary)'
+          }
         }}
         onMouseLeave={e => {
-          if (!isReplay) { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.borderColor = 'var(--border)' }
+          if (!isReplay) {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.035)'
+            e.currentTarget.style.borderColor = 'var(--glass-border-md)'
+            e.currentTarget.style.color = 'var(--text-muted)'
+          }
         }}
       >
         <span style={{ fontSize: 12 }}>&#128336;</span>
@@ -229,11 +240,12 @@ export default function WorkflowRunHistory({
             marginBottom: 6,
             minWidth: 240,
             background: 'var(--glass-bg-high)',
+            backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0) 40%)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid var(--border)',
+            border: '1px solid var(--glass-border-md)',
             borderRadius: 10,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.50)',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.3), 0 20px 48px -12px rgba(0,0,0,0.6)',
             zIndex: 100,
             overflow: 'hidden',
             animation: 'wf-history-in 0.15s ease-out',
@@ -328,18 +340,20 @@ export default function WorkflowRunHistory({
               textAlign: 'center',
             }}>
               <div style={{
-                background: 'var(--bg-active)',
+                background: 'rgba(99,102,241,0.09)',
+                border: '1px solid rgba(99,102,241,0.18)',
                 borderRadius: 16,
                 padding: 16,
                 fontSize: 22,
                 lineHeight: 1,
+                boxShadow: '0 4px 16px -6px rgba(99,102,241,0.4)',
               }}>
                 🕐
               </div>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
                 {t('workflow.noHistory')}
               </span>
-              <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>
+              <span style={{ color: 'var(--text-faint)', fontSize: 11 }}>
                 Run this workflow to see history here
               </span>
             </div>
@@ -360,13 +374,13 @@ export default function WorkflowRunHistory({
                       style={{
                         display: 'block',
                         width: '100%',
-                        padding: '10px 14px',
+                        padding: '9px 14px 10px',
                         borderRadius: 0,
                         background: isSelected
-                          ? 'rgba(99,102,241,0.1)'
+                          ? 'rgba(99,102,241,0.12)'
                           : 'transparent',
                         border: 'none',
-                        borderBottom: '1px solid var(--border)',
+                        borderBottom: '1px solid var(--glass-border)',
                         borderLeft: run.success === undefined
                           ? '3px solid rgba(99,102,241,0.6)'
                           : run.success
@@ -376,7 +390,7 @@ export default function WorkflowRunHistory({
                         color: isSelected ? '#818cf8' : 'var(--text-secondary)',
                         fontSize: 10,
                         textAlign: 'left',
-                        transition: 'all 0.15s ease',
+                        transition: 'background 0.15s ease, color 0.15s ease',
                       }}
                       onMouseEnter={e => {
                         if (!isSelected)
@@ -426,15 +440,17 @@ export default function WorkflowRunHistory({
                         </div>
                       </div>
                       {/* Duration bar */}
-                      <div style={{ height: 3, background: 'var(--bg-hover)', borderRadius: 2, overflow: 'hidden' }}>
+                      <div style={{ height: 3, background: 'rgba(255,255,255,0.055)', borderRadius: 2, overflow: 'hidden' }}>
                         <div style={{
                           height: '100%',
                           width: `${durationPct}%`,
-                          background: run.success
-                            ? (isSelected ? '#818cf8' : 'rgba(34,197,94,0.55)')
-                            : 'rgba(248,113,113,0.55)',
+                          background: run.success === undefined
+                            ? 'linear-gradient(90deg, rgba(99,102,241,0.75), rgba(139,92,246,0.60))'
+                            : run.success
+                              ? (isSelected ? '#818cf8' : 'rgba(34,197,94,0.60)')
+                              : 'rgba(248,113,113,0.60)',
                           borderRadius: 2,
-                          transition: 'all 0.15s ease',
+                          transition: 'width 0.3s ease',
                         }} />
                       </div>
                     </button>

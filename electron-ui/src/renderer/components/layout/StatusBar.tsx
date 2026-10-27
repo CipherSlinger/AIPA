@@ -45,7 +45,20 @@ export default function StatusBar() {
   const lastContextUsage = useChatStore(s => s.lastContextUsage)
   const modelUsage = useChatStore(s => s.modelUsage)
   const isStreaming = useChatStore(s => s.isStreaming)
-  const messages = useChatStore(s => s.messages)
+  // PERF: narrow selectors instead of subscribing to the whole message array (which
+// changes on every streaming delta). The filter is done inside the selector so the
+// component only re-renders when the derived values actually change.
+  const chatMessageCount = useChatStore(s => {
+    let n = 0
+    for (const m of s.messages) if (m.role !== 'permission' && m.role !== 'plan') n++
+    return n
+  })
+  const firstMsgTimestamp = useChatStore(s => {
+    for (const m of s.messages) {
+      if (m.role !== 'permission' && m.role !== 'plan') return (m as StandardChatMessage).timestamp ?? null
+    }
+    return null
+  })
   const prefs = usePrefsStore(s => s.prefs)
   const setPrefs = usePrefsStore(s => s.setPrefs)
   const isPlanMode = useChatStore(s => s.isPlanMode)
@@ -70,7 +83,6 @@ export default function StatusBar() {
     : contextPct >= 60 ? '#fbbf24'
     : '#4ade80'
 
-  const chatMessages = messages.filter(m => m.role !== 'permission' && m.role !== 'plan')
   const [showCostBreakdown, setShowCostBreakdown] = useState(false)
   const [showTokenPopup, setShowTokenPopup] = useState(false)
 
@@ -83,9 +95,7 @@ export default function StatusBar() {
   const [hoverPlan, setHoverPlan] = useState(false)
   const costPopupRef = React.useRef<HTMLDivElement>(null)
   const tokenPopupRef = React.useRef<HTMLDivElement>(null)
-  const firstMsgTs = chatMessages.length > 0
-    ? (chatMessages[0] as StandardChatMessage).timestamp
-    : null
+  const firstMsgTs = firstMsgTimestamp
   const sessionDuration = firstMsgTs ? Date.now() - firstMsgTs : null
 
   const allSessions = useSessionStore(s => s.sessions)
@@ -235,9 +245,9 @@ export default function StatusBar() {
         )}
 
         {/* Message count */}
-        {chatMessages.length > 0 && !isStreaming && (
+        {chatMessageCount > 0 && !isStreaming && (
           <span style={{ opacity: 0.7, fontSize: 10, color: 'var(--text-muted)' }}>
-            {t('toolbar.msgs', { count: chatMessages.length })}
+            {t('toolbar.msgs', { count: chatMessageCount })}
           </span>
         )}
 

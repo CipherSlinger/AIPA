@@ -8,11 +8,16 @@ export function useMemoryCrud() {
   const setPrefs = usePrefsStore(s => s.setPrefs)
   const addToast = useUiStore(s => s.addToast)
 
-  // Defensive: ensure memories is always a valid array (Iteration 309 -- crash fix)
-  const rawMemories: MemoryItem[] = prefs.memories || []
-  const memories = Array.isArray(rawMemories) ? rawMemories.filter(
-    (m): m is MemoryItem => m != null && typeof m === 'object' && typeof m.id === 'string' && typeof m.content === 'string'
-  ) : []
+  // Defensive: ensure memories is always a valid array (Iteration 309 -- crash fix).
+  // Memoized on the store array so the filtered copy keeps a stable identity;
+  // otherwise every derived callback below re-creates on each render.
+  const rawMemories = prefs.memories
+  const memories = useMemo<MemoryItem[]>(() => {
+    if (!Array.isArray(rawMemories)) return []
+    return rawMemories.filter(
+      (m): m is MemoryItem => m != null && typeof m === 'object' && typeof m.id === 'string' && typeof m.content === 'string'
+    )
+  }, [rawMemories])
 
   // UI state
   const [searchQuery, setSearchQuery] = useState('')

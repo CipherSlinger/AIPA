@@ -1,18 +1,21 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import AppShell from './components/layout/AppShell'
-import OnboardingWizard from './components/onboarding/OnboardingWizard'
 import ErrorBoundary from './components/shared/ErrorBoundary'
-import CommandPalette from './components/ui/CommandPalette'
-import SessionQuickSwitcher from './components/shared/SessionQuickSwitcher'
-import ShortcutCheatsheet from './components/shared/ShortcutCheatsheet'
 import { ToastContainer } from './components/ui/Toast'
 import { usePrefsStore, useChatStore, useUiStore, useSessionStore } from './store'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
 import { useContextHealth } from './hooks/useContextHealth'
 import { populateDefaultPresetsIfEmpty } from './utils/presetPopulator'
+import { listSessionsShared } from './utils/sessionListShared'
 import { useT } from './i18n'
 import './styles/globals.css'
 import 'highlight.js/styles/github-dark.css'
+
+// PERF: overlays are only shown on demand — split them out of the initial bundle.
+const OnboardingWizard = lazy(() => import('./components/onboarding/OnboardingWizard'))
+const CommandPalette = lazy(() => import('./components/ui/CommandPalette'))
+const SessionQuickSwitcher = lazy(() => import('./components/shared/SessionQuickSwitcher'))
+const ShortcutCheatsheet = lazy(() => import('./components/shared/ShortcutCheatsheet'))
 
 export default function App() {
   const prefs = usePrefsStore(s => s.prefs)
@@ -40,13 +43,19 @@ export default function App() {
       initCalledRef.current = true
       // Helper: wrap an IPC call with a per-call timeout (3s per call, avoids total-hang)
       const withTimeout = <T,>(promise: Promise<T>, label: string, timeoutMs = 3000): Promise<T | null> => {
-        return Promise.race([
-          promise.then(v => { console.log(`[AIPA] ${label} OK`); return v }),
-          new Promise<null>(resolve => setTimeout(() => {
+        let timer: ReturnType<typeof setTimeout> | undefined
+        const timeout = new Promise<null>(resolve => {
+          timer = setTimeout(() => {
             console.warn(`[AIPA] ${label} timed out (${timeoutMs}ms)`)
             resolve(null)
-          }, timeoutMs)),
-        ])
+          }, timeoutMs)
+        })
+        // Clear the timer when the real call wins the race — otherwise the
+        // loser still fires 3s later and logs a false "timed out" warning.
+        return Promise.race([
+          promise.then(v => { console.log(`[AIPA] ${label} OK`); return v }),
+          timeout,
+        ]).finally(() => clearTimeout(timer))
       }
 
       try {
@@ -92,11 +101,14 @@ export default function App() {
 
         // Preload sessions into store so DepartmentPanel and other components
         // have data immediately without waiting for their own mount effects.
-        window.electronAPI.sessionList().then((list: any) => {
-          if (list) {
-            useSessionStore.getState().setSessions(list)
-          }
-        }).catch(() => { /* best-effort */ })
+        // Kept as one promise: the resume-last-session branch below reuses this
+        // result instead of issuing a second identical round trip — the first
+        // list of a launch can be a full corpus scan.
+        const sessionsPromise = listSessionsShared()
+          .then((list: any) => {
+            if (list) useSessionStore.getState().setSessions(list)
+            return list as any[] | null
+          })
 
         // Store home dir for path normalization (~ expansion)
         useSessionStore.getState().setHomeDir(home)
@@ -114,7 +126,7 @@ export default function App() {
         // Resume last session on startup (if enabled and no onboarding needed)
         if (all.resumeLastSession && all.onboardingDone) {
           try {
-            const sessions = await window.electronAPI.sessionList()
+            const sessions = await sessionsPromise
             if (sessions && sessions.length > 0) {
               // Sessions are sorted by timestamp descending -- first entry is most recent
               const mostRecent = sessions.sort((a: any, b: any) => b.timestamp - a.timestamp)[0]
@@ -311,38 +323,42 @@ export default function App() {
     >
     <ErrorBoundary fallbackLabel="application" overlay>
       <>
-        {showOnboarding && (
-          <OnboardingWizard onComplete={async () => {
-            // Reload prefs so prefsStore reflects the workingDir set during onboarding
-            const all = await window.electronAPI.prefsGetAll()
-            const env = await window.electronAPI.configGetEnv()
-            setPrefs({ ...all, apiKey: all.apiKey || env.apiKey || '' })
-            if (all.workingDir) setWorkingDir(all.workingDir)
-            setShowOnboarding(false)
-          }} />
-        )}
+        <Suspense fallback={null}>
+          {showOnboarding && (
+            <OnboardingWizard onComplete={async () => {
+              // Reload prefs so prefsStore reflects the workingDir set during onboarding
+              const all = await window.electronAPI.prefsGetAll()
+              const env = await window.electronAPI.configGetEnv()
+              setPrefs({ ...all, apiKey: all.apiKey || env.apiKey || '' })
+              if (all.workingDir) setWorkingDir(all.workingDir)
+              setShowOnboarding(false)
+            }} />
+          )}
+        </Suspense>
         <AppShell />
         <ToastContainer toasts={toasts} onDismiss={removeToast} />
-        {commandPaletteOpen && (
-          <CommandPalette
-            onClose={() => setCommandPaletteOpen(false)}
-            onExport={async () => {
-              window.dispatchEvent(new CustomEvent('aipa:export'))
-            }}
-            onNewConversation={() => {
-              useChatStore.getState().clearMessages()
-            }}
-            onSendSlashCommand={(cmd: string) => {
-              window.dispatchEvent(new CustomEvent('aipa:slashCommand', { detail: cmd }))
-            }}
-          />
-        )}
-        {showShortcuts && (
-          <ShortcutCheatsheet onClose={() => setShowShortcuts(false)} />
-        )}
-        {sessionSwitcherOpen && (
-          <SessionQuickSwitcher onClose={() => setSessionSwitcherOpen(false)} />
-        )}
+        <Suspense fallback={null}>
+          {commandPaletteOpen && (
+            <CommandPalette
+              onClose={() => setCommandPaletteOpen(false)}
+              onExport={async () => {
+                window.dispatchEvent(new CustomEvent('aipa:export'))
+              }}
+              onNewConversation={() => {
+                useChatStore.getState().clearMessages()
+              }}
+              onSendSlashCommand={(cmd: string) => {
+                window.dispatchEvent(new CustomEvent('aipa:slashCommand', { detail: cmd }))
+              }}
+            />
+          )}
+          {showShortcuts && (
+            <ShortcutCheatsheet onClose={() => setShowShortcuts(false)} />
+          )}
+          {sessionSwitcherOpen && (
+            <SessionQuickSwitcher onClose={() => setSessionSwitcherOpen(false)} />
+          )}
+        </Suspense>
       </>
     </ErrorBoundary>
     </div>

@@ -3,7 +3,7 @@
 //              ChatInputSendButton, useChatInputKeyboard, ContextUsageMeter,
 //              SnippetPopup, GhostTextOverlay, CharWordCounter
 
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Sparkles } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import AtMentionPopup from './AtMentionPopup'
@@ -60,6 +60,11 @@ export default function ChatInput({
   const addToQueue = useChatStore(s => s.addToQueue)
   const lastContextUsage = useChatStore(s => s.lastContextUsage)
   const messages = useChatStore(s => s.messages)
+  // PERF: estimateToolBreakdown walks every tool use; only recompute when messages change.
+  const toolBreakdown = useMemo(
+    () => estimateToolBreakdown(messages as StandardChatMessage[]),
+    [messages],
+  )
   const isPlanMode = useChatStore(s => s.isPlanMode)
   const setPlanMode = useChatStore(s => s.setPlanMode)
 
@@ -376,7 +381,7 @@ export default function ChatInput({
           total={lastContextUsage.total}
           isStreaming={isStreaming}
           onCompact={() => onSend('/compact')}
-          toolBreakdown={estimateToolBreakdown(messages as StandardChatMessage[])}
+          toolBreakdown={toolBreakdown}
         />
       )}
       {/* Quick reply chips */}

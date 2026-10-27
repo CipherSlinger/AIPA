@@ -89,8 +89,12 @@ export default function WorkflowCard({ wf, onDuplicate, onDelete }: WorkflowCard
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
         <span style={{
           width: 42, height: 42, borderRadius: 12, fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: `${color}1a`, border: `1px solid ${color}40`, flexShrink: 0,
-          transform: hovered ? 'scale(1.05)' : 'none', transition: 'transform 0.18s ease',
+          background: `linear-gradient(145deg, ${color}2b, ${color}12)`,
+          border: `1px solid ${color}42`,
+          boxShadow: hovered ? `inset 0 1px 0 rgba(255,255,255,0.10), 0 4px 14px -4px ${color}66` : 'inset 0 1px 0 rgba(255,255,255,0.06)',
+          flexShrink: 0,
+          transform: hovered ? 'scale(1.05)' : 'none',
+          transition: 'transform 0.18s ease, box-shadow 0.18s ease',
         }}>
           {wf.icon}
         </span>
@@ -153,7 +157,9 @@ export default function WorkflowCard({ wf, onDuplicate, onDelete }: WorkflowCard
             display: 'flex', alignItems: 'center', gap: 4, height: 24, padding: '0 10px', borderRadius: 8, flexShrink: 0,
             border: 'none', fontSize: 11, fontWeight: 600, cursor: wf.steps.length ? 'pointer' : 'not-allowed',
             background: hovered ? 'linear-gradient(135deg, rgba(99,102,241,0.92), rgba(139,92,246,0.92))' : 'rgba(99,102,241,0.12)',
-            color: hovered ? '#fff' : '#818cf8', transition: 'all 0.15s ease',
+            color: hovered ? '#fff' : '#818cf8',
+            boxShadow: hovered ? '0 2px 10px -2px rgba(99,102,241,0.65)' : 'inset 0 1px 0 rgba(255,255,255,0.04)',
+            transition: 'background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease',
           }}
         >
           <Play size={10} fill="currentColor" />

@@ -32,7 +32,7 @@ function PanelFallback() {
 }
 
 export default function Sidebar() {
-  const { sidebarTab } = useUiStore()
+  const sidebarTab = useUiStore(s => s.sidebarTab)
 
   return (
     <div

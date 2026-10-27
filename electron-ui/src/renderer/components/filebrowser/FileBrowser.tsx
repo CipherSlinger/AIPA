@@ -89,7 +89,8 @@ function TreeNode({ entry, depth, onSetCwd, t, filter }: TreeNodeProps) {
 }
 
 export default function FileBrowser() {
-  const { workingDir, setWorkingDir } = useChatStore()
+  const workingDir = useChatStore(s => s.workingDir)
+  const setWorkingDir = useChatStore(s => s.setWorkingDir)
   const [rootEntries, setRootEntries] = useState<FileEntry[]>([])
   const [currentDir, setCurrentDir] = useState(workingDir || '')
   const [filter, setFilter] = useState('')

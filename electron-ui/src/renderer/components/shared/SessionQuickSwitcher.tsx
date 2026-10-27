@@ -58,7 +58,9 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
   const backdropRef = useRef<HTMLDivElement>(null)
   const focusTrapRef = useFocusTrap(true)
   const t = useT()
-  const { sessions } = useSessionStore()
+  // PERF: field selector — useSessionStore() would also re-render this overlay
+  // on every unrelated session-store change (selection, loading flags).
+  const sessions = useSessionStore(s => s.sessions)
   const sessionNotes = useUiStore(s => s.sessionNotes)
 
   // Sort by recent, limit to 15

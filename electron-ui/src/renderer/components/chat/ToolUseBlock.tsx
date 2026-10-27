@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import ReactDOM from 'react-dom'
 import { ToolUseInfo } from '../../types/app.types'
 import { Terminal, FileEdit, Search, Globe, Check, X, ClipboardCopy, FileCode, FileText, Image, Palette, GitBranch, GitMerge, Clock, StopCircle, BookOpen, Network, Code2, CheckSquare, ClipboardList, Settings2, Send, Users, Compass, CheckCircle2, Layers, Database, FileInput, HelpCircle, Eye } from 'lucide-react'
@@ -295,7 +295,10 @@ function FilePathHighlight({ filePath }: { filePath: string }) {
 
 // ── Main ToolUseBlock ──────────────────────────────────────────────────────────
 
-export default function ToolUseBlock({ tool, onAbort }: Props) {
+// Stable empty array so the image preview block keeps a constant identity when collapsed.
+const EMPTY_IMAGE_PATHS: string[] = []
+
+export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
   const t = useT()
   const [expanded, setExpanded] = useState(false)
   const [elapsed, setElapsed] = useState(0)
@@ -350,7 +353,10 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
   }, [isRunning])
 
   const Icon = getToolIcon(tool)
-  const summaryLabel = generateToolSummary(tool, t)
+  // PERF: these scans/serializations used to run on every render of every tool
+  // block, even when collapsed. They are now memoized and the image scan only
+  // happens while the block is actually expanded.
+  const summaryLabel = useMemo(() => generateToolSummary(tool, t), [tool, t])
   const isBash = BASH_TOOLS.has(tool.name)
   const isFileEdit = FILE_EDIT_TOOLS.has(tool.name)
   const isFilePath = FILE_PATH_TOOLS.has(tool.name)
@@ -358,12 +364,16 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
   const isWebResult = WEB_RESULT_TOOLS.has(tool.name)
   const showElapsed = isRunning && elapsed >= 2
   const showFinalDuration = !isRunning && finalDuration !== null && finalDuration >= 1
-  const imagePaths = !isRunning ? extractImagePaths(tool) : []
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
 
-  const resultText = typeof tool.result === 'string'
+  const imagePaths = useMemo(
+    () => (!isRunning && expanded ? extractImagePaths(tool) : EMPTY_IMAGE_PATHS),
+    [isRunning, expanded, tool],
+  )
+
+  const resultText = useMemo(() => typeof tool.result === 'string'
     ? tool.result
-    : tool.result != null ? JSON.stringify(tool.result, null, 2) : ''
+    : tool.result != null ? JSON.stringify(tool.result, null, 2) : '', [tool.result])
 
   // Dynamic left border accent by status
   const leftBorderColor = isRunning
@@ -1042,5 +1052,5 @@ export default function ToolUseBlock({ tool, onAbort }: Props) {
       )}
     </div>
   )
-}
+})
 

@@ -17,6 +17,7 @@ import type { SessionChanges } from '../../hooks/useSessionChanges'
 import SaveTemplateDialog from './SaveTemplateDialog'
 import CompactButton from './CompactButton'
 import WorktreeDialog from './WorktreeDialog'
+import { listSessionsShared } from '../../utils/sessionListShared'
 interface ChatHeaderProps {
   sessionTitle: string | null
   sessionId: string | null
@@ -118,12 +119,14 @@ export default function ChatHeader({
   const availableSkills = useChatStore(s => s.availableSkills)
   const availableTools = useChatStore(s => s.availableTools)
   const setSystemInit = useChatStore(s => s.setSystemInit)
-  // Derive total tool call count from messages (each assistant message may have toolUses[])
-  const messages = useChatStore(s => s.messages)
-  const toolUseCount = messages.reduce((acc, m) => {
-    const std = m as StandardChatMessage
-    return acc + (std.toolUses?.length ?? 0)
-  }, 0)
+  // Derive total tool call count from messages (each assistant message may have toolUses[]).
+  // PERF: narrow selector — the component now re-renders only when the count changes
+  // instead of on every streaming message array update.
+  const toolUseCount = useChatStore(s => {
+    let acc = 0
+    for (const m of s.messages) acc += (m as StandardChatMessage).toolUses?.length ?? 0
+    return acc
+  })
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
   const personas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
   const sessionPersona = personas.find(p => p.id === sessionPersonaId)
@@ -213,11 +216,11 @@ export default function ChatHeader({
     if (!newTitle || !sessionId || newTitle === sessionTitle) return
     window.electronAPI.sessionRename(sessionId, newTitle)
     useChatStore.getState().setSessionTitle(newTitle)
-    window.electronAPI.sessionList().then((list: any) => {
+    listSessionsShared().then((list: any) => {
       if (list) {
         useSessionStore.getState().setSessions(list)
       }
-    }).catch(() => {})
+    })
   }, [editTitleValue, sessionId, sessionTitle])
 
   const cancelTitleEdit = useCallback(() => {

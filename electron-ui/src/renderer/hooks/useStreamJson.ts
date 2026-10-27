@@ -1,44 +1,83 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useChatStore, usePrefsStore, useSessionStore } from '../store'
 import { ElicitationMessage, HookCallbackMessage, PermissionMessage, PlanMessage, StandardChatMessage, PromptHistoryItem } from '../types/app.types'
 import { useUiStore } from '../store'
-import { useT } from '../i18n'
+import { getT } from '../i18n'
 import { resolveProvider, sendCompletionNotification, playCompletionSound, getActiveApiKey, rotateApiKey } from './streamJsonUtils'
 import { useAutoCompact } from './useAutoCompact'
 import { useAutoMemory } from './useAutoMemory'
+import { listSessionsShared } from '../utils/sessionListShared'
 // parseTokenBudget used by token display utilities
 // import { parseTokenBudget } from '../utils/tokenUtils'
 
+// Track prompt sends for analytics (deduped, max 200 items).
+// Module-level: touches only store state via getState(), so it needs no hook deps.
+function trackPromptHistory(prompt: string) {
+  const text = prompt.trim().slice(0, 500)
+  if (!text) return
+  const normalized = text.toLowerCase().replace(/\s+/g, ' ')
+  const hash = `ph-${Array.from(normalized).reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0).toString(36)}`
+  const existing: PromptHistoryItem[] = usePrefsStore.getState().prefs.promptHistory || []
+  const idx = existing.findIndex(item => item.id === hash)
+  const now = Date.now()
+  let updated: PromptHistoryItem[]
+  if (idx >= 0) {
+    updated = [...existing]
+    updated[idx] = { ...updated[idx], count: updated[idx].count + 1, lastUsedAt: now }
+  } else {
+    const newItem: PromptHistoryItem = { id: hash, text, count: 1, lastUsedAt: now, firstUsedAt: now }
+    updated = [newItem, ...existing].slice(0, 200)
+  }
+  usePrefsStore.getState().setPrefs({ promptHistory: updated })
+  window.electronAPI?.prefsSet('promptHistory', updated)
+}
+
+// Build a CLI permission rule string from tool name + input
+function buildPermissionRule(toolName: string, toolInput: Record<string, unknown>): string {
+  if ((toolName === 'Bash' || toolName === 'computer') && toolInput.command) {
+    const cmd = String(toolInput.command).trim()
+    const firstWord = cmd.split(/\s+/)[0]
+    if (firstWord) return `Bash(${firstWord} *)`
+  }
+  return toolName
+}
+
+// Write a permanent allow/deny rule to ~/.claude/settings.json
+async function writePermissionRule(type: 'allow' | 'deny', toolName: string, toolInput: Record<string, unknown>) {
+  const rule = buildPermissionRule(toolName, toolInput)
+  try {
+    const settings = await window.electronAPI.configReadCLISettings()
+    const perms = (settings.permissions || {}) as { allow?: string[]; deny?: string[] }
+    const list = Array.isArray(perms[type]) ? perms[type]! : []
+    if (!list.includes(rule)) {
+      list.push(rule)
+    }
+    await window.electronAPI.configWriteCLISettings({
+      permissions: { ...perms, [type]: list },
+    })
+    const t = getT()
+    const toastMsg = type === 'allow'
+      ? t('permission.ruleAddedAllow', { rule })
+      : t('permission.ruleAddedDeny', { rule })
+    useUiStore.getState().addToast('success', toastMsg)
+  } catch {
+    useUiStore.getState().addToast('warning', getT()('permissions.saveFailed'))
+  }
+}
+
 export function useStreamJson() {
-  // Use individual selectors so this hook only re-renders when the specific
-  // action references change (they never do in Zustand), not on every state update.
-  const appendTextDelta = useChatStore(s => s.appendTextDelta)
-  const appendThinkingDelta = useChatStore(s => s.appendThinkingDelta)
-  const addToolUse = useChatStore(s => s.addToolUse)
-  const resolveToolUse = useChatStore(s => s.resolveToolUse)
-  const setStreaming = useChatStore(s => s.setStreaming)
-  const setSessionId = useChatStore(s => s.setSessionId)
-  const addPermissionRequest = useChatStore(s => s.addPermissionRequest)
-  const resolvePermission = useChatStore(s => s.resolvePermission)
-  const denyPendingPermissions = useChatStore(s => s.denyPendingPermissions)
-  const addHookCallback = useChatStore(s => s.addHookCallback)
-  const resolveHookCallback = useChatStore(s => s.resolveHookCallback)
-  const addElicitation = useChatStore(s => s.addElicitation)
-  const resolveElicitation = useChatStore(s => s.resolveElicitation)
-  const cancelPendingInteractiveMessages = useChatStore(s => s.cancelPendingInteractiveMessages)
-  const setLastUsage = useChatStore(s => s.setLastUsage)
-  const addPlanMessage = useChatStore(s => s.addPlanMessage)
-  const setLastCost = useChatStore(s => s.setLastCost)
-  const setLastContextUsage = useChatStore(s => s.setLastContextUsage)
-  const setSessionTitle = useChatStore(s => s.setSessionTitle)
-  const setLastResultUuid = useChatStore(s => s.setLastResultUuid)
-  const setFastModeState = useChatStore(s => s.setFastModeState)
-  const prefs = usePrefsStore(s => s.prefs)
-  const activeTabId = useChatStore(s => s.activeTabId)
-  const tabs = useChatStore(s => s.tabs)
-  const t = useT()
+  // PERF: no state subscriptions here — every action is read lazily via
+  // useChatStore.getState() at call time. This keeps the returned API (and the
+  // callback identities consumed by ChatPanel's shortcut/event hooks) stable
+  // across streaming renders.
   const { tryAutoCompact } = useAutoCompact()
   const { tryExtractMemories } = useAutoMemory()
+  // Keep the latest callbacks reachable from the event-subscription effect below,
+  // which is registered once ([]) and must not capture stale closures.
+  const autoCompactRef = useRef(tryAutoCompact)
+  autoCompactRef.current = tryAutoCompact
+  const extractMemoriesRef = useRef(tryExtractMemories)
+  extractMemoriesRef.current = tryExtractMemories
 
   const activeBridgeIdRef = useRef<string | null>(null)
   // Keep a ref to sendMessage so it can be called from the IPC event handler without stale closure
@@ -50,29 +89,22 @@ export function useStreamJson() {
   // Snapshot of .consolidate-lock mtime at session start — used to detect dream completions
   const dreamMtimeSnapshotRef = useRef<number>(0)
 
-  // Track prompt sends for analytics (deduped, max 200 items)
-  const trackPromptHistory = (prompt: string) => {
-    const text = prompt.trim().slice(0, 500)
-    if (!text) return
-    const normalized = text.toLowerCase().replace(/\s+/g, ' ')
-    const hash = `ph-${Array.from(normalized).reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0).toString(36)}`
-    const existing: PromptHistoryItem[] = usePrefsStore.getState().prefs.promptHistory || []
-    const idx = existing.findIndex(item => item.id === hash)
-    const now = Date.now()
-    let updated: PromptHistoryItem[]
-    if (idx >= 0) {
-      updated = [...existing]
-      updated[idx] = { ...updated[idx], count: updated[idx].count + 1, lastUsedAt: now }
-    } else {
-      const newItem: PromptHistoryItem = { id: hash, text, count: 1, lastUsedAt: now, firstUsedAt: now }
-      updated = [newItem, ...existing].slice(0, 200)
+  // Helper: stop streaming + release prevent-sleep (stable — used by sendMessage/abort/effect)
+  const stopStreamingAndReleaseSleep = useCallback(() => {
+    useChatStore.getState().setStreaming(false)
+    if (window.electronAPI?.windowPreventSleep) {
+      window.electronAPI.windowPreventSleep(false)
     }
-    usePrefsStore.getState().setPrefs({ promptHistory: updated })
-    window.electronAPI?.prefsSet('promptHistory', updated)
-  }
+  }, [])
 
-  const sendMessage = async (prompt: string, attachments?: import('./useImagePaste').ImageAttachment[], fileAttachments?: import('./useImagePaste').FileAttachment[]) => {
+  const sendMessage = useCallback(async (prompt: string, attachments?: import('./useImagePaste').ImageAttachment[], fileAttachments?: import('./useImagePaste').FileAttachment[]) => {
     if (!prompt.trim() && (!attachments || attachments.length === 0) && (!fileAttachments || fileAttachments.length === 0)) return
+
+    // PERF: read latest store values at call time so sendMessage keeps a stable
+    // identity (prefs/tabs change often and would otherwise re-create it).
+    // `t` intentionally shadows the hook value with the module-level accessor.
+    const prefs = usePrefsStore.getState().prefs
+    const t = getT()
 
     // Track prompt in history for analytics (max 200 items, deduped by normalized text)
     trackPromptHistory(prompt)
@@ -85,7 +117,7 @@ export function useStreamJson() {
       attachments: attachments?.map(a => ({ name: a.name, dataUrl: a.dataUrl })),
     }
     useChatStore.getState().addMessage(userMsg)
-    setStreaming(true)
+    useChatStore.getState().setStreaming(true)
     // Prevent system idle sleep while streaming (if enabled in prefs)
     if (prefs.preventSleep !== false && window.electronAPI?.windowPreventSleep) {
       window.electronAPI.windowPreventSleep(true)
@@ -254,25 +286,39 @@ export function useStreamJson() {
 
       const systemPrompt = systemPromptParts.length > 0 ? systemPromptParts.join('\n\n') : undefined
 
-      const result = await window.electronAPI.providerSendMessage({
-        prompt: actualPrompt,
-        model: prefs.model || 'gpt-4o',
-        systemPrompt,
-        messages: contextMessages,
-        images: attachments?.map(a => a.dataUrl),
-        maxTokens: 4096,
-        temperature: 0.7,
-      })
+      try {
+        const result = await window.electronAPI.providerSendMessage({
+          providerId: routing.providerId,
+          prompt: actualPrompt,
+          model: prefs.model || 'gpt-4o',
+          systemPrompt,
+          messages: contextMessages,
+          images: attachments?.map(a => a.dataUrl),
+          maxTokens: 4096,
+          temperature: 0.7,
+        })
 
-      if (result?.success && result.sessionId) {
-        activeBridgeIdRef.current = result.sessionId
+        if (result?.success && result.sessionId) {
+          activeBridgeIdRef.current = result.sessionId
+        } else if (!result?.success) {
+          // The provider branch returns before any bridge exists, so no
+          // cli:error/cli:messageEnd will arrive. Surface the failure and
+          // release the streaming lock, otherwise the composer stays disabled.
+          useUiStore.getState().addToast('error', result?.error || t('error.unknownError'))
+          stopStreamingAndReleaseSleep()
+        }
+
+        return result
+      } catch (err) {
+        useUiStore.getState().addToast('error', String(err))
+        stopStreamingAndReleaseSleep()
+        throw err
       }
-
-      return result
     }
 
     // Send via cliSendMessage (CodexBridge handles OpenAI, StreamBridge handles Claude)
-    const currentTab = tabs.find(t => t.id === activeTabId)
+    const chatState = useChatStore.getState()
+    const currentTab = chatState.tabs.find(tab => tab.id === chatState.activeTabId)
     const effectiveCwd = currentTab?.cwd || prefs.workingDir || (await window.electronAPI.fsGetHome())
     const result = await window.electronAPI.cliSendMessage({
       prompt: actualPrompt,
@@ -295,20 +341,12 @@ export function useStreamJson() {
     }
 
     return result
-  }
+  }, [stopStreamingAndReleaseSleep])
 
   // Keep ref in sync so IPC handler can call sendMessage without stale closure
   sendMessageRef.current = sendMessage
 
-  // Helper: stop streaming + release prevent-sleep
-  const stopStreamingAndReleaseSleep = () => {
-    setStreaming(false)
-    if (window.electronAPI?.windowPreventSleep) {
-      window.electronAPI.windowPreventSleep(false)
-    }
-  }
-
-  const abort = () => {
+  const abort = useCallback(() => {
     const sid = activeBridgeIdRef.current
     if (sid) {
       window.electronAPI.cliAbort(sid)
@@ -324,85 +362,54 @@ export function useStreamJson() {
       })
       activeBridgeIdRef.current = null
     }
-    denyPendingPermissions()
-    cancelPendingInteractiveMessages()
+    const chatState = useChatStore.getState()
+    chatState.denyPendingPermissions()
+    chatState.cancelPendingInteractiveMessages()
     stopStreamingAndReleaseSleep()
-  }
+  }, [stopStreamingAndReleaseSleep])
 
-  const respondPermission = (permissionId: string, allowed: boolean) => {
+  const respondPermission = useCallback((permissionId: string, allowed: boolean) => {
     const bridgeId = activeBridgeIdRef.current
     if (!bridgeId) return
     window.electronAPI.cliRespondPermission({ sessionId: bridgeId, requestId: permissionId, allowed })
-    resolvePermission(permissionId, allowed ? 'allowed' : 'denied')
-  }
+    useChatStore.getState().resolvePermission(permissionId, allowed ? 'allowed' : 'denied')
+  }, [])
 
-  const respondHookCallback = (requestId: string, response: Record<string, unknown>) => {
+  const respondHookCallback = useCallback((requestId: string, response: Record<string, unknown>) => {
     const bridgeId = activeBridgeIdRef.current
     if (!bridgeId) return
     window.electronAPI.cliRespondHookCallback({ sessionId: bridgeId, requestId, response })
-    resolveHookCallback(requestId, response.decision === 'approve' ? 'approved' : 'blocked')
-  }
+    useChatStore.getState().resolveHookCallback(requestId, response.decision === 'approve' ? 'approved' : 'blocked')
+  }, [])
 
-  const respondElicitation = (requestId: string, result: Record<string, unknown>) => {
+  const respondElicitation = useCallback((requestId: string, result: Record<string, unknown>) => {
     const bridgeId = activeBridgeIdRef.current
     if (!bridgeId) return
     window.electronAPI.cliRespondElicitation({ sessionId: bridgeId, requestId, result })
     const action = result.action as string
     const decision = action === 'accept' ? 'accepted' : action === 'decline' ? 'declined' : 'cancelled'
-    resolveElicitation(requestId, decision)
-  }
+    useChatStore.getState().resolveElicitation(requestId, decision)
+  }, [])
 
-  const grantToolPermission = async (permissionId: string, _toolName: string) => {
+  const grantToolPermission = useCallback(async (permissionId: string, _toolName: string) => {
     respondPermission(permissionId, true)
-  }
+  }, [respondPermission])
 
-  // Build a CLI permission rule string from tool name + input
-  const buildPermissionRule = (toolName: string, toolInput: Record<string, unknown>): string => {
-    if ((toolName === 'Bash' || toolName === 'computer') && toolInput.command) {
-      const cmd = String(toolInput.command).trim()
-      const firstWord = cmd.split(/\s+/)[0]
-      if (firstWord) return `Bash(${firstWord} *)`
-    }
-    return toolName
-  }
-
-  // Write a permanent allow/deny rule to ~/.claude/settings.json
-  const writePermissionRule = async (type: 'allow' | 'deny', toolName: string, toolInput: Record<string, unknown>) => {
-    const rule = buildPermissionRule(toolName, toolInput)
-    try {
-      const settings = await window.electronAPI.configReadCLISettings()
-      const perms = (settings.permissions || {}) as { allow?: string[]; deny?: string[] }
-      const list = Array.isArray(perms[type]) ? perms[type]! : []
-      if (!list.includes(rule)) {
-        list.push(rule)
-      }
-      await window.electronAPI.configWriteCLISettings({
-        permissions: { ...perms, [type]: list },
-      })
-      const toastMsg = type === 'allow'
-        ? t('permission.ruleAddedAllow', { rule })
-        : t('permission.ruleAddedDeny', { rule })
-      useUiStore.getState().addToast('success', toastMsg)
-    } catch {
-      useUiStore.getState().addToast('warning', t('permissions.saveFailed'))
-    }
-  }
-
-  const alwaysAllowTool = (toolName: string, toolInput: Record<string, unknown>) => {
+  const alwaysAllowTool = useCallback((toolName: string, toolInput: Record<string, unknown>) => {
     writePermissionRule('allow', toolName, toolInput)
-  }
+  }, [])
 
-  const alwaysDenyTool = (toolName: string, toolInput: Record<string, unknown>) => {
+  const alwaysDenyTool = useCallback((toolName: string, toolInput: Record<string, unknown>) => {
     writePermissionRule('deny', toolName, toolInput)
-  }
+  }, [])
 
-  const newConversation = async () => {
+  const newConversation = useCallback(async () => {
     const bridgeId = activeBridgeIdRef.current
     if (bridgeId) {
       window.electronAPI.cliEndSession(bridgeId)
       activeBridgeIdRef.current = null
     }
-    denyPendingPermissions()
+    useChatStore.getState().denyPendingPermissions()
     useChatStore.getState().clearMessages()
     contextWarningShownRef.current = false
     // Auto-apply default persona for new sessions (Iteration 407)
@@ -412,16 +419,23 @@ export function useStreamJson() {
       const persona = personas.find(p => p.id === defaultPersonaId)
       if (persona) {
         useChatStore.getState().setSessionPersonaId(defaultPersonaId)
-        const resolvedPrompt = persona.presetKey ? t(`persona.presetPrompt.${persona.presetKey}`) : persona.systemPrompt
+        const resolvedPrompt = persona.presetKey ? getT()(`persona.presetPrompt.${persona.presetKey}`) : persona.systemPrompt
         usePrefsStore.getState().setPrefs({ model: persona.model, systemPrompt: resolvedPrompt, outputStyle: persona.outputStyle || 'default' })
         window.electronAPI.prefsSet('model', persona.model)
         window.electronAPI.prefsSet('systemPrompt', resolvedPrompt)
         window.electronAPI.prefsSet('outputStyle', persona.outputStyle || 'default')
       }
     }
-  }
+  }, [])
 
+  // PERF: this effect is registered once and every store action is read through
+  // getState() so the listeners are never torn down/re-created. Translations use
+  // the module-level getT() accessor rather than capturing a `t` callback.
   useEffect(() => {
+    // Live translation accessor — reads the current locale at call time, so the
+    // once-registered listener always shows toasts in the active language.
+    const t = getT()
+
     // Request notification permission on mount
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission()
@@ -430,11 +444,11 @@ export function useStreamJson() {
     const unsub = window.electronAPI.onCliEvent(null as unknown as string, (event, data: any) => {
       switch (event) {
         case 'cli:assistantText': {
-          appendTextDelta(data.sessionId as string, data.text as string)
+          useChatStore.getState().appendTextDelta(data.sessionId as string, data.text as string)
           break
         }
         case 'cli:thinkingDelta': {
-          appendThinkingDelta(data.sessionId as string, data.thinking as string)
+          useChatStore.getState().appendThinkingDelta(data.sessionId as string, data.thinking as string)
           break
         }
         case 'cli:messageEnd':
@@ -446,7 +460,7 @@ export function useStreamJson() {
           if (e.name === 'ExitPlanMode') {
             const input = (e.input as Record<string, unknown>) ?? {}
             const planContent = (input.plan as string) || JSON.stringify(input, null, 2)
-            addPlanMessage({
+            useChatStore.getState().addPlanMessage({
               id: `plan-${Date.now()}`,
               role: 'plan',
               planContent,
@@ -481,7 +495,7 @@ export function useStreamJson() {
         }
         case 'cli:toolResult': {
           const e = data.event as Record<string, unknown>
-          resolveToolUse(
+          useChatStore.getState().resolveToolUse(
             e.tool_use_id as string,
             e.content,
             Boolean(e.is_error)
@@ -534,9 +548,9 @@ export function useStreamJson() {
           const msgCountBefore = useChatStore.getState().messages.length
           const claudeSessionId = data.claudeSessionId as string | undefined
           if (claudeSessionId) {
-            setSessionId(claudeSessionId)
+            useChatStore.getState().setSessionId(claudeSessionId)
             // Refresh session list so the pending placeholder is replaced with the real session
-            window.electronAPI.sessionList().then((list: any) => {
+            listSessionsShared().then((list: any) => {
               if (list) useSessionStore.getState().setSessions(list)
             })
           }
@@ -554,8 +568,8 @@ export function useStreamJson() {
               )
             }
           }
-          setLastResultUuid((data.uuid as string | undefined) ?? null)
-          setFastModeState((data.fastModeState as string | undefined) ?? null)
+          useChatStore.getState().setLastResultUuid((data.uuid as string | undefined) ?? null)
+          useChatStore.getState().setFastModeState((data.fastModeState as string | undefined) ?? null)
           const ev = data.event as Record<string, unknown>
           // Compact diff toast: when result metadata indicates compaction happened
           const metadata = ev?.metadata as Record<string, unknown> | undefined
@@ -567,7 +581,7 @@ export function useStreamJson() {
           }
           const usage = ev?.usage as Record<string, number> | undefined
           if (usage) {
-            setLastUsage({
+            useChatStore.getState().setLastUsage({
               inputTokens: (usage.input_tokens ?? 0),
               outputTokens: (usage.output_tokens ?? 0),
               cacheTokens: (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0),
@@ -575,17 +589,17 @@ export function useStreamJson() {
           }
           // cost (with per-model breakdown)
           const costUsd = ev?.total_cost_usd as number | undefined
-          const currentModel = prefs.model || 'claude-sonnet-4-6'
+          const currentModel = usePrefsStore.getState().prefs.model || 'claude-sonnet-4-6'
           const turnUsage = usage ? {
             inputTokens: usage.input_tokens ?? 0,
             outputTokens: usage.output_tokens ?? 0,
             cacheTokens: (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0),
           } : undefined
-          setLastCost(costUsd ?? null, currentModel, turnUsage)
+          useChatStore.getState().setLastCost(costUsd ?? null, currentModel, turnUsage)
 
           // context window usage
           if (usage?.context_window && usage.context_window > 0) {
-            setLastContextUsage({ used: usage.input_tokens ?? 0, total: usage.context_window })
+            useChatStore.getState().setLastContextUsage({ used: usage.input_tokens ?? 0, total: usage.context_window })
             // Warn when context window is getting full
             const pct = Math.round((usage.input_tokens ?? 0) / usage.context_window * 100)
             if (pct >= 85 && !contextWarningShownRef.current) {
@@ -598,7 +612,7 @@ export function useStreamJson() {
               contextWarningShownRef.current = false
             }
             // Auto-compact when context window nears capacity
-            tryAutoCompact(usage.input_tokens ?? 0, usage.context_window)
+            autoCompactRef.current(usage.input_tokens ?? 0, usage.context_window)
 
             // Compact completion detection (Iteration 519)
             // When isCompacting is true and we get a result with context data, the compact is done
@@ -696,20 +710,20 @@ export function useStreamJson() {
               if (title) {
                 window.electronAPI.sessionRename(claudeSessionId, title)
                 // Update the session title in the store for toolbar display
-                setSessionTitle(title)
+                useChatStore.getState().setSessionTitle(title)
                 useUiStore.getState().addToast('info', t('session.titleGenerated'), 2000)
                 // Refresh session list in sidebar to show the new title
-                window.electronAPI.sessionList().then((list: any) => {
+                listSessionsShared().then((list: any) => {
                   if (list) {
                     useSessionStore.getState().setSessions(list)
                   }
-                }).catch(() => {})
+                })
               }
             }).catch(() => {})
           }
 
           // Auto-extract memories from conversation
-          tryExtractMemories()
+          extractMemoriesRef.current()
 
           // ── Task Queue: auto-execute next task ──────────
           {
@@ -824,8 +838,8 @@ export function useStreamJson() {
           break
         }
         case 'cli:processExit':
-          denyPendingPermissions()
-          cancelPendingInteractiveMessages()
+          useChatStore.getState().denyPendingPermissions()
+          useChatStore.getState().cancelPendingInteractiveMessages()
           activeBridgeIdRef.current = null
           // Reset compact state if process exits mid-compact (Iteration 519)
           {
@@ -853,7 +867,7 @@ export function useStreamJson() {
         }
         case 'cli:hookCallback': {
           const d = data as { sessionId: string; requestId: string; callbackId: string; hookInput: Record<string, unknown>; toolUseId?: string }
-          addHookCallback({
+          useChatStore.getState().addHookCallback({
             id: `hook-${Date.now()}`,
             role: 'hook_callback',
             requestId: d.requestId,
@@ -867,7 +881,7 @@ export function useStreamJson() {
         }
         case 'cli:elicitation': {
           const d = data as { sessionId: string; requestId: string; serverName: string; message: string; mode?: 'form' | 'url'; url?: string; requestedSchema?: Record<string, unknown> }
-          addElicitation({
+          useChatStore.getState().addElicitation({
             id: `elicit-${Date.now()}`,
             role: 'elicitation',
             requestId: d.requestId,
@@ -962,7 +976,7 @@ export function useStreamJson() {
       window.removeEventListener('aipa:abortStream', handleAbortStream)
       window.removeEventListener('aipa:sendMessage', handleSendMessage)
     }
-  }, [])
+  }, [stopStreamingAndReleaseSleep])
 
   return { sendMessage, abort, respondPermission, respondHookCallback, respondElicitation, grantToolPermission, alwaysAllowTool, alwaysDenyTool, newConversation }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import { useUiStore } from '../../store'
 import { useT } from '../../i18n'
@@ -26,6 +26,14 @@ export function useMessageNavigation(
 ) {
   const [focusedMsgIdx, setFocusedMsgIdx] = useState<number | null>(null)
   const t = useT()
+
+  // The window listener below is re-bound on every streaming delta via
+  // `messageIndices`/`items`; read the live message list and translator through
+  // refs so a rebind never captures a stale snapshot.
+  const messagesRef = useRef(messages)
+  messagesRef.current = messages
+  const tRef = useRef(t)
+  tRef.current = t
 
   const messageIndices = useMemo(() =>
     messages.reduce<number[]>((acc, m, i) => {
@@ -57,12 +65,12 @@ export function useMessageNavigation(
         const selection = window.getSelection()?.toString()
         if (!selection) {
           e.preventDefault()
-          const msg = messages[focusedMsgIdx] as StandardChatMessage
+          const msg = messagesRef.current[focusedMsgIdx] as StandardChatMessage
           if (msg?.content) {
             navigator.clipboard.writeText(msg.content).catch(() => {})
             // Dispatch event so Message component can show copy flash
             window.dispatchEvent(new CustomEvent('aipa:messageCopiedByKeyboard', { detail: msg.id }))
-            useUiStore.getState().addToast('success', t('message.copiedViaKeyboard'))
+            useUiStore.getState().addToast('success', tRef.current('message.copiedViaKeyboard'))
           }
           return
         }

@@ -76,8 +76,16 @@ export default function ChatPanel() {
   const dreamEvents = useChatStore(s => s.dreamEvents)
   // Tab state (Iteration 515)
   const activeTabId = useChatStore(s => s.activeTabId)
-  const setTabScrollTop = useChatStore(s => s.setTabScrollTop)
-  const tabCount = useChatStore(s => s.tabs.length)
+  // Per-tab scroll offset: the store keeps it in a module-level map (no
+  // re-render per scroll event), so read it as a plain snapshot at switch time.
+  const restoreScrollTop = useMemo(
+    () => (activeTabId ? getTabScrollTop(activeTabId) : 0),
+    [activeTabId],
+  )
+  const handleScrollTop = useCallback((top: number) => {
+    const tabId = useChatStore.getState().activeTabId
+    if (tabId) useChatStore.getState().setTabScrollTop(tabId, top)
+  }, [])
 
   // Keep the active tab title in sync with session title changes
   const updateTabTitle = useChatStore(s => s.updateTabTitle)
@@ -92,6 +100,7 @@ export default function ChatPanel() {
   // Extracted hooks
   const { elapsedStr } = useStreamingTimer(isStreaming)
   const { chatZoom, resetZoom } = useChatZoom()
+  const hasTaskQueue = useChatStore(s => s.taskQueue.length > 0)
   const { bookmarkedMessages, conversationStats } = useConversationStats(messages)
   const sessionChanges = useSessionChanges(messages)
   const {
@@ -223,6 +232,14 @@ export default function ChatPanel() {
     if (isStreaming || messages.length < 2) return
     await sendMessage(t('chat.summarizePrompt'))
   }, [isStreaming, messages.length, sendMessage, t])
+
+  // Stable identity matters: MessageList forwards this to every memo(Message),
+  // and ChatPanel re-renders on every streaming delta.
+  const handleEditMessage = useCallback(async (msgId: string, newContent: string) => {
+    if (isStreaming) return
+    useChatStore.getState().editMessageAndTruncate(msgId, newContent)
+    await sendMessage(newContent)
+  }, [isStreaming, sendMessage])
 
   // Fork handler (Iteration 456)
   const handleFork = useCallback(async (msgIdx: number) => {
@@ -487,12 +504,11 @@ export default function ChatPanel() {
             searchCaseSensitive={caseSensitive}
             highlightedMessageIdx={searchMatches.length > 0 ? searchMatches[currentMatchIdx] : undefined}
             scrollToMessageIdx={scrollToMessageIdx}
-            onEdit={async (msgId, newContent) => {
-              if (isStreaming) return
-              useChatStore.getState().editMessageAndTruncate(msgId, newContent)
-              await sendMessage(newContent)
-            }}
+            onEdit={handleEditMessage}
             onFork={handleFork}
+            onScrollTop={handleScrollTop}
+            tabId={activeTabId}
+            restoreScrollTop={restoreScrollTop}
           />
           )}
         </div>
@@ -565,7 +581,8 @@ export default function ChatPanel() {
       )}
 
       {/* Task Dashboard — visual task flow (Iteration 550) */}
-      <TaskDashboard />
+      {/* PERF: only mount when the queue actually has items (it renders null otherwise) */}
+      {hasTaskQueue && <TaskDashboard />}
 
       {/* Task Queue Panel */}
       <TaskQueuePanel />

@@ -92,7 +92,8 @@ export default function PersonaEditorPage() {
     }
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [])
+    // `goBack` reads `returnView`; rebinding keeps Escape going to the right view.
+  }, [returnView]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const canSubmit = formName.trim() && formPrompt.trim()
 

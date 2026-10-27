@@ -164,12 +164,14 @@ export default function CanvasToolbar({
           background: 'var(--popup-bg)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
-          borderRadius: 12,
+          borderRadius: 10,
           padding: '4px 8px',
           border: '1px solid var(--border)',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.40), 0 1px 4px rgba(0,0,0,0.30)',
+          // Ambient + contact shadow: floating chrome needs the ambient layer to
+          // separate from the dot grid, and the contact layer to sit on it.
+          boxShadow: '0 1px 2px rgba(0,0,0,0.25), 0 8px 24px -8px rgba(0,0,0,0.45)',
           gap: 4,
-          transition: 'all 0.15s ease',
+          transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
         }}>
           <Search size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
           <input
@@ -219,11 +221,11 @@ export default function CanvasToolbar({
         background: 'var(--popup-bg)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        borderRadius: 12,
+        borderRadius: 10,
         padding: '4px 8px',
         border: '1px solid var(--border)',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.40), 0 1px 4px rgba(0,0,0,0.30)',
-        transition: 'all 0.15s ease',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.25), 0 8px 24px -8px rgba(0,0,0,0.45)',
+        transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
         // needed so the shortcuts popup anchors to this element
         isolation: 'isolate',
       }}>

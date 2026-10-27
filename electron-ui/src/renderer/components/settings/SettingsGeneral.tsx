@@ -25,7 +25,7 @@ export default function SettingsGeneral({
   saved,
   onSave,
 }: SettingsGeneralProps) {
-  const { setPrefs } = usePrefsStore()
+  const setPrefs = usePrefsStore(s => s.setPrefs)
   const { t, locale, setLocale } = useI18n()
   const defaultTagNames = TAG_PRESETS_SETTINGS.map(tp => t(tp.defaultKey))
   const [localTagNames, setLocalTagNames] = useState<string[]>(local.tagNames || defaultTagNames)

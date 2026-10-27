@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import type { NodePosition } from './useCanvasLayout'
 
 const MINIMAP_W = 120
@@ -19,6 +19,10 @@ interface MinimapProps {
 
 export default function Minimap({ nodePositions, stepIds, stepStatuses, panX, panY, zoom, containerW, containerH, onClickNode, onViewportDrag }: MinimapProps) {
   const vpDragRef = React.useRef<{ mouseX: number; mouseY: number; startPanX: number; startPanY: number } | null>(null)
+  // Drag listeners live on `window`; if the canvas unmounts mid-drag they must
+  // be removed explicitly or they keep driving a dead tree.
+  const dragCleanupRef = useRef<(() => void) | null>(null)
+  useEffect(() => () => { dragCleanupRef.current?.() }, [])
   const [hoveredNode, setHoveredNode] = useState<string | null>(null)
 
   // O(1) index lookup — avoid O(n²) indexOf in the render loop
@@ -63,13 +67,18 @@ export default function Minimap({ nodePositions, stepIds, stepStatuses, panX, pa
       const newPanY = vpDragRef.current.startPanY - (dy / scale) * zoom
       onViewportDrag(newPanX, newPanY)
     }
-    const handleUp = () => {
-      vpDragRef.current = null
+    const detach = () => {
       window.removeEventListener('mousemove', handleMove)
       window.removeEventListener('mouseup', handleUp)
+      dragCleanupRef.current = null
+    }
+    const handleUp = () => {
+      vpDragRef.current = null
+      detach()
     }
     window.addEventListener('mousemove', handleMove)
     window.addEventListener('mouseup', handleUp)
+    dragCleanupRef.current = detach
   } : undefined
 
   return (
@@ -87,12 +96,22 @@ export default function Minimap({ nodePositions, stepIds, stepStatuses, panX, pa
         overflow: 'hidden',
         width: MINIMAP_W,
         height: MINIMAP_H,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+        // Ambient + contact, matching the toolbar chrome so the two floating
+        // surfaces at the canvas edge look like one family.
+        boxShadow: '0 1px 2px rgba(0,0,0,0.3), 0 12px 32px -10px rgba(0,0,0,0.55)',
       }}
       onMouseDown={e => e.stopPropagation()}
       onClick={e => e.stopPropagation()}
     >
       <svg width={MINIMAP_W} height={MINIMAP_H} style={{ display: 'block' }}>
+        {/* Scaled-down grid: ties the minimap to the canvas surface instead of
+            floating as a bare rectangle of coloured blocks. */}
+        <defs>
+          <pattern id="minimap-grid" width={10} height={10} patternUnits="userSpaceOnUse">
+            <circle cx={5} cy={5} r={0.6} fill="var(--text-faint)" opacity={0.35} />
+          </pattern>
+        </defs>
+        <rect width={MINIMAP_W} height={MINIMAP_H} fill="url(#minimap-grid)" />
         {stepIds.map(id => {
           const p = nodePositions[id]
           if (!p) return null

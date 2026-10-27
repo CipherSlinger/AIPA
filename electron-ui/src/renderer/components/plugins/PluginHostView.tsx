@@ -115,10 +115,17 @@ export default function PluginHostView() {
       if (!data || typeof data !== 'object') return
       const plugin = pluginRef.current
 
+      // Every bridge message must originate from the hosted plugin frame
+      // itself, not merely look like one. A plugin page may embed its own
+      // iframes (video, docs, maps), and those could otherwise forge
+      // `aipa:storage:set` / `aipa:sendPrompt` / `aipa:openPlugin` into the
+      // host. `event.source` is set by the browser and cannot be spoofed, so
+      // this single check covers every message type below.
+      const target = iframeRef.current?.contentWindow
+      if (!target || event.source !== target) return
+
       if (data.type === 'aipa:invoke') {
-        // Only accept capability calls from the hosted plugin frame
-        const target = iframeRef.current?.contentWindow
-        if (!plugin || !target || event.source !== target) return
+        if (!plugin) return
         const method = String(data.method || '')
         const reply = (body: Record<string, unknown>) =>
           target.postMessage({ type: 'aipa:response', requestId: data.requestId, ...body }, '*')
@@ -378,7 +385,11 @@ export default function PluginHostView() {
             // Locale is passed via ?lang=; a change remounts so the plugin renders in the new language
             key={`${iframeKey}:${resolvedLocale}`}
             ref={iframeRef}
-            src={`file:///${plugin.entryPath.replace(/\\/g, '/')}?lang=${resolvedLocale}`}
+            src={`${plugin.url}?lang=${resolvedLocale}`}
+            // allow-same-origin is required by localStorage (the frames throw
+            // SecurityError without it). Isolation comes from the scheme instead:
+            // each plugin's URL has its own host, so its origin — and therefore its
+            // storage — is separate from the app and from every other plugin.
             sandbox="allow-scripts allow-forms allow-same-origin allow-modals allow-popups allow-downloads"
             title={getPluginDisplayName(plugin.manifest, resolvedLocale)}
             style={{

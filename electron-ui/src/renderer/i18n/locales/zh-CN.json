@@ -1852,7 +1852,8 @@
     "authTokenHint": "设置后须将 API Key 留空，Token 以 Authorization: Bearer 方式发送",
     "model": "模型",
     "modelPlaceholder": "例如：deepseek-chat",
-    "modelHint": "留空时使用提供商的默认模型"
+    "modelHint": "留空时使用提供商的默认模型",
+    "credentialStored": "留空则沿用已保存的凭据"
   },
   "channel": {
     "title": "通道",

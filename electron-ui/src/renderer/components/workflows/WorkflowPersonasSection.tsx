@@ -19,7 +19,8 @@ import PersonCharacterIcon from './PersonCharacterIcon'
 // ─── Main exported section ─────────────────────────────────────────────────────
 
 export default function WorkflowPersonasSection() {
-  const { prefs, setPrefs } = usePrefsStore()
+  const prefs = usePrefsStore(s => s.prefs)
+  const setPrefs = usePrefsStore(s => s.setPrefs)
   const { t } = useI18n()
   const addToast = useUiStore(s => s.addToast)
 

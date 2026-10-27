@@ -151,12 +151,26 @@ export default function ProviderEditDrawer({
   const isDirty =
     draft.name !== provider.name ||
     draft.scenario !== provider.scenario ||
-    draft.apiKey !== (provider.apiKey ?? '') ||
-    draft.authToken !== (provider.authToken ?? '') ||
+    draft.apiKey.trim() !== '' ||
+    draft.authToken.trim() !== '' ||
     draft.baseUrl !== (provider.baseUrl ?? '')
 
+  // The stored credential never leaves the main process — `hasApiKey` /
+  // `hasAuthToken` tell us one is configured without revealing it.
+  const hasStoredApiKey = provider.hasApiKey ?? false
+  const hasStoredAuthToken = provider.hasAuthToken ?? false
+
   const handleSave = useCallback(async () => {
-    const updated: ProviderConfig = { ...provider, ...draft }
+    // Only the fields the user actually edited are sent; blank credential fields
+    // are omitted so the main process keeps the stored secret.
+    const updated: ProviderConfig = {
+      ...provider,
+      name: draft.name,
+      scenario: draft.scenario,
+      baseUrl: draft.baseUrl,
+      ...(draft.apiKey.trim() ? { apiKey: draft.apiKey.trim() } : { apiKey: '' }),
+      ...(draft.authToken.trim() ? { authToken: draft.authToken.trim() } : { authToken: '' }),
+    }
 
     // Entering a credential for the first time turns the provider on.
     const hasCredential = !!draft.apiKey.trim() || !!draft.authToken.trim()
@@ -173,6 +187,7 @@ export default function ProviderEditDrawer({
       try {
         const result = await (window.electronAPI as any).providerFetchRemoteModels({
           baseUrl,
+          providerId: provider.id,
           apiKey: draft.apiKey.trim(),
           authToken: draft.authToken.trim(),
         })
@@ -204,6 +219,7 @@ export default function ProviderEditDrawer({
     try {
       const result = await (window.electronAPI as any).providerFetchRemoteModels({
         baseUrl,
+        providerId: provider.id,
         apiKey: draft.apiKey.trim(),
         authToken: draft.authToken.trim(),
       })
@@ -361,7 +377,7 @@ export default function ProviderEditDrawer({
                   type={showApiKey ? 'text' : 'password'}
                   value={draft.apiKey}
                   onChange={e => update({ apiKey: e.target.value })}
-                  placeholder="sk-..."
+                  placeholder={hasStoredApiKey ? t('provider.credentialStored') : 'sk-...'}
                   style={{ ...INPUT_STYLE, fontFamily: 'monospace' }}
                 />
                 <button
@@ -385,7 +401,7 @@ export default function ProviderEditDrawer({
                     type={showAuthToken ? 'text' : 'password'}
                     value={draft.authToken}
                     onChange={e => update({ authToken: e.target.value })}
-                    placeholder="Bearer ..."
+                    placeholder={hasStoredAuthToken ? t('provider.credentialStored') : 'Bearer ...'}
                     style={{ ...INPUT_STYLE, fontFamily: 'monospace' }}
                   />
                   <button

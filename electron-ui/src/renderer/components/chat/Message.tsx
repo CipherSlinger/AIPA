@@ -88,6 +88,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   // Copy flash effect: briefly highlight bubble border after copy (Iteration 453)
   const [copyFlash, setCopyFlash] = useState(false)
   const prevCopiedRef = useRef(false)
+  const copyFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     if (copied && !prevCopiedRef.current) {
       setCopyFlash(true)
@@ -103,11 +104,15 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
       const msgId = (e as CustomEvent).detail as string
       if (msgId === message.id) {
         setCopyFlash(true)
-        setTimeout(() => setCopyFlash(false), 350)
+        if (copyFlashTimerRef.current) clearTimeout(copyFlashTimerRef.current)
+        copyFlashTimerRef.current = setTimeout(() => setCopyFlash(false), 350)
       }
     }
     window.addEventListener('aipa:messageCopiedByKeyboard', handler)
-    return () => window.removeEventListener('aipa:messageCopiedByKeyboard', handler)
+    return () => {
+      window.removeEventListener('aipa:messageCopiedByKeyboard', handler)
+      if (copyFlashTimerRef.current) clearTimeout(copyFlashTimerRef.current)
+    }
   }, [message.id])
 
   // Word info tooltip (both user and assistant messages)
@@ -149,6 +154,10 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
     setIsEditing(true)
     setTimeout(() => editTextareaRef.current?.focus(), 50)
   }, [message])
+
+  // PERF: stable identities so the React.memo'd MessageBubbleContent can bail out
+  const handleEditCancel = useCallback(() => setIsEditing(false), [])
+  const handleImageClick = useCallback((src: string, alt: string) => setLightboxImage({ src, alt }), [])
 
   const handleEditSubmit = useCallback(() => {
     if (editContent.trim() && onEdit) {
@@ -331,7 +340,6 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             isAssistant={isAssistant}
             isPermission={isPermission}
             isCollapsed={!!isCollapsed}
-            compact={!!compact}
             searchQuery={searchQuery}
             searchCaseSensitive={searchCaseSensitive}
             msgStatus={msgStatus}
@@ -339,13 +347,12 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             editContent={editContent}
             onEditContentChange={setEditContent}
             onEditSubmit={handleEditSubmit}
-            onEditCancel={() => setIsEditing(false)}
+            onEditCancel={handleEditCancel}
             editTextareaRef={editTextareaRef as React.RefObject<HTMLTextAreaElement>}
             showRawMarkdown={showRawMarkdown}
             showTimestamp={showTimestamp}
-            onImageClick={(src, alt) => setLightboxImage({ src, alt })}
+            onImageClick={handleImageClick}
             onCollapse={onCollapse}
-            onEdit={onEdit}
             onTimestampClick={handleTimestampClick}
           />
         </div>
@@ -463,5 +470,10 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   if (prevProps.searchCaseSensitive !== nextProps.searchCaseSensitive) return false
   if (prevProps.showAvatar !== nextProps.showAvatar) return false
   if (prevProps.showTimestamp !== nextProps.showTimestamp) return false
+  // These flags change when neighbouring messages are added/removed — the
+  // message object itself stays identical, so they must be compared here.
+  if (prevProps.isLastMessage !== nextProps.isLastMessage) return false
+  if (prevProps.isLastUserMsg !== nextProps.isLastUserMsg) return false
+  if (prevProps.hasAssistantReply !== nextProps.hasAssistantReply) return false
   return true
 })

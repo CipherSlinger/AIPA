@@ -22,7 +22,10 @@ const MIGRATION_EMOJIS = ['\u{1F4DD}', '\u{1F4CB}', '\u{1F4CC}', '\u{1F4D6}', '\
 const MIGRATION_COLORS = ['#6366f1', '#4ade80', '#fbbf24', '#a78bfa', '#f87171', '#67e8f9', '#ec4899', '#f97316', '#14b8a6', '#818cf8']
 
 export default function SettingsPanel() {
-  const { prefs, setPrefs } = usePrefsStore()
+  // PERF: field selectors — the settings panel needs the whole prefs object, but
+  // it must not re-render on unrelated store state (pending tab, toasts, ...).
+  const prefs = usePrefsStore(s => s.prefs)
+  const setPrefs = usePrefsStore(s => s.setPrefs)
   const { t } = useI18n()
   const [local, setLocal] = useState({ ...prefs })
   const [showKey, setShowKey] = useState(false)

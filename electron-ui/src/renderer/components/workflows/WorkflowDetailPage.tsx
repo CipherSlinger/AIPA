@@ -124,6 +124,12 @@ export default function WorkflowDetailPage() {
   // Unsaved changes dialog state
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
   const pendingActionRef = useRef<'back' | 'escape' | null>(null)
+  const saveFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Clear the save-flash timer if the page unmounts first.
+  useEffect(() => () => {
+    if (saveFlashTimerRef.current) clearTimeout(saveFlashTimerRef.current)
+  }, [])
 
   // Display name: use translated preset name if available, else workflow name
   const displayName = workflow
@@ -185,9 +191,14 @@ export default function WorkflowDetailPage() {
     }
   }, [isEditMode, hasUnsavedChanges, navigateBack])
 
+  // handleSave closes over the live edit state, so route the dialog through a
+  // ref — the callback below must stay identity-stable for the dialog, but a
+  // frozen copy of handleSave would save an empty name/steps snapshot.
+  const handleSaveRef = useRef<() => void>(() => {})
+
   // Dialog actions
   const handleDialogSaveAndLeave = useCallback(() => {
-    handleSave()
+    handleSaveRef.current()
     setShowUnsavedDialog(false)
     if (pendingActionRef.current === 'back') {
       navigateBack()
@@ -195,7 +206,7 @@ export default function WorkflowDetailPage() {
       setIsEditMode(false)
     }
     pendingActionRef.current = null
-  }, []) // handleSave is stable because it reads from state directly
+  }, [navigateBack])
 
   const handleDialogDiscard = useCallback(() => {
     setHasUnsavedChanges(false)
@@ -246,7 +257,9 @@ export default function WorkflowDetailPage() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [isEditMode, hasUnsavedChanges, editName, editDesc, editIcon, editSteps])
+    // handleSave is re-binding through the refs/state it reads, so the deps
+    // below are exactly what the handler consults.
+  }, [isEditMode, hasUnsavedChanges, editName, editDesc, editIcon, editSteps]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const markDirty = () => { setHasUnsavedChanges(true); setJustSaved(false) }
 
@@ -388,8 +401,11 @@ export default function WorkflowDetailPage() {
     // Green flash on header for Ctrl+S save feedback
     setSaveFlash(true)
     addToast('success', t('workflow.updated'))
-    setTimeout(() => { setJustSaved(false); setSaveFlash(false) }, 2000)
+    if (saveFlashTimerRef.current) clearTimeout(saveFlashTimerRef.current)
+    saveFlashTimerRef.current = setTimeout(() => { setJustSaved(false); setSaveFlash(false) }, 2000)
   }
+  // Keep the dialog's stable callback pointed at the current handleSave.
+  useEffect(() => { handleSaveRef.current = handleSave })
 
   const updateStep = (idx: number, field: keyof WorkflowStep, value: string) => {
     setEditSteps(editSteps.map((s, i) => i === idx ? { ...s, [field]: value } : s))

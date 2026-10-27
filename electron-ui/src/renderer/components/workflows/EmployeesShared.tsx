@@ -19,12 +19,13 @@ export function cardStyle(hovered: boolean, active = false, accent = ACCENT): Re
     borderRadius: 12,
     cursor: 'pointer',
     background: active ? `${accent}14` : hovered ? 'var(--bg-hover)' : 'var(--bg-card, rgba(255,255,255,0.03))',
+    backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0) 44%)',
     border: active ? `1.5px solid ${accent}` : `1px solid ${hovered ? 'rgba(99,102,241,0.35)' : 'var(--glass-border)'}`,
     boxShadow: active
-      ? `0 0 14px ${accent}35, 0 2px 8px rgba(0,0,0,0.15)`
-      : hovered ? '0 6px 16px rgba(0,0,0,0.16)' : '0 1px 3px rgba(0,0,0,0.08)',
+      ? `0 0 0 1px ${accent}30, 0 8px 22px -8px ${accent}55, 0 2px 6px rgba(0,0,0,0.18)`
+      : hovered ? '0 2px 4px rgba(0,0,0,0.12), 0 10px 24px -8px rgba(0,0,0,0.30)' : '0 1px 2px rgba(0,0,0,0.10)',
     transform: hovered ? 'translateY(-2px)' : 'none',
-    transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+    transition: 'transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease',
     userSelect: 'none',
   }
 }
@@ -91,8 +92,10 @@ export function ToolbarButton({ onClick, title, children, disabled, primary }: {
           ? `linear-gradient(135deg, rgba(99,102,241,${hovered ? 0.98 : 0.9}), rgba(139,92,246,${hovered ? 0.98 : 0.9}))`
           : hovered && !disabled ? 'rgba(99,102,241,0.07)' : 'transparent',
         color: primary ? '#fff' : hovered && !disabled ? '#818cf8' : 'var(--text-secondary)',
-        boxShadow: primary && hovered ? '0 4px 14px rgba(99,102,241,0.35)' : 'none',
-        transition: 'all 0.15s ease',
+        boxShadow: primary
+          ? (hovered ? '0 2px 6px rgba(0,0,0,0.25), 0 8px 20px -6px rgba(99,102,241,0.6)' : '0 1px 2px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.12)')
+          : 'inset 0 1px 0 rgba(255,255,255,0.04)',
+        transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
       }}
     >
       {children}
@@ -120,12 +123,17 @@ export function AddCard({ label, onClick, disabled, minHeight }: {
         background: on ? 'rgba(99,102,241,0.06)' : 'transparent', color: on ? '#818cf8' : 'var(--text-muted)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
         cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
-        fontSize: 12, fontWeight: 600, transition: 'all 0.15s ease',
+        fontSize: 12, fontWeight: 600,
+        boxShadow: on ? '0 8px 22px -10px rgba(99,102,241,0.5)' : 'none',
+        transform: on ? 'translateY(-1px)' : 'none',
+        transition: 'background 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease',
       }}
     >
       <span style={{
         width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: on ? 'rgba(99,102,241,0.14)' : 'var(--bg-hover)', transition: 'all 0.15s ease',
+        background: on ? 'rgba(99,102,241,0.14)' : 'rgba(255,255,255,0.045)',
+        border: on ? '1px solid rgba(99,102,241,0.3)' : '1px solid var(--glass-border)',
+        transition: 'background 0.16s ease, border-color 0.16s ease',
       }}>
         <Plus size={16} />
       </span>

@@ -39,6 +39,8 @@ const ELLIPSIS: React.CSSProperties = {
 type TimeRange = 'all' | 'today' | 'week' | 'month'
 /** Sentinel for the department filter's "not assigned to any department" option. */
 const UNASSIGNED = '__unassigned__'
+/** Stable empty fallback for an unset `archivedSessions` pref. */
+const EMPTY_ARCHIVED: string[] = []
 
 interface ArchiveRecord {
   session: SessionListItem
@@ -103,7 +105,10 @@ export default function ArchivePanel() {
   const sessions = useSessionStore(s => s.sessions)
   const sessionsLoading = useSessionStore(s => s.loading)
   const homeDir = useSessionStore(s => s.homeDir)
-  const archivedSessions = usePrefsStore(s => s.prefs.archivedSessions) || []
+  const storedArchived = usePrefsStore(s => s.prefs.archivedSessions)
+  // Module-level fallback keeps the identity stable when the pref is unset —
+  // a fresh `[]` would invalidate every memo that depends on it.
+  const archivedSessions = storedArchived ?? EMPTY_ARCHIVED
   const setPrefs = usePrefsStore(s => s.setPrefs)
 
   const [deptFilter, setDeptFilter] = useState<string>('all')

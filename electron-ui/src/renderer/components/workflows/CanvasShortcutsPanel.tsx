@@ -86,15 +86,17 @@ function KeyChip({ label }: { label: string }) {
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '1px 6px',
+        padding: '1px 6px 2px',
         fontSize: 11,
         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
         fontWeight: 600,
         lineHeight: 1.5,
         color: 'var(--text-primary)',
-        background: 'var(--bg-active)',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03))',
         border: '1px solid var(--border-strong, var(--border))',
-        borderRadius: 4,
+        borderBottomColor: 'rgba(0,0,0,0.45)',
+        borderRadius: 5,
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 1px 2px rgba(0,0,0,0.3)',
         whiteSpace: 'nowrap',
       }}
     >
@@ -133,9 +135,9 @@ export default function CanvasShortcutsPanel({ onClose }: CanvasShortcutsPanelPr
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(0,0,0,0.35)',
-        backdropFilter: 'blur(2px)',
-        WebkitBackdropFilter: 'blur(2px)',
+        background: 'rgba(0,0,0,0.45)',
+        backdropFilter: 'blur(3px)',
+        WebkitBackdropFilter: 'blur(3px)',
       }}
     >
       <div
@@ -147,11 +149,12 @@ export default function CanvasShortcutsPanel({ onClose }: CanvasShortcutsPanelPr
           display: 'flex',
           flexDirection: 'column',
           background: 'var(--glass-bg-deep)',
+          backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0) 38%)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid var(--border)',
-          borderRadius: 12,
-          boxShadow: 'var(--glass-shadow, 0 8px 32px rgba(0,0,0,0.5))',
+          border: '1px solid var(--glass-border-md)',
+          borderRadius: 14,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.3), 0 24px 64px -16px rgba(0,0,0,0.65), 0 0 0 1px rgba(99,102,241,0.06)',
         }}
       >
         {/* Title bar */}
@@ -229,10 +232,10 @@ export default function CanvasShortcutsPanel({ onClose }: CanvasShortcutsPanelPr
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 1,
-                  background: 'var(--bg-hover)',
-                  borderRadius: 8,
+                  background: 'rgba(255,255,255,0.022)',
+                  borderRadius: 9,
                   overflow: 'hidden',
-                  border: '1px solid var(--border)',
+                  border: '1px solid var(--glass-border)',
                 }}
               >
                 {group.rows.map((row, ri) => (
@@ -248,7 +251,7 @@ export default function CanvasShortcutsPanel({ onClose }: CanvasShortcutsPanelPr
                       transition: 'background 0.1s ease',
                     }}
                     onMouseEnter={e => {
-                      e.currentTarget.style.background = 'var(--bg-active, rgba(99,102,241,0.06))'
+                      e.currentTarget.style.background = 'rgba(99,102,241,0.075)'
                     }}
                     onMouseLeave={e => {
                       e.currentTarget.style.background = 'transparent'

@@ -5,13 +5,21 @@ import { Note, NoteCategory } from '../../types/app.types'
 import { MAX_NOTES, MAX_CONTENT_LENGTH, MAX_CATEGORIES, MAX_CATEGORY_NAME, CATEGORY_COLORS, generateId } from './notesConstants'
 import { firstLineOf } from '../../utils/stringUtils'
 
+// Stable fallbacks so an absent preference does not allocate a new [] per render.
+const EMPTY_NOTES: Note[] = []
+const EMPTY_CATEGORIES: NoteCategory[] = []
+
 export function useNotesCRUD() {
   const t = useT()
-  const { prefs, setPrefs } = usePrefsStore()
+  const setPrefs = usePrefsStore(s => s.setPrefs)
   const setQuotedText = useUiStore(s => s.setQuotedText)
   const addToast = useUiStore(s => s.addToast)
-  const notes: Note[] = prefs.notes || []
-  const categories: NoteCategory[] = prefs.noteCategories || []
+  // PERF: select the two slices actually used — a whole-store subscription
+  // re-runs this hook (and re-renders the notes panel) on every prefs write.
+  const storedNotes = usePrefsStore(s => s.prefs.notes)
+  const storedCategories = usePrefsStore(s => s.prefs.noteCategories)
+  const notes: Note[] = storedNotes || EMPTY_NOTES
+  const categories: NoteCategory[] = storedCategories || EMPTY_CATEGORIES
 
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null)

@@ -79,8 +79,14 @@ export interface ProviderConfig {
   name: string
   scenario: ProviderScenario
   baseUrl?: string
+  /** Never populated from the main process — credentials stay there. Only ever
+   *  carries a freshly typed value on its way back via providerUpsert. */
   apiKey?: string
+  /** Same as apiKey: write-only on the renderer side. */
   authToken?: string
+  /** True when a credential is stored in the main process (value not exposed). */
+  hasApiKey?: boolean
+  hasAuthToken?: boolean
   model?: string
   models: { id: string; name: string; provider: string }[]
   enabled: boolean

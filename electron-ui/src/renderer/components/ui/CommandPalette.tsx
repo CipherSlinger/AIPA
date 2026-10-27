@@ -63,12 +63,15 @@ export default function CommandPalette({
   const focusTrapRef = useFocusTrap(true)
   const t = useT()
 
-  const {
-    toggleSidebar, setSidebarTab,
-    setSidebarOpen, setActiveNavItem, addToast,
-  } = useUiStore()
+  // PERF: per-field selectors — a bare useUiStore()/useSessionStore() subscribes
+  // to the whole slice and re-renders the palette on every unrelated state change.
+  const toggleSidebar = useUiStore(s => s.toggleSidebar)
+  const setSidebarTab = useUiStore(s => s.setSidebarTab)
+  const setSidebarOpen = useUiStore(s => s.setSidebarOpen)
+  const setActiveNavItem = useUiStore(s => s.setActiveNavItem)
+  const addToast = useUiStore(s => s.addToast)
 
-  const { sessions } = useSessionStore()
+  const sessions = useSessionStore(s => s.sessions)
   const addToQueue = useChatStore(s => s.addToQueue)
 
   // Build all commands

@@ -7,7 +7,7 @@
  * Inspired by Claude Code official source: src/hooks/useTurnDiffs.ts
  */
 
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import type { StandardChatMessage, ToolUseInfo, ChatMessage } from '../types/app.types'
 import { countCharInString } from '../utils/stringUtils'
 
@@ -91,12 +91,34 @@ function extractFilePath(tool: ToolUseInfo): string | null {
   return p || null
 }
 
+interface ExtractedChange {
+  filePath: string
+  basename: string
+  isCreate: boolean
+  added: number
+  removed: number
+}
+
+interface ChangeCacheEntry {
+  toolUses: ToolUseInfo[] | undefined
+  changes: ExtractedChange[]
+}
+
 export function useSessionChanges(messages: StandardChatMessage[] | ChatMessage[]): SessionChanges {
+  // PERF: extracting line changes scans tool inputs (potentially large strings).
+  // Cache the result per message id + toolUses identity so streaming deltas only
+  // re-scan the one message that actually changed.
+  const changeCacheRef = useRef<Map<string, ChangeCacheEntry>>(new Map())
+
   return useMemo(() => {
+    const changeCache = changeCacheRef.current
     // Filter to only StandardChatMessages (exclude PermissionMessage, PlanMessage)
-    const stdMessages = messages.filter(
-      (m): m is StandardChatMessage => m.role === 'user' || m.role === 'assistant' || m.role === 'system'
-    )
+    const stdMessages: StandardChatMessage[] = []
+    for (const m of messages) {
+      if (m.role === 'user' || m.role === 'assistant' || m.role === 'system') {
+        stdMessages.push(m as StandardChatMessage)
+      }
+    }
     const fileMap = new Map<string, FileChange>()
     const turns: TurnChange[] = []
 
@@ -140,27 +162,41 @@ export function useSessionChanges(messages: StandardChatMessage[] | ChatMessage[
 
       // Process tool uses in assistant messages
       if (msg.role === 'assistant' && msg.toolUses) {
-        for (const tool of msg.toolUses) {
-          const filePath = extractFilePath(tool)
-          if (!filePath) continue
+        let cached = changeCache.get(msg.id)
+        if (!cached || cached.toolUses !== msg.toolUses) {
+          const changes: ExtractedChange[] = []
+          for (const tool of msg.toolUses) {
+            const filePath = extractFilePath(tool)
+            if (!filePath) continue
+            const lineChanges = estimateLineChanges(tool)
+            changes.push({
+              filePath,
+              basename: getBasename(filePath),
+              isCreate: FILE_WRITE_TOOLS.has(tool.name),
+              added: lineChanges.added,
+              removed: lineChanges.removed,
+            })
+          }
+          cached = { toolUses: msg.toolUses, changes }
+          changeCache.set(msg.id, cached)
+        }
 
-          const lineChanges = estimateLineChanges(tool)
-          const isCreate = FILE_WRITE_TOOLS.has(tool.name)
-          const bn = getBasename(filePath)
+        for (const change of cached.changes) {
+          const { filePath, basename: bn, isCreate } = change
 
           // Update global file map
           const existing = fileMap.get(filePath)
           if (existing) {
-            existing.linesAdded += lineChanges.added
-            existing.linesRemoved += lineChanges.removed
+            existing.linesAdded += change.added
+            existing.linesRemoved += change.removed
             existing.editCount++
           } else {
             fileMap.set(filePath, {
               filePath,
               basename: bn,
               status: isCreate ? 'created' : 'modified',
-              linesAdded: lineChanges.added,
-              linesRemoved: lineChanges.removed,
+              linesAdded: change.added,
+              linesRemoved: change.removed,
               editCount: 1,
             })
           }
@@ -168,20 +204,29 @@ export function useSessionChanges(messages: StandardChatMessage[] | ChatMessage[
           // Update current turn file map
           const turnExisting = currentTurnFiles.get(filePath)
           if (turnExisting) {
-            turnExisting.linesAdded += lineChanges.added
-            turnExisting.linesRemoved += lineChanges.removed
+            turnExisting.linesAdded += change.added
+            turnExisting.linesRemoved += change.removed
             turnExisting.editCount++
           } else {
             currentTurnFiles.set(filePath, {
               filePath,
               basename: bn,
               status: isCreate ? 'created' : 'modified',
-              linesAdded: lineChanges.added,
-              linesRemoved: lineChanges.removed,
+              linesAdded: change.added,
+              linesRemoved: change.removed,
               editCount: 1,
             })
           }
         }
+      }
+    }
+
+    // Drop cache entries for messages that are no longer in the conversation
+    if (changeCache.size > stdMessages.length) {
+      const liveIds = new Set<string>()
+      for (const m of stdMessages) liveIds.add(m.id)
+      for (const id of changeCache.keys()) {
+        if (!liveIds.has(id)) changeCache.delete(id)
       }
     }
 

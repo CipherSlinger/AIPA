@@ -13,6 +13,7 @@ import RecruitEmployeeModal from './RecruitEmployeeModal'
 import { kindOf, sessionMatchesDir, teamsOf } from './deptUtils'
 import { openSessionCore } from './openSessionCore'
 import { useT } from '../../i18n'
+import { listSessionsShared } from '../../utils/sessionListShared'
 
 // ── Single Department View ──────────────────────────────────────────────────
 // Stable fallback — avoids a new [] on every render, which would invalidate the
@@ -979,11 +980,11 @@ export default function DepartmentDashboard() {
   useEffect(() => {
     let isMounted = true
     setLoading(true)
-    window.electronAPI.sessionList().then((list: any) => {
+    listSessionsShared().then((list: any) => {
       if (!isMounted) return
       setSessions(list || [])
       setLoading(false)
-    }).catch(() => { if (isMounted) setLoading(false) })
+    })
     return () => { isMounted = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Only run on mount — always refresh sessions when entering dept view

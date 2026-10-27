@@ -10,7 +10,7 @@ import { INPUT_STYLE } from './settingsConstants'
 export function SnippetsSection() {
   const { t } = useI18n()
   const prefs = usePrefsStore(s => s.prefs)
-  const { setPrefs } = usePrefsStore()
+  const setPrefs = usePrefsStore(s => s.setPrefs)
   const snippets: TextSnippet[] = prefs.textSnippets || []
 
   const [showAdd, setShowAdd] = useState(false)

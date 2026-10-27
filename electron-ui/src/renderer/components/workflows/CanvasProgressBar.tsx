@@ -50,12 +50,14 @@ export default function CanvasProgressBar({ completedCount, totalSteps, isRunnin
       padding: '6px 12px',
       pointerEvents: 'none',
       opacity: isError ? 0.4 : 1,
-      background: 'var(--bg-primary)',
+      background: 'var(--glass-bg-mid)',
+      backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0) 46%)',
       backdropFilter: 'blur(14px)',
       WebkitBackdropFilter: 'blur(14px)',
-      border: '1px solid var(--border)',
+      border: `1px solid ${isError ? 'rgba(239,68,68,0.28)' : isRunning ? 'rgba(99,102,241,0.22)' : allDone ? 'rgba(34,197,94,0.22)' : 'var(--glass-border)'}`,
       borderRadius: 10,
-      boxShadow: '0 4px 16px rgba(0,0,0,0.40), 0 1px 4px rgba(0,0,0,0.30)',
+      boxShadow: '0 1px 2px rgba(0,0,0,0.25), 0 8px 24px -8px rgba(0,0,0,0.45)',
+      transition: 'border-color 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease',
     }}>
       <div style={{
         display: 'flex',
@@ -67,8 +69,8 @@ export default function CanvasProgressBar({ completedCount, totalSteps, isRunnin
         {isRunning && !allDone && !isError && (
           <div style={{
             width: 6, height: 6, borderRadius: '50%',
-            background: 'rgba(99,102,241,0.9)',
-            boxShadow: '0 0 6px rgba(99,102,241,0.5)',
+            background: '#a5b4fc',
+            boxShadow: '0 0 0 3px rgba(99,102,241,0.16), 0 0 8px rgba(99,102,241,0.6)',
             flexShrink: 0,
             animation: 'canvas-progress-pulse 1.2s ease-in-out infinite',
           }} />
@@ -95,26 +97,27 @@ export default function CanvasProgressBar({ completedCount, totalSteps, isRunnin
         )}
       </div>
       <div style={{
-        height: 4,
-        background: 'var(--border)',
-        borderRadius: 4,
+        height: 5,
+        background: 'rgba(255,255,255,0.06)',
+        borderRadius: 5,
         overflow: 'hidden',
+        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.35)',
       }}>
         <div style={{
           height: '100%',
           width: isError ? '100%' : `${percent}%`,
           background: isError
-            ? 'rgba(239,68,68,0.80)'
+            ? 'linear-gradient(90deg, rgba(239,68,68,0.65), rgba(239,68,68,0.85))'
             : allDone
-              ? 'linear-gradient(90deg, #4ade80, rgba(34,197,94,0.80))'
-              : 'linear-gradient(90deg, rgba(99,102,241,0.70), rgba(139,92,246,0.60))',
-          borderRadius: 4,
+              ? 'linear-gradient(90deg, rgba(74,222,128,0.85), rgba(34,197,94,0.90))'
+              : 'linear-gradient(90deg, rgba(99,102,241,0.70), rgba(139,92,246,0.70))',
+          borderRadius: 5,
           boxShadow: isError
             ? 'none'
             : allDone
-              ? '0 0 8px rgba(74,222,128,0.4)'
-              : '0 0 8px rgba(99,102,241,0.4)',
-          transition: isError ? 'none' : 'all 0.15s ease',
+              ? '0 0 10px rgba(74,222,128,0.45)'
+              : '0 0 10px rgba(99,102,241,0.45)',
+          transition: isError ? 'none' : 'width 0.35s cubic-bezier(.4,0,.2,1)',
           position: 'relative',
         }}>
           {isRunning && !allDone && !isError && (

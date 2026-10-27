@@ -54,7 +54,7 @@ export function useConversationExport(
     } else {
       addToast('success', t('chat.exportSuccess'))
     }
-  }, [messages, currentSessionId, addToast, t])
+  }, [messages, currentSessionId, currentSessionTitle, model, addToast, t])
 
   const exportBookmarks = useCallback(async () => {
     if (bookmarkedMessages.length === 0) return
@@ -84,7 +84,7 @@ export function useConversationExport(
     } catch {
       addToast('error', t('chat.copyFailed'))
     }
-  }, [messages, currentSessionId, addToast, t])
+  }, [messages, currentSessionId, currentSessionTitle, model, addToast, t])
 
   return { exportConversation, exportBookmarks, copyConversation }
 }

@@ -5,6 +5,11 @@ import { TextSnippet, Note, NoteCategory } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { Terminal } from 'lucide-react'
 
+/** Shared empty fallbacks — see the note at their use sites. */
+const EMPTY_SNIPPETS: TextSnippet[] = []
+const EMPTY_NOTES: Note[] = []
+const EMPTY_NOTE_CATEGORIES: NoteCategory[] = []
+
 interface UseInputPopupsOptions {
   input: string
   setInput: (val: string | ((prev: string) => string)) => void
@@ -39,8 +44,9 @@ export function useInputPopups({
   const [snippetQuery, setSnippetQuery] = useState<string | null>(null)
   const [snippetIndex, setSnippetIndex] = useState(0)
 
-  // Filtered snippets
-  const textSnippets: TextSnippet[] = prefs.textSnippets || []
+  // Filtered snippets. Stable fallbacks: `prefs.textSnippets` is unset by
+// default, and a fresh `[]` here would re-key every downstream memo and effect.
+  const textSnippets: TextSnippet[] = prefs.textSnippets ?? EMPTY_SNIPPETS
   const filteredSnippets =
     snippetQuery !== null && textSnippets.length > 0
       ? textSnippets
@@ -51,8 +57,8 @@ export function useInputPopups({
       : []
 
   // Filtered notes for @note: popup (Iteration 438)
-  const allNotes: Note[] = prefs.notes || []
-  const noteCategories: NoteCategory[] = prefs.noteCategories || []
+  const allNotes: Note[] = prefs.notes ?? EMPTY_NOTES
+  const noteCategories: NoteCategory[] = prefs.noteCategories ?? EMPTY_NOTE_CATEGORIES
   const filteredNotes = useMemo(() => {
     if (noteQuery === null || allNotes.length === 0) return []
     const q = noteQuery.toLowerCase()
@@ -307,7 +313,7 @@ export function useInputPopups({
     }
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [slashQuery, slashIndex])
+  }, [slashQuery, slashIndex, handleSlashSelect])
 
   // Note popup keyboard navigation (Iteration 438)
   useEffect(() => {

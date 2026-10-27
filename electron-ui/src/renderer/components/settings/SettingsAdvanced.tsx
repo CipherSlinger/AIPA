@@ -120,7 +120,9 @@ const descStyle: React.CSSProperties = {
 // ── Component ──────────────────────────────────────────────────────────────
 export default function SettingsAdvanced() {
   const t = useT()
-  const { prefs, setPrefs, setPermissionMode } = usePrefsStore()
+  const prefs = usePrefsStore(s => s.prefs)
+  const setPrefs = usePrefsStore(s => s.setPrefs)
+  const setPermissionMode = usePrefsStore(s => s.setPermissionMode)
 
   // System prompt state
   const [draft, setDraft] = useState(prefs.appendSystemPrompt || '')

@@ -3,7 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:;" />
+    <!-- This policy and the header set in `setupCSP()` (src/main/index.ts) are
+         enforced as an intersection, so the two must agree. Plugin panels are
+         iframes on the app's own `aipa-plugin:` scheme — without `frame-src`
+         here it falls back to `default-src 'self'` and every plugin panel is
+         blocked. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; frame-src 'self' aipa-plugin:;" />
     <title>AIPA</title>
   </head>
   <body>

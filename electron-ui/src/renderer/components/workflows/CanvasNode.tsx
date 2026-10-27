@@ -175,13 +175,20 @@ function CanvasNode({
   const statColor = STAT[status] || STAT.idle
   const active = selected || status === 'running'
 
-  const border = `1px solid ${selected ? 'rgba(99,102,241,.45)' : status === 'completed' ? 'rgba(34,197,94,.2)' : status === 'error' ? 'rgba(239,68,68,.2)' : 'var(--border)'}`
-  const borderLeft = `3px solid ${step.nodeColor ? step.nodeColor : typeColor}`
-  const shadow = justDone ? '0 0 0 2px rgba(34,197,94,.4), 0 4px 16px rgba(34,197,94,.12)'
-    : highlighted ? '0 0 0 1.5px rgba(99,102,241,.35), 0 2px 8px rgba(99,102,241,.08)'
-    : selected ? '0 0 0 1.5px rgba(99,102,241,.3), 0 4px 16px rgba(99,102,241,.08)'
-    : status === 'running' ? '0 0 0 1px rgba(99,102,241,.2), 0 4px 12px rgba(99,102,241,.1)'
-    : '0 2px 4px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.04)'
+  const border = `1px solid ${selected ? 'rgba(99,102,241,.5)' : status === 'completed' ? 'rgba(34,197,94,.22)' : status === 'error' ? 'rgba(239,68,68,.22)' : 'var(--border)'}`
+  const accentBar = step.nodeColor ? step.nodeColor : typeColor
+  const borderLeft = `3px solid ${accentBar}`
+  // Shadow ladder: raised at rest, lifted on hover, ringed when selected, and a
+  // soft colour bloom while running. Two stacked layers (contact + ambient)
+  // read as a real surface; one blurry shadow just looks smudged.
+  const restShadow = '0 1px 2px rgba(0,0,0,.10), 0 4px 12px -4px rgba(0,0,0,.14)'
+  const hoverShadow = '0 2px 4px rgba(0,0,0,.12), 0 10px 24px -8px rgba(0,0,0,.22)'
+  const shadow = justDone ? '0 0 0 2px rgba(34,197,94,.45), 0 6px 20px -6px rgba(34,197,94,.35)'
+    : highlighted ? '0 0 0 1.5px rgba(99,102,241,.4), 0 8px 22px -8px rgba(99,102,241,.3)'
+    : selected ? '0 0 0 1.5px rgba(99,102,241,.35), 0 8px 22px -8px rgba(99,102,241,.28)'
+    : status === 'running' ? '0 0 0 1px rgba(99,102,241,.25), 0 8px 24px -8px rgba(99,102,241,.35)'
+    : hovered && !dimmed ? hoverShadow
+    : restShadow
 
   const h = collapsed ? NODE_COLLAPSED_HEIGHT : undefined
   const mh = collapsed ? undefined : NODE_MIN_HEIGHT
@@ -212,13 +219,15 @@ function CanvasNode({
           position: 'absolute', left: x, top: y, width,
           height: h, minHeight: mh,
           background: status === 'running' ? 'var(--bg-hover)' : 'var(--bg-secondary)',
-          border, borderLeft, borderRadius: 6,
+          // A faint top sheen gives the card an edge under the flat dark theme.
+          backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0) 42%)',
+          border, borderLeft, borderRadius: 8,
           padding: collapsed ? '0 8px' : '5px 0',
           cursor: 'grab', boxShadow: shadow,
           outline: focused && !selected ? '1.5px dashed rgba(99,102,241,.4)' : 'none',
           outlineOffset: 1,
-          transition: 'box-shadow .15s ease, transform .12s ease',
-          transform: hovered && !dimmed && !active ? 'translateY(-1px)' : undefined,
+          transition: 'box-shadow .18s ease, transform .14s ease, border-color .18s ease',
+          transform: hovered && !dimmed && !active ? 'translateY(-2px)' : undefined,
           userSelect: 'none', boxSizing: 'border-box',
           opacity: dimmed ? .2 : status === 'pending' ? .45 : 1,
           animationDelay: staggerDelay > 0 ? `${staggerDelay}ms` : undefined,
@@ -480,9 +489,9 @@ function CanvasNode({
         )}
 
         {/* Connection port dots */}
-        <div style={{ position: 'absolute', left: -4, top: '50%', transform: 'translateY(-50%)', width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-primary)', border: '1.5px solid var(--border-strong)', opacity: hovered && !selected ? .8 : .35, transition: 'all .15s ease', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', left: '50%', bottom: -4, transform: 'translateX(-50%)', width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-primary)', border: '1.5px solid var(--border-strong)', opacity: hovered && !selected ? .8 : .35, transition: 'all .15s ease', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', right: -4, top: '50%', transform: 'translateY(-50%)', width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-primary)', border: '1.5px solid var(--border-strong)', opacity: hovered && !selected ? .8 : .35, transition: 'all .15s ease', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', left: -4, top: '50%', transform: `translateY(-50%) scale(${hovered ? 1.15 : 1})`, width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-primary)', border: `1.5px solid ${hovered ? accentBar : 'var(--border-strong)'}`, opacity: hovered && !selected ? .9 : .35, transition: 'opacity .15s ease, border-color .15s ease, transform .15s ease', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', left: '50%', bottom: -4, transform: `translateX(-50%) scale(${hovered ? 1.15 : 1})`, width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-primary)', border: `1.5px solid ${hovered ? accentBar : 'var(--border-strong)'}`, opacity: hovered && !selected ? .9 : .35, transition: 'opacity .15s ease, border-color .15s ease, transform .15s ease', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', right: -4, top: '50%', transform: `translateY(-50%) scale(${hovered ? 1.15 : 1})`, width: 7, height: 7, borderRadius: '50%', background: 'var(--bg-primary)', border: `1.5px solid ${hovered ? accentBar : 'var(--border-strong)'}`, opacity: hovered && !selected ? .9 : .35, transition: 'opacity .15s ease, border-color .15s ease, transform .15s ease', pointerEvents: 'none' }} />
         {pinned && <span style={{ position: 'absolute', top: 3, right: 20, fontSize: 8, color: '#f59e0b', pointerEvents: 'none', lineHeight: 1 }}>★</span>}
       </div>
 

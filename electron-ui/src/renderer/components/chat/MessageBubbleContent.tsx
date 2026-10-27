@@ -14,7 +14,6 @@ interface MessageBubbleContentProps {
   isAssistant: boolean
   isPermission: boolean
   isCollapsed: boolean
-  compact: boolean
   searchQuery?: string
   searchCaseSensitive?: boolean
   msgStatus: 'sending' | 'sent' | 'read' | null
@@ -33,16 +32,15 @@ interface MessageBubbleContentProps {
   onImageClick: (src: string, alt: string) => void
   // Callbacks
   onCollapse?: (id: string) => void
-  onEdit?: (id: string, content: string) => void
   onTimestampClick: () => void
 }
 
-export default function MessageBubbleContent({
-  message, isUser, isAssistant, isPermission, isCollapsed, compact,
+export default React.memo(function MessageBubbleContent({
+  message, isUser, isAssistant, isPermission, isCollapsed,
   searchQuery, searchCaseSensitive, msgStatus,
   isEditing, editContent, onEditContentChange, onEditSubmit, onEditCancel, editTextareaRef,
   showRawMarkdown, showTimestamp = true, onImageClick,
-  onCollapse, onEdit, onTimestampClick,
+  onCollapse, onTimestampClick,
 }: MessageBubbleContentProps) {
   const t = useT()
   const thinking = message.thinking
@@ -54,6 +52,11 @@ export default function MessageBubbleContent({
   const contentLength = (message.content || '').length
   const isLongMessage = contentLength > LONG_MESSAGE_THRESHOLD && !isMessageStreaming
   const [longMessageExpanded, setLongMessageExpanded] = useState(false)
+  // PERF: groupToolUses() walks every tool use; only recompute when they change.
+  const toolGroups = useMemo(
+    () => (message.toolUses && message.toolUses.length > 0 ? groupToolUses(message.toolUses, t) : null),
+    [message.toolUses, t],
+  )
 
   // Auto-expand thinking block while streaming, auto-collapse when done
   const prevStreamingRef = useRef(false)
@@ -145,22 +148,19 @@ export default function MessageBubbleContent({
           ) : null}
 
           {/* Tool uses (inside AI bubble) -- with batch grouping */}
-          {!isPermission && message.toolUses && message.toolUses.length > 0 && (() => {
-            const groups = groupToolUses(message.toolUses, t)
-            return (
-              <div style={{ borderTop: '1px solid var(--border)', marginTop: 8, paddingTop: 8 }}>
-                {groups.map((group, idx) => (
-                  group.type === 'batch' ? (
-                    <ToolBatchBlock key={`batch-${idx}`} group={group} />
-                  ) : (
-                    <div key={group.tools[0].id} style={{ marginBottom: 4 }}>
-                      <ToolUseBlock tool={group.tools[0]} />
-                    </div>
-                  )
-                ))}
-              </div>
-            )
-          })()}
+          {!isPermission && toolGroups && (
+            <div style={{ borderTop: '1px solid var(--border)', marginTop: 8, paddingTop: 8 }}>
+              {toolGroups.map((group, idx) => (
+                group.type === 'batch' ? (
+                  <ToolBatchBlock key={`batch-${idx}`} group={group} />
+                ) : (
+                  <div key={group.tools[0].id} style={{ marginBottom: 4 }}>
+                    <ToolUseBlock tool={group.tools[0]} />
+                  </div>
+                )
+              ))}
+            </div>
+          )}
 
           {/* Text content */}
           {isEditing && isUser ? (
@@ -381,4 +381,4 @@ export default function MessageBubbleContent({
       )}
     </>
   )
-}
+})

@@ -110,6 +110,8 @@ function edgeStyleFromSourceStatus(sourceStatus: string | undefined): SourceEdge
         strokeWidth: 1.5,
         opacity: 0.5,
         animated: false,
+        // A faint tint keeps a skipped branch traceable without implying flow.
+        filter: 'drop-shadow(0 0 2px rgba(148,163,184,0.18))',
       }
     case 'pending':
     case 'idle':
@@ -120,6 +122,7 @@ function edgeStyleFromSourceStatus(sourceStatus: string | undefined): SourceEdge
         strokeWidth: 1.5,
         opacity: 0.35,
         animated: false,
+        filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.18))',
       }
   }
 }
@@ -215,8 +218,8 @@ const CanvasEdge = memo(function CanvasEdge({ from, to, status = 'idle', sourceS
           d={d}
           fill="none"
           stroke="var(--accent-muted)"
-          strokeWidth={strokeWidth + 3}
-          strokeOpacity={0.15}
+          strokeWidth={strokeWidth + 5}
+          strokeOpacity={0.18}
           style={{ pointerEvents: 'none', filter: 'blur(2px) drop-shadow(0 0 4px var(--accent-muted))' }}
         />
       )}

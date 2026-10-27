@@ -15,9 +15,22 @@ import ScrollToBottomFab from './ScrollToBottomFab'
 import { useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { ArrowUp, Lock, Unlock } from 'lucide-react'
-import { useBuildItems, useShowAvatarMap, useLastUserMsgId, useAssistantReplyMap, useShowTimestampMap } from './messageListUtils'
+import { useBuildItems, useMessageListMaps } from './messageListUtils'
 import { useMessageListScroll } from './useMessageListScroll'
 import { useMessageNavigation } from './useMessageNavigation'
+
+// PERF: module-level handlers so every <Message> receives identical callback
+// identities across renders (store actions are read via getState()).
+const handleRate = (msgId: string, rating: 'up' | 'down' | null) => {
+  useChatStore.getState().rateMessage(msgId, rating)
+  window.electronAPI.feedbackRate(msgId, rating)
+}
+const handleBookmark = (msgId: string) => {
+  useChatStore.getState().toggleBookmark(msgId)
+}
+const handleCollapse = (msgId: string) => {
+  useChatStore.getState().toggleCollapse(msgId)
+}
 
 interface Props {
   messages: ChatMessage[]
@@ -35,13 +48,16 @@ interface Props {
   scrollToMessageIdx?: number
   onEdit?: (msgId: string, newContent: string) => void
   onFork?: (msgIdx: number) => void
+  /** Reports the scroll offset as the user scrolls, for per-tab restore. */
+  onScrollTop?: (scrollTop: number) => void
+  /** Tab identity — when it changes, `restoreScrollTop` is applied once. */
+  tabId?: string | null
+  /** Pixel offset to restore when `tabId` changes. */
+  restoreScrollTop?: number
 }
 
-export default function MessageList({ messages, onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, onRespondHookCallback, onRespondElicitation, sessionId, isStreaming, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, onEdit, onFork }: Props) {
+export default function MessageList({ messages, onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, onRespondHookCallback, onRespondElicitation, sessionId, isStreaming, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, onEdit, onFork, onScrollTop, tabId, restoreScrollTop }: Props) {
   const resolvePlan = useChatStore(s => s.resolvePlan)
-  const rateMessage = useChatStore(s => s.rateMessage)
-  const toggleBookmark = useChatStore(s => s.toggleBookmark)
-  const toggleCollapse = useChatStore(s => s.toggleCollapse)
   const addToast = useUiStore(s => s.addToast)
   const rewindToMessage = useChatStore(s => s.rewindToMessage)
   const t = useT()
@@ -56,12 +72,25 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   // Keyboard message navigation (extracted to useMessageNavigation — Iteration 403)
   // Pinned messages strip (extracted to PinnedMessagesStrip — Iteration 403)
 
-  // Pre-computed data
+  // Pre-computed data (single combined pass, Iteration perf)
   const items = useBuildItems(messages, t)
-  const showAvatarMap = useShowAvatarMap(messages)
-  const showTimestampMap = useShowTimestampMap(messages)
-  const lastUserMsgId = useLastUserMsgId(messages)
-  const assistantReplyMap = useAssistantReplyMap(messages)
+  const { showAvatarMap, showTimestampMap, lastUserMsgId, assistantReplyMap } = useMessageListMaps(messages)
+
+  // PERF: keep the latest messages reachable from stable callbacks without
+  // adding `messages` to their dependency arrays (that would re-create the
+  // render callback on every streaming delta and defeat React.memo on Message).
+  const messagesRef = useRef(messages)
+  messagesRef.current = messages
+
+  const handleRewind = useCallback((ts: number) => {
+    const msgs = messagesRef.current
+    // Find the message index by timestamp to calculate how many messages will be removed
+    const msgIndex = msgs.findIndex(m => m.role !== 'permission' && m.role !== 'plan' && m.role !== 'hook_callback' && m.role !== 'elicitation' && (m as StandardChatMessage).timestamp === ts)
+    if (msgIndex < 0) return
+    const count = msgs.length - msgIndex - 1
+    if (count <= 0) return
+    setRewindTarget({ msgId: msgs[msgIndex].id, ts, count })
+  }, [])
 
   const virtualizer = useVirtualizer({
     count: items.length,
@@ -78,6 +107,38 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   })
 
   const scrollState = useMessageListScroll(scrollContainerRef, messages, items, sessionId, isStreaming, virtualizer)
+
+  // Per-tab scroll restore. The session-scoped restore inside the hook stores a
+  // *percentage*; switching tabs doesn't change sessionId, so tabs need their
+  // own pixel-exact path. Fires once per tab change, after layout settles.
+  const restoreScrollTopRef = useRef(restoreScrollTop)
+  restoreScrollTopRef.current = restoreScrollTop
+  useEffect(() => {
+    const target = restoreScrollTopRef.current
+    if (!tabId || !target) return
+    // Two frames: the virtualizer measures rows on the first paint, so its
+    // scrollHeight is still only the estimate when the first frame lands and a
+    // large offset would be clamped away. Re-apply once it has real heights.
+    const rafs: number[] = []
+    const apply = () => {
+      const el = scrollContainerRef.current
+      if (el) el.scrollTop = target
+    }
+    rafs.push(requestAnimationFrame(() => {
+      apply()
+      rafs.push(requestAnimationFrame(apply))
+    }))
+    return () => rafs.forEach(cancelAnimationFrame)
+  }, [tabId])
+
+  // Report scroll offset for the tab cache. Stable identity so the container's
+  // onScroll prop doesn't churn on every ChatPanel render.
+  const onScrollTopRef = useRef(onScrollTop)
+  onScrollTopRef.current = onScrollTop
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    scrollState.handleScroll()
+    onScrollTopRef.current?.(e.currentTarget.scrollTop)
+  }, [scrollState.handleScroll])
 
   const { focusedMsgIdx } = useMessageNavigation(messages, items, virtualizer)
 
@@ -101,7 +162,24 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
     }
   }, [scrollToMessageIdx, virtualizer, items])
 
-  const renderMessage = useCallback((msg: ChatMessage, isHighlighted: boolean, msgIdx: number) => {
+  const onForkRef = useRef(onFork)
+  onForkRef.current = onFork
+  // One stable handler per message id (Message.memo can then bail out).
+  const forkHandlersRef = useRef(new Map<string, () => void>())
+  const getForkHandler = useCallback((msgId: string) => {
+    let handler = forkHandlersRef.current.get(msgId)
+    if (!handler) {
+      handler = () => {
+        if (!onForkRef.current) return
+        const idx = messagesRef.current.findIndex(m => m.id === msgId)
+        if (idx >= 0) setForkTarget({ msgIdx: idx })
+      }
+      forkHandlersRef.current.set(msgId, handler)
+    }
+    return handler
+  }, [])
+
+  const renderMessage = useCallback((msg: ChatMessage, isHighlighted: boolean, msgIdx: number, isLast: boolean) => {
     if (msg.role === 'permission') {
       return (
         <PermissionCard
@@ -150,6 +228,9 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
     // A single malformed message (e.g., bad markdown, huge content) won't crash the
     // entire ChatPanel. PermissionCard and PlanCard are simple enough not to need it.
     const rawContent = (msg as StandardChatMessage).content || ''
+    // PERF: stable, per-message callback identities. Message branches on
+    // message.role itself, so the fork/rewind callbacks can be created in the
+    // callback body — Message.memo bails out when the message object is unchanged.
     return (
       <MessageErrorBoundary messageContent={rawContent}>
       <Message
@@ -159,28 +240,18 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         showAvatar={showAvatar}
         showTimestamp={showTimestamp}
         isLastUserMsg={msg.role === 'user' && msg.id === lastUserMsgId}
-        isLastMessage={msgIdx === messages.length - 1}
+        isLastMessage={isLast}
         hasAssistantReply={msg.role === 'user' && (assistantReplyMap.get(msg.id) ?? false)}
-        onRate={(msgId, rating) => {
-          rateMessage(msgId, rating)
-          window.electronAPI.feedbackRate(msgId, rating)
-        }}
-        onBookmark={(msgId) => toggleBookmark(msgId)}
-        onCollapse={(msgId) => toggleCollapse(msgId)}
+        onRate={handleRate}
+        onBookmark={handleBookmark}
+        onCollapse={handleCollapse}
         onEdit={onEdit}
-        onFork={onFork && (msg as ChatMessage).role !== 'permission' && (msg as ChatMessage).role !== 'plan' && (msg as ChatMessage).role !== 'hook_callback' && (msg as ChatMessage).role !== 'elicitation' ? () => setForkTarget({ msgIdx }) : undefined}
-        onRewind={sessionId ? (ts) => {
-          // Find the message index by timestamp to calculate how many messages will be removed
-          const msgIndex = messages.findIndex(m => m.role !== 'permission' && m.role !== 'plan' && m.role !== 'hook_callback' && m.role !== 'elicitation' && (m as StandardChatMessage).timestamp === ts)
-          if (msgIndex < 0) return
-          const count = messages.length - msgIndex - 1
-          if (count <= 0) return
-          setRewindTarget({ msgId: messages[msgIndex].id, ts, count })
-        } : undefined}
+        onFork={onFork ? getForkHandler(msg.id) : undefined}
+        onRewind={sessionId ? handleRewind : undefined}
       />
       </MessageErrorBoundary>
     )
-  }, [onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, onRespondHookCallback, onRespondElicitation, sessionId, resolvePlan, rateMessage, toggleBookmark, toggleCollapse, addToast, searchQuery, searchCaseSensitive, showAvatarMap, showTimestampMap, onEdit, onFork, setForkTarget, t, lastUserMsgId, assistantReplyMap, messages])
+  }, [onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, onRespondHookCallback, onRespondElicitation, sessionId, resolvePlan, searchQuery, searchCaseSensitive, showAvatarMap, showTimestampMap, onEdit, onFork, getForkHandler, handleRewind, lastUserMsgId, assistantReplyMap])
 
   return (
     <div style={{ height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>
@@ -213,7 +284,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       <PinnedMessagesStrip messages={messages} items={items} virtualizer={virtualizer} />
     <div
       ref={scrollContainerRef}
-      onScroll={scrollState.handleScroll}
+      onScroll={handleScroll}
       role="log"
       aria-label={t('a11y.conversationMessages')}
       aria-live="polite"
@@ -267,7 +338,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
                 transition: 'all 0.15s ease',
                 background: isFocused ? 'var(--accent-bg)' : 'transparent',
               }}>
-                {renderMessage(msg, isHighlighted, item.msgIdx)}
+                {renderMessage(msg, isHighlighted, item.msgIdx, isLastMessage)}
               </div>
             </div>
           )

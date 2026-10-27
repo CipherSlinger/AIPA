@@ -89,45 +89,17 @@ export function useBuildItems(
 
 /** Compute showAvatar for each message index (consecutive same-role -> hide avatar) */
 export function useShowAvatarMap(messages: ChatMessage[]): Map<number, boolean> {
-  return useMemo(() => {
-    const map = new Map<number, boolean>()
-    messages.forEach((msg, idx) => {
-      if (idx === 0) {
-        map.set(idx, true)
-        return
-      }
-      const prev = messages[idx - 1]
-      map.set(idx, prev.role !== msg.role)
-    })
-    return map
-  }, [messages])
+  return useMessageListMaps(messages).showAvatarMap
 }
 
 /** Find the last user message ID */
 export function useLastUserMsgId(messages: ChatMessage[]): string | null {
-  return useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'user') return messages[i].id
-    }
-    return null
-  }, [messages])
+  return useMessageListMaps(messages).lastUserMsgId
 }
 
 /** Build a map of user message ID -> whether an assistant reply follows */
 export function useAssistantReplyMap(messages: ChatMessage[]): Map<string, boolean> {
-  return useMemo(() => {
-    const map = new Map<string, boolean>()
-    for (let i = 0; i < messages.length; i++) {
-      if (messages[i].role === 'user') {
-        let found = false
-        for (let j = i + 1; j < messages.length; j++) {
-          if (messages[j].role === 'assistant') { found = true; break }
-        }
-        map.set(messages[i].id, found)
-      }
-    }
-    return map
-  }, [messages])
+  return useMessageListMaps(messages).assistantReplyMap
 }
 
 /** Compute showTimestamp for each message index.
@@ -135,26 +107,59 @@ export function useAssistantReplyMap(messages: ChatMessage[]): Map<string, boole
  */
 const TIMESTAMP_GROUP_MS = 2 * 60 * 1000 // 2 minutes
 export function useShowTimestampMap(messages: ChatMessage[]): Map<number, boolean> {
+  return useMessageListMaps(messages).showTimestampMap
+}
+
+export interface MessageListMaps {
+  showAvatarMap: Map<number, boolean>
+  showTimestampMap: Map<number, boolean>
+  lastUserMsgId: string | null
+  assistantReplyMap: Map<string, boolean>
+}
+
+/**
+ * Compute every per-index/per-id lookup MessageList needs in one pass over the
+ * message array (previously four separate passes, one of them O(n^2)).
+ */
+export function useMessageListMaps(messages: ChatMessage[]): MessageListMaps {
   return useMemo(() => {
-    const map = new Map<number, boolean>()
-    messages.forEach((msg, idx) => {
+    const showAvatarMap = new Map<number, boolean>()
+    const showTimestampMap = new Map<number, boolean>()
+    const assistantReplyMap = new Map<string, boolean>()
+
+    // Forward pass: avatar grouping + timestamp grouping
+    for (let idx = 0; idx < messages.length; idx++) {
+      const msg = messages[idx]
       if (idx === 0) {
-        map.set(idx, true)
-        return
+        showAvatarMap.set(idx, true)
+        showTimestampMap.set(idx, true)
+        continue
       }
       const prev = messages[idx - 1]
-      // Different role -> always show
+      showAvatarMap.set(idx, prev.role !== msg.role)
       if (prev.role !== msg.role) {
-        map.set(idx, true)
-        return
-      }
-      // Same role, check time gap
-      if (msg.timestamp && prev.timestamp && msg.timestamp - prev.timestamp < TIMESTAMP_GROUP_MS) {
-        map.set(idx, false)
+        showTimestampMap.set(idx, true)
+      } else if (msg.timestamp && prev.timestamp && msg.timestamp - prev.timestamp < TIMESTAMP_GROUP_MS) {
+        showTimestampMap.set(idx, false)
       } else {
-        map.set(idx, true)
+        showTimestampMap.set(idx, true)
       }
-    })
-    return map
+    }
+
+    // Single reverse scan: last user message + whether an assistant reply follows
+    // (an assistant after index i exists iff one was already seen scanning backwards).
+    let lastUserMsgId: string | null = null
+    let seenAssistantAfter = false
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i]
+      if (msg.role === 'assistant') {
+        seenAssistantAfter = true
+      } else if (msg.role === 'user') {
+        assistantReplyMap.set(msg.id, seenAssistantAfter)
+        if (lastUserMsgId === null) lastUserMsgId = msg.id
+      }
+    }
+
+    return { showAvatarMap, showTimestampMap, lastUserMsgId, assistantReplyMap }
   }, [messages])
 }

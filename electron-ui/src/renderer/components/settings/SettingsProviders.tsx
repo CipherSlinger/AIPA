@@ -73,10 +73,14 @@ export default function SettingsProviders() {
     setTesting(null)
   }, [t])
 
-  // The drawer owns the toast; the list just takes the new object.
+  // The drawer owns the toast; the list just takes the new object. Re-read from
+  // the main process rather than keeping the drawer's copy: that copy still
+  // holds whatever the user just typed (including a credential), while the
+  // authoritative version is redacted and carries hasApiKey/hasAuthToken.
   const handleSaved = useCallback((updated: ProviderConfig) => {
     setProviders(prev => prev.map(p => p.id === updated.id ? updated : p))
-  }, [])
+    loadConfigs()
+  }, [loadConfigs])
 
   const handleDeleted = useCallback((providerId: string) => {
     setProviders(prev => prev.filter(p => p.id !== providerId))

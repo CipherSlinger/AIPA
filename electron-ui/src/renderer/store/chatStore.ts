@@ -37,11 +37,13 @@ export interface TabInfo {
 }
 
 // ── Streaming buffer for throttled delta accumulation ──
+// Append-only: chunks are pushed onto the buffered arrays and handed to the
+// streaming message's `_contentChunks` in place. The expensive `.join('')` over
+// the whole turn happens once, when the turn is finalized in setStreaming(false).
 const streamingBuffer = {
   contentChunks: [] as string[],
   thinkingChunks: [] as string[],
   sessionId: null as string | null,
-  messageId: null as string | null,
   rafId: 0,
   dirty: false,
 }
@@ -50,50 +52,76 @@ const streamingBuffer = {
 // The actual `create<>()` call is below.
 let useChatStoreRef: typeof useChatStore
 
+// Number of user messages in the live list, maintained incrementally so that
+// addChangedFile() doesn't need an O(n) scan on every tool use.
+let userMessageCount = 0
+function recountUserMessages(messages: ChatMessage[]): number {
+  let n = 0
+  for (let i = 0; i < messages.length; i++) {
+    if (messages[i].role === 'user') n++
+  }
+  userMessageCount = n
+  return n
+}
+
 function flushStreamingBuffer() {
   streamingBuffer.rafId = 0
   if (!streamingBuffer.dirty) return
   streamingBuffer.dirty = false
 
-  const { contentChunks, thinkingChunks, sessionId, messageId } = streamingBuffer
+  const { contentChunks, thinkingChunks, sessionId } = streamingBuffer
+  if (contentChunks.length === 0 && thinkingChunks.length === 0) return
+
+  // Detach the buffer upfront so the next frame starts clean; the arrays are
+  // handed to the store below (append-only, never rebuilt).
+  streamingBuffer.contentChunks = []
+  streamingBuffer.thinkingChunks = []
+
+  const newContent = contentChunks.join('')
+  const newThinking = thinkingChunks.join('')
 
   useChatStoreRef.setState((s) => {
-    const msgs = [...s.messages]
+    const msgs = s.messages
     const lastIdx = msgs.length - 1
     const last = msgs[lastIdx]
 
     if (last && last.role === 'assistant' && (last as StandardChatMessage).isStreaming) {
       const std = last as StandardChatMessage
-      const prevContentChunks = std._contentChunks || []
-      const allContentChunks = [...prevContentChunks, ...contentChunks]
-      const prevThinkingChunks = std._thinkingChunks || []
-      const allThinkingChunks = [...prevThinkingChunks, ...thinkingChunks]
+      // Append the new chunks to the existing arrays in place (no spread/rebuild).
+      const mergedContentChunks = std._contentChunks
+        ? (std._contentChunks.push(...contentChunks), std._contentChunks)
+        : contentChunks
+      const mergedThinkingChunks = std._thinkingChunks
+        ? (std._thinkingChunks.push(...thinkingChunks), std._thinkingChunks)
+        : (thinkingChunks.length > 0 ? thinkingChunks : undefined)
 
-      msgs[lastIdx] = {
+      // Shallow copy keeps every non-last message object (and thus `React.memo`
+      // bails in MessageList) identical across frames.
+      const nextMsgs = msgs.slice()
+      nextMsgs[lastIdx] = {
         ...std,
-        _contentChunks: allContentChunks,
-        content: allContentChunks.join(''),
-        _thinkingChunks: allThinkingChunks.length > 0 ? allThinkingChunks : undefined,
-        thinking: allThinkingChunks.length > 0 ? allThinkingChunks.join('') : std.thinking,
+        _contentChunks: mergedContentChunks,
+        content: std.content + newContent,
+        _thinkingChunks: mergedThinkingChunks,
+        thinking: newThinking ? (std.thinking || '') + newThinking : std.thinking,
       } as StandardChatMessage
-    } else if (contentChunks.length > 0 || thinkingChunks.length > 0) {
-      msgs.push({
-        id: messageId || `msg-${Date.now()}-${Math.random()}`,
-        role: 'assistant',
-        content: contentChunks.join(''),
-        _contentChunks: contentChunks.slice(),
-        thinking: thinkingChunks.length > 0 ? thinkingChunks.join('') : undefined,
-        _thinkingChunks: thinkingChunks.length > 0 ? thinkingChunks.slice() : undefined,
-        timestamp: Date.now(),
-        isStreaming: true,
-      } as StandardChatMessage)
+      return { messages: nextMsgs, currentSessionId: sessionId || s.currentSessionId }
     }
 
-    // Clear buffer
-    streamingBuffer.contentChunks = []
-    streamingBuffer.thinkingChunks = []
+    // First chunk of a new assistant turn
+    const nextMsgs = msgs.slice()
+    nextMsgs.push({
+      id: `msg-${Date.now()}-${Math.random()}`,
+      role: 'assistant',
+      content: newContent,
+      _contentChunks: contentChunks,
+      thinking: newThinking || undefined,
+      _thinkingChunks: thinkingChunks.length > 0 ? thinkingChunks : undefined,
+      timestamp: Date.now(),
+      isStreaming: true,
+    } as StandardChatMessage)
 
-    return { messages: msgs, currentSessionId: sessionId || s.currentSessionId }
+    return { messages: nextMsgs, currentSessionId: sessionId || s.currentSessionId }
   })
 }
 
@@ -261,6 +289,7 @@ interface ChatState {
   nextTab: () => void
   prevTab: () => void
   setTabScrollTop: (tabId: string, scrollTop: number) => void
+  clearTabScrollTop: (tabId: string) => void
   /** Find tab by session ID; returns tabId or null */
   findTabBySessionId: (sessionId: string) => string | null
   /** Update the title of a tab (e.g. when session title changes) */
@@ -306,7 +335,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
   permissionMode: 'default',
   pendingPlanApproval: null,
 
-  addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
+  addMessage: (msg) => {
+    if (msg.role === 'user') userMessageCount++
+    set((s) => ({ messages: [...s.messages, msg] }))
+  },
 
   appendTextDelta: (sessionId, text) => {
     streamingBuffer.contentChunks.push(text)
@@ -331,7 +363,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
           // Finalize: join chunks into content and clean up internal fields
           const finalContent = std._contentChunks ? std._contentChunks.join('') : std.content
           const finalThinking = std._thinkingChunks ? std._thinkingChunks.join('') : std.thinking
-          const { _contentChunks, _thinkingChunks, ...rest } = std
+          // Destructured purely to drop the two internal chunk arrays.
+          const { _contentChunks: _c, _thinkingChunks: _t, ...rest } = std
           return { ...rest, content: finalContent, thinking: finalThinking, isStreaming: false }
         }
         return m
@@ -387,11 +420,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     streamingBuffer.contentChunks = []
     streamingBuffer.thinkingChunks = []
     streamingBuffer.sessionId = null
-    streamingBuffer.messageId = null
     streamingBuffer.dirty = false
+    userMessageCount = 0
     set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined, isPlanMode: false, changedFiles: [], tempSystemPrompt: null, hookEvents: [], dreamEvents: [], permissionDenials: [], lastNumTurns: null, lastDurationMs: null, lastResultUuid: null, fastModeState: null })
   },
-  loadHistory: (messages) => set({ messages, isStreaming: false }),
+  loadHistory: (messages) => {
+    recountUserMessages(messages)
+    set({ messages, isStreaming: false })
+  },
 
   appendThinkingDelta: (sessionId, text) => {
     streamingBuffer.thinkingChunks.push(text)
@@ -589,17 +625,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (lastUserIdx < 0) return null
     const lastUserContent = (msgs[lastUserIdx] as StandardChatMessage).content
     // Remove messages from the last user message onward (the user prompt + assistant response)
-    set({ messages: msgs.slice(0, lastUserIdx) })
+    const next = msgs.slice(0, lastUserIdx)
+    recountUserMessages(next)
+    set({ messages: next })
     return lastUserContent || null
   },
 
-  editMessageAndTruncate: (msgId, newContent) => {
+  // `newContent` is unused on purpose: the caller re-sends it through
+  // sendMessage(), which appends the fresh user turn. Truncating here and
+  // re-adding would double up the message.
+  editMessageAndTruncate: (msgId, _newContent) => {
     const state = get()
     const msgs = state.messages
     const idx = msgs.findIndex(m => m.id === msgId)
     if (idx < 0) return
     // Remove the edited message and everything after it; sendMessage will re-add the user message
-    set({ messages: msgs.slice(0, idx) })
+    const next = msgs.slice(0, idx)
+    recountUserMessages(next)
+    set({ messages: next })
   },
 
   setResponseDuration: (msgId, duration) => set((s) => ({
@@ -620,7 +663,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   // Crash recovery (Iteration 308): Replace messages array wholesale.
   // Used by ErrorBoundary to restore from sessionStorage backup.
-  setMessages: (messages) => set({ messages }),
+  setMessages: (messages) => {
+    recountUserMessages(messages)
+    set({ messages })
+  },
   setCompacting: (v) => set({ isCompacting: v }),
   incrementCompactionCount: () => set((s) => ({ compactionCount: s.compactionCount + 1 })),
   setContextBeforeCompact: (usage) => set({ contextBeforeCompact: usage }),
@@ -630,7 +676,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const idx = state.messages.findIndex(m => m.id === messageId)
     if (idx < 0) return 0
     const removed = state.messages.length - idx - 1
-    set({ messages: state.messages.slice(0, idx + 1) })
+    const next = state.messages.slice(0, idx + 1)
+    recountUserMessages(next)
+    set({ messages: next })
     return removed
   },
 
@@ -654,12 +702,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   // Changed files tracking (Iteration 521)
   addChangedFile: (filePath, toolName) => set((s) => {
-    const turnIndex = s.messages.filter(m => m.role === 'user').length
+    // O(1) turn index — the user-message count is maintained by addMessage /
+    // loadHistory / clearMessages instead of re-scanning the whole list.
+    const turnIndex = userMessageCount
     return {
       changedFiles: [
         ...s.changedFiles,
         { filePath, turnIndex, toolName, timestamp: Date.now() },
-      ],
+      ].slice(-500),
     }
   }),
   clearChangedFiles: () => set({ changedFiles: [] }),
@@ -668,7 +718,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setTempSystemPrompt: (prompt) => set({ tempSystemPrompt: prompt }),
 
   // Hook events (Iteration 525)
-  addHookEvent: (event) => set((s) => ({ hookEvents: [...s.hookEvents, event] })),
+  addHookEvent: (event) => set((s) => ({ hookEvents: [...s.hookEvents, event].slice(-50) })),
   updateHookEvent: (id, update) => set((s) => ({
     hookEvents: s.hookEvents.map(e => e.id === id ? { ...e, ...update } : e),
   })),
@@ -761,10 +811,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
         title: state.currentSessionTitle || 'Chat',
         snapshot: null,  // live — its data is already in the flat store fields
       }
-      set((s) => ({
+      set({
         tabs: [initialTab, newTab],
         activeTabId: initialTabId,  // will be switched immediately below
-      }))
+      })
     } else {
       set((s) => ({
         tabs: [...s.tabs, newTab],
@@ -780,8 +830,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const tabIdx = state.tabs.findIndex(t => t.id === tabId)
     if (tabIdx < 0) return
 
-    const closingTab = state.tabs[tabIdx]
     const isActive = state.activeTabId === tabId
+    // The tab is gone for good — drop its cached scroll offset.
+    tabScrollTopCache.delete(tabId)
 
     // If the closing tab is streaming, dispatch abort event
     // (useStreamJson hook will handle the actual abort via bridge ID)
@@ -801,8 +852,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       streamingBuffer.contentChunks = []
       streamingBuffer.thinkingChunks = []
       streamingBuffer.sessionId = null
-      streamingBuffer.messageId = null
       streamingBuffer.dirty = false
+      userMessageCount = 0
       set({
         tabs: [],
         activeTabId: null,
@@ -828,6 +879,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       if (isActive) {
         // The closing tab was active, so we need to restore the remaining tab
         if (sole.snapshot) {
+          recountUserMessages(sole.snapshot.messages)
           set({
             tabs: [{ ...sole, snapshot: null }],
             activeTabId: sole.id,
@@ -860,6 +912,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const newActive = remainingTabs[newIdx]
       // Restore the new active tab's snapshot
       if (newActive.snapshot) {
+        recountUserMessages(newActive.snapshot.messages)
         set({
           tabs: remainingTabs.map(t =>
             t.id === newActive.id ? { ...t, snapshot: null } : t
@@ -921,6 +974,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (targetTab.snapshot) {
       // Pre-cache scrollTop so ChatPanel can read it on mount
       tabScrollTopCache.set(tabId, targetTab.snapshot.scrollTop)
+      recountUserMessages(targetTab.snapshot.messages)
       set({
         tabs: updatedTabs,
         activeTabId: tabId,
@@ -961,6 +1015,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // Store scrollTop in a module-level map so switchTab can pick it up.
     // We don't put it in Zustand state to avoid re-renders on every scroll event.
     tabScrollTopCache.set(tabId, scrollTop)
+  },
+
+  clearTabScrollTop: (tabId) => {
+    // Without this the cache grows for every tab ever opened — it is keyed by
+    // a fresh `tab-${Date.now()}` id each time, so entries never get reused.
+    tabScrollTopCache.delete(tabId)
   },
 }))
 

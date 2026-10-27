@@ -50,6 +50,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         try {
           const result = await (window.electronAPI as any).providerFetchRemoteModels({
             baseUrl: baseUrl.trim(),
+            providerId: 'claude-cli',
             apiKey: apiKey.trim() || undefined,
             authToken: token.trim() || undefined,
           })

@@ -1,14 +1,23 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import en from './locales/en.json'
-import zhCN from './locales/zh-CN.json'
 import { zhCN as dateFnsZhCN } from 'date-fns/locale/zh-CN'
 
 // Supported locales
 export type Locale = 'en' | 'zh-CN' | 'system'
 
-const translations: Record<string, Record<string, string>> = {
+type TranslationMap = Record<string, string>
+
+// PERF: English is the bundled fallback and is flattened once at startup.
+// The non-active locale is loaded on demand (dynamic import) and flattened
+// only when it actually becomes active — keeping the initial renderer bundle
+// approximately one locale smaller.
+const translations: Record<string, TranslationMap> = {
   'en': flattenObject(en),
-  'zh-CN': flattenObject(zhCN),
+}
+
+// Locale JSON modules the dynamic loader can request.
+const localeLoaders: Record<'zh-CN', () => Promise<{ default: Record<string, unknown> }>> = {
+  'zh-CN': () => import('./locales/zh-CN.json') as Promise<{ default: Record<string, unknown> }>,
 }
 
 // Flatten nested JSON: { nav: { newChat: "New Chat" } } -> { "nav.newChat": "New Chat" }
@@ -24,6 +33,22 @@ function flattenObject(obj: Record<string, unknown>, prefix = ''): Record<string
     }
   }
   return result
+}
+
+// Load (and flatten) a non-English locale on first use. Safe to call repeatedly.
+const localeLoadPromises = new Map<string, Promise<void>>()
+function ensureLocaleLoaded(locale: 'en' | 'zh-CN'): Promise<void> {
+  if (locale === 'en' || translations[locale]) return Promise.resolve()
+  const loader = localeLoaders[locale as 'zh-CN']
+  if (!loader) return Promise.resolve()
+  let promise = localeLoadPromises.get(locale)
+  if (!promise) {
+    promise = loader().then(mod => {
+      if (!translations[locale]) translations[locale] = flattenObject(mod.default)
+    }).catch(() => { /* fall back to English */ })
+    localeLoadPromises.set(locale, promise)
+  }
+  return promise
 }
 
 // Resolve system locale to supported locale
@@ -94,6 +119,9 @@ interface I18nProviderProps {
 export function I18nProvider({ children }: I18nProviderProps) {
   const [locale, setLocaleState] = useState<Locale>('system')
   const [systemLocale, setSystemLocale] = useState<string>('en')
+  // Bumped when a lazily-loaded locale finishes loading, so `t` is re-created
+  // and consumers re-render with the new strings.
+  const [localeVersion, setLocaleVersion] = useState(0)
 
   // Load saved language preference
   useEffect(() => {
@@ -117,9 +145,17 @@ export function I18nProvider({ children }: I18nProviderProps) {
     ? resolveSystemLocale(systemLocale)
     : locale
 
-  // Keep module-level resolved locale in sync for getT() callers
+  // Keep module-level resolved locale in sync for getT() callers, and make sure
+  // the active locale's strings are actually in memory (non-English is lazy).
   useEffect(() => {
     _currentResolvedLocale = resolvedLocale
+    let cancelled = false
+    if (!translations[resolvedLocale]) {
+      ensureLocaleLoaded(resolvedLocale).then(() => {
+        if (!cancelled) setLocaleVersion(v => v + 1)
+      })
+    }
+    return () => { cancelled = true }
   }, [resolvedLocale])
 
   const setLocale = useCallback(async (newLocale: Locale) => {
@@ -143,7 +179,9 @@ export function I18nProvider({ children }: I18nProviderProps) {
     }
 
     return value
-  }, [resolvedLocale])
+    // localeVersion forces a new `t` identity once a lazy locale has loaded.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedLocale, localeVersion])
 
   const contextValue = useMemo(
     () => ({ locale, resolvedLocale, setLocale, t }),

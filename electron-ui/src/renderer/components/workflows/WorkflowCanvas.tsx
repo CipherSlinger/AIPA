@@ -17,6 +17,45 @@ import { useUndoRedo } from './useUndoRedo'
 import CanvasShortcutsPanel from './CanvasShortcutsPanel'
 import CanvasTimeline from './CanvasTimeline'
 
+/**
+ * Props bundle handed to one `CanvasNode`. Identity is stable across renders
+ * unless a capability changes, which is what lets `memo(CanvasNode)` work.
+ */
+type NodeHandlerBundle = {
+  key: string
+  onSelect: (stepId: string) => void
+  onDragStart: (stepId: string, e: React.MouseEvent) => void
+  onToggleCollapse: (stepId: string) => void
+  onTitleChange: (stepId: string, newTitle: string) => void
+  onPromptChange?: (stepId: string, newPrompt: string) => void
+  onMultiSelect: (stepId: string, shiftKey: boolean) => void
+  onReorderDragStart?: (stepId: string, e: React.MouseEvent) => void
+  onDeleteNode?: (stepId: string) => void
+  onInsertBefore?: (stepId: string) => void
+  onInsertAfter?: (stepId: string) => void
+  onRetry?: (stepId: string) => void
+  onRetryStep?: () => void
+  onRunFromStep?: () => void
+  onHeightChange: (stepId: string, height: number) => void
+  onSelectSameType?: () => void
+  onDuplicate?: (stepId: string) => void
+  onMoveUp?: () => void
+  onMoveDown?: () => void
+  onColorChange?: (color: string) => void
+}
+
+const EMPTY_STEPS: WorkflowStep[] = []
+const noopHandlers = () => {}
+const EMPTY_NODE_HANDLERS: Pick<NodeHandlerBundle,
+  'onSelect' | 'onDragStart' | 'onToggleCollapse' | 'onTitleChange' | 'onMultiSelect' | 'onHeightChange'> = {
+  onSelect: noopHandlers,
+  onDragStart: noopHandlers,
+  onToggleCollapse: noopHandlers,
+  onTitleChange: noopHandlers,
+  onMultiSelect: noopHandlers,
+  onHeightChange: noopHandlers,
+}
+
 interface WorkflowCanvasProps {
   workflow: Workflow | null
   highlightStepIds?: Set<string> | null  // null = no filter, Set = show only these
@@ -150,6 +189,16 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   const [completionSummary, setCompletionSummary] = useState<{ stepCount: number; visible: boolean } | null>(null)
   const prevRunningRef = useRef(false)
   const completionToastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>()
+  const copyToastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>()
+  const bookmarkToastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>()
+
+  // Every toast timer here schedules a state update; clear them on unmount so
+  // closing the canvas mid-toast doesn't touch a dead tree.
+  useEffect(() => () => {
+    clearTimeout(completionToastTimerRef.current)
+    clearTimeout(copyToastTimerRef.current)
+    clearTimeout(bookmarkToastTimerRef.current)
+  }, [])
 
   // Track when execution started for ETA
   const executionStartRef = useRef<number | null>(null)
@@ -241,7 +290,6 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   // Viewport bookmarks: slots 1-9 store { panX, panY, zoom }
   const [bookmarks, setBookmarks] = useState<Record<number, { panX: number; panY: number; zoom: number }>>({})
   const [bookmarkToast, setBookmarkToast] = useState<string | null>(null)
-  const bookmarkToastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>()
 
   const showBookmarkToast = useCallback((msg: string) => {
     clearTimeout(bookmarkToastTimerRef.current)
@@ -369,6 +417,14 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   const lastWordCountRef = useRef(0)
   const lastWpsCheckRef = useRef(Date.now())
 
+  // Step outputs are rebuilt on every streamed message, so they must not appear
+  // in any interval's deps — that would tear the timer down before it ever
+  // fires. Read them through a ref instead.
+  const stepOutputsRef = useRef(execution.stepOutputs)
+  stepOutputsRef.current = execution.stepOutputs
+  const activeStepIndexRef = useRef(execution.activeStepIndex)
+  activeStepIndexRef.current = execution.activeStepIndex
+
   useEffect(() => {
     if (!execution.isRunning) {
       setStreamingWps(null)
@@ -376,13 +432,16 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
       return
     }
 
+    // Fresh step (or fresh run): restart the measurement window.
+    lastWpsCheckRef.current = Date.now()
+    lastWordCountRef.current = 0
     const interval = setInterval(() => {
-      const activeIdx = execution.activeStepIndex
+      const activeIdx = activeStepIndexRef.current
       if (activeIdx < 0) return
-      const activeStep = workflow?.steps[activeIdx]
+      const activeStep = workflowRef.current?.steps[activeIdx]
       if (!activeStep) return
 
-      const streamText = execution.stepOutputs?.[activeStep.id] ?? ''
+      const streamText = stepOutputsRef.current?.[activeStep.id] ?? ''
       const wordCount = countWords(streamText)
 
       const now = Date.now()
@@ -396,7 +455,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     }, 1500)
 
     return () => clearInterval(interval)
-  }, [execution.isRunning, execution.activeStepIndex, execution.stepOutputs, workflow])
+  }, [execution.isRunning, execution.activeStepIndex])
 
   // 30s periodic active step banner during execution
   const [activeStepBanner, setActiveStepBanner] = useState<string | null>(null)
@@ -415,18 +474,17 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     }
 
     const updateBanner = () => {
-      const activeIdx = execution.activeStepIndex
-      const activeStep = activeIdx >= 0 ? workflow.steps[activeIdx] : null
+      const activeIdx = activeStepIndexRef.current
+      const activeStep = activeIdx >= 0 ? workflowRef.current?.steps[activeIdx] : null
       if (!activeStep) return
       if (activeStep.id === lastBannerStepRef.current) return
       lastBannerStepRef.current = activeStep.id
 
-      const completedOutputs = workflow.steps
-        .filter((_, i) => i < activeIdx)
-        .map(s => `Step "${s.title}": ${(execution.stepOutputs[s.id] || '').slice(0, 200)}`)
-        .join('\n')
-
-      const bannerText = `Running "${activeStep.title}"${completedOutputs ? ` — ${workflow.steps.filter((_, i) => i < activeIdx).length} steps done` : ''}`
+      const outputs = stepOutputsRef.current
+      const completedCount = activeIdx
+      const bannerText = `Running "${activeStep.title}"${completedCount > 0 ? ` — ${completedCount} steps done` : ''}`
+      // Touch the outputs so the banner reflects that work is still landing.
+      void outputs?.[activeStep.id]
       setActiveStepBanner(bannerText)
     }
 
@@ -436,7 +494,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     return () => {
       if (bannerIntervalRef.current) clearInterval(bannerIntervalRef.current)
     }
-  }, [execution.isRunning, execution.activeStepIndex, workflow, execution.stepOutputs])
+  }, [execution.isRunning, execution.activeStepIndex, workflow])
 
   // Reset selection when workflow changes
   useEffect(() => {
@@ -467,11 +525,248 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     setSelectedNode(stepId)
   }, [])
 
+  // Direction B: node title change (from CanvasNode inline edit)
+  const handleTitleChange = useCallback((stepId: string, newTitle: string) => {
+    onStepUpdate?.(stepId, { title: newTitle })
+  }, [onStepUpdate])
+
+  // Direction B: node prompt change (from CanvasNode inline edit)
+  const handlePromptChange = useCallback((stepId: string, newPrompt: string) => {
+    onStepUpdate?.(stepId, { prompt: newPrompt })
+  }, [onStepUpdate])
+
   // Direction C: minimap click handler
   const handleMinimapClickNode = useCallback((stepId: string) => {
     layout.autoPanToNode(stepId)
     handleNodeSelect(stepId)
   }, [layout, handleNodeSelect])
+
+  // Stable node callbacks. Every `CanvasNode` is memoized, and the canvas
+  // re-renders on each streaming delta and each live-timer tick, so inline
+  // arrows here would re-render every node on every token batch. These close
+  // only over refs or store getters, keeping one identity for the mount.
+  const multiDragRef = useRef<{ selected: Set<string>; start: (ids: Set<string>, e: React.MouseEvent) => void; startOne: (id: string, e: React.MouseEvent) => void } | null>(null)
+  multiDragRef.current = {
+    selected: layout.selectedNodes,
+    start: layout.handleMultiNodeDragStart,
+    startOne: layout.handleNodeDragStart,
+  }
+
+  const selectNodeRef = useRef(layout.selectNode)
+  selectNodeRef.current = layout.selectNode
+  const clearSelectionRef = useRef(layout.clearSelection)
+  clearSelectionRef.current = layout.clearSelection
+  const stepsRef = useRef<WorkflowStep[]>(workflow?.steps ?? EMPTY_STEPS)
+  stepsRef.current = workflow?.steps ?? EMPTY_STEPS
+
+  const onNodeDragStartStable = useCallback((stepId: string, e: React.MouseEvent) => {
+    const d = multiDragRef.current
+    if (!d) return
+    if (d.selected.size > 1 && d.selected.has(stepId)) d.start(d.selected, e)
+    else d.startOne(stepId, e)
+  }, [])
+
+  const onNodeMultiSelectStable = useCallback((id: string, shiftKey: boolean) => {
+    selectNodeRef.current(id, shiftKey)
+  }, [])
+
+  const onNodeReorderDragStartStable = useCallback((stepId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setReorderDrag({ stepId, insertAfterIndex: -1 })
+  }, [])
+
+  // Delete/insert/retry intent, dispatched with the node's own id.
+  const nodeOpsRef = useRef<{
+    deleteSteps?: (ids: string[]) => void
+    insertBetween?: (after: string, before: string) => void
+    retry?: (id: string) => void
+  }>({})
+  nodeOpsRef.current = {
+    deleteSteps: onDeleteSteps,
+    insertBetween: onInsertBetween,
+    retry: onRetryStep,
+  }
+
+  const onNodeDeleteStable = useCallback((stepId: string) => {
+    nodeOpsRef.current.deleteSteps?.([stepId])
+  }, [])
+  const onNodeInsertBeforeStable = useCallback((stepId: string) => {
+    const steps = stepsRef.current
+    const idx = steps.findIndex(s => s.id === stepId)
+    if (idx <= 0) return
+    nodeOpsRef.current.insertBetween?.(steps[idx - 1].id, stepId)
+  }, [])
+  const onNodeInsertAfterStable = useCallback((stepId: string) => {
+    const steps = stepsRef.current
+    const idx = steps.findIndex(s => s.id === stepId)
+    if (idx < 0 || idx >= steps.length - 1) return
+    nodeOpsRef.current.insertBetween?.(stepId, steps[idx + 1].id)
+  }, [])
+  const onNodeRetryStable = useCallback((stepId: string) => {
+    nodeOpsRef.current.retry?.(stepId)
+  }, [])
+
+  // Duplicate / reorder / colour intents. Each routes through `applyRef` so the
+  // undo snapshot is taken from the live workflow, not a stale closure.
+  const workflowRefForOps = useRef(workflow)
+  workflowRefForOps.current = workflow
+  const applyRef = useRef(undoRedo.apply)
+  applyRef.current = undoRedo.apply
+
+  const lastDuplicateRef = useRef(0)
+  const onNodeDuplicateStable = useCallback((stepId: string) => {
+    const wf = workflowRefForOps.current
+    if (!wf) return
+    const srcIdx = wf.steps.findIndex(s => s.id === stepId)
+    if (srcIdx === -1) return
+    const src = wf.steps[srcIdx]
+    // Date.now() alone can collide when two duplicates land in one tick.
+    lastDuplicateRef.current = Math.max(Date.now(), lastDuplicateRef.current + 1)
+    const dup: WorkflowStep = {
+      ...src,
+      id: String(lastDuplicateRef.current),
+      title: src.title + ' (copy)',
+      canvasPos: src.canvasPos
+        ? { x: src.canvasPos.x + 40, y: src.canvasPos.y + 40 }
+        : undefined,
+    }
+    const newSteps = [...wf.steps.slice(0, srcIdx + 1), dup, ...wf.steps.slice(srcIdx + 1)]
+    applyRef.current?.({ ...wf, steps: newSteps, updatedAt: Date.now() })
+  }, [])
+
+  const onNodeMoveUpStable = useCallback((stepId: string) => {
+    const wf = workflowRefForOps.current
+    if (!wf) return
+    const idx = wf.steps.findIndex(s => s.id === stepId)
+    if (idx <= 0) return
+    const steps = [...wf.steps]
+    ;[steps[idx - 1], steps[idx]] = [steps[idx], steps[idx - 1]]
+    applyRef.current?.({ ...wf, steps, updatedAt: Date.now() })
+  }, [])
+
+  const onNodeMoveDownStable = useCallback((stepId: string) => {
+    const wf = workflowRefForOps.current
+    if (!wf) return
+    const idx = wf.steps.findIndex(s => s.id === stepId)
+    if (idx < 0 || idx >= wf.steps.length - 1) return
+    const steps = [...wf.steps]
+    ;[steps[idx], steps[idx + 1]] = [steps[idx + 1], steps[idx]]
+    applyRef.current?.({ ...wf, steps, updatedAt: Date.now() })
+  }, [])
+
+  const onNodeColorChangeStable = useCallback((stepId: string, color: string) => {
+    const wf = workflowRefForOps.current
+    if (!wf) return
+    const steps = wf.steps.map(s => (s.id === stepId ? { ...s, nodeColor: color || undefined } : s))
+    applyRef.current?.({ ...wf, steps, updatedAt: Date.now() })
+  }, [])
+
+  const onNodeSelectSameTypeStable = useCallback((stepId: string) => {
+    const steps = stepsRef.current
+    const src = steps.find(s => s.id === stepId)
+    if (!src) return
+    const thisType = src.nodeType || 'prompt'
+    clearSelectionRef.current()
+    steps
+      .filter(s => (s.nodeType || 'prompt') === thisType)
+      .forEach(s => selectNodeRef.current(s.id, true))
+  }, [])
+
+  // Stable per-edge handlers — `CanvasEdge` is memoized and the canvas
+// re-renders per streaming delta, so inline arrows would re-render every edge.
+  // `edgeKey` is passed through so one callback serves all edges.
+  const edgeOpsRef = useRef<{
+    insert?: (after: string, before: string) => void
+    deleteSteps?: (ids: string[]) => void
+  }>({})
+  edgeOpsRef.current = { insert: onInsertBetween, deleteSteps: onDeleteSteps }
+
+  const edgeHoverRef = useRef<(key: string | null) => void>(() => {})
+  edgeHoverRef.current = (key) => setHoveredEdgeKey(key)
+
+  const onEdgeHoverStable = useCallback((edgeKey: string) => (hovered: boolean) => {
+    edgeHoverRef.current(hovered ? edgeKey : null)
+  }, [])
+  const onEdgeAddBetweenStable = useCallback((after: string, before: string) => () => {
+    edgeOpsRef.current.insert?.(after, before)
+  }, [])
+  const onEdgeDeleteStable = useCallback((target: string) => () => {
+    edgeOpsRef.current.deleteSteps?.([target])
+  }, [])
+
+  // Those factories still allocate a fresh closure per render; cache the
+  // results per key so memo(CanvasEdge) actually bails.
+  const edgeFnCache = useRef(new Map<string, unknown>())
+  const cachedEdgeFn = <T,>(key: string, make: () => T): T => {
+    const hit = edgeFnCache.current.get(key)
+    if (hit) return hit as T
+    const fn = make()
+    edgeFnCache.current.set(key, fn)
+    return fn
+  }
+
+  const onCanvasCtxMenuStable = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const menuW = 180
+    const menuH = 200
+    const x = e.clientX + menuW > window.innerWidth ? e.clientX - menuW : e.clientX
+    const y = e.clientY + menuH > window.innerHeight ? e.clientY - menuH : e.clientY
+    setCanvasCtxMenu({ x, y })
+  }, [])
+
+  // Per-step handler bundles. `CanvasNode` is memoized, so recreating these on
+  // every canvas render (streaming delta / live timer tick) defeats it. Bundles
+  // are reused until their capability key changes; the handlers themselves are
+  // the stable callbacks above.
+  const nodeHandlersRef = useRef(new Map<string, NodeHandlerBundle>())
+  const nodeHandlers = useMemo(() => {
+    const next = new Map<string, NodeHandlerBundle>()
+    const steps = workflow?.steps ?? EMPTY_STEPS
+    const last = steps.length - 1
+    steps.forEach((step, idx) => {
+      const needsRetry = execution.stepStatuses[step.id] === 'error' && !execution.isRunning
+      const key = [
+        idx, last, Boolean(onStepReorder), Boolean(onDeleteSteps), Boolean(onInsertBetween),
+        Boolean(onRetryStep), Boolean(onWorkflowUpdate), Boolean(onStepUpdate), needsRetry,
+      ].join('|')
+      const prev = nodeHandlersRef.current.get(step.id)
+      if (prev && prev.key === key) { next.set(step.id, prev); return }
+
+      next.set(step.id, {
+        key,
+        onSelect: handleNodeSelect,
+        onDragStart: onNodeDragStartStable,
+        onToggleCollapse: layout.handleToggleCollapse,
+        onTitleChange: handleTitleChange,
+        onPromptChange: onStepUpdate ? handlePromptChange : undefined,
+        onMultiSelect: onNodeMultiSelectStable,
+        onReorderDragStart: onStepReorder ? onNodeReorderDragStartStable : undefined,
+        onDeleteNode: onDeleteSteps ? onNodeDeleteStable : undefined,
+        onInsertBefore: onInsertBetween && idx > 0 ? onNodeInsertBeforeStable : undefined,
+        onInsertAfter: onInsertBetween && idx < last ? onNodeInsertAfterStable : undefined,
+        onRetry: onRetryStep ? onNodeRetryStable : undefined,
+        onRetryStep: needsRetry ? () => nodeOpsRef.current.retry?.(step.id) : undefined,
+        onRunFromStep: undefined,
+        onHeightChange: layout.updateNodeHeight,
+        onSelectSameType: onWorkflowUpdate ? () => onNodeSelectSameTypeStable(step.id) : undefined,
+        onDuplicate: onWorkflowUpdate ? onNodeDuplicateStable : undefined,
+        onMoveUp: onWorkflowUpdate && idx > 0 ? () => onNodeMoveUpStable(step.id) : undefined,
+        onMoveDown: onWorkflowUpdate && idx < last ? () => onNodeMoveDownStable(step.id) : undefined,
+        onColorChange: onWorkflowUpdate ? (color: string) => onNodeColorChangeStable(step.id, color) : undefined,
+      })
+    })
+    nodeHandlersRef.current = next
+    return next
+  }, [
+    workflow?.steps, onStepReorder, onDeleteSteps, onInsertBetween, onRetryStep, onWorkflowUpdate,
+    onStepUpdate, execution.isRunning, execution.stepStatuses, layout.handleToggleCollapse,
+    layout.updateNodeHeight, handleNodeSelect, handleTitleChange, handlePromptChange,
+    onNodeDragStartStable, onNodeMultiSelectStable, onNodeReorderDragStartStable,
+    onNodeDeleteStable, onNodeInsertBeforeStable, onNodeInsertAfterStable, onNodeRetryStable,
+    onNodeSelectSameTypeStable, onNodeDuplicateStable, onNodeMoveUpStable,
+    onNodeMoveDownStable, onNodeColorChangeStable,
+  ])
 
   // D5: close context menu on outside click
   useEffect(() => {
@@ -558,7 +853,6 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
 
   // P2.2: Ctrl+C copy selected node(s) / Ctrl+V paste
   const [clipboard, setClipboard] = useState<WorkflowStep[] | null>(null)
-  const copyToastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>()
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -596,8 +890,6 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
       // Ctrl+V: paste copied node(s)
       if ((e.key === 'v' || e.key === 'V') && isMod && !e.shiftKey && clipboard && workflow) {
         e.preventDefault()
-        const lastStep = workflow.steps[workflow.steps.length - 1]
-        const insertAt = workflow.steps.length
         const pasted = clipboard.map((s, i) => ({
           ...s,
           id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 7 + i)}`,
@@ -879,16 +1171,6 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
   // (layout.draggingNode is not exported from useCanvasLayout, so we use reorderDrag as the signal)
   const isDragging = reorderDrag !== null
 
-  // Direction B: node title change (from CanvasNode inline edit)
-  const handleTitleChange = useCallback((stepId: string, newTitle: string) => {
-    onStepUpdate?.(stepId, { title: newTitle })
-  }, [onStepUpdate])
-
-  // Direction B: node prompt change (from CanvasNode inline edit)
-  const handlePromptChange = useCallback((stepId: string, newPrompt: string) => {
-    onStepUpdate?.(stepId, { prompt: newPrompt })
-  }, [onStepUpdate])
-
   // Direction G: JSON export
   const handleExport = useCallback(() => {
     if (!workflow) return
@@ -935,11 +1217,6 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     a.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }, [workflow])
-
-  // TODO: wire up actual partial execution when useWorkflowExecution supports startFromStep
-  const handleRunFromStep = useCallback((_stepIdx: number) => {
-    // no-op for now — UI affordance only
-  }, [])
 
   // Insert a new empty step after the given index by delegating to onInsertBetween
   const handleInsertStep = useCallback((insertAtIndex: number) => {
@@ -1107,10 +1384,6 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
     ? workflow.steps.reduce((sum, step) => sum + countWords(execution.stepOutputs[step.id] ?? ''), 0)
     : 0
 
-  // D8: determine which nodes are highlighted by edge hover
-  const hoveredFromId = hoveredEdgeKey ? hoveredEdgeKey.split(':')[0] : null
-  const hoveredToId = hoveredEdgeKey ? hoveredEdgeKey.split(':')[1] : null
-
   // D6: compute reorder insertion line position
   const reorderInsertLine = reorderDrag && (() => {
     const { insertAfterIndex } = reorderDrag
@@ -1149,15 +1422,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
       onDoubleClick={handleCanvasDoubleClick}
       onMouseEnter={() => layout.setIsHovered(true)}
       onMouseLeave={() => layout.setIsHovered(false)}
-      onContextMenu={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        const menuW = 180
-        const menuH = 200
-        const x = e.clientX + menuW > window.innerWidth ? e.clientX - menuW : e.clientX
-        const y = e.clientY + menuH > window.innerHeight ? e.clientY - menuH : e.clientY
-        setCanvasCtxMenu({ x, y })
-      }}
+      onContextMenu={onCanvasCtxMenuStable}
     >
       {/* Canvas header strip — workflow name (inline-editable) + description */}
       <div
@@ -1500,6 +1765,9 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0 }}
       >
         <defs>
+          {/* Two tiers: a fine dot every 20px gives the surface texture, and a
+              slightly stronger dot every 100px gives the eye a reference so
+              panning reads as movement instead of a static speckle. */}
           <pattern
             id="canvas-dot-grid"
             x={layout.panX % (20 * layout.zoom)}
@@ -1515,8 +1783,25 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               fill="var(--bg-hover)"
             />
           </pattern>
+          <pattern
+            id="canvas-major-grid"
+            x={layout.panX % (100 * layout.zoom)}
+            y={layout.panY % (100 * layout.zoom)}
+            width={100 * layout.zoom}
+            height={100 * layout.zoom}
+            patternUnits="userSpaceOnUse"
+          >
+            <circle
+              cx={100 * layout.zoom / 2}
+              cy={100 * layout.zoom / 2}
+              r={Math.max(0.8, layout.zoom * 1.15)}
+              fill="var(--border-strong)"
+              opacity={0.55}
+            />
+          </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#canvas-dot-grid)" />
+        <rect width="100%" height="100%" fill="url(#canvas-major-grid)" />
       </svg>
       {/* Radial gradient overlay — subtle purple glow at canvas center */}
       <div style={{
@@ -1524,7 +1809,11 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
         inset: 0,
         pointerEvents: 'none',
         zIndex: 0,
-        background: 'radial-gradient(ellipse at 50% 40%, rgba(99,102,241,0.04) 0%, transparent 65%)',
+        // Two glows (cool centre, warm corner) keep a large canvas from reading
+        // as one flat sheet — the eye gets a sense of depth without a texture.
+        background:
+          'radial-gradient(ellipse 70% 60% at 50% 38%, rgba(99,102,241,0.055) 0%, transparent 70%),' +
+          'radial-gradient(ellipse 50% 45% at 88% 92%, rgba(167,139,250,0.035) 0%, transparent 70%)',
       }} />
 
       {/* B8: Empty canvas guide — shown when workflow has no steps */}
@@ -1544,7 +1833,8 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             animation: 'canvas-empty-pulse 3s ease-in-out infinite',
           }}
         >
-          {/* Dashed circle with + */}
+          {/* Dashed circle with + — a soft halo behind it so the empty state
+              feels like a focal point rather than a floating icon. */}
           <div style={{
             background: 'var(--accent-bg)',
             borderRadius: 20,
@@ -1552,6 +1842,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            boxShadow: '0 0 0 1px var(--accent-border), 0 8px 32px -8px rgba(99,102,241,0.35)',
           }}>
             <svg width={60} height={60}>
               <circle
@@ -1809,14 +2100,12 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
                   status={edgeStatus}
                   sourceStatus={srcStatus}
                   layoutDirection={layout.layoutDirection}
-                  onHoverChange={(hovered) => setHoveredEdgeKey(hovered ? edgeKey : null)}
+                  onHoverChange={cachedEdgeFn(`hover:${edgeKey}`, () => onEdgeHoverStable(edgeKey))}
                   highlighted={isHighlighted}
                   // Direction 4: insert step between two existing steps
-                  onAddBetween={onInsertBetween ? () => {
-                    onInsertBetween(prevStep.id, step.id)
-                  } : undefined}
+                  onAddBetween={onInsertBetween ? cachedEdgeFn(`add:${edgeKey}`, () => onEdgeAddBetweenStable(prevStep.id, step.id)) : undefined}
                   // Iter 542: delete edge — removes the target step from the workflow
-                  onDelete={onDeleteSteps && !execution.isRunning ? () => onDeleteSteps([step.id]) : undefined}
+                  onDelete={onDeleteSteps && !execution.isRunning ? cachedEdgeFn(`del:${edgeKey}`, () => onEdgeDeleteStable(step.id)) : undefined}
                   // Direction 4: pass output length and duration from previous step
                   outputLength={execution.stepOutputs[prevStep.id]?.length}
                   durationMs={execution.stepDurations[prevStep.id]}
@@ -1957,79 +2246,7 @@ export default function WorkflowCanvas({ workflow, highlightStepIds, onRetryStep
               stepIndex={idx}
               // Iteration 561: sub-agent badge — only shown on the currently-running step
               activeSubAgentCount={stepStatus === 'running' ? activeSubAgentCount : 0}
-              onSelect={handleNodeSelect}
-              onDragStart={(stepId, e) => {
-                // Direction F: if this node is part of multi-selection, drag all
-                if (layout.selectedNodes.size > 1 && layout.selectedNodes.has(stepId)) {
-                  layout.handleMultiNodeDragStart(layout.selectedNodes, e)
-                } else {
-                  layout.handleNodeDragStart(stepId, e)
-                }
-              }}
-              onToggleCollapse={layout.handleToggleCollapse}
-              onTitleChange={handleTitleChange}
-              onPromptChange={onStepUpdate ? handlePromptChange : undefined}
-              onMultiSelect={(id, shiftKey) => layout.selectNode(id, shiftKey)}
-              // D6: drag to reorder
-              onReorderDragStart={onStepReorder ? (stepId, e) => {
-                e.stopPropagation()
-                setReorderDrag({ stepId, insertAfterIndex: -1 })
-              } : undefined}
-              onDeleteNode={onDeleteSteps ? (stepId) => onDeleteSteps([stepId]) : undefined}
-              onInsertBefore={onInsertBetween && idx > 0 ? (stepId) => {
-                const prevStep = workflow.steps[idx - 1]
-                onInsertBetween(prevStep.id, stepId)
-              } : undefined}
-              onInsertAfter={onInsertBetween && idx < workflow.steps.length - 1 ? (stepId) => {
-                const nextStep = workflow.steps[idx + 1]
-                onInsertBetween(stepId, nextStep.id)
-              } : undefined}
-              onRetry={onRetryStep ? (stepId) => onRetryStep(stepId) : undefined}
-              onRetryStep={onRetryStep && execution.stepStatuses[step.id] === 'error' && !execution.isRunning ? () => onRetryStep(step.id) : undefined}
-              onRunFromStep={!execution.isRunning ? () => handleRunFromStep(idx) : undefined}
-              onHeightChange={layout.updateNodeHeight}
-              onSelectSameType={onWorkflowUpdate ? () => {
-                const thisType = step.nodeType || 'prompt'
-                layout.clearSelection()
-                workflow.steps
-                  .filter(s => (s.nodeType || 'prompt') === thisType)
-                  .forEach(s => layout.selectNode(s.id, true))
-              } : undefined}
-              onDuplicate={onWorkflowUpdate ? (stepId) => {
-                const srcIdx = workflow.steps.findIndex(s => s.id === stepId)
-                if (srcIdx === -1) return
-                const src = workflow.steps[srcIdx]
-                const dup = {
-                  ...src,
-                  id: Date.now().toString(),
-                  title: src.title + ' (copy)',
-                  canvasPos: src.canvasPos
-                    ? { x: src.canvasPos.x + 40, y: src.canvasPos.y + 40 }
-                    : undefined,
-                }
-                const newSteps = [
-                  ...workflow.steps.slice(0, srcIdx + 1),
-                  dup,
-                  ...workflow.steps.slice(srcIdx + 1),
-                ]
-                onWorkflowUpdate({ ...workflow, steps: newSteps, updatedAt: Date.now() })
-              } : undefined}
-              onMoveUp={idx > 0 && onWorkflowUpdate ? () => {
-                const steps = [...workflow.steps]
-                ;[steps[idx - 1], steps[idx]] = [steps[idx], steps[idx - 1]]
-                onWorkflowUpdate({ ...workflow, steps })
-              } : undefined}
-              onMoveDown={idx < workflow.steps.length - 1 && onWorkflowUpdate ? () => {
-                const steps = [...workflow.steps]
-                ;[steps[idx], steps[idx + 1]] = [steps[idx + 1], steps[idx]]
-                onWorkflowUpdate({ ...workflow, steps })
-              } : undefined}
-              onColorChange={onWorkflowUpdate ? (color: string) => {
-                const updated = workflow.steps.map(s =>
-                  s.id === step.id ? { ...s, nodeColor: color || undefined } : s
-                )
-                onWorkflowUpdate({ ...workflow, steps: updated, updatedAt: Date.now() })
-              } : undefined}
+              {...(nodeHandlers.get(step.id) ?? EMPTY_NODE_HANDLERS)}
             />
             </div>
           )

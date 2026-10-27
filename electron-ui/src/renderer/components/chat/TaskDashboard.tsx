@@ -129,7 +129,13 @@ const TaskDashboard: React.FC = () => {
   ensureKeyframes()
 
   const [expanded, setExpanded] = useState(true)
-  const { taskQueue, queuePaused, toggleQueuePause, removeFromQueue, clearQueue } = useChatStore()
+  // PERF: per-field selectors — subscribing to the whole store re-rendered this
+// dashboard on every streaming message update.
+  const taskQueue = useChatStore(s => s.taskQueue)
+  const queuePaused = useChatStore(s => s.queuePaused)
+  const toggleQueuePause = useChatStore(s => s.toggleQueuePause)
+  const removeFromQueue = useChatStore(s => s.removeFromQueue)
+  const clearQueue = useChatStore(s => s.clearQueue)
 
   if (taskQueue.length === 0) return null
 

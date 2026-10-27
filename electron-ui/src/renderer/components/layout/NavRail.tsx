@@ -217,10 +217,9 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
 }
 
 export default function NavRail() {
-  const {
-    activeNavItem,
-    setActiveNavItem,
-  } = useUiStore()
+  // PERF: per-field selectors instead of subscribing to the whole UI store.
+  const activeNavItem = useUiStore(s => s.activeNavItem)
+  const setActiveNavItem = useUiStore(s => s.setActiveNavItem)
 
   const navExpanded = usePrefsStore(s => !!s.prefs.navExpanded)
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)

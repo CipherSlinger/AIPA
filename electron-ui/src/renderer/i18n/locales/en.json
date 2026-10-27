@@ -1834,7 +1834,8 @@
     "authTokenHint": "When set, API Key must be left empty. The token is sent as Authorization: Bearer",
     "model": "Model",
     "modelPlaceholder": "e.g. deepseek-chat",
-    "modelHint": "Leave empty to use the provider's default model"
+    "modelHint": "Leave empty to use the provider's default model",
+    "credentialStored": "Leave blank to keep the stored credential"
   },
   "channel": {
     "title": "Channel",

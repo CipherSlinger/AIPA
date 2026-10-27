@@ -125,16 +125,16 @@ export default function WorkflowDetailHeader({
       <style>{`
         @keyframes wdh-pulse {
           0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
+          50% { opacity: 0.72; }
         }
       `}</style>
 
       {/* Category color accent bar — 3px, full width, derived from icon */}
       <div style={{
         height: 3,
-        background: accentColor,
+        background: `linear-gradient(90deg, ${accentColor}, ${accentColor}55 60%, transparent)`,
         flexShrink: 0,
-        opacity: 0.85,
+        opacity: 0.95,
       }} />
 
       {/* Breadcrumb navigation bar */}
@@ -143,7 +143,7 @@ export default function WorkflowDetailHeader({
         display: 'flex',
         alignItems: 'center',
         gap: 6,
-        borderBottom: '1px solid var(--border)',
+        borderBottom: '1px solid var(--glass-border)',
         background: 'var(--bg-primary, rgba(12,12,20,0.97))',
         flexShrink: 0,
       }}>
@@ -202,13 +202,16 @@ export default function WorkflowDetailHeader({
         display: 'flex',
         alignItems: 'center',
         gap: 10,
-        borderBottom: '1px solid var(--border)',
+        borderBottom: '1px solid var(--glass-border-md)',
         borderLeft: `3px solid ${accentColor}`,
-        background: saveFlash ? 'rgba(34,197,94, 0.08)' : 'var(--popup-bg)',
+        background: saveFlash
+          ? 'rgba(34,197,94, 0.10)'
+          : `linear-gradient(180deg, ${accentColor}0d, transparent 70%), var(--popup-bg)`,
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.20)',
         flexShrink: 0,
-        transition: 'all 0.15s ease',
+        transition: 'background 0.2s ease, border-color 0.2s ease',
       }}>
         {/* Icon (clickable to pick in edit mode, static in view mode) */}
         <div style={{ position: 'relative' }}>
@@ -229,8 +232,9 @@ export default function WorkflowDetailHeader({
           ) : (
             <div style={{
               width: 40, height: 40, borderRadius: 10,
-              background: `${accentColor}22`,
-              border: `1px solid ${accentColor}40`,
+              background: `linear-gradient(145deg, ${accentColor}2e, ${accentColor}14)`,
+              border: `1px solid ${accentColor}44`,
+              boxShadow: `inset 0 1px 0 rgba(255,255,255,0.10), 0 2px 10px -2px ${accentColor}55`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 20,
             }}>
@@ -399,8 +403,8 @@ export default function WorkflowDetailHeader({
                 onClick={onExitEditMode}
                 title={t('workflow.exitEditMode')}
                 style={{ ...actionBtnStyle, gap: 4 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.borderColor = 'var(--border)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.borderColor = 'var(--border)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.075)'; e.currentTarget.style.borderColor = 'var(--border-strong)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.035)'; e.currentTarget.style.borderColor = 'var(--glass-border-md)' }}
               >
                 <Eye size={14} />
                 <span style={{ fontSize: 12 }}>{t('workflow.viewMode')}</span>
@@ -436,8 +440,8 @@ export default function WorkflowDetailHeader({
             <>
               {/* Enter edit mode */}
               <button onClick={onEnterEditMode} title={t('workflow.edit')} style={actionBtnStyle}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.borderColor = 'var(--border)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.borderColor = 'var(--border)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.075)'; e.currentTarget.style.borderColor = 'var(--border-strong)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.035)'; e.currentTarget.style.borderColor = 'var(--glass-border-md)' }}
               >
                 <Edit3 size={14} />
                 <span style={{ fontSize: 12 }}>{t('workflow.edit')}</span>
@@ -482,7 +486,7 @@ export default function WorkflowDetailHeader({
       {/* Description bar (editable only in edit mode) */}
       <div style={{
         padding: '6px 20px',
-        borderBottom: '1px solid var(--border)',
+        borderBottom: '1px solid var(--glass-border)',
         background: 'var(--bg-primary)',
         flexShrink: 0,
       }}>
@@ -517,11 +521,12 @@ const actionBtnStyle: React.CSSProperties = {
   alignItems: 'center',
   gap: 4,
   padding: '5px 12px',
-  background: 'var(--border)',
-  border: '1px solid var(--border)',
+  background: 'rgba(255,255,255,0.035)',
+  border: '1px solid var(--glass-border-md)',
   borderRadius: 7,
   cursor: 'pointer',
   color: 'var(--text-primary)',
   fontSize: 12,
-  transition: 'all 0.15s ease',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+  transition: 'background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
 }
