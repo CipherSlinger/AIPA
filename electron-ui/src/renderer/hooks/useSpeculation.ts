@@ -142,7 +142,9 @@ export function useSpeculation(
       setResult(null)
       return null
     }
-  }, [result, status, cwd])
+  // `cwd` is no longer passed: the main process records it when the
+    // speculation starts, so accepting only needs the id.
+  }, [result, status])
 
   /** Reject the speculation: discard overlay */
   const reject = useCallback(() => {

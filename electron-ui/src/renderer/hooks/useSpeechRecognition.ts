@@ -68,7 +68,9 @@ export function useSpeechRecognition(
       setListening(false)
       onAutoStop?.()
     }, MAX_RECORDING_MS)
-  }, [listening, onTranscript, onAutoStop, clearTimers])
+  // Timer teardown lives in the `listening` effect below, so this callback
+  // does not call clearTimers and must not depend on it.
+  }, [listening, onTranscript, onAutoStop])
 
   return { listening, recordingSeconds, toggleSpeech }
 }

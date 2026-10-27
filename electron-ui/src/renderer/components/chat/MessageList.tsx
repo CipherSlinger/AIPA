@@ -132,13 +132,16 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   }, [tabId])
 
   // Report scroll offset for the tab cache. Stable identity so the container's
-  // onScroll prop doesn't churn on every ChatPanel render.
+  // onScroll prop doesn't churn on every ChatPanel render; the inner handler is
+  // read through a ref for the same reason.
   const onScrollTopRef = useRef(onScrollTop)
   onScrollTopRef.current = onScrollTop
+  const innerScrollHandlerRef = useRef(scrollState.handleScroll)
+  innerScrollHandlerRef.current = scrollState.handleScroll
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    scrollState.handleScroll()
+    innerScrollHandlerRef.current()
     onScrollTopRef.current?.(e.currentTarget.scrollTop)
-  }, [scrollState.handleScroll])
+  }, [])
 
   const { focusedMsgIdx } = useMessageNavigation(messages, items, virtualizer)
 
