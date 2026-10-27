@@ -7,6 +7,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Update `README.md` and `README_EN.md` for every important commit
 - After every code change, run `npm run check` (from `electron-ui/`) to catch TypeScript and ESLint errors. Fix all errors before committing. Do not commit broken code.
 
+## Working Style
+- **Keep the main session idle.** Understand each request, then dispatch the work to subagents. The main session stays free to receive the user's next instruction or request at any moment.
+- **Run several subagents in parallel** when the work splits into independent pieces — launch them in one message so they run concurrently.
+- The main session still owns: interpreting intent, splitting the work cleanly, reviewing what comes back, and running `npm run check` before committing.
+
 ## Project Overview
 
 > **Read `README.md` for the full product vision and ultimate goal.**
