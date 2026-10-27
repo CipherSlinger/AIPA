@@ -1,11 +1,11 @@
 <p align="center">
   <h1 align="center">AIPA</h1>
   <p align="center">
-    <strong>AI 个人助手 — 你的全天候桌面智能驾驶舱</strong><br/>
-    随问随答，随需随做，驱动终端与代码，事事搞定。
+    <strong>AI Personal Assistant — Your Always-On Desktop Agent Cockpit</strong><br/>
+    Ask anything. Automate anything. Drive terminal and code, get things done.
   </p>
   <p align="center">
-    <img src="https://img.shields.io/badge/平台-Windows-blue" alt="平台" />
+    <img src="https://img.shields.io/badge/platform-Windows-blue" alt="Platform" />
     <img src="https://img.shields.io/badge/Electron-39-47848F" alt="Electron" />
     <img src="https://img.shields.io/badge/React-18-61DAFB" alt="React" />
     <img src="https://img.shields.io/badge/TypeScript-strict-3178c6" alt="TypeScript" />
@@ -15,55 +15,55 @@
 
 ---
 
-AIPA 不是一个简单的网页套壳聊天窗口，而是一个真正驻留在你桌面上的**执行级智能代理**。它能读写本地文件、执行 Shell 终端指令、智能调度工作流、管理自动化任务，并跨会话保留记忆与偏好。
+AIPA is not a simple web-wrapper chat window. It is an **action-oriented desktop agent** that lives alongside you — reading and writing local files, executing shell commands, chaining tasks into automated workflows, and maintaining memory and preferences across sessions.
 
-底座原生驱动 **OpenAI Codex CLI** 与 **Claude Code CLI** 作为双核执行引擎，外包一层精心打磨的 Electron + React 驾驶舱，同时无缝兼容 OpenAI、DeepSeek、Ollama 及任意 OpenAI 兼容模型。
+Under the hood, it drives **OpenAI Codex CLI** and **Claude Code CLI** as dual-core execution engines, packaged inside a finely tuned Electron + React cockpit with native multi-model support for OpenAI, Claude, DeepSeek, Ollama, and any OpenAI-compatible provider.
 
-> 💡 **CLI 是强劲引擎，AIPA 是直观易用的智能驾驶舱。**
+> 💡 **The CLI is the high-performance engine; AIPA is your intuitive cockpit.**
 
 ---
 
-## 🏛️ 系统架构总览
+## 🏛️ System Architecture
 
 ```mermaid
 graph TB
-    subgraph Desktop["🖥️ 用户桌面环境 (Windows 10/11)"]
-        subgraph ElectronCockpit["🚀 AIPA 智能驾驶舱 (Electron + React)"]
-            subgraph Renderer["渲染层 (React 18 + Vite + Zustand)"]
-                NavRail["左侧主导航 (NavRail)"]
-                MainView["主界面沉浸视图 (MainView)"]
-                ChatPanel["结构化对话 / 工具卡片 / LCS Diff"]
-                OrgChart["组织架构 (Org Chart)"]
-                EmpGallery["员工形象磁贴网格 (HR)"]
-                CanvasWorkflow["画布工作流编辑器 (Canvas Engine)"]
-                PluginHost["沙箱插件宿主 (Sandboxed iframe)"]
+    subgraph Desktop["🖥️ User Desktop Environment (Windows 10/11)"]
+        subgraph ElectronCockpit["🚀 AIPA Desktop Cockpit (Electron + React)"]
+            subgraph Renderer["Renderer Layer (React 18 + Vite + Zustand)"]
+                NavRail["Navigation Rail (NavRail)"]
+                MainView["Main Content View (MainView)"]
+                ChatPanel["Structured Chat / Tool Cards / LCS Diff"]
+                OrgChart["Organization Chart"]
+                EmpGallery["HR (People Ops)"]
+                CanvasWorkflow["Canvas Workflow Editor"]
+                PluginHost["Sandboxed Plugin Host"]
             end
             
-            subgraph Preload["安全隔离层 (Preload / contextBridge)"]
-                API["window.electronAPI (IPC 强类型通信)"]
+            subgraph Preload["Isolation Layer (Preload / contextBridge)"]
+                API["window.electronAPI (Type-safe IPC Bridge)"]
             end
             
-            subgraph MainProcess["主进程 (Node.js CJS)"]
-                PtyMgr["PTY 管理器 (node-pty ConPTY)"]
-                CodexBridge["Codex 桥接器 (JSON-RPC 2.0 stdio)"]
-                StreamBridge["Claude 桥接器 (NDJSON Stream)"]
-                NavPluginMgr["插件热插拔监听 (fs.watch)"]
-                ConfigMgr["安全配置管理 (DPAPI 加密)"]
-                ClawdPet["桌面宠物集成 (Clawd Win32)"]
+            subgraph MainProcess["Main Process (Node.js CJS)"]
+                PtyMgr["PTY Manager (node-pty ConPTY)"]
+                CodexBridge["Codex Bridge (JSON-RPC 2.0 stdio)"]
+                StreamBridge["Claude Bridge (NDJSON Stream)"]
+                NavPluginMgr["Hot-Pluggable Plugin Watcher (fs.watch)"]
+                ConfigMgr["Secure Config (DPAPI safeStorage)"]
+                ClawdPet["Clawd Desktop Pet Integration"]
             end
         end
 
-        subgraph Engines["⚡ 执行引擎与模型服务"]
-            CodexCLI["OpenAI Codex CLI (Rust 原生内核 · 主引擎)"]
-            ClaudeCLI["Claude Code CLI (备用引擎)"]
-            LLMProviders["多模型接入 (OpenAI / Claude / DeepSeek / Ollama / 千问)"]
+        subgraph Engines["⚡ Execution Engines & Providers"]
+            CodexCLI["OpenAI Codex CLI (Rust Native Core · Primary Engine)"]
+            ClaudeCLI["Claude Code CLI (Fallback Engine)"]
+            LLMProviders["Multi-LLM Providers (OpenAI / Claude / DeepSeek / Ollama / Qwen)"]
         end
 
-        subgraph LocalEnv["💻 本地操作系统能力"]
-            Shell["终端执行 (PowerShell / Git Bash / CMD)"]
-            FS["本地工作区文件系统 (原子读写 / 差异比对)"]
-            Git["Git 版本控制 / Worktree 工作区隔离"]
-            MemoryStore["持久记忆存储 (~/.claude/projects / memdir)"]
+        subgraph LocalEnv["💻 Local Operating System"]
+            Shell["Terminal Execution (PowerShell / Git Bash / CMD)"]
+            FS["Workspace File System (Atomic Read/Write / Diffs)"]
+            Git["Git Version Control / Worktree Isolation"]
+            MemoryStore["Persistent Memory (~/.claude/projects / memdir)"]
         end
     end
 
@@ -78,498 +78,487 @@ graph TB
 
 ---
 
-## 🖥️ 桌面交互空间布局
+## 🖥️ Desktop Cockpit Layout
 
-AIPA 采用现代**双栏无缝驾驶舱布局**，去除了繁琐的中间列表栏，使所有核心业务视图均可在主界面中以全屏沉浸模式操作：
+AIPA adopts a modern **two-column layout** eliminating redundant intermediate lists. All core features open directly in the full-screen primary workspace:
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│  AIPA — 桌面智能代理驾驶舱                                                      ─  □  ✕  │
+│  AIPA — Desktop Agent Cockpit                                                    ─  □  ✕  │
 ├──────┬─────────────────────────────────────────────────────────────────────────────────┤
-│ [🏢] │ 组织架构 / 公司模拟图 → 下钻部门名册                                            │
-│ 部门 │ ┌─────────────────────────────────────────────────────────────────────────────┐ │
+│ [🏢] │ Org Chart / Company Map → Department Roster                                     │
+│ Dept │ ┌─────────────────────────────────────────────────────────────────────────────┐ │
 │      │ │ 🤖 Assistant                                                                │ │
-│ [👥] │ │ 正在为项目重构文件结构...                                                   │ │
-│人事部│ │ ┌─ 🛠️ Tool: Write (src/main/plugins/nav-plugin-manager.ts) ───────────────┐ │ │
+│ [👥] │ │ Refactoring module architecture...                                          │ │
+│ HR   │ │ ┌─ 🛠️ Tool: Write (src/main/plugins/nav-plugin-manager.ts) ───────────────┐ │ │
 │ [📁] │ │ │ + export interface NavPluginManifest { ... }                           │ │  │
-│档案部│ │ └────────────────────────────────────────────────────────────────────────┘ │  │
+│ Arch │ │ └────────────────────────────────────────────────────────────────────────┘ │  │
 │      │ └─────────────────────────────────────────────────────────────────────────────┘ │
 │      │                                                                                 │
-│      │ ┌─ 员工形象中心 (HR) ─────────────────────────────────────────────────────────┐ │
+│      │ ┌─ Employee Roster (HR)   ─────────────────────────────────────────────┐ │
 │      │ │  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐        │ │
-│      │ │  │ 👨‍💻 导师  │   │ 👩‍🔬 分析  │   │ 🎨 创意  │   │ 📚 助教  │   │ ⚡ 效能  │        │ │
-│ [📅] │ │  │ Writing │   │ Research│   │ Creative│   │  Tutor  │   │Productiv│        │ │
-│ 日历 │ │  └─────────┘   └─────────┘   └─────────┘   └─────────┘   └─────────┘        │ │
+│      │ │  │ 👨‍💻 Coach  │   │ 👩‍🔬 Analyst│   │ 🎨 Creative│   │ 📚 Tutor │   │ ⚡ Productiv│   │ │
+│ [📅] │ │  │ Writing │   │ Research│   │ Partner │   │ Academic│   │  Coach  │        │ │
+│ Cal. │ │  └─────────┘   └─────────┘   └─────────┘   └─────────┘   └─────────┘        │ │
 │      │ └─────────────────────────────────────────────────────────────────────────────┘ │
 │ ───  │                                                                                 │
-│ [📝] │ ┌─ Canvas 工作流画布 ─────────────────────────────────────────────────────────┐ │
-│ 笔记 │ │  [Node: 读取需求] ──(流动边线)──> [Node: 代码审查] ──(完成)──> [Node: 生成报告]  │ │
+│ [📝] │ ┌─ Canvas Workflow Editor ────────────────────────────────────────────────────┐ │
+│Notes │ │  [Node: Read Spec] ──(flowing line)──> [Node: Code Review] ──(done)──> [Done] │ │
 │ [🔌] │ └─────────────────────────────────────────────────────────────────────────────┘ │
-│ 插件 │                                                                                 │
-│ [⚙️]  │ 状态栏: ● 就绪 | 思考深度: 中 | 权限模式: Accept Edits | 消费: $0.04           [🐱 桌宠]│
+│Plugin│ ┌─ Interaction Input Area ────────────────────────────────────────────────────┐ │
+│ [⚙️]  │ Status: ● Ready | Thinking: Medium | Perm: Accept Edits | Cost: $0.04    [🐱 Clawd]│
 └──────┴─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🌟 核心能力矩阵
+## 🌟 Core Capabilities
 
-| 模块 | 核心特性 | 呈现与交互形态 |
+| Module | Core Features | Visual Presentation |
 |---|---|---|
-| **💬 智能对话与执行** | Stream-JSON 极速流式传输、双模型切换、思考链折叠展开、上下文自动压缩与时间差清理；流式分片按帧批量追加而不重建消息数组，列表索引、词数统计与文件变更解析均按消息缓存，长会话仍保持顺滑 | 结构化工具调用卡片、LCS 增量 Diff 视图、待办任务进度条、执行审批对话框 |
-| **👥 人事部 (HR)** | 角色拟人化形象、职业特征定制、发型/服饰/表情自适应、在线状态光圈 | 员工页由「专家」「技能」「工作流」三块统一卡片网格组成（原独立技能面板已并入）：技能卡片一键把斜杠命令投喂到对话、点击查看 SKILL.md 全文，专家卡片可编辑/招募，工作流卡片显示步骤数/运行次数并可一键运行；末尾虚线卡片直接新建，下方为推荐预设 |
-| **🏢 组织架构 (Org Chart)** | 部门级「公司模拟图」、主干→母线→支线连接线、随容器宽度与部门数量自适应排版（单行居中 / 多行左侧主干机架式）、部门色标与稳定表情图标；**公司 → 部门 → 团队**三层，套用公司模板即成一节，卡片下恒定挂出团队条（含母线/下垂线的真实子图）与「待上岗」岗位角标 | 只显示部门卡片（不展开员工），点击卡片下钻进入该部门员工名册；卡片悬停可「招募」新员工、打开部门统计弹窗、导出员工列表，或**删除该部门**（卡片外弹出确认框，报出将一并移除的团队数）；总部卡片同法可**整节删除整家公司**（公司+全部部门+其下团队，磁盘文件夹与会话保留）；下钻后的员工名册以**小黄人人像**展示（单眼/双眼、高矮、发型、嘴巴按会话 ID 稳定生成，常驻呼吸动画，正在回复的人像光环旋转、右手敲键盘），虚化的「待上岗」人像站成独立一区，点一下才真正上岗 |
-| **📁 档案部 (Archive)** | 全公司任务总账：以会话为粒度自动归集到**公司/部门/团队**，实时推导不新增存储层、组织/时间/归档状态/全文四维筛选、按公司分组并附未分派收容 | 左侧导航「档案部」或 `Ctrl+8` 进入；每行显示任务标题、所属部门·团队、员工短哈希、时间与轮数，点击直接回到那次会话；行内可标记归档，可导出 `aipa_archive_<date>.json` |
-| **🎨 Canvas 工作流** | 多步提示词流水线编排、节点连线拓扑图、实时流式输出预览、历史运行记录回放 | 无限缩放点阵画布、流向贝塞尔曲线动画、错误感知红框、双击原地重命名 |
-| **🔌 免编译热插拔插件** | 纯 HTML5+CSS+JS 架构、沙箱安全隔离、双向 postMessage SDK、目录实时监听、AI 编辑抽屉 | 侧边栏动态图标注册、免构建即改即生效、主界面独立宿主、系统工具栏（刷新 / 内置源码预览：文件树 + 行号查看，可一键复制或跳转目录 / **AI 编辑**：右侧抽屉里直接对话让 AI 改插件，改完自动重载） |
-| **🧩 插件中心 (Plugin Hub)** | 集中展示、一键激活、查看源码、快速开发指引与插件目录管理 | 预置在左侧栏底部，支持跨插件跳转通信与目录直达；界面与插件名跟随应用语言（中/英） |
-| **📝 便签笔记插件 (Notes)** | 模块化热插拔插件架构、Markdown 即写即看、多分类归档、置顶、一键联动 AI 对话 | 独立免编译 HTML 微应用、左侧栏上方快速唤出、Ctrl+3 / Ctrl+Shift+N 快捷绑定、中英双语 |
-| **📅 工作日历插件 (Work Calendar)** | 月历跨天任务条、拖动创建任务、AI 流式生成周报/月报、GitHub 与本地文件夹工作源、人天周/月统计 | 周列报告状态徽标一键生成、报告预览/重新生成/一键拉取、数据本地文件持久化与 JSON 导入导出 |
-| **🧠 记忆与指令体系** | 全局记忆、项目记忆 (`.claude/MEMORY.md`)、结构化条目 (User/Feedback/Project/Ref) | 四 Tab 记忆工作台（位于「设置 → 记忆」，`Ctrl+5` 直达）、DreamTask 自动整合感知、记忆新鲜度衰减圆点；Codex 引擎下仅「个人」记忆会随消息注入 |
-| **🐱 Clawd 桌面宠物** | 原生 Win32 桌宠联动，感知 AI 思考、工具调用与空闲发呆等真实状态 | 任务栏图标智能合并、随身动效、轻量无遮挡 |
-| **⚙️ 设置与通道生态** | MCP 工具服务器、OpenClaw/外部消息通道、模型密钥、权限规则集中管控 | 整合至设置中心（Settings → 插件与 MCP / 通道），插件与 MCP 服务器同页管理，AI 引擎页把提供商配置提到 **Model 上方**（在「API 密钥池 / 添加密钥」下方）——密钥在这里添加，已配置的全部密钥也在这里列表展示，选完密钥再往下选模型，精简导航专注核心生产力；提供商列表由**卡片**改为**紧凑列表**——每行只保留健康状态色点、名称、模型数徽标、测试连接与启用开关，点击任意一行从右侧滑出**配置抽屉**承载全部字段（连接模式 / API Key / Auth Token / API 地址 / 获取模型 / 状态），列表因此始终保有「有哪些提供商、各自什么状态」的全局视野；MCP 配置按引擎落盘——Codex 引擎写入 `~/.codex/config.toml` 的 `[mcp_servers.*]` 表并回填到 `systemInit`，Claude 引擎仍用 `~/.claude/settings.json`；原 Hooks 配置页已移除（钩子仅由 Claude CLI 读取 `~/.claude/settings.json`，Codex 引擎完全不生效）；原「沙箱」设置页与一批写入被白名单静默忽略的输入框（API Key Helper、输出风格、可用模型、文件建议、状态栏、默认 Shell、忽略 .gitignore、提交署名、Worktree 等）一并移除，设置项只保留真正落盘生效的部分 |
+| **💬 Chat & Execution** | Stream-JSON real-time stream, dual-model switching, collapsible thinking chain, auto-compaction; streamed deltas are appended per animation frame instead of rebuilding the message array, and list indexes, word counts and change parsing are cached per message — long conversations stay smooth | Structured tool cards, LCS color-coded diff view, task checklist, interactive permission dialog |
+| **👥 HR (People Ops)** | Character persona illustrations, role-tailored attire/hairstyles, glowing status aura | The HR page shows Experts, Skills and Workflows as matching card grids (the standalone Skills panel was merged in): a skill card feeds its slash command into chat or opens the full SKILL.md, expert cards can be edited or recruited, workflow cards show step and run counts with hover edit/duplicate/delete and one-click run; a dashed card at the end creates a new item, with suggested presets below |
+| **🏢 Org Chart** | Company-style department map, trunk→bus→drop connector lines, layout adapts to both container width and department count (centred single row / left-rail multi-row), per-department color and stable emoji; **company → department → team** across three levels, one section per applied template, a team strip always drawn under each card (a real sub-tree with its own bus and drops) and “open position” badges | Shows departments only (employees stay collapsed); clicking a card drills into that department's employee roster, and hovering offers direct recruit, a stats popover, employee export, or **deleting the department** (a confirm box outside the card giving the team count that will cascade with it); the HQ card likewise **deletes a whole company** — company, all its departments, and the teams beneath them, keeping the folders and sessions on disk). The roster itself renders each employee as a **little yellow helper** (one eye or two, height, hair and mouth hashed from the session id, always-on breathing, and a spinning halo plus typing arm while replying), with dimmed “open positions” standing in their own group until hired |
+| **📁 Archive** | Company-wide task ledger: every session is filed under its **company / department / team**, derived live with no extra storage layer, filterable by organisation / time / archive state / free text, grouped by company with an explicit unassigned bucket | Reach it from the left nav’s “Archive” entry or `Ctrl+8`; each row shows the task title, its department · team, an employee short-hash, time and turn count, and opens that session on click; rows can be archived inline and exported as `aipa_archive_<date>.json` |
+| **🎨 Canvas Workflows** | Multi-step prompt pipeline orchestration, topology graph, live output streaming, execution replay | Infinite zoom dot-grid canvas, animated bezier edge flow, inline step title rename |
+| **🔌 Zero-Compile Plugins** | Vanilla HTML5+CSS+JS, sandboxed isolation, postMessage bridge SDK, dynamic directory watching, AI edit drawer | Real-time sidebar icon registration, zero-build instant reload, host developer toolbar (reload + built-in source preview: file tree with line numbers, one-click copy or reveal folder + **Edit**: chat with the AI in a right-hand drawer to change the plugin, reloaded automatically when a turn lands) |
+| **🧩 Plugin Hub** | Unified plugin dashboard, 1-click launch, source inspection, and developer starter guide | Pre-installed at the bottom of NavRail, enables cross-plugin navigation; UI and plugin names follow the app language (EN/ZH) |
+| **📅 Work Calendar Plugin** | Month view with cross-day task bars, drag-to-create tasks, AI-streamed weekly/monthly reports, GitHub & local-folder work sources, person-day tracking | One-click report generation from week badges, preview / regenerate / pull sources, file-backed storage with JSON import/export |
+| **📝 Quick Notes Plugin** | Decoupled hot-pluggable plugin, live Markdown preview, category filters, pinning, AI prompt dispatch | Independent HTML micro-app, upper NavRail placement, Ctrl+3 / Ctrl+Shift+N shortcut bindings, bilingual |
+| **🧠 Memory Hierarchy** | Global memory, Project memory (`.claude/MEMORY.md`), structured memdir (User/Feedback/Project/Ref) | 4-tab memory console (under Settings → Memory, `Ctrl+5`), DreamTask background consolidation detection, decay status dots; under the Codex engine only Personal memories are injected into messages |
+| **🐱 Clawd Pet** | Win32 desktop pet synced with AI thinking, execution, and idle moods | Consolidated taskbar icons, smooth sprite animations, unobtrusive companion |
+| **⚙️ Settings & Channels** | MCP tool servers, OpenClaw external channels, model keys, permissions consolidated | Streamlined into Settings (Settings → Plugins & MCP / Channels) — plugins and MCP servers share one page, and the AI Engine page moves provider config **above Model** (right under the API key pool and its “Add Key”), so keys are added and listed in the same block before you pick a model, keeping navigation clean; providers are now a **compact list** rather than cards — each row keeps only a health dot, name, model-count badge, a test-connection button and an enable toggle, and clicking a row slides a **config drawer** in from the right holding every field (connection mode / API key / auth token / base URL / fetch models / status), so the list always keeps the "what providers exist and how are they doing" overview; MCP configuration is engine-routed — the Codex engine writes `[mcp_servers.*]` tables to `~/.codex/config.toml` and feeds them back into `systemInit`, while Claude still uses `~/.claude/settings.json`; the Hooks page was removed (hooks are only read by the Claude CLI from `~/.claude/settings.json` and have no effect under the Codex engine); the Sandbox page and a batch of inputs whose writes were silently dropped by the settings whitelist (API Key Helper, output style, available models, file suggestions, status line, default shell, respect `.gitignore`, commit attribution, worktree, …) were removed too, leaving only settings that actually persist |
 
 ---
 
-## 🔌 免编译热插拔插件系统
+## 🔌 Zero-Compilation Hot-Pluggable Plugins
 
-AIPA 拥有极简、高可用的**免编译插件体系**。无需配置 Node.js、Vite、Webpack 等繁琐的构建链，使用任何文本编辑器编写原生 HTML/JS/CSS，保存即可实时生效：
+AIPA introduces an accessible, zero-compilation plugin ecosystem. Authors write native HTML, CSS, and modern JavaScript without Node.js, Vite, or Webpack toolchains:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Dev as 开发者 / 用户
-    participant Folder as 插件目录 (~/.aipa/plugins/<id>/)
-    participant Watcher as 主进程 (nav-plugin-manager / fs.watch)
-    participant Nav as 导航栏 (NavRail)
-    participant Host as 插件主视图 (PluginHostView)
-    participant Iframe as 沙箱 <iframe> (原生 HTML/JS/CSS)
-    participant AI as AIPA 对话核心
+    actor Dev as Developer / User
+    participant Folder as Plugin Folder (~/.aipa/plugins/<id>/)
+    participant Watcher as Main Process (nav-plugin-manager / fs.watch)
+    participant Nav as Navigation Rail (NavRail)
+    participant Host as Plugin Host View (PluginHostView)
+    participant Iframe as Sandboxed <iframe> (HTML/JS/CSS)
+    participant AI as AIPA Chat Core
 
-    Dev->>Folder: 放入/编辑 index.html & plugin.json (无需编译!)
-    Watcher->>Folder: 文件监听器感知变动 (Debounced)
-    Watcher->>Nav: 发送 IPC 通知 (plugin:nav:updated)
-    Nav->>Nav: 导航栏即时渲染插件图标 (无需重启应用)
-    Dev->>Nav: 点击插件图标
-    Nav->>Host: 主界面激活该插件视图
-    Host->>Iframe: 加载 aipa-plugin://p-<id>-<hash>/... (每插件独立 origin 的沙箱隔离)
-    Host-->>Iframe: postMessage 广播当前主题 ({ type: 'aipa:theme', theme: 'light' })
-    Iframe->>Host: postMessage 发送提示词 ({ type: 'aipa:sendPrompt', prompt: '...' })
-    Host->>AI: 自动填入主输入框并切换至对话界面
-    Iframe->>Host: postMessage 本地存储 ({ type: 'aipa:storage:set', key, val })
-    Host->>Host: 提供独立的 LocalStorage 数据持久化
-    Iframe->>Host: postMessage 宿主能力调用 ({ type: 'aipa:invoke', method, payload })
-    Host->>Host: 校验 plugin.json permissions → IPC 至主进程执行 → aipa:response 回传
+    Dev->>Folder: Add/Edit index.html & plugin.json (No build step required!)
+    Watcher->>Folder: File watcher detects change (Debounced)
+    Watcher->>Nav: IPC event broadcast (plugin:nav:updated)
+    Nav->>Nav: Icon instantly registers on NavRail (No app restart)
+    Dev->>Nav: Click plugin icon
+    Nav->>Host: Activate plugin host view
+    Host->>Iframe: Load aipa-plugin://p-<id>-<hash>/... (per-plugin origin isolation)
+    Host-->>Iframe: postMessage sync active theme ({ type: 'aipa:theme', theme: 'light' })
+    Iframe->>Host: postMessage prompt ({ type: 'aipa:sendPrompt', prompt: '...' })
+    Host->>AI: Autofill prompt into chat input and switch to conversation
+    Iframe->>Host: postMessage storage ({ type: 'aipa:storage:set', key, val })
+    Host->>Host: Provide persistent sandboxed LocalStorage
 ```
 
-### 宿主能力（`aipa:invoke`）
-插件在 `plugin.json` 的 `permissions` 中声明所需能力后，即可通过 `postMessage({ type: 'aipa:invoke', requestId, method, payload })` 调用主进程能力，结果以 `{ type: 'aipa:response', requestId, ok, result | error }` 返回。宿主（PluginHostView）与主进程会双重校验权限。
+### Plugin Folder Layout
+Place your tool inside `~/.aipa/plugins/<plugin-id>/`:
+```text
+~/.aipa/plugins/
+├── welcome/               # 🧩 Plugin Hub (Pre-installed dashboard & developer starter)
+│   ├── plugin.json
+│   └── index.html
+├── notes/                 # 📝 Quick Notes (Official hot-pluggable plugin, Markdown + AI dispatch)
+│   ├── plugin.json
+│   └── index.html
+└── <custom-plugin>/       # 🛠️ Your Custom Micro-Tool (Zero-compilation)
+    ├── plugin.json        # Manifest (ID, name, icon, location)
+    ├── index.html         # Entry point (Pure HTML5)
+    ├── style.css          # Styling (inherits host CSS variables)
+    └── app.js             # Logic (communicates via window.postMessage)
+```
 
-| method | 权限 | 说明 |
+### 🧩 Built-in Plugin Showcase
+All three built-in plugins live in `src/main/plugins/builtin/` and are upgraded into `~/.aipa/plugins` whenever their version is bumped. The host passes the current UI language as `?lang=en|zh-CN`, and each plugin renders in English or Chinese accordingly; the left rail and plugin title bar use `nameEn` in English.
+
+1. **Plugin Hub**: Provides an overview dashboard of installed plugins, one-click launching, source folder navigation in explorer or an in-app source preview with a file tree and line numbers, and a 3-step developer starter guide.
+2. **Quick Notes**: Decoupled from hardcoded components into a hot-pluggable plugin featuring live Markdown editing/preview, category filtering (Work/Ideas/Study/Prompts/Todo), note pinning, and direct prompt dispatching to AI.
+3. **Work Calendar**: Migrated from a Feishu aPaaS full-stack app (NestJS + PostgreSQL + React) into a zero-compile plugin backed by host capabilities:
+   - **Calendar**: Monday-first month view with lane-packed cross-day task bars; click or drag across days to create tasks, click a bar to edit/delete; a day panel lists the selected date's tasks.
+   - **AI weekly/monthly reports**: The clock icon in each week column generates that week's report (material = tasks in the period + commits/file changes from bound work sources); the corner icon merges the month's weekly reports into a monthly report. Output streams and is saved automatically; the preview dialog offers *Pull sources*, *Regenerate* (overwrites in place), copy, and send-to-chat.
+   - **Work sources**: GitHub repos (owner/repo or URL, branch, author filter, token) and local folders (native folder picker, file filter); pull the current week and inspect results. Deleting a source unbinds its tasks.
+   - **Reminders**: The reminders from the former left-rail *Tasks* panel now live here — in N minutes, at a specific time, or recurring via cron. They are scheduled in the main process, so system notifications fire even when the plugin is closed; clicking one opens the Work Calendar. The old *Tasks* panel is removed; existing to-dos and reminders are imported into the Work Calendar on first launch, and `Ctrl+7` now opens the Work Calendar.
+   - **Tasks / Reports / Person-days**: stat cards, filters and inline status changes; report history with edit and `.md` export; weekly person-day entries with "auto-generate from tasks" (5 workdays split in 0.5 steps) and a monthly per-week rollup.
+   - **Settings**: model and prompt templates (`{{period}}` / `{{material}}`), JSON import/export (tokens excluded). Generation follows the same routing as chat — a model owned by an enabled gateway / compatible provider uses that provider's credentials, otherwise Codex — and fails immediately with a clear message when neither is available.
+
+### Host capabilities (`aipa:invoke`)
+Plugins declare `permissions` in `plugin.json`, then call `postMessage({ type: 'aipa:invoke', requestId, method, payload })` and receive `{ type: 'aipa:response', requestId, ok, result | error }`. Permissions are checked in both PluginHostView and the main process.
+
+| method | permission | Description |
 |---|---|---|
-| `data.get` / `data.set` | `storage` | 文件持久化，写入 `~/.aipa/plugin-data/<pluginId>/<key>.json`（原子写） |
-| `github.commits` | `network` | 主进程调用 GitHub commits API（支持分支/作者过滤/Token，20 秒超时） |
-| `fs.pickFolder` / `fs.scanFolder` | `fs` | 原生目录选择；按修改时间与 `*.ext` 过滤扫描文件变更（跳过 node_modules/.git 等） |
-| `ai.generate` / `ai.abort` | `ai` | 以 ephemeral 方式生成一次文本，经 `aipa:ai:event`（delta/status/done/error）流式回传。按对话相同的路由选择引擎：模型属于已启用的网关 / 兼容接口时走该提供商（Claude CLI + 其 base URL 与 token），否则走只读沙箱的 Codex |
+| `data.get` / `data.set` | `storage` | File-backed storage at `~/.aipa/plugin-data/<pluginId>/<key>.json` (atomic writes) |
+| `github.commits` | `network` | GitHub commits API from the main process (branch/author filter, token, 20s timeout) |
+| `fs.pickFolder` / `fs.scanFolder` | `fs` | Native folder picker; scan files modified in a date range with `*.ext` filters (skips node_modules/.git etc.) |
+| `ai.generate` / `ai.abort` | `ai` | One ephemeral generation streamed back via `aipa:ai:event` (delta/status/done/error). Routing matches chat: a model owned by an enabled gateway / compatible provider runs on that provider (Claude CLI with its base URL and token); otherwise a read-only Codex turn |
 
-> 插件页面的资源通过 `aipa-plugin://p-<id>-<hash>/<绝对路径>` 提供，相对路径（`./js/app.js`、`style.css`）照常可用。每个插件 id 对应一个固定 host，因此同一插件的 `localStorage` 在改版、移动目录后依然保留；插件若需跨版本迁移旧数据，可在启动时通过 `aipa:storage:get` 向宿主取回（内置便签插件已内置这条一次性迁移）。
+> Plugin pages are served from `aipa-plugin://p-<id>-<hash>/<absolute path>`, so relative asset paths (`./js/app.js`, `style.css`) keep working. Each plugin id maps to a fixed host, so its `localStorage` survives edits and folder moves; a plugin that needs to migrate older data can call `aipa:storage:get` on startup (the built-in Quick Notes plugin ships this one-time migration).
 
-随应用发布的多文件插件放在 `electron-ui/src/main/plugins/builtin/<dir>/`，构建时由 `npm run build:plugins` 复制到 `dist`，启动时自动安装到 `~/.aipa/plugins/`；仅当内置版本号更高时才覆盖升级，插件数据保存在 `plugin-data` 中不受升级影响。
+Multi-file plugins shipped with the app live in `electron-ui/src/main/plugins/builtin/<dir>/`, are copied to `dist` by `npm run build:plugins`, and installed into `~/.aipa/plugins/` on startup — only overwritten when the bundled version is newer. Plugin data in `plugin-data` survives upgrades.
 
-### 🤖 AI 编辑抽屉（`plugin:edit:*`）
+### 🤖 AI edit drawer (`plugin:edit:*`)
 
-插件宿主工具栏的「Source」右侧是**「编辑」**：点开后从右侧滑出一个 AI 对话抽屉，用自然语言描述要改什么，AI 直接就地改写插件的文件。
+To the right of **Source** in the plugin toolbar sits **Edit**: it slides an AI chat drawer in from the right, where you describe the change you want in plain language and the AI rewrites the plugin's files in place.
 
-它不需要任何新的编辑机制——插件本来就是磁盘上一堆 HTML/CSS/JS，所以「和 AI 聊着改插件」就是**一次以插件文件夹为工作目录的普通多轮对话**：
+No new editing machinery is involved — a plugin is just HTML/CSS/JS on disk, so "chat your way to a plugin change" *is* an ordinary multi-turn conversation whose working directory is the plugin folder:
 
 ```text
-┌─ 插件主机 (PluginHostView) ─────────────────────────────┬─ AI 编辑抽屉 ──────────┐
-│  [⟳ 刷新] [</> Source] [✨ 编辑] [✕]                     │  ✨ AI 编辑插件  [📂][✕]│
+┌─ Plugin host (PluginHostView) ──────────────────────────┬─ AI edit drawer ───────┐
+│  [⟳ Reload] [</> Source] [✨ Edit] [✕]                   │  ✨ Edit with AI [📂][✕]│
 │                                                          │  ┌──────────────────┐  │
-│   (插件 iframe 仍在运行，改完自动重载)                   │  │ 把顶部栏改成深色 │  │
+│   (the plugin iframe keeps running; it reloads          │  │ make the header  │  │
+│    automatically once an edit lands)                     │  │ dark             │  │
 │                                                          │  └──────────────────┘  │
 │                                                          │  🔧 read  index.html   │
 │                                                          │  🔧 apply_patch …      │
-│                                                          │  已改好 index.html 的  │
-│                                                          │  顶部栏配色。          │
+│                                                          │  Header colours are    │
+│                                                          │  now dark.             │
 │                                                          │  ┌──────────────────┐  │
-│                                                          │  │ Enter 发送 …     │  │
+│                                                          │  │ Enter to send …  │  │
 │                                                          └───────────────────────┘
 ```
 
-- **工作目录 = 插件目录**：主进程为每个插件起一个 Codex 会话（`cwd` 即 `plugin.dirPath`，由主进程自己从插件列表解析，不接受渲染进程传路径），AI 因此能读写该插件自己的文件；给它的常驻指令限定「只改这个插件文件夹、不要动 plugin.json 的 id、改完用一两句话说明」。
-- **实时可见**：`turn` 里每一次工具调用（读文件 / 改文件）都通过 `plugin:edit:event` 流式推到抽屉里显示成一行「🔧 工具名 + 文件名」，回答正文同样流式显示。
-- **改完即生效**：一轮结束后抽屉回调宿主刷新 iframe，插件立刻以新代码重新加载，无需手动点刷新。
-- **不遮挡插件**：抽屉是插件容器的**并排兄弟节点**而不是浮层——打开后 iframe 被挤压到剩余宽度，插件始终完整可见，改的时候可以同时盯着插件本身。
-- **多轮 + 可中断**：抽屉内可连续追问（同一会话保持上下文）；生成中「停止」按钮走 `plugin:edit:abort`，关闭抽屉则整个会话结束。会话是 ephemeral 的，**不会**出现在会话历史里。
-- **四条通道**：`plugin:edit:start`（首条消息，开会话）/ `plugin:edit:send`（追问）/ `plugin:edit:abort` / `plugin:edit:close`，事件统一走 `plugin:edit:event`（`delta` / `tool` / `status` / `done` / `error`）。与 `ai.generate` 不同，这是**宿主**在用户授意下改插件，因此不再要求插件自己声明 `ai` 权限——与源码预览同级的信任模型。
-
-### 插件目录规范
-每个插件只需一个普通文件夹，存放在 `~/.aipa/plugins/<id>/`：
-```text
-~/.aipa/plugins/
-├── welcome/               # 🧩 插件中心 (系统预置，浏览/管理插件生态)
-│   ├── plugin.json
-│   └── index.html
-├── notes/                 # 📝 便签笔记 (官方热插拔插件，Markdown + AI 对话联动)
-│   ├── plugin.json
-│   └── index.html
-├── work-calendar/         # 📅 工作日历 (官方预置，任务日历 + AI 周报/月报 + 工作源 + 人天)
-│   ├── plugin.json
-│   ├── index.html
-│   ├── style.css
-│   └── js/                # bridge / store / generation / views/*
-└── <custom-plugin>/       # 🛠️ 你的专属微工具 (免编译即写即用)
-    ├── plugin.json        # 插件清单（name / nameEn、图标；统一显示在左侧栏上方）
-    ├── index.html         # 界面主入口（纯 HTML5）
-    ├── style.css          # 样式文件（可直接使用宿主 CSS 变量）
-    └── app.js             # 业务逻辑（通过 window.postMessage 与宿主通信）
-```
-
-### 🧩 官方预置插件示例
-
-三个预置插件都放在 `src/main/plugins/builtin/`，版本号更新时会自动升级到 `~/.aipa/plugins`。宿主以 `?lang=en|zh-CN` 把当前界面语言传给插件，插件据此显示中文或英文；左侧栏与插件标题栏在英文下使用 `nameEn`。
-
-1. **插件中心 (Plugin Hub)**：提供全局已安装插件仪表盘、一键进入/直达各插件视图、直接打开源码文件夹或在内置源码预览中按文件树查看（带行号、可一键复制），以及极简 3 步开发者扩展指引。
-2. **便签笔记 (Quick Notes)**：从原有固定组件解耦为标准免编译插件，具备双栏编辑/预览、分类标签过滤（工作/灵感/学习/提示词/待办）、卡片置顶、以及「🤖 发送给 AI」一键联动主对话框深度分析。
-3. **工作日历 (Work Calendar)**：由原飞书 aPaaS 全栈应用（NestJS + PostgreSQL + React）迁移而来，改为纯前端插件 + 宿主能力：
-   - **日历**：周一对齐月视图，跨天任务条按 lane 布局；点击日期或按住拖动创建任务，点任务条编辑/删除；底部为当日任务面板。
-   - **AI 周报/月报**：周列时钟图标一键生成该周周报（素材 = 周期内任务 + 绑定工作源的提交/文件变更），左上角图标由本月周报合并生成月报；流式预览，完成后自动保存；预览弹窗支持「一键拉取」「重新生成」（覆盖原报告）、复制与发送到对话继续润色。
-   - **工作源**：GitHub 仓库（owner/repo 或仓库地址、分支、作者过滤、Token）与本地文件夹（原生选择目录、文件过滤），可拉取本周并查看结果；删除工作源会自动解绑任务。
-   - **提醒**：原左侧栏「任务」面板的提醒功能迁入此处，支持 N 分钟后、指定时间与 cron 周期提醒；由主进程后台调度，插件未打开也会弹出系统通知，点击通知直达工作日历。原「任务」面板已移除，旧待办与提醒在首次启动时自动导入工作日历，`Ctrl+7` 现在打开工作日历。
-   - **任务 / 报告 / 人天**：任务统计卡、筛选、行内改状态；历史报告查看/编辑/导出 .md；人天周视图增删改与「从任务自动生成」（5 个工作日按 0.5 步进均摊），月视图按周聚合。
-   - **设置**：生成模型、周报/月报提示词模板（`{{period}}` / `{{material}}`），数据 JSON 导入导出（不含 Token）。生成按对话相同的路由走：模型属于已启用的网关 / 兼容接口时用该提供商的凭据，否则用 Codex；两者都不可用时会立即提示，而不是无限重试。
+- **Working directory = the plugin folder**: the main process starts one Codex session per plugin with `cwd` = `plugin.dirPath` (resolved from its own plugin scan, never from a renderer-supplied path), so the agent can read and rewrite that plugin's files. A standing brief constrains it to that folder, forbids changing the manifest `id`, and asks it to summarise each turn in a sentence or two.
+- **Live**: every tool call in a turn (file reads, file edits) streams to the drawer over `plugin:edit:event` as a `🔧 tool + filename` line, and the prose answer streams the same way.
+- **Applied immediately**: when a turn finishes the drawer asks the host to reload the iframe, so the plugin comes back running the new code — no manual reload.
+- **Never covers the plugin**: the drawer is a **flex sibling** of the plugin frame, not an overlay — opening it squeezes the iframe into the remaining width, so the plugin stays fully visible and you can watch it while you describe the change.
+- **Multi-turn and interruptible**: keep asking follow-ups in the same drawer (one session keeps the context); *Stop* calls `plugin:edit:abort`, closing the drawer ends the session. The session is ephemeral and **never** appears in chat history.
+- **Channels**: `plugin:edit:start` (first message, opens the session) / `plugin:edit:send` (follow-up) / `plugin:edit:abort` / `plugin:edit:close`, with all events on `plugin:edit:event` (`delta` / `tool` / `status` / `done` / `error`). Unlike `ai.generate`, this is the *host* editing a plugin at the user's request, so the plugin does not need to declare the `ai` permission — the same trust level as the source preview.
 
 ---
 
-## 🏢 组织架构 (Org Chart)
+## 🏢 Organization Chart
 
-部门页是一张**公司模拟图**：顶部是公司总部节点，主干线向下落入横向母线，再由支线分别连到各个部门卡片；每张部门卡片下方还会长出它自己的**团队条**。这一层**不铺开各部门的员工（会话）**，让「公司由哪些部门、各自带哪些团队」一眼可见。
+The Departments view is a **company map**: a company HQ node sits on top, a trunk drops from it into a horizontal bus, and a drop line connects each bus end to a department card; each department card in turn grows its own **team strip** beneath it. This level keeps the employees (sessions) collapsed, so "which departments exist, and which teams each of them carries" is readable at a glance.
 
-部门较少时（单行、整体居中，主干从正中下引）：
+With few departments (a single centred row, trunk dropping from the middle):
 
 ```text
                         ┌──────────────────────────┐
-                        │       🏢  AIPA 公司       │
-                        │    3 个部门 · 14 名员工    │
+                        │      🏢  AIPA Company     │
+                        │ 3 departments · 14 staff  │
                         └────────────┬─────────────┘
-                                     │  主干 (trunk)
-              ┌──────────────────────┴──────────────────────┐  ← 母线 (bus)
+                                     │  trunk
+              ┌──────────────────────┴──────────────────────┐  ← bus
               │                                             │
         ┌─────┴─────┐                                 ┌─────┴─────┐
-        │ 🧪 研发中心│                                 │ 🎨 设计工作室│
-        │ D:/projects│                                │ D:/design  │
-        │ 👥 11  💬 3122│                              │ 👥 3  💬 2017│
+        │🧪 R&D Center│                                │🎨 Design Lab│
+        │  D:/projects│                                │  D:/design  │
+        │👥 11  💬 3122│                               │ 👥 3  💬 2017│
         └───────────┘                                 └───────────┘
 ```
 
-部门变多时自动切换为**机架式**排版（主干靠左贯穿所有行，每行拉出一条母线，再由支线落入各卡片中心）：
+With more departments it switches to a **rail layout** (the trunk runs down the left through every row, one bus per row, and a drop line carries each bus into its card):
 
 ```text
   ┌─────────────┐
-  │   公司 HQ   │
+  │   AIPA HQ   │
   └──────┬──────┘
          │
-         ├─────────┬──────────────┬──────────────┬
-                   │              │              │
-              ┌─────────┐  ┌─────────────┐  ┌─────────┐
-              │研发中心 │  │ 设计工作室  │  │ 市场部  │
-              └─────────┘  └─────────────┘  └─────────┘
+         ├──────────┬───────────────┬───────────────┬
+                    │               │               │
+              ┌───────────┐  ┌─────────────┐  ┌───────────┐
+              │R&D Center │  │ Design Lab  │  │ Marketing │
+              └───────────┘  └─────────────┘  └───────────┘
          │
-         ├─────────┬──────────────┬
-                   │              │
-              ┌─────────┐  ┌─────────────┐
-              │ 财务部  │  │   法务部    │
-              └─────────┘  └─────────────┘
+         ├──────────┬───────────────┬
+                    │               │
+              ┌───────────┐  ┌─────────────┐
+              │  Finance  │  │    Legal    │
+              └───────────┘  └─────────────┘
 ```
 
-再往下一层，是部门自己的团队：
+One level further down sit the department's own teams:
 
 ```text
                         ┌───────────────────┐
-                        │      🚀 研发部     │
-                        │  👥 5  💬 100  🎯 2│  ← 🎯 = 待上岗岗位
+                        │   🚀 Engineering  │
+                        │ 👥 5  💬 100  🎯 2 │  ← 🎯 = open positions
                         └─────────┬─────────┘
-                                  │  主干
-                        ┌─────────┴─────────┐  ← 母线
+                                  │  trunk
+                        ┌─────────┴─────────┐  ← bus
                         │                   │
                    ┌────┴────┐         ┌────┴────┐
-                   │🔗前端组  │         │🔗后端组  │
-                   │3 · 待上岗 1│       │2 · 待上岗 1│
+                   │🔗Frontend│         │🔗Backend │
+                   │ 3 · 1 open│        │ 2 · 1 open│
                    └─────────┘         └─────────┘
 ```
 
-- **自适应排版**：列数由容器宽度与部门数量共同决定——单行最多 4 张，部门达到 9 个进入紧凑模式（最多 5 张、卡片同步收紧）；部门较少时整行居中、主干从正中下引，部门增多时自动切换为「左侧主干 + 每行一条母线」的机架式布局
-- **每家公司自成一节**：套用几套公司模板就有几节，各带自己的总部卡片；总部显示的是**真实公司名**（软件公司 / 内容工作室…），汇总口径也只算这一节（部门数、员工数含团队成员、消息数）。老用户的顶层平铺部门落在最后一节，外观与从前完全一致
-- **团队条始终画出**：每张部门卡片下方都长出一条团队条（没有团队的部门不长）——卡片底部中点引下主干，接一条横向母线，再分别垂落到每个团队 chip 的中心。chip 等宽（`(卡片宽 - 间隙) / n`）且封顶 150px，所以母线不需测量 DOM 就能画准；团队多于 3 个时收成 `+N`，点击进入该部门看全部。团队条与卡片共用一行网格（`rowGap: 0`），因此同一行的卡片永远等高，主干也不会悬空
-- **团队 chip 也是入口**：显示团队名与员工数（有岗位时附带「待上岗 N」），点击直接进入**团队自己的名册页**
-- **诚实计数**：卡片统计只算该节点目录下的真实会话（团队各有自己的目录），「待上岗」岗位单独用淡色角标显示，**永不加进员工数**
-- **分行自动均衡**：按列数把部门均匀分行，末行不会只剩孤零零 1 张（5 个部门排成 3 + 2，而不是 4 + 1）
-- **卡片宽度自动伸缩**：常规 216–400px、紧凑模式 180–300px，窗口缩放时实时重排，不溢出也不留大片空白
-- **卡片信息**：部门表情图标（按部门 ID 稳定生成）、部门名、工作目录、员工数与消息数、最近活跃时间，活跃部门带呼吸状态点
-- **悬停即操作**：悬停卡片浮现「+ 招募」（直接在该部门新建一名员工/会话）与「进入 ›」，右上角另有一个**删除**垃圾桶图标
-- **删除部门**：点击卡片上的垃圾桶，确认框在卡片**外面**弹出（卡片自身裁剪溢出，装不下确认界面）。确认框先报出即将消失的规模——「该部门下还有 N 个团队，将一并移除记录」，而**磁盘上的文件夹与其中的会话都会保留**：删除只丢记录，团队记录随部门级联移除，这一步是可恢复的
-- **删除整家公司**：总部卡片的悬停操作里也有一个垃圾桶，一次删掉**整节**——公司自己、它下面全部部门、以及那些部门下面的团队。确认框会分开报数：「该公司下还有 N 个部门、M 个团队，将一并移除记录」，让级联到底波及多远一目了然。老用户的顶层平铺部门那一节是**分组而非节点**，所以它没有这个按钮（那里没有「一家公司」可删）
-- **点击卡片下钻**：进入该部门的员工名册界面，按 TODAY / YESTERDAY / THIS WEEK 分组展示该部门**全部员工（会话）**，支持搜索、导出与招募
-- **「待上岗」分区**：节点上还挂着岗位时，时间分组**之上**先列出这一区——虚化的无脸人像 + 岗位名 + 「待上岗」，宽高与真实员工完全一致，所以上岗时是「一个人走进座位」而不是整排重排。单击即上岗：那段职位描述作为第一条消息发出，真实会话随即出现，幽灵同时消失；岗位也可以直接移除（二次确认）
-- **部门页也是团队页**：团队有自己的目录，所以从团队 chip 进来看到的就是团队自己的名册——头部带「研发部 › 团队」面包屑与返回上级，页内还有一条团队栏，不用退回架构图也能横向切换
-- **员工名册用「小黄人」人像而非卡片**：名册里每个员工都是一个黄色小人，站成一排同一条地面上（见下方示意）。形象由会话 ID 哈希稳定生成——单眼 / 双眼、高矮、头发（三根翘毛 / 一根呆毛 / 侧分 / 光头）、工装裤配色与嘴巴表情各不相同，所以同一名员工每次回来都还是同一个小人，一个部门看上去就是一群不一样的小黄人
-- **常驻呼吸动画**：每个小人常驻轻微呼吸（上下浮动 + 极缓慢眨眼），相位随哈希错开，整排不会同频抖动；某个员工正在生成回复时，他的呼吸加快、右臂开始敲键盘、头顶光环持续旋转，一眼就能看出「谁在干活」
-- **人像上的操作**：悬停浮现图钉（本地置顶，与名册卡片一致）；`Shift+点击`循环切换会话色标，色标同时作为脚下的一圈地光；悬停浮现解雇按钮，二次确认（解雇 / 取消）后才会真正删除
-- **部门统计弹窗**：卡片右上角图表按钮打开，显示员工数、今日活跃、消息总数、最近活跃与工作目录，并可导出 `<部门名>_employees.json`
-- **招募新员工 = 先写职位描述**：点「+ 招募」（或按 `N`）弹出招募弹窗，填写这名员工的**职位描述**——它负责什么、需要什么技能。弹窗里的「✨ AI 润色」按钮会把草稿改写成更清晰的职位描述（流式回填到输入框，可随时「停止」），确认后这段描述直接作为这名员工的**第一条消息**发出去，员工立刻开工；留空则先建一个待命的员工
-- **新增部门**：工具栏「+ 新增部门」或按 `N` 键。面板顶部的「从模板创建」可一键套用内置的**公司架构模板**；也可手动填写名称与工作目录，确认后直接下钻进入新部门
+- **Adaptive layout**: the column count follows both the container width and the department count — up to 4 per row, switching into a dense mode at 9+ departments (up to 5 per row with tighter cards); a light set of departments sits centred under a mid-pane trunk, while a larger set switches to a left rail with one bus per row
+- **One section per company**: apply several company templates and each gets its own section with its own HQ card. The HQ shows the **real company name** (Software Company, Content Studio, …) and the section totals cover that company alone — departments, staff (teams included) and messages. A legacy user's flat top-level departments land in the last section and look exactly as they did before
+- **The team strip is always drawn**: every department card grows one beneath it (a department with no teams grows none) — a trunk out of the card's bottom centre, a horizontal bus, and a drop into the centre of every team chip. The chips are equal width (`(cardWidth - gaps) / n`, capped at 150px), so the bus can be placed without measuring the DOM; past three teams the rest collapse into a `+N` chip that opens that department's full roster. The strip shares the cards' grid row (`rowGap: 0`), so cards in a row are always the same height and the trunk never starts in mid-air
+- **A chip is an entry point**: it shows the team name and its employee count (plus “N open” when it has positions), and clicking it opens **that team's own roster**
+- **Honest counting**: a card's stats cover only the sessions in that node's own directory (each team has its own), and open positions are shown as a separate faint badge — **never folded into the headcount**
+- **Balanced rows**: departments are spread evenly across rows so the last row never ends up with a single stray card (5 departments become 3 + 2, not 4 + 1)
+- **Auto-sizing cards**: 216–400px normally, 180–300px in dense mode; the chart reflows live as the window resizes, with no overflow and no dead space
+- **Card contents**: department emoji (stable per department ID), name, working directory, employee and message counts, last-active time, plus a pulsing dot when the department is active
+- **Hover actions**: hovering a card reveals “+ Recruit” (start a new employee/session in that department) and “Enter ›”, plus a **delete** trash icon in the top-right corner
+- **Deleting a department**: the trash opens a confirm box **outside** the card (the card clips its own overflow and cannot hold one). The box leads with the scale of what is about to go — “this department still has N teams; their records are removed as well” — and states that the **folder and the sessions in it stay on disk**: deleting drops the record only, descendant teams cascade with their parent, and the step stays recoverable
+- **Deleting a whole company**: the HQ card carries a trash of its own in its hover actions, and one click takes the **entire section** — the company, every department under it, and every team under those. The confirm box counts them separately (“this company still has N departments and M teams; their records are removed as well”) so how far the cascade reaches is legible before the click. The legacy section holding an old install's flat top-level departments is a **grouping, not a node**, so it has no such button — there is no company there to delete
+- **Click to drill in**: opens that department's employee roster, grouped by TODAY / YESTERDAY / THIS WEEK, listing **every employee (session)** in the department with search, export and recruit
+- **An “Open positions” group**: while the node still carries positions, this section lists first, **above** the time groups — a dimmed, faceless figure with the job title and “Open”, sized exactly like a real employee so that hiring reads as one person walking into a seat rather than the whole row shifting. A single click hires it: that job description goes out as the first message, the real session appears and the ghost is gone. A position can also be removed outright, behind a two-step confirm
+- **A department page is a team page**: teams have their own directory, so arriving from a team chip shows that team's own roster — the header carries a “Engineering › Team” breadcrumb with a back link, and a team bar in the page switches between teams without returning to the chart
+- **Recruiting starts with a job description**: “+ Recruit” (or `N`) opens a dialog asking what this employee is responsible for and which skills it should bring. Its “✨ AI polish” button rewrites the draft into a clearer job description — streamed live into the field and stoppable at any point — and on confirm that text is sent as the employee's **first message**, so the employee starts working immediately. Left blank, it just creates an employee waiting for its first task
+- **Stats popover**: the chart button on each card shows staff count, today's active, total messages, last active and the directory, and exports `<department>_employees.json`
+- **Add department**: the toolbar’s “+ New Department” (or the `N` key) opens a panel whose “From template” entry applies a built-in **company template** in one step; you can also type a name and directory by hand and drill straight in
 
-下钻后的员工名册长这样——每个人是一个独立的小黄人，站成一排：
+The roster you land on shows little yellow helpers, not cards — each employee stands on a shared floor line:
 
 ```text
    ◯      ◯      ◯          ◯      ◯
   /|\    /|\    /|\        /|\    /|\
   / \    / \    / \        / \    / \
- ──●──────●●─────○──────────●──────●─────  地面 / 色标地光
- 单眼秃顶 双眼呆毛 高个子   单眼三根毛 双眼短腿
-                       ↑ 正在回复：光环旋转 + 右手敲键盘
+ ──●──────●●─────○──────────●──────●─────   floor / colour-label glow
+ one-eye  two-eye  tall    three hairs  short
+ bald     tuft
+                       ↑ replying: halo spinning, right arm typing
 ```
+### 🏗️ Company Templates
 
-### 🏗️ 公司架构模板 (Company Templates)
-
-新装的 AIPA 是一张空白的组织架构图，而「从零搭一家公司」要凭空想出十几个名字、十几个文件夹和一整套层级。内置模板把这件事变成一次点击：**选公司类型 → 选根目录 → 一键建成**。
+A fresh AIPA opens on an empty org chart, and building a company from nothing means inventing a dozen names, a dozen folders and an entire hierarchy. The templates turn that into one click: **pick a company type → pick a root folder → done**.
 
 ```text
-┌─ 🏗️ 从一家公司开始 ─────────────────────────────────────────────────┐
-│  ┌──────────────┐ ┌──────────────┐                                  │
-│  │ </> 软件公司 │ │ ✍️ 内容工作室 │  ← 四种公司类型，各覆盖全职能     │
-│  └──────────────┘ └──────────────┘                                  │
-│  ┌──────────────┐ ┌──────────────┐                                  │
-│  │ 🛒 电商公司  │ │ ⚗️ 学术研究团队│                                 │
-│  └──────────────┘ └──────────────┘                                  │
-│  ┌──────────────────────┐ ┌──────────────────────┐                  │
-│  │📂 沿用我现有的工作目录│ │⬚ 空白开始            │                 │
-│  └──────────────────────┘ └──────────────────────┘                  │
-│                                                                     │
-│ 即将创建                                                            │
-│  ● 软件公司                                                         │
-│    ● 产品部 2 个待上岗                                              │
-│    ● 设计部 1 个待上岗                                              │
-│      └ 设计系统组 1 个待上岗                                        │
-│    ● 研发部 1 个待上岗                                              │
-│    …                                                                │
-│ 将创建 9 个部门 · 3 个团队 · 13 个待上岗岗位                        │
-│                                                                     │
-│ 根目录  [ C:/Users/me/AIPA               ] [ 选择文件夹 ]           │
-│        公司文件夹会建在这个根目录下                                 │
-│        例如「AIPA/软件公司/研发部/后端组」                          │
-│                                                                     │
-│                       [ 取消 ]  [ 创建 12 个节点 ]                  │
-└─────────────────────────────────────────────────────────────────────┘
+┌─ 🏗️ Start from a company ────────────────────────────────────────────┐
+│  ┌──────────────┐ ┌──────────────┐                                   │
+│  │ </> Software │ │ ✍️ Content   │  ← four company types, each       │
+│  │     Company  │ │    Studio    │    covering every function        │
+│  └──────────────┘ └──────────────┘                                   │
+│  ┌──────────────┐ ┌──────────────┐                                   │
+│  │ 🛒 E-commerce│ │ ⚗️ Research  │                                   │
+│  │     Company  │ │    Team      │                                   │
+│  └──────────────┘ └──────────────┘                                   │
+│  ┌──────────────────────┐ ┌──────────────────────┐                   │
+│  │📂 Use my existing    │ │⬚ Start blank         │                   │
+│  │   folders            │ │                      │                   │
+│  └──────────────────────┘ └──────────────────────┘                   │
+│                                                                      │
+│ About to create                                                      │
+│  ● Software Company                                                  │
+│    ● Product 2 open                                                  │
+│    ● Design 1 open                                                   │
+│      └ Design System 1 open                                          │
+│    ● Engineering 1 open                                              │
+│    …                                                                 │
+│ Will create 9 departments · 3 teams · 13 open positions              │
+│                                                                      │
+│ Root folder  [ C:/Users/me/AIPA          ] [ Choose folder ]         │
+│           Company folders are created inside this root, e.g.         │
+│           “AIPA/Software Company/Engineering/Backend”                │
+│                                                                      │
+│                     [ Cancel ]  [ Create 12 nodes ]                  │
+└───────────────────────────────────────────────────────────────────────┘
 ```
 
-- **四种公司类型**：软件公司、内容工作室、电商公司、学术研究团队——每个都**覆盖一家公司真正需要的全部职能**。软件公司一次就建出产品、设计、研发、测试、运维、数据、安全、客户成功、市场九个部门，而不是某个领域里的几个部门
-- **公司 → 部门 → 团队，三层一次建好**：团队就是子文件夹（`~/AIPA/软件公司/研发部/后端组/`），和部门一样拥有自己的员工与会话
-- **岗位先挂着，点一下才上岗**：模板同时写入每个节点的岗位名与职位描述，名册里显示虚化的「待上岗」员工。**套用模板全程零模型调用**——只有点「上岗」时才真正创建会话，那段职位描述就是这位员工的第一条消息
-- **真实建文件夹**：确认后按父先子后的顺序逐个建目录（默认根目录 `~/AIPA`），建好即可招募
-- **重复套用是幂等的**：已经存在的节点会被跳过并如实扣除（预览里灰掉），一个不剩时主按钮变为「已全部存在」并置灰
-- **可以再套第二个模板**：第二家公司落在同一根目录下的另一个文件夹，组织架构图渲染成上下两节，第一家公司完全不受影响
-- **沿用我现有的工作目录**：把历史会话用过的工作目录一次性变成部门（这项能力以前是静默自动发生的，现在改为用户显式选择）
-- **空白开始**：想自己搭就选它，之后不会再被弹窗打扰
-- **三个入口共用同一个弹窗**：组织架构空状态、组织架构的「新增部门」面板、侧栏的新增部门表单，都从这里进入
+- **Four company types**: Software Company, Content Studio, E-commerce Company and Research Team — each covering **every function a company actually needs**. The software one alone creates Product, Design, Engineering, QA, DevOps, Data, Security, Customer Success and Marketing, rather than a handful of departments in one field
+- **Company → department → team, all three levels at once**: a team is a subfolder (`~/AIPA/Software Company/Engineering/Backend/`) that owns employees and sessions just like a department
+- **Positions hang first, work later**: the template also writes a job title and a job description onto every node, shown in the roster as a dimmed “open position”. **Applying a template makes zero model calls** — the session is only created when you click “Hire”, and that description becomes the employee's first message
+- **Real folders on disk**: confirming creates the directories parent-first (defaulting to `~/AIPA`), so the nodes are immediately recruitable
+- **Applying twice is idempotent**: a node whose folder already exists is skipped and honestly subtracted from the preview (greyed out); with nothing left to do the primary button greys out as “All already exist”
+- **A second template is welcome**: the next company lands in a sibling folder under the same root and renders as a second section of the chart — the first company is untouched
+- **Use my existing folders**: turns the directories your past sessions ran in into departments in one go — this used to happen silently in the background and is now an explicit choice
+- **Start blank**: for building your own structure; the dialog will not come back
+- **One dialog, three entry points**: the empty org chart, the org chart’s “New Department” panel and the sidebar’s add-department form all open it
+
+
+- **Figurines instead of cards**: every employee is a little yellow helper — one pill-shaped body carrying both head and torso, goggles, denim overalls with a bib, black gloves and boots. The look is hashed from the session id: one eye or two, height, hair (three strands / one tuft / side part / bald), denim shade and mouth all vary, so the same employee always comes back as the same character and a department reads as a crowd of distinct helpers
+- **Always-on breathing**: each figure breathes gently (a slight rise plus an occasional blink), phase-offset by its hash so a row never pulses in unison. While an employee is replying its breathing speeds up, its right arm starts typing and its halo spins — who is working is visible at a glance
+- **Actions on the figure**: hover reveals a pin (local, same as the old cards) and a dismiss button behind a two-step confirm (Dismiss / Cancel); `Shift+click` cycles the session colour label, which also renders as the glow under the figure's feet
 
 ---
 
-## 👥 人事部 (HR)
+## 👥 HR (People Operations)
 
-「人事部」不挂在任何部门之下——它横向看**全公司的人**：三个并列的卡片网格，分别是专家、技能与工作流。公司里管「所有员工」的是人事部；具体某个部门有哪几名员工，则从组织架构图下钻去看。
+HR hangs under no department — it looks sideways at **everyone in the company**: three card grids side by side for Experts, Skills and Workflows. The roster of one particular department is reached by drilling into it from the org chart.
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────┐
-│ 👥 人事部                                                            │
-│ 管理公司全体员工：专家是可随时切换岗位的专职员工，技能是他们随身携带 │
-│ 的提示词包，工作流把多步任务串成可复用的流水线。                     │
+│ 👥 HR                                                                │
+│ Manage the company's staff: experts are specialists you can switch   │
+│ to in chat, skills are the prompt packages they carry, and workflows │
+│ chain multi-step tasks into reusable pipelines.                      │
 ├──────────────────────────────────────────────────────────────────────┤
-│ 🧑💼 专家                                            [ + 招募专家 ]  │
-│  每位专家擅长一个领域，拥有独立的专长、提示词与模型。点击卡片编辑。  │
+│ 🧑💼 Experts                                         [ + Recruit ]   │
+│  Each expert owns a domain, with its own expertise, prompt, model.   │
 │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐                         │
-│  │ 编码导师│ │ 写作教练│ │ 数据分析│ │ 产品参谋│ ← 点即切换当前岗位  │
+│  │  Coder │ │ Writer │ │Analyst │ │Product │ ← click to switch role  │
 │  └────────┘ └────────┘ └────────┘ └────────┘                         │
 │                                                                      │
-│ 🧰 技能                                             [ + 新建技能 ]   │
-│  可复用的提示词包（SKILL.md），在对话中用斜杠命令调用。点击查看内容。│
+│ 🧰 Skills                                           [ + New skill ]  │
+│  Reusable prompt packages (SKILL.md), invoked by slash command.      │
 │  ┌────────┐ ┌────────┐ ┌────────┐                                    │
-│  │ 代码审查│ │ 周报生成│ │ 文档翻译│                                 │
+│  │  Code  │ │ Weekly │ │  Doc   │                                    │
+│  │ Review │ │ Report │ │Translat│                                    │
 │  └────────┘ └────────┘ └────────┘                                    │
 │                                                                      │
-│ 🔀 工作流                                         [ + 新建工作流 ]   │
-│  把多个提示词串联成流水线，运行后按顺序加入任务队列执行。            │
+│ 🔀 Workflows                                       [ + New workflow ]│
+│  Chains prompts into a pipeline that runs as a task queue.           │
 │  ┌────────────────┐ ┌────────────────┐                               │
-│  │ 每周周报流水线 │ │ 代码评审流水线 │  ← 单 Agent / 多 Agent 协作   │
+│  │ Weekly Report  │ │  Code Review   │ ← singleAgent / teamwork      │
 │  └────────────────┘ └────────────────┘                               │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-- **专家 = 可随时切换岗位的专职员工**：每位专家带一套自己的专长、提示词与模型，点一下就把当前对话切到该岗位；卡片带主题色底衬与职业徽标，一眼分辨岗位
-- **技能 = 员工随身携带的提示词包**：以 `SKILL.md` 存在，在对话里用斜杠命令调用；点开卡片可查看完整内容，连点两次确认后删除
-- **工作流 = 把多步任务串成可复用的流水线**：分单 Agent（`singleAgent`）与多 Agent 协作（`teamwork`）两类，可按最近更新 / 名称 / 运行次数排序，也可从剪贴板粘贴 JSON 导入
-- **一键抵达**：左侧导航点「人事部」，或在命令面板搜「人事部」
+- **Experts are employees you can switch roles with**: each carries its own expertise, prompt and model, and clicking one moves the current chat into that role; the cards wear a theme-tinted backdrop and a role badge so the job is readable at a glance
+- **Skills are the prompt packages an employee carries**: stored as `SKILL.md` and invoked from chat with a slash command; opening a card shows the full text, and a two-step confirm deletes it
+- **Workflows chain multi-step tasks into reusable pipelines**: single-agent (`singleAgent`) and multi-agent (`teamwork`) flavours, sortable by recently updated / name / runs, and importable by pasting JSON from the clipboard
+- **Getting there**: the “HR” entry in the left nav, or search “HR” in the command palette
 
-## 📁 档案部 (Archive)
+## 📁 Archive (Task Ledger)
 
-档案部是**覆盖全公司的任务总账**：一个员工就是一次会话，所以每一行就是一次会话记录，归属关系由「会话所在目录 → 组织节点」实时推导——优先用引擎给出的真实工作目录（Codex），没有时退回 `dirToSlug(节点目录) === 会话 projectSlug`（Claude 的项目目录名本身就是这个 slug）。不额外存一份归属字段，改部门目录也不会留下脏数据。哪个项目、分派给了哪个部门、由哪名员工做的、什么时候做的、聊了多少轮，在这里一次看全。
+The Archive is the **company-wide ledger of work**: an employee is a session, so every row is a session, and its attribution is derived live from “the session's directory → the org node that owns it” rather than stored a second time — preferring the engine's real working directory (Codex) and falling back to `dirToSlug(node directory) === session projectSlug` (a Claude project folder is already named after that slug). Renaming a department directory cannot leave stale ownership behind. Which project, which department it was assigned to, which employee ran it, when, and over how many turns, all read in one place.
 
 ```text
-┌────────────────────────────────────────────────────────────────────────┐
-│ 📁 档案部         共 47 项任务 · 2 个组织 · 本周 12 项        [ 导出 ]  │
-├────────────────────────────────────────────────────────────────────────┤
-│ [ 全部组织 ▾ ]  [全部] [今天] [本周] [本月]  [显示已归档]  🔍 搜索…    │
-├────────────────────────────────────────────────────────────────────────┤
-│ 🏢 软件公司                                                  14 项     │
-│   重构 pty-manager 重连逻辑   研发部 · 后端组 #a3f21c 今天 14:02  18 轮│
-│   补齐 app-server 协议文档    研发部          #7d0e55 昨天 20:11   6 轮│
-│   暗色玻璃质感重做            设计部 · 设计系统组 #c91b02 本周二 24 轮│
-│ 🏢 内容工作室                                                 3 项     │
-│   选题会的十条备选角度       选题策划部      #9911ab 本周一 11:40  9 轮│
-│ 📁 未分派                                                     2 项     │
-│   随手问的几条问题            D:/scratch     #4188aa 今天 09:12   2 轮│
-└────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│ 📁 Archive        47 tasks · 2 companies · 12 this week      [Export]│
+├──────────────────────────────────────────────────────────────────────┤
+│ [ All orgs ▾ ] [All] [Today] [Week] [Month] [Show archived]          │
+│                                                    🔍 Search…        │
+├──────────────────────────────────────────────────────────────────────┤
+│ 🏢 Software Company                                       14 tasks    │
+│   Reconnect logic in pty-manager  R&D · Backend #a3f21c Today  18 turn│
+│   Document the app-server protocol  R&D        #7d0e55 Yest.    6 turn│
+│   Redo the palette and glass        Design · System #c91b02 Tue  24 tu│
+│ 🏢 Content Studio                                          3 tasks    │
+│   Ten candidate angles for the meeting  Editorial #9911ab Mon   9 turn│
+│ 📁 Unassigned                                              2 tasks    │
+│   A few one-off questions          D:/scratch  #4188aa Today    2 turn│
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-- **实时推导，不新增存储**：部门与会话靠 `sessionMatchesDir(session, 节点目录, homeDir)` 连接（优先真实 `cwd`，退回 slug 比较），部门表仍然只存在本地，档案不会变成第二份真相
-- **按公司（根节点）分组**：一行只显示任务、员工与时间，归属用「研发部 · 后端组」这样的小标签标在标题后面；同一家公司下的部门与团队归在同一个抬头里，不会碎成三组互相看不见。「未分派」永远排在最后，收纳那些不在任何节点目录下产生的会话，而不是把它们丢掉
-- **四维筛选**：组织（全部 / 各家公司 / 未分派）、时间（全部 / 今天 / 本周 / 本月）、是否显示已归档、以及标题与首条提示词的搜索
-- **点一行回到那次会话**：直接载入该会话历史并切到聊天面板；从档案部进入不会显示「返回部门」按钮（那个按钮的落点是部门视图，会把人带到一个从未去过的地方）
-- **归档与导出**：行内可把某条任务标记为已归档（默认隐藏，可随时筛出来）；导出为 `aipa_archive_<日期>.json`，按公司分组并逐条附上所属部门/团队，含任务标题、员工、会话 ID、工作目录、轮数与时间
-- **入口**：左侧导航「档案部」、命令面板搜「档案部」，或按 `Ctrl+8`
+- **Derived live, no new storage**: departments and sessions are joined by `sessionMatchesDir(session, node directory, homeDir)` (real `cwd` first, slug comparison as the fallback); the department table still lives only in local storage, so the archive never becomes a second source of truth
+- **Grouped by company (root node)**: a row shows the task, the employee and the time, with the owning “R&D · Backend” written as a small label after the title; every department and team of one company sits under one heading rather than fragmenting into three groups that cannot see each other. An “Unassigned” group always sits last, collecting sessions that ran outside every node directory instead of dropping them
+- **Four filters**: organisation (all / each company / unassigned), time (all / today / this week / this month), whether archived rows show, and a search over titles and first prompts
+- **Click a row to reopen that session**: it loads the conversation history and switches to the chat panel; opening from the Archive does not show the “back to department” button, since that button's destination is the department view — somewhere you never came from
+- **Archive and export**: any row can be flagged archived from the row itself (hidden by default, filterable at any time); export writes `aipa_archive_<date>.json`, grouped by company with each task's department/team, carrying title, employee, session id, directory, turn count and timestamp
+- **Getting there**: the “Archive” entry in the left nav, the command palette, or `Ctrl+8`
 
 ---
 
-## 🎨 Canvas 工作流引擎
-
-可视化工作流画布支持将复杂的多步 AI 任务连接为自动化执行流：
+## 🎨 Canvas Workflow Engine
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Idle: 等待用户触发
-    Idle --> Running: 点击运行 (Run)
+    [*] --> Idle: Awaiting trigger
+    Idle --> Running: Click Run
     
     state Running {
-        [*] --> ExecutingNode: 激活首个任务节点
-        ExecutingNode --> LiveStreaming: 侧边栏实时查看 AI 流式生成
-        LiveStreaming --> NodeSuccess: 步骤成功执行
-        LiveStreaming --> NodeFailed: 步骤出错 / 用户点击中止 (⏹)
+        [*] --> ExecutingNode: Activate step node
+        ExecutingNode --> LiveStreaming: Stream real-time output in sidebar
+        LiveStreaming --> NodeSuccess: Step completed
+        LiveStreaming --> NodeFailed: Error or user aborted (⏹)
         
-        NodeSuccess --> ExecutingNode: 沿着贝塞尔流动光线进入下一节点
-        NodeFailed --> ErrorState: 节点红色警示边框 + 错误详情呈现
+        NodeSuccess --> ExecutingNode: Flow through animated bezier curve to next node
+        NodeFailed --> ErrorState: Red warning border & error details shown
     }
 
-    NodeSuccess --> Completed: 全流程完成 (播放完成反馈)
-    Completed --> HistoryArchive: 自动保存执行输出与耗时
-    HistoryArchive --> ReplayMode: 点击 🕐 支持任意历史回放
-    ErrorState --> Idle: 排查原因后原地重试
+    NodeSuccess --> Completed: Pipeline complete
+    Completed --> HistoryArchive: Save run outputs & timestamps
+    HistoryArchive --> ReplayMode: Click 🕐 to replay any past run
+    ErrorState --> Idle: Retry after adjusting step prompt
     ReplayMode --> [*]
     Completed --> [*]
 ```
 
-- **无限画布体验**：支持拖拽平移、滚轮缩放、节点折叠/展开、框选与双击原地修改标题。
-- **坐标持久化**：自定义排布坐标即时保存至 `canvasPos`，重开页面保持完美布局。
-
 ---
 
-## 🧠 分层记忆与自主整合
-
-AIPA 拥有类似人类记忆的层次化沉淀机制，有效防止多轮对话后的上下文遗忘：
+## 🧠 Memory Hierarchy & DreamTask
 
 ```mermaid
 graph LR
-    subgraph ActiveChat["⚡ 活跃对话上下文"]
-        CurrentSession["当前会话"]
-        AutoExtract["自动偏好提取器"]
-        CompactEngine["上下文自适应压缩"]
+    subgraph ActiveChat["⚡ Active Chat Context"]
+        CurrentSession["Current Session"]
+        AutoExtract["Auto-Extractor"]
+        CompactEngine["Context Compaction"]
     end
 
-    subgraph MemoryArchitecture["🗄️ 多级持久存储"]
-        GlobalDoc["🌐 全局记忆 (~/.claude/MEMORY.md)"]
-        ProjectDoc["📁 项目记忆 (<repo>/.claude/MEMORY.md)"]
-        StructuredMem["📁 结构化 memdir<br/>• 用户画像 (User)<br/>• 习惯反馈 (Feedback)<br/>• 业务项目 (Project)<br/>• 资料参考 (Reference)"]
-        RuleFiles["📜 项目指令规范 (CLAUDE.md)"]
+    subgraph MemoryArchitecture["🗄️ Multi-Tier Persistent Store"]
+        GlobalDoc["🌐 Global Memory (~/.claude/MEMORY.md)"]
+        ProjectDoc["📁 Project Memory (<repo>/.claude/MEMORY.md)"]
+        StructuredMem["🗂️ Structured memdir<br/>• User Profile<br/>• Feedback<br/>• Projects<br/>• References"]
+        RuleFiles["📜 Project Rules (CLAUDE.md)"]
     end
 
-    subgraph BackgroundConsolidate["🌙 闲置与后台整合"]
-        DreamConsolidate["DreamTask 记忆自动消化合并"]
-        TimeDecay["时间衰减检测 (绿/黄/红状态球)"]
+    subgraph BackgroundConsolidate["🌙 Background Consolidation"]
+        DreamConsolidate["DreamTask Auto-Consolidation"]
+        TimeDecay["Age Decay (Green / Yellow / Red Dots)"]
     end
 
-    CurrentSession -->|提取关键结论| AutoExtract
-    AutoExtract -->|沉淀事实| StructuredMem
-    CurrentSession -->|空闲或关闭时| DreamConsolidate
-    DreamConsolidate -->|去重并归纳| GlobalDoc & ProjectDoc
-    TimeDecay -->|淘汰陈旧项| StructuredMem
-    GlobalDoc & ProjectDoc & StructuredMem & RuleFiles -->|智能切片注入| CurrentSession
+    CurrentSession -->|Extract durable facts| AutoExtract
+    AutoExtract -->|Save items| StructuredMem
+    CurrentSession -->|Idle / close| DreamConsolidate
+    DreamConsolidate -->|Deduplicate & merge| GlobalDoc & ProjectDoc
+    TimeDecay -->|Prune stale items| StructuredMem
+    GlobalDoc & ProjectDoc & StructuredMem & RuleFiles -->|Inject slices| CurrentSession
 ```
 
 ---
 
-## ⌨️ 效率快捷键速查
+## ⌨️ Essential Keyboard Shortcuts
 
-| 快捷键 | 功能描述 | 快捷键 | 功能描述 |
+| Shortcut | Description | Shortcut | Description |
 |---|---|---|---|
-| `Ctrl+N` | 新建对话 | `Ctrl+Shift+P` | 唤起全局命令面板 |
-| `Ctrl+K` | 会话快速切换器（模糊搜索） | `Ctrl+F` | 检索当前会话内容 |
-| `Ctrl+Shift+F` | 全局跨会话文件搜索 | `Ctrl+Shift+R` | 重新生成回复（可换模型） |
-| `Ctrl+Shift+K` | 立即压缩上下文 (/compact) | `Ctrl+Shift+O` | 切换沉浸专注模式 |
-| `Ctrl+Shift+D` | 切换深色 / 浅色 / 系统主题 | `Ctrl+Shift+L` | 切换界面语言（中/英） |
-| `Ctrl+Shift+T` | 窗口置顶（保持最前） | `Ctrl+,` | 打开系统设置面板 |
-| `Ctrl+1 ~ 8` | 主界面视图快速切换（`Ctrl+8` = 档案部） | `Ctrl+/` | 快捷键速查帮助弹窗 |
-| `Ctrl+Shift+Space` | **全局唤醒 / 隐藏 AIPA** | `Ctrl+Shift+G` | **全局读取剪贴板并提问** |
+| `Ctrl+N` | New conversation | `Ctrl+Shift+P` | Open command palette |
+| `Ctrl+K` | Session quick switcher (fuzzy search) | `Ctrl+F` | Search current chat |
+| `Ctrl+Shift+F` | Cross-session search across files | `Ctrl+Shift+R` | Regenerate response |
+| `Ctrl+Shift+K` | Compact context immediately | `Ctrl+Shift+O` | Focus mode (zen chat) |
+| `Ctrl+Shift+D` | Toggle theme (Dark / Light / System) | `Ctrl+Shift+L` | Toggle language (EN / ZH) |
+| `Ctrl+Shift+T` | Pin window (Always on top) | `Ctrl+,` | Open settings panel |
+| `Ctrl+1 ~ 8` | Switch primary cockpit view (`Ctrl+8` = Archive) | `Ctrl+/` | View keyboard shortcuts help |
+| `Ctrl+Shift+Space` | **Global toggle AIPA window** | `Ctrl+Shift+G` | **Global clipboard query to AIPA** |
 
 ---
 
-## 🚀 快速启动
+## 🚀 Getting Started
 
-### 1. 克隆与安装
+### 1. Clone and Install
 ```bash
-# `codex/` 是指向 openai/codex 的子模块（仅作协议参考，运行时不依赖它）
+# `codex/` is a submodule pointing at openai/codex (protocol reference only — not needed at runtime)
 git clone --recurse-submodules https://github.com/CipherSlinger/AIPA.git
 cd AIPA/electron-ui
 npm install
 ```
 
-### 2. 编译并启动
+### 2. Build and Launch
 ```bash
-# 一键编译所有目标（Main、Preload、Renderer）
+# Build all targets (Main, Preload, Renderer)
 npm run build
 
-# 启动桌面应用程序
+# Start the desktop application
 node_modules/.bin/electron dist/main/index.js
 ```
 
-### 3. 开发热更新模式
+### 3. Development Mode (HMR)
 ```bash
-# 终端 1：启动 Vite 开发服务
+# Terminal 1: Start Vite renderer dev server
 npm run build:main && npm run build:preload && npm run dev:renderer
 
-# 终端 2：以开发模式载入 Electron
+# Terminal 2: Run Electron pointing to Vite
 NODE_ENV=development node_modules/.bin/electron dist/main/index.js
 ```
 
-### 4. 构建 Windows 安装包
-```bash
-npm run dist:win   # 产物生成在 release/ 目录下
-```
+---
+
+## 🛡️ Security
+
+- **Encrypted Secrets**: API keys stored with OS-level encryption (`electron.safeStorage` / Windows DPAPI) and never sent to the renderer — provider configs arrive with credentials blanked, carrying only a "configured" marker.
+- **Process Sandbox**: Plugins execute in sandboxed `<iframe>`s with zero access to Node.js APIs. They are served over the app's own `aipa-plugin:` scheme, and each plugin gets a distinct origin derived from its id — web storage still works, but plugins cannot read each other's DOM or storage, nor the app's.
+- **Path Containment**: Session ids, memory files, skill folders, worktrees and plugin folders all pass a separator-aware containment check (`isPathInside`) in the main process, closing `../` escapes for both reads and recursive deletes.
+- **Granular Permissions**: 5-level tool permission control (Default / Accept Edits / Don't Ask / Plan Only / Bypass).
+- **Environment Sanitization**: Clean environment variable whitelists passed to child processes. Every Codex turn now sets `sandbox` explicitly (workspace-write, or read-only in Plan mode) instead of silently inheriting a possibly full-access `~/.codex/config.toml`.
+- **External Links & Window**: `window.open` and page navigations are limited to `http/https/mailto`; every other protocol is refused. All renderer permission requests (camera, microphone, geolocation, notifications…) are denied by default.
+- **Local bridge authentication**: the Clawd state server (`127.0.0.1:23333+`) accepts loopback peers only, validates the `Host` header (blocking DNS rebinding), rejects browser `Origin`s, and requires the bearer token from `~/.clawd/auth-token` (mode 0600) on every mutating request, with a body-size cap. It writes `~/.claude/settings.json` only after the user explicitly turns on "manage Claude hooks"; an upgrading user's existing opt-in is preserved rather than silently switched off.
+- **Screenshot consent**: the first `window:captureScreen` call in a session shows a native dialog (in the UI language). Approving covers the rest of that run; denying returns nothing. The approval is never stored as a preference, so the renderer cannot grant itself permission.
 
 ---
 
-## 🛡️ 安全与沙箱机制
+## 📄 License
 
-- **凭证安全**：API Key 采用操作系统级密钥链（`electron.safeStorage` / Windows DPAPI）加密存储，且**永不跨 IPC 交给渲染进程**——提供商配置传到界面时凭据被清空，只保留「已配置」标记。
-- **环境隔离**：第三方插件在受限的 Sandboxed `<iframe>` 中运行，严禁直接访问 Node.js 原生 API。插件由应用自有的 `aipa-plugin:` 协议提供，每个插件按其 id 获得独立的 origin，既保住 `localStorage` 等 Web 存储，又让插件之间、插件与主界面之间无法互读 DOM 或存储。
-- **路径约束**：主进程对会话 ID、记忆文件、技能目录、worktree、插件目录统一做分隔符感知的包含性校验（`isPathInside`），杜绝 `../` 越界读写与递归删除。
-- **权限可控**：提供 5 级工具权限控制（Default / Accept Edits / Don't Ask / Plan Only / Bypass），破坏性操作弹出直观卡片审核。
-- **执行安全**：子进程采用精简环境变量白名单，杜绝敏感密钥意外泄露；Codex 每轮显式传 `sandbox`（工作区可写 / 计划模式只读），不再静默继承 `~/.codex/config.toml` 中可能为全盘访问的设置。
-- **本地桥接鉴权**：Clawd 状态服务器（`127.0.0.1:23333+`）只接受回环对端、校验 `Host` 头（阻断 DNS rebinding）、拒绝浏览器 `Origin`，所有写请求需携带 `~/.clawd/auth-token`（0600）中的 Bearer 令牌，请求体另设大小上限。该服务只在用户显式开启「自动管理 Claude 钩子」后才写入 `~/.claude/settings.json`；旧版本升级用户的既有选择会被沿用，不会被静默关停。
-- **截图需用户同意**：`window:captureScreen` 首次调用弹出原生对话框（中英随界面语言），同意后本次运行内有效，拒绝则返回空；该许可不写入偏好设置，避免渲染进程自行放行。
-- **外链与窗口**：`window.open` 与页面跳转仅放行 `http/https/mailto`，其余协议一律拒绝；渲染进程默认拒绝所有权限申请（摄像头、麦克风、定位、通知等）。
-
----
-
-## 📄 开源许可证
-
-本项目基于 [MIT 许可证](LICENSE) 分发。
+Distributed under the [MIT License](LICENSE).
