@@ -1539,7 +1539,13 @@
     "filterUser": "User",
     "filterFeedback": "Feedback",
     "filterProject": "Project",
-    "filterReference": "Reference"
+    "filterReference": "Reference",
+    "typeUser": "User",
+    "typeFeedback": "Feedback",
+    "typeProject": "Project",
+    "typeReference": "Reference",
+    "copyContent": "Copy content",
+    "copied": "Copied"
   },
   "workflow": {
     "title": "Workflows",

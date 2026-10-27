@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Pin,
   PinOff,
@@ -16,9 +16,17 @@ import { MemoryItem, MemoryCategory, MemoryType } from '../../types/app.types'
 import { CATEGORY_CONFIG, CATEGORIES, MAX_CONTENT_LENGTH, MEMORY_TYPE_CONFIG, MEMORY_TYPES } from './memoryConstants'
 import { highlightText, formatRelativeTime } from './memoryConstants'
 
+/** Type badge label keys live next to the existing filter labels. */
+const TYPE_LABEL_KEY: Record<MemoryType, string> = {
+  user: 'memory.typeUser',
+  feedback: 'memory.typeFeedback',
+  project: 'memory.typeProject',
+  reference: 'memory.typeReference',
+}
+
 interface MemoryItemCardProps {
   mem: MemoryItem
-  t: (key: string) => string
+  t: (key: string, params?: Record<string, string | number>) => string
   searchQuery: string
   // Edit state
   isEditing: boolean
@@ -44,23 +52,30 @@ export default function MemoryItemCard({
   onTogglePin, onDelete,
 }: MemoryItemCardProps) {
   const [copied, setCopied] = useState(false)
+  // The "copied" flash schedules a state update; clear it on unmount or it
+  // fires against a dead component.
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => {
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+  }, [])
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(mem.content)
       setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+      copyTimerRef.current = setTimeout(() => setCopied(false), 1500)
     } catch { /* ignore */ }
   }
 
   const cfg = CATEGORY_CONFIG[mem.category] || CATEGORY_CONFIG.fact
   const typeCfg = mem.memoryType ? MEMORY_TYPE_CONFIG[mem.memoryType] : null
 
-  const typeDisplayMap: Record<string, { label: string; dot: string; bg: string; border: string }> = {
-    user:      { label: '用户',   dot: 'rgba(251,191,36,0.82)',  bg: 'rgba(251,191,36,0.15)',  border: 'rgba(251,191,36,0.60)' },
-    feedback:  { label: '反馈',   dot: 'rgba(134,239,172,0.82)', bg: 'rgba(134,239,172,0.10)', border: 'rgba(134,239,172,0.45)' },
-    project:   { label: '项目',   dot: 'rgba(96,165,250,0.82)',  bg: 'rgba(96,165,250,0.12)',  border: 'rgba(96,165,250,0.45)' },
-    reference: { label: '参考',   dot: 'rgba(192,132,252,0.82)', bg: 'rgba(192,132,252,0.12)', border: 'rgba(192,132,252,0.45)' },
+  const typeDisplayMap: Record<string, { dot: string; bg: string; border: string }> = {
+    user:      { dot: 'rgba(251,191,36,0.82)',  bg: 'rgba(251,191,36,0.15)',  border: 'rgba(251,191,36,0.60)' },
+    feedback:  { dot: 'rgba(134,239,172,0.82)', bg: 'rgba(134,239,172,0.10)', border: 'rgba(134,239,172,0.45)' },
+    project:   { dot: 'rgba(96,165,250,0.82)',  bg: 'rgba(96,165,250,0.12)',  border: 'rgba(96,165,250,0.45)' },
+    reference: { dot: 'rgba(192,132,252,0.82)', bg: 'rgba(192,132,252,0.12)', border: 'rgba(192,132,252,0.45)' },
   }
   const typeDisplay = mem.memoryType ? typeDisplayMap[mem.memoryType] : null
 
@@ -88,8 +103,9 @@ export default function MemoryItemCard({
     ageDays < 90  ? { labelKey: 'memory.old',   dot: '#fb923c' } :
                     { labelKey: 'memory.stale',  dot: '#f87171' }
 
-  const ageDaysRounded = Math.floor(ageDays)
-  const ageLabel = ageDaysRounded < 1 ? t('memory.justNow') : `${ageDaysRounded}d ago`
+  // Localised ("just now" / "3d" / "3天前") rather than a hardcoded English
+  // suffix. `formatRelativeTime` already existed but was never wired up here.
+  const ageLabel = formatRelativeTime(mem.updatedAt, t)
 
   return (
     <div
@@ -293,6 +309,9 @@ export default function MemoryItemCard({
                 color: 'var(--text-secondary)',
                 lineHeight: 1.6,
                 wordBreak: 'break-word',
+                // The hover action bar sits at the top-right edge; without this
+                // it covers the first line's tail the moment a row is hovered.
+                paddingRight: 78,
               }}>
                 {searchQuery ? (
                   highlightText(mem.content, searchQuery)
@@ -337,7 +356,7 @@ export default function MemoryItemCard({
                   title={typeCfg.description}
                   >
                     {scopeIcon && <span style={{ display: 'flex', alignItems: 'center', color: scopeBorderColor }}>{scopeIcon}</span>}
-                    {typeDisplay.label}
+                    {t(TYPE_LABEL_KEY[mem.memoryType!])}
                   </span>
                 )}
                 {/* Decay badge */}
@@ -437,7 +456,7 @@ export default function MemoryItemCard({
             </button>
             <button
               onClick={handleCopy}
-              title={copied ? '已复制' : '复制内容'}
+              title={copied ? t('memory.copied') : t('memory.copyContent')}
               style={{
                 background: 'none',
                 border: 'none',

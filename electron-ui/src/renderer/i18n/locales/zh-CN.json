@@ -1557,7 +1557,13 @@
     "filterUser": "用户画像",
     "filterFeedback": "行为反馈",
     "filterProject": "项目上下文",
-    "filterReference": "外部资源"
+    "filterReference": "外部资源",
+    "typeUser": "用户",
+    "typeFeedback": "反馈",
+    "typeProject": "项目",
+    "typeReference": "参考",
+    "copyContent": "复制内容",
+    "copied": "已复制"
   },
   "workflow": {
     "title": "工作流",
