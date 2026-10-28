@@ -12,7 +12,7 @@
  * times, and the following occurrence is computed from "now" so a long outage
  * cannot leave a burst of catch-up runs queued.
  */
-import { app, BrowserWindow, Notification } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import * as fs from 'fs'
 import * as os from 'os'
 import { getPref, getRawPref } from '../config/config-manager'
@@ -284,38 +284,36 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
   job.lastRunLate = opts.late
   persistAndBroadcast()
   log.info(`Automation "${job.name}" finished: ${job.lastStatus}${outcome.sessionId ? ` (session ${outcome.sessionId})` : ''}`)
-  // The pet and the native notification are two surfaces for one event: the
-  // raise decides which one speaks, and `attended` records that decision.
-  const attended = raiseAutomationAttention(job, outcome)
-  notifyCompletion(job, outcome, attended)
+  // `raiseAttention` owns the one delivery decision for every surface: pet
+  // bubble, native notification, or nothing. The scheduler must not show a
+  // notification of its own, or a single run could be announced twice.
+  raiseAutomationAttention(job, outcome)
 }
 
 /**
- * Route a finished run into the desktop pet's attention queue.
+ * Route a finished run into the attention queue.
  *
  * Failures use the existing `failed` shape (same bubble as a failed chat turn),
  * successes get `automation-done` so a hidden job that worked is announced
- * without pretending something broke. Both carry the run's session id, so the
- * click opens the conversation the run produced.
- *
- * Returns true only when the pet will show the item right now. The pet applies
- * its own quiet rule (window focused, hidden, DND, bubbles off), so a "false"
- * here means the scheduler's native notification is the fallback rather than a
- * duplicate.
+ * without pretending something broke. Both carry the run's session id, so a
+ * pet click or native-notification click opens the conversation the run
+ * produced. When there is no openable session, the stable job id keeps repeated
+ * raises deduped and the click only brings the app forward.
  */
-function raiseAutomationAttention(job: AutomationJob, outcome: AutomationRunOutcome): boolean {
+function raiseAutomationAttention(job: AutomationJob, outcome: AutomationRunOutcome): void {
   const sessionId = outcome.sessionId ?? null
   if (outcome.ok) {
-    return raiseAttention({
+    raiseAttention({
       kind: 'automation-done',
       sessionId,
       // A run that produced no openable session still needs an identity for
-      // dedupe; the job id is stable, so a repeat refreshes one bubble.
+      // dedupe; the job id is stable, so a repeat refreshes one item.
       bridgeId: sessionId ? null : `automation:${job.id}`,
       detail: job.name,
     })
+    return
   }
-  return raiseAttention({
+  raiseAttention({
     kind: 'failed',
     sessionId,
     bridgeId: sessionId ? null : `automation:${job.id}`,
@@ -342,73 +340,6 @@ function resolveUiLanguage(): UiLocale {
 
 function clip(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text
-}
-
-/**
- * Focus the main window, recreating it through the app's normal activation
- * path when it no longer exists. Returns null only if no window could be
- * created (e.g. the app is quitting).
- */
-function openMainWindow(): BrowserWindow | null {
-  const live = ctx?.getWindow() ?? null
-  if (live) {
-    if (live.isMinimized()) live.restore()
-    live.show()
-    live.focus()
-    return live
-  }
-  // `index.ts` owns window construction and listens for 'activate'; emitting
-  // it keeps that single source of truth instead of creating a window here.
-  app.emit('activate')
-  const created = BrowserWindow.getAllWindows().find(w => !w.isDestroyed()) ?? null
-  if (created) {
-    created.show()
-    created.focus()
-  }
-  return created
-}
-
-function notifyCompletion(job: AutomationJob, outcome: AutomationRunOutcome, attended: boolean): void {
-  // The pet already announced this run (it only speaks while the window is in
-  // the background). Firing here too would show the same result twice.
-  if (attended) {
-    log.debug(`Automation "${job.name}" notification handled by the desktop pet`)
-    return
-  }
-  if (!Notification.isSupported()) return
-
-  const zh = resolveUiLanguage() === 'zh-CN'
-  const title = zh ? `自动化：${job.name}` : `Automation: ${job.name}`
-  // Only promise an openable transcript when there is one: the legacy engine
-  // can finish without reporting a session id, and the click handler below
-  // cannot open what does not exist.
-  const body = outcome.ok
-    ? (outcome.summary || (outcome.sessionId
-      ? (zh ? '已完成，点击打开这次的会话' : 'Finished — click to open this run')
-      : (zh ? '已完成' : 'Finished')))
-    : (zh ? `运行失败：${clip(outcome.error || '未知错误', 200)}` : `Run failed: ${clip(outcome.error || 'unknown error', 200)}`)
-
-  try {
-    const notification = new Notification({ title, body, silent: true })
-    // A run is only useful if it can be read: clicking opens the transcript it
-    // produced, through the same menu path the tray uses. The window may be
-    // gone (closed to the dock, or recreated since the scheduler started), so
-    // ask for it lazily and deliver the event once the renderer can receive it.
-    notification.on('click', () => {
-      if (!ctx) return
-      const win = openMainWindow()
-      if (!win || !outcome.sessionId) return
-      const sessionId = outcome.sessionId
-      const deliver = () => {
-        if (!win.isDestroyed()) win.webContents.send('menu:openSession', sessionId)
-      }
-      if (win.webContents.isLoading()) win.webContents.once('did-finish-load', deliver)
-      else deliver()
-    })
-    notification.show()
-  } catch (err) {
-    log.warn('Could not show completion notification:', err)
-  }
 }
 
 // ── Tick ─────────────────────────────────────────────

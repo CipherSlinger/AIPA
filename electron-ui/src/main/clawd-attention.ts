@@ -1,6 +1,6 @@
 /**
- * clawd-attention.ts — the single path from main-process events to the
- * desktop pet's attention bubble.
+ * clawd-attention.ts — the single path from main-process events to a surface
+ * that can reach the user.
  *
  * Five things can need the user while AIPA is in the background:
  *   - an approval is waiting          (Codex approval / Claude permission / plan)
@@ -11,34 +11,44 @@
  *   - an automation run finished      (a hidden scheduled run)
  *
  * All five raise one record shape and share one queue, so there is exactly one
- * bubble on screen and exactly one rule for when it may appear. Sources never
- * talk to the pet directly — they call `raiseAttention`.
+ * bubble on screen and exactly one delivery decision. Sources never talk to a
+ * surface directly — they call `raiseAttention`.
  *
- * Quiet rule: nothing is shown while the main window is focused, visible and
- * not minimised. Items raised while the user is looking stay queued (approvals
- * and questions) so that alt-tabbing away surfaces them; transient items
- * (failures, plugin completions, finished automation runs) expire instead of
- * nagging later.
+ * Delivery rule (one decision for every kind):
+ *   - window visible and focused: nothing is shown now; approvals/questions
+ *     stay queued for the next time the user looks away. The user is already
+ *     looking at the in-app state.
+ *   - DND / quiet hours: nothing, on either surface.
+ *   - pet running and allowed (not hidden, bubbles not hidden, pet alerts on):
+ *     the pet bubble is the announcement.
+ *   - otherwise, with no application window focused: a native OS notification.
+ *   - otherwise (window focused): nothing.
+ * The native fallback exists because the pet may never have been launched, may
+ * have been closed, or may have bubbles hidden — exactly when a background
+ * approval or failure most needs to reach the user.
+ *
+ * Quiet rule: the pet only calls when the app is not in front of the user.
+ * DND / quiet hours apply to *both* surfaces: no native notification is shown
+ * while the pet's quiet mode is on. A native notification is never shown when
+ * the main window is visible and focused.
  *
  * Dedupe rule: the queue is keyed by `kind + session` (or bridge, or plugin).
  * A repeated failure in the same session refreshes one bubble instead of
  * stacking; approvals/questions collapse into a count and are resolved one
  * request id at a time; plugin completions coalesce into one summary
  * ("3 plugin jobs finished") whose click opens a chooser, never an arbitrary
- * job. Rendering is debounced so a burst becomes one bubble.
+ * job. Rendering is debounced so a burst becomes one bubble. Native notices
+ * are deduped by request id (approvals/questions) and by queue item (the other
+ * kinds), so a repeated raise never produces a second OS notification.
  *
- * Notification rule: for these events the pet bubble *is* the notification.
- * Chat completions keep their native OS notification, and so does an
- * automation run when the pet cannot speak; the scheduler owns that fallback
- * and uses `raiseAttention`'s return value to skip it when the pet took the
- * event. This module still never shows a native notification itself, so the
- * same run can never be announced twice. When the pet cannot show (disabled,
- * hidden, asleep, or its own "hide bubbles" setting), we stay silent rather
- * than fall back to a second surface.
+ * Retraction rule: when the server resolves or times out a request, its native
+ * notification is closed and a later click is ignored. A notification whose
+ * request was already answered must never open a conversation as if it still
+ * needed an answer.
  */
 
-import { BrowserWindow, Menu, app } from 'electron'
-import { getPref } from './config/config-manager'
+import { BrowserWindow, Menu, Notification, app } from 'electron'
+import { getPref, getRawPref } from './config/config-manager'
 import { createLogger } from './utils/logger'
 import {
   getClawdLanguage,
@@ -98,6 +108,28 @@ interface AttentionItem {
   requestIds: Set<string>
   /** Last time this item was actually on screen (0 = never). */
   lastShownAt: number
+  /**
+   * A native notification already owns this item while the pet cannot speak.
+   * `pickNext` must skip it, or a pet window that starts later (or becomes
+   * visible after a blur) would announce the same event a second time.
+   */
+  nativePending: boolean
+}
+
+/**
+ * A native OS notification raised for an item that the pet could not announce.
+ * It keeps the item (not a copy) so a click sees the session id learned after
+ * the approval arrived, and `requestId` so resolution can close exactly the
+ * notification for the request that was answered.
+ */
+interface NativeNotice {
+  notification: Notification
+  item: AttentionItem
+  kind: AttentionKind
+  bridgeId: string | null
+  sessionId: string | null
+  requestId: string | null
+  active: boolean
 }
 
 const KIND_PRIORITY: Record<AttentionKind, number> = {
@@ -119,6 +151,8 @@ const PLUGIN_DONE_KEY = 'plugin-done:batch'
 const FAILURE_SUPPRESSION_MS = 5000
 
 const items = new Map<string, AttentionItem>()
+/** Native notices that are still on screen, keyed by request id or item key. */
+const nativeNotices = new Map<string, NativeNotice>()
 
 let current: AttentionItem | null = null
 let currentSignature = ''
@@ -137,6 +171,13 @@ let lastShowFailureAt = 0
  * notification about that subject.
  */
 const recentFailureAt = new Map<string, number>()
+/**
+ * Failures whose native fallback actually spoke. The renderer sends a generic
+ * completion notice from the same failed result; that notice is a duplicate of
+ * the native attention notification and must be suppressed even when the pet
+ * is not available to take the event itself.
+ */
+const recentNativeFailureAt = new Map<string, number>()
 let initialized = false
 let getWindow: () => BrowserWindow | null = () => null
 
@@ -190,8 +231,10 @@ export function shutdownClawdAttention(): void {
     clearTimeout(renderTimer)
     renderTimer = null
   }
+  for (const key of [...nativeNotices.keys()]) closeNativeNotice(key)
   items.clear()
   recentFailureAt.clear()
+  recentNativeFailureAt.clear()
   retract()
   current = null
   currentSignature = ''
@@ -206,6 +249,9 @@ function noteFailureAttention(input: AttentionInput): void {
   for (const [key, at] of recentFailureAt) {
     if (now - at > FAILURE_SUPPRESSION_MS) recentFailureAt.delete(key)
   }
+  for (const [key, at] of recentNativeFailureAt) {
+    if (now - at > FAILURE_SUPPRESSION_MS) recentNativeFailureAt.delete(key)
+  }
   if (input.sessionId) recentFailureAt.set(input.sessionId, now)
   if (input.bridgeId) recentFailureAt.set(input.bridgeId, now)
   if (!input.sessionId && !input.bridgeId && input.pluginId) {
@@ -217,19 +263,23 @@ function noteFailureAttention(input: AttentionInput): void {
  * Record something that needs the user. Cheap and safe to call from any event
  * handler; rendering is always asynchronous.
  *
- * Returns true when the pet can take this event right now. A caller that also
- * owns a native notification (the automation scheduler) uses that to make the
- * pet the one and only announcement for the run.
+ * The return value is true when this raise is owned by a surface: the pet will
+ * take it now, or a native notification (new or already pending) is the
+ * announcement. It is not a promise that the debounced bubble has already
+ * appeared. The automation scheduler no longer owns a fallback of its own;
+ * every surface decision is made here.
  */
 export function raiseAttention(input: AttentionInput): boolean {
   if (!initialized) return false
-  if (!isAttentionEnabled()) return false
+  // No early `isAttentionEnabled()` return: that preference governs the pet
+  // bubble only. A native notice can still be the right surface when it is off
+  // (see `announceAttention`).
   if (!input || !input.kind) return false
 
   const now = Date.now()
   // The renderer's completion notification is sent from the same result event
-  // that raised this failure; window-handlers uses this to let the pet be the
-  // one and only notification for that particular turn.
+  // that raised this failure; window-handlers uses this to let the chosen
+  // surface be the one and only notification for that particular turn.
   if (input.kind === 'failed') noteFailureAttention(input)
 
   if (input.kind === 'plugin-done') {
@@ -246,6 +296,7 @@ export function raiseAttention(input: AttentionInput): boolean {
       count: 0,
       requestIds: new Set<string>(),
       lastShownAt: 0,
+      nativePending: false,
     }
     // Keep every finished job, not just the last one: the bubble has to be
     // able to name the batch and offer a real choice on click.
@@ -261,7 +312,7 @@ export function raiseAttention(input: AttentionInput): boolean {
     item.createdAt = now
     items.set(PLUGIN_DONE_KEY, item)
     scheduleRender()
-    return willShowNow(item)
+    return announceAttention(item, null)
   }
 
   const key = attentionKey(input)
@@ -277,7 +328,7 @@ export function raiseAttention(input: AttentionInput): boolean {
     if (input.bridgeId) existing.bridgeId = input.bridgeId
     if (input.pluginId) existing.pluginId = input.pluginId
     scheduleRender()
-    return willShowNow(existing)
+    return announceAttention(existing, input.requestId || null)
   }
 
   const requestIds = new Set<string>()
@@ -294,10 +345,11 @@ export function raiseAttention(input: AttentionInput): boolean {
     count: Math.max(1, requestIds.size),
     requestIds,
     lastShownAt: 0,
+    nativePending: false,
   }
   items.set(key, item)
   scheduleRender()
-  return willShowNow(item)
+  return announceAttention(item, input.requestId || null)
 }
 
 /**
@@ -306,6 +358,9 @@ export function raiseAttention(input: AttentionInput): boolean {
  */
 export function clearAttentionForBridge(bridgeId: string): void {
   if (!initialized || !bridgeId) return
+  for (const [key, notice] of [...nativeNotices]) {
+    if (notice.bridgeId === bridgeId || notice.item.bridgeId === bridgeId) closeNativeNotice(key)
+  }
   let changed = false
   for (const [key, item] of items) {
     if (item.bridgeId !== bridgeId) continue
@@ -332,6 +387,8 @@ export function bindAttentionSession(bridgeId: string, sessionId: string): void 
   // still recognised as the one the pet already covered.
   const failureAt = recentFailureAt.get(bridgeId)
   if (failureAt) recentFailureAt.set(sessionId, failureAt)
+  const nativeFailureAt = recentNativeFailureAt.get(bridgeId)
+  if (nativeFailureAt) recentNativeFailureAt.set(sessionId, nativeFailureAt)
   let changed = false
   for (const [key, item] of items) {
     if (item.bridgeId !== bridgeId || item.sessionId === sessionId) continue
@@ -349,6 +406,12 @@ export function bindAttentionSession(bridgeId: string, sessionId: string): void 
       merged.count = Math.max(merged.count, item.count)
       if (item.detail) merged.detail = item.detail
       merged.createdAt = Math.min(merged.createdAt, item.createdAt)
+      merged.nativePending = merged.nativePending || item.nativePending
+      // A native notice must point at the surviving record, or a click would
+      // route from a deleted item and resolution would not clear its flag.
+      for (const notice of nativeNotices.values()) {
+        if (notice.item === item) notice.item = merged
+      }
     } else {
       item.key = nextKey
       items.set(nextKey, item)
@@ -369,6 +432,16 @@ export function resolveAttention(input: {
   requestId?: string | null
 }): void {
   if (!initialized) return
+
+  // Close the OS notification for this request before touching the queue. If
+  // the server resolved or the request timed out, a click must not later open
+  // a conversation that no longer needs an answer.
+  for (const [key, notice] of [...nativeNotices]) {
+    if (notice.kind !== input.kind) continue
+    if (input.requestId && notice.requestId !== input.requestId) continue
+    if (nativeNoticeMatchesSubject(notice, input)) closeNativeNotice(key)
+  }
+
   let changed = false
   for (const [key, item] of items) {
     if (item.kind !== input.kind) continue
@@ -395,27 +468,31 @@ export function resolveAttention(input: {
 }
 
 /**
- * Notification rule for the four attention events: the pet replaces the
- * native OS notification. The renderer sends a generic "AIPA" completion
- * notification from the same `cli:result` that just failed, so that one is
- * dropped while the pet is about to speak. Approvals, questions and plugin
- * completions never had a native notification, so nothing else overlaps.
+ * The renderer sends a generic "AIPA" completion notification from the same
+ * `cli:result` that just failed. It is a duplicate when the attention path
+ * already spoke for this exact failed turn.
  *
- * If the pet cannot show (disabled, hidden, asleep, bubbles hidden, pref
- * off), this returns false and the native notification remains the fallback.
- *
- * `sessionId` is the conversation the notification is about. Suppression is
- * keyed by it because the notification is only a duplicate of the pet bubble
- * when it reports the *same* failed turn. A notification that carries no
- * session cannot be attributed, so it is left alone: dropping it on the
- * strength of someone else's recent failure is exactly the bug that made
- * conversation B's completion disappear after conversation A failed.
+ * Suppression is keyed by session because one conversation failing must not
+ * mute another conversation's completion. A notification with no session
+ * cannot be attributed, so it is left alone. DND applies to native
+ * notifications too, so this is also true while the pet is in quiet mode even
+ * for a completion that did not raise attention.
  */
 export function shouldSuppressNativeNotification(sessionId?: string | null): boolean {
-  if (!initialized || !sessionId) return false
+  if (!initialized) return false
+  // Quiet hours / DND: the pet's quiet mode silences the native surface as
+  // well. This is checked before `sessionId` so an unattributed completion
+  // cannot bypass DND.
+  if (isDndEnabled()) return true
+  if (!sessionId) return false
+
+  const now = Date.now()
+  const nativeAt = recentNativeFailureAt.get(sessionId)
+  if (nativeAt && now - nativeAt <= FAILURE_SUPPRESSION_MS) return true
+
   const at = recentFailureAt.get(sessionId)
   if (!at) return false
-  if (Date.now() - at > FAILURE_SUPPRESSION_MS) return false
+  if (now - at > FAILURE_SUPPRESSION_MS) return false
   return canSummon()
 }
 
@@ -423,6 +500,8 @@ export function shouldSuppressNativeNotification(sessionId?: string | null): boo
 export function refreshAttention(): void {
   if (!initialized) return
   if (!isAttentionEnabled()) {
+    // Turning the pet off clears its queue but leaves a native notice that is
+    // already on screen alone: it belongs to the OS surface, not the pet.
     items.clear()
     retract()
     current = null
@@ -450,6 +529,51 @@ function isUserLooking(): boolean {
   return !!win && !win.isDestroyed() && win.isVisible() && !win.isMinimized() && win.isFocused()
 }
 
+/**
+ * The pet's DND / quiet mode. Both surfaces honour it: a native notification
+ * must not defeat the user's explicit "do not disturb". `isClawdDoNotDisturb`
+ * is safe when the pet was never initialized (it returns false).
+ */
+function isDndEnabled(): boolean {
+  try {
+    return isClawdDoNotDisturb()
+  } catch {
+    // A broken pet must not turn DND into a notification storm.
+    return true
+  }
+}
+
+/**
+ * The single delivery decision. Returns true when this raise is owned by a
+ * surface; the caller must not announce it again.
+ *
+ * Order matters:
+ *   1. The window is visible and focused → in-app UI is the delivery; nothing
+ *      on screen or in the OS.
+ *   2. DND → nothing. This applies to native just as much as to the pet.
+ *   3. Pet running and allowed → pet bubble.
+ *   4. No window focused → native OS notification.
+ *   5. Otherwise → nothing (the user is looking at the app).
+ *
+ * An item that already has a native notice stays on the native path so a pet
+ * that launches later cannot duplicate it.
+ */
+function announceAttention(item: AttentionItem, requestId: string | null): boolean {
+  if (!initialized) return false
+  if (isUserLooking()) return false
+  if (isDndEnabled()) return false
+  // `petAttentionAlerts` is the pet's own switch ("Call Me Through the Pet"),
+  // not a master mute: turning the bubble off must not also silence the OS
+  // fallback, or a user who dislikes the pet would stop being told about
+  // approvals. Only the pet path reads it — DND still silences both.
+  if (isAttentionEnabled() && canSummon() && !item.nativePending) {
+    // The item may already be in the queue behind another bubble; it is still
+    // owned by the pet and will surface when the queue reaches it.
+    return true
+  }
+  return showNativeNotice(item, requestId)
+}
+
 /** The quiet rule: the pet only calls when the app is not in front of the user. */
 function canSummon(): boolean {
   if (!isAttentionEnabled()) return false
@@ -461,18 +585,186 @@ function canSummon(): boolean {
   return true
 }
 
+// ── Native fallback ───────────────────────────────────
+
 /**
- * Whether this specific item is about to be shown: the quiet rule allows it,
- * no other bubble is on screen, the backoff after a failed show has elapsed,
- * and `pickNext` would choose it. A caller that also owns a native
- * notification should treat anything else as "the pet is not announcing this
- * now" — a queued item behind an approval may show much later, or expire.
+ * Native notices are one per request id for approvals/questions, and one per
+ * queue item for the other kinds. A repeated raise of the same failure or
+ * plugin completion refreshes the item, not the OS notification stack.
  */
-function willShowNow(item: AttentionItem): boolean {
-  if (!canSummon()) return false
-  if (current) return false
-  if (Date.now() - lastShowFailureAt < SHOW_RETRY_MS) return false
-  return pickNext()?.key === item.key
+function findNativeNotice(item: AttentionItem, requestId: string | null): NativeNotice | null {
+  for (const notice of nativeNotices.values()) {
+    if (!notice.active) continue
+    if (requestId) {
+      // Request ids are only unique within a bridge in some engines, so the
+      // subject is part of the identity, not just the kind.
+      if (
+        notice.kind === item.kind &&
+        notice.requestId === requestId &&
+        nativeNoticeMatchesSubject(notice, { bridgeId: item.bridgeId, sessionId: item.sessionId })
+      ) return notice
+    } else if (notice.item === item) {
+      return notice
+    }
+  }
+  return null
+}
+
+function nativeNoticeKey(item: AttentionItem, requestId: string | null): string {
+  // Request ids are the unit of answer, so they are the dedupe key. The kind
+  // and subject prevent two conversations' "request 1" from colliding.
+  const subject = item.bridgeId || item.sessionId || 'unknown'
+  return requestId ? `${item.kind}:${subject}:request:${requestId}` : `item:${item.key}`
+}
+
+/** Native text follows the pet language when it exists, else the app locale. */
+function nativeAttentionLanguage(): string {
+  if (isClawdAttentionAvailable()) return petLanguage()
+  let value = ''
+  try {
+    const stored = getRawPref('language')
+    value = typeof stored === 'string' && stored !== 'system' ? stored : app.getLocale()
+  } catch {
+    value = 'en'
+  }
+  const lower = value.toLowerCase()
+  if (lower.startsWith('zh')) return 'zh'
+  if (lower.startsWith('ko')) return 'ko'
+  return 'en'
+}
+
+function buildNativeContent(item: AttentionItem): { title: string; body: string } {
+  // `buildPayload` is the one string table for both surfaces. The pet is not
+  // rendering this bubble, so choose the app language rather than the pet's
+  // (which is "en" while it has no instance).
+  const previous = lang
+  lang = nativeAttentionLanguage()
+  try {
+    const payload = buildPayload(item)
+    return { title: payload.title, body: payload.message }
+  } finally {
+    lang = previous
+  }
+}
+
+/**
+ * Show the fallback and remember it. Returns false when the OS cannot show a
+ * notification at all, so a caller does not incorrectly report delivery.
+ */
+function showNativeNotice(item: AttentionItem, requestId: string | null): boolean {
+  // Already announced: a repeated raise must not stack a second notice.
+  if (findNativeNotice(item, requestId)) {
+    item.nativePending = true
+    return true
+  }
+  if (!Notification.isSupported()) return false
+
+  const key = nativeNoticeKey(item, requestId)
+  if (nativeNotices.has(key)) return true
+
+  const content = buildNativeContent(item)
+  try {
+    const notification = new Notification({
+      title: content.title,
+      body: content.body,
+      silent: true,
+    })
+    const notice: NativeNotice = {
+      notification,
+      item,
+      kind: item.kind,
+      bridgeId: item.bridgeId,
+      sessionId: item.sessionId,
+      requestId,
+      active: true,
+    }
+    nativeNotices.set(key, notice)
+    item.nativePending = true
+    notification.on('click', () => onNativeNoticeClick(key))
+    notification.show()
+    if (item.kind === 'failed') noteNativeFailure(item)
+    return true
+  } catch (err) {
+    // Construction/show can fail (unsupported platform, broken shell). Do not
+    // leave a phantom notice that would block the pet path forever.
+    nativeNotices.delete(key)
+    if (![...nativeNotices.values()].some(n => n.active && n.item === item)) {
+      item.nativePending = false
+    }
+    log.warn('Could not show native attention notification:', String(err))
+    return false
+  }
+}
+
+function noteNativeFailure(item: AttentionItem): void {
+  const now = Date.now()
+  if (item.sessionId) recentNativeFailureAt.set(item.sessionId, now)
+  if (item.bridgeId) recentNativeFailureAt.set(item.bridgeId, now)
+  if (!item.sessionId && !item.bridgeId && item.pluginId) {
+    recentNativeFailureAt.set(`plugin:${item.pluginId}`, now)
+  }
+}
+
+function nativeNoticeMatchesSubject(notice: NativeNotice, input: {
+  sessionId?: string | null
+  bridgeId?: string | null
+}): boolean {
+  const item = notice.item
+  return (!!input.bridgeId && (
+    notice.bridgeId === input.bridgeId ||
+    item.bridgeId === input.bridgeId
+  )) || (!!input.sessionId && (
+    notice.sessionId === input.sessionId ||
+    notice.bridgeId === input.sessionId ||
+    item.sessionId === input.sessionId ||
+    item.bridgeId === input.sessionId
+  ))
+}
+
+/**
+ * Remove one notice from the OS and our bookkeeping. Idempotent; used by
+ * resolution and shutdown.
+ */
+function closeNativeNotice(key: string): void {
+  const notice = nativeNotices.get(key)
+  if (!notice) return
+  notice.active = false
+  nativeNotices.delete(key)
+  try {
+    notice.notification.close()
+  } catch {
+    // The OS may already have dismissed it.
+  }
+  if (![...nativeNotices.values()].some(n => n.active && n.item === notice.item)) {
+    notice.item.nativePending = false
+  }
+}
+
+/**
+ * Clicking the fallback opens the same target the pet bubble would: the
+ * request's conversation, the failed turn, the finished automation's session,
+ * or the plugin that finished. A request resolved in the meantime is dropped
+ * rather than opening a conversation whose card is already gone.
+ */
+function onNativeNoticeClick(key: string): void {
+  const notice = nativeNotices.get(key)
+  if (!notice || !notice.active) return
+
+  const requestStillPending = !notice.requestId ||
+    notice.item.requestIds.has(notice.requestId)
+  const tracked = [...items.values()].includes(notice.item)
+  closeNativeNotice(key)
+
+  if (!requestStillPending) {
+    log.debug('native attention notification ignored — request already resolved')
+    return
+  }
+
+  openItem(notice.item)
+  if (tracked) {
+    dropItem(notice.item)
+    scheduleRender()
+  }
 }
 
 /**
@@ -500,6 +792,9 @@ function pruneExpired(now: number): void {
 function pickNext(): AttentionItem | null {
   let best: AttentionItem | null = null
   for (const item of items.values()) {
+    // A native notice already announced this item; a pet window that becomes
+    // available later must not say it again.
+    if (item.nativePending) continue
     if (!best) {
       best = item
       continue
@@ -684,9 +979,28 @@ function activateCurrent(): void {
 
 // ── Opening the thing that needs attention ──────────
 
+/**
+ * Focus the main window, recreating it when it was closed. `index.ts` owns
+ * window construction and listens for `activate`; emitting it keeps a single
+ * source of truth, exactly as the automation scheduler's former fallback did.
+ */
+function openMainWindow(): BrowserWindow | null {
+  const live = getWindow()
+  if (live && !live.isDestroyed()) {
+    bringForward(live)
+    return live
+  }
+  app.emit('activate')
+  const created = BrowserWindow.getAllWindows().find(w => !w.isDestroyed()) ?? null
+  if (created) bringForward(created)
+  return created
+}
+
 function openItem(item: AttentionItem): void {
-  const win = getWindow()
-  if (!win || win.isDestroyed()) return
+  // The window may have been closed to the dock. Recreate it through the app's
+  // normal activation path, the same route the automation scheduler used.
+  const win = openMainWindow()
+  if (!win) return
 
   if (item.kind === 'plugin-done' && item.plugins.length > 0) {
     if (item.plugins.length === 1) openPlugin(win, item.plugins[0].pluginId)
