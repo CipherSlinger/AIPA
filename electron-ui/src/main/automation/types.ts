@@ -396,6 +396,37 @@ export interface AutomationGlobalSpendWindow {
   partial: boolean
 }
 
+/**
+ * Reported spend for the automations filed under a set of org nodes.
+ *
+ * Mirrors the preload surface exactly, but is main's own type: the renderer
+ * resolves the subtree (it owns the tree) and main does the arithmetic with the
+ * same window rules as the per-job and global rails. `reportedCostUsd` absent
+ * means no counted run reported money, never that the spend was zero;
+ * `unreportedRuns > 0` or `partial` makes any figure a lower bound.
+ */
+export interface AutomationDeptSpend {
+  /** Inclusive start the caller asked for (epoch ms). */
+  windowStart: number
+  /** The moment main evaluated the window; `windowStart < startedAt <= windowEnd`. */
+  windowEnd: number
+  /** Jobs whose `departmentId` is exactly in the requested set, runs or not. */
+  jobsCounted: number
+  /** Real runs (success or error) in the window; skips are not attempts. */
+  attemptedRuns: number
+  /** Sum of reported costs; absent when no run in the window reported one. */
+  reportedCostUsd?: number
+  /** Runs in the window that reported no cost, so the sum is a lower bound. */
+  unreportedRuns: number
+  /**
+   * No cost was reported for a window that had runs, or whose capped history
+   * cannot prove it had none — so the figure cannot be read as "spent nothing".
+   */
+  unmeasured: boolean
+  /** Any counted job's capped history may not reach back to `windowStart`. */
+  partial: boolean
+}
+
 export interface AutomationJobView extends AutomationJob {
   /** The workflow this job names no longer exists in prefs. */
   actionMissing: boolean

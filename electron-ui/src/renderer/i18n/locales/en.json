@@ -3033,7 +3033,22 @@
       "more": "+{{count}} more"
     },
     "filedByHand": "filed by hand",
-    "filedByHandTip": "This conversation was filed here by hand. Its place on this roster is your choice, not a folder match — it does not mean this department did the work."
+    "filedByHandTip": "This conversation was filed here by hand. Its place on this roster is your choice, not a folder match — it does not mean this department did the work.",
+    "spend": {
+      "label": "Scheduled run cost",
+      "stripLabel": "Last 24 h",
+      "noJobs": "No scheduled jobs are filed under this scope.",
+      "noRuns": "No run of these jobs started in this window.",
+      "stripNoRuns": "No runs in 24 h",
+      "unmeasured": "A cost figure could not be read for this window: no money was reported, and the stored history may not cover every run.",
+      "unmeasuredShort": "Cost not reported",
+      "unreadable": "The scheduled cost could not be read.",
+      "unreadableShort": "Cost could not be read",
+      "lowerBoundNote": "Some runs reported no cost, so this figure is a floor, not a total.",
+      "partialNote": "Each job keeps only its most recent runs; older runs in this window may be missing.",
+      "floorNote": "Reported only — an engine that reports tokens but no money leaves this a floor.",
+      "runs": "{{count}} run(s)"
+    }
   },
   "archive": {
     "summaryTask": "{{count}} tasks",

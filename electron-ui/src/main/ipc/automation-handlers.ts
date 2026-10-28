@@ -18,6 +18,7 @@ import {
   setAutomationPausedAll,
   updateAutomationJob,
 } from '../automation/scheduler'
+import { normalizeDeptSpendRequest, summarizeDeptSpend } from '../automation/spend-guard'
 import type { AutomationInput, AutomationTrigger } from '../automation/types'
 
 /**
@@ -38,6 +39,24 @@ export function registerAutomationHandlers(): void {
     } catch (err) {
       console.error('[automation:list]', err)
       return { jobs: [], limits: null }
+    }
+  })
+
+  // Reported spend for the jobs filed under the org ids the renderer resolved.
+  // Read-only: no persistence and no change broadcast, because nothing here can
+  // change the store. A request that is not usable (no ids, an out-of-range
+  // window) answers null rather than an empty summary: "nothing is filed under
+  // these nodes" is an answer, "this request made no sense" is not.
+  ipcMain.handle('automation:deptSpend', (_event, raw: unknown) => {
+    try {
+      const request = normalizeDeptSpendRequest(raw)
+      if (!request) return null
+      const listed = listAutomationJobs()
+      const jobs = Array.isArray(listed.jobs) ? listed.jobs : []
+      return summarizeDeptSpend(jobs, request.departmentIds, request.windowStart, Date.now())
+    } catch (err) {
+      console.error('[automation:deptSpend]', err)
+      return null
     }
   })
 

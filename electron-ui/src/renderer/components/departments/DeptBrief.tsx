@@ -5,10 +5,11 @@
 // The panel deliberately reads as a record, not an analysis: no quality, no
 // progress, no utilization. The footnotes say what the numbers cannot prove.
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ScrollText, X } from 'lucide-react'
 import { useDepartmentStore, type Department } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
+import type { AutomationDeptSpendData } from '../../../preload'
 import { useI18n } from '../../i18n'
 import {
   deptDisplayName,
@@ -16,6 +17,7 @@ import {
   positionDisplayTitle,
 } from './deptUtils'
 import {
+  briefSubtree,
   buildDeptBrief,
   type BriefSession,
   type BriefWindow,
@@ -26,6 +28,8 @@ import {
   deptJobStatusText,
   type DeptJobsResult,
 } from './deptJobs.data'
+import { describeDeptSpend } from './deptSpend.data'
+import { costText } from '../workflows/scheduleSummary'
 import { nextRunText } from '../automation/nextRunText'
 import type { AppLocale } from '../../utils/formatDate'
 
@@ -118,6 +122,58 @@ export default function DeptBrief({
     }),
     [jobsSource, departments, brief],
   )
+
+  // Spend for exactly the window the counts above use. Main owns the arithmetic
+  // (the same helper behind the spend rails); this panel only chooses how to say
+  // it. `null` and a rejected IPC both become the "could not be read" state — a
+  // failure is never rendered as `$0`.
+  const [spend, setSpend] = useState<{
+    /** Which department + window this answer belongs to. */
+    scope: string
+    status: 'loading' | 'ready' | 'error'
+    summary: AutomationDeptSpendData | null
+  }>({ scope: '', status: 'loading', summary: null })
+  const spendSeq = useRef(0)
+  const spendStart = brief.window.start
+  const spendScope = `${dept.id}:${spendStart}`
+
+  useEffect(() => {
+    let alive = true
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const scope = `${dept.id}:${spendStart}`
+    const ids = briefSubtree(departments, dept.id).map(node => node.id)
+    // A department or window change starts over; the previous figure must not
+    // stand in for the new scope while the read is in flight.
+    setSpend({ scope, status: 'loading', summary: null })
+
+    const load = () => {
+      // A late reply from the previous scope must not write into this one.
+      const seq = ++spendSeq.current
+      window.electronAPI.automationDeptSpend(ids, spendStart)
+        .then(summary => {
+          if (!alive || spendSeq.current !== seq) return
+          setSpend({ scope, status: 'ready', summary })
+        })
+        .catch(() => {
+          if (!alive || spendSeq.current !== seq) return
+          setSpend({ scope, status: 'error', summary: null })
+        })
+    }
+
+    load()
+    // A finished run changes the figure. Debounced so a burst of scheduler
+    // broadcasts costs one read; the subscription is dropped on unmount.
+    const off = window.electronAPI.onAutomationChanged(() => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(load, 300)
+    })
+
+    return () => {
+      alive = false
+      if (timer) clearTimeout(timer)
+      off()
+    }
+  }, [departments, dept.id, spendStart])
 
   const windowLabel = briefWindow === 'today' ? t('dept.brief.today') : t('dept.brief.week')
 
@@ -233,6 +289,15 @@ export default function DeptBrief({
         />
         <BriefStat value={brief.counts.openSeats} label={t('dept.brief.seats')} />
       </div>
+
+      {/* Scheduled spend -------------------------------------------------- */}
+      <BriefSpend
+        // Before the effect resets it, a summary from the previous department
+        // or window is treated as still loading rather than shown against the
+        // counts now on screen.
+        status={spend.scope === spendScope ? spend.status : 'loading'}
+        summary={spend.scope === spendScope ? spend.summary : null}
+      />
 
       {/* Empty states ---------------------------------------------------- */}
       {brief.empty === 'noNode' && (
@@ -370,6 +435,97 @@ export default function DeptBrief({
         {new Date(brief.window.end).toLocaleString(resolvedLocale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
       </div>
     </section>
+  )
+}
+
+// ── Scheduled spend ──────────────────────────────────────────────────────────
+
+function BriefSpend({
+  status,
+  summary,
+}: {
+  status: 'loading' | 'ready' | 'error'
+  summary: AutomationDeptSpendData | null
+}) {
+  const { t } = useI18n()
+  // Nothing loud while the read is in flight: no placeholder figure, no `$0`.
+  if (status === 'loading') return null
+
+  // An `error` status and a `ready` + `null` answer are the same claim: the
+  // request did not produce a summary, so the cost is unknown.
+  const facts = describeDeptSpend(status === 'ready' ? summary : null)
+  const partialNote = facts.partial && facts.kind !== 'unreadable' && facts.kind !== 'no-jobs'
+    ? t('dept.spend.partialNote')
+    : null
+
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{
+        fontSize: 9.5, fontWeight: 700, color: 'var(--text-muted)',
+        textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3,
+      }}>
+        {t('dept.spend.label')}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+        {facts.kind === 'reported' && facts.usd !== undefined && (
+          <>
+            <span
+              title={t('dept.spend.floorNote')}
+              style={{
+                fontSize: 13, fontWeight: 700, color: 'var(--text-primary)',
+                fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"',
+                cursor: 'help',
+              }}
+            >
+              {facts.lowerBound ? '≥ ' : ''}{costText(facts.usd)}
+            </span>
+            {facts.runsText && facts.runsText.attempted > 0 && (
+              <span style={{ fontSize: 10, color: 'var(--text-faint)', fontVariantNumeric: 'tabular-nums' }}>
+                {t('dept.spend.runs', { count: facts.runsText.attempted })}
+              </span>
+            )}
+          </>
+        )}
+
+        {facts.kind === 'unmeasured' && (
+          <>
+            <span style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              {t('dept.spend.unmeasured')}
+            </span>
+            {facts.runsText && facts.runsText.attempted > 0 && (
+              <span style={{ fontSize: 10, color: 'var(--text-faint)', fontVariantNumeric: 'tabular-nums' }}>
+                {t('dept.spend.runs', { count: facts.runsText.attempted })}
+              </span>
+            )}
+          </>
+        )}
+
+        {facts.kind === 'no-runs' && (
+          <span style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            {t('dept.spend.noRuns')}
+          </span>
+        )}
+
+        {facts.kind === 'no-jobs' && (
+          <span style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            {t('dept.spend.noJobs')}
+          </span>
+        )}
+
+        {facts.kind === 'unreadable' && (
+          <span style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            {t('dept.spend.unreadable')}
+          </span>
+        )}
+      </div>
+
+      {facts.kind === 'reported' && facts.lowerBound
+        && facts.runsText && facts.runsText.unreported > 0 && (
+          <BriefNote>{t('dept.spend.lowerBoundNote')}</BriefNote>
+        )}
+      {partialNote && <BriefNote>{partialNote}</BriefNote>}
+    </div>
   )
 }
 

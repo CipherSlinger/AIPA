@@ -602,6 +602,41 @@ export interface AutomationSpendWindowData {
 }
 
 /**
+ * Reported spend of the automations filed under a set of org nodes, over one
+ * rolling window.
+ *
+ * The renderer owns the org tree, so it resolves the subtree to node ids and
+ * asks main for the arithmetic; main owns the spend rules, so this figure is
+ * computed by the same helper as the per-job and global rails rather than by a
+ * second copy in the renderer that could drift. `reportedCostUsd` absent means
+ * no run reported money, never that the spend was zero; `unreportedRuns > 0` or
+ * `partial` makes any figure a lower bound. `jobsCounted` is 0 when nothing is
+ * filed under the requested nodes — a real answer, not an error.
+ */
+export interface AutomationDeptSpendData {
+  /** Inclusive start the caller asked for (epoch ms). */
+  windowStart: number
+  /** The moment main evaluated the window (epoch ms); the end is exclusive-ish
+   *  in the same sense as the spend rails: `windowStart < startedAt <= windowEnd`. */
+  windowEnd: number
+  /** Jobs whose `departmentId` is in the requested set. */
+  jobsCounted: number
+  /** Real runs (success or error) in the window; skips are not attempts. */
+  attemptedRuns: number
+  /** Sum of reported costs; absent when no run in the window reported one. */
+  reportedCostUsd?: number
+  /** Runs in the window that reported no cost, so the sum is a lower bound. */
+  unreportedRuns: number
+  /**
+   * No cost was reported for a window that had runs, or whose capped history
+   * cannot prove it had none — so the figure cannot be read as "spent nothing".
+   */
+  unmeasured: boolean
+  /** Any counted job's capped history may not reach back to `windowStart`. */
+  partial: boolean
+}
+
+/**
  * Mirrors main's `AutomationGlobalSpendWindow`: reported spend across *every*
  * job in the shared rolling 24 h. A missing `measuredUsd` means no run reported
  * money, never that the spend was zero; `unreportedRuns > 0` or `partial` makes
@@ -1401,6 +1436,12 @@ const electronAPI = {
   // broadcasts `automation:changed` only when the value actually changed.
   automationSetGlobalBudget: (limitUsd: number | null) =>
     ipcRenderer.invoke('automation:setGlobalBudget', limitUsd) as Promise<AutomationGlobalBudgetData>,
+  // Reported spend for the jobs filed under a resolved org subtree, from
+  // `windowStart` to now. `null` when the request itself is unusable (no ids, a
+  // start in the future or more than 31 days back) — distinct from an empty
+  // summary, which says "nothing is filed under these nodes".
+  automationDeptSpend: (departmentIds: string[], windowStart: number) =>
+    ipcRenderer.invoke('automation:deptSpend', { departmentIds, windowStart }) as Promise<AutomationDeptSpendData | null>,
   onAutomationChanged: (cb: () => void): Unsubscribe => {
     const handler = () => cb()
     ipcRenderer.on('automation:changed', handler)

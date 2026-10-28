@@ -6,9 +6,10 @@
 // Jobs are attributed by `departmentId` alone — the node itself plus every
 // descendant. The join and the malformed-input rules live in `deptJobs.data.ts`.
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CalendarClock } from 'lucide-react'
 import type { Department } from '../../store'
+import type { AutomationDeptSpendData } from '../../../preload'
 import { useUiStore } from '../../store'
 import { useI18n } from '../../i18n'
 import { briefSubtree } from './deptBrief.data'
@@ -18,6 +19,8 @@ import {
   deptJobStatusText,
   type DeptJobRow,
 } from './deptJobs.data'
+import { deptSpendWindowStart, describeDeptSpend } from './deptSpend.data'
+import { costText } from '../workflows/scheduleSummary'
 
 interface DeptJobsBlockProps {
   deptId: string
@@ -47,6 +50,54 @@ export default function DeptJobsBlock({ deptId, departments }: DeptJobsBlockProp
       })
     return () => { cancelled = true }
   }, [deptId])
+
+  // Rolling 24-hour spend for the whole subtree, from the same helper main uses
+  // for its spend rails. Kept separate from the job list so a failed spend read
+  // never hides the jobs (and an empty scope never becomes a fake `$0`).
+  const [spend, setSpend] = useState<{
+    /** Which department this answer belongs to. */
+    scope: string
+    status: 'loading' | 'ready' | 'error'
+    summary: AutomationDeptSpendData | null
+  }>({ scope: '', status: 'loading', summary: null })
+  const spendSeq = useRef(0)
+
+  useEffect(() => {
+    let alive = true
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const ids = briefSubtree(departments, deptId).map(node => node.id)
+    setSpend({ scope: deptId, status: 'loading', summary: null })
+
+    const load = () => {
+      // The window is rolling, so each read starts a fresh 24 hours. A late
+      // reply must not overwrite the figure for the department on screen now.
+      const seq = ++spendSeq.current
+      const windowStart = deptSpendWindowStart('rolling-24h', Date.now())
+      window.electronAPI.automationDeptSpend(ids, windowStart)
+        .then(result => {
+          if (!alive || spendSeq.current !== seq) return
+          setSpend({ scope: deptId, status: 'ready', summary: result })
+        })
+        .catch(() => {
+          if (!alive || spendSeq.current !== seq) return
+          setSpend({ scope: deptId, status: 'error', summary: null })
+        })
+    }
+
+    load()
+    // A finished run changes the total; debounce scheduler bursts and drop the
+    // subscription on unmount.
+    const off = window.electronAPI.onAutomationChanged(() => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(load, 300)
+    })
+
+    return () => {
+      alive = false
+      if (timer) clearTimeout(timer)
+      off()
+    }
+  }, [deptId, departments])
 
   const summary = useMemo(
     () => buildDeptJobs({
@@ -97,6 +148,13 @@ export default function DeptJobsBlock({ deptId, departments }: DeptJobsBlockProp
         </span>
       </div>
 
+      <SpendLine
+        // A figure from the previous department must not sit under this one
+        // while the new read is in flight.
+        status={spend.scope === deptId ? spend.status : 'loading'}
+        summary={spend.scope === deptId ? spend.summary : null}
+      />
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         {visible.map(job => (
           <JobLine key={job.id} job={job} onOpen={openAutomations} />
@@ -116,6 +174,73 @@ export default function DeptJobsBlock({ deptId, departments }: DeptJobsBlockProp
         </button>
       )}
     </section>
+  )
+}
+
+/**
+ * One compact line: the rolling 24-hour subtree total, or why there is no
+ * figure. It never repeats a per-job number and never turns a floor into a
+ * total — the long caveats live in the tooltip, the department Brief says them
+ * in full.
+ */
+function SpendLine({
+  status,
+  summary,
+}: {
+  status: 'loading' | 'ready' | 'error'
+  summary: AutomationDeptSpendData | null
+}) {
+  const { t } = useI18n()
+  // Quiet while loading: the strip's job rows are the content, not a spinner.
+  if (status === 'loading') return null
+
+  const facts = describeDeptSpend(status === 'ready' ? summary : null)
+  // Nothing under this subtree — the job list above already says so.
+  if (facts.kind === 'no-jobs') return null
+
+  const lineStyle = {
+    display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' as const,
+    marginBottom: 4, fontSize: 9.5, color: 'var(--text-faint)',
+  }
+
+  if (facts.kind === 'reported' && facts.usd !== undefined) {
+    const notes = [t('dept.spend.floorNote')]
+    if (facts.lowerBound && facts.runsText && facts.runsText.unreported > 0) {
+      notes.push(t('dept.spend.lowerBoundNote'))
+    }
+    if (facts.partial) notes.push(t('dept.spend.partialNote'))
+    return (
+      <div style={lineStyle}>
+        <span>{t('dept.spend.stripLabel')}</span>
+        <span
+          title={notes.join('\n')}
+          style={{
+            color: 'var(--text-secondary)', fontWeight: 600,
+            fontVariantNumeric: 'tabular-nums', cursor: 'help',
+          }}
+        >
+          {facts.lowerBound ? '≥ ' : ''}{costText(facts.usd)}
+        </span>
+        {facts.runsText && facts.runsText.attempted > 0 && (
+          <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+            · {t('dept.spend.runs', { count: facts.runsText.attempted })}
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  const text = facts.kind === 'no-runs'
+    ? t('dept.spend.stripNoRuns')
+    : facts.kind === 'unmeasured'
+      ? t('dept.spend.unmeasuredShort')
+      : t('dept.spend.unreadableShort')
+
+  return (
+    <div style={lineStyle}>
+      <span>{t('dept.spend.stripLabel')}</span>
+      <span>{text}</span>
+    </div>
   )
 }
 

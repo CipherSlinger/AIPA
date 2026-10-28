@@ -28,9 +28,12 @@
  */
 
 import { AUTOMATION_HISTORY_CAP } from './run-history'
+import type { RunUsage } from './run-usage'
 import type {
+  AutomationDeptSpend,
   AutomationGlobalSpendWindow,
   AutomationJob,
+  AutomationRunRecord,
   AutomationRunRecordStatus,
   AutomationRunSource,
   AutomationSpendWindow,
@@ -72,13 +75,22 @@ function addCost(
 }
 
 /**
- * What the rolling window holds for one job.
+ * What a window holds for one job.
+ *
+ * The window is supplied rather than derived from `now`: the rail's rolling 24
+ * hours and a department's calendar window (local midnight to now) are the same
+ * sum over different starts, and sharing this body is what keeps "inside the
+ * window", "is an attempt" and "the capped history makes this a lower bound"
+ * from drifting into a second, subtly different implementation.
  *
  * Only real attempts (success or error) count. A skip never executed, so it
  * carries no spend and must not make the window look "covered" or spent.
  */
-export function summarizeSpendWindow(job: AutomationJob, now: number): AutomationSpendWindow {
-  const windowStart = now - SPEND_WINDOW_MS
+export function summarizeSpendWindowFor(
+  job: AutomationJob,
+  now: number,
+  windowStart: number,
+): AutomationSpendWindow {
   const inWindow = (startedAt: number): boolean => startedAt > windowStart && startedAt <= now
 
   // The history is capped. A full list whose oldest record still falls inside
@@ -132,6 +144,17 @@ export function summarizeSpendWindow(job: AutomationJob, now: number): Automatio
     unmeasured: reportedCostUsd === undefined && (attemptedRuns > 0 || partial),
     partial,
   }
+}
+
+/**
+ * What the rolling 24-hour window holds for one job.
+ *
+ * Kept as a named entry point because every existing caller means exactly this
+ * window; it is now a thin call into `summarizeSpendWindowFor`, so the result is
+ * unchanged and the calendar and rolling windows cannot diverge.
+ */
+export function summarizeSpendWindow(job: AutomationJob, now: number): AutomationSpendWindow {
+  return summarizeSpendWindowFor(job, now, now - SPEND_WINDOW_MS)
 }
 
 /**
@@ -276,4 +299,210 @@ export function checkGlobalSpendLimit(
     return { kind: 'blocked', summary }
   }
   return { kind: 'allowed', summary, unmeasured: summary.unmeasured }
+}
+
+// ── Department spend ──────────────────────────────────
+//
+// A department's brief and job strip show what the automations filed under it
+// cost. The org tree lives in the renderer, so the renderer resolves a subtree
+// to node ids and asks main for the arithmetic only; main owns the spend rules,
+// so this half calls `summarizeSpendWindowFor` rather than restating a single
+// one of them. A second copy in the renderer would eventually disagree with the
+// rails about what "attempted" or "unreported" means.
+//
+// Main never expands the subtree. The tree is the renderer's, node ids are
+// opaque here, and inventing a parent/child convention would report spend the
+// caller did not ask for or miss spend it did resolve. The set is taken
+// literally.
+
+/** Most org node ids one department-spend request may name. */
+export const DEPT_SPEND_MAX_IDS = 200
+
+/** Longest window a department-spend request may ask for: 31 days. */
+export const DEPT_SPEND_MAX_WINDOW_MS = 31 * 24 * 60 * 60_000
+
+const DEPT_RECORD_STATUSES: readonly AutomationRunRecordStatus[] = ['success', 'error', 'skipped']
+
+/**
+ * A cost report from a possibly malformed record, or absence.
+ *
+ * Only the cost matters to this sum, and only a finite, non-negative number is
+ * a report. A string or NaN must neither throw nor turn the total into garbage;
+ * treating it as unreported keeps the figure a lower bound instead of a lie.
+ */
+function deptUsage(value: unknown): RunUsage | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  const costUsd = (value as Record<string, unknown>).costUsd
+  if (typeof costUsd !== 'number' || !Number.isFinite(costUsd) || costUsd < 0) return undefined
+  return { inputTokens: 0, outputTokens: 0, costUsd }
+}
+
+/**
+ * One history entry, or null when it cannot be classified.
+ *
+ * The store normalizes persisted records, so this only defends the pure call
+ * against a hand-built or corrupt array: a record with no finite start or an
+ * unknown status cannot be called an attempt or a skip, so it is left out
+ * rather than guessed at. That can only undercount, which the caller already
+ * knows to read as a lower bound.
+ */
+function deptRecord(value: unknown): AutomationRunRecord | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const record = value as Record<string, unknown>
+  const startedAt = record.startedAt
+  if (typeof startedAt !== 'number' || !Number.isFinite(startedAt)) return null
+  const status = record.status
+  if (typeof status !== 'string' || !DEPT_RECORD_STATUSES.includes(status as AutomationRunRecordStatus)) {
+    return null
+  }
+  return {
+    ...(record as unknown as AutomationRunRecord),
+    startedAt,
+    status: status as AutomationRunRecordStatus,
+    // Explicit, so a malformed usage object from the spread cannot survive.
+    usage: deptUsage(record.usage),
+  }
+}
+
+/**
+ * One job with its history and latest-run fields made safe to summarise.
+ *
+ * `summarizeSpendWindowFor` assumes the store's invariants; a job handed
+ * straight to the pure function may be missing `history` entirely or carry
+ * records that are not objects. Defaulting to an empty history and dropping
+ * unclassifiable records is the least inventive repair.
+ */
+function deptJob(value: unknown): AutomationJob | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const job = value as AutomationJob
+  const history = Array.isArray(job.history)
+    ? (job.history as unknown[])
+      .map(deptRecord)
+      .filter((record): record is AutomationRunRecord => record !== null)
+    : []
+  return {
+    ...job,
+    history,
+    lastRunAt: typeof job.lastRunAt === 'number' && Number.isFinite(job.lastRunAt)
+      ? job.lastRunAt
+      : null,
+    lastUsage: deptUsage(job.lastUsage),
+  }
+}
+
+/**
+ * Validate the wire request for a department spend read.
+ *
+ * The renderer resolves the subtree, so the ids are taken as given, trimmed and
+ * deduplicated. An empty list is refused because "no ids" is not the same
+ * question as "these ids" and would silently become a whole-store answer in
+ * some callers. A list longer than `DEPT_SPEND_MAX_IDS` is refused rather than
+ * truncated: dropping ids would undercount the department's spend, and an
+ * undercount is worse than a visible refusal.
+ *
+ * The window must be finite and no deeper than 31 days. The upper bound keeps a
+ * renderer bug from turning every read into a full-history scan; the lower
+ * bound exists for the same reason. `windowStart === now` is valid — it is an
+ * empty window, which is a real answer.
+ */
+export function normalizeDeptSpendRequest(
+  raw: unknown,
+): { departmentIds: string[]; windowStart: number } | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const request = raw as Record<string, unknown>
+
+  if (!Array.isArray(request.departmentIds)) return null
+  const departmentIds: string[] = []
+  const seen = new Set<string>()
+  for (const value of request.departmentIds) {
+    // A non-string entry is a renderer bug, not an id; drop it rather than
+    // letting a coerced `[object Object]` become a department.
+    if (typeof value !== 'string') continue
+    const id = value.trim()
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    departmentIds.push(id)
+  }
+  if (departmentIds.length === 0 || departmentIds.length > DEPT_SPEND_MAX_IDS) return null
+
+  const windowStart = request.windowStart
+  if (typeof windowStart !== 'number' || !Number.isFinite(windowStart)) return null
+  // `Date.now()` is read here because the request shape is fixed to two fields;
+  // the caller summarising the window passes its own `now`, so a few ms of drift
+  // only widens the end of the window, never accepts a future start.
+  const now = Date.now()
+  if (windowStart > now || windowStart < now - DEPT_SPEND_MAX_WINDOW_MS) return null
+
+  return { departmentIds, windowStart }
+}
+
+/**
+ * Reported spend for the jobs filed under exactly these department ids.
+ *
+ * `jobsCounted` counts matching jobs even when they have no run in the window:
+ * "three jobs filed here, nothing ran" is a different answer from "nothing is
+ * filed here", and only the caller's tree can decide which is surprising.
+ *
+ * Per-job figures come from `summarizeSpendWindowFor`, so a skip is not an
+ * attempt, a run that reported no money makes the total a lower bound, and a
+ * capped history that cannot reach `windowStart` marks the whole answer
+ * `partial`. Only the totals are folded here.
+ *
+ * `reportedCostUsd` is absent, never 0, when no counted run reported money: a
+ * real `$0` report from an engine and "nobody knows" are different facts. The
+ * same doctrine as the rails decides `unmeasured` — with attempts or a partial
+ * window and no reported cost, the figure cannot be read as "spent nothing".
+ */
+export function summarizeDeptSpend(
+  jobs: readonly AutomationJob[],
+  departmentIds: readonly string[],
+  windowStart: number,
+  now: number,
+): AutomationDeptSpend {
+  const wanted = new Set(departmentIds)
+  let jobsCounted = 0
+  let attemptedRuns = 0
+  let unreportedRuns = 0
+  let reportedCostUsd: number | undefined
+  let partial = false
+
+  // A non-array is treated as no jobs: this is a read, and an empty answer is
+  // honest about a store the caller could not supply.
+  const list: readonly unknown[] = Array.isArray(jobs) ? jobs : []
+  for (const raw of list) {
+    const job = deptJob(raw)
+    if (!job) continue
+    const departmentId = job.departmentId
+    // Exact id only: main does not know the tree and must not infer that one
+    // id contains another. A blank (including whitespace-only) or non-string
+    // filing is not an id and never matches anything.
+    if (
+      typeof departmentId !== 'string' ||
+      departmentId.trim().length === 0 ||
+      !wanted.has(departmentId)
+    ) {
+      continue
+    }
+    jobsCounted += 1
+    const summary = summarizeSpendWindowFor(job, now, windowStart)
+    if (summary.reportedCostUsd !== undefined) {
+      reportedCostUsd = (reportedCostUsd ?? 0) + summary.reportedCostUsd
+    }
+    attemptedRuns += summary.attemptedRuns
+    unreportedRuns += summary.unreportedRuns
+    // One job whose history cannot reach the window start is enough to make
+    // the department total a lower bound, whichever job the evicted runs were.
+    if (summary.partial) partial = true
+  }
+
+  return {
+    windowStart,
+    windowEnd: now,
+    jobsCounted,
+    attemptedRuns,
+    ...(reportedCostUsd !== undefined ? { reportedCostUsd } : {}),
+    unreportedRuns,
+    unmeasured: reportedCostUsd === undefined && (attemptedRuns > 0 || partial),
+    partial,
+  }
 }
