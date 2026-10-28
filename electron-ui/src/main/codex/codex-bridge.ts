@@ -75,6 +75,8 @@ export interface CodexSendMessageArgs {
   cwd: string
   threadId?: string          // existing thread to resume
   model?: string
+  /** Reasoning effort for the turn; dropped unless the running model advertises it. */
+  effort?: string
   env: Record<string, string>
   approvalPolicy?: ApprovalPolicy
   /** Accepts either the wire spelling (`read-only`) or the legacy camelCase. */
@@ -532,6 +534,26 @@ const MCP_STATUS_TIMEOUT_MS = 3_000
 const SERVER_REQUEST_TIMEOUT_MS = 10 * 60_000
 /** Probes must not hold Settings/UI open when Codex is slow or offline. */
 const PROBE_TIMEOUT_MS = 10_000
+/**
+ * How long a turn may wait for `model/list` just to validate `effort`. A turn
+ * is the user's own message — it must never queue behind a catalogue probe.
+ */
+const EFFORT_LOOKUP_TIMEOUT_MS = 1_500
+
+/**
+ * Resolve with `promise`, or reject once `ms` elapses. The timer is unref'd so
+ * a pending validation cannot keep the main process alive.
+ */
+function raceWithDeadline<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms)
+    timer.unref?.()
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value) },
+      (err) => { clearTimeout(timer); reject(err) },
+    )
+  })
+}
 const SKILLS_INIT_TIMEOUT_MS = 3_000
 const MODEL_LIST_TIMEOUT_MS = 15_000
 const MODEL_LIST_CACHE_TTL_MS = 5 * 60_000
@@ -580,6 +602,8 @@ export class CodexBridge extends EventEmitter {
   private currentCwd: string | null = null
   // Per-bridge caches for the read-only protocol probes.
   private modelListCache: { models: CodexModelInfo[]; fetchedAt: number } | null = null
+  // Effort values rejected for a model, so each rejection is logged once.
+  private loggedDroppedEfforts = new Set<string>()
   private usageCache: { usage: CodexAccountUsage; fetchedAt: number } | null = null
   private rateLimitsCache: { rateLimits: CodexRateLimits; fetchedAt: number } | null = null
   private skillsCache: { cwd: string; skills: CodexSkillInfo[]; fetchedAt: number } | null = null
@@ -636,18 +660,22 @@ export class CodexBridge extends EventEmitter {
     }
 
     // Step 3: Send the first user turn
-    await this._startTurn(args.input ?? toUserInput(args.prompt))
+    await this._startTurn(args.input ?? toUserInput(args.prompt), { model: args.model, effort: args.effort })
   }
 
   /**
    * Send a follow-up message on the existing thread.
    * Replaces StreamBridge.sendFollowUp().
    */
-  async sendFollowUp(prompt: string, input?: CodexUserInput[]): Promise<void> {
+  async sendFollowUp(
+    prompt: string,
+    input?: CodexUserInput[],
+    turnOptions: { model?: string; effort?: string } = {},
+  ): Promise<void> {
     if (!this.currentThreadId) {
       throw new Error('No active thread to send follow-up to')
     }
-    await this._startTurn(input ?? toUserInput(prompt))
+    await this._startTurn(input ?? toUserInput(prompt), turnOptions)
   }
 
   /**
@@ -1180,18 +1208,72 @@ export class CodexBridge extends EventEmitter {
     log.info(`Thread resumed: ${this.currentThreadId}`)
   }
 
-  private async _startTurn(input: CodexUserInput[]): Promise<void> {
+  private async _startTurn(
+    input: CodexUserInput[],
+    turnOptions: { model?: string; effort?: string } = {},
+  ): Promise<void> {
     if (!this.currentThreadId) {
       throw new Error('No active thread')
     }
 
-    const result = await this._sendRequest('turn/start', {
+    const params: Record<string, unknown> = {
       threadId: this.currentThreadId,
       input,
-    }) as { turn?: { id: string } }
+    }
+    // `turn/start.model` overrides "this turn and subsequent turns", so passing
+    // it on every turn is what makes a model switch take effect mid-thread. A
+    // bad id is left to fail visibly: the server is the authority.
+    if (turnOptions.model) params.model = turnOptions.model
+    const effort = await this._resolveTurnEffort(turnOptions.model, turnOptions.effort)
+    if (effort) params.effort = effort
+
+    const result = await this._sendRequest('turn/start', params) as { turn?: { id: string } }
 
     this.currentTurnId = result?.turn?.id ?? null
     log.info(`Turn started: ${this.currentTurnId}`)
+  }
+
+  /**
+   * Drop an effort the running model does not advertise.
+   *
+   * `turn/start` validates `effort` against that model's own
+   * `supportedReasoningEfforts`, and an unadvertised value fails the whole
+   * turn. There is no global effort enum, so `model/list` is the only honest
+   * source. Anything that cannot be verified is dropped rather than guessed:
+   * the turn then runs at the engine's default effort instead of failing.
+   */
+  private async _resolveTurnEffort(model: string | undefined, effort: string | undefined): Promise<string | undefined> {
+    if (!effort) return undefined
+    let models: CodexModelInfo[]
+    try {
+      // Never let a catalogue probe delay the user's turn: on a cold bridge
+      // `model/list` can take seconds (its own timeout is 15 s). Give it a short
+      // window, then send the turn at the engine default instead of stalling.
+      // The outstanding request still resolves into the cache for later turns.
+      models = await raceWithDeadline(this.listModels({ force: false }), EFFORT_LOOKUP_TIMEOUT_MS)
+    } catch (err) {
+      this._logDroppedEffort(effort, model, `model/list unavailable: ${String(err)}`)
+      return undefined
+    }
+    // Without an explicit override the thread's model (or Codex's default) runs;
+    // `model/list` marks which one that is.
+    const target = model
+      ? models.find(m => m.model === model || m.id === model)
+      : models.find(m => m.isDefault)
+    const advertised = target?.supportedReasoningEfforts.some(o => o.reasoningEffort === effort) ?? false
+    if (!advertised) {
+      this._logDroppedEffort(effort, model ?? target?.model, 'not advertised for this model')
+      return undefined
+    }
+    return effort
+  }
+
+  /** Once per (effort, model) pair: a rejected preference must not spam every turn. */
+  private _logDroppedEffort(effort: string, model: string | undefined, reason: string): void {
+    const key = `${effort}\u0000${model ?? ''}`
+    if (this.loggedDroppedEfforts.has(key)) return
+    this.loggedDroppedEfforts.add(key)
+    log.info(`Dropping effort "${effort}" for model "${model ?? 'default'}": ${reason}`)
   }
 
   // ── Private: JSON-RPC transport ─────────────────
@@ -2287,6 +2369,7 @@ export class CodexBridge extends EventEmitter {
     this.planDeltaBuffers.clear()
     this.planDeltaLastEmit.clear()
     this.modelListCache = null
+    this.loggedDroppedEfforts.clear()
     this.usageCache = null
     this.rateLimitsCache = null
     this.skillsCache = null

@@ -3095,6 +3095,9 @@
       "effort": "思考强度 {{level}}",
       "modelMismatch": "本会话实际运行在 {{running}}，而模型选择器显示 {{picker}}。",
       "settingsAria": "Codex 会话报告的设置"
+    },
+    "effort": {
+      "unsupported": "{{model}} 不支持该档位"
     }
   }
 }

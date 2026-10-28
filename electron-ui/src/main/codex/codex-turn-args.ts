@@ -25,6 +25,8 @@ export interface CodexTurnInput {
   /** Existing Codex thread to resume. */
   threadId?: string
   model?: string
+  /** Reasoning effort preference; the bridge drops it unless the model advertises it. */
+  effort?: string
   /** Overrides from the caller (e.g. the renderer's provider routing). */
   env?: Record<string, string>
   /** Renderer permission mode, mapped to an approval policy below. */
@@ -111,6 +113,7 @@ export function buildCodexTurnArgs(
     cwd: input.cwd,
     ...(input.threadId ? { threadId: input.threadId } : {}),
     ...(input.model ? { model: input.model } : {}),
+    ...(input.effort ? { effort: input.effort } : {}),
     env: withInjectedKey(input.env ?? {}),
     // An explicit override (a background run that can never ask) wins; the
     // renderer mode is only the fallback.

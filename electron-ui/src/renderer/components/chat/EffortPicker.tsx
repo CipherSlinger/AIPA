@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Gauge } from 'lucide-react'
 import { useT } from '../../i18n'
-import { usePrefsStore, useUiStore } from '../../store'
+import { useChatStore, usePrefsStore, useUiStore } from '../../store'
+import { personaModelOf, resolveEffectiveModel } from '../../lib/sessionModel'
 
 type EffortLevel = 'auto' | 'low' | 'medium' | 'high' | 'max'
 
@@ -13,6 +14,29 @@ const EFFORT_COLORS: Record<EffortLevel, string> = {
   medium: '#fbbf24', // yellow
   high: '#fb923c',   // orange
   max: '#f87171',    // red
+}
+
+// The same hues are used for the dot/background above (built with alpha
+// suffixes, so they must stay hex). Text gets theme tokens instead: the raw
+// hues are tuned for the dark background and fail contrast in light mode.
+const EFFORT_TEXT_COLORS: Record<EffortLevel, string> = {
+  auto: 'var(--accent-text)',
+  low: 'var(--success-text)',
+  medium: 'var(--warning-text)',
+  high: 'var(--warning-text)',
+  max: 'var(--danger-text)',
+}
+
+/**
+ * Efforts the Codex model that will run actually advertises.
+ *
+ * `turn/start` rejects an effort the model does not list, so the menu must not
+ * offer one. `null` means "unknown" (not Codex, or the catalogue failed to
+ * load) — every level stays selectable rather than disabling on a guess.
+ */
+interface EffortCatalogue {
+  efforts: string[]
+  model: string
 }
 
 const EFFORT_ABBREVIATIONS: Record<EffortLevel, string> = {
@@ -30,8 +54,56 @@ export default function EffortPicker() {
   const addToast = useUiStore(s => s.addToast)
   const [show, setShow] = useState(false)
   const [triggerHovered, setTriggerHovered] = useState(false)
+  const [catalogue, setCatalogue] = useState<EffortCatalogue | null>(null)
   const ref = useRef<HTMLDivElement>(null)
   const currentEffort = (prefs.effortLevel || 'auto') as EffortLevel
+
+  // Ask Codex which efforts the model that will run supports. Loaded once per
+  // menu open (the main process caches `model/list` for five minutes). Any
+  // failure leaves `catalogue` null, i.e. today's behaviour untouched.
+  useEffect(() => {
+    if (!show) return
+    setCatalogue(null)
+    let cancelled = false
+
+    const load = async () => {
+      try {
+        const active = await window.electronAPI.engineGetActive()
+        if (cancelled || active?.kind !== 'codex') return
+        const chat = useChatStore.getState()
+        const tab = chat.tabs.find(tb => tb.id === chat.activeTabId)
+        const result = await window.electronAPI.codexModelList({
+          cwd: tab?.cwd || usePrefsStore.getState().prefs.workingDir || undefined,
+          sessionId: chat.streamSessionId || undefined,
+        })
+        if (cancelled || !result?.success) return
+        const models = result.models ?? []
+        const wanted = resolveEffectiveModel(
+          usePrefsStore.getState().prefs.model,
+          personaModelOf(usePrefsStore.getState().prefs, useChatStore.getState().sessionPersonaId),
+          useChatStore.getState().sessionModelOverride,
+        )
+        // An id outside the catalogue (e.g. the Claude default prefs still
+        // carry) is stripped before it reaches Codex, so the default model runs.
+        const row = models.find(m => m.model === wanted || m.id === wanted)
+          ?? models.find(m => m.isDefault)
+        const efforts = (row?.supportedReasoningEfforts ?? [])
+          .map(o => o.reasoningEffort)
+          .filter(Boolean)
+        if (!row || efforts.length === 0) return
+        setCatalogue({ efforts, model: row.displayName || row.model || row.id })
+      } catch {
+        // A read-only probe must never change what the menu offers.
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [show])
+
+  // `auto` always means "whatever the engine decides", so it is never disabled.
+  const isUnsupported = (level: EffortLevel): boolean =>
+    !!catalogue && level !== 'auto' && !catalogue.efforts.includes(level)
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -73,7 +145,7 @@ export default function EffortPicker() {
   const triggerBorder = isNonDefault
     ? triggerHovered ? `${color}88` : `${color}55`
     : triggerHovered ? 'var(--bg-active)' : 'var(--border)'
-  const triggerColor = isNonDefault ? color : 'var(--text-secondary)'
+  const triggerColor = isNonDefault ? EFFORT_TEXT_COLORS[currentEffort] : 'var(--text-secondary)'
 
   return (
     <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
@@ -143,6 +215,7 @@ export default function EffortPicker() {
           {EFFORT_OPTIONS.map(level => {
             const isSelected = level === currentEffort
             const lvlColor = EFFORT_COLORS[level]
+            const unsupported = isUnsupported(level)
             return (
               <EffortOption
                 key={level}
@@ -151,6 +224,9 @@ export default function EffortPicker() {
                 lvlColor={lvlColor}
                 label={t(`effort.${level}`)}
                 hint={t(`effort.${level}Hint`)}
+                unavailableReason={unsupported && catalogue
+                  ? t('codex.effort.unsupported', { model: catalogue.model })
+                  : undefined}
                 onSelect={handleSelect}
               />
             )
@@ -167,21 +243,24 @@ interface EffortOptionProps {
   lvlColor: string
   label: string
   hint: string
+  /** Set when the running model does not advertise this level; blocks selection. */
+  unavailableReason?: string
   onSelect: (level: EffortLevel) => void
 }
 
-function EffortOption({ level, isSelected, lvlColor, label, hint, onSelect }: EffortOptionProps) {
+function EffortOption({ level, isSelected, lvlColor, label, hint, unavailableReason, onSelect }: EffortOptionProps) {
   const [hovered, setHovered] = useState(false)
+  const unavailable = !!unavailableReason
 
   const bg = isSelected
     ? 'rgba(99,102,241,0.20)'
-    : hovered
+    : hovered && !unavailable
     ? 'var(--bg-hover)'
     : 'transparent'
 
   const textColor = isSelected
     ? '#a5b4fc'
-    : hovered
+    : hovered && !unavailable
     ? 'var(--text-primary)'
     : 'var(--text-secondary)'
 
@@ -189,7 +268,9 @@ function EffortOption({ level, isSelected, lvlColor, label, hint, onSelect }: Ef
     <button
       role="option"
       aria-selected={isSelected}
-      onClick={() => onSelect(level)}
+      aria-disabled={unavailable || undefined}
+      title={unavailableReason}
+      onClick={() => { if (!unavailable) onSelect(level) }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -204,7 +285,10 @@ function EffortOption({ level, isSelected, lvlColor, label, hint, onSelect }: Ef
         borderLeft: isSelected ? '2px solid rgba(99,102,241,0.40)' : '2px solid transparent',
         borderRadius: 7,
         color: textColor,
-        cursor: 'pointer',
+        // `aria-disabled`, not `disabled`: a disabled button swallows the
+        // hover that shows the `title` explaining why.
+        cursor: unavailable ? 'not-allowed' : 'pointer',
+        opacity: unavailable ? 0.45 : 1,
         fontSize: 12,
         fontWeight: isSelected ? 600 : 500,
         lineHeight: 1.4,

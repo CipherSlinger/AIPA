@@ -340,6 +340,29 @@ export type AutomationMutationData =
   | { ok: true; job: AutomationJobData }
   | { ok: false; error: string }
 
+/**
+ * `cli:sendMessage` arguments. The main process still validates every field;
+ * this type only names the ones the renderer actually sends.
+ */
+export interface CliSendMessageArgsData {
+  prompt: string
+  /** Structured Codex `UserInput[]`; the Claude bridge parses `prompt` itself. */
+  input?: unknown[]
+  cwd?: string
+  sessionId?: string
+  activeBridgeId?: string
+  /** Effective model for this turn; the main process strips Claude ids for Codex. */
+  model?: string
+  /**
+   * Reasoning-effort preference (`prefs.effortLevel`). The main process drops it
+   * unless the model that will run advertises that value.
+   */
+  effort?: string
+  env?: Record<string, string>
+  flags?: string[]
+  permissionMode?: string
+}
+
 const electronAPI = {
   // ── IPC readiness check ────────────────────
   ipcPing: () => ipcRenderer.invoke('ipc:ping') as Promise<{ ok: boolean; timestamp: number }>,
@@ -351,7 +374,7 @@ const electronAPI = {
   ptyDestroy: (sessionId: string) => ipcRenderer.invoke('pty:destroy', sessionId),
 
   // ── CLI stream-json ───────────────────────
-  cliSendMessage: (args: unknown) => ipcRenderer.invoke('cli:sendMessage', args),
+  cliSendMessage: (args: CliSendMessageArgsData) => ipcRenderer.invoke('cli:sendMessage', args),
   cliAbort: (sessionId: string) => ipcRenderer.invoke('cli:abort', sessionId),
   cliRespondPermission: (args: { sessionId: string; requestId: string; allowed: boolean }) =>
     ipcRenderer.invoke('cli:respondPermission', args),

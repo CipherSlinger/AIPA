@@ -3095,6 +3095,9 @@
       "effort": "effort {{level}}",
       "modelMismatch": "This conversation runs on {{running}}, but the model picker shows {{picker}}.",
       "settingsAria": "Settings reported by the Codex thread"
+    },
+    "effort": {
+      "unsupported": "Not supported by {{model}}"
     }
   }
 }

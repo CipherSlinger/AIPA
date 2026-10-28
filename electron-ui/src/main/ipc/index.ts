@@ -980,6 +980,12 @@ async function registerCodexSendMessage(
   const existingBridgeId = args.activeBridgeId as string | undefined
   const prompt = args.prompt as string
   const input = args.input as import('../codex/codex-bridge').CodexUserInput[] | undefined
+  // The renderer's model/effort describe the *chat* engine. A Claude id must
+  // never reach Codex's thread/start or turn/start; `effort` is a Codex
+  // concept and is validated against the model catalogue by the bridge.
+  const requestedModel = pickModelForEngine(typeof args.model === 'string' ? args.model : undefined, 'codex')
+  const requestedEffort = typeof args.effort === 'string' && args.effort ? args.effort : undefined
+  const turnOptions = { ...(requestedModel ? { model: requestedModel } : {}), ...(requestedEffort ? { effort: requestedEffort } : {}) }
   // `/compact` is a renderer-side command; Codex exposes it as thread/compact/start.
   // Sending the literal string would just make the model talk about a slash command.
   const isCompact = /^\/compact\b/.test(prompt.trim())
@@ -1001,7 +1007,7 @@ async function registerCodexSendMessage(
           // once more so the renderer can never stay stuck in "compacting".
           sink('cli:compacted', { sessionId: existingBridgeId })
         } else {
-          await existingBridge.sendFollowUp(prompt, input)
+          await existingBridge.sendFollowUp(prompt, input, turnOptions)
         }
         return { success: true, sessionId: existingBridgeId }
       } catch (err) {
@@ -1025,7 +1031,7 @@ async function registerCodexSendMessage(
           await live.bridge.compactThread()
           sink('cli:compacted', { sessionId: live.bridgeId })
         } else {
-          await live.bridge.sendFollowUp(prompt, input)
+          await live.bridge.sendFollowUp(prompt, input, turnOptions)
         }
         return { success: true, sessionId: live.bridgeId }
       } catch (err) {
@@ -1055,7 +1061,8 @@ async function registerCodexSendMessage(
       ...(input ? { input } : {}),
       cwd: (args.cwd as string) || process.cwd(),
       threadId: (args.sessionId as string) || undefined,
-      model: args.model as string | undefined,
+      model: requestedModel,
+      ...(requestedEffort ? { effort: requestedEffort } : {}),
       env: (args.env as Record<string, string>) || {},
       permissionMode: args.permissionMode as string | undefined,
     },

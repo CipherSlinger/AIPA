@@ -409,9 +409,13 @@ export function useStreamJson() {
       prompt: actualPrompt,
       ...(codexInput ? { input: codexInput } : {}),
       cwd: effectiveCwd,
-      sessionId: currentSessionId,
+      sessionId: currentSessionId ?? undefined,
       activeBridgeId: activeBridgeIdRef.current ?? undefined,
       model: personaTurn.model,
+      // Effort is a global preference (no per-session override); 'auto' means
+      // "let the engine decide", so it is not sent at all. The main process
+      // drops it again if the model that will run does not advertise it.
+      ...(prefs.effortLevel && prefs.effortLevel !== 'auto' ? { effort: prefs.effortLevel } : {}),
       env: {
         // Provide both keys — CodexBridge uses OPENAI_API_KEY, legacy StreamBridge uses ANTHROPIC_API_KEY
         ...(getActiveApiKey() ? { OPENAI_API_KEY: getActiveApiKey(), ANTHROPIC_API_KEY: getActiveApiKey() } : {}),
