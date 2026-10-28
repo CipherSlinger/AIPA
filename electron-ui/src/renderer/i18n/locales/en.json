@@ -195,7 +195,15 @@
     },
     "scheduleConversation": "Schedule this conversation",
     "scheduleConversationHint": "Turn this conversation into a recurring automation",
-    "scheduleConversationPreparing": "Preparing the scheduler…"
+    "scheduleConversationPreparing": "Preparing the scheduler…",
+    "threadStatus": {
+      "waitingApproval": "Waiting on your approval",
+      "waitingApprovalHint": "Codex is blocked until you approve or deny the action it asked about.",
+      "waitingInput": "Waiting on your answer",
+      "waitingInputHint": "Codex is blocked until you answer the question it asked.",
+      "error": "Engine error",
+      "errorHint": "Codex reported a system error. The status carries no further detail, so none is shown."
+    }
   },
   "sessionReuse": {
     "menu": {
@@ -1802,7 +1810,17 @@
     "searchTierUnavailableHint": "The read failed, so matches there may be missing.",
     "searchEmpty": "Nothing in memory matches “{{query}}”",
     "searchEmptyHint": "Try a shorter word — all five tiers above were searched.",
-    "searchKeyboard": "Enter opens the first match · ↑↓ moves · Esc clears"
+    "searchKeyboard": "Enter opens the first match · ↑↓ moves · Esc clears",
+    "unreadableTitle": "Memory files AIPA could not read",
+    "unreadableCount": "{{count}} skipped",
+    "unreadableHint": "These files exist but could not be read, so they were skipped. The rest of memory still loaded and was used.",
+    "unreadableMore": "+{{count}} more",
+    "unreadableReason": {
+      "stat": "file unavailable",
+      "read": "read failed",
+      "parse": "invalid format",
+      "scan": "folder unreadable"
+    }
   },
   "workflow": {
     "title": "Workflows",
@@ -3193,7 +3211,9 @@
         "global-structured": "global files",
         "project-structured": "project files",
         "personal": "personal"
-      }
+      },
+      "unreadable": "{{count}} files unreadable",
+      "unreadableHint": "Some memory files could not be read, so they were skipped and this run continued with the rest. Open Settings → Memory to see which files."
     },
     "pauseAll": {
       "pause": "Pause all",

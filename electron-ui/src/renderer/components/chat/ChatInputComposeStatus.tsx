@@ -2,7 +2,7 @@
 // Displays word/char/token counts, WPM, calculator result, and input history hint.
 
 import React from 'react'
-import { Calculator } from 'lucide-react'
+import { AlertTriangle, Calculator, Clock, MessageCircleQuestion } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useChatStore, usePrefsStore } from '../../store'
 import { personaModelOf, resolveEffectiveModel } from '../../lib/sessionModel'
@@ -43,6 +43,10 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
   // What the Codex thread reports (thread/settings/updated). Reported only —
   // this line never writes prefs or changes what a turn sends.
   const threadSettings = useChatStore(s => s.threadSettings)
+  // Last `thread/status/changed` report, already reduced by the pure mapper.
+  // This line never infers "thinking" from it: only the two waiting flags and
+  // the engine's own error produce a chip.
+  const threadStatus = useChatStore(s => s.threadStatus)
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
   const sessionModelOverride = useChatStore(s => s.sessionModelOverride)
   const pickerModel = usePrefsStore(s =>
@@ -64,6 +68,39 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
   const isNearLimit = input.length > 5000
 
   const charColor = isOverLimit ? '#fca5a5' : isNearLimit ? '#fbbf24' : 'var(--text-muted)'
+
+  // A compact "the engine is blocked on you" chip. The text names which kind of
+  // request it is; the tooltip says what is expected. The error variant states
+  // only that the engine reported an error — `systemError` carries no detail,
+  // so no cause is invented.
+  const statusChip = threadStatus?.kind === 'waitingApproval'
+    ? {
+        Icon: Clock,
+        label: t('chat.threadStatus.waitingApproval'),
+        hint: t('chat.threadStatus.waitingApprovalHint'),
+        color: 'rgba(251,191,36,0.92)',
+        background: 'rgba(251,191,36,0.10)',
+        border: 'rgba(251,191,36,0.25)',
+      }
+    : threadStatus?.kind === 'waitingInput'
+      ? {
+          Icon: MessageCircleQuestion,
+          label: t('chat.threadStatus.waitingInput'),
+          hint: t('chat.threadStatus.waitingInputHint'),
+          color: 'rgba(165,180,252,0.92)',
+          background: 'rgba(99,102,241,0.10)',
+          border: 'rgba(99,102,241,0.25)',
+        }
+      : threadStatus?.kind === 'error'
+        ? {
+            Icon: AlertTriangle,
+            label: t('chat.threadStatus.error'),
+            hint: t('chat.threadStatus.errorHint'),
+            color: 'rgba(248,113,113,0.92)',
+            background: 'rgba(239,68,68,0.10)',
+            border: 'rgba(239,68,68,0.25)',
+          }
+        : null
 
   return (
     <>
@@ -117,8 +154,11 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
           )}
         </div>
       )}
-      {/* Compose status */}
-      {trimmed.length > 0 && (
+      {/* Compose status — also the home of the engine's "waiting on you" chip,
+          so a user who came back to the window sees the block without a new
+          row of chrome. The row exists whenever either signal has something to
+          say; an empty composer with no chip keeps it hidden as before. */}
+      {(statusChip || trimmed.length > 0) && (
         <div style={{
           display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6,
           padding: '3px 12px',
@@ -129,23 +169,47 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
           transition: 'all 0.15s ease',
           lineHeight: 1.5,
         }}>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
-            {trimmed.split(/\s+/).filter(w => w.length > 0).length} {t('chat.words')}
-          </span>
-          {SEP}
-          <span style={{ fontSize: 10, color: charColor, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"', fontWeight: isOverLimit ? 600 : 400 }}>
-            {input.length.toLocaleString()} {t('chat.chars')}{isOverLimit ? ` (${t('chat.veryLong')})` : isNearLimit ? ` (${t('chat.long')})` : ''}
-          </span>
-          {SEP}
-          <span style={{ fontSize: 10, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
-            {t('message.approxTokens', { count: String(Math.ceil(input.length / 4)) })}
-          </span>
-          {typingWpm > 0 && (
+          {statusChip && (
+            <span
+              role="status"
+              aria-label={statusChip.hint}
+              title={statusChip.hint}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                marginRight: 'auto',
+                fontSize: 11, fontWeight: 600,
+                color: statusChip.color,
+                background: statusChip.background,
+                border: `1px solid ${statusChip.border}`,
+                borderRadius: 10, padding: '2px 8px',
+                whiteSpace: 'nowrap', userSelect: 'none',
+              }}
+            >
+              <statusChip.Icon size={11} />
+              {statusChip.label}
+            </span>
+          )}
+          {trimmed.length > 0 && (
             <>
-              {SEP}
-              <span style={{ fontSize: 10, color: typingWpm > 60 ? 'rgba(165,180,252,0.60)' : 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
-                {typingWpm} {t('chat.wpm')}
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+                {trimmed.split(/\s+/).filter(w => w.length > 0).length} {t('chat.words')}
               </span>
+              {SEP}
+              <span style={{ fontSize: 10, color: charColor, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"', fontWeight: isOverLimit ? 600 : 400 }}>
+                {input.length.toLocaleString()} {t('chat.chars')}{isOverLimit ? ` (${t('chat.veryLong')})` : isNearLimit ? ` (${t('chat.long')})` : ''}
+              </span>
+              {SEP}
+              <span style={{ fontSize: 10, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+                {t('message.approxTokens', { count: String(Math.ceil(input.length / 4)) })}
+              </span>
+              {typingWpm > 0 && (
+                <>
+                  {SEP}
+                  <span style={{ fontSize: 10, color: typingWpm > 60 ? 'rgba(165,180,252,0.60)' : 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+                    {typingWpm} {t('chat.wpm')}
+                  </span>
+                </>
+              )}
             </>
           )}
         </div>
@@ -164,8 +228,9 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
           <span style={{ fontSize: 9, color: 'var(--text-muted)', marginLeft: 4 }}>{t('chat.calcTabHint')}</span>
         </div>
       )}
-      {/* Input history hint */}
-      {input.length === 0 && hasInputHistory && (
+      {/* Input history hint — the status chip is more urgent; do not stack a
+          second hint row under it. */}
+      {input.length === 0 && hasInputHistory && !statusChip && (
         <div style={{
           display: 'flex', justifyContent: 'center', padding: '3px 12px',
           background: 'var(--glass-bg-mid)',

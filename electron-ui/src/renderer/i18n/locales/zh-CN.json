@@ -195,7 +195,15 @@
     },
     "scheduleConversation": "定时运行这段对话",
     "scheduleConversationHint": "把这段对话变成可重复运行的定时任务",
-    "scheduleConversationPreparing": "正在准备定时任务…"
+    "scheduleConversationPreparing": "正在准备定时任务…",
+    "threadStatus": {
+      "waitingApproval": "等你批准",
+      "waitingApprovalHint": "Codex 正停在这里，等你批准或拒绝它请求的操作。",
+      "waitingInput": "等你回答",
+      "waitingInputHint": "Codex 正停在这里，等你回答它提出的问题。",
+      "error": "引擎错误",
+      "errorHint": "Codex 报告了系统错误。该状态没有附带更多细节，这里也不做猜测。"
+    }
   },
   "sessionReuse": {
     "menu": {
@@ -1802,7 +1810,17 @@
     "searchTierUnavailableHint": "读取失败，这一层可能有未显示的匹配。",
     "searchEmpty": "记忆中没有匹配“{{query}}”的内容",
     "searchEmptyHint": "试试更短的词——上方五个层级都已搜索。",
-    "searchKeyboard": "回车打开第一条 · ↑↓ 移动 · Esc 清除"
+    "searchKeyboard": "回车打开第一条 · ↑↓ 移动 · Esc 清除",
+    "unreadableTitle": "AIPA 无法读取的记忆文件",
+    "unreadableCount": "已跳过 {{count}} 个",
+    "unreadableHint": "这些文件存在但无法读取，因此已被跳过。其余记忆仍已加载并使用。",
+    "unreadableMore": "还有 {{count}} 个",
+    "unreadableReason": {
+      "stat": "文件不可用",
+      "read": "读取失败",
+      "parse": "格式无效",
+      "scan": "目录无法读取"
+    }
   },
   "workflow": {
     "title": "工作流",
@@ -3193,7 +3211,9 @@
         "global-structured": "全局文件",
         "project-structured": "项目文件",
         "personal": "个人"
-      }
+      },
+      "unreadable": "{{count}} 个文件无法读取",
+      "unreadableHint": "部分记忆文件无法读取，已被跳过，本次运行继续使用了其余记忆。打开 设置 → 记忆 查看具体文件。"
     },
     "pauseAll": {
       "pause": "全部暂停",

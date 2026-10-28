@@ -206,6 +206,8 @@ export default function SettingsAutomations() {
     text: string
     title: string
     color?: string
+    /** A successful snapshot that still skipped some files, shown separately. */
+    unreadable?: { text: string; title: string }
   } | null => {
     if (!memory) return null
     if (memory.state === 'failed') {
@@ -215,14 +217,23 @@ export default function SettingsAutomations() {
         color: WARNING,
       }
     }
+    // A failed whole-read keeps "memory unavailable" precedence; this clause is
+    // only for a run that continued with the files it could load.
+    const unreadable = memory.unreadable > 0
+      ? {
+          text: t('automation.memory.unreadable', { count: memory.unreadable }),
+          title: t('automation.memory.unreadableHint'),
+        }
+      : undefined
     if (memory.tiers.length === 0 && memory.chars === 0) {
-      return { text: t('automation.memory.empty'), title: t('automation.memory.emptyHint') }
+      return { text: t('automation.memory.empty'), title: t('automation.memory.emptyHint'), unreadable }
     }
     const tiers = memory.tiers.map(tier => t(`automation.memory.tier.${tier}`)).join(' · ')
     const chars = t('automation.memory.chars', { count: formatTokens(memory.chars) })
     return {
       text: tiers ? t('automation.memory.summary', { tiers, chars }) : chars,
       title: t('automation.memory.title'),
+      unreadable,
     }
   }, [t])
 
@@ -973,6 +984,13 @@ export default function SettingsAutomations() {
                                     title={memory.title}
                                   >
                                     {memory.text}
+                                  </span>
+                                )}
+                                {memory?.unreadable && (
+                                  // Warning-toned because the run lost part of
+                                  // memory, even though it did continue.
+                                  <span style={{ color: WARNING }} title={memory.unreadable.title}>
+                                    {memory.unreadable.text}
                                   </span>
                                 )}
                                 {memoryTruncated && (

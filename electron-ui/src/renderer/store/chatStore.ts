@@ -3,6 +3,7 @@
 import { create } from 'zustand'
 import { ChatMessage, ElicitationMessage, HookCallbackMessage, PermissionMessage, PlanMessage, StandardChatMessage } from '../types/app.types'
 import { sessionModelStorageKey } from '../lib/sessionModel'
+import type { ThreadStatusChip } from '../components/chat/threadStatusText'
 
 // ── Task Queue types ─────────────────────────────
 export interface TaskQueueItem {
@@ -388,6 +389,12 @@ interface ChatState {
   setThreadSettings: (settings: ThreadSettingsSummary | null) => void
   clearThreadSettings: () => void
 
+  // Last `thread/status/changed` report, reduced to what the composer shows.
+  // Null means no live claim. The mapping rules (including idle / notLoaded /
+  // malformed → no chip) live in components/chat/threadStatusText.ts.
+  threadStatus: ThreadStatusChip | null
+  setThreadStatus: (status: ThreadStatusChip | null) => void
+
   // Temporary system prompt override (Iteration 523): set per-session, cleared on new conversation
   tempSystemPrompt: string | null
   setTempSystemPrompt: (prompt: string | null) => void
@@ -493,6 +500,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   changedFiles: [],
   turnDiff: null,
   threadSettings: null,
+  threadStatus: null,
   tempSystemPrompt: null,
   hookEvents: [],
   dreamEvents: [],
@@ -702,6 +710,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       changedFiles: [],
       turnDiff: null,
       threadSettings: null,
+      threadStatus: null,
       tempSystemPrompt: null,
       hookEvents: [],
       dreamEvents: [],
@@ -1083,6 +1092,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   clearTurnDiff: () => set({ turnDiff: null }),
   setThreadSettings: (threadSettings) => set({ threadSettings }),
   clearThreadSettings: () => set({ threadSettings: null }),
+  setThreadStatus: (threadStatus) => set({ threadStatus }),
 
   // Temp system prompt override (Iteration 523)
   setTempSystemPrompt: (prompt) => set({ tempSystemPrompt: prompt }),
@@ -1243,6 +1253,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         isPlanMode: false,
         turnDiff: null,
         threadSettings: null,
+        threadStatus: null,
         tempSystemPrompt: null,
       })
       return
@@ -1273,6 +1284,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             // snapshot does not carry one, so the reopened tab starts clean.
             turnDiff: null,
             threadSettings: null,
+            threadStatus: null,
             isStreaming: false,
           })
         } else {
@@ -1312,6 +1324,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           sessionModelOverride: newActive.snapshot.sessionModelOverride,
           turnDiff: null,
           threadSettings: null,
+          threadStatus: null,
           isStreaming: false,
         })
       } else {
@@ -1377,11 +1390,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
         sessionModelOverride: targetTab.snapshot.sessionModelOverride,
         turnDiff: null,
         threadSettings: null,
+        threadStatus: null,
         isStreaming: false,
       })
     } else {
-      // Tab has no snapshot (already live) — just update tabs & activeTabId
-      set({ tabs: updatedTabs, activeTabId: tabId })
+      // Tab has no snapshot (already live) — just update tabs & activeTabId.
+      // The status chip describes the thread that was on screen; a switch
+      // retires it even on this fallback path.
+      set({ tabs: updatedTabs, activeTabId: tabId, threadStatus: null })
     }
   },
 

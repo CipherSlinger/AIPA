@@ -105,6 +105,14 @@ const TIER_META: Record<TierKey, TierMeta> = {
 
 const TRUNCATION_MARKER = '\n… [truncated to fit the memory budget]'
 
+/** Mirrors main's `MemoryUnreadable`; diagnostics only, never prompt content. */
+export interface MemoryUnreadableEntry {
+  path: string
+  scope: 'global' | 'project'
+  reason: 'stat' | 'read' | 'parse' | 'scan'
+  projectHash?: string
+}
+
 export interface MemoryContextResult {
   /** The block to append to the system prompt, or '' when no tier had content. */
   text: string
@@ -114,6 +122,8 @@ export interface MemoryContextResult {
   omitted: TierKey[]
   /** Characters of content that survived per tier (labels excluded). */
   used: Partial<Record<TierKey, number>>
+  /** Memory paths that existed but could not be read. Never enters `text`. */
+  unreadable: MemoryUnreadableEntry[]
 }
 
 /**
@@ -307,7 +317,7 @@ export async function assembleMemoryContext(input: {
 
   const applied = TIER_ORDER.filter((key) => allocated.has(key))
   if (applied.length === 0) {
-    return { text: '', applied, omitted, used: {} }
+    return { text: '', applied, omitted, used: {}, unreadable: [] }
   }
 
   const blocks = applied.map((key) => {
@@ -331,6 +341,8 @@ export async function assembleMemoryContext(input: {
     applied,
     omitted,
     used,
+    // The fallback reads what it can; it has no diagnosis channel of its own.
+    unreadable: [],
   }
 }
 
@@ -363,6 +375,11 @@ export async function assembleMemoryContextForTurn(input: {
           applied: remote.applied as MemoryContextResult['applied'],
           omitted: remote.omitted as MemoryContextResult['omitted'],
           used: remote.used as MemoryContextResult['used'],
+          // Copy every field the remote result carries; a field omitted here
+          // is silently lost to the caller even though the IPC sent it.
+          unreadable: Array.isArray(remote.unreadable)
+            ? remote.unreadable as MemoryUnreadableEntry[]
+            : [],
         }
       }
     } catch {

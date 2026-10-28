@@ -99,6 +99,12 @@ export interface AutomationMemoryDigest {
   chars: number
   /** A tier was shortened or dropped to fit the memory budget. */
   truncated: boolean
+  /**
+   * How many memory paths existed but could not be read. A count only — never
+   * paths or contents, because the digest is persisted in `automations.json`.
+   * Absent on records written before this field existed; restored as 0.
+   */
+  unreadable: number
 }
 
 /**

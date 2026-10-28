@@ -9,6 +9,7 @@ import { useAutoMemory } from './useAutoMemory'
 import { assembleMemoryContextForTurn } from './promptMemory'
 import { composeSystemPromptParts, resolvePersonaTurnSettings } from './promptAssembly'
 import { listSessionsShared } from '../utils/sessionListShared'
+import { describeThreadStatus } from '../components/chat/threadStatusText'
 // parseTokenBudget used by token display utilities
 // import { parseTokenBudget } from '../utils/tokenUtils'
 
@@ -457,6 +458,8 @@ export function useStreamJson() {
     const chatState = useChatStore.getState()
     chatState.denyPendingPermissions()
     chatState.cancelPendingInteractiveMessages()
+    // Interrupting the turn retires any "waiting on you" claim it made.
+    chatState.setThreadStatus(null)
     stopStreamingAndReleaseSleep()
   }, [stopStreamingAndReleaseSleep])
 
@@ -650,6 +653,9 @@ export function useStreamJson() {
               break
             }
           }
+          // A turn has ended, so no status from inside it can still be true:
+          // a "waiting on you" chip must not outlive the turn it described.
+          useChatStore.getState().setThreadStatus(null)
           stopStreamingAndReleaseSleep()
           // Auto-compact refuses to run while streaming (it would interrupt the
           // turn), so the post-turn check has to happen after the flag clears.
@@ -1088,6 +1094,8 @@ export function useStreamJson() {
         case 'cli:processExit':
           useChatStore.getState().denyPendingPermissions()
           useChatStore.getState().cancelPendingInteractiveMessages()
+          // The bridge is gone: no status it reported can still be live.
+          useChatStore.getState().setThreadStatus(null)
           activeBridgeIdRef.current = null
           // Reset compact state if process exits mid-compact (Iteration 519)
           {
@@ -1190,6 +1198,25 @@ export function useStreamJson() {
             diff,
             truncated: data.truncated === true,
           })
+          break
+        }
+        case 'cli:threadStatusChanged': {
+          // `thread/status/changed`, reduced to a composer chip. This is a
+          // thread-level report, so it uses the same ownership rule as the
+          // settings report: only the bridge this composer started (or the
+          // pending conversation) may paint it. Malformed payloads and unknown
+          // variants map to `hidden`, which clears the chip instead of guessing.
+          if (!isThreadReportForActiveConversation(data, activeBridgeIdRef.current)) break
+          const chip = describeThreadStatus(data)
+          useChatStore.getState().setThreadStatus(chip.kind === 'hidden' ? null : chip)
+          break
+        }
+        case 'cli:threadStarted': {
+          // `thread/started`: the conversation moved to a different thread, so
+          // the previous thread's "waiting on you" claim is no longer about
+          // what is on screen.
+          if (!isThreadReportForActiveConversation(data, activeBridgeIdRef.current)) break
+          useChatStore.getState().setThreadStatus(null)
           break
         }
         case 'cli:threadSettingsUpdated': {

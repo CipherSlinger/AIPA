@@ -32,6 +32,34 @@ export interface MemoryFile {
   mtime: number
 }
 
+/** Every way a memory path can fail without throwing out of assembly. */
+export type MemoryUnreadableReason = 'stat' | 'read' | 'parse' | 'scan'
+
+/**
+ * A memory path that existed but could not be read.
+ *
+ * A missing file is deliberately absent: "nothing there" is not the same fact
+ * as "there, but broken", and only the second one is worth telling a user
+ * about. Paths are diagnostics, never prompt content.
+ */
+export interface MemoryUnreadable {
+  path: string
+  scope: 'global' | 'project'
+  reason: MemoryUnreadableReason
+  projectHash?: string
+}
+
+export interface MemoryFileListing {
+  files: MemoryFile[]
+  unreadable: MemoryUnreadable[]
+}
+
+/**
+ * Cap on diagnostic entries, so a directory full of broken files cannot bloat
+ * a prompt response or a persisted run record.
+ */
+export const MAX_MEMORY_UNREADABLE = 50
+
 function getClaudeDir(): string {
   return path.join(os.homedir(), '.claude')
 }
@@ -62,6 +90,8 @@ interface CachedFile {
   mtimeMs: number
   size: number
   memory: MemoryFile | null
+  /** Why the file produced no memory; undefined when `memory` is present. */
+  reason?: 'stat' | 'read' | 'parse'
 }
 const fileCache = new Map<string, CachedFile>()
 
@@ -73,138 +103,234 @@ const dirCache = new Map<string, CachedDir>()
 
 let projectsCache: { mtimeMs: number; hashes: string[] } | null = null
 
-function statDirectory(dir: string): fs.Stats | null {
+/** A failed stat is only worth reporting when the path is not simply absent. */
+function isMissingError(err: unknown): boolean {
+  const code = (err as NodeJS.ErrnoException | undefined)?.code
+  return code === 'ENOENT' || code === 'ENOTDIR'
+}
+
+interface DirectoryStat {
+  stat: fs.Stats | null
+  /** Set only when the path exists but could not be used as a directory. */
+  error?: unknown
+}
+
+function statDirectoryDetailed(dir: string): DirectoryStat {
   try {
-    const st = fs.statSync(dir)
-    return st.isDirectory() ? st : null
-  } catch {
-    return null
+    const stat = fs.statSync(dir)
+    // A file where a memory directory is expected is not worth reporting; the
+    // old code treated it as absent, and a missing directory is not a failure.
+    return stat.isDirectory() ? { stat } : { stat: null }
+  } catch (err) {
+    return { stat: null, error: err }
   }
+}
+
+interface DirectoryListing {
+  files: string[]
+  /** True when the directory exists but its entries could not be listed. */
+  scanError: boolean
 }
 
 /** Markdown filenames in `dir`; reused verbatim while the directory mtime holds. */
-function listMarkdownFiles(dir: string, st: fs.Stats): string[] {
+function listMarkdownFiles(dir: string, st: fs.Stats): DirectoryListing {
   const cached = dirCache.get(dir)
-  if (cached && cached.mtimeMs === st.mtimeMs) return cached.mdFiles
+  if (cached && cached.mtimeMs === st.mtimeMs) return { files: cached.mdFiles, scanError: false }
   try {
     const mdFiles = fs.readdirSync(dir).filter(f => f.endsWith('.md'))
     dirCache.set(dir, { mtimeMs: st.mtimeMs, mdFiles })
-    return mdFiles
+    return { files: mdFiles, scanError: false }
   } catch {
     dirCache.delete(dir)
-    return []
+    return { files: [], scanError: true }
   }
 }
 
-function parseMemoryFile(
+interface ParsedMemory {
+  memory: MemoryFile | null
+  /** `read` for an I/O failure, `parse` for a broken frontmatter block. */
+  reason?: 'read' | 'parse'
+}
+
+interface CachedParse {
+  memory: MemoryFile | null
+  /** Adds `stat` because a file can also disappear or be unreadable at stat time. */
+  reason?: 'stat' | 'read' | 'parse'
+}
+
+function parseMemoryFileDetailed(
   filePath: string,
   scope: 'global' | 'project',
   projectHash?: string,
   st?: fs.Stats,
-): MemoryFile | null {
+): ParsedMemory {
+  let raw: string
   try {
-    const raw = fs.readFileSync(filePath, 'utf-8')
-    const fmMatch = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/)
+    raw = fs.readFileSync(filePath, 'utf-8')
+  } catch {
+    return { memory: null, reason: 'read' }
+  }
 
-    let name = path.basename(filePath, '.md')
-    let description = ''
-    let type: MemoryFile['type'] = 'unknown'
-    let content = raw
+  const fmMatch = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/)
+  // An opening fence with no closing fence is a broken file, not a memory
+  // whose body happens to start with dashes. Every other shape keeps the old
+  // fallback (the whole file becomes content), so prompt text does not move.
+  if (!fmMatch && raw.startsWith('---\n')) {
+    return { memory: null, reason: 'parse' }
+  }
 
-    if (fmMatch) {
-      const frontmatter = fmMatch[1]
-      content = fmMatch[2].trim()
-      const nameMatch = frontmatter.match(/^name:\s*(.+)$/m)
-      const descMatch = frontmatter.match(/^description:\s*(.+)$/m)
-      const typeMatch = frontmatter.match(/^type:\s*(.+)$/m)
-      if (nameMatch) name = nameMatch[1].trim()
-      if (descMatch) description = descMatch[1].trim()
-      if (typeMatch) {
-        const t = typeMatch[1].trim()
-        if (['user', 'feedback', 'project', 'reference'].includes(t)) {
-          type = t as MemoryFile['type']
-        }
+  let name = path.basename(filePath, '.md')
+  let description = ''
+  let type: MemoryFile['type'] = 'unknown'
+  let content = raw
+
+  if (fmMatch) {
+    const frontmatter = fmMatch[1]
+    content = fmMatch[2].trim()
+    const nameMatch = frontmatter.match(/^name:\s*(.+)$/m)
+    const descMatch = frontmatter.match(/^description:\s*(.+)$/m)
+    const typeMatch = frontmatter.match(/^type:\s*(.+)$/m)
+    if (nameMatch) name = nameMatch[1].trim()
+    if (descMatch) description = descMatch[1].trim()
+    if (typeMatch) {
+      const t = typeMatch[1].trim()
+      if (['user', 'feedback', 'project', 'reference'].includes(t)) {
+        type = t as MemoryFile['type']
       }
     }
-
-    let mtime = 0
-    try { mtime = (st ?? fs.statSync(filePath)).mtimeMs } catch { /* ignore */ }
-    return { filePath, name, description, type, content, scope, projectHash, mtime }
-  } catch {
-    return null
   }
+
+  let mtime = 0
+  try { mtime = (st ?? fs.statSync(filePath)).mtimeMs } catch { /* ignore */ }
+  return { memory: { filePath, name, description, type, content, scope, projectHash, mtime } }
 }
 
 /**
  * Parse one file, reusing the previous parse while (mtime, size) is unchanged.
  * A stat is still required to notice an edit; the expensive read/parse is not.
  */
-function parseMemoryFileCached(
+function parseMemoryFileCachedDetailed(
   filePath: string,
   scope: 'global' | 'project',
   projectHash?: string,
-): MemoryFile | null {
+): CachedParse {
   let st: fs.Stats
   try {
     st = fs.statSync(filePath)
-  } catch {
+  } catch (err) {
     fileCache.delete(filePath)
-    return null
+    // A file that vanished between readdir and stat is missing, not broken.
+    return { memory: null, reason: isMissingError(err) ? undefined : 'stat' }
+  }
+  // A directory can carry a `.md` name; reading it always fails, so report it
+  // as a read failure rather than silently dropping the entry.
+  if (st.isDirectory()) {
+    fileCache.set(filePath, { mtimeMs: st.mtimeMs, size: st.size, memory: null, reason: 'read' })
+    return { memory: null, reason: 'read' }
   }
   const cached = fileCache.get(filePath)
   if (cached && cached.mtimeMs === st.mtimeMs && cached.size === st.size) {
-    return cached.memory
+    return { memory: cached.memory, reason: cached.memory ? undefined : cached.reason }
   }
-  const memory = parseMemoryFile(filePath, scope, projectHash, st)
-  fileCache.set(filePath, { mtimeMs: st.mtimeMs, size: st.size, memory })
-  return memory
+  const parsed = parseMemoryFileDetailed(filePath, scope, projectHash, st)
+  fileCache.set(filePath, {
+    mtimeMs: st.mtimeMs,
+    size: st.size,
+    memory: parsed.memory,
+    reason: parsed.reason,
+  })
+  return parsed
 }
 
-/** List global memory files from ~/.claude/memory/ */
-function listGlobalMemories(): MemoryFile[] {
+/** List global memory files from ~/.claude/memory/, reporting what failed. */
+function listGlobalMemoriesDetailed(): MemoryFileListing {
   const memDir = getGlobalMemoryDir()
-  const st = statDirectory(memDir)
-  if (!st) return []
-  const results: MemoryFile[] = []
-  for (const f of listMarkdownFiles(memDir, st)) {
-    const m = parseMemoryFileCached(path.join(memDir, f), 'global')
-    if (m) results.push(m)
+  const { stat, error } = statDirectoryDetailed(memDir)
+  const unreadable: MemoryUnreadable[] = []
+  if (!stat) {
+    if (error && !isMissingError(error)) {
+      unreadable.push({ path: memDir, scope: 'global', reason: 'stat' })
+    }
+    return { files: [], unreadable }
   }
-  return results
+
+  const files: MemoryFile[] = []
+  const listing = listMarkdownFiles(memDir, stat)
+  if (listing.scanError) {
+    unreadable.push({ path: memDir, scope: 'global', reason: 'scan' })
+  }
+  for (const name of listing.files) {
+    const filePath = path.join(memDir, name)
+    const parsed = parseMemoryFileCachedDetailed(filePath, 'global')
+    if (parsed.memory) files.push(parsed.memory)
+    else if (parsed.reason) unreadable.push({ path: filePath, scope: 'global', reason: parsed.reason })
+  }
+  return { files, unreadable }
+}
+
+interface ProjectHashes {
+  hashes: string[]
+  unreadable: MemoryUnreadable[]
 }
 
 /** Project hashes under ~/.claude/projects, reused while that directory is unchanged. */
-function readProjectHashes(): string[] {
+function readProjectHashesDetailed(): ProjectHashes {
   const projectsDir = path.join(getClaudeDir(), 'projects')
-  const st = statDirectory(projectsDir)
-  if (!st) {
+  const { stat, error } = statDirectoryDetailed(projectsDir)
+  if (!stat) {
     projectsCache = null
-    return []
+    const unreadable: MemoryUnreadable[] = []
+    if (error && !isMissingError(error)) {
+      unreadable.push({ path: projectsDir, scope: 'project', reason: 'scan' })
+    }
+    return { hashes: [], unreadable }
   }
-  if (projectsCache && projectsCache.mtimeMs === st.mtimeMs) return projectsCache.hashes
+  if (projectsCache && projectsCache.mtimeMs === stat.mtimeMs) {
+    return { hashes: projectsCache.hashes, unreadable: [] }
+  }
   try {
     const hashes = fs.readdirSync(projectsDir).filter(isValidProjectHash)
-    projectsCache = { mtimeMs: st.mtimeMs, hashes }
-    return hashes
+    projectsCache = { mtimeMs: stat.mtimeMs, hashes }
+    return { hashes, unreadable: [] }
   } catch {
-    return []
+    projectsCache = null
+    return { hashes: [], unreadable: [{ path: projectsDir, scope: 'project', reason: 'scan' }] }
   }
 }
 
-/** List project-scoped memory files */
-function listProjectMemories(): MemoryFile[] {
+function readProjectHashes(): string[] {
+  return readProjectHashesDetailed().hashes
+}
+
+/** List project-scoped memory files, reporting what failed. */
+function listProjectMemoriesDetailed(): MemoryFileListing {
   const projectsDir = path.join(getClaudeDir(), 'projects')
-  const results: MemoryFile[] = []
-  for (const hash of readProjectHashes()) {
+  const files: MemoryFile[] = []
+  const { hashes, unreadable } = readProjectHashesDetailed()
+  for (const hash of hashes) {
     const memDir = path.join(projectsDir, hash, 'memory')
-    const st = statDirectory(memDir)
-    if (!st) continue
-    for (const f of listMarkdownFiles(memDir, st)) {
-      const m = parseMemoryFileCached(path.join(memDir, f), 'project', hash)
-      if (m) results.push(m)
+    const { stat, error } = statDirectoryDetailed(memDir)
+    if (!stat) {
+      // A project with no memory directory is the common case, not a failure.
+      if (error && !isMissingError(error)) {
+        unreadable.push({ path: memDir, scope: 'project', reason: 'stat', projectHash: hash })
+      }
+      continue
+    }
+    const listing = listMarkdownFiles(memDir, stat)
+    if (listing.scanError) {
+      unreadable.push({ path: memDir, scope: 'project', reason: 'scan', projectHash: hash })
+    }
+    for (const name of listing.files) {
+      const filePath = path.join(memDir, name)
+      const parsed = parseMemoryFileCachedDetailed(filePath, 'project', hash)
+      if (parsed.memory) files.push(parsed.memory)
+      else if (parsed.reason) {
+        unreadable.push({ path: filePath, scope: 'project', reason: parsed.reason, projectHash: hash })
+      }
     }
   }
-  return results
+  return { files, unreadable }
 }
 
 /** Drop cached filesystem state after this module writes; safe to over-clear. */
@@ -214,10 +340,30 @@ function invalidateMemoryCache(filePath?: string): void {
   projectsCache = null
 }
 
+/**
+ * List memory files together with the paths that existed but could not be
+ * read. Best-effort: one broken file never throws out of assembly, and a
+ * missing file is never reported as unreadable.
+ */
+export function listMemoryFilesDetailed(scope?: 'global' | 'project' | 'all'): MemoryFileListing {
+  const files: MemoryFile[] = []
+  const unreadable: MemoryUnreadable[] = []
+  if (scope !== 'project') {
+    const global = listGlobalMemoriesDetailed()
+    files.push(...global.files)
+    unreadable.push(...global.unreadable)
+  }
+  if (scope !== 'global') {
+    const project = listProjectMemoriesDetailed()
+    files.push(...project.files)
+    unreadable.push(...project.unreadable)
+  }
+  return { files, unreadable: unreadable.slice(0, MAX_MEMORY_UNREADABLE) }
+}
+
+/** Thin wrapper for callers that only need the files. */
 export function listMemoryFiles(scope?: 'global' | 'project' | 'all'): MemoryFile[] {
-  if (scope === 'global') return listGlobalMemories()
-  if (scope === 'project') return listProjectMemories()
-  return [...listGlobalMemories(), ...listProjectMemories()]
+  return listMemoryFilesDetailed(scope).files
 }
 
 /**

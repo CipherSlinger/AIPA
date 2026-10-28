@@ -31,7 +31,12 @@
 import * as fs from 'fs'
 import * as os from 'os'
 import { getRawPref } from '../config/config-manager'
-import { listMemoryFiles, type MemoryFile } from './memory-manager'
+import {
+  listMemoryFilesDetailed,
+  MAX_MEMORY_UNREADABLE,
+  type MemoryFile,
+  type MemoryUnreadable,
+} from './memory-manager'
 
 export interface PersonalMemoryLike {
   content: string
@@ -121,6 +126,12 @@ export interface MemoryContextResult {
    * equal a budget.
    */
   truncated: TierKey[]
+  /**
+   * Memory paths that existed but could not be read. Diagnostics only: none of
+   * this enters `text`, because the model must never see why a file was
+   * skipped and might mistake it for memory content.
+   */
+  unreadable: MemoryUnreadable[]
 }
 
 /**
@@ -201,12 +212,19 @@ function formatPersonal(memories: PersonalMemoryLike[]): FormattedTier {
   return { text, capped: unpinned.length > recent.length }
 }
 
-function readDoc(filePath: string): string {
+interface DocRead {
+  text: string
+  /** True only when the file exists but could not be read; missing is not an error. */
+  error?: boolean
+}
+
+function readDoc(filePath: string): DocRead {
   try {
     const raw = fs.readFileSync(filePath, 'utf-8')
-    return raw ? raw.replace(/^\uFEFF/, '').trim() : ''
-  } catch {
-    return ''
+    return { text: raw ? raw.replace(/^\uFEFF/, '').trim() : '' }
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException | undefined)?.code
+    return { text: '', error: code !== 'ENOENT' && code !== 'ENOTDIR' }
   }
 }
 
@@ -248,8 +266,11 @@ export async function assembleMemoryContext(input: {
   const projectSlug = cwd ? cwdToProjectSlug(cwd) : ''
 
   let structured: MemoryFile[] = []
+  let structuredUnreadable: MemoryUnreadable[] = []
   try {
-    structured = listMemoryFiles('all')
+    const listing = listMemoryFilesDetailed('all')
+    structured = listing.files
+    structuredUnreadable = listing.unreadable
   } catch {
     structured = []
   }
@@ -260,9 +281,22 @@ export async function assembleMemoryContext(input: {
   )
   const personal = formatPersonal(personalMemories)
 
+  const globalDocPath = home ? joinPath(home, '.claude', 'MEMORY.md') : ''
+  const projectDocPath = cwd ? joinPath(cwd, '.claude', 'MEMORY.md') : ''
+  const globalDoc: DocRead = globalDocPath ? readDoc(globalDocPath) : { text: '' }
+  const projectDoc: DocRead = projectDocPath ? readDoc(projectDocPath) : { text: '' }
+
+  // Diagnostics never enter `raw`: they are for the run record and the Memory
+  // panel, not for the model.
+  const unreadable: MemoryUnreadable[] = []
+  if (globalDoc.error) unreadable.push({ path: globalDocPath, scope: 'global', reason: 'read' })
+  if (projectDoc.error) unreadable.push({ path: projectDocPath, scope: 'project', reason: 'read' })
+  unreadable.push(...structuredUnreadable)
+  if (unreadable.length > MAX_MEMORY_UNREADABLE) unreadable.length = MAX_MEMORY_UNREADABLE
+
   const raw: Record<TierKey, string> = {
-    globalDoc: home ? readDoc(joinPath(home, '.claude', 'MEMORY.md')) : '',
-    projectDoc: cwd ? readDoc(joinPath(cwd, '.claude', 'MEMORY.md')) : '',
+    globalDoc: globalDoc.text,
+    projectDoc: projectDoc.text,
     globalStructured: globalStructured.text,
     projectStructured: projectStructured.text,
     personal: personal.text,
@@ -297,7 +331,7 @@ export async function assembleMemoryContext(input: {
 
   const applied = TIER_ORDER.filter((key) => allocated.has(key))
   if (applied.length === 0) {
-    return { text: '', applied, omitted, used: {}, truncated }
+    return { text: '', applied, omitted, used: {}, truncated, unreadable }
   }
 
   const blocks = applied.map((key) => {
@@ -322,6 +356,7 @@ export async function assembleMemoryContext(input: {
     omitted,
     used,
     truncated,
+    unreadable,
   }
 }
 

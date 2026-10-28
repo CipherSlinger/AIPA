@@ -402,6 +402,16 @@ export interface AutomationMemoryDigestData {
   tiers: AutomationMemoryTierData[]
   chars: number
   truncated: boolean
+  /** Paths that existed but could not be read; a count only, never paths. */
+  unreadable: number
+}
+
+/** Mirrors main's `MemoryUnreadable`: a memory path AIPA could not read. */
+export interface MemoryUnreadableData {
+  path: string
+  scope: 'global' | 'project'
+  reason: 'stat' | 'read' | 'parse' | 'scan'
+  projectHash?: string
 }
 
 /** Mirrors main's `AutomationRunRecord`; `running` never appears in history. */
@@ -1109,6 +1119,8 @@ const electronAPI = {
       applied: string[]
       omitted: string[]
       used: Record<string, number>
+      truncated: string[]
+      unreadable: MemoryUnreadableData[]
     }>,
 
   // ── Dream consolidation (background memory passes) ───────────────────────

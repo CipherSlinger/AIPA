@@ -2133,7 +2133,9 @@ function registerConfigHandlers(): void {
       })
     } catch (err) {
       log.warn('memory:buildContext error:', String(err))
-      return { text: '', applied: [], omitted: [], used: {} }
+      // Complete shape: a caller must not be able to tell a failed read from
+      // an older build by looking for a missing field.
+      return { text: '', applied: [], omitted: [], used: {}, truncated: [], unreadable: [] }
     }
   })
 

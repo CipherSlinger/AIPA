@@ -52,12 +52,14 @@ export function buildMemoryDigest(context: MemoryContextResult): AutomationMemor
     tiers: context.applied.map((key) => TIER_LABEL[key]),
     chars: context.text.length,
     truncated: context.truncated.length > 0 || context.omitted.length > 0,
+    // A count only: paths and contents stay out of `automations.json`.
+    unreadable: context.unreadable.length,
   }
 }
 
 /** The descriptor for a read that threw: distinct from an empty snapshot. */
 export function failedMemoryDigest(): AutomationMemoryDigest {
-  return { state: 'failed', tiers: [], chars: 0, truncated: false }
+  return { state: 'failed', tiers: [], chars: 0, truncated: false, unreadable: 0 }
 }
 
 function isKnownTier(value: unknown): value is AutomationMemoryTier {
@@ -95,9 +97,19 @@ export function normalizeMemoryDigest(raw: unknown): AutomationMemoryDigest | un
   // Canonical prompt order, so a hand-edited file cannot reorder the row.
   tiers.sort((a, b) => MEMORY_TIER_LABELS.indexOf(a) - MEMORY_TIER_LABELS.indexOf(b))
 
+  // Records written before this field existed have no `unreadable`; they were
+  // produced by an assembler that could not report one, so zero is the honest
+  // reading. A hand-edited negative or fractional value still makes the
+  // descriptor untrustworthy.
+  const unreadable = digest.unreadable === undefined ? 0 : digest.unreadable
+  if (typeof unreadable !== 'number' || !Number.isInteger(unreadable) || unreadable < 0) {
+    return undefined
+  }
+
   if (digest.state === 'failed') {
-    if (tiers.length > 0 || chars !== 0 || digest.truncated) return undefined
-    return { state: 'failed', tiers, chars: 0, truncated: false }
+    // A read that threw never had a listing to count.
+    if (tiers.length > 0 || chars !== 0 || digest.truncated || unreadable !== 0) return undefined
+    return { state: 'failed', tiers, chars: 0, truncated: false, unreadable: 0 }
   }
 
   // A block with no applied tier is empty by construction, and any applied tier
@@ -107,5 +119,5 @@ export function normalizeMemoryDigest(raw: unknown): AutomationMemoryDigest | un
   } else if (chars === 0) {
     return undefined
   }
-  return { state: 'ok', tiers, chars, truncated: digest.truncated }
+  return { state: 'ok', tiers, chars, truncated: digest.truncated, unreadable }
 }
