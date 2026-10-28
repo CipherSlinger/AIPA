@@ -19,8 +19,9 @@ import DeptHandbookModal from './DeptHandbookModal'
 import DeptBrief from './DeptBrief'
 import { bindPersonaToNewSession } from './personaBinding'
 import {
-  deptDisplayName, positionDisplayBrief, sessionMatchesDir, teamsOf,
+  deptDisplayName, positionDisplayBrief, teamsOf,
 } from './deptUtils'
+import { selectDeptRosterSessions } from './deptBrief.data'
 import { useI18n } from '../../i18n'
 import DeptHeader from './DepartmentDashboard.header'
 import DeptStats from './DepartmentDashboard.stats'
@@ -78,6 +79,9 @@ export default function DeptView({
   const addPosition = useDepartmentStore(s => s.addPosition)
   const updatePosition = useDepartmentStore(s => s.updatePosition)
   const updateDepartment = useDepartmentStore(s => s.updateDepartment)
+  // Subscribed rather than read at click time: a filing changes who is on this
+  // page, so the roster must re-render when the map changes.
+  const filings = useDepartmentStore(s => s.filings)
 
   // A department's child teams are separate desks with their own directories, so
   // a team node is a valid place to be — the breadcrumb above shows where.
@@ -88,13 +92,18 @@ export default function DeptView({
   )
   const openPositions = dept?.positions ?? NO_POSITIONS
 
+  // Folder ownership stays a node's own desk (so an empty filings map is the
+  // old roster, byte for byte); a hand filing follows this page's subtree.
   const deptSessions = useMemo((): SessionListItem[] => {
     if (!dept) return []
-    const dir = dept.directory
-    return allSessions
-      .filter(s => sessionMatchesDir(s, dir, homeDir))
-      .sort((a, b) => b.timestamp - a.timestamp)
-  }, [allSessions, dept, homeDir])
+    return selectDeptRosterSessions({
+      sessions: allSessions,
+      departments,
+      rootId: dept.id,
+      filings,
+      homeDir,
+    }).sort((a, b) => b.timestamp - a.timestamp)
+  }, [allSessions, departments, dept, filings, homeDir])
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSessions, setSelectedSessions] = useState<Set<string>>(new Set())

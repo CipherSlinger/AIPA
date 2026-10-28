@@ -3,8 +3,9 @@
 // Every department roster answers "who works here"; this answers "what has this
 // company actually done, and who did it". A record is a session, because a
 // session *is* an employee's run at a task, and it is attributed to the node
-// whose folder it ran in. That attribution is derived, not stored — see
-// `findDeptForSession` in deptUtils for the one join between the two. Sessions in
+// whose folder it ran in — unless the user filed it by hand, which wins. That
+// attribution is derived, not stored; see `resolveDeptForSession` in
+// departments/sessionFiling for the one join between the two. Sessions in
 // folders no node owns are not lost: they land in an explicit 未分派 group.
 //
 // Records are *grouped* by the top of their branch, not by the leaf that owns
@@ -16,6 +17,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import {
   Archive,
   ArrowUpDown,
+  Building2,
   ChevronDown,
   ChevronRight,
   ExternalLink,
@@ -28,9 +30,10 @@ import { useDepartmentStore, usePrefsStore, useSessionStore, type Department } f
 import type { SessionListItem } from '../../types/app.types'
 import { useT, useI18n } from '../../i18n'
 import {
-  deptByNormDir, deptBySlug, deptDisplayName, deptEmoji, findDeptForSession, kindOf, rootOf,
+  deptDisplayName, deptEmoji, kindOf, rootOf,
   type UiLocale,
 } from '../departments/deptUtils'
+import { buildDeptLookup, resolveDeptForSession } from '../departments/sessionFiling'
 import { openSessionCore } from '../departments/openSessionCore'
 import { displayTitle } from '../../lib/sessionTitle'
 import { formatDateTimeShort } from '../../utils/formatDate'
@@ -104,8 +107,17 @@ const INITIAL_VIEWPORT_H = 900
 
 interface ArchiveRecord {
   session: SessionListItem
-  /** The node whose folder the session ran in — the leaf, for the sub-label. */
+  /**
+   * The resolved live owner — a manual filing's node, or the node whose folder
+   * the session ran in. Null when the user's filing points at a deleted node.
+   */
   dept: Department | null
+  /**
+   * A manual filing whose node no longer exists: the node's name at filing
+   * time. The row shows this, never the folder-derived node and never a live
+   * department it was not filed under.
+   */
+  removedDeptName: string | null
   /** The top of that node's branch — what the record is grouped under. */
   root: Department | null
   archived: boolean
@@ -168,18 +180,22 @@ export default function ArchivePanel() {
   }, [showCommandOnly])
 
   const archivedSet = useMemo(() => new Set(archivedSessions), [archivedSessions])
-  const slugIndex = useMemo(() => deptBySlug(departments), [departments])
-  const dirIndex = useMemo(() => deptByNormDir(departments, homeDir), [departments, homeDir])
+  // One index for the whole listing: the manual-filing precedence and the
+  // folder join are answered by the same resolver every other surface uses.
+  const lookup = useMemo(() => buildDeptLookup(departments, homeDir), [departments, homeDir])
+  const filings = useDepartmentStore(s => s.filings)
   const byId = useMemo(() => new Map(departments.map(d => [d.id, d])), [departments])
 
   // Every session is a record. Attribution is a lookup, never stored.
   const untitled = t('session.untitled')
   const allRecords: ArchiveRecord[] = useMemo(
     () => sessions.map(session => {
-      const dept = findDeptForSession(session, slugIndex, dirIndex, homeDir)
+      const resolution = resolveDeptForSession(session, lookup, filings)
+      const dept = resolution.dept
       return {
         session,
         dept,
+        removedDeptName: resolution.source === 'removed' ? resolution.filing.deptName : null,
         root: dept ? rootOf(dept, byId) : null,
         archived: archivedSet.has(session.sessionId),
         // An untitled label means no human message named the session; the
@@ -188,7 +204,7 @@ export default function ArchivePanel() {
           && (session.messageCount ?? 0) <= COMMAND_ONLY_MAX_MESSAGES,
       }
     }),
-    [sessions, slugIndex, dirIndex, homeDir, archivedSet, byId, untitled],
+    [sessions, lookup, filings, archivedSet, byId, untitled],
   )
 
   const queryText = query.trim().toLowerCase()
@@ -396,8 +412,12 @@ export default function ArchivePanel() {
       tasks: group.records.map(r => ({
         title: recordTitle(r.session, t('session.untitled')),
         employee: employeeTag(r.session.sessionId),
-        // Which desk inside that company the work happened at.
-        department: r.dept?.name ?? null,
+        // Which desk inside that company the work happened at. A filing whose
+        // node was deleted exports the remembered name and says it is no
+        // longer live — silently dropping the name would lose the user's own
+        // assertion, and substituting the folder would invent one.
+        department: r.dept?.name ?? r.removedDeptName ?? null,
+        departmentRemoved: r.removedDeptName !== null,
         sessionId: r.session.sessionId,
         project: r.session.project,
         lastPrompt: r.session.lastPrompt,
@@ -871,10 +891,27 @@ function ArchiveRow({
         #{employeeTag(session.sessionId)}
       </span>
 
-      {/* Which desk inside the group's company this was worked at. Only shown when
-          the record sat below the group node — a top-level department's own work
-          would otherwise repeat its own name on every row. */}
-      {record.dept && record.dept.id !== record.root?.id && (
+      {/* A manual filing whose node was deleted. The remembered name is the
+          only honest label; the working folder is deliberately not shown as
+          its department, and the row is not moved to a live node. */}
+      {record.removedDeptName !== null ? (
+        <span
+          title={t('archive.removedDeptTip', { name: record.removedDeptName })}
+          style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-muted)', maxWidth: 200 }}
+        >
+          <Building2 size={10} style={{ opacity: 0.6 }} />
+          <span style={ELLIPSIS}>{record.removedDeptName}</span>
+          <span style={{
+            fontSize: 9, padding: '0 5px', borderRadius: 999,
+            border: '1px dashed var(--border)', color: 'var(--text-subtle)', flexShrink: 0,
+          }}>
+            {t('archive.removedDeptTag')}
+          </span>
+        </span>
+      ) : record.dept && record.dept.id !== record.root?.id ? (
+        /* Which desk inside the group's company this was worked at. Only shown
+           when the record sat below the group node — a top-level department's
+           own work would otherwise repeat its own name on every row. */
         <span
           title={record.dept.directory}
           style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-subtle)', maxWidth: 180 }}
@@ -886,15 +923,13 @@ function ArchiveRow({
               : deptDisplayName(record.dept, locale)}
           </span>
         </span>
-      )}
-
-      {/* Unassigned records have no group to carry their folder, so spell it out. */}
-      {!record.dept && (
+      ) : !record.dept ? (
+        /* Unassigned records have no group to carry their folder, so spell it out. */
         <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-subtle)', maxWidth: 200 }}>
           <FolderOpen size={10} />
           <span title={session.project || undefined} style={ELLIPSIS}>{session.project || '—'}</span>
         </span>
-      )}
+      ) : null}
 
       <span style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-muted)', width: 118, textAlign: 'right' }}>
         {when}

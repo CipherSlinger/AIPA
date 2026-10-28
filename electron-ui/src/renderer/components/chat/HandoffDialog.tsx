@@ -17,14 +17,12 @@ import {
   useUiStore,
 } from '../../store'
 import {
-  deptByNormDir,
-  deptBySlug,
   deptDisplayName,
   deptTreeOptionText,
   deptTreeOptions,
   deptTreePath,
-  findDeptForSession,
 } from '../departments/deptUtils'
+import { buildDeptLookup, resolveDeptForSession } from '../departments/sessionFiling'
 import { bindPersonaToNewSession } from '../departments/personaBinding'
 import {
   HANDOFF_MAX_CHARS,
@@ -86,24 +84,32 @@ export default function HandoffDialog({ sessionTitle, onClose }: Props) {
     () => deptTreeOptions(departments, resolvedLocale),
     [departments, resolvedLocale],
   )
-  const byId = useMemo(() => new Map(departments.map(d => [d.id, d])), [departments])
-  const bySlug = useMemo(() => deptBySlug(departments), [departments])
-  const byNormDir = useMemo(
-    () => deptByNormDir(departments, homeDir),
-    [departments, homeDir],
-  )
+  const lookup = useMemo(() => buildDeptLookup(departments, homeDir), [departments, homeDir])
+  const filings = useDepartmentStore(s => s.filings)
 
   const target = selectedId ? departments.find(d => d.id === selectedId) ?? null : null
 
   // The listing is the only authority on which department owns a conversation.
-  // A session absent from it is not filed; we never invent an owner from a path.
+  // A manual filing wins over the folder. A filing whose node was deleted keeps
+  // the remembered name — the only honest label left — rather than falling back
+  // to the folder in the note; a session absent from the listing is unfiled and
+  // we never invent an owner from a path.
   const sourceDeptPath = useMemo(() => {
     if (!viewSessionId) return null
     const session = sessions.find(item => item.sessionId === viewSessionId)
     if (!session) return null
-    const dept = findDeptForSession(session, bySlug, byNormDir, homeDir)
-    return dept ? deptTreePath(dept, byId, resolvedLocale) : null
-  }, [viewSessionId, sessions, bySlug, byNormDir, homeDir, byId, resolvedLocale])
+    const resolution = resolveDeptForSession(session, lookup, filings)
+    if (resolution.source === 'removed') {
+      // The note goes to the receiving department, so the name alone would
+      // imply a department that still exists. Say it was removed; do not fall
+      // back to the folder.
+      const name = resolution.filing.deptName.trim()
+      return name ? t('chat.handoff.deptRemoved', { name }) : null
+    }
+    return resolution.dept
+      ? deptTreePath(resolution.dept, lookup.byId, resolvedLocale)
+      : null
+  }, [viewSessionId, sessions, lookup, filings, resolvedLocale, t])
 
   const sourceDirectory = useMemo(() => {
     const session = viewSessionId

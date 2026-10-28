@@ -1,15 +1,17 @@
 // The chat header's conversation-actions menu: one place to turn a finished
-// session into a workflow or a skill, or hand it to another department. Kept
-// out of ChatHeader so that component stays focused on session chrome.
+// session into a workflow or a skill, hand it to another department, or file it
+// under a department by hand. Kept out of ChatHeader so that component stays
+// focused on session chrome.
 
 import React, { useCallback, useRef, useState } from 'react'
-import { Building2, GitBranch, MoreHorizontal, Puzzle } from 'lucide-react'
+import { Building2, FolderInput, GitBranch, MoreHorizontal, Puzzle } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import { useChatStore } from '../../store'
 import SaveConversationWorkflowDialog from './SaveConversationWorkflowDialog'
 import SaveConversationSkillDialog from './SaveConversationSkillDialog'
 import HandoffDialog from './HandoffDialog'
+import FileUnderDeptDialog from './FileUnderDeptDialog'
 
 interface Props {
   messageCount: number
@@ -19,7 +21,7 @@ interface Props {
   hoverOut: (e: React.MouseEvent<HTMLButtonElement>, active?: boolean, defaultColor?: string) => void
 }
 
-type DialogKind = 'workflow' | 'skill' | 'handoff' | null
+type DialogKind = 'workflow' | 'skill' | 'handoff' | 'file' | null
 
 interface MenuItem {
   kind: Exclude<DialogKind, null>
@@ -41,6 +43,9 @@ export default function SessionReuseMenu({
   // Boolean selector: the header re-renders once when streaming starts/ends,
   // not on every chunk. A partial reply must never become the handoff note.
   const isStreaming = useChatStore(s => s.isStreaming)
+  // The same id the handoff dialog reads. `currentSessionId` can be overwritten
+  // by a streaming bridge, so it is not a stable source id for filing.
+  const viewSessionId = useChatStore(s => s.viewSessionId)
   const [open, setOpen] = useState(false)
   const [dialog, setDialog] = useState<DialogKind>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -59,6 +64,10 @@ export default function SessionReuseMenu({
     : isStreaming
       ? t('chat.handoff.streaming')
       : undefined
+  // Filing is a label, not an engine action, so a streaming reply does not
+  // block it. It does need a saved session id to attach the label to.
+  const fileDisabled = disabled || !viewSessionId
+  const fileDisabledTitle = fileDisabled ? t('chat.file.menuNoSession') : undefined
 
   return (
     <div ref={menuRef} style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
@@ -123,6 +132,14 @@ export default function SessionReuseMenu({
               hint: t('chat.handoff.menuHint'),
               disabled: handoffDisabled,
               disabledTitle: handoffDisabledTitle,
+            },
+            {
+              kind: 'file' as const,
+              icon: <FolderInput size={14} />,
+              label: t('chat.file.menuLabel'),
+              hint: t('chat.file.menuHint'),
+              disabled: fileDisabled,
+              disabledTitle: fileDisabledTitle,
             },
           ] as MenuItem[]).map(item => (
             <button
@@ -190,6 +207,12 @@ export default function SessionReuseMenu({
       {dialog === 'handoff' && (
         <HandoffDialog
           sessionTitle={sessionTitle}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'file' && viewSessionId && (
+        <FileUnderDeptDialog
+          sessionId={viewSessionId}
           onClose={() => setDialog(null)}
         />
       )}

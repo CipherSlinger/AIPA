@@ -315,7 +315,8 @@
       "firstRequest": "First request",
       "latestRequest": "Latest request",
       "latestReply": "Latest reply",
-      "closing": "Please continue this work in {{target}}."
+      "closing": "Please continue this work in {{target}}.",
+      "deptRemoved": "{{name}} (department since removed)"
     },
     "related": {
       "label": "Related conversations",
@@ -334,6 +335,28 @@
       "failedToast": "Could not open that conversation.",
       "disabledNoSession": "Open a conversation first.",
       "disabledEmpty": "This conversation has no messages to compare yet."
+    },
+    "file": {
+      "menuLabel": "File under department…",
+      "menuHint": "Keep this conversation under a department in the org view, whatever folder it ran in",
+      "menuNoSession": "This conversation has no saved id to file yet.",
+      "title": "File this conversation under a department",
+      "subtitle": "Choose which department this conversation belongs to. Filing is a label on this machine; it moves nothing.",
+      "summaryFiledByYou": "You filed this under {{name}}. This is a manual label, not a folder match.",
+      "summaryFiledByFolder": "Filed by folder under {{name}}.",
+      "summaryRemoved": "Filed under {{name}}, a department that has since been removed. It stays filed as remembered; nothing was re-filed.",
+      "summaryUnfiled": "Not in the org — no manual filing exists and no department folder matches.",
+      "pickLabel": "Department",
+      "pickPlaceholder": "Choose a department…",
+      "confirm": "File here",
+      "remove": "Remove manual filing",
+      "removeHint": "Removing the filing deletes nothing. Ownership returns to the folder this conversation ran in.",
+      "honesty": "Filing is a label: it does not move files, change the working folder, or change which engine ran this conversation. It is not proof that this department did the work. It changes where this conversation is listed, searched and asked about.",
+      "explicitNote": "{{name}} is the department this conversation's folder already points to. Filing it makes that explicit, and from then on it will stop following the folder.",
+      "noDepartments": "No departments yet",
+      "noDepartmentsHint": "Create a department in the Org view first; then you can file conversations under it.",
+      "filedToast": "Filed under {{name}}.",
+      "removedToast": "Manual filing removed. The conversation follows its folder again."
     }
   },
   "sessionReuse": {
@@ -3061,7 +3084,9 @@
       "average": "avg {{duration}}",
       "spendLifetime": "All runs {{spend}}",
       "spendLastRun": "Last run {{spend}}"
-    }
+    },
+    "removedDeptTag": "removed",
+    "removedDeptTip": "You filed this conversation under {{name}}, but that department no longer exists. It stays here as unassigned rather than being re-filed by its working folder."
   },
   "canvas": {
     "copyPrompt": "Copy Prompt",
@@ -3943,6 +3968,12 @@
       "answerScope": "Answered from {{count}} conversations in scope under {{dept}}.",
       "scopeOff": "This ask searches your whole history, not only {{dept}}, while the list stays filtered.",
       "searching": "The transcript index is still building, so an in-scope match may not be visible yet."
+    },
+    "dept": {
+      "filedByYou": "filed by you",
+      "filedByYouTip": "{{path}}\nFiled here by you. The conversation's working folder is {{directory}}; this chip is the label you chose, not where the work ran. The session list is local to this machine, and each search returns a capped slice.",
+      "removed": "{{name}} — department no longer exists",
+      "removedTip": "You filed this conversation under {{name}}, but that department no longer exists. It belongs to no live department, and its working folder is deliberately not used instead."
     }
   }
 }

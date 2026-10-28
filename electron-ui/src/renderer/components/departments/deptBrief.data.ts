@@ -5,7 +5,8 @@
 // the renderer already has. The module is React-free and pure so the claims can
 // be tested without a DOM:
 //
-//   * "filed here" is directory ownership, never proof of who did the work;
+//   * "filed here" is a manual filing when one exists, otherwise directory
+//     ownership — never proof of who did the work;
 //   * Claude rows date a conversation by its last activity, Codex rows by its
 //     creation time, so the two engines do not answer the same question;
 //   * `messageCount` is a lifetime total for the session, not a window count, and
@@ -19,8 +20,9 @@
 // dangling parent.
 
 import type { Department, Position } from '../../store'
+import type { FilingMap } from '../../store/departmentStore'
 import type { SessionListItem } from '../../types/app.types'
-import { deptByNormDir, deptBySlug, findDeptForSession } from './deptUtils'
+import { buildDeptLookup, resolveDeptForSession, resolvedDept } from './sessionFiling'
 
 export type BriefWindow = 'today' | 'week'
 export type BriefEngine = 'claude' | 'codex'
@@ -37,7 +39,7 @@ export type BriefSession = SessionListItem & { engine?: string }
 
 export interface BriefRecentRow {
   session: SessionListItem
-  /** The covered node whose directory owns the conversation. */
+  /** The covered node the resolver assigns this conversation to. */
   nodeId: string
   engine: BriefEngine
   basis: BriefDateBasis
@@ -64,7 +66,10 @@ export interface BriefCounts {
   codexSessions: number
   /** Sessions owned by another node (a sibling, an ancestor, …). */
   outsideSessions: number
-  /** Sessions whose directory matches no node at all. */
+  /**
+   * Sessions no live node owns — an unmatched directory, or a filing whose
+   * target node has been deleted. Never silently re-attributed to a folder.
+   */
   unownedSessions: number
 }
 
@@ -105,6 +110,11 @@ export interface BuildDeptBriefInput {
   window: BriefWindow
   now: number
   homeDir?: string
+  /**
+   * Manual filings, by session id. Absent/empty keeps the folder join, so a
+   * caller that predates filing (or a harness) gets exactly the old figures.
+   */
+  filings?: Readonly<FilingMap>
 }
 
 const RECENT_LIMIT = 5
@@ -221,6 +231,86 @@ export function briefSubtree(nodes: Department[], rootId: string): Department[] 
   return out
 }
 
+// ── Membership helpers for the department views ─────────────────────────────
+// The brief and the two org views all have to answer "which conversations belong
+// to this node". They answer with one resolver, so a hand filing cannot show up
+// in one surface and not another. React-free so the harness can drive them.
+
+export interface DeptMembershipInput {
+  departments: readonly Department[]
+  /** Manual filings, by session id. Absent = folder ownership only. */
+  filings?: Readonly<FilingMap>
+  homeDir?: string
+}
+
+export interface ResolvedDeptSessions {
+  /** Every node id is present, even with no sessions, so callers can index safely. */
+  byDept: Record<string, SessionListItem[]>
+  /** Sessions no live node owns: unmatched folders and filings to deleted nodes. */
+  unowned: SessionListItem[]
+}
+
+/**
+ * One pass over the session list, one lookup, one resolution per session.
+ *
+ * This is the *exact* ownership map — a node's headcount is its own desk, the
+ * rule the sidebar and the org chart have always used (teams stay separate).
+ * A manual filing wins over the folder; a filing whose node was deleted lands in
+ * `unowned` rather than back in the folder the conversation ran in.
+ */
+export function groupSessionsByResolvedDept(
+  sessions: readonly SessionListItem[],
+  input: DeptMembershipInput,
+): ResolvedDeptSessions {
+  const lookup = buildDeptLookup(input.departments, input.homeDir)
+  const byDept: Record<string, SessionListItem[]> = {}
+  for (const node of input.departments) {
+    if (!(node.id in byDept)) byDept[node.id] = []
+  }
+
+  const unowned: SessionListItem[] = []
+  for (const session of sessions) {
+    const dept = resolvedDept(session, lookup, input.filings)
+    if (dept) (byDept[dept.id] ??= []).push(session)
+    else unowned.push(session)
+  }
+  return { byDept, unowned }
+}
+
+export interface DeptRosterInput extends DeptMembershipInput {
+  sessions: readonly SessionListItem[]
+  rootId: string
+}
+
+/**
+ * The roster of one department page.
+ *
+ * A folder-owned conversation belongs to the node whose folder it ran in, so
+ * with no manual filings this is exactly the old "folder matches this directory"
+ * predicate — team desks keep their own pages. A conversation the user filed by
+ * hand is an assertion about the tree, so it follows this page's scope: `rootId`
+ * plus its descendants. Filing a conversation into a team therefore also puts it
+ * on the department page above that team. A filing to a deleted node belongs to
+ * no page and is never given back to the folder.
+ */
+export function selectDeptRosterSessions(input: DeptRosterInput): SessionListItem[] {
+  const lookup = buildDeptLookup(input.departments, input.homeDir)
+  if (!lookup.byId.has(input.rootId)) return []
+  // Cycle-safe: a malformed parent loop is visited once, not expanded forever.
+  const scope = new Set(briefSubtree([...input.departments], input.rootId).map(node => node.id))
+
+  const out: SessionListItem[] = []
+  for (const session of input.sessions) {
+    const resolution = resolveDeptForSession(session, lookup, input.filings)
+    if (!resolution.dept) continue
+    const member = resolution.source === 'filed'
+      ? scope.has(resolution.dept.id)
+      : resolution.dept.id === input.rootId
+    if (member) out.push(session)
+  }
+  return out
+}
+
 /**
  * Which engine a row belongs to. An explicit field wins; otherwise Codex is the
  * reader that reports a real `cwd`, so a row without one is a Claude row.
@@ -258,9 +348,11 @@ export function buildDeptBrief(input: BuildDeptBriefInput): DeptBriefResult {
   const coveredIds = new Set(covered.map(node => node.id))
 
   // Ownership is matched against the whole tree: a session in a sibling node is
-  // then recognisably outside the subtree rather than silently unowned.
-  const bySlug = deptBySlug(nodes)
-  const byNormDir = deptByNormDir(nodes, homeDir)
+  // then recognisably outside the subtree rather than silently unowned. One
+  // lookup and one resolution per session; a manual filing (present or stale)
+  // wins over the folder exactly as the other department views resolve it.
+  const lookup = buildDeptLookup(nodes, homeDir)
+  const filings = input.filings
 
   const seats: BriefSeat[] = []
   for (const node of covered) {
@@ -287,7 +379,7 @@ export function buildDeptBrief(input: BuildDeptBriefInput): DeptBriefResult {
       continue
     }
 
-    const owner = findDeptForSession(session, bySlug, byNormDir, homeDir)
+    const owner = resolvedDept(session, lookup, filings)
     if (!owner) {
       unownedSessions++
       continue

@@ -30,7 +30,7 @@ export function positionDisplayBrief(position: Pick<Position, 'brief' | 'presetB
 }
 
 /** The three session fields the directory join is allowed to look at. */
-type SessionDirFields = Pick<SessionListItem, 'cwd' | 'project' | 'projectSlug'>
+export type SessionDirFields = Pick<SessionListItem, 'cwd' | 'project' | 'projectSlug'>
 
 /**
  * Encode a real directory path to Claude's project slug format.

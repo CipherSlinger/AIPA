@@ -7,7 +7,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ScrollText, X } from 'lucide-react'
-import type { Department } from '../../store'
+import { useDepartmentStore, type Department } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
 import { useI18n } from '../../i18n'
 import {
@@ -54,6 +54,9 @@ export default function DeptBrief({
   onClose,
 }: DeptBriefProps) {
   const { t, resolvedLocale } = useI18n()
+  // A filing can move a conversation into or out of this subtree, so the panel
+  // must re-derive when the map changes.
+  const filings = useDepartmentStore(s => s.filings)
   const [briefWindow, setBriefWindow] = useState<BriefWindow>('today')
   // Evaluated when the panel opens and when the window changes, so the bounds
   // stay put while the user reads. Nothing is written to preferences.
@@ -92,8 +95,9 @@ export default function DeptBrief({
       window: briefWindow,
       now,
       homeDir,
+      filings,
     }),
-    [departments, sessions, dept.id, briefWindow, now, homeDir],
+    [departments, sessions, dept.id, briefWindow, now, homeDir, filings],
   )
 
   const nodeName = (nodeId: string): string => {

@@ -315,7 +315,8 @@
       "firstRequest": "最初的请求",
       "latestRequest": "最近的请求",
       "latestReply": "最近的回复",
-      "closing": "请接着在 {{target}} 继续这项工作。"
+      "closing": "请接着在 {{target}} 继续这项工作。",
+      "deptRemoved": "「{{name}}」（部门已删除）"
     },
     "related": {
       "label": "相关对话",
@@ -334,6 +335,28 @@
       "failedToast": "无法打开那段对话。",
       "disabledNoSession": "请先打开一段对话。",
       "disabledEmpty": "这段对话还没有消息可以比较。"
+    },
+    "file": {
+      "menuLabel": "归入部门…",
+      "menuHint": "无论这段对话是在哪个文件夹里运行的，都在组织架构里把它列在这个部门下",
+      "menuNoSession": "这段对话还没有已保存的标识，暂时无法归入。",
+      "title": "把这段对话归入部门",
+      "subtitle": "选择这段对话属于哪个部门。归入只是在这台电脑上贴一个标签，不会移动任何东西。",
+      "summaryFiledByYou": "你已把它手动归入「{{name}}」。这是手动标签，不是按文件夹匹配出来的。",
+      "summaryFiledByFolder": "按文件夹归入「{{name}}」。",
+      "summaryRemoved": "原先归入「{{name}}」，但这个部门已经被删除。它仍按当时的记录保留归入，没有被重新归到别处。",
+      "summaryUnfiled": "不在组织架构里——没有手动归入，也没有哪个部门的文件夹与之匹配。",
+      "pickLabel": "部门",
+      "pickPlaceholder": "选择一个部门…",
+      "confirm": "归入这里",
+      "remove": "移除手动归入",
+      "removeHint": "移除归入不会删除任何东西。归属会重新回到这段对话运行所在的文件夹。",
+      "honesty": "归入只是一个标签：它不会移动文件，不会改变工作目录，也不会改变这段对话由哪个引擎运行；它不代表这个部门做了这项工作。它改变的是这段对话显示、被搜索和被提问的位置。",
+      "explicitNote": "「{{name}}」正是这段对话的文件夹已经指向的部门。归入只是把这个归属写明；此后它就不再跟随文件夹变化。",
+      "noDepartments": "还没有部门",
+      "noDepartmentsHint": "先在组织架构里创建一个部门，之后就可以把对话归入其中。",
+      "filedToast": "已归入「{{name}}」。",
+      "removedToast": "已移除手动归入。对话重新跟随它所在的文件夹。"
     }
   },
   "sessionReuse": {
@@ -3061,7 +3084,9 @@
       "average": "平均 {{duration}}",
       "spendLifetime": "累计 {{spend}}",
       "spendLastRun": "上次运行 {{spend}}"
-    }
+    },
+    "removedDeptTag": "部门已删除",
+    "removedDeptTip": "你曾把这个会话归到「{{name}}」，但这个部门已经不存在。它仍留在这里，显示为未分派，而不会按原工作目录重新归属。"
   },
   "canvas": {
     "copyPrompt": "复制提示词",
@@ -3943,6 +3968,12 @@
       "answerScope": "回答依据「{{dept}}」范围内的 {{count}} 段对话。",
       "scopeOff": "本次提问会检索全部历史，不只「{{dept}}」；结果列表仍保持筛选。",
       "searching": "对话索引还在建立中，范围内的匹配可能尚未出现。"
+    },
+    "dept": {
+      "filedByYou": "由你归档",
+      "filedByYouTip": "{{path}}\n这个会话由你手动归到这里。它的工作目录是 {{directory}}；这枚标签是你选择的归属，不代表工作在哪里运行。会话列表只来自本机，每次搜索也只返回截断后的一段。",
+      "removed": "{{name}}——该部门已不存在",
+      "removedTip": "你曾把这个会话归到「{{name}}」，但这个部门已经不存在。它不属于任何现存部门，也不会改用它原来的工作目录来归属。"
     }
   }
 }

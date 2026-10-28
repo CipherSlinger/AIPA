@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, type DragEvent } from 'react'
 import { Plus } from 'lucide-react'
 import { useDepartmentStore, useSessionStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
-import { sessionMatchesDir } from './deptUtils'
+import { groupSessionsByResolvedDept } from './deptBrief.data'
 import DeptPanelHeader from './DeptPanelHeader'
 import DeptAddForm from './DeptAddForm'
 import DeptRow from './DeptRow'
@@ -30,6 +30,9 @@ export default function DepartmentPanel() {
   const reorderDepartments = useDepartmentStore(s => s.reorderDepartments)
   const sessions = useSessionStore(s => s.sessions)
   const homeDir = useSessionStore(s => s.homeDir)
+  // A manual filing changes which row a conversation is counted under, so the
+  // sidebar subscribes to the map rather than reading it once.
+  const filings = useDepartmentStore(s => s.filings)
   const unreadCounts = useUiStore(s => s.unreadCounts)
   const [showAddForm, setShowAddForm] = useState(false)
   // null = respect individual row state, true = all collapsed, false = all expanded
@@ -59,10 +62,16 @@ export default function DepartmentPanel() {
   }
 
   const deptStats = useMemo(() => {
+    // Exact node ownership, unchanged from the old directory predicate: the
+    // sidebar never folded a team's conversations into its department.
+    const { byDept } = groupSessionsByResolvedDept(sessions, {
+      departments,
+      filings,
+      homeDir,
+    })
     const stats: Record<string, { count: number; lastActive: number; unreadCount: number }> = {}
     for (const dept of departments) {
-      const dir = dept.directory
-      const deptSessions = sessions.filter(s => sessionMatchesDir(s, dir, homeDir))
+      const deptSessions = byDept[dept.id] ?? []
       const unreadCount = deptSessions.filter(s => (unreadCounts[s.sessionId] ?? 0) > 0).length
       stats[dept.id] = {
         count: deptSessions.length,
@@ -71,7 +80,7 @@ export default function DepartmentPanel() {
       }
     }
     return stats
-  }, [departments, sessions, homeDir, unreadCounts])
+  }, [departments, sessions, filings, homeDir, unreadCounts])
 
   // Keyboard shortcut: press N to open the create-department form
   useEffect(() => {

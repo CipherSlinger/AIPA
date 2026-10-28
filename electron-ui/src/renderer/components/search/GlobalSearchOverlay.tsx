@@ -342,6 +342,10 @@ export default function GlobalSearchOverlay() {
   const sessions = useSessionStore(s => s.sessions)
   const homeDir = useSessionStore(s => s.homeDir)
   const departments = useDepartmentStore(s => s.departments)
+  // Manual filings override the folder join. Subscribed here so a card's chip,
+  // the department filter and a scoped ask all change the moment the user
+  // files or un-files a conversation.
+  const filings = useDepartmentStore(s => s.filings)
   const originMap = useMemo(() => buildSessionOriginMap(sessions), [sessions])
   const filtered = useMemo(
     () => filterResultsByOrigin(results, originMap, originFilter),
@@ -357,8 +361,9 @@ export default function GlobalSearchOverlay() {
       departments,
       locale: resolvedLocale,
       homeDir,
+      filings,
     }),
-    [results, sessions, departments, resolvedLocale, homeDir],
+    [results, sessions, departments, resolvedLocale, homeDir, filings],
   )
   const deptOptions = useMemo(
     () => buildDeptFilterOptions(departments, resolvedLocale),
@@ -372,12 +377,15 @@ export default function GlobalSearchOverlay() {
     () => deptOptions.find(option => option.id === deptFilter)?.label ?? '',
     [deptOptions, deptFilter],
   )
-  // The corpus a scoped ask may read: sessions whose folder resolves to this
-  // node or a descendant, in listing order. `null` when no department is
-  // selected, so the ask is unrestricted rather than accidentally empty.
+  // The corpus a scoped ask may read: sessions whose resolved owner (manual
+  // filing first, then the folder join) is this node or a descendant, in
+  // listing order. `null` when no department is selected, so the ask is
+  // unrestricted rather than accidentally empty.
   const deptScope = useMemo(
-    () => (deptFilter ? sessionIdsInDeptTree(sessions, departments, deptFilter, homeDir) : null),
-    [sessions, departments, deptFilter, homeDir],
+    () => (deptFilter
+      ? sessionIdsInDeptTree(sessions, departments, deptFilter, homeDir, filings)
+      : null),
+    [sessions, departments, deptFilter, homeDir, filings],
   )
 
   const close = useCallback(() => {

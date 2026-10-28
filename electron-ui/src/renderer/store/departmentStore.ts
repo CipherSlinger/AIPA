@@ -68,6 +68,24 @@ export interface Department {
   defaultPersonaId?: string
 }
 
+/**
+ * A conversation the user filed under an org node by hand.
+ *
+ * This is an assertion, not a directory join: it overrides the folder a session
+ * ran in, moves nothing on disk, and changes nothing about where the
+ * conversation runs. `deptName` is the node's name at filing time, kept so a
+ * deleted node can still be named honestly instead of the filing silently
+ * falling back to the folder.
+ */
+export interface SessionFiling {
+  deptId: string
+  deptName: string
+  filedAt: number
+}
+
+/** Manual filings by session id. Absent = ownership comes from the folder. */
+export type FilingMap = Record<string, SessionFiling>
+
 interface DepartmentState {
   departments: Department[]
   activeDepartmentId: string | null
@@ -83,10 +101,58 @@ interface DepartmentState {
   removePosition: (deptId: string, positionId: string) => void
   setActiveDepartmentId: (id: string | null) => void
   reorderDepartments: (depts: Department[]) => void
+  /** Manual overrides of the folder join, by session id. */
+  filings: FilingMap
+  /**
+   * File a conversation under a node by hand, overriding its folder. An empty
+   * id is ignored rather than written: a filing with no target would be
+   * indistinguishable from corruption.
+   */
+  setSessionFiling: (sessionId: string, deptId: string, deptName: string) => void
+  /** Remove the manual override; ownership returns to the folder join. */
+  clearSessionFiling: (sessionId: string) => void
 }
 
 const STORAGE_KEY = 'aipa:departments'
 const ACTIVE_KEY = 'aipa:active-department'
+const FILINGS_KEY = 'aipa:session-filings'
+
+/**
+ * Normalize the stored filing map. Nothing here is trusted: a hand-edited or
+ * half-written payload must not be able to invent a target node or make a
+ * session look filed when it is not.
+ */
+export function parseFilings(raw: unknown): FilingMap {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const out: FilingMap = {}
+  for (const [sessionId, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!sessionId) continue
+    if (!value || typeof value !== 'object' || Array.isArray(value)) continue
+    const record = value as Record<string, unknown>
+    if (typeof record.deptId !== 'string' || !record.deptId) continue
+    if (typeof record.deptName !== 'string') continue
+    out[sessionId] = {
+      deptId: record.deptId,
+      deptName: record.deptName,
+      filedAt: typeof record.filedAt === 'number' && Number.isFinite(record.filedAt)
+        ? record.filedAt
+        : 0,
+    }
+  }
+  return out
+}
+
+const loadFilings = (): FilingMap => {
+  try {
+    const saved = localStorage.getItem(FILINGS_KEY)
+    if (!saved) return {}
+    return parseFilings(JSON.parse(saved))
+  } catch { return {} }
+}
+
+const saveFilings = (filings: FilingMap) => {
+  try { localStorage.setItem(FILINGS_KEY, JSON.stringify(filings)) } catch {}
+}
 
 /**
  * Read the stored tree. Normalising here (never written back) is what keeps the
@@ -154,6 +220,7 @@ export const useDepartmentStore = create<DepartmentState>((set) => ({
   activeDepartmentId: (() => {
     try { return localStorage.getItem(ACTIVE_KEY) } catch { return null }
   })(),
+  filings: loadFilings(),
 
   addDepartment: (data) => {
     const dept: Department = {
@@ -171,6 +238,10 @@ export const useDepartmentStore = create<DepartmentState>((set) => ({
 
   removeDepartment: (id) => {
     set((s) => {
+      // Filings pointing at the removed nodes are deliberately kept: they
+      // resolve to "filed under a department that no longer exists", not back
+      // to the folder. Deleting a department must not re-file its conversations
+      // somewhere the user never chose.
       const doomed = descendantIds(s.departments, id)
       const updated = s.departments.filter((d) => !doomed.has(d.id))
       saveDepartments(updated)
@@ -257,5 +328,28 @@ export const useDepartmentStore = create<DepartmentState>((set) => ({
   reorderDepartments: (depts) => {
     saveDepartments(depts)
     set({ departments: depts })
+  },
+
+  setSessionFiling: (sessionId, deptId, deptName) => {
+    const id = sessionId.trim()
+    if (!id || !deptId) return
+    set((s) => {
+      const next: FilingMap = {
+        ...s.filings,
+        [id]: { deptId, deptName: deptName.trim(), filedAt: Date.now() },
+      }
+      saveFilings(next)
+      return { filings: next }
+    })
+  },
+
+  clearSessionFiling: (sessionId) => {
+    set((s) => {
+      if (!(sessionId in s.filings)) return s
+      const next = { ...s.filings }
+      delete next[sessionId]
+      saveFilings(next)
+      return { filings: next }
+    })
   },
 }))

@@ -2,11 +2,13 @@
 // reached from the org chart, and a department page would look like its teams
 // did not exist.
 
+import { useMemo } from 'react'
 import { Users } from 'lucide-react'
-import type { Department } from '../../store'
+import { useDepartmentStore, type Department } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
 import { useI18n } from '../../i18n'
-import { deptDisplayName, sessionMatchesDir } from './deptUtils'
+import { deptDisplayName } from './deptUtils'
+import { groupSessionsByResolvedDept } from './deptBrief.data'
 
 interface DeptTeamStripProps {
   teams: Department[]
@@ -19,11 +21,24 @@ interface DeptTeamStripProps {
 
 export default function DeptTeamStrip({ teams, sessions, homeDir, deptColor, onSelectDept }: DeptTeamStripProps) {
   const { t, resolvedLocale } = useI18n()
+  // A manual filing changes a team's headcount, so this surface re-renders with
+  // the map. One lookup and one resolution per session, not one per chip.
+  const filings = useDepartmentStore(s => s.filings)
+  const teamCounts = useMemo(() => {
+    const { byDept } = groupSessionsByResolvedDept(sessions, {
+      departments: teams,
+      filings,
+      homeDir,
+    })
+    const counts = new Map<string, number>()
+    for (const team of teams) counts.set(team.id, byDept[team.id]?.length ?? 0)
+    return counts
+  }, [sessions, teams, filings, homeDir])
 
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
       {teams.map(team => {
-        const teamCount = sessions.filter(s => sessionMatchesDir(s, team.directory, homeDir)).length
+        const teamCount = teamCounts.get(team.id) ?? 0
         const teamOpen = team.positions?.length ?? 0
         const color = team.color || deptColor || '#6366f1'
         return (

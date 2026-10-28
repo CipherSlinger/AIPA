@@ -30,13 +30,13 @@ import {
   FolderOpen, LayoutGrid, Plus, Search, X,
 } from 'lucide-react'
 import { useChatStore, useDepartmentStore, useSessionStore, type Department } from '../../store'
-import { SessionListItem } from '../../types/app.types'
 import { useI18n } from '../../i18n'
 import { ToolbarButton } from '../workflows/EmployeesShared'
 import {
-  baseName, childrenOf, deptByNormDir, deptBySlug, deptDisplayName, findDeptForSession, kindOf,
+  baseName, childrenOf, deptDisplayName, kindOf,
   positionDisplayTitle, teamsOf,
 } from './deptUtils'
+import { groupSessionsByResolvedDept } from './deptBrief.data'
 import OrgSection, { type OrgSectionProps } from './OrgSection'
 import { CARD_MIN_FULL, DENSE_FROM } from './orgLayout'
 import DeptTemplatePicker from './DeptTemplatePicker'
@@ -70,6 +70,8 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
   const allSessions = useSessionStore(s => s.sessions)
   const sessionsLoading = useSessionStore(s => s.loading)
   const homeDir = useSessionStore(s => s.homeDir)
+  // A manual filing moves a conversation between cards, so the chart subscribes.
+  const filings = useDepartmentStore(s => s.filings)
   const currentSessionId = useChatStore(s => s.currentSessionId)
   const addNewDept = useDepartmentStore(s => s.addDepartment)
   const removeDepartment = useDepartmentStore(s => s.removeDepartment)
@@ -110,18 +112,18 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
 
   const sessionsByDept = useMemo(() => {
     // One pass over the session list instead of one pass per department: the
-    // owning department is resolved once, through the shared join.
-    const bySlug = deptBySlug(departments)
-    const byNormDir = deptByNormDir(departments, homeDir)
-    const map: Record<string, SessionListItem[]> = {}
-    for (const dept of departments) map[dept.id] = []
-    for (const s of allSessions) {
-      const dept = findDeptForSession(s, bySlug, byNormDir, homeDir)
-      if (dept) map[dept.id].push(s)
+    // owning department is resolved once, through the shared resolver (a manual
+    // filing wins over the folder; a filing to a deleted node joins no card).
+    const { byDept } = groupSessionsByResolvedDept(allSessions, {
+      departments,
+      filings,
+      homeDir,
+    })
+    for (const id of Object.keys(byDept)) {
+      byDept[id].sort((a, b) => b.timestamp - a.timestamp)
     }
-    for (const id of Object.keys(map)) map[id].sort((a, b) => b.timestamp - a.timestamp)
-    return map
-  }, [departments, allSessions, homeDir])
+    return byDept
+  }, [departments, allSessions, filings, homeDir])
 
   const teamsByDept = useMemo(() => {
     const map: Record<string, Department[]> = {}
