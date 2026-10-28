@@ -7,9 +7,9 @@
 // `automation:changed` instead of guessing what the scheduler did.
 
 import { useCallback, useEffect, useState } from 'react'
-import { AlarmClock, AlertTriangle, Clock, History, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Trash2, Wallet } from 'lucide-react'
+import { AlarmClock, AlertTriangle, Clock, Copy, History, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Trash2, Wallet } from 'lucide-react'
 import { useI18n } from '../../i18n'
-import { usePrefsStore } from '../../store'
+import { usePrefsStore, useUiStore } from '../../store'
 import { usePluginStore } from '../../store/pluginStore'
 import { getPluginDisplayName } from '../plugins/pluginIcons'
 import SettingsGroup from './SettingsGroup'
@@ -63,6 +63,7 @@ export default function SettingsAutomations() {
   const workflows = usePrefsStore(s => s.prefs.workflows) as WorkflowOption[] | undefined
   const personas = usePrefsStore(s => s.prefs.personas) as Persona[] | undefined
   const plugins = usePluginStore(s => s.plugins)
+  const addToast = useUiStore(s => s.addToast)
 
   const [jobs, setJobs] = useState<AutomationJobData[]>([])
   const [limits, setLimits] = useState<AutomationLimitsData | null>(null)
@@ -342,6 +343,35 @@ export default function SettingsAutomations() {
       if (!result.ok) setError(t('automation.errors.runFailed', { error: errorText(result.error) }))
     } catch (err) {
       setError(t('automation.errors.runFailed', { error: String(err) }))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  /**
+   * Make a switched-off copy. No confirmation: unlike Delete this is
+   * reversible (delete the copy), so a dialog would only add friction.
+   *
+   * The toast must not read as "now it will run too" — the copy is created
+   * disabled. If the original already names a deleted workflow, the copy will
+   * be flagged the same way, and the sentence says so rather than letting the
+   * success message cover it.
+   */
+  const duplicateJob = async (job: AutomationJobData) => {
+    setError(null)
+    setBusyId(job.id)
+    try {
+      const result = await window.electronAPI.automationClone(job.id)
+      if (!result.ok) {
+        setError(t('automation.duplicate.failed', { error: errorText(result.error) }))
+        return
+      }
+      addToast('success', t(
+        result.job.actionMissing ? 'automation.duplicate.doneActionMissing' : 'automation.duplicate.done',
+        { name: result.job.name },
+      ))
+    } catch (err) {
+      setError(t('automation.duplicate.failed', { error: String(err) }))
     } finally {
       setBusyId(null)
     }
@@ -981,6 +1011,17 @@ export default function SettingsAutomations() {
                         >
                           <Pencil size={11} />
                           {t('automation.edit')}
+                        </button>
+                        <button
+                          style={{ ...smallButtonStyle, opacity: busyId === job.id ? 0.5 : 1 }}
+                          disabled={busyId === job.id}
+                          onClick={() => duplicateJob(job)}
+                          title={t('automation.duplicateJobHint')}
+                          onMouseEnter={e => { if (busyId !== job.id) e.currentTarget.style.color = 'var(--text-primary)' }}
+                          onMouseLeave={e => { e.currentTarget.style.color = SECONDARY }}
+                        >
+                          <Copy size={11} />
+                          {t('automation.duplicateJob')}
                         </button>
                         <button
                           style={smallButtonStyle}

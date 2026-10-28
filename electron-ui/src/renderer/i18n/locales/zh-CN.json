@@ -2303,7 +2303,17 @@
       "failuresAria": "{{label}} — 定时任务需要处理。打开详情。",
       "failedRuns": "最近的失败",
       "moreFailures": "还有 {{count}} 个",
-      "openRun": "打开这次运行的对话"
+      "openRun": "打开这次运行的对话",
+      "runAgainAria": "重新运行「{{name}}」",
+      "runAgainTitle": "立即重新运行「{{name}}」。手动运行不受“全部暂停”影响，也不受花费上限限制。",
+      "runAgainWhileRunning": "早先一次运行失败了；「{{name}}」现在正在运行，等这次跑完。",
+      "runStarted": "正在运行「{{name}}」",
+      "runAlreadyRunning": "「{{name}}」已经在运行了，等这次跑完。",
+      "runNotFound": "「{{name}}」已不存在，这个定时任务被删除了。",
+      "runTooMany": "正在运行的任务太多，暂时无法启动「{{name}}」，请稍后再试。",
+      "runWorkflowMissing": "「{{name}}」无法运行：它使用的工作流已不存在。请在“设置 → 定时任务”中修复。",
+      "runNothingToRun": "「{{name}}」没有可运行的内容：它的工作流没有生成提示词。",
+      "runRefused": "无法启动「{{name}}」：{{reason}}"
     }
   },
   "dailyBriefing": {
@@ -3102,7 +3112,8 @@
       "nothing_to_run": "工作流没有可运行的内容。",
       "cost_limit_invalid": "花费上限必须是大于 0 的金额。",
       "cost_limit_too_high": "花费上限每天不能超过 $1000。",
-      "watch_path_invalid": "请填写绝对路径，例如 /Users/me/Notes 或 C:\\Notes。"
+      "watch_path_invalid": "请填写绝对路径，例如 /Users/me/Notes 或 C:\\Notes。",
+      "name_invalid": "请给副本起一个有效的名称。"
     },
     "personaHint": "该工作流的定时运行使用此专家；工作流页面上的“运行”按钮仍使用当前对话的专家。",
     "personaMissing": "专家已删除",
@@ -3226,7 +3237,14 @@
       "hint": "此任务由插件 {{plugin}} 创建，不是你手动添加的。它和其他自动化任务一样可以编辑和删除。",
       "missing": "创建此自动化任务的插件已卸载。该任务仍然保留，你可以编辑或删除它。",
       "dialogNote": "此计划由 {{plugin}} 创建，该插件可能会删除或重建它。你在这里做的修改可能被覆盖。"
-    }
+    },
+    "duplicate": {
+      "done": "已复制为“{{name}}”。它会保持关闭，直到你开启。",
+      "doneActionMissing": "已复制为“{{name}}”。它会保持关闭，直到你开启。它使用的工作流已不存在，因此会一直标记为异常，直到你重新选择。",
+      "failed": "无法复制自动化：{{error}}"
+    },
+    "duplicateJob": "复制",
+    "duplicateJobHint": "创建一份这份自动化的副本，默认关闭。"
   },
   "speculation": {
     "title": "投机预览",

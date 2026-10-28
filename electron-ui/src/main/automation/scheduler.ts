@@ -1006,6 +1006,11 @@ export function createAutomationJobForPlugin(
   return createJob(input, pluginId.trim())
 }
 
+/** Ids only need to be unique inside one store; the timestamp keeps them sortable. */
+function makeJobId(now: number): string {
+  return `auto-${now.toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+}
+
 function createJob(input: AutomationInput, originPluginId?: string): AutomationMutationResult {
   try {
     if (jobs.length >= AUTOMATION_LIMITS.maxJobs) throw new AutomationInputError('too_many_jobs')
@@ -1019,7 +1024,7 @@ function createJob(input: AutomationInput, originPluginId?: string): AutomationM
     const dailyCostLimitUsd = validateDailyCostLimit(input?.dailyCostLimitUsd)
     const enabled = input?.enabled !== false
     const job: AutomationJob = {
-      id: `auto-${now.toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      id: makeJobId(now),
       name,
       enabled,
       trigger,
@@ -1048,6 +1053,95 @@ function createJob(input: AutomationInput, originPluginId?: string): AutomationM
     syncWatchers()
     persistAndBroadcast()
     log.info(`Automation "${name}" created`)
+    return { ok: true, job: toView(job) }
+  } catch (err) {
+    return { ok: false, error: errorCode(err) }
+  }
+}
+
+/**
+ * The name a duplicate gets when the caller did not choose one.
+ *
+ * The suffix is what identifies the copy, so it is never clipped; the original
+ * name loses characters instead. It also never stacks: a copy of a copy becomes
+ * "x (copy 2)", then "x (copy 3)", rather than "x (copy) (copy)".
+ */
+const COPY_SUFFIX = / \(copy(?: (\d+))?\)$/
+
+function copyNameFor(sourceName: string): string {
+  const match = COPY_SUFFIX.exec(sourceName)
+  const base = match ? sourceName.slice(0, match.index) : sourceName
+  // "(copy)" is the first copy, "(copy 2)" the second; a hand-edited number is
+  // kept as the starting point rather than reset.
+  const next = match ? (match[1] ? Number(match[1]) + 1 : 2) : 1
+  const suffix = next === 1 ? ' (copy)' : ` (copy ${next})`
+  const room = MAX_NAME_CHARS - suffix.length
+  const head = base.length > room ? base.slice(0, room).trimEnd() : base
+  // `base` cannot be empty for a valid stored name (names are trimmed, and the
+  // pattern needs a leading space), so the suffix always has something to
+  // attach to without inventing a name.
+  return `${head}${suffix}`
+}
+
+/**
+ * Create a switched-off copy of an existing job.
+ *
+ * The copy carries the *configuration* and nothing that happened: history,
+ * last-run state, the pending retry and the plugin origin are all new-job
+ * defaults. In particular it starts disabled — duplicating a 03:00 job must not
+ * silently give the user two of them — and it is not a paused job, it is simply
+ * off until the user reviews it and turns it on.
+ *
+ * The trigger and action are copied as stored rather than re-validated: a job
+ * whose workflow or watched folder was deleted must still be duplicable, and
+ * the view flags the copy (`actionMissing` / `watchMissing`) exactly as it flags
+ * the original. `originPluginId` is deliberately absent: a job the user creates
+ * is the user's, even when the original was made by a plugin.
+ */
+export function cloneAutomationJob(id: string, name?: string): AutomationMutationResult {
+  const source = jobs.find(j => j.id === id)
+  if (!source) return { ok: false, error: 'not_found' }
+  try {
+    if (jobs.length >= AUTOMATION_LIMITS.maxJobs) throw new AutomationInputError('too_many_jobs')
+    const now = Date.now()
+    // An explicit name is held to the same rule as any other name; an empty one
+    // is "not provided" so the generated copy name applies.
+    const explicitName = typeof name === 'string' ? name.trim() : ''
+    const job: AutomationJob = {
+      id: makeJobId(now),
+      name: explicitName ? validateName(explicitName) : copyNameFor(source.name),
+      enabled: false,
+      trigger: { ...source.trigger },
+      action: { ...source.action },
+      // Assignment is conditional so a field the original never set stays
+      // absent rather than becoming an explicit false/empty override.
+      ...(source.personaId ? { personaId: source.personaId } : {}),
+      ...(source.quietOnSuccess === true ? { quietOnSuccess: true } : {}),
+      ...(source.retryOnFailure === true ? { retryOnFailure: true } : {}),
+      ...(source.dailyCostLimitUsd !== undefined
+        ? { dailyCostLimitUsd: source.dailyCostLimitUsd }
+        : {}),
+      createdAt: now,
+      updatedAt: now,
+      // Off means no calendar: a nextRunAt here would make the ticker run a job
+      // the user has not reviewed yet.
+      nextRunAt: null,
+      lastRunAt: null,
+      lastStatus: null,
+      lastError: null,
+      lastSessionId: null,
+      lastRunLate: false,
+      lastDurationMs: null,
+      runCount: 0,
+      recentRuns: [],
+      history: [],
+    }
+    jobs.push(job)
+    // Same contract as every other mutation: re-align watchers before the
+    // broadcast. A disabled watch copy will not attach, which is the point.
+    syncWatchers()
+    persistAndBroadcast()
+    log.info(`Automation "${job.name}" created as a copy of "${source.name}" (off)`)
     return { ok: true, job: toView(job) }
   } catch (err) {
     return { ok: false, error: errorCode(err) }

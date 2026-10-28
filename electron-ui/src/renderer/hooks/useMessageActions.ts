@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react'
-import { StandardChatMessage, Note, MemoryItem } from '../types/app.types'
+import { StandardChatMessage, Note } from '../types/app.types'
 import { usePrefsStore, useChatStore, useUiStore } from '../store'
 import { useT } from '../i18n'
+import { useRememberCapture } from '../components/memory/useRememberCapture'
 
 interface UseMessageActionsProps {
   message: { id: string; role: string; content?: string }
@@ -14,6 +15,8 @@ export function useMessageActions({ message, isPermission, isPlan }: UseMessageA
   const toggleBookmarkStore = useChatStore(s => s.toggleBookmark)
   const setQuotedText = useUiStore(s => s.setQuotedText)
   const addToast = useUiStore(s => s.addToast)
+  // Same capture/dedupe/cap/Undo path as the selection toolbar's "Remember".
+  const remember = useRememberCapture()
   const [copied, setCopied] = useState(false)
 
   const handleCopy = useCallback(() => {
@@ -120,30 +123,13 @@ export function useMessageActions({ message, isPermission, isPlan }: UseMessageA
   }, [message, addToast, t])
 
   const handleRememberThis = useCallback(() => {
+    // A whole message is still plain text from StandardChatMessage, but the
+    // union type passed in may carry no `content` at all (permission/plan
+    // messages); the guard stays.
     const text = (message as StandardChatMessage).content
     if (!text) return
-    const MAX_MEMORIES = 200
-    const currentMemories: MemoryItem[] = usePrefsStore.getState().prefs.memories || []
-    if (currentMemories.length >= MAX_MEMORIES) {
-      addToast('error', t('memory.limitReached'))
-      return
-    }
-    const now = Date.now()
-    // Take first 500 chars as memory content
-    const content = text.slice(0, 500)
-    const newMemory: MemoryItem = {
-      id: `mem-${now}-${Math.random().toString(36).slice(2, 6)}`,
-      content,
-      category: 'context',
-      createdAt: now,
-      updatedAt: now,
-      source: 'chat',
-    }
-    const updated = [newMemory, ...currentMemories]
-    usePrefsStore.getState().setPrefs({ memories: updated })
-    window.electronAPI.prefsSet('memories', updated)
-    addToast('success', t('message.savedToMemory'))
-  }, [message, addToast, t])
+    remember(text)
+  }, [message, remember])
 
   const handlePin = useCallback(() => {
     const togglePin = useChatStore.getState().togglePin

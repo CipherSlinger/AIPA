@@ -2303,7 +2303,17 @@
       "failuresAria": "{{label}} — automations need attention. Open details.",
       "failedRuns": "Recent failures",
       "moreFailures": "and {{count}} more",
-      "openRun": "Open this run's conversation"
+      "openRun": "Open this run's conversation",
+      "runAgainAria": "Run {{name}} again",
+      "runAgainTitle": "Run {{name}} again now. Manual runs start even while automations are paused and are not checked against the spend limits.",
+      "runAgainWhileRunning": "An earlier run failed; {{name}} is running again now — wait for it to finish.",
+      "runStarted": "Running {{name}} now",
+      "runAlreadyRunning": "{{name}} is already running — wait for that run to finish.",
+      "runNotFound": "{{name}} no longer exists. Its automation was deleted.",
+      "runTooMany": "Too many runs are in progress to start {{name}}. Try again in a moment.",
+      "runWorkflowMissing": "{{name}} can't run: its workflow no longer exists. Fix it in Settings → Automations.",
+      "runNothingToRun": "{{name}} has nothing to run: its workflow produced no prompt.",
+      "runRefused": "Could not start {{name}}: {{reason}}"
     }
   },
   "dailyBriefing": {
@@ -3102,7 +3112,8 @@
       "nothing_to_run": "The workflow produced nothing to run.",
       "cost_limit_invalid": "The spend limit must be an amount greater than 0.",
       "cost_limit_too_high": "The spend limit cannot exceed $1000 per day.",
-      "watch_path_invalid": "Watch an absolute path — a full path like /Users/me/Notes or C:\\Notes."
+      "watch_path_invalid": "Watch an absolute path — a full path like /Users/me/Notes or C:\\Notes.",
+      "name_invalid": "Give the copy a valid name."
     },
     "personaHint": "Scheduled runs of this workflow use this expert. The workflow's own Run button still uses the current conversation's expert.",
     "personaMissing": "Expert deleted",
@@ -3226,7 +3237,14 @@
       "hint": "Created by the {{plugin}} plugin, not by you. It is editable and deletable like any other automation.",
       "missing": "The plugin that created this automation is no longer installed. The schedule is kept so you can edit or delete it.",
       "dialogNote": "This schedule was created by {{plugin}}, which may delete or recreate it. Changes you make here can be overwritten."
-    }
+    },
+    "duplicate": {
+      "done": "Duplicated as “{{name}}”. It is switched off until you turn it on.",
+      "doneActionMissing": "Duplicated as “{{name}}”. It is switched off until you turn it on. Its workflow no longer exists, so it is flagged until you pick another.",
+      "failed": "Could not duplicate the automation: {{error}}"
+    },
+    "duplicateJob": "Duplicate",
+    "duplicateJobHint": "Create a switched-off copy of this automation."
   },
   "speculation": {
     "title": "Speculative Preview",

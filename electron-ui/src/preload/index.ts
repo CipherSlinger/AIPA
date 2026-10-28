@@ -788,6 +788,10 @@ const electronAPI = {
     }>,
   automationCreate: (input: AutomationInputData) =>
     ipcRenderer.invoke('automation:create', input) as Promise<AutomationMutationData>,
+  // A switched-off copy of an existing job. The optional name wins over the
+  // generated "<original> (copy)" one; no name is the normal UI path.
+  automationClone: (id: string, name?: string) =>
+    ipcRenderer.invoke('automation:clone', { id, name }) as Promise<AutomationMutationData>,
   automationUpdate: (id: string, input: AutomationInputData) =>
     ipcRenderer.invoke('automation:update', id, input) as Promise<AutomationMutationData>,
   automationDelete: (id: string) =>

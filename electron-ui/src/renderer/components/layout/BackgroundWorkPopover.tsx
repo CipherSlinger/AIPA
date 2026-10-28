@@ -1,21 +1,30 @@
 // BackgroundWorkPopover — the list behind the status bar's background-work
-// segment (wave 24, extended with unseen failures in wave 27).
+// segment (wave 24, extended with unseen failures in wave 27, retryable rows in
+// wave 28).
 //
 // Groups appear only when they have rows. Failures come first: they are the
 // group that is still owed an answer, and the segment may be showing a running
 // job's label instead. A failed row opens its transcript when the run left one,
 // and Settings -> Automations otherwise; every other row opens Settings ->
 // Automations because that page owns the controls (Run now, edit, pause).
+//
+// A failed row also carries a second action of its own: run the job again from
+// the panel that announced the failure, without a trip through Settings. The
+// two actions are siblings inside a `role="group"` container — a button cannot
+// legally contain another button, and the main action's accessible name has to
+// stay the row's own text (job, time, reason).
+//
 // `now` comes from the parent, which ticks only while this panel is open.
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import { AlertTriangle, ArrowUpRight, Pause } from 'lucide-react'
+import { AlertTriangle, ArrowUpRight, Loader2, Pause, RotateCcw } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { useUiStore } from '../../store'
 import { formatDuration } from './statusBarConstants'
 import { errorCodeText, relativeTimeText } from '../workflows/scheduleSummary'
 import { failureStreakText, type UnseenFailure } from './automationFailures'
+import type { Translate } from '../automation/scheduleText'
 import type { AutomationJobData } from '../../../preload'
 
 interface BackgroundWorkPopoverProps {
@@ -27,6 +36,12 @@ interface BackgroundWorkPopoverProps {
   hiddenFailures: number
   nextUp: AutomationJobData[]
   pausedAll: boolean
+  /**
+   * Jobs with a run in flight right now. A row lists a *past* failure, so the
+   * failure's job may be running again already; that is the one case where the
+   * row's "run again" action cannot start another run.
+   */
+  runningJobIds: ReadonlySet<string>
   now: number
   onClose: () => void
 }
@@ -58,9 +73,57 @@ const ROW: CSSProperties = {
   cursor: 'pointer', textAlign: 'left',
 }
 
+/**
+ * A failed row is a group of two sibling buttons, so the hover background and
+ * the padding belong to the container rather than to either action.
+ */
+const ROW_GROUP: CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 6, width: '100%',
+  padding: '4px 6px', borderRadius: 6,
+  transition: 'background 0.12s ease',
+}
+
+/** The row's main action: the two text lines, stretched, with no chrome. */
+const ROW_MAIN: CSSProperties = {
+  display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 1,
+  flex: 1, minWidth: 0, padding: 0, border: 'none',
+  background: 'transparent', color: 'var(--text-primary)', fontSize: 11,
+  cursor: 'pointer', textAlign: 'left',
+}
+
 const ELLIPSIS: CSSProperties = {
   flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
   whiteSpace: 'nowrap', textAlign: 'left',
+}
+
+/**
+ * The refusal codes `automation:runNow` can return, in the panel's own words.
+ *
+ * Settings -> Automations prefixes a generic "Could not start the run:" to the
+ * code, which reads wrong for a refusal that is really "this job is already
+ * running". These sentences state what happened. Anything else goes through
+ * `errorCodeText` inside a sentence, so a raw code is never shown on its own.
+ */
+function refusalText(code: string, name: string, t: Translate): string {
+  switch (code) {
+    case 'already_running':
+      return t('statusBar.background.runAlreadyRunning', { name })
+    case 'not_found':
+      return t('statusBar.background.runNotFound', { name })
+    case 'too_many_running':
+      return t('statusBar.background.runTooMany', { name })
+    // Not a wire refusal today: a manual run on a job whose workflow was
+    // deleted is acknowledged and then recorded as a failure. The caller
+    // detects that through `running` and names it with this same mapping.
+    case 'workflow_missing':
+      return t('statusBar.background.runWorkflowMissing', { name })
+    case 'nothing_to_run':
+      return t('statusBar.background.runNothingToRun', { name })
+    default: {
+      const reason = errorCodeText(code, t)
+      return t('statusBar.background.runRefused', { name, reason: reason || code })
+    }
+  }
 }
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
@@ -110,6 +173,22 @@ interface FailureRowProps {
   streak: string | null
   title: string
   onClick: () => void
+  /** Start this failure's job again; the row never removes itself. */
+  onRunAgain: () => void
+  runAria: string
+  /** What the action does, and what a manual run is exempt from. */
+  runTitle: string
+  /** Why the action is unavailable while the job is running already. */
+  runBusyTitle: string
+  /** A run for this job is in flight right now. */
+  running: boolean
+  /** This row has already asked for a start and is waiting on the IPC reply. */
+  starting: boolean
+  /**
+   * Touch screens have no hover, so an action revealed only on hover would be
+   * invisible exactly where it is the only way to reach it.
+   */
+  alwaysShowAction: boolean
 }
 
 /**
@@ -117,41 +196,93 @@ interface FailureRowProps {
  * makes the row actionable without opening Settings, and the streak is the
  * difference between one bad night and a schedule that never works.
  *
- * No aria-label on the button: its accessible name is the text inside it — job,
- * time, reason — which is exactly what a screen-reader user needs to choose.
+ * The main button keeps no aria-label: its accessible name is the text inside
+ * it — job, time, reason — which is exactly what a screen-reader user needs to
+ * choose. The retry icon beside it names its own job, so a screen reader hears
+ * "Run Morning briefing again" rather than a bare "Run again".
  */
-function FailureRow({ failure, time, error, streak, title, onClick }: FailureRowProps) {
+function FailureRow({
+  failure, time, error, streak, title, onClick,
+  onRunAgain, runAria, runTitle, runBusyTitle, running, starting, alwaysShowAction,
+}: FailureRowProps) {
+  // The container tints while either action is hovered or focused. State
+  // rather than inline handlers on the buttons keeps the highlight alive when
+  // the mouse leaves onto the icon or the keyboard tabs between the two.
+  const [hovered, setHovered] = useState(false)
+  const [focused, setFocused] = useState(false)
+  const active = hovered || focused
+  const locked = running || starting
+  // Locked rows keep the icon on screen: a disabled control that vanishes
+  // reads as a glitch, and the spinner needs to be visible anyway.
+  const actionVisible = active || alwaysShowAction || locked
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      style={{ ...ROW, alignItems: 'flex-start', flexDirection: 'column', gap: 1 }}
-      onMouseEnter={event => { event.currentTarget.style.background = 'var(--bg-hover)' }}
-      onMouseLeave={event => { event.currentTarget.style.background = 'transparent' }}
+    <div
+      role="group"
+      aria-label={failure.jobName}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocusCapture={() => setFocused(true)}
+      onBlurCapture={event => {
+        // Moving between the row's own buttons is not leaving the row.
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false)
+      }}
+      style={{ ...ROW_GROUP, background: active ? 'var(--bg-hover)' : 'transparent' }}
     >
-      <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, width: '100%' }}>
-        <span style={ELLIPSIS}>{failure.jobName}</span>
-        <span style={{
-          flexShrink: 0, color: 'var(--text-muted)',
-          fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"',
-        }}>
-          {time}
+      <button type="button" onClick={onClick} title={title} style={ROW_MAIN}>
+        <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, width: '100%' }}>
+          <span style={ELLIPSIS}>{failure.jobName}</span>
+          <span style={{
+            flexShrink: 0, color: 'var(--text-muted)',
+            fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"',
+          }}>
+            {time}
+          </span>
         </span>
-      </span>
-      {(error || streak) && (
-        <span style={{
-          display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap',
-          fontSize: 10, color: 'var(--warning-text)', lineHeight: 1.4,
-        }}>
-          {/* Amber rather than red: the run already failed quietly, and this row
-              is an invitation to look, not an alarm to dismiss. */}
-          <AlertTriangle size={9} style={{ flexShrink: 0 }} />
-          {error && <span>{error}</span>}
-          {streak && <span>{streak}</span>}
-        </span>
-      )}
-    </button>
+        {(error || streak) && (
+          <span style={{
+            display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap',
+            fontSize: 10, color: 'var(--warning-text)', lineHeight: 1.4,
+          }}>
+            {/* Amber rather than red: the run already failed quietly, and this row
+                is an invitation to look, not an alarm to dismiss. */}
+            <AlertTriangle size={9} style={{ flexShrink: 0 }} />
+            {error && <span>{error}</span>}
+            {streak && <span>{streak}</span>}
+          </span>
+        )}
+      </button>
+      <button
+        type="button"
+        aria-label={runAria}
+        title={running ? runBusyTitle : runTitle}
+        aria-disabled={locked}
+        aria-busy={starting || undefined}
+        onClick={() => { if (!locked) onRunAgain() }}
+        onMouseEnter={event => {
+          if (!locked) event.currentTarget.style.color = 'var(--text-primary)'
+        }}
+        onMouseLeave={event => {
+          event.currentTarget.style.color = locked ? 'var(--text-muted)' : 'var(--text-secondary)'
+        }}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0, width: 18, height: 18, padding: 0,
+          border: 'none', borderRadius: 4, background: 'transparent',
+          color: locked ? 'var(--text-muted)' : 'var(--text-secondary)',
+          cursor: locked ? 'default' : 'pointer',
+          opacity: !actionVisible ? 0 : locked && !starting ? 0.4 : 1,
+          // `pointer-events: none` would swallow the tooltip that says why the
+          // action is unavailable, so the control stays hoverable and the
+          // handler guard above is what makes it inert.
+          transition: 'opacity 0.12s ease, color 0.12s ease',
+        }}
+      >
+        {starting
+          ? <Loader2 size={13} style={{ animation: 'spin 0.9s linear infinite' }} />
+          : <RotateCcw size={13} />}
+      </button>
+    </div>
   )
 }
 
@@ -162,17 +293,84 @@ export default function BackgroundWorkPopover({
   hiddenFailures,
   nextUp,
   pausedAll,
+  runningJobIds,
   now,
   onClose,
 }: BackgroundWorkPopoverProps) {
   const { t, resolvedLocale } = useI18n()
+  const addToast = useUiStore(state => state.addToast)
   const panelRef = useRef<HTMLDivElement>(null)
+  // Jobs whose start request is still awaiting the IPC reply. Keyed by job, not
+  // by row: the same job can occupy two failure rows, and both must show the
+  // same spinner and refuse a second click.
+  const [startingJobs, setStartingJobs] = useState<ReadonlySet<string>>(() => new Set())
+  // The state above is for rendering; this mirror is read synchronously so two
+  // clicks inside one frame cannot both pass the guard before React re-renders.
+  const startingRef = useRef<Set<string>>(new Set())
 
   // Focus the panel itself, not a row: activating a row navigates away, so
   // moving focus onto one at open would make Enter do more than the user asked.
   useEffect(() => {
     panelRef.current?.focus()
   }, [])
+
+  // Read once: whether the pointing device can hover. A row action revealed
+  // only on hover would be invisible on a touch screen, where it is the only
+  // way to reach it.
+  const hoverCapable = useMemo(() => {
+    try {
+      return window.matchMedia('(hover: none)').matches === false
+    } catch {
+      return true
+    }
+  }, [])
+
+  const runAgain = async (failure: UnseenFailure) => {
+    const api = window.electronAPI
+    if (!api?.automationRunNow) {
+      // Preload missing or stale: say so instead of leaving the click silent.
+      addToast('error', t('statusBar.background.runRefused', {
+        name: failure.jobName,
+        reason: t('automation.errors.unexpected_error'),
+      }))
+      return
+    }
+    if (startingRef.current.has(failure.jobId)) return
+    startingRef.current.add(failure.jobId)
+    setStartingJobs(new Set(startingRef.current))
+    try {
+      const result = await api.automationRunNow(failure.jobId)
+      if (!result.ok) {
+        // A refusal is not a generic failure: say which one it was.
+        addToast('warning', refusalText(result.error, failure.jobName, t))
+        return
+      }
+      // A manual run can be accepted and still not start — its workflow was
+      // deleted, or produced no prompt. The scheduler records that reason on
+      // the job before returning this view, so `running` is the honest test
+      // for "it is actually going", and the reason is the right toast.
+      if (!result.job.running) {
+        addToast('warning', refusalText(
+          result.job.lastError ?? 'unexpected_error',
+          failure.jobName,
+          t,
+        ))
+        return
+      }
+      // The scheduler broadcasts `automation:changed`; the indicator reloads on
+      // that event, so nothing here polls for the run's progress.
+      addToast('success', t('statusBar.background.runStarted', { name: failure.jobName }))
+    } catch (err) {
+      console.error('[AIPA] Could not start an automation from the background panel', err)
+      addToast('error', t('statusBar.background.runRefused', {
+        name: failure.jobName,
+        reason: t('automation.errors.unexpected_error'),
+      }))
+    } finally {
+      startingRef.current.delete(failure.jobId)
+      setStartingJobs(new Set(startingRef.current))
+    }
+  }
 
   const openAutomations = () => {
     onClose()
@@ -296,6 +494,15 @@ export default function BackgroundWorkPopover({
                 streak={isNewestForJob ? failureStreakText(failure.failureStreak, t) : null}
                 title={sessionId ? openRunLabel : openSettingsLabel}
                 onClick={() => sessionId ? openRun(sessionId) : openAutomations()}
+                onRunAgain={() => { void runAgain(failure) }}
+                runAria={t('statusBar.background.runAgainAria', { name: failure.jobName })}
+                // States the exemptions rather than staying silent about them:
+                // this panel can show "Paused" above a row that still starts.
+                runTitle={t('statusBar.background.runAgainTitle', { name: failure.jobName })}
+                runBusyTitle={t('statusBar.background.runAgainWhileRunning', { name: failure.jobName })}
+                running={runningJobIds.has(failure.jobId)}
+                starting={startingJobs.has(failure.jobId)}
+                alwaysShowAction={!hoverCapable}
               />
             )
           })}

@@ -122,6 +122,10 @@ export default function BackgroundWorkIndicator() {
 
   const jobs = useMemo(() => snapshot?.jobs ?? [], [snapshot])
   const running = useMemo(() => jobs.filter(job => job.running), [jobs])
+  // A failure row is a past run; the same job may be running again now, which is
+  // the one case where its retry action must stay inert. The panel gets ids, not
+  // whole jobs, so it cannot start showing live state of its own.
+  const runningJobIds = useMemo(() => new Set(running.map(job => job.id)), [running])
   const retrying = useMemo(
     () => jobs.filter(job => !job.running && job.pendingRetry !== undefined),
     [jobs],
@@ -258,6 +262,7 @@ export default function BackgroundWorkIndicator() {
           hiddenFailures={openFailures.hiddenCount}
           nextUp={nextUp}
           pausedAll={snapshot?.limits?.pausedAll === true}
+          runningJobIds={runningJobIds}
           now={now}
           onClose={() => {
             setOpen(false)

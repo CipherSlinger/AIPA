@@ -7,6 +7,7 @@
  */
 import { ipcMain } from 'electron'
 import {
+  cloneAutomationJob,
   createAutomationJob,
   deleteAutomationJob,
   listAutomationJobs,
@@ -17,6 +18,17 @@ import {
   updateAutomationJob,
 } from '../automation/scheduler'
 import type { AutomationInput } from '../automation/types'
+
+/**
+ * Register without colliding with a handler left behind by a previous
+ * registration. Local to this module for the same reason as the one in
+ * `ipc/index.ts`: registration happens once per process, but a hot reload or a
+ * second call must not crash the app.
+ */
+function safeHandle(channel: string, handler: (...args: any[]) => any): void {
+  try { ipcMain.removeHandler(channel) } catch { /* no previous handler */ }
+  ipcMain.handle(channel, handler)
+}
 
 export function registerAutomationHandlers(): void {
   ipcMain.handle('automation:list', () => {
@@ -29,6 +41,22 @@ export function registerAutomationHandlers(): void {
   })
 
   ipcMain.handle('automation:create', (_event, input: AutomationInput) => createAutomationJob(input))
+
+  // A duplicate is one scheduler call with an id and an optional name. The id
+  // is type-checked here, before the scheduler is touched: a non-string would
+  // otherwise simply miss and read as `not_found`, hiding a renderer bug.
+  safeHandle('automation:clone', (_event, payload?: { id?: unknown; name?: unknown }) => {
+    try {
+      if (typeof payload?.id !== 'string') return { ok: false, error: 'not_found' }
+      if (payload.name !== undefined && typeof payload.name !== 'string') {
+        return { ok: false, error: 'name_invalid' }
+      }
+      return cloneAutomationJob(payload.id, payload.name)
+    } catch (err) {
+      console.error('[automation:clone]', err)
+      return { ok: false, error: 'unexpected_error' }
+    }
+  })
 
   ipcMain.handle('automation:update', (_event, id: string, input: AutomationInput) =>
     updateAutomationJob(String(id), input))
