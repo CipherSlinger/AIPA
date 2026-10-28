@@ -7,6 +7,7 @@ import { usePrefsStore, useUiStore } from '../../store'
 import { useI18n } from '../../i18n'
 import type { Workflow, WorkflowStep } from '../../types/app.types'
 import { INPUT_STYLE } from './settingsConstants'
+import { stepHasContent } from '../workflows/workflowConstants'
 
 const WORKFLOW_EMOJIS = [
   '\u{1F4CB}', '\u{1F4CA}', '\u{1F4DD}', '\u2728', '\u{1F680}',
@@ -71,7 +72,7 @@ export default function WorkflowEditorPage() {
   const [formName, setFormName] = useState('')
   const [formDesc, setFormDesc] = useState('')
   const [formIcon, setFormIcon] = useState('\u{1F4CB}')
-  const [steps, setSteps] = useState<{ id: string; title: string; prompt: string }[]>([
+  const [steps, setSteps] = useState<WorkflowStep[]>([
     { id: `step-${Date.now()}`, title: '', prompt: '' },
   ])
   const [hoveredStepIdx, setHoveredStepIdx] = useState<number | null>(null)
@@ -103,7 +104,7 @@ export default function WorkflowEditorPage() {
     return () => window.removeEventListener('keydown', handler, true)
   }, [])
 
-  const canSubmit = formName.trim() && steps.some(s => s.prompt.trim())
+  const canSubmit = formName.trim() && steps.some(stepHasContent)
 
   const addStep = () => {
     if (steps.length >= 20) return
@@ -123,13 +124,15 @@ export default function WorkflowEditorPage() {
     const name = formName.trim()
     if (!name) return
 
+    // Spread `...s` so node-type fields this form does not render (condition,
+    // branches, parallelPrompts, canvasPos, …) survive the save.
     const validSteps: WorkflowStep[] = steps
-      .filter(s => s.prompt.trim())
-      .map(s => ({
-        id: s.id,
-        title: s.title.trim() || `Step ${steps.indexOf(s) + 1}`,
+      .map((s, idx) => ({
+        ...s,
+        title: s.title.trim() || `Step ${idx + 1}`,
         prompt: s.prompt.trim(),
       }))
+      .filter(stepHasContent)
 
     if (validSteps.length === 0) return
 

@@ -13,6 +13,7 @@ import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../
 import type { SidebarTab, NavItem } from '../../store'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
 import type { SessionListItem } from '../../types/app.types'
+import { getWorkflowQueuePlan } from '../workflows/workflowConstants'
 
 export interface PaletteCommand {
   id: string
@@ -567,10 +568,16 @@ export function buildWorkflowCommands(args: Pick<CommandBuilderArgs, 't' | 'onCl
     description: `${wf.steps.length} ${t('workflow.stepsLabel')} — ${wf.description || t('command.runWorkflowDesc')}`,
     icon: <Play size={14} />,
     action: () => {
-      for (const step of wf.steps) {
-        addToQueue(step.prompt)
+      const { entries } = getWorkflowQueuePlan(wf, t)
+      if (entries.length === 0) {
+        addToast('info', t('workflow.nothingToRun'))
+        onClose()
+        return
       }
-      addToast('success', t('workflow.running', { name: wf.name, count: String(wf.steps.length) }))
+      for (const entry of entries) {
+        addToQueue(entry.prompt)
+      }
+      addToast('success', t('workflow.running', { name: wf.name, count: String(entries.length) }))
       onClose()
     },
     category: 'workflow' as const,

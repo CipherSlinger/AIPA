@@ -1596,6 +1596,8 @@
     "duplicated": "工作流已复制",
     "installed": "{{name}} 已安装",
     "running": "正在运行 {{name}}（{{count}} 个步骤已加入队列）",
+    "nothingToRun": "没有可运行的内容——没有可发送的提示词",
+    "stepsSkipped": "已跳过 {{count}} 个没有提示词的步骤",
     "limitReached": "工作流数量已达上限（最多50个）",
     "runCount": "{{count}} 次运行",
     "neverRun": "从未运行",

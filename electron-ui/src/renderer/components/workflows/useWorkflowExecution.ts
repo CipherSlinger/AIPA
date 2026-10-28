@@ -1,7 +1,9 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { useChatStore } from '../../store'
+import { useT } from '../../i18n'
 import { Workflow } from '../../types/app.types'
 import { StandardChatMessage } from '../../types/app.types'
+import { getStepQueueEntries } from './workflowConstants'
 
 export type StepStatus = 'idle' | 'pending' | 'running' | 'completed' | 'error'
 
@@ -22,6 +24,7 @@ export interface WorkflowExecutionState {
  * No store modifications needed -- purely observational.
  */
 export function useWorkflowExecution(workflow: Workflow | null): WorkflowExecutionState {
+  const t = useT()
   const taskQueue = useChatStore(s => s.taskQueue)
   const messages = useChatStore(s => s.messages)
 
@@ -52,22 +55,26 @@ export function useWorkflowExecution(workflow: Workflow | null): WorkflowExecuti
 
     if (!workflow || workflow.steps.length === 0) return defaultState
 
-    const stepPrompts = workflow.steps.map(s => s.prompt)
+    // Must be the same derivation the run entry points queue, or a parallel
+    // workflow is observed against prompts that were never enqueued.
+    const entriesByStep = workflow.steps.map((step, idx) =>
+      getStepQueueEntries(step, idx, workflow.presetKey, t)
+    )
+    const entries = entriesByStep.flat()
+    if (entries.length === 0) return defaultState
 
     let queueStartIdx = -1
-    for (let qi = 0; qi < taskQueue.length; qi++) {
-      if (taskQueue[qi].content === stepPrompts[0]) {
-        let allMatch = true
-        for (let si = 1; si < stepPrompts.length; si++) {
-          if (qi + si >= taskQueue.length || taskQueue[qi + si].content !== stepPrompts[si]) {
-            allMatch = false
-            break
-          }
-        }
-        if (allMatch) {
-          queueStartIdx = qi
+    for (let qi = 0; qi + entries.length <= taskQueue.length; qi++) {
+      let allMatch = true
+      for (let ei = 0; ei < entries.length; ei++) {
+        if (taskQueue[qi + ei].content !== entries[ei].prompt) {
+          allMatch = false
           break
         }
+      }
+      if (allMatch) {
+        queueStartIdx = qi
+        break
       }
     }
 
@@ -84,53 +91,58 @@ export function useWorkflowExecution(workflow: Workflow | null): WorkflowExecuti
       m => m.role === 'user' || m.role === 'assistant'
     ) as StandardChatMessage[]
 
+    let cursor = 0
     workflow.steps.forEach((step, idx) => {
-      const queueItem = taskQueue[queueStartIdx + idx]
-      if (!queueItem) {
+      const stepEntries = entriesByStep[idx] ?? []
+      const queueItems = taskQueue.slice(queueStartIdx + cursor, queueStartIdx + cursor + stepEntries.length)
+      cursor += stepEntries.length
+      if (stepEntries.length === 0 || queueItems.length < stepEntries.length) {
         stepStatuses[step.id] = 'idle'
         return
       }
 
-      switch (queueItem.status) {
-        case 'done':
-          stepStatuses[step.id] = 'completed'
-          completedCount++
-          break
-        case 'running':
-          stepStatuses[step.id] = 'running'
-          activeStepIndex = idx
-          hasRunningOrPending = true
-          break
-        case 'pending':
-          stepStatuses[step.id] = 'pending'
-          hasRunningOrPending = true
-          break
-        case 'failed':
-          stepStatuses[step.id] = 'error'
-          hasError = true
-          break
-        default:
-          stepStatuses[step.id] = 'idle'
+      // A parallel step owns several queue items; the step is only complete
+      // once all of them are, and a failure only counts once none is active.
+      const statuses = queueItems.map(item => item.status)
+      if (statuses.includes('running')) {
+        stepStatuses[step.id] = 'running'
+        activeStepIndex = idx
+        hasRunningOrPending = true
+      } else if (statuses.includes('pending')) {
+        stepStatuses[step.id] = 'pending'
+        hasRunningOrPending = true
+      } else if (statuses.includes('failed')) {
+        stepStatuses[step.id] = 'error'
+        hasError = true
+      } else if (statuses.every(status => status === 'done')) {
+        stepStatuses[step.id] = 'completed'
+        completedCount++
+      } else {
+        stepStatuses[step.id] = 'idle'
       }
 
-      let matchCount = 0
-      for (let mi = 0; mi < stdMessages.length; mi++) {
-        const msg = stdMessages[mi]
-        if (msg.role === 'user' && msg.content === step.prompt) {
-          if (matchCount === idx) {
-            for (let ai = mi + 1; ai < stdMessages.length; ai++) {
-              if (stdMessages[ai].role === 'assistant') {
-                stepOutputs[step.id] = stdMessages[ai].content
-                break
-              } else if (stdMessages[ai].role === 'user') {
-                break
+      const outputs: string[] = []
+      for (const entry of stepEntries) {
+        let matchCount = 0
+        for (let mi = 0; mi < stdMessages.length; mi++) {
+          const msg = stdMessages[mi]
+          if (msg.role === 'user' && msg.content === entry.prompt) {
+            if (matchCount === idx) {
+              for (let ai = mi + 1; ai < stdMessages.length; ai++) {
+                if (stdMessages[ai].role === 'assistant') {
+                  outputs.push(stdMessages[ai].content)
+                  break
+                } else if (stdMessages[ai].role === 'user') {
+                  break
+                }
               }
+              break
             }
-            break
+            matchCount++
           }
-          matchCount++
         }
       }
+      if (outputs.length > 0) stepOutputs[step.id] = outputs.join('\n\n')
     })
 
     return {
@@ -142,7 +154,7 @@ export function useWorkflowExecution(workflow: Workflow | null): WorkflowExecuti
       completedCount,
       totalSteps: workflow.steps.length,
     }
-  }, [workflow, taskQueue, messages])
+  }, [workflow, taskQueue, messages, t])
 
   // Track start/end times for step duration measurement
   useEffect(() => {

@@ -4,7 +4,7 @@ import { Play, Copy, Edit3, Trash2, Users2 } from 'lucide-react'
 import type { Workflow } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { useUiStore, useChatStore } from '../../store'
-import { getPresetStepText } from './workflowConstants'
+import { getWorkflowQueuePlan } from './workflowConstants'
 import { cardStyle } from './EmployeesShared'
 
 const ICON_PALETTE = ['#6366f1', '#a78bfa', '#ec4899', '#fbbf24', '#4ade80', '#67e8f9', '#818cf8', '#f87171']
@@ -67,15 +67,18 @@ export default function WorkflowCard({ wf, onDuplicate, onDelete }: WorkflowCard
 
   const run = (e: React.MouseEvent) => {
     e.stopPropagation()
-    let count = 0
-    wf.steps.forEach((step, idx) => {
-      const prompt = getPresetStepText(wf.presetKey, idx, 'prompt', t, step.prompt)
-      if (prompt.trim()) {
-        useChatStore.getState().addToQueue(prompt, { workflowId: wf.id, stepIndex: idx })
-        count++
-      }
+    const { entries, skippedSteps } = getWorkflowQueuePlan(wf, t)
+    if (entries.length === 0) {
+      useUiStore.getState().addToast('info', t('workflow.nothingToRun'))
+      return
+    }
+    entries.forEach(entry => {
+      useChatStore.getState().addToQueue(entry.prompt, { workflowId: wf.id, stepIndex: entry.stepIndex })
     })
-    if (count > 0) useUiStore.getState().addToast('info', t('workflow.running', { name: displayName, count: String(count) }))
+    if (skippedSteps.length > 0) {
+      useUiStore.getState().addToast('info', t('workflow.stepsSkipped', { count: String(skippedSteps.length) }))
+    }
+    useUiStore.getState().addToast('info', t('workflow.running', { name: displayName, count: String(entries.length) }))
   }
 
   return (

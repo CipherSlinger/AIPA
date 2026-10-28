@@ -1596,6 +1596,8 @@
     "duplicated": "Workflow duplicated",
     "installed": "{{name}} installed",
     "running": "Running {{name}} ({{count}} steps queued)",
+    "nothingToRun": "Nothing to run — there is no prompt to send",
+    "stepsSkipped": "{{count}} step(s) skipped — no prompt to run",
     "limitReached": "Workflow limit reached (50 max)",
     "runCount": "{{count}} runs",
     "neverRun": "never",

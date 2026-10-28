@@ -148,6 +148,100 @@ export function getPresetStepText(
   return translated === key ? fallback : translated
 }
 
+/**
+ * Stride for a parallel node's `stepIndex`: `stepPosition * STEP_INDEX_STRIDE +
+ * subIndex`, so several queued prompts for one step stay distinguishable.
+ * Single-prompt steps keep their plain position as `stepIndex`, so this stride
+ * is only meaningful for parallel nodes — do not decode it for other types.
+ */
+export const STEP_INDEX_STRIDE = 100
+
+export interface WorkflowQueueEntry {
+  /** Exact text to enqueue — preset-resolved, or trimmed for parallel nodes. */
+  prompt: string
+  /** `stepPosition` alone, or `stepPosition * STEP_INDEX_STRIDE + subIndex` for parallel nodes. */
+  stepIndex: number
+}
+
+export interface WorkflowQueuePlan {
+  entries: WorkflowQueueEntry[]
+  /** 0-based positions of steps that queue nothing, so callers can surface them. */
+  skippedSteps: number[]
+}
+
+/**
+ * The single source of truth for "what does this step contribute to the
+ * queue, and under which stepIndex". Every run entry point and the execution
+ * observer must use this instead of reading `step.prompt` directly.
+ *
+ * - `parallel` nodes contribute one entry per non-empty `parallelPrompts` item,
+ *   keyed by the stride.
+ * - `condition` nodes contribute only `prompt` (the question). `branches` are
+ *   display hints in the MVP — nothing evaluates them, so do NOT enqueue them.
+ * - `note` nodes never run and contribute nothing.
+ *
+ * The single-prompt text is returned untrimmed on purpose: the task queue
+ * stores it verbatim and the execution observer matches chat messages against
+ * that exact string.
+ */
+export function getStepQueueEntries(
+  step: WorkflowStep,
+  stepPosition: number,
+  presetKey: string | undefined,
+  t: (key: string) => string,
+): WorkflowQueueEntry[] {
+  if (step.nodeType === 'note') return []
+
+  if (step.nodeType === 'parallel' && step.parallelPrompts?.length) {
+    const entries: WorkflowQueueEntry[] = []
+    step.parallelPrompts.forEach((raw, subIndex) => {
+      const prompt = raw.trim()
+      if (!prompt) return
+      entries.push({ prompt, stepIndex: stepPosition * STEP_INDEX_STRIDE + subIndex })
+    })
+    return entries
+  }
+
+  const prompt = getPresetStepText(presetKey, stepPosition, 'prompt', t, step.prompt)
+  return prompt.trim() ? [{ prompt, stepIndex: stepPosition }] : []
+}
+
+/** Workflow-wide view of `getStepQueueEntries`, in queue order. */
+export function getWorkflowQueuePlan(
+  workflow: Workflow,
+  t: (key: string) => string,
+): WorkflowQueuePlan {
+  const entries: WorkflowQueueEntry[] = []
+  const skippedSteps: number[] = []
+
+  workflow.steps.forEach((step, stepPosition) => {
+    const stepEntries = getStepQueueEntries(step, stepPosition, workflow.presetKey, t)
+    if (stepEntries.length > 0) {
+      entries.push(...stepEntries)
+    } else if (step.nodeType !== 'note') {
+      skippedSteps.push(stepPosition)
+    }
+  })
+
+  return { entries, skippedSteps }
+}
+
+/**
+ * True when a step still holds text the user authored.
+ *
+ * `prompt` alone cannot be the test: a parallel node keeps its text in
+ * `parallelPrompts`, and a condition node keeps its question in `condition`
+ * with its answers in `branches` — both leave `prompt` empty by design. An
+ * editor that drops steps on an empty `prompt` therefore deletes those nodes
+ * on save even though the user never emptied them.
+ */
+export function stepHasContent(step: WorkflowStep): boolean {
+  if (step.prompt.trim()) return true
+  if ((step.parallelPrompts ?? []).some(p => p.trim())) return true
+  if ((step.condition ?? '').trim()) return true
+  return (step.branches ?? []).some(b => b.prompt.trim())
+}
+
 export const smallBtnStyle: React.CSSProperties = {
   background: 'transparent',
   border: '1px solid var(--border)',

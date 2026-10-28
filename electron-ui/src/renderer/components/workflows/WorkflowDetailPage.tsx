@@ -10,7 +10,7 @@ import type { WorkflowStep, Workflow } from '../../types/app.types'
 import { useWorkflowExecution } from './useWorkflowExecution'
 import { useWorkflowHistory } from './useWorkflowHistory'
 import WorkflowDetailHeader from './WorkflowDetailHeader'
-import { getPresetStepText } from './workflowConstants'
+import { getStepQueueEntries, getWorkflowQueuePlan, stepHasContent } from './workflowConstants'
 
 // --- RunStatsBar: compact aggregate stats above the canvas (Iteration 662) ---
 function formatRelative(epochMs: number): string {
@@ -265,16 +265,16 @@ export default function WorkflowDetailPage() {
 
   const runWorkflow = () => {
     if (!workflow) return
-    let queuedCount = 0
-    workflow.steps.forEach((step, idx) => {
-      const prompt = getPresetStepText(workflow.presetKey, idx, 'prompt', t, step.prompt)
-      if (prompt.trim()) {
-        useChatStore.getState().addToQueue(prompt, { workflowId: workflow.id, stepIndex: idx })
-        queuedCount++
-      }
+    const { entries, skippedSteps } = getWorkflowQueuePlan(workflow, t)
+    if (entries.length === 0) {
+      addToast('info', t('workflow.nothingToRun'))
+      return
+    }
+    entries.forEach(entry => {
+      useChatStore.getState().addToQueue(entry.prompt, { workflowId: workflow.id, stepIndex: entry.stepIndex })
     })
-    if (queuedCount === 0) return
-    addToast('info', t('workflow.running', { name: displayName, count: String(queuedCount) }))
+    if (skippedSteps.length > 0) addToast('info', t('workflow.stepsSkipped', { count: String(skippedSteps.length) }))
+    addToast('info', t('workflow.running', { name: displayName, count: String(entries.length) }))
   }
 
   // Direction A: retry a single failed step by re-queuing its prompt
@@ -283,8 +283,14 @@ export default function WorkflowDetailPage() {
     const stepIdx = workflow.steps.findIndex(s => s.id === stepId)
     if (stepIdx < 0) return
     const step = workflow.steps[stepIdx]
-    const prompt = getPresetStepText(workflow.presetKey, stepIdx, 'prompt', t, step.prompt)
-    useChatStore.getState().addToQueue(prompt, { workflowId: workflow.id, stepIndex: stepIdx })
+    const entries = getStepQueueEntries(step, stepIdx, workflow.presetKey, t)
+    if (entries.length === 0) {
+      addToast('info', t('workflow.nothingToRun'))
+      return
+    }
+    entries.forEach(entry => {
+      useChatStore.getState().addToQueue(entry.prompt, { workflowId: workflow.id, stepIndex: entry.stepIndex })
+    })
     addToast('info', t('workflow.retryStep', { title: step.title || t('workflow.stepLabel', { n: stepIdx + 1 }) }))
   }, [workflow, t, addToast])
 
@@ -383,7 +389,7 @@ export default function WorkflowDetailPage() {
     const name = editName.trim()
     if (!name) { addToast('error', t('workflow.nameRequired')); return }
     const validSteps: WorkflowStep[] = editSteps
-      .filter(s => s.prompt.trim() || (s.nodeType === 'parallel' && (s.parallelPrompts ?? []).some(p => p.trim())))
+      .filter(stepHasContent)
       .map((s, idx) => ({ ...s, title: s.title.trim() || t('workflow.stepLabel', { n: idx + 1 }), prompt: s.prompt.trim() }))
     if (validSteps.length === 0) { addToast('error', t('workflow.stepsRequired')); return }
 
@@ -432,7 +438,7 @@ export default function WorkflowDetailPage() {
     )
   }
 
-  const canSave = editName.trim() && editSteps.some(s => s.prompt.trim())
+  const canSave = editName.trim() && editSteps.some(stepHasContent)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-primary)' }}>

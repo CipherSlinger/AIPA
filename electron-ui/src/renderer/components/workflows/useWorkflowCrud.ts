@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { Workflow, WorkflowStep } from '../../types/app.types'
 import { useT } from '../../i18n'
-import { MAX_WORKFLOWS, MAX_NAME_LENGTH, MAX_DESC_LENGTH, PRESET_WORKFLOWS, PRESET_TEAMWORK_WORKFLOWS, getPresetStepText } from './workflowConstants'
+import { MAX_WORKFLOWS, MAX_NAME_LENGTH, MAX_DESC_LENGTH, PRESET_WORKFLOWS, PRESET_TEAMWORK_WORKFLOWS, getWorkflowQueuePlan, stepHasContent } from './workflowConstants'
 
 export function useWorkflowCrud() {
   const t = useT()
@@ -39,42 +39,28 @@ export function useWorkflowCrud() {
   }, [setPrefs])
 
   const runWorkflow = useCallback((wf: Workflow) => {
-    if (wf.steps.length === 0) return
-    let queuedCount = 0
-    wf.steps.forEach((step, idx) => {
-      const nodeType = step.nodeType ?? 'prompt'
-      if (nodeType === 'parallel' && step.parallelPrompts && step.parallelPrompts.length > 0) {
-        // Queue all parallel prompts simultaneously
-        step.parallelPrompts.forEach((pp, pi) => {
-          if (pp.trim()) {
-            addToQueue(pp.trim(), { workflowId: wf.id, stepIndex: idx * 100 + pi })
-            queuedCount++
-          }
-        })
-      } else {
-        // For condition nodes: queue the main prompt (condition question)
-        // Branches are display-only hints in the MVP
-        const prompt = getPresetStepText(wf.presetKey, idx, 'prompt', t, step.prompt)
-        if (prompt.trim()) {
-          addToQueue(prompt, { workflowId: wf.id, stepIndex: idx })
-          queuedCount++
-        }
-      }
+    const { entries, skippedSteps } = getWorkflowQueuePlan(wf, t)
+    if (entries.length === 0) {
+      addToast('info', t('workflow.nothingToRun'))
+      return
+    }
+    entries.forEach(entry => {
+      addToQueue(entry.prompt, { workflowId: wf.id, stepIndex: entry.stepIndex })
     })
-    if (queuedCount === 0) return
+    if (skippedSteps.length > 0) addToast('info', t('workflow.stepsSkipped', { count: String(skippedSteps.length) }))
     saveWorkflows(workflows.map(w =>
       w.id === wf.id ? { ...w, runCount: w.runCount + 1, updatedAt: Date.now() } : w
     ))
-    addToast('success', t('workflow.running', { name: wf.presetKey ? t(`workflow.preset.${wf.presetKey}`) : wf.name, count: String(queuedCount) }))
+    addToast('success', t('workflow.running', { name: wf.presetKey ? t(`workflow.preset.${wf.presetKey}`) : wf.name, count: String(entries.length) }))
   }, [addToQueue, workflows, saveWorkflows, addToast, t])
 
   const createWorkflow = useCallback(() => {
-    if (!newName.trim() || newSteps.every(s => !s.prompt.trim())) return
+    if (!newName.trim() || !newSteps.some(stepHasContent)) return
     if (workflows.length >= MAX_WORKFLOWS) {
       addToast('error', t('workflow.limitReached'))
       return
     }
-    const validSteps = newSteps.filter(s => s.prompt.trim())
+    const validSteps = newSteps.filter(stepHasContent)
     const wf: Workflow = {
       id: `wf-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       name: newName.trim().slice(0, MAX_NAME_LENGTH),
@@ -136,7 +122,7 @@ export function useWorkflowCrud() {
 
   const saveEdit = useCallback(() => {
     if (!editingId || !editName.trim()) return
-    const validSteps = editSteps.filter(s => s.prompt.trim())
+    const validSteps = editSteps.filter(stepHasContent)
     saveWorkflows(workflows.map(w =>
       w.id === editingId
         ? { ...w, name: editName.trim(), description: editDesc.trim(), icon: editIcon, steps: validSteps, updatedAt: Date.now() }
