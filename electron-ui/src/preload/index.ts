@@ -644,6 +644,20 @@ export type AutomationGlobalBudgetData =
   | { ok: false; error: string }
 
 /**
+ * What a trigger would do if it were saved now, computed read-only by the
+ * scheduler with the same validation and maths a save uses.
+ *
+ * `runs` holds the next few occurrences in epoch ms, strictly increasing. Fewer
+ * than three means the schedule is rare, not broken; an empty array means there
+ * is no foreseeable next run. An unusable cron or interval answers the same
+ * stable `automation.errors.*` code a save would, and a watch trigger answers
+ * `not_applicable` — a file has no calendar.
+ */
+export type AutomationSchedulePreviewData =
+  | { ok: true; runs: number[] }
+  | { ok: false; error: string }
+
+/**
  * `cli:sendMessage` arguments. The main process still validates every field;
  * this type only names the ones the renderer actually sends.
  */
@@ -788,6 +802,10 @@ const electronAPI = {
     }>,
   automationCreate: (input: AutomationInputData) =>
     ipcRenderer.invoke('automation:create', input) as Promise<AutomationMutationData>,
+  // Read-only preview of a schedule the dialog has not saved yet. Never creates,
+  // updates or broadcasts; the same validation a save would run answers here.
+  automationPreviewSchedule: (trigger: AutomationTriggerData) =>
+    ipcRenderer.invoke('automation:preview', trigger) as Promise<AutomationSchedulePreviewData>,
   // A switched-off copy of an existing job. The optional name wins over the
   // generated "<original> (copy)" one; no name is the normal UI path.
   automationClone: (id: string, name?: string) =>

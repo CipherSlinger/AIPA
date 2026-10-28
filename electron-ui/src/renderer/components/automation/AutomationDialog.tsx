@@ -5,7 +5,7 @@
 // process (`src/main/automation/`); this dialog only edits the fields an
 // `AutomationInputData` accepts and reports save errors verbatim.
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, File, FolderOpen, Info } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { usePrefsStore, useUiStore } from '../../store'
@@ -52,6 +52,25 @@ type ScheduleKind = 'daily' | 'weekly' | 'interval' | 'cron' | 'watch'
 /** The quiet-period bounds the main process enforces, kept in the input too. */
 const WATCH_DEBOUNCE_MIN = 1
 const WATCH_DEBOUNCE_MAX = 1440
+
+/** How long the dialog waits after the last schedule edit before asking main. */
+const PREVIEW_DEBOUNCE_MS = 250
+
+/**
+ * The "next runs" line under the schedule fields.
+ *
+ * `pending` is deliberately a state of its own: a preview that describes the
+ * previous trigger must not stay visible under an edited form, so an edit clears
+ * the line at once rather than leaving a stale time there. `unavailable` is an
+ * IPC outage, which is not a verdict on the schedule — it shows no time and does
+ * not block Save, because main validates again on save.
+ */
+type SchedulePreviewState =
+  | { kind: 'idle' }
+  | { kind: 'pending' }
+  | { kind: 'runs'; runs: number[] }
+  | { kind: 'invalid'; error: string }
+  | { kind: 'unavailable' }
 
 /**
  * Whether a path looks absolute, as far as the renderer can tell. Main
@@ -208,6 +227,10 @@ export default function AutomationDialog({
   )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [preview, setPreview] = useState<SchedulePreviewState>({ kind: 'idle' })
+  // Monotonic request id. Only the answer to the newest request may be shown, so
+  // a slow reply for an earlier trigger can never overwrite a newer one.
+  const previewSeq = useRef(0)
 
   useEffect(() => pushEscapeHandler(onClose), [onClose])
 
@@ -237,6 +260,46 @@ export default function AutomationDialog({
     return { kind: 'cron', expr: `${minute} ${hour} * * *` }
   }, [scheduleKind, intervalMinutes, cronExpr, minute, hour, weekday, watchPath, watchRecursive, watchDebounce])
 
+  // Ask main what this trigger would actually do. The preview is main's own
+  // next-run maths, not a renderer formula, so an interval and a cron answer
+  // through the same path and neither can disagree with the save that follows.
+  useEffect(() => {
+    // A file change has no calendar; the watch hint under the fields says so.
+    if (trigger.kind === 'watch') {
+      previewSeq.current += 1
+      setPreview({ kind: 'idle' })
+      return
+    }
+    const seq = previewSeq.current + 1
+    previewSeq.current = seq
+    // The form no longer matches what is on screen: clear it immediately rather
+    // than leave times that describe the previous schedule under the new one.
+    setPreview({ kind: 'pending' })
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const result = await window.electronAPI.automationPreviewSchedule(trigger)
+          if (seq !== previewSeq.current) return
+          if (result.ok) setPreview({ kind: 'runs', runs: result.runs })
+          // Main says a watch trigger has no calendar; that cannot happen here
+          // (the branch above returns first), but treat it as "nothing to show".
+          else if (result.error === 'not_applicable') setPreview({ kind: 'idle' })
+          else setPreview({ kind: 'invalid', error: result.error })
+        } catch {
+          if (seq !== previewSeq.current) return
+          // An outage is not a verdict on the schedule. Show no time and let Save
+          // through; main validates again when it saves.
+          setPreview({ kind: 'unavailable' })
+        }
+      })()
+    }, PREVIEW_DEBOUNCE_MS)
+    return () => {
+      window.clearTimeout(timer)
+      // A reply that lands after this trigger is gone must not be shown.
+      if (previewSeq.current === seq) previewSeq.current = seq + 1
+    }
+  }, [trigger])
+
   const action = useMemo(() => {
     if (actionKind === 'workflow') return { kind: 'workflow', workflowId } as const
     return { kind: 'prompt', prompt: prompt.trim() } as const
@@ -253,10 +316,16 @@ export default function AutomationDialog({
   // dialog refuses first so the user sees the field rather than a round-trip.
   const watchPathValid = scheduleKind !== 'watch' || isAbsolutePath(watchPath)
 
+  // An invalid preview is a schedule main would refuse: disable Save here so the
+  // refusal is visible in place. `pending` and an IPC failure deliberately do not
+  // block — main verifies the trigger again when the job is saved.
+  const previewInvalid = preview.kind === 'invalid'
+
   const canSave = name.trim().length > 0 &&
     (actionKind === 'workflow' ? !!workflowId : prompt.trim().length > 0) &&
     spendLimitValid &&
     watchPathValid &&
+    !previewInvalid &&
     !saving
 
   const save = async () => {
@@ -336,6 +405,17 @@ export default function AutomationDialog({
   }
 
   const timeValue = clockText(hour, minute)
+
+  // Same shape the background-work popover uses, plus the weekday: a run days
+  // away needs a day name, and this line is where three dates sit side by side.
+  const previewTimeText = useCallback((ts: number): string =>
+    new Date(ts).toLocaleString(resolvedLocale, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }), [resolvedLocale])
 
   // Only an existing job can already be missing its path; a path typed in this
   // dialog has not been checked against the disk, and main reports it after
@@ -734,6 +814,44 @@ export default function AutomationDialog({
             </div>
           )}
 
+          {/* What the schedule will actually do. Read-only and computed by main
+              with the same maths a save uses, so the preview and the saved job
+              cannot disagree. No line for a watch trigger: it has no calendar,
+              and the watch hint above already covers what starts it. */}
+          {scheduleKind !== 'watch' && preview.kind === 'invalid' && (
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 5,
+              fontSize: 11, color: 'var(--danger-text)', marginTop: 6, lineHeight: 1.5,
+            }}>
+              <AlertTriangle size={11} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>{errorText(preview.error)}</span>
+            </div>
+          )}
+          {scheduleKind !== 'watch' && preview.kind === 'runs' && (
+            <div style={{
+              fontSize: 11, color: SECONDARY, marginTop: 6,
+              lineHeight: 1.5, overflowWrap: 'anywhere',
+            }}>
+              <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>
+                {t('automation.preview.label')}
+              </span>
+              {' '}
+              {/* Fewer than three is the honest answer for a rare schedule; none
+                  at all must say so rather than render a blank line. */}
+              {preview.runs.length > 0
+                ? preview.runs.map(previewTimeText).join(' · ')
+                : t('automation.preview.none')}
+            </div>
+          )}
+          {scheduleKind !== 'watch' && preview.kind === 'unavailable' && (
+            // No time at all: a failed preview is not a time and inventing one
+            // would be worse than an empty line. The tooltip is where it explains.
+            <div
+              title={t('automation.preview.unavailable')}
+              style={{ minHeight: 14, marginTop: 6 }}
+            />
+          )}
+
           {/* Lives with the schedule because it is about when the app calls
               the user, not about what the job does. */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10 }}>
@@ -790,6 +908,9 @@ export default function AutomationDialog({
             style={{ ...primaryButtonStyle, opacity: canSave ? 1 : 0.45, cursor: canSave ? 'pointer' : 'not-allowed' }}
             onClick={save}
             disabled={!canSave}
+            // When the schedule is the reason Save is off, hovering names it in
+            // the same words the line above shows.
+            title={preview.kind === 'invalid' ? errorText(preview.error) : undefined}
           >
             {saving ? t('automation.saving') : t('automation.save')}
           </button>

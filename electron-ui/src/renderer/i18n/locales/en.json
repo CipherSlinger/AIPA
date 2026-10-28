@@ -3244,7 +3244,12 @@
       "failed": "Could not duplicate the automation: {{error}}"
     },
     "duplicateJob": "Duplicate",
-    "duplicateJobHint": "Create a switched-off copy of this automation."
+    "duplicateJobHint": "Create a switched-off copy of this automation.",
+    "preview": {
+      "label": "Next runs",
+      "none": "No upcoming run",
+      "unavailable": "Could not compute the next runs. You can still save — the schedule is checked again when you save."
+    }
   },
   "speculation": {
     "title": "Speculative Preview",
@@ -3375,5 +3380,18 @@
   "sessionOrigin": {
     "automationTitle": "Scheduled run — {{name}}",
     "pluginTitle": "Started by the {{name}} plugin"
+  },
+  "catchUp": {
+    "title": "While you were away",
+    "aria": "What ran while you were away",
+    "gapTitle": "Time since the app was last open",
+    "succeeded": "{{count}} succeeded",
+    "failed": "{{count}} failed",
+    "skipped": "{{count}} skipped",
+    "skippedOutcome": "Skipped",
+    "more": "and {{count}} more",
+    "manage": "Manage",
+    "dismiss": "Dismiss",
+    "dismissAria": "Hide what ran while you were away"
   }
 }

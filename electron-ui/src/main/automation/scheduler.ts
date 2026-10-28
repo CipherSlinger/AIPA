@@ -977,6 +977,57 @@ export function listAutomationJobs(): { jobs: AutomationJobView[]; limits: Autom
   }
 }
 
+/** How many upcoming occurrences the dialog previews. */
+const PREVIEW_RUN_COUNT = 3
+
+export type AutomationSchedulePreview =
+  | { ok: true; runs: number[] }
+  | { ok: false; error: string }
+
+/**
+ * What a trigger would actually do if it were saved right now.
+ *
+ * Read-only: it runs the same validation and the same next-run maths a saved job
+ * would, and touches neither the job list nor the store. That is the whole point
+ * — a cron that parses but never fires (31 February) must be refused here with
+ * the same stable code save would use, instead of looking fine until the job
+ * silently never runs.
+ *
+ * Fewer than three times is an answer, not an error. A valid but rare schedule
+ * may have only one or two occurrences inside the window the cron evaluator
+ * searches, and a schedule with none left returns an empty list; nothing is
+ * invented to fill the line.
+ */
+export function previewAutomationSchedule(trigger: AutomationTrigger): AutomationSchedulePreview {
+  try {
+    // A file has no calendar. Answered before validation so even a half-typed
+    // watch path reads as "not applicable" rather than a path error the preview
+    // could never fix.
+    if (trigger && typeof trigger === 'object' && trigger.kind === 'watch') {
+      return { ok: false, error: 'not_applicable' }
+    }
+    const validated = validateTrigger(trigger)
+    const runs: number[] = []
+    // "Now" rather than a caller-supplied instant: the dialog asks about the
+    // schedule it is about to save, and saving starts the clock from now.
+    let cursor = Date.now()
+    for (let i = 0; i < PREVIEW_RUN_COUNT; i += 1) {
+      const next = nextRunAfter(validated, cursor)
+      if (next === null) break
+      // A next-run function that hands back the same instant twice must not be
+      // asked again: without this the collection loop would repeat forever and
+      // the IPC call would never answer. What was collected so far is the honest
+      // result.
+      if (next <= cursor) break
+      runs.push(next)
+      cursor = next
+    }
+    return { ok: true, runs }
+  } catch (err) {
+    return { ok: false, error: errorCode(err) }
+  }
+}
+
 export type AutomationMutationResult =
   | { ok: true; job: AutomationJobView }
   | { ok: false; error: string }

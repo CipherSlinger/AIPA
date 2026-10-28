@@ -3244,7 +3244,12 @@
       "failed": "无法复制自动化：{{error}}"
     },
     "duplicateJob": "复制",
-    "duplicateJobHint": "创建一份这份自动化的副本，默认关闭。"
+    "duplicateJobHint": "创建一份这份自动化的副本，默认关闭。",
+    "preview": {
+      "label": "接下来运行",
+      "none": "接下来没有运行",
+      "unavailable": "无法计算接下来的运行时间。仍然可以保存，保存时会再次检查。"
+    }
   },
   "speculation": {
     "title": "投机预览",
@@ -3375,5 +3380,18 @@
   "sessionOrigin": {
     "automationTitle": "定时任务 · {{name}}",
     "pluginTitle": "由插件 {{name}} 发起"
+  },
+  "catchUp": {
+    "title": "你离开的这段时间",
+    "aria": "离开期间运行了什么",
+    "gapTitle": "距上次打开应用的时间",
+    "succeeded": "成功 {{count}} 个",
+    "failed": "失败 {{count}} 个",
+    "skipped": "跳过 {{count}} 个",
+    "skippedOutcome": "已跳过",
+    "more": "还有 {{count}} 个",
+    "manage": "管理",
+    "dismiss": "关闭",
+    "dismissAria": "隐藏离开期间运行的内容"
   }
 }

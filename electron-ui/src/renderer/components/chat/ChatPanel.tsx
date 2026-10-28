@@ -16,6 +16,7 @@ import ChatHeader from './ChatHeader'
 import ChatInput from './ChatInput'
 import MessageList from './MessageList'
 import SessionOriginLine from './SessionOriginLine'
+import CatchUpCard from './CatchUpCard'
 import SearchBar from './SearchBar'
 import TaskQueuePanel from './TaskQueuePanel'
 import TaskDashboard from './TaskDashboard'
@@ -537,6 +538,12 @@ export default function ChatPanel() {
           </button>
         </div>
       )}
+
+      {/* What ran while the app was closed (wave 29). Top of the transcript
+          column, in normal flow rather than an overlay, and only rendered in
+          this view. It reads the launch stamp once, so it cannot surface later
+          in the session; with no runs in the gap it renders nothing. */}
+      <CatchUpCard />
 
       {/* Who started this conversation. Sits on the transcript's reading
           column, above it, and renders nothing at all for the user's own. */}

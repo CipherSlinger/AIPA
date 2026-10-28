@@ -11,13 +11,14 @@ import {
   createAutomationJob,
   deleteAutomationJob,
   listAutomationJobs,
+  previewAutomationSchedule,
   runAutomationNow,
   setAutomationEnabled,
   setAutomationGlobalBudget,
   setAutomationPausedAll,
   updateAutomationJob,
 } from '../automation/scheduler'
-import type { AutomationInput } from '../automation/types'
+import type { AutomationInput, AutomationTrigger } from '../automation/types'
 
 /**
  * Register without colliding with a handler left behind by a previous
@@ -54,6 +55,23 @@ export function registerAutomationHandlers(): void {
       return cloneAutomationJob(payload.id, payload.name)
     } catch (err) {
       console.error('[automation:clone]', err)
+      return { ok: false, error: 'unexpected_error' }
+    }
+  })
+
+  // Read-only preview of an unsaved schedule. It must answer rather than throw:
+  // the dialog shows the reason beside the schedule, and a preview outage is not
+  // a reason the user cannot save a valid schedule (main validates again there).
+  safeHandle('automation:preview', (_event, trigger: unknown) => {
+    try {
+      // A non-object payload is a renderer bug, not a schedule: say so instead
+      // of letting a string reach the scheduler and read as a missing trigger.
+      if (trigger === null || typeof trigger !== 'object' || Array.isArray(trigger)) {
+        return { ok: false, error: 'trigger_invalid' }
+      }
+      return previewAutomationSchedule(trigger as AutomationTrigger)
+    } catch (err) {
+      console.error('[automation:preview]', err)
       return { ok: false, error: 'unexpected_error' }
     }
   })
