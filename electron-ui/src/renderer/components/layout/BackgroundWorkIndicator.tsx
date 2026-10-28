@@ -1,18 +1,27 @@
 // BackgroundWorkIndicator — the status bar's answer to "is anything running in
-// the background right now?" (wave 24)
+// the background right now?" (wave 24), extended in wave 27 with the runs that
+// already failed while the user was away.
 //
 // Scheduled automations run while the window is closed or while the user is
 // elsewhere, and Settings -> Automations was the only place that showed them.
-// The segment stays absent unless a run is in flight or a retry is waiting, so
-// a quiet app gets no extra status-bar noise. A failed list read clears the
-// count rather than leaving a stale one on screen.
+// A failure used to leave nothing behind once the toast expired: the segment
+// hid as soon as nothing was in flight. Now an unseen failure keeps the segment
+// visible, in a warning tone rather than the neutral clock, until the user has
+// looked at the list. A failed list read still clears everything rather than
+// leaving a stale count on screen.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Clock } from 'lucide-react'
+import { AlertTriangle, Clock } from 'lucide-react'
 import { useT } from '../../i18n'
 import { pushEscapeHandler } from '../ui/escapeStack'
 import type { AutomationJobData, AutomationLimitsData } from '../../../preload'
 import BackgroundWorkPopover from './BackgroundWorkPopover'
+import {
+  appWatermarkStorage,
+  deriveUnseenFailures,
+  markFailuresSeen,
+  resolveFailuresSeenAt,
+} from './automationFailures'
 
 interface AutomationSnapshot {
   jobs: AutomationJobData[]
@@ -28,6 +37,13 @@ export default function BackgroundWorkIndicator() {
   const [open, setOpen] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const [hover, setHover] = useState(false)
+  // The timestamp up to which failures have been shown. Null until the first
+  // good read has seeded it; nothing is counted before then.
+  const [seenAt, setSeenAt] = useState<number | null>(null)
+  // The watermark the open panel derives its failure list from. It is captured
+  // when the panel opens and is *not* advanced when the badge is cleared, so the
+  // rows the badge announced survive their own acknowledgement.
+  const [openSince, setOpenSince] = useState<number | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
 
@@ -41,10 +57,16 @@ export default function BackgroundWorkIndicator() {
       try {
         const result = await api.automationList()
         if (!alive || request !== seq) return
-        // A malformed payload is treated like a failed read, not as "no jobs".
-        setSnapshot(Array.isArray(result?.jobs)
-          ? { jobs: result.jobs, limits: result.limits ?? null }
-          : null)
+        if (!Array.isArray(result?.jobs)) {
+          // A malformed payload is treated like a failed read, not as "no jobs".
+          setSnapshot(null)
+          return
+        }
+        setSnapshot({ jobs: result.jobs, limits: result.limits ?? null })
+        // Seeding reads the history it just received, so it happens only after a
+        // good read. A failed read must never write a watermark over history it
+        // did not see: that would silently mark those failures as shown.
+        setSeenAt(resolveFailuresSeenAt(result.jobs, appWatermarkStorage(), Date.now()))
       } catch (err) {
         // Keeping the previous snapshot here would claim work that may have
         // already finished; the segment simply hides instead.
@@ -71,24 +93,26 @@ export default function BackgroundWorkIndicator() {
     const onMouseDown = (event: MouseEvent) => {
       if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
         setOpen(false)
+        setOpenSince(null)
       }
     }
     // AppShell's capture handler exists only outside the chat view, so this
     // listener keeps Escape working in every view. The escape-stack entry runs
     // first there, letting that handler consume the key instead of closing
     // Settings or navigating away behind the open panel.
+    const close = () => {
+      setOpen(false)
+      setOpenSince(null)
+      triggerRef.current?.focus()
+    }
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
       event.stopPropagation()
-      setOpen(false)
-      triggerRef.current?.focus()
+      close()
     }
     document.addEventListener('mousedown', onMouseDown)
     window.addEventListener('keydown', onKeyDown, true)
-    const release = pushEscapeHandler(() => {
-      setOpen(false)
-      triggerRef.current?.focus()
-    })
+    const release = pushEscapeHandler(close)
     return () => {
       document.removeEventListener('mousedown', onMouseDown)
       window.removeEventListener('keydown', onKeyDown, true)
@@ -96,49 +120,84 @@ export default function BackgroundWorkIndicator() {
     }
   }, [open])
 
-  const running = useMemo(
-    () => (snapshot?.jobs ?? []).filter(job => job.running),
-    [snapshot],
-  )
+  const jobs = useMemo(() => snapshot?.jobs ?? [], [snapshot])
+  const running = useMemo(() => jobs.filter(job => job.running), [jobs])
   const retrying = useMemo(
-    () => (snapshot?.jobs ?? []).filter(job => !job.running && job.pendingRetry !== undefined),
-    [snapshot],
+    () => jobs.filter(job => !job.running && job.pendingRetry !== undefined),
+    [jobs],
   )
+  // What still needs the user: failed runs newer than the current watermark.
+  // Recomputed from the live snapshot on every render, so a failure that lands
+  // after the panel was opened is never hidden by the watermark it arrived after.
+  const unseen = useMemo(() => deriveUnseenFailures(jobs, seenAt), [jobs, seenAt])
+  // What the open panel lists: derived from the watermark as it was at open.
+  const openFailures = useMemo(() => deriveUnseenFailures(jobs, openSince), [jobs, openSince])
   const nextUp = useMemo(() => {
     // While everything is paused the stored nextRunAt is frozen; printing it
     // would promise a run that cannot start. A disabled job is never "next".
     if (!snapshot || snapshot.limits?.pausedAll) return []
-    return snapshot.jobs
+    return jobs
       .filter(job => job.enabled && !job.pausedAll && !job.running && job.nextRunAt !== null)
       .sort((a, b) => (a.nextRunAt as number) - (b.nextRunAt as number))
       .slice(0, 3)
-  }, [snapshot])
+  }, [snapshot, jobs])
 
-  const visible = running.length > 0 || retrying.length > 0
+  // While the panel is open it must keep counting the rows it is showing, even
+  // though opening it has already cleared the badge. Otherwise the segment
+  // would vanish under the panel the instant it was acknowledged, taking the
+  // list with it.
+  const failureCount = Math.max(unseen.total, open ? openFailures.total : 0)
+  const visible = running.length > 0 || retrying.length > 0 || failureCount > 0
 
-  // If the data disappears (failed read, last run finished) the panel must not
-  // spring back on the next successful read.
+  // The panel closes only when it has nothing left to list. Closing on "the
+  // segment hid" would slam it shut the instant opening it cleared the badge —
+  // which is exactly what happens when failures are the only signal. The next-up
+  // group alone does not keep it open: the segment is hidden then, and a panel
+  // anchored to a hidden trigger has nowhere to point.
+  const panelEmpty = running.length === 0 && retrying.length === 0
+    && openFailures.total === 0
   useEffect(() => {
-    if (!visible) setOpen(false)
-  }, [visible])
+    if (!open) return
+    if (!panelEmpty) return
+    setOpen(false)
+    setOpenSince(null)
+  }, [open, panelEmpty])
 
   if (!visible) return null
 
-  // The accessible name keeps the visible words ("Running 2") and adds the
-  // action, so label-in-name still holds for voice control.
+  // Priority: a run in flight, then a waiting retry, then failures. The segment's
+  // text follows that order; the panel lists everything regardless.
+  const failuresOnly = running.length === 0 && retrying.length === 0
   const visibleLabel = running.length > 0
     ? t('statusBar.background.running', { count: running.length })
-    : t('statusBar.background.retry', { count: retrying.length })
-  const ariaLabel = t('statusBar.background.aria', { label: visibleLabel })
+    : retrying.length > 0
+      ? t('statusBar.background.retry', { count: retrying.length })
+      : t('statusBar.background.failures', { count: failureCount })
+  // The accessible name keeps the visible words ("Running 2") and adds the
+  // action, so label-in-name still holds for voice control. Whenever failures
+  // are waiting the action sentence says they need attention, whatever the
+  // segment's own label had to prioritise.
+  const ariaLabel = failureCount > 0
+    ? t('statusBar.background.failuresAria', { label: visibleLabel })
+    : t('statusBar.background.aria', { label: visibleLabel })
 
   const toggle = () => {
     if (open) {
       setOpen(false)
+      setOpenSince(null)
       triggerRef.current?.focus()
       return
     }
     setNow(Date.now())
     setOpen(true)
+    // Capture the list before acknowledging it. The rows stay derived from the
+    // old watermark so the user sees the failures the badge announced.
+    setOpenSince(seenAt)
+    if (unseen.total > 0) {
+      const at = Date.now()
+      markFailuresSeen(at, appWatermarkStorage())
+      setSeenAt(at)
+    }
   }
 
   return (
@@ -159,7 +218,9 @@ export default function BackgroundWorkIndicator() {
           border: 'none', cursor: 'pointer',
           fontSize: 10, whiteSpace: 'nowrap',
           background: hover || open ? 'var(--border)' : 'transparent',
-          color: running.length > 0 ? 'var(--text-secondary)' : 'var(--text-muted)',
+          color: running.length > 0
+            ? 'var(--text-secondary)'
+            : failuresOnly ? 'var(--warning-text)' : 'var(--text-muted)',
           transition: 'all 0.15s ease',
         }}
       >
@@ -175,6 +236,13 @@ export default function BackgroundWorkIndicator() {
             />
             <span>{visibleLabel}</span>
           </>
+        ) : failuresOnly ? (
+          <>
+            {/* A triangle in the warning tone, not the danger red: this is work
+                that needs a look, not a dialog the app is insisting on. */}
+            <AlertTriangle size={10} style={{ flexShrink: 0 }} />
+            <span>{visibleLabel}</span>
+          </>
         ) : (
           <>
             <Clock size={10} />
@@ -186,10 +254,15 @@ export default function BackgroundWorkIndicator() {
         <BackgroundWorkPopover
           running={running}
           retrying={retrying}
+          failures={openFailures.rows}
+          hiddenFailures={openFailures.hiddenCount}
           nextUp={nextUp}
           pausedAll={snapshot?.limits?.pausedAll === true}
           now={now}
-          onClose={() => setOpen(false)}
+          onClose={() => {
+            setOpen(false)
+            setOpenSince(null)
+          }}
         />
       )}
     </div>

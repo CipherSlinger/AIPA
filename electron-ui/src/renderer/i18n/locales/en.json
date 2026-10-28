@@ -478,7 +478,22 @@
     "saveToNotes": "Save selection to Notes",
     "note": "Note",
     "translate": "Translate",
-    "explain": "Explain"
+    "explain": "Explain",
+    "rememberSelection": "Remember selected text",
+    "remember": "Remember",
+    "memorySaved": "Remembered as a {{category}}",
+    "memoryCategory": {
+      "preference": "preference",
+      "fact": "fact",
+      "instruction": "instruction",
+      "context": "context"
+    },
+    "memoryShortened": "Saved to memory — shortened to {{max}} characters",
+    "memoryAlready": "Already in memory",
+    "memoryUndo": "Undo",
+    "memoryUndoAria": "Undo remembering this passage",
+    "memoryUndone": "Removed from memory",
+    "memoryGone": "That memory was already removed"
   },
   "session": {
     "justNow": "just now",
@@ -2283,7 +2298,12 @@
       "retryDue": "due in {{time}}",
       "at": "at {{time}}",
       "openSettings": "Open Settings → Automations",
-      "manage": "Manage automations"
+      "manage": "Manage automations",
+      "failures": "{{count}} failed",
+      "failuresAria": "{{label}} — automations need attention. Open details.",
+      "failedRuns": "Recent failures",
+      "moreFailures": "and {{count}} more",
+      "openRun": "Open this run's conversation"
     }
   },
   "dailyBriefing": {

@@ -478,7 +478,22 @@
     "saveToNotes": "保存选中内容到笔记",
     "note": "笔记",
     "translate": "翻译",
-    "explain": "解释"
+    "explain": "解释",
+    "rememberSelection": "记住所选文字",
+    "remember": "记住",
+    "memorySaved": "已记住（{{category}}）",
+    "memoryCategory": {
+      "preference": "偏好",
+      "fact": "事实",
+      "instruction": "指令",
+      "context": "上下文"
+    },
+    "memoryShortened": "已保存到记忆——已缩短至 {{max}} 个字符",
+    "memoryAlready": "已在记忆中",
+    "memoryUndo": "撤销",
+    "memoryUndoAria": "撤销记住这段文字",
+    "memoryUndone": "已从记忆中移除",
+    "memoryGone": "这条记忆已被移除"
   },
   "session": {
     "justNow": "刚刚",
@@ -2283,7 +2298,12 @@
       "retryDue": "{{time}}后重试",
       "at": "{{time}}",
       "openSettings": "打开 设置 → 定时任务",
-      "manage": "管理定时任务"
+      "manage": "管理定时任务",
+      "failures": "{{count}} 个失败",
+      "failuresAria": "{{label}} — 定时任务需要处理。打开详情。",
+      "failedRuns": "最近的失败",
+      "moreFailures": "还有 {{count}} 个",
+      "openRun": "打开这次运行的对话"
     }
   },
   "dailyBriefing": {

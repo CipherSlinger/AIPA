@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Copy, MessageSquareQuote, StickyNote, Check, Languages, Lightbulb } from 'lucide-react'
+import { Copy, MessageSquareQuote, StickyNote, Check, Languages, Lightbulb, Brain } from 'lucide-react'
 import { useUiStore, usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
-import { Note } from '../../types/app.types'
+import { Note, MemoryItem } from '../../types/app.types'
+import { MAX_CONTENT_LENGTH } from '../memory/memoryConstants'
+import { captureMemory, removeMemoryById } from '../memory/memoryCapture'
 
 interface SelectionToolbarProps {
   /** The container element to watch for text selections */
@@ -131,6 +133,66 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
     addToast('success', t('message.savedToNotes'))
     setVisible(false)
     window.getSelection()?.removeAllRanges()
+  }, [selectedText, addToast, t])
+
+  const handleRemember = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const currentMemories: MemoryItem[] = usePrefsStore.getState().prefs.memories || []
+    const result = captureMemory(selectedText, currentMemories)
+
+    // Hide exactly like the note action: the toast, not the toolbar, reports
+    // what happened.
+    setVisible(false)
+    window.getSelection()?.removeAllRanges()
+
+    if (!result) return
+    if (result.kind === 'duplicate') {
+      addToast('info', t('selection.memoryAlready'))
+      return
+    }
+    if (result.kind === 'full') {
+      // Reuses the memory panel's existing cap message, which names the limit.
+      addToast('error', t('memory.limitReached'))
+      return
+    }
+
+    const item = result.item
+    const updated = [item, ...currentMemories]
+    usePrefsStore.getState().setPrefs({ memories: updated })
+    window.electronAPI.prefsSet('memories', updated)
+
+    const undo = () => {
+      // Re-read the store instead of reusing `updated`: the user may have
+      // added, edited or deleted memories while the toast was on screen. Only
+      // this exact id is removed, so nothing else is undone by mistake.
+      const latest: MemoryItem[] = usePrefsStore.getState().prefs.memories || []
+      const remaining = removeMemoryById(latest, item.id)
+      if (remaining.length === latest.length) {
+        addToast('info', t('selection.memoryGone'))
+        return
+      }
+      usePrefsStore.getState().setPrefs({ memories: remaining })
+      window.electronAPI.prefsSet('memories', remaining)
+      addToast('info', t('selection.memoryUndone'))
+    }
+
+    // 8s rather than the 4s default: the Undo button must be read and reached
+    // before it disappears.
+    const undoAction = {
+      label: t('selection.memoryUndo'),
+      ariaLabel: t('selection.memoryUndoAria'),
+      onClick: undo,
+    }
+    if (result.kind === 'too-long') {
+      addToast('warning', t('selection.memoryShortened', { max: MAX_CONTENT_LENGTH }), 8000, undoAction)
+      return
+    }
+    // Say what was saved (the suggested category) — never that the assistant
+    // "learned" something. The sentence-case key is separate from memory.cat*
+    // because those labels are capitalised for chips.
+    const categoryLabel = t(`selection.memoryCategory.${item.category}`)
+    addToast('success', t('selection.memorySaved', { category: categoryLabel }), 8000, undoAction)
   }, [selectedText, addToast, t])
 
   const handleTranslate = useCallback((e: React.MouseEvent) => {
@@ -265,6 +327,33 @@ export default function SelectionToolbar({ containerRef, isUser = false }: Selec
       >
         <StickyNote size={13} />
         <span style={{ fontSize: 11, fontWeight: 500 }}>{t('selection.note')}</span>
+      </button>
+
+      {/* Remember (selected passage) — sits beside Note because both turn a
+          passage into something that outlives the conversation. */}
+      <button
+        onClick={handleRemember}
+        title={t('selection.rememberSelection')}
+        style={{
+          background: 'transparent',
+          border: 'none',
+          borderRadius: 6,
+          padding: '4px 8px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 3,
+          color: 'var(--text-muted)',
+          fontSize: 12,
+          fontWeight: 500,
+          transition: 'all 0.15s ease',
+          whiteSpace: 'nowrap',
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.10)'; (e.currentTarget as HTMLElement).style.color = '#a5b4fc' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)' }}
+      >
+        <Brain size={13} />
+        <span style={{ fontSize: 11, fontWeight: 500 }}>{t('selection.remember')}</span>
       </button>
 
       {/* Separator */}
