@@ -19,6 +19,13 @@ export interface Position {
   title: string
   brief: string
   color?: string
+  /**
+   * The persona this seat is hired as. Absent means "inherit": the hire flow
+   * falls back to the department's default persona, then the active persona.
+   * The id points into `prefs.personas` — personas stay one store, not copied
+   * into every position (editing a persona should update every seat using it).
+   */
+  personaId?: string
 }
 
 export interface Department {
@@ -33,6 +40,13 @@ export interface Department {
   kind?: OrgNodeKind
   /** Ghost positions waiting to be filled. Absent/empty = none. */
   positions?: Position[]
+  /**
+   * Standing brief for the desk ("部门手册"): prepended to the first message of
+   * every employee started from this node. Absent/blank = no handbook.
+   */
+  handbook?: string
+  /** Persona new seats in this node inherit when the position names none. */
+  defaultPersonaId?: string
 }
 
 interface DepartmentState {
@@ -41,7 +55,11 @@ interface DepartmentState {
   addDepartment: (data: Omit<Department, 'id' | 'createdAt'>) => Department
   /** Removes the node and every descendant. Folders on disk are left alone. */
   removeDepartment: (id: string) => void
-  updateDepartment: (id: string, updates: Partial<Pick<Department, 'name' | 'directory' | 'color' | 'positions'>>) => void
+  updateDepartment: (id: string, updates: Partial<Pick<Department, 'name' | 'directory' | 'color' | 'positions' | 'handbook' | 'defaultPersonaId'>>) => void
+  /** Add a ghost position, generating its stable id. */
+  addPosition: (deptId: string, position: Omit<Position, 'id'>) => Position | null
+  /** Edit a ghost position in place; the id never changes. */
+  updatePosition: (deptId: string, positionId: string, updates: Partial<Omit<Position, 'id'>>) => void
   /** Consume one ghost position — a single write, so hiring is atomic. */
   removePosition: (deptId: string, positionId: string) => void
   setActiveDepartmentId: (id: string | null) => void
@@ -68,7 +86,17 @@ const loadDepartments = (): Department[] => {
       .map(d => ({
         ...d,
         kind: d.kind ?? 'department',
-        positions: (d.positions ?? []).filter(p => !!p && typeof p.id === 'string' && !!p.title),
+        // Positions gained `personaId` without changing the payload shape, so
+        // there is nothing to migrate: an old position simply has no binding and
+        // hires as the department default. The id is repaired here rather than
+        // trusted, because an id-less position could not be edited or removed.
+        positions: (d.positions ?? [])
+          .filter(p => !!p && typeof p.title === 'string')
+          .map((p, i) => ({
+            ...p,
+            id: typeof p.id === 'string' && p.id ? p.id : `pos-legacy-${d.id}-${i}`,
+            brief: typeof p.brief === 'string' ? p.brief : '',
+          })),
       }))
     const ids = new Set(nodes.map(d => d.id))
     return nodes.map(d => (d.parentId && ids.has(d.parentId) ? d : { ...d, parentId: undefined }))
@@ -77,6 +105,11 @@ const loadDepartments = (): Department[] => {
 
 const saveDepartments = (depts: Department[]) => {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(depts)) } catch {}
+}
+
+/** Stable, local-only id — positions never sync with anything on disk. */
+export function newPositionId(): string {
+  return `pos-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 }
 
 /** `id` plus every node reachable from it through `parentId`. */
@@ -134,6 +167,31 @@ export const useDepartmentStore = create<DepartmentState>((set) => ({
   updateDepartment: (id, updates) => {
     set((s) => {
       const updated = s.departments.map((d) => (d.id === id ? { ...d, ...updates } : d))
+      saveDepartments(updated)
+      return { departments: updated }
+    })
+  },
+
+  addPosition: (deptId, position) => {
+    if (!position.title.trim()) return null
+    const created: Position = { ...position, title: position.title.trim(), id: newPositionId() }
+    set((s) => {
+      const updated = s.departments.map((d) => (
+        d.id === deptId ? { ...d, positions: [...(d.positions ?? []), created] } : d
+      ))
+      saveDepartments(updated)
+      return { departments: updated }
+    })
+    return created
+  },
+
+  updatePosition: (deptId, positionId, updates) => {
+    set((s) => {
+      const updated = s.departments.map((d) => (
+        d.id === deptId && d.positions?.length
+          ? { ...d, positions: d.positions.map(p => (p.id === positionId ? { ...p, ...updates } : p)) }
+          : d
+      ))
       saveDepartments(updated)
       return { departments: updated }
     })

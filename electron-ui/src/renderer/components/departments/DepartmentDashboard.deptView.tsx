@@ -2,6 +2,7 @@
 // and the hand-off into chat; the visual pieces live in the sibling modules.
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Plus } from 'lucide-react'
 import {
   useDepartmentStore,
   useSessionStore,
@@ -10,8 +11,12 @@ import {
   usePrefsStore,
   type Position,
 } from '../../store'
-import type { SessionListItem } from '../../types/app.types'
+import type { Persona, SessionListItem } from '../../types/app.types'
 import RecruitEmployeeModal from './RecruitEmployeeModal'
+import PositionEditorModal from './PositionEditorModal'
+import PositionHireModal from './PositionHireModal'
+import DeptHandbookModal from './DeptHandbookModal'
+import { bindPersonaToNewSession } from './personaBinding'
 import { sessionMatchesDir, teamsOf } from './deptUtils'
 import { useT } from '../../i18n'
 import DeptHeader from './DepartmentDashboard.header'
@@ -31,6 +36,7 @@ import {
 // Stable fallback — avoids a new [] on every render, which would invalidate the
 // memo that filters these.
 const NO_POSITIONS: Position[] = []
+const NO_PERSONAS: Persona[] = []
 
 interface DeptViewProps {
   deptId: string
@@ -62,7 +68,12 @@ export default function DeptView({
   const currentSessionId = useChatStore(s => s.currentSessionId)
   const isStreaming = useChatStore(s => s.isStreaming)
   const setPrefs = usePrefsStore(s => s.setPrefs)
+  const personas = usePrefsStore(s => s.prefs.personas ?? NO_PERSONAS)
+  const activePersonaId = usePrefsStore(s => s.prefs.activePersonaId)
   const removePosition = useDepartmentStore(s => s.removePosition)
+  const addPosition = useDepartmentStore(s => s.addPosition)
+  const updatePosition = useDepartmentStore(s => s.updatePosition)
+  const updateDepartment = useDepartmentStore(s => s.updateDepartment)
 
   // A department's child teams are separate desks with their own directories, so
   // a team node is a valid place to be — the breadcrumb above shows where.
@@ -86,6 +97,11 @@ export default function DeptView({
   const [selectMode, setSelectMode] = useState(false)
   const [sortOrder, setSortOrder] = useState<SortOrder>('recent')
   const [recruitOpen, setRecruitOpen] = useState(false)
+  // Undefined = closed. A Position = edit that seat; 'new' = add a seat.
+  const [positionEditor, setPositionEditor] = useState<Position | 'new' | null>(null)
+  // The seat whose hire dialog is open; null = closed.
+  const [hiringPosition, setHiringPosition] = useState<Position | null>(null)
+  const [handbookOpen, setHandbookOpen] = useState(false)
 
   const sortedSessions = useMemo(
     () => sortSessions(deptSessions, sortOrder),
@@ -120,11 +136,22 @@ export default function DeptView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // One-shot on mount only
 
+  // The department's standing rules ride in front of an employee's own brief.
+  // The tags mirror the `<system_context>` wrapper useStreamJson already uses
+  // for injected context, so the model can tell house rules from the task.
+  // An empty first message stays empty: a handbook cannot make a session, and
+  // turning "just create an idle employee" into a handbook-only message would.
+  const withHandbook = useCallback((message: string) => {
+    const handbook = dept?.handbook?.trim()
+    if (!handbook || !message.trim()) return message
+    return `<department_handbook>\n${handbook}\n</department_handbook>\n\n${message.trim()}`
+  }, [dept])
+
   // The hand-off to chat, shared by recruiting and by hiring a ghost position:
   // the node becomes the working directory and `brief` becomes the first message
   // the freshly mounted ChatPanel sends. ChatPanel consumes the brief once it is
   // mounted, so the caller does not need to wait for a session id back.
-  const startWork = useCallback((directory: string, brief: string) => {
+  const startWork = useCallback((directory: string, brief: string, personaId?: string) => {
     setPrefs({ workingDir: directory })
     window.electronAPI.prefsSet('workingDir', directory)
     useChatStore.getState().clearMessages()
@@ -132,25 +159,40 @@ export default function DeptView({
     useUiStore.getState().setFromDepartment(true)
     useUiStore.getState().setPendingRecruitBrief(brief || null)
     useUiStore.getState().setMainView('chat')
+    // After clearMessages, which resets any previous session's persona.
+    bindPersonaToNewSession(personaId)
   }, [setPrefs])
 
   // Confirm: the job description becomes the employee's first message, so the
   // new session opens in chat with the brief already on its way.
-  const confirmRecruit = useCallback((brief: string) => {
+  const confirmRecruit = useCallback((brief: string, personaId?: string) => {
     if (!dept) return
     setRecruitOpen(false)
-    startWork(dept.directory, brief)
-  }, [dept, startWork])
+    startWork(dept.directory, withHandbook(brief), personaId)
+  }, [dept, startWork, withHandbook])
 
-  // Hiring a ghost position is the same hand-off, minus the dialog — the brief
-  // was written when the template was applied. Dropping the position right away
-  // is safe: the session is guaranteed to be created, and the real employee
-  // appears with the next session-list refresh.
-  const hirePosition = useCallback((position: Position) => {
+  // Hiring now asks which persona the seat runs as; the modal supplies it.
+  const hirePosition = useCallback((position: Position, personaId?: string) => {
     if (!dept) return
-    startWork(dept.directory, position.brief)
+    setHiringPosition(null)
+    startWork(dept.directory, withHandbook(position.brief), personaId)
+    // Dropping the seat right away is safe: the session is guaranteed to be
+    // created, and the real employee appears with the next session-list refresh.
     removePosition(dept.id, position.id)
-  }, [dept, startWork, removePosition])
+  }, [dept, startWork, withHandbook, removePosition])
+
+  // Seat binding → department default → currently active persona. This is the
+  // same order the modal shows, so the highlighted chip is what will be used.
+  const initialPersonaFor = useCallback((position: Position) => (
+    position.personaId || dept?.defaultPersonaId || activePersonaId
+  ), [dept, activePersonaId])
+
+  const savePosition = useCallback((data: { title: string; brief: string; personaId?: string }) => {
+    if (!dept || !positionEditor) return
+    if (positionEditor === 'new') addPosition(dept.id, data)
+    else updatePosition(dept.id, positionEditor.id, data)
+    setPositionEditor(null)
+  }, [dept, positionEditor, addPosition, updatePosition])
 
   const dismissPosition = useCallback((position: Position) => {
     if (!dept) return
@@ -222,6 +264,7 @@ export default function DeptView({
         onToggleSelect={toggleSelectMode}
         onExport={handleExport}
         onOpenFiles={openFiles}
+        onOpenHandbook={() => setHandbookOpen(true)}
         onSortChange={setSortOrder}
         onNewSession={newSession}
       />
@@ -264,6 +307,23 @@ export default function DeptView({
           }}>
             {searchQuery.trim() ? pinnedFilteredSessions.length : deptSessions.length}
           </span>
+          {/* Seats used to be template-only. Creating one here is the same
+              record the template writes: a title, a brief, a persona. */}
+          <button
+            onClick={() => setPositionEditor('new')}
+            title={t('dept.positionAdd')}
+            style={{
+              marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4,
+              padding: '3px 9px', borderRadius: 999, cursor: 'pointer',
+              border: `1px solid ${(dept.color || '#6366f1')}55`,
+              background: `${dept.color || '#6366f1'}18`,
+              color: dept.color || '#6366f1',
+              fontSize: 10, fontWeight: 700, lineHeight: 1.5,
+            }}
+          >
+            <Plus size={10} />
+            {t('dept.positionAdd')}
+          </button>
         </div>
 
         {(deptSessions.length > 0 || openPositions.length > 0) && (
@@ -303,11 +363,14 @@ export default function DeptView({
           isStreaming={isStreaming}
           loadingSessionId={loadingSessionId}
           deptColor={dept.color}
+          personas={personas}
+          defaultPersonaId={dept.defaultPersonaId}
           onToggleSelect={toggleSelect}
           onOpenSession={onOpenSession}
           onDeleteSession={onDeleteSession}
           onNewSession={newSession}
-          onHire={hirePosition}
+          onHire={position => setHiringPosition(position)}
+          onEdit={position => setPositionEditor(position)}
           onDismiss={dismissPosition}
         />
       </div>
@@ -316,8 +379,46 @@ export default function DeptView({
         <RecruitEmployeeModal
           deptName={dept.name}
           deptColor={dept.color}
+          defaultPersonaId={dept.defaultPersonaId}
           onCancel={() => setRecruitOpen(false)}
           onConfirm={confirmRecruit}
+        />
+      )}
+
+      {positionEditor && (
+        <PositionEditorModal
+          position={positionEditor === 'new' ? undefined : positionEditor}
+          deptName={dept.name}
+          accent={dept.color}
+          personas={personas}
+          defaultPersonaId={dept.defaultPersonaId}
+          onCancel={() => setPositionEditor(null)}
+          onSave={savePosition}
+        />
+      )}
+
+      {hiringPosition && (
+        <PositionHireModal
+          position={hiringPosition}
+          deptName={dept.name}
+          accent={dept.color}
+          personas={personas}
+          initialPersonaId={initialPersonaFor(hiringPosition)}
+          hasHandbook={!!dept.handbook?.trim()}
+          onCancel={() => setHiringPosition(null)}
+          onConfirm={personaId => hirePosition(hiringPosition, personaId)}
+        />
+      )}
+
+      {handbookOpen && (
+        <DeptHandbookModal
+          dept={dept}
+          personas={personas}
+          onCancel={() => setHandbookOpen(false)}
+          onSave={({ handbook, defaultPersonaId }) => {
+            updateDepartment(dept.id, { handbook, defaultPersonaId })
+            setHandbookOpen(false)
+          }}
         />
       )}
     </div>

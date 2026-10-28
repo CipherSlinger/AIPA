@@ -29,6 +29,12 @@ export async function openSessionCore(
   useChatStore.getState().clearMessages()
   useChatStore.getState().loadHistory(chatMessages)
   useChatStore.getState().setSessionId(session.sessionId)
+  // clearMessages above wiped the persona; the mapping chatStore wrote at hire
+  // time is how an existing employee remembers the role it was hired as.
+  try {
+    const personaId = localStorage.getItem(`aipa:session-persona:${session.sessionId}`)
+    if (personaId) useChatStore.getState().setSessionPersonaId(personaId)
+  } catch { /* localStorage unavailable — the session still opens */ }
   useUiStore.getState().clearUnreadForSession(session.sessionId)
   // An unassigned session keeps whatever directory the user is already in.
   if (deptDirectory) {

@@ -176,6 +176,20 @@ export function formatDuration(ms: number): string {
   return `${minutes}m`
 }
 
+/**
+ * The persona an employee was hired as. chatStore owns the write (via
+ * `setSessionPersonaId`); this is the matching read, so a roster can show who is
+ * on duty without a new store. Kept as a helper because the key prefix lives in
+ * chatStore and must not drift between the two places.
+ */
+export function readSessionPersonaId(sessionId: string): string | undefined {
+  try {
+    return localStorage.getItem(`aipa:session-persona:${sessionId}`) || undefined
+  } catch {
+    return undefined
+  }
+}
+
 /** "刚刚" / "12 分钟前" / "3 天前" — units come from the session.* i18n keys. */
 export function formatRelativeTime(timestamp: number, t: (key: string) => string): string {
   const diff = Date.now() - timestamp

@@ -261,7 +261,7 @@ export default function ArchivePanel() {
         <span style={{ flex: 1, fontSize: 11, color: 'var(--text-muted)', ...ELLIPSIS }}>
           {t('archive.summary', {
             total: String(summary.total),
-            depts: String(summary.roots),
+            groups: String(summary.roots),
             week: String(summary.week),
           })}
         </span>

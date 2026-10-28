@@ -21,8 +21,22 @@ const log = createLogger('codex-bridge')
 
 export type ApprovalPolicy = 'never' | 'unless-allow-listed' | 'on-request' | 'always'
 
+/**
+ * Codex `UserInput` (app-server protocol, v2). Mirrors the subset AIPA sends:
+ * text plus the image/audio variants that carry a URL. `localImage` stays
+ * available for callers that already have an on-disk path.
+ */
+export type CodexUserInput =
+  | { type: 'text'; text: string }
+  | { type: 'image'; url: string }
+  | { type: 'localImage'; path: string }
+  | { type: 'audio'; url: string }
+  | { type: 'localAudio'; path: string }
+
 export interface CodexSendMessageArgs {
   prompt: string
+  /** Structured input for turn/start. When omitted, `prompt` is sent as one text part. */
+  input?: CodexUserInput[]
   cwd: string
   threadId?: string          // existing thread to resume
   model?: string
@@ -66,8 +80,70 @@ interface JsonRpcNotification {
 export class CodexAuthError extends Error {}
 
 /** turn/start and turn/steer expect `UserInput[]`, not a bare string. */
-function toUserInput(prompt: string): Array<{ type: 'text'; text: string }> {
+function toUserInput(prompt: string): CodexUserInput[] {
   return [{ type: 'text', text: prompt }]
+}
+
+/** Flatten a Responses-style content array (input_text / output_text / text). */
+function extractContentText(content: unknown): string {
+  if (typeof content === 'string') return content
+  if (!Array.isArray(content)) return ''
+  return content
+    .map(part => (typeof part === 'string' ? part : (part as Record<string, unknown>)?.text))
+    .filter((t): t is string => typeof t === 'string')
+    .join('')
+}
+
+/**
+ * Reduce a unified diff to the old/new strings the renderer's DiffView expects.
+ * Context lines belong to both sides; file headers and hunk markers are noise.
+ */
+function splitUnifiedDiff(diff: unknown): { oldString: string; newString: string } {
+  if (typeof diff !== 'string' || !diff) return { oldString: '', newString: '' }
+  const oldLines: string[] = []
+  const newLines: string[] = []
+  for (const line of diff.split('\n')) {
+    if (
+      line.startsWith('@@') ||
+      line.startsWith('---') ||
+      line.startsWith('+++') ||
+      line.startsWith('diff ') ||
+      line.startsWith('index ') ||
+      line.startsWith('\\ No newline')
+    ) continue
+    if (line.startsWith('-')) oldLines.push(line.slice(1))
+    else if (line.startsWith('+')) newLines.push(line.slice(1))
+    else {
+      const context = line.startsWith(' ') ? line.slice(1) : line
+      oldLines.push(context)
+      newLines.push(context)
+    }
+  }
+  return { oldString: oldLines.join('\n'), newString: newLines.join('\n') }
+}
+
+/** Parse markdown checkboxes from a Codex plan item into renderer todo rows. */
+function parseChecklist(text: string): Array<{ content: string; status: string }> {
+  const todos: Array<{ content: string; status: string }> = []
+  for (const line of text.split('\n')) {
+    const m = line.match(/^\s*(?:[-*]|\d+\.)\s+\[([ xX>~-])\]\s+(.+)$/)
+    if (!m) continue
+    const mark = m[1]
+    todos.push({
+      content: m[2].trim(),
+      status: mark === 'x' || mark === 'X' ? 'completed' : mark === '>' || mark === '~' ? 'in_progress' : 'pending',
+    })
+  }
+  return todos
+}
+
+/** Token usage normalized into the snake_case shape the renderer already reads. */
+interface CodexClaudeUsage {
+  input_tokens: number
+  output_tokens: number
+  cache_read_input_tokens: number
+  cache_creation_input_tokens: number
+  context_window?: number
 }
 
 const REQUEST_TIMEOUT_MS = 60_000
@@ -85,6 +161,22 @@ export class CodexBridge extends EventEmitter {
   private initialized = false
   private currentThreadId: string | null = null
   private currentTurnId: string | null = null
+  // Codex reports usage separately from turn/completed, so keep the latest
+  // breakdown to attach to the final result event.
+  private lastTokenUsage: CodexClaudeUsage | null = null
+  // Deltas arrive before the completed item; remembering which item streamed
+  // keeps item/completed from appending the full text a second time.
+  private streamedTextItems = new Set<string>()
+  private streamedThinkingKinds = new Map<string, 'summary' | 'content'>()
+  // The `error` notification and a failed turn/completed describe the same
+  // failure; surface it once.
+  private errorTurnId: string | null = null
+  // Item ids whose tool card has been opened, so a completed item without a
+  // preceding item/started still gets one before its result resolves.
+  private toolStarts = new Set<string>()
+  // Server approval responses use different decision enums per method.
+  private pendingApprovalKinds = new Map<string, 'command' | 'fileChange' | 'permissions' | 'legacy'>()
+  private pendingPermissionProfiles = new Map<string, unknown>()
 
   constructor(bridgeSessionId: string) {
     super()
@@ -133,18 +225,50 @@ export class CodexBridge extends EventEmitter {
     }
 
     // Step 3: Send the first user turn
-    await this._startTurn(args.prompt)
+    await this._startTurn(args.input ?? toUserInput(args.prompt))
   }
 
   /**
    * Send a follow-up message on the existing thread.
    * Replaces StreamBridge.sendFollowUp().
    */
-  async sendFollowUp(prompt: string): Promise<void> {
+  async sendFollowUp(prompt: string, input?: CodexUserInput[]): Promise<void> {
     if (!this.currentThreadId) {
       throw new Error('No active thread to send follow-up to')
     }
-    await this._startTurn(prompt)
+    await this._startTurn(input ?? toUserInput(prompt))
+  }
+
+  /**
+   * Compact the current thread. Codex has a dedicated protocol call; sending
+   * "/compact" as a prompt would just ask the model about a slash command.
+   */
+  async compactThread(): Promise<void> {
+    if (!this.currentThreadId) throw new Error('No active thread to compact')
+    await this._sendRequest('thread/compact/start', { threadId: this.currentThreadId })
+  }
+
+  /**
+   * Compact a thread on a bridge that may not have spawned yet. Used when the
+   * renderer asks for compaction after the app lost its active bridge id.
+   */
+  async compactSession(args: CodexSendMessageArgs): Promise<void> {
+    if (!this.proc) {
+      const codexPath = getCodexPath()
+      const env = sanitizeCodexEnv({ ...args.env })
+      this.proc = spawn(codexPath, ['app-server', '--stdio'], {
+        cwd: args.cwd,
+        env,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      })
+      this._attachOutputHandlers()
+      await this._initialize()
+    }
+    if (!this.currentThreadId) {
+      if (!args.threadId) throw new Error('No thread to compact')
+      await this._resumeThread(args.threadId, args)
+    }
+    await this.compactThread()
   }
 
   /**
@@ -188,10 +312,28 @@ export class CodexBridge extends EventEmitter {
    */
   respondApproval(requestId: string | number, approved: boolean): void {
     if (!this.proc?.stdin) return
+    const key = String(requestId)
+    const kind = this.pendingApprovalKinds.get(key)
+    let result: Record<string, unknown>
+    if (kind === 'command' || kind === 'fileChange') {
+      // v2 approvals use accept/decline; "approved"/"denied" are only valid on
+      // the legacy execCommandApproval/applyPatchApproval methods.
+      result = { decision: approved ? 'accept' : 'decline' }
+    } else if (kind === 'permissions') {
+      result = { permissions: approved ? (this.pendingPermissionProfiles.get(key) ?? {}) : {}, scope: 'turn' }
+    } else {
+      // Legacy ReviewDecision has no "denied" string: a denial is an object
+      // carrying the rejection text.
+      result = {
+        decision: approved ? 'approved' : { denied: { rejection: 'Denied by user' } },
+      }
+    }
+    this.pendingApprovalKinds.delete(key)
+    this.pendingPermissionProfiles.delete(key)
     // Approval responses are JSON-RPC responses to the server's request
     const response = JSON.stringify({
       id: typeof requestId === 'string' ? parseInt(requestId, 10) : requestId,
-      result: { decision: approved ? 'approved' : 'denied' },
+      result,
     }) + '\n'
     this.proc.stdin.write(response)
   }
@@ -365,14 +507,14 @@ export class CodexBridge extends EventEmitter {
     log.info(`Thread resumed: ${this.currentThreadId}`)
   }
 
-  private async _startTurn(prompt: string): Promise<void> {
+  private async _startTurn(input: CodexUserInput[]): Promise<void> {
     if (!this.currentThreadId) {
       throw new Error('No active thread')
     }
 
     const result = await this._sendRequest('turn/start', {
       threadId: this.currentThreadId,
-      input: toUserInput(prompt),
+      input,
     }) as { turn?: { id: string } }
 
     this.currentTurnId = result?.turn?.id ?? null
@@ -498,26 +640,92 @@ export class CodexBridge extends EventEmitter {
   private _handleServerRequest(msg: Record<string, unknown>): void {
     const method = msg.method as string
     const params = (msg.params ?? {}) as Record<string, unknown>
-    const requestId = msg.id
+    const requestId = String(msg.id)
 
     log.debug(`← server request [${requestId}]: ${method}`)
 
+    const request = (
+      toolName: string,
+      toolInput: Record<string, unknown>,
+      title?: string,
+      description?: string,
+    ) => this.emit('permissionRequest', {
+      sessionId: this.bridgeSessionId,
+      requestId,
+      toolName,
+      toolInput,
+      title,
+      description,
+    })
+
     switch (method) {
+      // v2 approval surface. Responding with the legacy "approved" enum makes
+      // serde reject the response, so the kind is remembered for respondApproval.
+      case 'item/commandExecution/requestApproval':
+        this.pendingApprovalKinds.set(requestId, 'command')
+        request(
+          'Bash',
+          {
+            command: params.command ?? '',
+            cwd: params.cwd ?? '',
+            reason: params.reason ?? '',
+          },
+          'Command approval',
+          (params.reason as string) || undefined,
+        )
+        break
+
+      case 'item/fileChange/requestApproval':
+        this.pendingApprovalKinds.set(requestId, 'fileChange')
+        request(
+          'Edit',
+          { itemId: params.itemId ?? '', grantRoot: params.grantRoot ?? '', reason: params.reason ?? '' },
+          'File change approval',
+          (params.reason as string) || undefined,
+        )
+        break
+
+      case 'item/permissions/requestApproval':
+        this.pendingApprovalKinds.set(requestId, 'permissions')
+        this.pendingPermissionProfiles.set(requestId, params.permissions ?? {})
+        request(
+          'Permissions',
+          {
+            cwd: params.cwd ?? '',
+            permissions: params.permissions ?? {},
+            reason: params.reason ?? '',
+          },
+          'Permission approval',
+          (params.reason as string) || undefined,
+        )
+        break
+
+      // Legacy approval methods (still emitted by some Codex builds).
+      case 'execCommandApproval':
+      case 'applyPatchApproval':
+        this.pendingApprovalKinds.set(requestId, 'legacy')
+        request(
+          method === 'applyPatchApproval' ? 'Edit' : 'Bash',
+          { ...params },
+          method === 'applyPatchApproval' ? 'File change approval' : 'Command approval',
+        )
+        break
+
+      // Older protocol revision used by the first AIPA integration.
       case 'item/approval/request':
-        this.emit('permissionRequest', {
-          sessionId: this.bridgeSessionId,
-          requestId: String(requestId),
-          toolName: (params.toolName ?? params.tool_name ?? 'unknown') as string,
-          toolInput: (params.input ?? params.toolInput ?? {}) as Record<string, unknown>,
-          title: (params.title as string) || undefined,
-          description: (params.description as string) || undefined,
-        })
+        this.pendingApprovalKinds.set(requestId, 'legacy')
+        request(
+          (params.toolName ?? params.tool_name ?? 'unknown') as string,
+          (params.input ?? params.toolInput ?? {}) as Record<string, unknown>,
+          (params.title as string) || undefined,
+          (params.description as string) || undefined,
+        )
         break
 
       default:
         log.debug(`Unhandled server request: ${method}`)
         // Auto-approve unknown requests to avoid deadlock
-        this.respondApproval(String(requestId), true)
+        this.respondApproval(requestId, true)
     }
   }
 
@@ -532,33 +740,62 @@ export class CodexBridge extends EventEmitter {
       case 'turn/started': {
         const turn = params.turn as Record<string, unknown> | undefined
         this.currentTurnId = (turn?.id as string) ?? this.currentTurnId
+        this.errorTurnId = null
         this.emit('messageStart', { sessionId: sid, event: params })
         break
       }
 
       case 'turn/completed': {
         const turn = params.turn as Record<string, unknown> | undefined
-        const usage = turn?.usage as Record<string, number> | undefined
+        const turnId = (turn?.id as string) ?? undefined
+        const status = (turn?.status as string) ?? 'completed'
+        const error = turn?.error as { message?: string; additionalDetails?: string } | undefined
         this.currentTurnId = null
+
+        // A failed turn also arrives as a failed turn/completed. Emit an error
+        // only if the standalone `error` notification did not already do so.
+        if (status === 'failed' && error?.message && turnId !== this.errorTurnId) {
+          this.emit('turnError', {
+            sessionId: sid,
+            message: error.message,
+            details: error.additionalDetails,
+            willRetry: false,
+          })
+        }
+
+        // Older builds put usage on the turn; current builds send it through
+        // thread/tokenUsage/updated, which we cached above.
+        const turnUsage = turn?.usage as Record<string, number> | undefined
+        const usage = this.lastTokenUsage ?? (turnUsage ? {
+          input_tokens: turnUsage.inputTokens ?? turnUsage.input_tokens ?? 0,
+          output_tokens: turnUsage.outputTokens ?? turnUsage.output_tokens ?? 0,
+          cache_read_input_tokens: turnUsage.cacheReadInputTokens ?? 0,
+          cache_creation_input_tokens: turnUsage.cacheCreationInputTokens ?? 0,
+        } : undefined)
 
         // Map to the same 'result' event format that StreamBridge emits
         this.emit('result', {
           sessionId: sid,
-          subtype: 'success',
+          subtype: status === 'failed' ? 'error' : 'success',
           codexThreadId: (params.threadId as string) ?? this.currentThreadId,
-          turnId: turn?.id as string | undefined,
+          turnId,
           totalCostUsd: (turn?.totalCostUsd as number) ?? undefined,
-          usage: usage ? {
-            input_tokens: usage.inputTokens ?? usage.input_tokens ?? 0,
-            output_tokens: usage.outputTokens ?? usage.output_tokens ?? 0,
-            cache_read_input_tokens: usage.cacheReadInputTokens ?? 0,
-            cache_creation_input_tokens: usage.cacheCreationInputTokens ?? 0,
-          } : undefined,
-          status: (turn?.status as string) ?? 'completed',
+          usage,
+          status,
           durationMs: (turn?.durationMs as number) ?? undefined,
           numTurns: 1,
           event: params,
         })
+        // Close the synthetic plan card, if one was opened for this turn.
+        if (turnId) {
+          this.emit('toolResult', {
+            sessionId: sid,
+            event: { tool_use_id: `plan-${turnId}`, content: '', is_error: false },
+          })
+        }
+        this.errorTurnId = null
+        this.streamedTextItems.clear()
+        this.streamedThinkingKinds.clear()
         this.emit('messageStop', { sessionId: sid })
         break
       }
@@ -577,17 +814,27 @@ export class CodexBridge extends EventEmitter {
       // ── Streaming text deltas ──────────────────
       case 'item/agentMessage/delta': {
         const delta = (params.delta as string) ?? (params.text as string) ?? ''
+        const itemId = (params.itemId as string) ?? ''
+        if (itemId) this.streamedTextItems.add(itemId)
         if (delta) {
-          this.emit('textDelta', { sessionId: sid, text: delta })
+          this.emit('textDelta', { sessionId: sid, text: delta, itemId })
         }
         break
       }
 
       // ── Agent reasoning/thinking deltas ────────
-      case 'item/agentReasoning/delta': {
-        const delta = (params.delta as string) ?? (params.thinking as string) ?? ''
-        if (delta) {
-          this.emit('thinkingDelta', { sessionId: sid, thinking: delta })
+      // Codex streams both a condensed summary and the raw reasoning text.
+      // Whichever arrives first wins for that item; mixing them duplicates
+      // every thought.
+      case 'item/reasoning/summaryTextDelta':
+      case 'item/reasoning/textDelta': {
+        const itemId = (params.itemId as string) ?? ''
+        const kind = method.endsWith('summaryTextDelta') ? 'summary' : 'content'
+        const already = itemId ? this.streamedThinkingKinds.get(itemId) : undefined
+        if (!already || already === kind) {
+          if (itemId) this.streamedThinkingKinds.set(itemId, kind)
+          const delta = (params.delta as string) ?? (params.thinking as string) ?? ''
+          if (delta) this.emit('thinkingDelta', { sessionId: sid, thinking: delta, itemId })
         }
         break
       }
@@ -621,18 +868,38 @@ export class CodexBridge extends EventEmitter {
       // ── Turn errors (willRetry=true means Codex is reconnecting) ──
       case 'error': {
         const error = params.error as Record<string, unknown> | undefined
+        const willRetry = Boolean(params.willRetry)
+        const turnId = (params.turnId as string) ?? null
+        if (!willRetry && turnId) this.errorTurnId = turnId
         this.emit('turnError', {
           sessionId: sid,
           message: (error?.message as string) ?? 'Unknown error',
           details: (error?.additionalDetails as string) ?? undefined,
-          willRetry: Boolean(params.willRetry),
+          willRetry,
         })
         break
       }
 
       // ── Token usage updates ────────────────────
+      // ThreadTokenUsage: { last, total, modelContextWindow }. The renderer
+      // consumes the same snake_case fields Claude's result usage uses.
       case 'thread/tokenUsage/updated': {
-        this.emit('tokenUsageUpdated', { sessionId: sid, usage: params })
+        const tokenUsage = params.tokenUsage as Record<string, unknown> | undefined
+        const last = (tokenUsage?.last ?? {}) as Record<string, number>
+        // A zeroed event fires before the first request completes; emitting it
+        // would blank the token meter mid-session.
+        if (!last.inputTokens && !last.outputTokens && !last.totalTokens) break
+        const usage: CodexClaudeUsage = {
+          input_tokens: last.inputTokens ?? 0,
+          output_tokens: last.outputTokens ?? 0,
+          cache_read_input_tokens: last.cachedInputTokens ?? 0,
+          cache_creation_input_tokens: last.cacheWriteInputTokens ?? 0,
+          ...(typeof tokenUsage?.modelContextWindow === 'number'
+            ? { context_window: tokenUsage.modelContextWindow }
+            : {}),
+        }
+        this.lastTokenUsage = usage
+        this.emit('tokenUsageUpdated', { sessionId: sid, usage, tokenUsage })
         break
       }
 
@@ -646,15 +913,44 @@ export class CodexBridge extends EventEmitter {
         break
       }
 
-      // ── Tool progress (shell commands, file edits) ──
-      case 'item/toolCall/progress': {
-        // Surface as a toolResult with partial data
-        const item = params.item as Record<string, unknown> | undefined
-        if (item) {
-          this.emit('toolProgress', { sessionId: sid, event: item })
-        }
+      // ── Structured plan / todo updates ──────────
+      case 'turn/plan/updated': {
+        const plan = Array.isArray(params.plan) ? params.plan as Array<Record<string, unknown>> : []
+        this.emit('planUpdated', {
+          sessionId: sid,
+          turnId: params.turnId,
+          planId: `plan-${params.turnId}`,
+          explanation: params.explanation ?? null,
+          // TurnPlanStep uses camelCase statuses; TodoListView expects
+          // snake_case, so normalize here rather than in the renderer.
+          plan: plan.map(step => ({
+            content: String(step.step ?? ''),
+            status: step.status === 'inProgress'
+              ? 'in_progress'
+              : step.status === 'completed' ? 'completed' : 'pending',
+          })),
+        })
         break
       }
+
+      // ── Tool progress ─────────────────────────
+      // Command/file output deltas are intentionally not forwarded: they fire
+      // per chunk and nothing in the UI consumes them, so mirroring them would
+      // just flood IPC during long commands.
+      case 'item/mcpToolCall/progress':
+      case 'item/toolCall/progress': {
+        this.emit('toolProgress', {
+          sessionId: sid,
+          itemId: params.itemId ?? null,
+          delta: params.delta ?? params.message ?? '',
+        })
+        break
+      }
+
+      // ── Compaction ─────────────────────────────
+      case 'thread/compacted':
+        this.emit('compacted', { sessionId: sid, turnId: params.turnId })
+        break
 
       // ── Skill/plugin notifications ─────────────
       case 'skills/changed': {
@@ -667,6 +963,13 @@ export class CodexBridge extends EventEmitter {
     }
   }
 
+  /**
+   * Translate Codex `ThreadItem`s into the `toolUse` / `toolResult` pairs the
+   * renderer's rich cards already understand. The names and input keys are the
+   * Claude CLI ones (Bash/Edit/TodoWrite) on purpose: ToolUseBlock picks its
+   * card by name, so reusing them avoids teaching the renderer a second
+   * vocabulary.
+   */
   private _handleItemEvent(params: Record<string, unknown>, phase: 'started' | 'completed'): void {
     const sid = this.bridgeSessionId
     const item = params.item as Record<string, unknown> | undefined
@@ -674,70 +977,237 @@ export class CodexBridge extends EventEmitter {
 
     const itemType = (item.type as string) ?? ''
     const itemId = (item.id as string) ?? ''
+    const isDone = phase === 'completed'
+    const failed = (status: string) => status === 'failed' || status === 'declined'
 
     switch (itemType) {
       case 'agentMessage':
       case 'message': {
-        // Text message item — emit as textDelta on completed (full content available)
-        if (phase === 'completed') {
-          const content = (item.content as string) ?? (item.text as string) ?? ''
-          if (content) {
-            this.emit('textDelta', { sessionId: sid, text: content, itemId })
-          }
-        }
+        if (!isDone) break
+        // Deltas already streamed this item; appending item.text again would
+        // duplicate the whole message.
+        if (this.streamedTextItems.has(itemId)) break
+        const content = (item.text as string) ?? extractContentText(item.content)
+        if (content) this.emit('textDelta', { sessionId: sid, text: content, itemId })
         break
       }
 
-      case 'toolCall':
-      case 'tool_call':
-      case 'shellCommand':
-      case 'fileEdit': {
-        // Tool call items — emit toolUse on started, toolResult on completed
-        const toolName = (item.name as string) ?? (item.toolName as string) ?? itemType
-        const toolInput = (item.input as Record<string, unknown>)
-          ?? (item.arguments as Record<string, unknown>)
-          ?? {}
-
-        if (phase === 'started') {
+      // ── Shell command → Bash card ──────────────
+      case 'commandExecution': {
+        if (!isDone) {
           this.emit('toolUse', {
             sessionId: sid,
-            event: { id: itemId, name: toolName, input: toolInput },
+            event: {
+              id: itemId,
+              name: 'Bash',
+              input: {
+                command: item.command ?? '',
+                ...(item.cwd ? { cwd: item.cwd } : {}),
+                commandActions: item.commandActions ?? undefined,
+              },
+            },
           })
-        } else {
-          const output = (item.output as string) ?? (item.result as string) ?? ''
-          const isError = (item.status as string) === 'error' || (item.isError as boolean) === true
-          this.emit('toolResult', {
+          this.toolStarts.add(itemId)
+          break
+        }
+        // item/started may be missing on replayed/older sessions — make sure
+        // the card exists before resolving it.
+        if (!this.toolStarts.has(itemId)) {
+          this.emit('toolUse', {
             sessionId: sid,
             event: {
-              tool_use_id: itemId,
-              content: output || item.output,
-              is_error: isError,
+              id: itemId,
+              name: 'Bash',
+              input: { command: item.command ?? '', ...(item.cwd ? { cwd: item.cwd } : {}) },
             },
           })
         }
+        this.emit('toolResult', {
+          sessionId: sid,
+          event: {
+            tool_use_id: itemId,
+            content: item.aggregatedOutput ?? '',
+            is_error: failed(item.status as string),
+            ...(item.exitCode != null ? { exitCode: item.exitCode } : {}),
+          },
+        })
+        this.toolStarts.delete(itemId)
         break
       }
 
-      case 'userMessage': {
-        // User message echoed back — typically ignored
+      // ── Patch → one Edit card per changed file ──
+      case 'fileChange': {
+        const changes = Array.isArray(item.changes) ? item.changes as Array<Record<string, unknown>> : []
+        const done = failed(item.status as string)
+        if (changes.length === 0) {
+          if (isDone) {
+            this.emit('toolResult', { sessionId: sid, event: { tool_use_id: itemId, content: '', is_error: done } })
+          }
+          break
+        }
+        changes.forEach((change, idx) => {
+          // A patch item can touch several files; each becomes its own card.
+          const toolId = changes.length === 1 ? itemId : `${itemId}:${idx}`
+          const path = (change.path as string) ?? ''
+          const { oldString, newString } = splitUnifiedDiff(change.diff)
+          if (!this.toolStarts.has(toolId)) {
+            this.emit('toolUse', {
+              sessionId: sid,
+              event: {
+                id: toolId,
+                name: 'Edit',
+                input: {
+                  file_path: path,
+                  old_string: oldString,
+                  new_string: newString,
+                  ...(change.kind ? { change_kind: change.kind } : {}),
+                },
+              },
+            })
+            this.toolStarts.add(toolId)
+          }
+          if (isDone) {
+            this.emit('toolResult', { sessionId: sid, event: { tool_use_id: toolId, content: '', is_error: done } })
+            this.toolStarts.delete(toolId)
+          }
+        })
         break
       }
 
+      // ── MCP / dynamic tools → generic card ─────
+      case 'mcpToolCall': {
+        const name = `mcp__${item.server ?? 'mcp'}__${item.tool ?? 'tool'}`
+        const input = (item.arguments ?? {}) as Record<string, unknown>
+        if (!isDone) {
+          this.emit('toolUse', { sessionId: sid, event: { id: itemId, name, input } })
+          this.toolStarts.add(itemId)
+          break
+        }
+        if (!this.toolStarts.has(itemId)) {
+          this.emit('toolUse', { sessionId: sid, event: { id: itemId, name, input } })
+        }
+        const error = item.error as Record<string, unknown> | undefined
+        const result = item.result as Record<string, unknown> | undefined
+        this.emit('toolResult', {
+          sessionId: sid,
+          event: {
+            tool_use_id: itemId,
+            content: error ? (error.message ?? 'MCP tool failed') : JSON.stringify(result?.content ?? result ?? ''),
+            is_error: failed(item.status as string) || Boolean(error),
+          },
+        })
+        this.toolStarts.delete(itemId)
+        break
+      }
+
+      case 'dynamicToolCall': {
+        const namespace = item.namespace as string | undefined
+        const name = namespace ? `${namespace}.${item.tool}` : String(item.tool ?? 'tool')
+        const input = (item.arguments ?? {}) as Record<string, unknown>
+        if (!isDone) {
+          this.emit('toolUse', { sessionId: sid, event: { id: itemId, name, input } })
+          this.toolStarts.add(itemId)
+          break
+        }
+        if (!this.toolStarts.has(itemId)) {
+          this.emit('toolUse', { sessionId: sid, event: { id: itemId, name, input } })
+        }
+        const text = Array.isArray(item.contentItems)
+          ? (item.contentItems as Array<Record<string, unknown>>)
+              .map(c => (typeof c.text === 'string' ? c.text : c.imageUrl ? `[image] ${c.imageUrl}` : ''))
+              .join('\n')
+          : ''
+        this.emit('toolResult', {
+          sessionId: sid,
+          event: {
+            tool_use_id: itemId,
+            content: text,
+            is_error: item.success === false || failed(item.status as string),
+          },
+        })
+        this.toolStarts.delete(itemId)
+        break
+      }
+
+      // ── Web search → WebSearch card ─────────────
+      case 'webSearch': {
+        const input = { query: item.query ?? '' }
+        if (!isDone) {
+          this.emit('toolUse', { sessionId: sid, event: { id: itemId, name: 'WebSearch', input } })
+          this.toolStarts.add(itemId)
+          break
+        }
+        if (!this.toolStarts.has(itemId)) {
+          this.emit('toolUse', { sessionId: sid, event: { id: itemId, name: 'WebSearch', input } })
+        }
+        this.emit('toolResult', {
+          sessionId: sid,
+          event: {
+            tool_use_id: itemId,
+            content: item.results ? JSON.stringify(item.results) : '',
+            is_error: false,
+          },
+        })
+        this.toolStarts.delete(itemId)
+        break
+      }
+
+      case 'imageView': {
+        if (!isDone) {
+          this.emit('toolUse', {
+            sessionId: sid,
+            event: { id: itemId, name: 'Read', input: { file_path: item.path ?? '' } },
+          })
+          this.toolStarts.add(itemId)
+          break
+        }
+        if (!this.toolStarts.has(itemId)) {
+          this.emit('toolUse', {
+            sessionId: sid,
+            event: { id: itemId, name: 'Read', input: { file_path: item.path ?? '' } },
+          })
+        }
+        this.emit('toolResult', { sessionId: sid, event: { tool_use_id: itemId, content: '', is_error: false } })
+        this.toolStarts.delete(itemId)
+        break
+      }
+
+      // ── Plan / checklist ───────────────────────
+      case 'plan': {
+        if (!isDone) break
+        // turn/plan/updated normally carries the structured steps; this item is
+        // the markdown fallback. Both share the plan-<turnId> id so the renderer
+        // updates one card instead of stacking two.
+        const todos = parseChecklist(String(item.text ?? ''))
+        if (todos.length === 0) break
+        const planId = `plan-${this.currentTurnId ?? itemId}`
+        this.emit('planUpdated', {
+          sessionId: sid,
+          turnId: this.currentTurnId,
+          planId,
+          plan: todos,
+        })
+        break
+      }
+
+      // ── Reasoning ─────────────────────────────
       case 'reasoning':
       case 'agentReasoning': {
-        // Reasoning/thinking item
-        if (phase === 'completed') {
-          const thinking = (item.content as string) ?? (item.text as string) ?? ''
-          if (thinking) {
-            this.emit('thinkingDelta', { sessionId: sid, thinking, itemId })
-          }
-        }
+        if (!isDone) break
+        // Deltas already streamed this item's thoughts.
+        if (this.streamedThinkingKinds.has(itemId)) break
+        const summary = Array.isArray(item.summary) ? (item.summary as string[]).join('\n\n') : ''
+        const content = extractContentText(item.content)
+        const thinking = summary || content
+        if (thinking) this.emit('thinkingDelta', { sessionId: sid, thinking, itemId })
         break
       }
+
+      case 'userMessage':
+        break
 
       default:
         log.debug(`Unknown item type: ${itemType} (phase=${phase})`)
-        // Emit as generic item event for potential future handling
         this.emit(phase === 'started' ? 'itemStarted' : 'itemCompleted', {
           sessionId: sid,
           item: { id: itemId, type: itemType, ...item },
@@ -754,6 +1224,13 @@ export class CodexBridge extends EventEmitter {
     this.currentThreadId = null
     this.currentTurnId = null
     this.initialized = false
+    this.lastTokenUsage = null
+    this.streamedTextItems.clear()
+    this.streamedThinkingKinds.clear()
+    this.toolStarts.clear()
+    this.errorTurnId = null
+    this.pendingApprovalKinds.clear()
+    this.pendingPermissionProfiles.clear()
   }
 }
 
@@ -773,13 +1250,31 @@ class CodexBridgeManager {
     return this.bridges.get(sessionId)
   }
 
+  /**
+   * Find the live bridge for a Codex thread. A finished turn leaves the
+   * app-server process running with the thread subscribed; opening the same
+   * session from another panel (or calling /compact without an active bridge
+   * id) must reuse it instead of resuming the thread in a second process.
+   */
+  findByThreadId(threadId: string): { bridgeId: string; bridge: CodexBridge } | null {
+    for (const [bridgeId, bridge] of this.bridges) {
+      if (bridge.getThreadId() === threadId) return { bridgeId, bridge }
+    }
+    return null
+  }
+
   abort(sessionId: string): void {
     const bridge = this.bridges.get(sessionId)
-    if (bridge) {
-      bridge.interruptTurn().catch(() => {})
-      try { bridge.abort() } catch (err) { log.debug('abort failed:', String(err)) }
-    }
     this.bridges.delete(sessionId)
+    if (!bridge) return
+    // Stop semantics: give the model a chance to end the turn cleanly (and keep
+    // any partial output it already produced), then reap the process. Killing
+    // immediately truncates the rollout and used to leave a half-written turn.
+    bridge.interruptTurn().catch(() => {})
+    const timer = setTimeout(() => {
+      try { bridge.abort() } catch (err) { log.debug('abort failed:', String(err)) }
+    }, 1500)
+    timer.unref?.()
   }
 
   abortAll(): void {

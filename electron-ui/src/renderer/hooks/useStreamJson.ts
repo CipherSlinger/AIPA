@@ -227,24 +227,37 @@ export function useStreamJson() {
 
     // Build actual prompt — prepend system prompt parts, handle attachments
     let actualPrompt: string
+    // Codex accepts structured `UserInput[]`; keep the JSON-string prompt for
+    // the legacy Claude bridge, which parses it itself.
+    let codexInput: Array<Record<string, unknown>> | undefined
+
+    // `/compact` must reach the main process verbatim (it is intercepted there
+    // and mapped to thread/compact/start); a prepended system prompt would hide
+    // the slash command from the detector.
+    const isCompactCommand = /^\/compact\b/.test(prompt.trim())
 
     // Prepend system context to the user prompt (Codex doesn't support --append-system-prompt)
-    const systemPrefix = systemPromptParts.length > 0
+    const systemPrefix = !isCompactCommand && systemPromptParts.length > 0
       ? systemPromptParts.join('\n\n') + '\n\n'
       : ''
 
-    const hasImageAttachments = attachments && attachments.length > 0
-    const binaryFileBlocks = (fileAttachments || []).filter(f => f.dataUrl && f.mimeType)
+    const hasImageAttachments = !isCompactCommand && attachments && attachments.length > 0
+    const binaryFileBlocks = isCompactCommand
+      ? []
+      : (fileAttachments || []).filter(f => f.dataUrl && f.mimeType)
     const hasBinaryBlocks = binaryFileBlocks.length > 0
 
     if (hasImageAttachments || hasBinaryBlocks) {
       const contentBlocks: unknown[] = [{ type: 'text', text: systemPrefix + prompt }]
+      const inputs: Array<Record<string, unknown>> = [{ type: 'text', text: systemPrefix + prompt }]
       for (const img of (attachments || [])) {
         const base64 = img.dataUrl.split(',')[1]
         contentBlocks.push({
           type: 'image',
           source: { type: 'base64', media_type: img.mimeType, data: base64 },
         })
+        // Codex takes the image as a URL; a data URL carries the bytes inline.
+        inputs.push({ type: 'image', url: img.dataUrl })
       }
       for (const file of binaryFileBlocks) {
         const base64 = file.dataUrl!.split(',')[1]
@@ -253,14 +266,22 @@ export function useStreamJson() {
             type: 'image',
             source: { type: 'base64', media_type: file.mimeType, data: base64 },
           })
+          inputs.push({ type: 'image', url: file.dataUrl! })
         } else {
           contentBlocks.push({
             type: 'document',
             source: { type: 'base64', media_type: file.mimeType, data: base64 },
           })
+          // Codex UserInput has no document variant. Say so in-band instead of
+          // pasting base64 the model cannot read.
+          inputs.push({
+            type: 'text',
+            text: `[Attached file "${file.name}" (${file.mimeType}). This engine cannot accept document attachments, so its contents were not sent.]`,
+          })
         }
       }
       actualPrompt = JSON.stringify(contentBlocks)
+      codexInput = inputs
     } else {
       actualPrompt = systemPrefix + prompt
     }
@@ -322,6 +343,7 @@ export function useStreamJson() {
     const effectiveCwd = currentTab?.cwd || prefs.workingDir || (await window.electronAPI.fsGetHome())
     const result = await window.electronAPI.cliSendMessage({
       prompt: actualPrompt,
+      ...(codexInput ? { input: codexInput } : {}),
       cwd: effectiveCwd,
       sessionId: currentSessionId,
       activeBridgeId: activeBridgeIdRef.current ?? undefined,
@@ -451,9 +473,116 @@ export function useStreamJson() {
           useChatStore.getState().appendThinkingDelta(data.sessionId as string, data.thinking as string)
           break
         }
-        case 'cli:messageEnd':
+        case 'cli:tokenUsageUpdated': {
+          // Codex reports accounting mid-turn (thread/tokenUsage/updated) rather
+          // than only at the end, which is what makes the context meter and
+          // auto-compact usable before the window is exhausted.
+          const u = (data.usage ?? {}) as Record<string, number>
+          const turnUsage = {
+            inputTokens: u.input_tokens ?? 0,
+            outputTokens: u.output_tokens ?? 0,
+            cacheTokens: (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0),
+          }
+          useChatStore.getState().setLastUsage(turnUsage)
+          useChatStore.getState().setLastCost(
+            null,
+            usePrefsStore.getState().prefs.model || undefined,
+            turnUsage,
+          )
+          const total = u.context_window ?? 0
+          if (total > 0) {
+            useChatStore.getState().setLastContextUsage({ used: turnUsage.inputTokens, total })
+            const pct = Math.round((turnUsage.inputTokens / total) * 100)
+            if (pct >= 85 && !contextWarningShownRef.current) {
+              contextWarningShownRef.current = true
+              useUiStore.getState().addToast('warning', t('token.warningThreshold', { pct: String(pct) }), 8000)
+            }
+            if (pct < 85 && contextWarningShownRef.current) {
+              contextWarningShownRef.current = false
+            }
+            autoCompactRef.current(turnUsage.inputTokens, total)
+          }
+          break
+        }
+        case 'cli:turnError': {
+          // A retrying error is informational — Codex reconnects on its own.
+          if (data.willRetry) break
+          const message = (data.message as string) || t('error.unknownError')
+          useChatStore.getState().addMessage({
+            id: `err-${Date.now()}`,
+            role: 'assistant',
+            content: `⚠️ ${message}`,
+            timestamp: Date.now(),
+          } as StandardChatMessage)
+          const chatState = useChatStore.getState()
+          if (chatState.isCompacting) {
+            chatState.setCompacting(false)
+            chatState.setContextBeforeCompact(null)
+            useUiStore.getState().addToast('error', t('compact.failed'))
+          }
           stopStreamingAndReleaseSleep()
           break
+        }
+        case 'cli:planUpdated': {
+          // Codex's plan is a living checklist: update the same card instead of
+          // appending a new TodoWrite block every time a step changes.
+          const planId = (data.planId as string) || `plan-${data.turnId ?? Date.now()}`
+          const todos = (Array.isArray(data.plan) ? data.plan as Array<Record<string, unknown>> : [])
+            .map(step => ({ content: String(step.content ?? step.step ?? ''), status: step.status ?? 'pending' }))
+          if (todos.length === 0) break
+          const chatState = useChatStore.getState()
+          let found = false
+          const updated = chatState.messages.map(m => {
+            if (m.role !== 'assistant') return m
+            const std = m as StandardChatMessage
+            if (!std.toolUses?.some(tu => tu.id === planId)) return m
+            found = true
+            return {
+              ...std,
+              toolUses: std.toolUses.map(tu => tu.id === planId ? { ...tu, input: { todos } } : tu),
+            }
+          })
+          if (found) {
+            useChatStore.setState({ messages: updated })
+            break
+          }
+          let lastMsg = chatState.messages.at(-1)
+          if (!lastMsg || lastMsg.role !== 'assistant') {
+            const placeholder: StandardChatMessage = {
+              id: `asst-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              role: 'assistant',
+              content: '',
+              timestamp: Date.now(),
+              isStreaming: true,
+            }
+            chatState.addMessage(placeholder)
+            lastMsg = placeholder
+          }
+          chatState.addToolUse(lastMsg.id, planId, 'TodoWrite', { todos })
+          break
+        }
+        case 'cli:compacted': {
+          const chatState = useChatStore.getState()
+          if (chatState.isCompacting) {
+            chatState.setCompacting(false)
+            chatState.incrementCompactionCount()
+            useUiStore.getState().addToast('success', t('compact.complete'))
+            chatState.setContextBeforeCompact(null)
+          }
+          break
+        }
+        case 'cli:messageEnd': {
+          stopStreamingAndReleaseSleep()
+          // Auto-compact refuses to run while streaming (it would interrupt the
+          // turn), so the post-turn check has to happen after the flag clears.
+          // Result events arrive before messageEnd, which made the old call in
+          // cli:result a no-op.
+          const ctx = useChatStore.getState().lastContextUsage
+          if (ctx && ctx.total > 0) {
+            setTimeout(() => autoCompactRef.current(ctx.used, ctx.total), 0)
+          }
+          break
+        }
         case 'cli:toolUse': {
           const e = data.event as Record<string, unknown>
           // Detect ExitPlanMode — render as plan card instead of tool block
@@ -482,9 +611,25 @@ export function useStreamJson() {
               useChatStore.getState().addChangedFile(filePath, toolName)
             }
           }
-          const lastMsg = useChatStore.getState().messages.at(-1)
-          if (lastMsg && lastMsg.role === 'assistant') {
-            useChatStore.getState().addToolUse(
+          {
+            const chatState = useChatStore.getState()
+            let lastMsg = chatState.messages.at(-1)
+            // Codex often runs a command before writing any text. Without a
+            // streaming assistant message to attach to, the tool call would be
+            // dropped; create the placeholder here (text deltas then append to
+            // it because it is the last streaming assistant).
+            if (!lastMsg || lastMsg.role !== 'assistant' || !(lastMsg as StandardChatMessage).isStreaming) {
+              const placeholder: StandardChatMessage = {
+                id: `asst-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                role: 'assistant',
+                content: '',
+                timestamp: Date.now(),
+                isStreaming: true,
+              }
+              chatState.addMessage(placeholder)
+              lastMsg = placeholder
+            }
+            chatState.addToolUse(
               lastMsg.id,
               e.id as string,
               e.name as string,
@@ -579,7 +724,9 @@ export function useStreamJson() {
               t('compact.contextDiff', { before: String(msgCountBefore), after: String(msgCountAfter) })
             )
           }
-          const usage = ev?.usage as Record<string, number> | undefined
+          // Codex puts usage on the result envelope (turn/completed has no
+          // usage field), Claude puts it inside event — accept either.
+          const usage = (ev?.usage ?? data.usage) as Record<string, number> | undefined
           if (usage) {
             useChatStore.getState().setLastUsage({
               inputTokens: (usage.input_tokens ?? 0),
@@ -588,7 +735,7 @@ export function useStreamJson() {
             })
           }
           // cost (with per-model breakdown)
-          const costUsd = ev?.total_cost_usd as number | undefined
+          const costUsd = (ev?.total_cost_usd ?? ev?.totalCostUsd ?? data.totalCostUsd) as number | undefined
           const currentModel = usePrefsStore.getState().prefs.model || 'claude-sonnet-4-6'
           const turnUsage = usage ? {
             inputTokens: usage.input_tokens ?? 0,

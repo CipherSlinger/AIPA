@@ -6,7 +6,7 @@
 
 import { MessageSquarePlus, Search } from 'lucide-react'
 import type { Position } from '../../store'
-import type { SessionListItem } from '../../types/app.types'
+import type { Persona, SessionListItem } from '../../types/app.types'
 import { useT } from '../../i18n'
 import EmployeeFigure, { SkeletonFigure } from './EmployeeFigure'
 import GhostPositionTile from './GhostPositionTile'
@@ -30,11 +30,16 @@ interface DeptRosterProps {
   isStreaming: boolean
   loadingSessionId?: string | null
   deptColor?: string
+  /** All personas, to resolve a seat's binding (and its department fallback). */
+  personas: Persona[]
+  /** Persona an unbound position inherits. */
+  defaultPersonaId?: string
   onToggleSelect: (sessionId: string) => void
   onOpenSession: (session: SessionListItem) => void
   onDeleteSession?: (sessionId: string) => void
   onNewSession: () => void
   onHire: (position: Position) => void
+  onEdit: (position: Position) => void
   onDismiss: (position: Position) => void
 }
 
@@ -51,11 +56,14 @@ export default function DeptRoster({
   isStreaming,
   loadingSessionId,
   deptColor,
+  personas,
+  defaultPersonaId,
   onToggleSelect,
   onOpenSession,
   onDeleteSession,
   onNewSession,
   onHire,
+  onEdit,
   onDismiss,
 }: DeptRosterProps) {
   const t = useT()
@@ -211,14 +219,21 @@ export default function DeptRoster({
         </span>
       </div>
       <div className="emp-roster">
-        {positions.map(pos => (
-          <GhostPositionTile
-            key={pos.id}
-            position={{ ...pos, color: pos.color || deptColor }}
-            onHire={() => onHire(pos)}
-            onDismiss={() => onDismiss(pos)}
-          />
-        ))}
+        {positions.map(pos => {
+          // A position without its own binding shows the department default,
+          // because that is exactly who it will be hired as.
+          const persona = personas.find(p => p.id === (pos.personaId || defaultPersonaId))
+          return (
+            <GhostPositionTile
+              key={pos.id}
+              position={{ ...pos, color: pos.color || deptColor }}
+              persona={persona}
+              onHire={() => onHire(pos)}
+              onEdit={() => onEdit(pos)}
+              onDismiss={() => onDismiss(pos)}
+            />
+          )
+        })}
         <div className="emp-floor" />
       </div>
     </div>

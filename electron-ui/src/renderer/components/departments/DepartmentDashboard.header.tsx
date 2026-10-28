@@ -1,7 +1,7 @@
 // The department view's top bar: identity, breadcrumb, and the handful of
 // actions that act on the whole department rather than on one employee.
 
-import { ArrowLeft, ChevronRight, FolderOpen, MessageSquarePlus } from 'lucide-react'
+import { ArrowLeft, BookOpen, ChevronRight, FolderOpen, MessageSquarePlus } from 'lucide-react'
 import type { Department } from '../../store'
 import { useT } from '../../i18n'
 import type { SortOrder } from './DepartmentDashboard.data'
@@ -24,6 +24,7 @@ interface DeptHeaderProps {
   onToggleSelect: () => void
   onExport: () => void
   onOpenFiles: () => void
+  onOpenHandbook: () => void
   onSortChange: (order: SortOrder) => void
   onNewSession: () => void
 }
@@ -39,6 +40,7 @@ export default function DeptHeader({
   onToggleSelect,
   onExport,
   onOpenFiles,
+  onOpenHandbook,
   onSortChange,
   onNewSession,
 }: DeptHeaderProps) {
@@ -264,6 +266,35 @@ export default function DeptHeader({
       >
         <FolderOpen size={13} />
         {t('dept.files')}
+      </button>
+
+      {/* The handbook is the desk's standing rules. The dot says "there is one",
+          so an empty handbook is distinguishable without opening the dialog. */}
+      <button
+        onClick={onOpenHandbook}
+        title={t('dept.handbook')}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 5,
+          padding: '5px 10px', borderRadius: 6,
+          border: '1px solid var(--border)', background: 'transparent',
+          color: dept.handbook?.trim() ? '#818cf8' : 'var(--text-secondary)',
+          fontSize: 11, cursor: 'pointer', flexShrink: 0,
+          transition: 'border-color 0.15s, color 0.15s, background 0.15s',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'
+          e.currentTarget.style.background = 'rgba(99,102,241,0.06)'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.borderColor = 'var(--border)'
+          e.currentTarget.style.background = 'transparent'
+        }}
+      >
+        <BookOpen size={12} />
+        {t('dept.handbook')}
+        {dept.handbook?.trim() && (
+          <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#818cf8' }} />
+        )}
       </button>
 
       <div style={{ display: 'flex', gap: 2, background: 'var(--bg-hover)', borderRadius: 6, padding: 2, flexShrink: 0 }}>

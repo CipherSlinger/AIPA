@@ -10,13 +10,15 @@
 import React, { useMemo, useState } from 'react'
 import { MessageSquare, Pin, Trash2 } from 'lucide-react'
 import { SessionListItem } from '../../types/app.types'
-import { formatRelativeTime } from './deptUtils'
+import { formatRelativeTime, readSessionPersonaId } from './deptUtils'
 import { useT } from '../../i18n'
-import { usePrefsStore } from '../../store'
+import { useChatStore, usePrefsStore } from '../../store'
 import { Figure, GhostSilhouette, lookFor } from './employeeFigureArt'
 
 // Stable fallback — avoids a new {} on every Zustand selector call
 const EMPTY_COLOR_LABELS: Record<string, string> = {}
+// Same for personas: `?? []` in a selector would invalidate the subscription.
+const EMPTY_PERSONAS: NonNullable<ReturnType<typeof usePrefsStore.getState>['prefs']['personas']> = []
 const LABEL_COLORS = ['#f87171', '#f97316', '#fbbf24', '#22c55e', '#6366f1', '#a78bfa', '#ec4899']
 
 const ACTION_BTN: React.CSSProperties = {
@@ -54,6 +56,11 @@ export default function EmployeeFigure({
   const t = useT()
   const colorLabels = usePrefsStore(s => s.prefs?.sessionColorLabels ?? EMPTY_COLOR_LABELS)
   const setPrefs = usePrefsStore(s => s.setPrefs)
+  const personas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
+  // The open session carries the freshest binding; every other employee is read
+  // from the mapping chatStore wrote when it was hired.
+  const livePersonaId = useChatStore(s => s.currentSessionId === session.sessionId ? s.sessionPersonaId : undefined)
+  const persona = personas.find(p => p.id === (livePersonaId ?? readSessionPersonaId(session.sessionId)))
 
   const look = useMemo(() => lookFor(session.sessionId), [session.sessionId])
   const pinKey = `aipa:session-pin:${session.sessionId}`
@@ -180,6 +187,27 @@ export default function EmployeeFigure({
           }}>
             {title}
           </div>
+          {/* Who is on duty: the persona the employee was hired as, and the model
+              it runs. Read-only — changing it happens in the chat persona picker. */}
+          {persona && (
+            <div
+              title={`${persona.name} · ${persona.model}`}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 3,
+                maxWidth: '100%', padding: '0 5px', borderRadius: 999,
+                border: `1px solid ${persona.color}55`, background: `${persona.color}14`,
+                color: persona.color, fontSize: 9, lineHeight: '15px',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}
+            >
+              <span aria-hidden="true" style={{ flexShrink: 0 }}>{persona.emoji}</span>
+              {/* Name never shrinks; the model gives up its width first. A
+                  shrinkable name span collapsed to nothing on narrow tiles,
+                  leaving a badge that identified the model but not the person. */}
+              <span style={{ flexShrink: 0 }}>{persona.name}</span>
+              <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', opacity: 0.7 }}>· {persona.model}</span>
+            </div>
+          )}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 5,
             fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap',

@@ -11,19 +11,23 @@
 // count, no pin, no fire button. There is nothing to fire yet.
 
 import React, { useState } from 'react'
-import { Trash2, UserPlus } from 'lucide-react'
+import { Pencil, Trash2, UserPlus } from 'lucide-react'
 import type { Position } from '../../store'
+import type { Persona } from '../../types/app.types'
 import { GhostSilhouette } from './employeeFigureArt'
 import { useT } from '../../i18n'
 
 interface GhostPositionTileProps {
   position: Position
+  /** The persona this seat is bound to (position binding or department default). */
+  persona?: Persona
   /** Hiring writes a session in the owning node's directory. */
   onHire: () => void
+  onEdit: () => void
   onDismiss: () => void
 }
 
-export default function GhostPositionTile({ position, onHire, onDismiss }: GhostPositionTileProps) {
+export default function GhostPositionTile({ position, persona, onHire, onEdit, onDismiss }: GhostPositionTileProps) {
   const t = useT()
   const [confirmingDismiss, setConfirmingDismiss] = useState(false)
   const color = position.color || '#6366f1'
@@ -72,6 +76,17 @@ export default function GhostPositionTile({ position, onHire, onDismiss }: Ghost
             }}
           >
             <UserPlus size={11} />
+          </button>
+          <button
+            onClick={e => { e.stopPropagation(); onEdit() }}
+            title={t('dept.positionEdit')}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 24, height: 22, borderRadius: 6, padding: 0, cursor: 'pointer',
+              border: '1px solid var(--border)', background: 'var(--bg-primary)', color: 'var(--text-muted)',
+            }}
+          >
+            <Pencil size={11} />
           </button>
           {!confirmingDismiss && (
             <button
@@ -123,6 +138,32 @@ export default function GhostPositionTile({ position, onHire, onDismiss }: Ghost
             textAlign: 'center',
           }}>
             {position.title}
+          </div>
+          {/* The role the seat will be hired as. No persona means the seat
+              inherits the department default at hire time. */}
+          <div
+            title={persona ? `${persona.name} · ${persona.model}` : t('dept.personaNone')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 3,
+              maxWidth: '100%', padding: '0 5px', borderRadius: 999,
+              border: `1px solid ${persona ? `${persona.color}55` : 'var(--border)'}`,
+              background: persona ? `${persona.color}14` : 'transparent',
+              color: persona ? persona.color : 'var(--text-faint)',
+              fontSize: 9, lineHeight: '15px', whiteSpace: 'nowrap',
+              overflow: 'hidden', textOverflow: 'ellipsis',
+            }}
+          >
+            {persona ? (
+              <>
+                <span aria-hidden="true" style={{ flexShrink: 0 }}>{persona.emoji}</span>
+                {/* The name is the identity, so it never shrinks. The model is
+                    the first thing to go: when both spans were shrinkable the
+                    flex row collapsed the name to zero width and left a chip
+                    reading only "· claude-sonnet-4-6". */}
+                <span style={{ flexShrink: 0 }}>{persona.name}</span>
+                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', opacity: 0.7 }}>· {persona.model}</span>
+              </>
+            ) : t('dept.personaNone')}
           </div>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 4,

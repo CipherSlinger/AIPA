@@ -247,7 +247,11 @@ export default function AppShell() {
               {/* Settings content */}
               <div style={{
                 flex: 1, overflow: 'auto',
-                display: 'flex', justifyContent: 'center',
+                // Left-align the settings page against the nav rail. Centering this
+                // wrapper (with its 800px cap) pushed the settings nav ~300px into
+                // the main area and left a large dead gutter. The cap stays so the
+                // form column keeps a readable measure.
+                display: 'flex',
               }}>
                 <div style={{ width: '100%', maxWidth: 800 }}>
                   <React.Suspense fallback={<PanelSkeleton />}>

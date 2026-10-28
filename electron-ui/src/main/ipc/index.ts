@@ -352,30 +352,12 @@ function resolveCodexSandbox(permissionMode: string | undefined): string {
   }
 }
 
-async function registerCodexSendMessage(
-  args: Record<string, unknown>,
-  send: (ch: string, ...a: unknown[]) => void
-): Promise<{ success: boolean; sessionId?: string; error?: string }> {
-  const existingBridgeId = args.activeBridgeId as string | undefined
-
-  // Reuse existing bridge for follow-up messages
-  if (existingBridgeId) {
-    const existingBridge = codexBridgeManager.get(existingBridgeId)
-    if (existingBridge) {
-      try {
-        await existingBridge.sendFollowUp(args.prompt as string)
-        return { success: true, sessionId: existingBridgeId }
-      } catch (err) {
-        return { success: false, error: String(err) }
-      }
-    }
-  }
-
-  // Create new CodexBridge
-  const bridgeId = `codex-${Date.now()}`
-  const bridge = codexBridgeManager.create(bridgeId)
-
-  // Forward all events to renderer using same channel names as StreamBridge
+/** Wire a CodexBridge to the renderer, reusing the legacy channel names. */
+function wireCodexBridge(
+  bridge: import('../codex/codex-bridge').CodexBridge,
+  bridgeId: string,
+  send: (ch: string, ...a: unknown[]) => void,
+): void {
   bridge.on('textDelta', (d) => send('cli:assistantText', d))
   bridge.on('thinkingDelta', (d) => send('cli:thinkingDelta', d))
   bridge.on('toolUse', (d) => send('cli:toolUse', d))
@@ -394,6 +376,14 @@ async function registerCodexSendMessage(
     cacheMcpTools(d)
     send('cli:systemInit', d)
   })
+  // Token accounting + failure/checklist signals the renderer's ChatPanel and
+  // TokenUsageBar already know how to consume; without these the Codex path
+  // had no context meter, no warnings and a failed turn looked like a hang.
+  bridge.on('tokenUsageUpdated', (d) => send('cli:tokenUsageUpdated', d))
+  bridge.on('turnError', (d) => send('cli:turnError', d))
+  bridge.on('threadStatusChanged', (d) => send('cli:threadStatusChanged', d))
+  bridge.on('planUpdated', (d) => send('cli:planUpdated', d))
+  bridge.on('compacted', (d) => send('cli:compacted', d))
   // Codex-specific events
   bridge.on('itemStarted', (d) => send('cli:itemStarted', d))
   bridge.on('itemCompleted', (d) => send('cli:itemCompleted', d))
@@ -407,6 +397,63 @@ async function registerCodexSendMessage(
   bridge.on('toolUse', () => notifyClawdState('working', bridgeId))
   bridge.on('result', () => notifyClawdState('happy', bridgeId))
   bridge.on('processExit', () => notifyClawdState('idle', bridgeId))
+}
+
+async function registerCodexSendMessage(
+  args: Record<string, unknown>,
+  send: (ch: string, ...a: unknown[]) => void
+): Promise<{ success: boolean; sessionId?: string; error?: string }> {
+  const existingBridgeId = args.activeBridgeId as string | undefined
+  const prompt = args.prompt as string
+  const input = args.input as import('../codex/codex-bridge').CodexUserInput[] | undefined
+  // `/compact` is a renderer-side command; Codex exposes it as thread/compact/start.
+  // Sending the literal string would just make the model talk about a slash command.
+  const isCompact = /^\/compact\b/.test(prompt.trim())
+
+  // Reuse existing bridge for follow-up messages
+  if (existingBridgeId) {
+    const existingBridge = codexBridgeManager.get(existingBridgeId)
+    if (existingBridge) {
+      try {
+        if (isCompact) {
+          await existingBridge.compactThread()
+          // A notification follows, but only for current Codex builds; emit
+          // once more so the renderer can never stay stuck in "compacting".
+          send('cli:compacted', { sessionId: existingBridgeId })
+        } else {
+          await existingBridge.sendFollowUp(prompt, input)
+        }
+        return { success: true, sessionId: existingBridgeId }
+      } catch (err) {
+        return { success: false, error: String(err) }
+      }
+    }
+  }
+
+  // A live bridge may already own this thread even when the renderer lost its
+  // bridge id (new tab, rebuilt renderer, TokenUsageBar's direct /compact call).
+  const requestedThreadId = args.sessionId as string | undefined
+  if (requestedThreadId) {
+    const live = codexBridgeManager.findByThreadId(requestedThreadId)
+    if (live) {
+      try {
+        if (isCompact) {
+          await live.bridge.compactThread()
+          send('cli:compacted', { sessionId: live.bridgeId })
+        } else {
+          await live.bridge.sendFollowUp(prompt, input)
+        }
+        return { success: true, sessionId: live.bridgeId }
+      } catch (err) {
+        return { success: false, error: String(err) }
+      }
+    }
+  }
+
+  // Create new CodexBridge
+  const bridgeId = `codex-${Date.now()}`
+  const bridge = codexBridgeManager.create(bridgeId)
+  wireCodexBridge(bridge, bridgeId, send)
 
   // Inject OpenAI API key if not explicitly set
   const env = (args.env as Record<string, string>) || {}
@@ -429,19 +476,30 @@ async function registerCodexSendMessage(
   // which may be danger-full-access even under approvalPolicy 'never'.
   const sandbox = resolveCodexSandbox(permissionMode)
 
+  const bridgeArgs: import('../codex/codex-bridge').CodexSendMessageArgs = {
+    prompt,
+    ...(input ? { input } : {}),
+    cwd: (args.cwd as string) || process.cwd(),
+    threadId: (args.sessionId as string) || undefined,
+    model: args.model as string | undefined,
+    env,
+    approvalPolicy,
+    sandbox,
+    personality: 'pragmatic',
+  }
+
   try {
-    await bridge.sendMessage({
-      prompt: args.prompt as string,
-      cwd: (args.cwd as string) || process.cwd(),
-      threadId: (args.sessionId as string) || undefined,
-      model: args.model as string | undefined,
-      env,
-      approvalPolicy,
-      sandbox,
-      personality: 'pragmatic',
-    })
+    if (isCompact) {
+      await bridge.compactSession(bridgeArgs)
+      send('cli:compacted', { sessionId: bridgeId })
+    } else {
+      await bridge.sendMessage(bridgeArgs)
+    }
     return { success: true, sessionId: bridgeId }
   } catch (err) {
+    // The handshake/turn never started; don't leave a half-initialized
+    // app-server process behind waiting for input.
+    try { bridge.abort() } catch { /* already gone */ }
     send('cli:error', { sessionId: bridgeId, error: String(err) })
     return { success: false, error: String(err) }
   }

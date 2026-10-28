@@ -17,19 +17,30 @@ import { createPortal } from 'react-dom'
 import { UserPlus, Sparkles, Square, AlertTriangle, Loader2 } from 'lucide-react'
 import type { RecruitPolishEvent } from '../../../preload/index'
 import { useI18n } from '../../i18n'
+import { usePrefsStore } from '../../store'
+import type { Persona } from '../../types/app.types'
+import PersonaChoice from './PersonaChoice'
+
+// Stable fallback so the Zustand selector never hands back a fresh array.
+const NO_PERSONAS: Persona[] = []
 
 interface RecruitEmployeeModalProps {
   deptName: string
   deptColor?: string
+  /** The department's default persona, used unless the user picks another. */
+  defaultPersonaId?: string
   onCancel: () => void
   /** The (possibly empty) brief; empty means "just give me an idle employee". */
-  onConfirm: (brief: string) => void
+  onConfirm: (brief: string, personaId?: string) => void
 }
 
-export default function RecruitEmployeeModal({ deptName, deptColor, onCancel, onConfirm }: RecruitEmployeeModalProps) {
+export default function RecruitEmployeeModal({ deptName, deptColor, defaultPersonaId, onCancel, onConfirm }: RecruitEmployeeModalProps) {
   const { t, resolvedLocale } = useI18n()
+  const personas = usePrefsStore(s => s.prefs.personas ?? NO_PERSONAS)
+  const activePersonaId = usePrefsStore(s => s.prefs.activePersonaId)
 
   const [draft, setDraft] = useState('')
+  const [personaId, setPersonaId] = useState<string | undefined>(defaultPersonaId || activePersonaId)
   const [polishing, setPolishing] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -112,8 +123,8 @@ export default function RecruitEmployeeModal({ deptName, deptColor, onCancel, on
 
   const confirm = useCallback(() => {
     if (polishing) return
-    onConfirm(draft.trim())
-  }, [polishing, draft, onConfirm])
+    onConfirm(draft.trim(), personaId)
+  }, [polishing, draft, personaId, onConfirm])
 
   const accent = deptColor || '#6366f1'
 
@@ -228,6 +239,25 @@ export default function RecruitEmployeeModal({ deptName, deptColor, onCancel, on
               transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
             }}
           />
+
+          {/* Role binding: the employee runs as this persona from its first turn.
+              The old flow silently used the globally active persona, which made
+              "who is on duty" impossible to read off the org chart. */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
+              textTransform: 'uppercase', color: 'var(--text-muted)',
+            }}>
+              {t('dept.positionPersona')}
+            </span>
+            <PersonaChoice
+              personas={personas}
+              value={personaId}
+              onChange={setPersonaId}
+              noneLabel={t('dept.personaNone')}
+              accent={accent}
+            />
+          </div>
 
           {/* One status line, shared by the polish stream and its errors */}
           {error ? (

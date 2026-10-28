@@ -247,6 +247,8 @@ const electronAPI = {
       // Codex-specific channels
       'cli:itemStarted', 'cli:itemCompleted', 'cli:toolProgress',
       'cli:threadStarted', 'cli:threadClosed', 'cli:messageStart',
+      'cli:tokenUsageUpdated', 'cli:turnError', 'cli:threadStatusChanged',
+      'cli:planUpdated', 'cli:compacted',
     ]
     const handlers = channels.map((ch) => {
       const h = (_: unknown, d: Record<string, unknown>) => {
