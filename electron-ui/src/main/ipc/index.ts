@@ -68,6 +68,10 @@ import { validateApiKey, validateModelName, validateFlags, safePath, getAllowedF
 import { registerSkillsHandlers } from './skills-handlers'
 import { registerProviderHandlers } from './provider-handlers'
 import { registerFsHandlers } from './fs-handlers'
+import {
+  createDirectoryWatchService,
+  type DirectoryWatchService,
+} from '../fs/watch-service'
 import { registerAttachmentHandlers, sanitizeCodexInput } from './attachment-handlers'
 import { registerWindowHandlers } from './window-handlers'
 import { registerDiagnosticsHandlers } from './diagnostics-handlers'
@@ -262,6 +266,18 @@ function forgetMcpRuntimeReports(bridgeId: string): void {
   }
 }
 
+/**
+ * Forget every live MCP report. Used after `config/mcpServer/reload`: those
+ * reports described the configuration that was just replaced, and keeping
+ * them would let a removed server keep a "started" pill or a renamed one
+ * inherit its predecessor's state. The page goes back to "not reported yet"
+ * until the engine speaks again.
+ */
+function resetMcpRuntimeReports(): void {
+  mcpStartupStatusCache.clear()
+  mcpOauthCache.clear()
+}
+
 // One "ask about your history" turn at a time, process-wide. The digest is a
 // few thousand characters and the turn is read-only, but two concurrent asks
 // would fight over each reader's search epoch (the newer call cancels the
@@ -308,6 +324,7 @@ export function registerAllHandlers(
     registerSessionHandlers()
     registerConfigHandlers()
     registerFsHandlers()
+    registerFsWatchHandlers(send)
     registerAttachmentHandlers()
     registerShellHandlers()
     registerWindowHandlers(win)
@@ -383,6 +400,85 @@ export function registerAllHandlers(
     log.error('Failed to register some IPC handlers:', String(err))
     // Even on partial failure, continue -- partial handlers are better than none
   }
+}
+
+// ----------------------------------------
+// File-browser directory watching
+// ----------------------------------------
+//
+// The renderer names exactly the directories its tree is showing. Watching the
+// whole workspace recursively would cost a handle per subtree and wake the app
+// for changes nobody can see. Each mounted FileBrowser is an owner of its own
+// subscription, so two browsers in one window share a directory's watcher
+// instead of clearing each other's set.
+let fsWatchService: DirectoryWatchService | null = null
+
+function registerFsWatchHandlers(send: (ch: string, ...a: unknown[]) => void): void {
+  if (fsWatchService) return
+  const service = createDirectoryWatchService({
+    onChange: (change) => send('fs:changed', { changes: [change] }),
+    // A watch can die after it was reported as running (folder deleted, OS
+    // handle revoked). Say so on the same push channel rather than leaving the
+    // renderer's "watching" badge claiming something untrue.
+    onStateChange: (state) => send('fs:changed', { changes: [], state }),
+  })
+  fsWatchService = service
+
+  const watchedSenders = new Set<number>()
+
+  safeHandle('fs:watchDirectories', (event, args?: { directories?: unknown; subscriberId?: unknown }) => {
+    const requested = Array.isArray(args?.directories) ? args.directories.slice(0, 256) : []
+    // A renderer-chosen suffix, not an identity: the sender id is prepended
+    // below so one window cannot address another window's subscription.
+    const subscriber = typeof args?.subscriberId === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(args.subscriberId)
+      ? args.subscriberId
+      : 'default'
+
+    const workingDir = getPref('workingDir')
+    const allowedRoots = getAllowedFsRoots(workingDir)
+    const accepted: string[] = []
+    const rejected: Array<{ directory: string; error: string }> = []
+    if (Array.isArray(args?.directories) && args.directories.length > requested.length) {
+      // Refuse to hide the overflow: the badge must not claim the whole tree
+      // is live when only its first 256 folders are watched.
+      rejected.push({ directory: '', error: 'too_many_directories' })
+    }
+    for (const candidate of requested) {
+      if (typeof candidate !== 'string' || !candidate.trim()) {
+        rejected.push({ directory: '', error: 'invalid_path' })
+        continue
+      }
+      try {
+        // Same root confinement as every other fs:* handler.
+        accepted.push(safePath(candidate, allowedRoots))
+      } catch (err) {
+        log.debug('fs:watchDirectories rejected path:', String(err))
+        rejected.push({ directory: candidate, error: 'not_allowed' })
+      }
+    }
+
+    const senderId = event.sender.id
+    if (!watchedSenders.has(senderId)) {
+      watchedSenders.add(senderId)
+      // A closed window owns no subscription; its watchers must not outlive it.
+      event.sender.once('destroyed', () => {
+        watchedSenders.delete(senderId)
+        service.releaseOwnerPrefix(`${senderId}:`)
+      })
+    }
+
+    const state = service.setDirectories(`${senderId}:${subscriber}`, accepted)
+    return rejected.length > 0
+      ? { ...state, failed: [...state.failed, ...rejected] }
+      : state
+  })
+
+  // Quitting is the last teardown boundary: no watcher or debounce timer may
+  // survive the app.
+  app.once('before-quit', () => {
+    service.dispose()
+    fsWatchService = null
+  })
 }
 
 // ----------------------------------------
@@ -2225,8 +2321,34 @@ function registerConfigHandlers(): void {
     return { tools }
   })
 
-  safeHandle('mcp:reconnect', async (_e, { serverName: _serverName }: { serverName: string }) => {
-    return { success: false, error: 'Reconnect not supported in this version' }
+  /**
+   * Reload the MCP configuration a running Codex engine uses.
+   *
+   * The protocol reloads the whole MCP configuration for one app-server
+   * process (`config/mcpServer/reload`, no parameters) — it has no per-server
+   * restart, so this is a page-level action, not a button per row. Success is
+   * only the engine accepting the request; each server's outcome arrives later
+   * through `mcpServer/startupStatus/updated`.
+   */
+  safeHandle('mcp:reload', async () => {
+    const bridge = codexBridgeManager.firstLive()
+    if (!bridge) {
+      // Nothing to reload: a reload reaches the engine that is running, and
+      // spawning one just to reload a config would report a state no
+      // conversation is using. The renderer names this refusal itself.
+      return { success: false as const, code: 'no_engine' as const }
+    }
+    try {
+      await bridge.reloadMcpServers()
+      // The tool cache and the startup reports were answers about the previous
+      // configuration; drop them so nothing stale survives the reload.
+      for (const name of Object.keys(mcpServerToolsCache)) delete mcpServerToolsCache[name]
+      resetMcpRuntimeReports()
+      return { success: true as const }
+    } catch (err) {
+      log.warn('mcp:reload error:', String(err))
+      return { success: false as const, error: String(err) }
+    }
   })
 
   // ── Memory ──────────────────────────────────────────────────────────────

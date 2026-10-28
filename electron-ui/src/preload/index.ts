@@ -723,6 +723,38 @@ export interface CliSendMessageArgsData {
   permissionMode?: string
 }
 
+// ── File-browser directory watching ────────────────────────────────────────
+// Mirrors src/main/fs/watch-service.ts. Only directory names and (optionally)
+// changed basenames cross this boundary — never file contents.
+
+export interface FsWatchFailureData {
+  directory: string
+  /** Short diagnostic; a failed watch is reported, never silently assumed. */
+  error: string
+}
+
+/** What main is actually watching, and what it could not start watching. */
+export interface FsWatchStateData {
+  watching: string[]
+  failed: FsWatchFailureData[]
+}
+
+export interface FsChangedData {
+  changes: Array<{
+    /** The watched directory whose immediate entries changed. */
+    directory: string
+    /** Basenames the OS attributed, deduplicated and capped. */
+    names: string[]
+    /** Some names were dropped, or the platform reported none. */
+    truncated: boolean
+  }>
+  /**
+   * Present only when a watch died after the last `fs:watchDirectories`
+   * response, so the renderer can stop claiming it is live.
+   */
+  state?: FsWatchStateData
+}
+
 /**
  * `TurnStatus` normalized for the renderer. `unknown` means the notification
  * carried no status (or one this build cannot name) — it is never success.
@@ -1243,6 +1275,20 @@ const electronAPI = {
     ipcRenderer.invoke('fs:gitDiff', { filePath }) as Promise<string | { error: string }>,
   fsGitStatus: () =>
     ipcRenderer.invoke('fs:gitStatus') as Promise<string | { error: string }>,
+  /**
+   * Replace the directory set this browser instance wants watched. Main
+   * refcounts them, so two mounted browsers share one watcher. Passing `[]`
+   * stops watching for this subscriber; the returned state says what is
+   * actually live and what could not be watched.
+   */
+  fsWatchDirectories: (directories: string[], subscriberId?: string) =>
+    ipcRenderer.invoke('fs:watchDirectories', { directories, subscriberId }) as Promise<FsWatchStateData>,
+  /** Pushed after the main-process debounce; names only, never contents. */
+  onFsChanged: (cb: (payload: FsChangedData) => void): Unsubscribe => {
+    const handler = (_: unknown, data: FsChangedData) => cb(data)
+    ipcRenderer.on('fs:changed', handler)
+    return () => { ipcRenderer.removeListener('fs:changed', handler) }
+  },
 
   // ── Shell ───────────────────────────────
   shellOpenExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
@@ -1386,8 +1432,19 @@ const electronAPI = {
     ipcRenderer.invoke('mcp:remove', { name }) as Promise<{ success: boolean; error?: string }>,
   mcpGetTools: (serverName: string) =>
     ipcRenderer.invoke('mcp:getTools', { serverName }) as Promise<{ tools: { name: string; description?: string }[] }>,
-  mcpReconnect: (serverName: string) =>
-    ipcRenderer.invoke('mcp:reconnect', { serverName }) as Promise<{ success: boolean; error?: string }>,
+  /**
+   * Reload the MCP configuration of the running Codex engine
+   * (`config/mcpServer/reload`). It is one global action, because the protocol
+   * has no per-server restart; each server's new state arrives afterwards on
+   * `cli:mcpStartupStatusUpdated`. `code: 'no_engine'` means there was no
+   * running engine to reload — AIPA does not spawn one just to reload a file.
+   */
+  mcpReload: () =>
+    ipcRenderer.invoke('mcp:reload') as Promise<{
+      success: boolean
+      error?: string
+      code?: 'no_engine'
+    }>,
 
   // ── Feedback ─────────────────────────────
   feedbackRate: (messageId: string, rating: 'up' | 'down' | null) =>

@@ -794,7 +794,20 @@
       "statusReason": "原因：{{reason}}",
       "oauthCompleted": "登录已完成",
       "oauthFailed": "登录失败",
-      "statusNote": "启动状态由运行中的 Codex 引擎报告。引擎尚未报告的服务器不会显示状态。"
+      "statusNote": "启动状态由运行中的 Codex 引擎报告。引擎尚未报告的服务器不会显示状态。",
+      "toolsCount": "1 个工具",
+      "toolsCountPlural": "{{count}} 个工具",
+      "toolsNoneReported": "引擎尚未报告工具",
+      "toolsLoading": "正在读取工具…",
+      "toolsExpand": "展开工具",
+      "toolsCollapse": "收起工具",
+      "toolsCopyName": "复制工具名称",
+      "toolsCopied": "已复制",
+      "reload": "重新加载 MCP 配置",
+      "reloading": "正在重新加载…",
+      "reloadSucceeded": "引擎已接受重新加载，接下来由每台服务器各自报告状态。",
+      "reloadFailed": "引擎没有接受这次重新加载",
+      "reloadNoEngine": "当前没有运行中的 Codex 引擎，没有可重新加载的对象"
     },
     "toolAccessControl": "工具访问控制",
     "toolAccessControlHint": "控制 Claude 可以使用哪些内置工具。禁用的工具通过 --disallowedTools 传递。",
@@ -1180,7 +1193,10 @@
     "filterPlaceholder": "按名称筛选...",
     "noFilterResults": "没有匹配的文件",
     "refresh": "刷新",
-    "itemCount": "{{dirs}} 个文件夹，{{files}} 个文件"
+    "itemCount": "{{dirs}} 个文件夹，{{files}} 个文件",
+    "watchLive": "正在监听文件变更",
+    "watchOff": "实时刷新已关闭",
+    "watchFailed": "未监听：{{path}}"
   },
   "error": {
     "title": "出了点问题",

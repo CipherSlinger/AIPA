@@ -4,8 +4,11 @@
 // main/config/mcp-config.ts): Codex keeps MCP servers in ~/.codex/config.toml
 // while the Claude CLI reads a project-scoped .mcp.json. Both are surfaced here
 // with one card list so the page reads the same either way.
-import React, { useCallback, useEffect, useState } from 'react'
-import { Server, Plus, ToggleLeft, ToggleRight, Info, FileJson, AlertCircle, Trash2 } from 'lucide-react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  Server, Plus, ToggleLeft, ToggleRight, Info, FileJson, AlertCircle, Trash2,
+  ChevronRight, ChevronDown, Copy, Check, RefreshCw,
+} from 'lucide-react'
 import { usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import type { McpConfigInfoData, McpServerConfigData } from '../../../preload/index'
@@ -22,6 +25,17 @@ import {
   type McpServerStatusRow,
   type McpStatusSnapshot,
 } from './mcpStatusView'
+import {
+  UNKNOWN_MCP_TOOL_VIEW,
+  deriveMcpToolList,
+  isToolRefreshDue,
+  mcpToolHeader,
+  readMcpReloadResult,
+  shouldRefetchToolsForCliEvent,
+  type McpReloadOutcome,
+  type McpToolListView,
+  type McpToolRow,
+} from './mcpToolView'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,6 +58,22 @@ interface DisplayServer {
   preview: string
   disabled: boolean
 }
+
+/** What the page currently knows about one server's tools. */
+interface ServerToolsState {
+  view: McpToolListView
+  loading: boolean
+}
+
+/**
+ * Reload is request/response only; there is no idle poll and no retry. It is
+ * one page-level action because the protocol reloads the whole MCP
+ * configuration of the running engine, not one server.
+ */
+type ReloadPhase =
+  | { phase: 'idle' }
+  | { phase: 'pending' }
+  | { phase: 'settled'; outcome: McpReloadOutcome }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -97,22 +127,88 @@ const inputStyle: React.CSSProperties = {
   fontSize: 12, color: 'var(--text-primary)', outline: 'none',
 }
 
+// ── ToolRow ───────────────────────────────────────────────────────────────────
+
+/** One engine-reported tool. The name is shown verbatim and can be copied. */
+function ToolRow({ tool }: { tool: McpToolRow }) {
+  const t = useT()
+  const [copied, setCopied] = useState(false)
+  const timer = useRef<number | null>(null)
+
+  useEffect(() => () => {
+    if (timer.current !== null) window.clearTimeout(timer.current)
+  }, [])
+
+  const copyName = () => {
+    navigator.clipboard.writeText(tool.name).then(() => {
+      setCopied(true)
+      if (timer.current !== null) window.clearTimeout(timer.current)
+      timer.current = window.setTimeout(() => setCopied(false), 1500)
+    }).catch(() => {
+      // The name is still selectable text; a blocked clipboard changes nothing.
+    })
+  }
+
+  return (
+    <div style={{ padding: '4px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <code style={{
+          fontSize: 11, color: 'var(--text-primary)', fontFamily: 'monospace',
+          userSelect: 'text', wordBreak: 'break-all',
+        }}>
+          {tool.name}
+        </code>
+        <button
+          onClick={copyName}
+          title={copied ? t('settings.mcpPage.toolsCopied') : t('settings.mcpPage.toolsCopyName')}
+          aria-label={t('settings.mcpPage.toolsCopyName')}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: 2,
+            display: 'inline-flex', alignItems: 'center', flexShrink: 0,
+            color: copied ? 'var(--success-text)' : 'var(--text-faint)',
+          }}
+        >
+          {copied ? <Check size={11} /> : <Copy size={11} />}
+        </button>
+      </div>
+      {tool.description && (
+        <div style={{
+          fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5,
+          marginTop: 1, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+        }}>
+          {tool.description}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── ServerCard ────────────────────────────────────────────────────────────────
 
 interface ServerCardProps {
   server: DisplayServer
   /** Live report from the engine, or null when it has said nothing yet. */
   status: McpServerStatusRow | null
+  /** Codex only: the engine's tool report for this server. */
+  tools?: {
+    view: McpToolListView
+    loading: boolean
+    expanded: boolean
+    onToggle: () => void
+  }
   onToggleDisabled: (name: string) => void
   onDelete: (name: string) => void
 }
 
-function ServerCard({ server, status, onToggleDisabled, onDelete }: ServerCardProps) {
+function ServerCard({
+  server, status, tools, onToggleDisabled, onDelete,
+}: ServerCardProps) {
   const t = useT()
   const colors = TYPE_COLORS[server.type] ?? TYPE_COLORS.stdio
   const isDisabled = server.disabled
   const startup = status?.startup ?? null
   const tone = statusTone(startup)
+  const toolHeader = tools ? mcpToolHeader(tools.view) : null
 
   return (
     <div
@@ -192,6 +288,56 @@ function ServerCard({ server, status, onToggleDisabled, onDelete }: ServerCardPr
         }}>
           {server.preview}
         </div>
+        {/* The engine's tool report for this server. Collapsed by default so a
+            long list never pushes the next card off screen. `toolsNoneReported`
+            covers both "not asked yet" and "the engine answered with nothing":
+            the cache cannot prove a server has zero tools. */}
+        {tools && toolHeader && (
+          <div style={{ marginTop: 6 }}>
+            <button
+              onClick={tools.onToggle}
+              aria-expanded={tools.expanded}
+              aria-label={tools.expanded
+                ? t('settings.mcpPage.toolsCollapse')
+                : t('settings.mcpPage.toolsExpand')}
+              title={tools.expanded
+                ? t('settings.mcpPage.toolsCollapse')
+                : t('settings.mcpPage.toolsExpand')}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: 0, color: 'var(--text-secondary)', fontSize: 11,
+              }}
+            >
+              {tools.expanded
+                ? <ChevronDown size={12} color="var(--text-faint)" />
+                : <ChevronRight size={12} color="var(--text-faint)" />}
+              {tools.loading && tools.view.state !== 'reported'
+                ? t('settings.mcpPage.toolsLoading')
+                : t(toolHeader.key, toolHeader.params)}
+            </button>
+            {tools.expanded && (
+              <div style={{
+                marginTop: 3, paddingLeft: 16,
+                borderLeft: '1px solid var(--border)',
+              }}>
+                {tools.view.tools.length === 0 ? (
+                  <div style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.5 }}>
+                    {tools.loading
+                      ? t('settings.mcpPage.toolsLoading')
+                      : t('settings.mcpPage.toolsNoneReported')}
+                  </div>
+                ) : (
+                  tools.view.tools.map((tool, index) => (
+                    // Names can repeat across a misbehaving server; the index
+                    // keeps React keys unique without touching the displayed text.
+                    <ToolRow key={`${tool.name}:${index}`} tool={tool} />
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
         {/* Engine text, verbatim. No cause or remedy is added here. */}
         {startup?.error && (
           <div style={{
@@ -393,6 +539,10 @@ export default function SettingsProjectMcp() {
   // Live startup/auth reports. Main keeps a snapshot for reports that fired
   // before this page mounted; the push events keep an open page current.
   const [mcpStatus, setMcpStatus] = useState<McpStatusSnapshot>(EMPTY_MCP_STATUS_SNAPSHOT)
+  // Per-server tool reports and the disclosure state the cards need.
+  const [toolsByName, setToolsByName] = useState<Record<string, ServerToolsState>>({})
+  const [expandedTools, setExpandedTools] = useState<Record<string, boolean>>({})
+  const [reloadPhase, setReloadPhase] = useState<ReloadPhase>({ phase: 'idle' })
 
   const isCodex = configInfo?.engine === 'codex'
 
@@ -453,6 +603,115 @@ export default function SettingsProjectMcp() {
     const cfg = await window.electronAPI.mcpReadConfig()
     setCodexServers(cfg?.servers ?? [])
   }, [])
+
+  const loadTools = useCallback(async (serverName: string) => {
+    setToolsByName(previous => ({
+      ...previous,
+      [serverName]: {
+        view: previous[serverName]?.view ?? UNKNOWN_MCP_TOOL_VIEW,
+        loading: true,
+      },
+    }))
+    try {
+      const raw = await window.electronAPI.mcpGetTools(serverName)
+      setToolsByName(previous => ({
+        ...previous,
+        [serverName]: { view: deriveMcpToolList(raw), loading: false },
+      }))
+    } catch {
+      // A failed read teaches nothing about the server. Keep the last honest
+      // view; turning a transport error into "nothing reported" would erase
+      // data the engine did send.
+      setToolsByName(previous => ({
+        ...previous,
+        [serverName]: {
+          view: previous[serverName]?.view ?? UNKNOWN_MCP_TOOL_VIEW,
+          loading: false,
+        },
+      }))
+    }
+  }, [])
+
+  // Tool state belongs to the engine. Drop it when the page switches away so a
+  // Claude session never inherits Codex rows (and vice versa).
+  useEffect(() => {
+    if (isCodex) return
+    setToolsByName({})
+    setExpandedTools({})
+    setReloadPhase({ phase: 'idle' })
+  }, [isCodex])
+
+  // The collapsed header shows a count, so every configured server is read
+  // once the list is known — not on a timer, and never for a server that is
+  // not in the config file.
+  useEffect(() => {
+    if (!isCodex) return
+    for (const srv of codexServers) void loadTools(srv.name)
+  }, [isCodex, codexServers, loadTools])
+
+  // A server that has just reported `ready` is the one whose tool list may
+  // have changed since the handshake. `ready` → `ready` repeats the same news
+  // and does not refetch.
+  const lastStartupByName = useRef<Record<string, string>>({})
+  useEffect(() => {
+    if (!isCodex) {
+      lastStartupByName.current = {}
+      return
+    }
+    const next: Record<string, string> = {}
+    for (const report of mcpStatus.startup) next[report.serverName] = report.status
+    for (const [serverName, status] of Object.entries(next)) {
+      const before = lastStartupByName.current[serverName] ?? null
+      if (isToolRefreshDue({ type: 'startup', before, after: status })) {
+        void loadTools(serverName)
+      }
+    }
+    lastStartupByName.current = next
+  }, [isCodex, mcpStatus, loadTools])
+
+  // `mcp:getTools` reads a cache the app-server handshake fills. `systemInit`
+  // is the signal that this just happened; `cli:skillsChanged` concerns the
+  // skills catalogue and is deliberately not treated as an MCP trigger.
+  useEffect(() => {
+    if (!isCodex) return
+    const api = window.electronAPI
+    if (!api?.onSystemInit) return
+    if (!shouldRefetchToolsForCliEvent('cli:systemInit')) return
+    return api.onSystemInit(() => {
+      for (const srv of codexServers) void loadTools(srv.name)
+    })
+  }, [isCodex, codexServers, loadTools])
+
+  const setToolDisclosure = useCallback((serverName: string, open: boolean) => {
+    setExpandedTools(previous => ({ ...previous, [serverName]: open }))
+    if (open && isToolRefreshDue({ type: 'expand' })) void loadTools(serverName)
+  }, [loadTools])
+
+  /**
+   * Ask the running engine to reload the whole MCP configuration. Only the
+   * engine can do this (`config/mcpServer/reload`), and only for a process it
+   * already has; the per-server outcome arrives later as a startup report.
+   */
+  const handleReload = useCallback(async () => {
+    setReloadPhase({ phase: 'pending' })
+    let outcome: McpReloadOutcome
+    try {
+      const raw = await window.electronAPI.mcpReload()
+      outcome = readMcpReloadResult(raw)
+    } catch {
+      // A rejected invoke produced no protocol verdict. Report a failure with
+      // no engine sentence rather than pretending the engine refused.
+      outcome = readMcpReloadResult(null)
+    }
+    setReloadPhase({ phase: 'settled', outcome })
+    if (outcome.tone !== 'success') return
+    // Main dropped the cached tool lists and startup reports as part of the
+    // reload; the page drops its copies for the same reason. The pills and tool
+    // rows come back only when the engine reports this configuration.
+    setMcpStatus(EMPTY_MCP_STATUS_SNAPSHOT)
+    setToolsByName({})
+    for (const srv of codexServers) void loadTools(srv.name)
+  }, [codexServers, loadTools])
 
   // Load home dir + the engine's config on mount / workingDir change
   useEffect(() => {
@@ -779,6 +1038,44 @@ export default function SettingsProjectMcp() {
                 <>
                   <div>{t('settings.mcpPage.codexNote')}</div>
                   <div style={{ marginTop: 4 }}>{t('settings.mcpPage.statusNote')}</div>
+                  {/* Reloading is one action for the whole engine — the protocol
+                      reloads every configured server for the running process and
+                      has no per-server restart. The outcome line reports only
+                      what the engine acknowledged; the pills below fill in as it
+                      reports each server. */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 8, marginTop: 6,
+                    flexWrap: 'wrap',
+                  }}>
+                    <button
+                      onClick={() => void handleReload()}
+                      disabled={reloadPhase.phase === 'pending'}
+                      title={t('settings.mcpPage.reload')}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '3px 8px', borderRadius: 6,
+                        background: 'var(--bg-primary)',
+                        border: '1px solid var(--border)',
+                        cursor: reloadPhase.phase === 'pending' ? 'wait' : 'pointer',
+                        color: reloadPhase.phase === 'pending' ? 'var(--text-faint)' : 'var(--text-secondary)',
+                        fontSize: 10, fontWeight: 500,
+                        opacity: reloadPhase.phase === 'pending' ? 0.7 : 1,
+                      }}
+                    >
+                      <RefreshCw size={10} />
+                      {t(reloadPhase.phase === 'pending' ? 'settings.mcpPage.reloading' : 'settings.mcpPage.reload')}
+                    </button>
+                    {reloadPhase.phase === 'settled' && (
+                      <span style={{
+                        fontSize: 10, lineHeight: 1.5,
+                        color: reloadPhase.outcome.tone === 'success'
+                          ? 'var(--success-text)'
+                          : 'rgba(239,68,68,0.90)',
+                      }}>
+                        {reloadPhase.outcome.error ?? t(reloadPhase.outcome.textKey)}
+                      </span>
+                    )}
+                  </div>
                 </>
               ) : t('settings.mcpPage.applyNote')}
             </div>
@@ -806,17 +1103,28 @@ export default function SettingsProjectMcp() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {servers.map(srv => (
-                <ServerCard
-                  key={srv.name}
-                  server={srv}
-                  // A disabled server is not started, so an older report about
-                  // it would read as a contradiction next to the toggle.
-                  status={srv.disabled ? null : statusByName.get(srv.name) ?? null}
-                  onToggleDisabled={handleToggleDisabled}
-                  onDelete={handleDelete}
-                />
-              ))}
+              {servers.map(srv => {
+                const toolsState = toolsByName[srv.name]
+                return (
+                  <ServerCard
+                    key={srv.name}
+                    server={srv}
+                    // A disabled server is not started, so an older report about
+                    // it would read as a contradiction next to the toggle.
+                    status={srv.disabled ? null : statusByName.get(srv.name) ?? null}
+                    // Codex reports tools at app-server init; the Claude branch
+                    // reads a project file and has no such report.
+                    tools={isCodex ? {
+                      view: toolsState?.view ?? UNKNOWN_MCP_TOOL_VIEW,
+                      loading: toolsState?.loading ?? false,
+                      expanded: !!expandedTools[srv.name],
+                      onToggle: () => setToolDisclosure(srv.name, !expandedTools[srv.name]),
+                    } : undefined}
+                    onToggleDisabled={handleToggleDisabled}
+                    onDelete={handleDelete}
+                  />
+                )
+              })}
             </div>
           )}
 

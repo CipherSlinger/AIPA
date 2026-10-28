@@ -794,7 +794,20 @@
       "statusReason": "Reason: {{reason}}",
       "oauthCompleted": "Sign-in completed",
       "oauthFailed": "Sign-in failed",
-      "statusNote": "Startup status comes from the running Codex engine. A server it has not reported yet shows no status."
+      "statusNote": "Startup status comes from the running Codex engine. A server it has not reported yet shows no status.",
+      "toolsCount": "1 tool",
+      "toolsCountPlural": "{{count}} tools",
+      "toolsNoneReported": "No tools reported yet",
+      "toolsLoading": "Loading tools…",
+      "toolsExpand": "Show tools",
+      "toolsCollapse": "Hide tools",
+      "toolsCopyName": "Copy tool name",
+      "toolsCopied": "Copied",
+      "reload": "Reload MCP config",
+      "reloading": "Reloading…",
+      "reloadSucceeded": "The engine accepted the reload. Each server reports its own state next.",
+      "reloadFailed": "The engine did not accept the reload",
+      "reloadNoEngine": "No Codex engine is running, so there is nothing to reload"
     },
     "toolAccessControl": "Tool Access Control",
     "toolAccessControlHint": "Control which built-in tools Claude can use. Disabled tools are passed via --disallowedTools.",
@@ -1180,7 +1193,10 @@
     "filterPlaceholder": "Filter by name...",
     "noFilterResults": "No files match the filter",
     "refresh": "Refresh",
-    "itemCount": "{{dirs}} folders, {{files}} files"
+    "itemCount": "{{dirs}} folders, {{files}} files",
+    "watchLive": "Watching for file changes",
+    "watchOff": "Live refresh is off",
+    "watchFailed": "Not watching: {{path}}"
   },
   "error": {
     "title": "Something went wrong",

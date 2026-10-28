@@ -1417,6 +1417,19 @@ export class CodexBridge extends EventEmitter {
   }
 
   /**
+   * Reload the MCP configuration the running engine uses.
+   *
+   * `config/mcpServer/reload` takes no parameters (the schema types them as
+   * `null`) and reloads every configured server for this app-server process —
+   * there is no per-server restart request in 0.145. The per-server outcome
+   * arrives afterwards on `mcpServer/startupStatus/updated`, so this resolves
+   * with the engine's acknowledgement, not with a claim that any server works.
+   */
+  async reloadMcpServers(): Promise<void> {
+    await this._sendRequest('config/mcpServer/reload', null)
+  }
+
+  /**
    * Interrupt the current turn.
    * Replaces StreamBridge.abort() for graceful cancellation.
    */
@@ -2034,13 +2047,18 @@ export class CodexBridge extends EventEmitter {
     }
   }
 
-  private _sendRequest(method: string, params: Record<string, unknown>, timeoutMs = REQUEST_TIMEOUT_MS): Promise<unknown> {
+  // `params` is `unknown` because the protocol has requests whose params are
+  // literally `null` (`config/mcpServer/reload`); everything else passes an
+  // object and the wire encoder does not care which it is.
+  private _sendRequest(method: string, params: unknown, timeoutMs = REQUEST_TIMEOUT_MS): Promise<unknown> {
     if (!this.proc?.stdin) {
       return Promise.reject(new Error('No active codex process'))
     }
 
     const id = this.nextId++
-    const msg: JsonRpcRequest = { id, method, params }
+    // The cast only narrows the field's declared type: `null` is a legal params
+    // value on the wire (`config/mcpServer/reload`) and is serialized as-is.
+    const msg: JsonRpcRequest = { id, method, params: params as Record<string, unknown> }
     const json = JSON.stringify(msg) + '\n'
 
     return new Promise((resolve, reject) => {
