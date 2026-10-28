@@ -35,6 +35,7 @@ import {
 import { buildInvestigatePrompt } from '../automation/investigatePrompt'
 import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from '../automation/automationStyles'
 import { RUN_HISTORY_CAP, viewRunHistory } from './runHistoryView'
+import { fileKindMarker, viewRunFiles } from './runFilesView'
 import type {
   AutomationJobData,
   AutomationLimitsData,
@@ -51,6 +52,16 @@ const RUN_HISTORY_UI_DEFAULT: RunHistoryUi = { expanded: false, failuresOnly: fa
 /** The quiet text control under a run list ("Show all" / "Show fewer"). */
 const QUIET_LINK: CSSProperties = {
   background: 'none', border: 'none', padding: 0, margin: '4px 0 0',
+  font: 'inherit', fontSize: 11, color: 'var(--accent-text)', cursor: 'pointer',
+}
+
+/**
+ * The run-level file disclosure. It sits inline in the existing run row, so it
+ * carries no margin or block padding of its own; the expanded panel below the
+ * row supplies the quieter treatment.
+ */
+const RUN_FILES_LINK: CSSProperties = {
+  background: 'none', border: 'none', padding: 0, margin: 0,
   font: 'inherit', fontSize: 11, color: 'var(--accent-text)', cursor: 'pointer',
 }
 
@@ -118,6 +129,10 @@ export default function SettingsAutomations() {
   // its entry with it on the next interaction rather than leaking into a new
   // job that happens to reuse the slot.
   const [runHistoryUi, setRunHistoryUi] = useState<Record<string, RunHistoryUi>>({})
+  // Per-run file disclosure, keyed by job + start stamp + index so expanding one
+  // run cannot open another. It is page-local: a refetch keeps the open state for
+  // a record that is still present, and a missing key simply starts collapsed.
+  const [runFilesOpen, setRunFilesOpen] = useState<Record<string, boolean>>({})
   // The filter row is page-local: no pref is written, so opening Settings a
   // second time starts from the whole list. Keeping it out of the store also
   // means none of the row/dialog actions below have to know it exists.
@@ -1308,6 +1323,14 @@ export default function SettingsAutomations() {
                             // Only a real snapshot can be truncated; a failed
                             // read has nothing to clip and must not imply one.
                             const memoryTruncated = record.memory?.state === 'ok' && record.memory.truncated
+                            const fileView = viewRunFiles(record.changedFiles)
+                            const filesKey = `${job.id}:${record.startedAt}:${runIndex}`
+                            const filesOpen = runFilesOpen[filesKey] === true
+                            const fileLabel = fileView.coverage === 'captured'
+                              ? fileView.totalFiles === 1
+                                ? t('automation.files.countOne')
+                                : t('automation.files.countMany', { count: fileView.totalFiles })
+                              : t('automation.files.none')
                             const sessionId = record.sessionId
                             return (
                               <li
@@ -1351,6 +1374,27 @@ export default function SettingsAutomations() {
                                     {t('automation.memory.truncated')}
                                   </span>
                                 )}
+                                {fileView.coverage !== 'unrecorded' && (
+                                  // Present-but-empty is a real answer ("no
+                                  // file-editing calls seen"), so it stays
+                                  // visible; an unrecorded run keeps the row
+                                  // silent rather than implying an empty set.
+                                  <button
+                                    type="button"
+                                    onClick={() => setRunFilesOpen(prev => ({
+                                      ...prev,
+                                      [filesKey]: !prev[filesKey],
+                                    }))}
+                                    aria-expanded={filesOpen}
+                                    aria-label={fileView.coverage === 'captured'
+                                      ? t('automation.files.aria', { time: timeText(record.startedAt) })
+                                      : t('automation.files.none')}
+                                    title={t('automation.files.coverageNote')}
+                                    style={RUN_FILES_LINK}
+                                  >
+                                    {fileLabel}
+                                  </button>
+                                )}
                                 {duration && <span>{duration}</span>}
                                 {tokens > 0 && <span>{t('automation.usage.tokens', { count: formatTokens(tokens) })}</span>}
                                 {cost && <span>{cost}</span>}
@@ -1368,6 +1412,96 @@ export default function SettingsAutomations() {
                                   >
                                     {t('automation.history.open')}
                                   </button>
+                                )}
+                                {filesOpen && fileView.coverage !== 'unrecorded' && (
+                                  // One quiet panel inside the existing row, not
+                                  // a second card. The coverage sentence is
+                                  // always present here — the path list must
+                                  // never read as the run's complete effect on
+                                  // disk.
+                                  <div style={{
+                                    flexBasis: '100%', minWidth: 0,
+                                    margin: '2px 0 4px', paddingLeft: 10,
+                                    borderLeft: '2px solid var(--border)',
+                                    display: 'flex', flexDirection: 'column', gap: 3,
+                                    lineHeight: 1.5,
+                                  }}>
+                                    <div style={{ fontSize: 10, color: SECONDARY }}>
+                                      {t('automation.files.coverageNote')}
+                                    </div>
+                                    {fileView.coverage === 'captured' ? (
+                                      <>
+                                        <div style={{ fontSize: 10, color: SECONDARY }}>
+                                          {t('automation.files.listLabel')}
+                                          {fileView.editCalls > 0
+                                            ? ` · ${t('automation.files.editCalls', { count: fileView.editCalls })}`
+                                            : ''}
+                                        </div>
+                                        <ul
+                                          aria-label={t('automation.files.listLabel')}
+                                          style={{
+                                            margin: 0, padding: 0, listStyle: 'none',
+                                            display: 'flex', flexDirection: 'column',
+                                            gap: 2, minWidth: 0,
+                                          }}
+                                        >
+                                          {fileView.files.map(file => (
+                                            <li
+                                              key={file.path}
+                                              title={file.state === 'edited'
+                                                ? t('automation.files.editedHint')
+                                                : t('automation.files.attemptedHint')}
+                                              style={{
+                                                display: 'flex', alignItems: 'baseline',
+                                                gap: 6, minWidth: 0, fontSize: 11,
+                                              }}
+                                            >
+                                              <span aria-hidden="true" style={{
+                                                width: 8, flexShrink: 0, textAlign: 'center',
+                                                fontFamily: 'monospace',
+                                                color: file.kind === 'add'
+                                                  ? 'var(--success-text)'
+                                                  : file.kind === 'delete'
+                                                    ? 'var(--danger-text)'
+                                                    : file.kind === 'update'
+                                                      ? 'var(--accent-text)'
+                                                      : SECONDARY,
+                                              }}>
+                                                {fileKindMarker(file.kind)}
+                                              </span>
+                                              <span style={{
+                                                fontFamily: 'monospace',
+                                                color: 'var(--text-secondary)',
+                                                overflowWrap: 'anywhere', minWidth: 0,
+                                              }}>
+                                                {file.path}
+                                              </span>
+                                              {file.state === 'attempted' && (
+                                                // A call the engine never
+                                                // confirmed. It stays visible but
+                                                // is never counted as an edit.
+                                                <span style={{ flexShrink: 0, fontSize: 10, color: WARNING }}>
+                                                  {t('automation.files.attempted')}
+                                                </span>
+                                              )}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                        {fileView.omitted > 0 && (
+                                          <div style={{ fontSize: 10, color: SECONDARY }}>
+                                            {t('automation.files.more', { count: fileView.omitted })}
+                                          </div>
+                                        )}
+                                      </>
+                                    ) : (
+                                      // The capture ran; an empty list is an
+                                      // answer, and its limits are still stated
+                                      // above rather than left implicit.
+                                      <div style={{ fontSize: 10, color: SECONDARY }}>
+                                        {t('automation.files.noneNote')}
+                                      </div>
+                                    )}
+                                  </div>
                                 )}
                               </li>
                             )

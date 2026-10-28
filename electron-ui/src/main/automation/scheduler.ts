@@ -640,6 +640,10 @@ async function startRun(
     // A failed run still saw the snapshot it fetched, so the digest is carried
     // on either outcome. A runner that returned before fetching one has none.
     ...(outcome.memory ? { memory: outcome.memory } : {}),
+    // Live-captured tool-driven file edits. Absent only when the runner had no
+    // engine conversation, which is also the case where nothing was observed;
+    // a present-but-empty summary is the honest "no file edits seen".
+    ...(outcome.changedFiles ? { changedFiles: outcome.changedFiles } : {}),
   })
   // Success ends the occurrence; a failure under the policy schedules the next
   // bounded attempt. `nextRetryAfterFailure` returns nothing for a default-off

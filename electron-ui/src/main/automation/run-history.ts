@@ -22,6 +22,7 @@
  * Pure and Electron-free so `.scratch/wave15-run-history-harness` can exercise
  * append, eviction, restore and streak rules without a store or a window.
  */
+import { normalizeChangedFiles } from './changed-files'
 import { normalizeMemoryDigest } from './memory-digest'
 import { AUTOMATION_RETRY_POLICY } from './retry-policy'
 import { normalizeRunUsage } from './run-usage'
@@ -76,6 +77,9 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
   // A malformed descriptor is dropped, not the record: the run still happened,
   // and a record written before this field existed has no descriptor at all.
   const memory = normalizeMemoryDigest(record.memory)
+  // Absent stays absent — "not recorded" must survive restore, never collapse
+  // into an empty list. A corrupt summary is dropped for the same reason.
+  const changedFiles = normalizeChangedFiles(record.changedFiles)
 
   // Invariants the scheduler relies on, enforced again on restore so a corrupt
   // row cannot claim spend or a transcript for a run that never happened:
@@ -106,6 +110,7 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
       ...(retry !== undefined ? { retry } : {}),
       ...(usage ? { usage } : {}),
       ...(memory ? { memory } : {}),
+      ...(changedFiles ? { changedFiles } : {}),
     }
   }
   const usage = normalizeRunUsage(record.usage)
@@ -121,6 +126,8 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
     // A failed run saw a snapshot too; keeping it here is what makes the
     // history explain a failure that happened after the memory read.
     ...(memory ? { memory } : {}),
+    // Edits made before a failure are still real; the summary travels with them.
+    ...(changedFiles ? { changedFiles } : {}),
   }
 }
 

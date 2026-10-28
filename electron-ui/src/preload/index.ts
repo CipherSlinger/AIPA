@@ -494,6 +494,34 @@ export interface MemoryUnreadableData {
   projectHash?: string
 }
 
+/** Mirrors main's `AutomationChangedFileKind`. */
+export type AutomationChangedFileKindData = 'add' | 'update' | 'delete' | 'unknown'
+
+/** Mirrors main's `AutomationChangedFileState`. */
+export type AutomationChangedFileStateData = 'edited' | 'attempted'
+
+/** One path a run's file-editing tool call named. Mirrors main. */
+export interface AutomationChangedFileData {
+  path: string
+  kind: AutomationChangedFileKindData
+  /** `edited` only when the engine reported the edit completed; else `attempted`. */
+  state: AutomationChangedFileStateData
+}
+
+/**
+ * Mirrors main's bounded summary. Absent on the record means *not recorded*
+ * (an older run, or a rejected summary); present with `files: []` means the
+ * capture ran and saw no file-editing tool calls. It never describes the
+ * run's complete effect on disk — shell commands and terminal edits are
+ * invisible to it.
+ */
+export interface AutomationRunChangedFilesData {
+  files: AutomationChangedFileData[]
+  totalFiles: number
+  truncated: boolean
+  editCalls: number
+}
+
 /** Mirrors main's `AutomationRunRecord`; `running` never appears in history. */
 export interface AutomationRunRecordData {
   /** Epoch ms when the run started (or the occurrence a skip replaced). */
@@ -518,6 +546,11 @@ export interface AutomationRunRecordData {
    * The memory snapshot this run saw; absent on legacy records and on skips.
    */
   memory?: AutomationMemoryDigestData
+  /**
+   * Tool-driven file edits observed live; absent on legacy records and skips.
+   * Present-but-empty is "no file-editing tool calls seen", not "not recorded".
+   */
+  changedFiles?: AutomationRunChangedFilesData
 }
 
 /** A retry of a failed occurrence, waiting for its due time. Mirrors main. */

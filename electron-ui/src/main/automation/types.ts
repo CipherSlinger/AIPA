@@ -108,6 +108,59 @@ export interface AutomationMemoryDigest {
 }
 
 /**
+ * How a file's change was described *by the engine's payload*.
+ *
+ * `unknown` is deliberate and common: Claude's Edit / Write / MultiEdit inputs
+ * carry a path but no kind, and the tool name alone cannot tell an add from an
+ * overwrite. Defaulting those to `update` would invent a fact.
+ */
+export type AutomationChangedFileKind = 'add' | 'update' | 'delete' | 'unknown'
+
+/**
+ * Whether the engine reported the edit completing.
+ *
+ * `edited` requires a matching `toolResult` with `is_error === false`. Every
+ * other sighting — no result yet, a failed call, a denied approval — stays
+ * `attempted`: the call was intent, not proof.
+ */
+export type AutomationChangedFileState = 'edited' | 'attempted'
+
+/** One file path named by a file-editing tool call during a run. */
+export interface AutomationChangedFile {
+  /** Path exactly as the tool input stated it (relative to the run's cwd for Codex). */
+  path: string
+  /** The payload's stated kind, or `unknown` when it stated none. */
+  kind: AutomationChangedFileKind
+  /** `edited` only when a completed, non-error result was observed. */
+  state: AutomationChangedFileState
+}
+
+/**
+ * The bounded summary of a run's tool-driven file edits.
+ *
+ * Coverage is deliberately narrow. This is what the engine's own file tools
+ * named *during* the run — not the run's complete or current effect on disk.
+ * Shell commands, formatters, `git apply`, `rm` and anything the model did
+ * through a terminal are invisible; a later process may also have changed the
+ * same paths. Every surface that shows this must say so.
+ *
+ * Absent (the whole field) means *not recorded*: the record predates capture,
+ * or the summary was malformed on restore. Present with `files: []` means the
+ * capture ran and saw no file-editing tool calls. Those two states are not the
+ * same and must never be collapsed.
+ */
+export interface AutomationRunChangedFiles {
+  /** Distinct paths, first-seen order, capped at the store's per-run limit. */
+  files: AutomationChangedFile[]
+  /** Distinct paths observed, including ones beyond `files`; a lower bound when truncated. */
+  totalFiles: number
+  /** True when `totalFiles` exceeds the stored list, so the UI can say how many are omitted. */
+  truncated: boolean
+  /** Distinct file-edit tool emissions observed during the run, clamped. */
+  editCalls: number
+}
+
+/**
  * One finished run, kept on the job so the last few remain inspectable.
  *
  * The same record serves two readers: the settings row (time, outcome, spend,
@@ -145,6 +198,14 @@ export interface AutomationRunRecord {
    * memory, so inventing an empty digest would say it saw "no memory".
    */
   memory?: AutomationMemoryDigest
+  /**
+   * File-editing tool calls observed during the run. Absent on older records
+   * and on skips (nothing ran), and absent rather than empty when normalize
+   * rejects a corrupt summary. Present with `files: []` means the run really
+   * made no file-editing tool calls *that AIPA could see* — never the run's
+   * complete effect on disk. See `AutomationRunChangedFiles`.
+   */
+  changedFiles?: AutomationRunChangedFiles
 }
 
 /**
@@ -465,4 +526,10 @@ export interface AutomationRunOutcome {
    * prompts, no usable engine).
    */
   memory?: AutomationMemoryDigest
+  /**
+   * File-editing tool calls observed before the run ended. Present on failures
+   * too (the edits happened); absent only when the runner returned before an
+   * engine conversation existed, which is also when nothing could be observed.
+   */
+  changedFiles?: AutomationRunChangedFiles
 }

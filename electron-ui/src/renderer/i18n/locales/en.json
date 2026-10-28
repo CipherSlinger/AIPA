@@ -3468,6 +3468,20 @@
       "lastRun": "Last run",
       "name": "Name",
       "status": "Status"
+    },
+    "files": {
+      "countOne": "1 file",
+      "countMany": "{{count}} files",
+      "none": "no file edits",
+      "noneNote": "The run recorded no file-editing tool calls. Changes made through a terminal would not appear here.",
+      "coverageNote": "Only file edits made through the engine's own tools are listed. Shell commands, formatters, git apply, rm and anything done in a terminal are invisible here, so the files on disk may differ. \"edited\" means the engine reported the edit completed; otherwise the entry says attempted.",
+      "attempted": "attempted",
+      "attemptedHint": "The engine never reported this edit completing. It may have failed or been denied.",
+      "editedHint": "The engine reported this edit completed.",
+      "more": "{{count}} more not listed",
+      "aria": "Show the files this run touched at {{time}}",
+      "editCalls": "{{count}} tool-driven file edits observed",
+      "listLabel": "Files touched by this run"
     }
   },
   "speculation": {

@@ -27,6 +27,7 @@
  * open, and the tag also keeps `CodexBridgeManager.findByThreadId` from
  * attaching a user's message to this bridge while it is still working.
  */
+import type { EventEmitter } from 'node:events'
 import { codexBridgeManager } from '../codex/codex-bridge'
 import type { CodexBridge } from '../codex/codex-bridge'
 import { buildCodexTurnArgs } from '../codex/codex-turn-args'
@@ -35,11 +36,12 @@ import type { AuxiliaryEngine } from '../llm/auxiliary-engine'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { buildMemorySnapshotForTurn, prefixWithMemoryContext } from '../sessions/memory-context'
 import { createLogger } from '../utils/logger'
+import { createChangedFilesCollector } from './changed-files'
 import { buildMemoryDigest, failedMemoryDigest } from './memory-digest'
 import { buildPersonaPromptPrefix, filterModelForEngine } from './persona-plan'
 import { RunUsageAccumulator, readTurnUsage } from './run-usage'
 import type { TurnUsage } from './run-usage'
-import type { AutomationRunOutcome, AutomationRunRequest } from './types'
+import type { AutomationRunChangedFiles, AutomationRunOutcome, AutomationRunRequest } from './types'
 
 const log = createLogger('automation-runner')
 
@@ -87,8 +89,48 @@ interface EngineRun {
   sessionId(): string | undefined
   /** Assistant text of the most recently completed turn. */
   lastText(): string
+  /**
+   * File-editing tool calls observed so far. Present for every real run: an
+   * empty list is the honest "no file-editing calls observed" answer, not a
+   * missing record.
+   */
+  changedFiles(): AutomationRunChangedFiles
   /** Stop the process and detach every listener; safe after a failure. */
   dispose(): void
+}
+
+/**
+ * Watch both bridges' tool events and feed the run's file collector.
+ *
+ * Both engines emit the same pair: `toolUse` `{ event: { id, name, input } }`
+ * and `toolResult` `{ event: { tool_use_id, is_error } }`. Codex's file-change
+ * items arrive as Claude-style `Edit` inputs (`file_path`, `change_kind`),
+ * because the bridge already normalizes them for its own cards; the legacy CLI
+ * emits its tool blocks unchanged. Returns a detach function so `dispose` does
+ * not leave the bridge holding a dead run.
+ *
+ * Deliberately not subscribed: `turnDiffUpdated`. It is an aggregate snapshot
+ * that is never persisted and carries no per-call attribution, so it could only
+ * double-count what the tool events already say.
+ */
+function observeFileEdits(
+  bridge: EventEmitter,
+  files: ReturnType<typeof createChangedFilesCollector>,
+): () => void {
+  const onToolUse = (data: { event?: { id?: unknown; name?: unknown; input?: unknown } }) => {
+    const event = data?.event
+    files.observeToolUse(event?.id, event?.name, event?.input)
+  }
+  const onToolResult = (data: { event?: { tool_use_id?: unknown; is_error?: unknown } }) => {
+    const event = data?.event
+    files.observeToolResult(event?.tool_use_id, event?.is_error)
+  }
+  bridge.on('toolUse', onToolUse)
+  bridge.on('toolResult', onToolResult)
+  return () => {
+    bridge.off('toolUse', onToolUse)
+    bridge.off('toolResult', onToolResult)
+  }
 }
 
 // ── Codex ────────────────────────────────────────────
@@ -160,6 +202,8 @@ function runCodexTurn(bridge: CodexBridge, start: () => Promise<void>, timeoutMs
 
 function createCodexRun(req: AutomationRunRequest, bridgeId: string, model: string | undefined): EngineRun {
   const bridge = codexBridgeManager.create(bridgeId)
+  const changedFiles = createChangedFilesCollector()
+  const detachFileEdits = observeFileEdits(bridge, changedFiles)
   let turnText = ''
   let first = true
 
@@ -200,8 +244,10 @@ function createCodexRun(req: AutomationRunRequest, bridgeId: string, model: stri
     },
     sessionId: () => bridge.getThreadId() ?? undefined,
     lastText: () => turnText,
+    changedFiles: () => changedFiles.summary(),
     dispose: () => {
       bridge.off('textDelta', collectText)
+      detachFileEdits()
       // Single-shot bridge: the thread is persisted, the app-server process is not.
       try { codexBridgeManager.abort(bridgeId) } catch { /* already stopped */ }
     },
@@ -230,6 +276,8 @@ function createClaudeRun(
   engine: Extract<AuxiliaryEngine, { kind: 'claude' }>,
 ): EngineRun {
   const bridge = streamBridgeManager.create(bridgeId)
+  const changedFiles = createChangedFilesCollector()
+  const detachFileEdits = observeFileEdits(bridge, changedFiles)
   let streamed = ''
   let resultText = ''
   let sessionId: string | undefined
@@ -338,8 +386,10 @@ function createClaudeRun(
     },
     sessionId: () => sessionId,
     lastText: () => resultText || streamed,
+    changedFiles: () => changedFiles.summary(),
     dispose: () => {
       bridge.off('textDelta', collectText)
+      detachFileEdits()
       try { streamBridgeManager.abort(bridgeId) } catch { /* already stopped */ }
     },
   }
@@ -408,6 +458,7 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
           sessionId: run.sessionId(),
           usage: usage.total(),
           memory: memoryDigest,
+          changedFiles: run.changedFiles(),
         }
       }
       // Memory stays outermost; inside it the order matches a chat turn:
@@ -428,6 +479,7 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
           sessionId: run.sessionId(),
           usage: usage.total(),
           memory: memoryDigest,
+          changedFiles: run.changedFiles(),
         }
       }
     }
@@ -445,6 +497,7 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
       summary: summarize(run.lastText()),
       usage: usage.total(),
       memory: memoryDigest,
+      changedFiles: run.changedFiles(),
     }
   } catch (err) {
     log.warn(`Automation ${jobId} failed:`, err)
@@ -454,6 +507,7 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
       sessionId: run.sessionId(),
       usage: usage.total(),
       memory: memoryDigest,
+      changedFiles: run.changedFiles(),
     }
   } finally {
     activeRuns.delete(jobId)

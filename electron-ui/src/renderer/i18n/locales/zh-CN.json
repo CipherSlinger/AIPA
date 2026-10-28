@@ -3468,6 +3468,20 @@
       "lastRun": "上次运行",
       "name": "名称",
       "status": "状态"
+    },
+    "files": {
+      "countOne": "1 个文件",
+      "countMany": "{{count}} 个文件",
+      "none": "没有文件编辑",
+      "noneNote": "这次运行没有记录到文件编辑工具调用。通过终端做的改动不会出现在这里。",
+      "coverageNote": "这里只列出引擎自带工具做出的文件编辑。终端里的 shell 命令、格式化工具、git apply、rm 等改动都看不到，所以磁盘上的实际情况可能不同。标注“尝试过”的条目表示引擎没有报告编辑完成。",
+      "attempted": "尝试过",
+      "attemptedHint": "引擎没有报告这次编辑完成，它可能失败或被拒绝。",
+      "editedHint": "引擎报告这次编辑已完成。",
+      "more": "另有 {{count}} 个未列出",
+      "aria": "查看 {{time}} 这次运行触及的文件",
+      "editCalls": "观察到 {{count}} 次工具驱动的文件编辑",
+      "listLabel": "这次运行触及的文件"
     }
   },
   "speculation": {
