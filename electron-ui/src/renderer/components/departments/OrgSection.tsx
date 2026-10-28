@@ -185,7 +185,13 @@ export function OrgSection({
 
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: `repeat(${size}, ${cardWidth}px)`,
+                // minmax(0, …) rather than a bare track: `cardWidth` comes from a
+                // measurement that can be one frame stale while a zoom or a window
+                // resize settles, and a fixed track would then push the row past the
+                // container. The lower bound lets the row shrink into the stale
+                // budget instead of overflowing; once the next measurement lands the
+                // two agree again and nothing is squeezed.
+                gridTemplateColumns: `repeat(${size}, minmax(0, ${cardWidth}px))`,
                 // No row gap: the strip's own padding is the trunk-and-drop run,
                 // so a gap here would leave the trunk starting in mid-air instead
                 // of at the card's bottom edge.

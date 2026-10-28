@@ -39,6 +39,20 @@ const ELLIPSIS: React.CSSProperties = {
   whiteSpace: 'nowrap',
 }
 
+// The name is the card's whole identity, so it wraps instead of losing its tail
+// to an ellipsis — "Department of State Affairs" was reading as "Department of
+// State Af…". Two lines is the ceiling; `title` still carries the full name for
+// the rare one that runs past it. The line height is named because the block's
+// reserved height is derived from it.
+const NAME_LINE_HEIGHT = 1.25
+const NAME_CLAMP: React.CSSProperties = {
+  display: '-webkit-box',
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: 'vertical',
+  overflow: 'hidden',
+  lineHeight: NAME_LINE_HEIGHT,
+}
+
 export interface DeptCardProps {
   dept: Department
   sessions: SessionListItem[]
@@ -69,6 +83,10 @@ function DeptCard({
   // Sized against the narrowest card each density allows (216px / 180px): the
   // centred portrait must never crowd the folder name off the card.
   const portraitSize = dense ? 38 : 56
+  // Every name reserves two clamped lines, even a one-line one: rows are equal
+  // height, and reserving only when a name happens to be long would leave the
+  // folder lines of a row at visibly different heights.
+  const nameBlockHeight = Math.round((dense ? 12 : 13) * NAME_LINE_HEIGHT * 2)
 
   const portrait = (
     <span style={{
@@ -81,13 +99,34 @@ function DeptCard({
   )
 
   const titleLine = (
-    <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, maxWidth: '100%' }}>
-      <span style={{ fontSize: dense ? 12 : 13, fontWeight: 700, color: 'var(--text-primary)', ...ELLIPSIS }}>
+    <span style={{
+      display: 'flex', alignItems: 'flex-start', gap: 6, minWidth: 0, maxWidth: '100%',
+      // Dense puts the name beside the portrait, i.e. on the same line as the
+      // corner buttons — and those float over the card, so nothing in the flow
+      // reserves their width. Without this inset "Court of Judicial Review"
+      // ran under the stats icon. Only the name pays: the folder line below sits
+      // clear of the buttons and keeps the full width.
+      paddingRight: dense ? 40 : 0,
+    }}>
+      <span
+        title={dept.name}
+        style={{
+          fontSize: dense ? 12 : 13, fontWeight: 700, color: 'var(--text-primary)',
+          // The clamp box takes the full reserved width, so a wrapped name must
+          // be centred explicitly in the full layout.
+          textAlign: dense ? 'left' : 'center',
+          minWidth: 0, minHeight: nameBlockHeight,
+          ...NAME_CLAMP,
+        }}
+      >
         {dept.name}
       </span>
       {hasActiveSession && (
         <span style={{
           width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+          // Level with the first line: centring in the two-line reservation
+          // would drop the dot into the gap under a one-line name.
+          marginTop: dense ? 4 : 5,
           background: '#22c55e', boxShadow: '0 0 0 2px rgba(34,197,94,0.25)',
           animation: 'dept-active-pulse 2s ease-in-out infinite',
         }} />
@@ -117,8 +156,11 @@ function DeptCard({
         ...cardStyle(hovered),
         display: 'flex',
         flexDirection: 'column',
-        // Dense keeps the old floor — the horizontal layout is the reason it can.
-        minHeight: dense ? 108 : 140,
+        // Dense keeps its old floor: the horizontal layout absorbs a wrapped
+        // name without adding a row of height. Full's floor is what a two-line
+        // name plus the folder line under it actually needs — the card clips its
+        // own overflow, so a row that sizes cards below this would cut the footer.
+        minHeight: dense ? 108 : 178,
         overflow: 'hidden',
         borderColor: hovered ? `${color}88` : undefined,
       }}

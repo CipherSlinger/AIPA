@@ -4,6 +4,7 @@
 - [architecture.md](./architecture.md) — 组件树、IPC channel 列表、文件地图
 - [build-notes.md](./build-notes.md) — 构建命令注意事项
 - [tech-constraints.md](./tech-constraints.md) — 技术约束与已知债务
+- [screenshot-harness-dpi.md](./screenshot-harness-dpi.md) — Windows 截图工具在 150% 缩放下会裁掉窗口右侧，看起来像 UI 溢出
 
 ## Quick Reference
 
