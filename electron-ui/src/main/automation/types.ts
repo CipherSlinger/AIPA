@@ -78,6 +78,18 @@ export interface AutomationRunRequest {
   prompts: string[]
   cwd: string
   model?: string
+  /**
+   * Persona bound to the job's workflow. Present only when the job runs a
+   * workflow and that workflow names a persona that still exists; a plain
+   * prompt job, or one whose persona was deleted, leaves all three unset so
+   * the run is byte-identical to the old plain-assistant behaviour.
+   */
+  personaId?: string
+  personaName?: string
+  /** Resolved persona prompt (preset text already localized). */
+  systemPrompt?: string
+  /** Persona's output style; applied as an `<output_style>` block. */
+  outputStyle?: 'explanatory' | 'learning'
   /** Epoch ms after which the run is abandoned. */
   deadline: number
 }

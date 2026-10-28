@@ -19,11 +19,13 @@ import type {
   AutomationLimitsData,
   AutomationTriggerData,
 } from '../../../preload'
+import type { Persona } from '../../types/app.types'
 
 interface WorkflowOption {
   id: string
   name: string
   icon?: string
+  personaId?: string
 }
 
 const SECONDARY = 'var(--text-muted)'
@@ -91,6 +93,7 @@ function describeCron(expr: string): { kind: 'daily' | 'weekly'; hour: number; m
 export default function SettingsAutomations() {
   const { t, resolvedLocale } = useI18n()
   const workflows = usePrefsStore(s => s.prefs.workflows) as WorkflowOption[] | undefined
+  const personas = usePrefsStore(s => s.prefs.personas) as Persona[] | undefined
 
   const [jobs, setJobs] = useState<AutomationJobData[]>([])
   const [limits, setLimits] = useState<AutomationLimitsData | null>(null)
@@ -122,6 +125,19 @@ export default function SettingsAutomations() {
   const workflowName = useCallback((id: string) => {
     return (workflows || []).find(w => w.id === id)?.name
   }, [workflows])
+
+  /**
+   * The expert a job's workflow runs as: a persona, 'missing' when the workflow
+   * still names one that was deleted, or null when the job is not a workflow or
+   * its workflow has no binding (the plain assistant).
+   */
+  const jobPersona = useCallback((job: AutomationJobData): Persona | 'missing' | null => {
+    const action = job.action
+    if (action.kind !== 'workflow') return null
+    const workflow = (workflows || []).find(w => w.id === action.workflowId)
+    if (!workflow?.personaId) return null
+    return (personas || []).find(p => p.id === workflow.personaId) ?? 'missing'
+  }, [workflows, personas])
 
   const scheduleText = useCallback((trigger: AutomationTriggerData): string => {
     if (trigger.kind === 'interval') {
@@ -242,6 +258,7 @@ export default function SettingsAutomations() {
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {jobs.map((job, index) => {
               const status = statusLine(job)
+              const persona = jobPersona(job)
               const busy = busyId === job.id || job.running
               return (
                 <div
@@ -273,12 +290,35 @@ export default function SettingsAutomations() {
                       </span>
                     </div>
 
-                    <div style={{ fontSize: 11, color: SECONDARY, marginTop: 3, lineHeight: 1.45 }}>
-                      {job.action.kind === 'workflow'
-                        ? t('automation.workflowAction', {
-                            name: workflowName(job.action.workflowId) ?? t('automation.workflowMissingShort'),
-                          })
-                        : t('automation.promptAction', { text: job.action.prompt })}
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+                      fontSize: 11, color: SECONDARY, marginTop: 3, lineHeight: 1.45,
+                    }}>
+                      <span>
+                        {job.action.kind === 'workflow'
+                          ? t('automation.workflowAction', {
+                              name: workflowName(job.action.workflowId) ?? t('automation.workflowMissingShort'),
+                            })
+                          : t('automation.promptAction', { text: job.action.prompt })}
+                      </span>
+                      {persona && (
+                        // The expert behind a background job is the point of the
+                        // binding, so it sits on the row rather than behind Edit.
+                        <span
+                          title={t('automation.personaHint')}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            padding: '1px 7px', borderRadius: 9, fontWeight: 600,
+                            color: persona === 'missing' ? WARNING : 'var(--accent-text)',
+                            background: 'var(--bg-hover)',
+                            border: '1px solid var(--border)',
+                          }}
+                        >
+                          {persona === 'missing'
+                            ? t('automation.personaMissing')
+                            : `${persona.emoji} ${persona.name}`.trim()}
+                        </span>
+                      )}
                     </div>
 
                     <div style={{ fontSize: 11, color: status.color, marginTop: 4 }}>{status.text}</div>

@@ -90,11 +90,27 @@ export function useAppEventBridge() {
       useUiStore.getState().requestSearchFocus()
     }
 
+    // A plugin's visible `chat.ask` writes a real transcript, but the sidebar
+    // does not poll: until something refetches, the conversation is invisible.
+    // The toast names the plugin so the new entry is not mistaken for the
+    // user's own. Toasts have no action slot today, so opening stays in the
+    // archive rather than pretending there is an "Open" button.
+    const offPluginConversation = window.electronAPI.onPluginConversationCreated(({ pluginId, pluginLabel }) => {
+      void listSessionsShared().then((list) => {
+        if (list) useSessionStore.getState().setSessions(list as SessionListItem[])
+      })
+      useUiStore.getState().addToast(
+        'info',
+        getT()('plugin.conversationCreated', { name: pluginLabel || pluginId }),
+      )
+    })
+
     window.addEventListener('aipa:openSession', onOpenSession)
     window.addEventListener('aipa:globalSearchFocus', onSearchFocus)
     return () => {
       window.removeEventListener('aipa:openSession', onOpenSession)
       window.removeEventListener('aipa:globalSearchFocus', onSearchFocus)
+      offPluginConversation()
     }
   }, [])
 }

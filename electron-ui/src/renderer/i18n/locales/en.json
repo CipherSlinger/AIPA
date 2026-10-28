@@ -1989,7 +1989,11 @@
     "breadcrumbList": "Workflows",
     "clickToEditTitle": "Click to edit title",
     "stepNameRequired": "Step name is required",
-    "doubleClickToEdit": "Double-click to edit"
+    "doubleClickToEdit": "Double-click to edit",
+    "personaLabel": "Expert for scheduled runs",
+    "personaDefault": "Default (no expert)",
+    "personaHint": "Scheduled automations run this workflow as this expert. Run here still uses the current conversation's expert.",
+    "personaMissing": "This expert was deleted — scheduled runs use the default assistant."
   },
   "snippet": {
     "title": "Text Snippets",
@@ -2983,7 +2987,9 @@
       "toggleFailed": "Could not update the automation: {{error}}",
       "runFailed": "Could not start the run: {{error}}",
       "deleteFailed": "Could not delete the automation: {{error}}"
-    }
+    },
+    "personaHint": "Scheduled runs of this workflow use this expert. The workflow's own Run button still uses the current conversation's expert.",
+    "personaMissing": "Expert deleted"
   },
   "speculation": {
     "title": "Speculative Preview",
@@ -3099,5 +3105,8 @@
     "effort": {
       "unsupported": "Not supported by {{model}}"
     }
+  },
+  "plugin": {
+    "conversationCreated": "{{name}} started a conversation. You can open it from the archive."
   }
 }

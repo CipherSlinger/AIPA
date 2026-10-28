@@ -336,7 +336,7 @@
           • <code>{ type: 'aipa:sendPrompt', payload: { prompt: '...' } }</code> — fill the main chat input and bring up the AI;<br/>
           • <code>{ type: 'aipa:toast', payload: { type: 'success', message: '...' } }</code> — show a desktop toast;<br/>
           • <code>{ type: 'aipa:storage:set', payload: { key, value } }</code> — persist plugin data across sessions.<br/>
-          • <code>aipa:invoke</code> + <code>chat.ask</code> — ask the AI a question and get the answer back (requires the <code>"chat"</code> permission; no session is created and nothing lands in the archive).
+          • <code>aipa:invoke</code> + <code>chat.ask</code> — ask the AI a question and get the answer back (requires the <code>"chat"</code> permission; a private turn creates no session, and <code>visible: true</code> persists one the user can open in the archive — both read-only).
         </div>
       </div>
     </div>

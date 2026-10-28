@@ -32,6 +32,12 @@ export interface MainWorkflow {
   id: string
   /** Set on a built-in preset; its step text is localized by the renderer. */
   presetKey?: string
+  /**
+   * Persona the workflow runs as when an automation fires it. Absent on
+   * workflows created before personas could be bound, and on those the user
+   * left on "Default (no expert)".
+   */
+  personaId?: string
   steps?: MainWorkflowStep[]
 }
 
@@ -60,7 +66,8 @@ function flatten(obj: Record<string, unknown>, prefix = '', out: Record<string, 
   return out
 }
 
-function loadLocale(locale: UiLocale): Record<string, string> {
+/** Flattened locale messages; exported so persona resolution reuses this loader. */
+export function loadLocale(locale: UiLocale): Record<string, string> {
   const cached = localeCache.get(locale)
   if (cached) return cached
 

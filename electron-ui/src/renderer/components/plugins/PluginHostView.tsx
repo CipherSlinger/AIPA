@@ -39,8 +39,9 @@ const INVOKE_METHODS: Record<string, {
     }),
   },
   'ai.abort': { permission: 'ai', call: (api, id, p) => api.pluginAiAbort(id, String(p?.requestId || '')) },
-  // A private, answer-only assistant turn: the answer comes back as the
-  // invoke result, not as a stream. No session and no chat event is created.
+  // An answer-only assistant turn: the answer comes back as the invoke result,
+  // not as a stream. Private by default (no session); `visible: true` persists
+  // a conversation the archive can open, which main announces separately.
   'chat.ask': {
     permission: 'chat',
     call: (api, id, p) => api.pluginChatAsk(id, {

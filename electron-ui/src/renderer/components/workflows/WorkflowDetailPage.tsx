@@ -6,7 +6,7 @@ import React, { useMemo, useEffect, useState, useCallback, useRef, lazy, Suspens
 import { ArrowLeft } from 'lucide-react'
 import { usePrefsStore, useUiStore, useChatStore } from '../../store'
 import { useT } from '../../i18n'
-import type { WorkflowStep, Workflow } from '../../types/app.types'
+import type { Persona, WorkflowStep, Workflow } from '../../types/app.types'
 import { useWorkflowExecution } from './useWorkflowExecution'
 import { useWorkflowHistory } from './useWorkflowHistory'
 import WorkflowDetailHeader from './WorkflowDetailHeader'
@@ -100,14 +100,30 @@ function RunStatsBar({ workflowId }: RunStatsBarProps) {
 
 const WorkflowCanvas = lazy(() => import('./WorkflowCanvas'))
 
-// Stable empty array — prevents new reference when workflows pref is absent
+// Stable empty arrays — prevent a new reference when a pref is absent
 const EMPTY_WORKFLOWS: Workflow[] = []
+const EMPTY_PERSONAS: Persona[] = []
+
+const personaBadgeStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 5,
+  padding: '2px 8px',
+  borderRadius: 10,
+  fontSize: 11,
+  fontWeight: 600,
+  color: 'var(--accent-text)',
+  background: 'var(--bg-hover)',
+  border: '1px solid var(--border)',
+  whiteSpace: 'nowrap',
+}
 
 export default function WorkflowDetailPage() {
   const t = useT()
   const workflowId = useUiStore(s => s.editingWorkflowId)
   const addToast = useUiStore(s => s.addToast)
   const workflows = usePrefsStore(s => s.prefs.workflows ?? EMPTY_WORKFLOWS)
+  const personas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
   const workflow = useMemo(() => workflows.find(w => w.id === workflowId) || null, [workflows, workflowId])
   const execution = useWorkflowExecution(workflow)
 
@@ -116,6 +132,8 @@ export default function WorkflowDetailPage() {
   const [editName, setEditName] = useState('')
   const [editDesc, setEditDesc] = useState('')
   const [editIcon, setEditIcon] = useState('\u{1F4CB}')
+  // '' = Default (no expert); persona ids are non-empty.
+  const [editPersonaId, setEditPersonaId] = useState('')
   const [editSteps, setEditSteps] = useState<WorkflowStep[]>([])
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [justSaved, setJustSaved] = useState(false)
@@ -148,6 +166,13 @@ export default function WorkflowDetailPage() {
       setEditName(workflow.presetKey ? t(`workflow.preset.${workflow.presetKey}`) : workflow.name)
       setEditDesc(workflow.description || '')
       setEditIcon(workflow.icon)
+      // A dead id would leave the select with no matching option; treating it
+      // as Default both shows the truth and clears it on the next save.
+      setEditPersonaId(
+        workflow.personaId && personas.some(p => p.id === workflow.personaId)
+          ? workflow.personaId
+          : '',
+      )
       setEditSteps(workflow.steps.map(s => ({ ...s })))
       setHasUnsavedChanges(false)
       setIsEditMode(false) // Reset to view mode when switching workflows
@@ -161,10 +186,15 @@ export default function WorkflowDetailPage() {
     setEditName(workflow.presetKey ? t(`workflow.preset.${workflow.presetKey}`) : workflow.name)
     setEditDesc(workflow.description || '')
     setEditIcon(workflow.icon)
+    setEditPersonaId(
+      workflow.personaId && personas.some(p => p.id === workflow.personaId)
+        ? workflow.personaId
+        : '',
+    )
     setEditSteps(workflow.steps.map(s => ({ ...s })))
     setHasUnsavedChanges(false)
     setIsEditMode(true)
-  }, [workflow, t])
+  }, [workflow, personas, t])
 
   // Exit edit mode (with unsaved changes protection)
   const exitEditMode = useCallback(() => {
@@ -259,7 +289,7 @@ export default function WorkflowDetailPage() {
     return () => window.removeEventListener('keydown', handler)
     // handleSave is re-binding through the refs/state it reads, so the deps
     // below are exactly what the handler consults.
-  }, [isEditMode, hasUnsavedChanges, editName, editDesc, editIcon, editSteps]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isEditMode, hasUnsavedChanges, editName, editDesc, editIcon, editPersonaId, editSteps]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const markDirty = () => { setHasUnsavedChanges(true); setJustSaved(false) }
 
@@ -397,7 +427,16 @@ export default function WorkflowDetailPage() {
     const currentWorkflows = prefs.prefs.workflows || []
     const updated = currentWorkflows.map(w =>
       w.id === workflow.id
-        ? { ...w, name: workflow.presetKey ? w.name : name, description: editDesc.trim(), icon: editIcon, steps: validSteps, updatedAt: Date.now() }
+        ? {
+            ...w,
+            name: workflow.presetKey ? w.name : name,
+            description: editDesc.trim(),
+            icon: editIcon,
+            // Explicit undefined clears an old binding when the user picks Default.
+            personaId: editPersonaId || undefined,
+            steps: validSteps,
+            updatedAt: Date.now(),
+          }
         : w
     )
     prefs.setPrefs({ workflows: updated })
@@ -424,6 +463,7 @@ export default function WorkflowDetailPage() {
   }
   const updateIcon = (emoji: string) => { setEditIcon(emoji); markDirty() }
   const updateDesc = (v: string) => { setEditDesc(v); markDirty() }
+  const updatePersona = (v: string) => { setEditPersonaId(v); markDirty() }
 
   if (!workflow) {
     return (
@@ -439,6 +479,9 @@ export default function WorkflowDetailPage() {
   }
 
   const canSave = editName.trim() && editSteps.some(stepHasContent)
+  const boundPersona = workflow.personaId
+    ? personas.find(p => p.id === workflow.personaId)
+    : undefined
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-primary)' }}>
@@ -474,6 +517,66 @@ export default function WorkflowDetailPage() {
         onUpdateDesc={updateDesc}
         t={t}
       />
+
+      {/* Persona binding — governs scheduled runs only; "Run" here keeps the
+          open conversation's expert. A default binding shows no badge at all. */}
+      {isEditMode ? (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+          padding: '6px 20px',
+          borderBottom: '1px solid var(--glass-border)',
+          background: 'var(--bg-primary)',
+          flexShrink: 0,
+        }}>
+          <label
+            htmlFor="workflow-persona-select"
+            style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}
+          >
+            {t('workflow.personaLabel')}
+          </label>
+          <select
+            id="workflow-persona-select"
+            value={editPersonaId}
+            onChange={e => updatePersona(e.target.value)}
+            style={{
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: 6,
+              padding: '3px 8px',
+              color: 'var(--text-primary)',
+              fontSize: 12,
+              outline: 'none',
+            }}
+          >
+            <option value="">{t('workflow.personaDefault')}</option>
+            {personas.map(p => (
+              <option key={p.id} value={p.id}>{`${p.emoji} ${p.name}`.trim()}</option>
+            ))}
+          </select>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', opacity: 0.85 }}>
+            {t('workflow.personaHint')}
+          </span>
+        </div>
+      ) : workflow.personaId ? (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '6px 20px',
+          borderBottom: '1px solid var(--glass-border)',
+          background: 'var(--bg-primary)',
+          flexShrink: 0,
+        }}>
+          {boundPersona ? (
+            <span style={personaBadgeStyle} title={t('workflow.personaHint')}>
+              <span>{boundPersona.emoji}</span>
+              <span>{boundPersona.name}</span>
+            </span>
+          ) : (
+            <span style={{ fontSize: 11, color: 'var(--warning-text)' }}>
+              {t('workflow.personaMissing')}
+            </span>
+          )}
+        </div>
+      ) : null}
 
       {/* Execution progress bar — only shown when execution has started */}
       {(() => {

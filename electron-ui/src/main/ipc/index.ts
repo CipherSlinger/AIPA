@@ -54,6 +54,7 @@ import { registerWindowHandlers } from './window-handlers'
 import { registerDiagnosticsHandlers } from './diagnostics-handlers'
 import { registerBackupHandlers } from './backup-handlers'
 import { registerAutomationHandlers } from './automation-handlers'
+import { pickOpenableSessionId } from './openable-session'
 import { startAutomationScheduler } from '../automation/scheduler'
 import { runAutomation } from '../automation/runner'
 import { createLogger } from '../utils/logger'
@@ -1078,7 +1079,10 @@ async function registerCodexSendMessage(
       ...(internal
         ? {
             approvalPolicy: args.answerOnly === true ? 'always' : 'never',
-            ephemeral: true,
+            // Internal turns are hidden and therefore ephemeral unless the
+            // caller explicitly asks for a persisted thread (a visible plugin
+            // chat). `false` is the default when the caller says nothing.
+            ephemeral: args.ephemeral !== false,
           }
         : {}),
       ...(args.ephemeral === true ? { ephemeral: true } : {}),
@@ -1210,11 +1214,17 @@ async function runInternalTurn(
   const internalTag = typeof args.internalTag === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(args.internalTag)
     ? args.internalTag
     : ''
+  // A visible plugin turn persists the rollout / JSONL so the archive can open
+  // it later. Everything else about the turn — the internal bridge tag, the
+  // private sink, `plan` mode, deny-everything approvals — stays the same.
+  const visible = args.visible === true
 
   let streamed = ''
   let resultText = ''
   let lastError = ''
   let failure = ''
+  // The legacy Claude result envelope's real JSONL id. Never the bridge id.
+  let envelopeSessionId = ''
   let settle: () => void = () => {}
   const finished = new Promise<void>((resolve) => { settle = resolve })
   let settled = false
@@ -1246,6 +1256,13 @@ async function runInternalTurn(
         // the accumulated deltas remain the fallback.
         const event = data.event as Record<string, unknown> | undefined
         if (typeof event?.result === 'string') resultText = event.result
+        // The result envelope is where the legacy CLI reports the real JSONL
+        // session id. Keep it for a visible turn; the archive can open this id,
+        // whereas the internal bridge id is unopenable bookkeeping.
+        const envelopeId = typeof data.claudeSessionId === 'string' && data.claudeSessionId
+          ? data.claudeSessionId
+          : (typeof event?.session_id === 'string' ? event.session_id : '')
+        if (envelopeId) envelopeSessionId = envelopeId
         if (typeof data.subtype === 'string' && data.subtype !== 'success') failure = data.subtype
         done()
         break
@@ -1321,8 +1338,10 @@ async function runInternalTurn(
     // Read-only turns: a memory extraction must not be able to edit the repo.
     permissionMode: 'plan',
     // Background work is not a conversation: do not persist a rollout that
-    // would show up in the sidebar/archive with quoted private text.
-    ephemeral: true,
+    // would show up in the sidebar/archive with quoted private text. A visible
+    // plugin turn is the one exception — its whole point is a persisted
+    // conversation — but it keeps the read-only mode and private sink above.
+    ephemeral: !visible,
     ...(internalTag ? { internalTag } : {}),
   }
 
@@ -1374,6 +1393,19 @@ async function runInternalTurn(
   if (timer) clearTimeout(timer)
   if (abortListener) signal?.removeEventListener('abort', abortListener)
 
+  // Captured before the bridge is reaped: for Codex only the live bridge knows
+  // the persisted thread id. The helper returns null rather than the internal
+  // bridge id when neither engine reported one.
+  const openableSessionId = visible
+    ? pickOpenableSessionId(engineKind, {
+        codexThreadId: () => codexBridgeManager.get(bridgeId)?.getThreadId(),
+        claudeSessionId: envelopeSessionId,
+      })
+    : null
+  // Private turns keep their old result shape byte-for-byte; a visible turn
+  // always reports whether it produced an openable conversation.
+  const visibility = visible ? { sessionId: openableSessionId } : {}
+
   // Single-shot bridge: reap the process instead of letting it idle until the
   // app exits (Codex keeps a whole app-server alive per bridge). The abort path
   // takes the same route as the timeout path.
@@ -1383,19 +1415,19 @@ async function runInternalTurn(
   }
 
   if (outcome === 'aborted') {
-    return { success: false, error: 'aborted', text: streamed || undefined }
+    return { success: false, error: 'aborted', text: streamed || undefined, ...visibility }
   }
   if (outcome === 'timeout') {
-    return { success: false, error: `Internal turn timed out after ${timeoutMs}ms`, text: streamed || undefined }
+    return { success: false, error: `Internal turn timed out after ${timeoutMs}ms`, text: streamed || undefined, ...visibility }
   }
   if (failure) {
-    return { success: false, error: failure, text: resultText || streamed || undefined }
+    return { success: false, error: failure, text: resultText || streamed || undefined, ...visibility }
   }
   const text = resultText || streamed
   if (!text.trim()) {
-    return { success: false, error: lastError || 'Empty response' }
+    return { success: false, error: lastError || 'Empty response', ...visibility }
   }
-  return { success: true, text }
+  return { success: true, text, ...visibility }
 }
 
 /**
@@ -2175,11 +2207,13 @@ function registerNavPluginHandlers(win: BrowserWindow, send: (ch: string, ...a: 
   })
 
   // `chat.ask` — a plugin asks the assistant a question and gets the answer
-  // back. The turn is private: `runInternalTurn` gives it an `internal-` bridge,
-  // a read-only permission mode, an ephemeral thread and a private event sink,
-  // so nothing reaches the renderer and the archive stays untouched. The
-  // permission itself is checked inside `askPluginChat`, which returns a coded
-  // error the plugin can branch on.
+  // back. `runInternalTurn` always gives it an `internal-` bridge, a read-only
+  // permission mode and a private event sink, so nothing reaches the renderer.
+  // A private turn is also ephemeral. A visible turn persists the thread and
+  // reports the openable id; the event below tells the renderer to refresh the
+  // archive and name the plugin that started the conversation. The permission
+  // itself is checked inside `askPluginChat`, which returns a coded error the
+  // plugin can branch on.
   safeHandle('plugin:chat:ask', async (_e, { pluginId, args }: {
     pluginId: string
     args?: import('../plugins/plugin-chat').PluginChatAskArgs
@@ -2187,14 +2221,25 @@ function registerNavPluginHandlers(win: BrowserWindow, send: (ch: string, ...a: 
     // Route like chat / ai.generate: a gateway or compatible provider serves
     // the turn on its own credentials; otherwise the default engine does.
     const target = resolvePluginTurnTarget()
-    return askPluginChat(pluginId, args, (turn) => runInternalTurn({
+    const answer = await askPluginChat(pluginId, args, (turn) => runInternalTurn({
       prompt: turn.prompt,
       cwd: turn.cwd,
       timeoutMs: turn.timeoutMs,
       internalTag: turn.tag,
       answerOnly: true,
+      visible: turn.visible,
       ...(target ? { model: target.model, env: target.env } : {}),
     }))
+    // askPluginChat only returns a sessionId for a visible turn whose id the
+    // archive can open, so the renderer is never told about a phantom session.
+    if (args?.visible === true && answer.sessionId) {
+      send('plugin:conversation-created', {
+        pluginId,
+        pluginLabel: pluginLabel(pluginId),
+        sessionId: answer.sessionId,
+      })
+    }
+    return answer
   })
 
   // ── Edit drawer: a chat whose cwd IS the plugin folder, so the AI rewrites

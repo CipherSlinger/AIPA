@@ -21,6 +21,8 @@ import { nextFireTime, parseCron } from '../utils/cron'
 import { createLogger } from '../utils/logger'
 import { getAllowedFsRoots, safePath } from '../utils/validate'
 import { readAutomationJobs, writeAutomationJobs } from './job-store'
+import { pickRunModel, resolveWorkflowPersona } from './persona-plan'
+import type { StoredPersona, WorkflowPersonaBinding } from './persona-plan'
 import { abortAutomationRun } from './runner'
 import { workflowPrompts } from './workflow-plan'
 import type { MainWorkflow, UiLocale } from './workflow-plan'
@@ -163,6 +165,33 @@ function findWorkflow(workflowId: string): MainWorkflow | undefined {
   return readWorkflows().find(w => w.id === workflowId)
 }
 
+function readPersonas(): StoredPersona[] {
+  const raw = getRawPref('personas')
+  if (!Array.isArray(raw)) return []
+  return raw.filter((p): p is StoredPersona => !!p && typeof p === 'object')
+}
+
+/**
+ * The persona a workflow run should adopt, or null for the plain assistant.
+ *
+ * A deleted persona must not disable the job or fail the run: the workflow keeps
+ * working, and the warning is the only trace of the broken binding.
+ */
+function resolveBoundPersona(
+  job: AutomationJob,
+  workflow: MainWorkflow,
+  locale: UiLocale,
+): WorkflowPersonaBinding | null {
+  if (!workflow.personaId) return null
+  const persona = resolveWorkflowPersona(workflow.personaId, readPersonas(), locale)
+  if (!persona) {
+    log.warn(
+      `Automation "${job.name}" references missing persona ${workflow.personaId}; running as the plain assistant`,
+    )
+  }
+  return persona
+}
+
 function resolveActionPrompts(action: AutomationAction, locale: UiLocale): string[] | null {
   if (action.kind === 'prompt') return [action.prompt]
   const workflow = findWorkflow(action.workflowId)
@@ -224,7 +253,6 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
   const locale = resolveUiLanguage()
 
   const prompts = resolveActionPrompts(job.action, locale)
-  const model = resolveModel()
   if (prompts === null) {
     // The workflow was deleted behind this job's back: stop retrying, and let
     // the row say why instead of failing every interval.
@@ -249,6 +277,16 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
     return
   }
 
+  // A workflow may carry the expert the user chose for it; a prompt job cannot
+  // bind one, so it stays the plain assistant.
+  const workflow = job.action.kind === 'workflow'
+    ? findWorkflow(job.action.workflowId)
+    : undefined
+  const persona = workflow ? resolveBoundPersona(job, workflow, locale) : null
+  // Persona model > global model, so a 3 a.m. run costs what the chosen expert
+  // costs rather than whatever the chat picker happens to be set to.
+  const model = pickRunModel(persona?.model, resolveModel())
+
   const startedAt = now
   running.set(job.id, { startedAt })
   job.lastStatus = 'running'
@@ -269,6 +307,16 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
       // Same preference the chat path reads, so a scheduled run costs and
       // behaves like a manual one instead of falling back to Codex's default.
       ...(model ? { model } : {}),
+      // Absent together when the workflow binds no persona (or its persona was
+      // deleted), which keeps the run identical to the pre-persona behaviour.
+      ...(persona
+        ? {
+            personaId: persona.id,
+            personaName: persona.name,
+            ...(persona.systemPrompt.trim() ? { systemPrompt: persona.systemPrompt } : {}),
+            ...(persona.outputStyle ? { outputStyle: persona.outputStyle } : {}),
+          }
+        : {}),
       deadline: startedAt + RUN_DEADLINE_MS,
     })
   } catch (err) {

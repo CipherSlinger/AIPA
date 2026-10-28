@@ -2,17 +2,31 @@
  * Host capability `chat.ask` — a plugin asks the assistant a question and gets
  * the answer back instead of only drawing UI.
  *
- * The turn runs on the same private machinery as the app's own background work
- * (`cli:runInternal`): a fresh `internal-` bridge, permission mode `plan`
- * (read-only sandbox for Codex, plan mode on the Claude CLI), `ephemeral`, and
- * a private sink. Nothing reaches the renderer, no `cli:*` event is published,
- * and a private turn leaves no archive entry.
+ * Two shapes, both on the same hidden machinery as the app's own background
+ * work (`cli:runInternal`):
  *
- * A *visible* variant — a real session the user can open later — would need a
- * non-ephemeral thread. The automation runner creates those, but it reports
- * only a 280-character summary, not the answer, so reusing it would return the
- * wrong thing. `visible: true` is therefore refused with its own error code
- * rather than silently downgraded.
+ *  - Private (default): a fresh `internal-` bridge, permission mode `plan`
+ *    (read-only sandbox for Codex, plan mode on the Claude CLI), an ephemeral
+ *    thread and a private sink. Nothing reaches the renderer, no `cli:*` event
+ *    is published, and the turn leaves no archive entry.
+ *
+ *  - Visible (`visible: true`): the same `internal-` tag and private sink keep
+ *    the turn out of whatever conversation the user has open, but the rollout /
+ *    JSONL persists, so the answer also becomes a conversation the user can
+ *    open from the archive. The runner returns the openable session id — the
+ *    Codex thread id or the Claude JSONL id, never the internal bridge id — and
+ *    the IPC layer announces it to the renderer.
+ *
+ * Visibility changes persistence, not trust. Every plugin turn keeps
+ * `permissionMode: 'plan'` and sinks that deny every approval request: a plugin
+ * must not silently write the user's files or run tools just because the user
+ * may read the transcript later.
+ *
+ * A visible turn that produces text but no openable id breaks the visibility
+ * contract. It is reported as `failed` rather than as a success with a
+ * fabricated or bridge id: telling the plugin a conversation exists when the
+ * archive cannot open it is worse than telling it the visible turn did not
+ * happen.
  */
 import { listNavPlugins } from './nav-plugin-manager'
 import { pluginAiCwd } from './plugin-services'
@@ -49,9 +63,12 @@ export class PluginChatError extends Error {
 
 export interface PluginChatAskArgs {
   prompt: string
-  /** Ask for a session the user can read later. Refused for now (see above). */
+  /** Ask for a persisted conversation the user can open later. */
   visible?: boolean
-  /** Only meaningful for a visible turn; accepted and ignored otherwise. */
+  /**
+   * Human-readable attribution only (logs). There is no session-title channel
+   * on this capability, so it is never used as the archived conversation's title.
+   */
   title?: string
   /** Ask budget in ms; clamped to [MIN_TIMEOUT_MS, MAX_TIMEOUT_MS]. */
   timeoutMs?: number
@@ -59,23 +76,30 @@ export interface PluginChatAskArgs {
 
 export interface PluginChatAnswer {
   text: string
-  /** Null for every private turn: no session is created. */
+  /** Openable session id for a visible turn; null for a private turn. */
   sessionId: string | null
 }
 
-/** A private answer-only turn, injected by the IPC layer. */
+/** One answer-only turn, injected by the IPC layer. */
 export interface PluginChatTurn {
   prompt: string
   cwd: string
   timeoutMs: number
   /** Sanitised label embedded in the internal bridge id for attribution. */
   tag: string
+  /** Persist the rollout / JSONL so the archive can open the conversation. */
+  visible: boolean
 }
 
 export type PluginChatRunner = (turn: PluginChatTurn) => Promise<{
   success: boolean
   text?: string
   error?: string
+  /**
+   * The id the archive can open. Required for a successful visible turn; the
+   * runner returns null when the engine reported none.
+   */
+  sessionId?: string | null
 }>
 
 const DEFAULT_TIMEOUT_MS = 60_000
@@ -95,6 +119,8 @@ const RATE_WINDOW_MS = 60_000
 const MAX_ASKS_PER_WINDOW = 10
 
 const MAX_PROMPT_CHARS = 100_000
+/** A log line, not a title: long enough to identify the turn, short enough to read. */
+const MAX_TITLE_CHARS = 80
 
 /** Live runs per plugin id. */
 const activeByPlugin = new Map<string, number>()
@@ -128,6 +154,20 @@ function clampTimeout(requested: unknown): number {
   const n = Number(requested)
   if (!Number.isFinite(n) || n <= 0) return DEFAULT_TIMEOUT_MS
   return Math.min(Math.max(Math.floor(n), MIN_TIMEOUT_MS), MAX_TIMEOUT_MS)
+}
+
+/**
+ * Attribution/logging text only. Strip control characters and collapse
+ * whitespace so a plugin-supplied title cannot forge extra log lines; it never
+ * reaches a filesystem path or the archived conversation.
+ */
+function sanitizeTitle(value: unknown): string {
+  if (typeof value !== 'string') return ''
+  return value
+    .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, MAX_TITLE_CHARS)
 }
 
 /** Bridge ids are strings, not paths; keep the tag to a charset safe there. */
@@ -186,18 +226,15 @@ export async function askPluginChat(
   if (prompt.length > MAX_PROMPT_CHARS) {
     throw new PluginChatError('invalid_request', `prompt exceeds ${MAX_PROMPT_CHARS} characters`)
   }
-  if (args?.visible === true) {
-    throw new PluginChatError(
-      'unsupported',
-      'Visible plugin turns are not supported yet; ask with visible:false and render the answer yourself (or hand it to chat with aipa:sendPrompt)',
-    )
-  }
 
+  const visible = args?.visible === true
+  const title = sanitizeTitle(args?.title)
   const timeoutMs = clampTimeout(args?.timeoutMs)
   claimSlot(id)
   const tag = tagFor(id)
 
-  log.info(`ask ${tag} (${timeoutMs}ms)`)
+  // The title is diagnostic only: `title` never becomes a session title.
+  log.info(`ask ${tag}${visible ? ' (visible)' : ''}${title ? ` "${title}"` : ''} (${timeoutMs}ms)`)
 
   // A plugin's question is still the user's assistant talking to itself: give it
   // the same persistent-memory block a manual turn sends. It reads from the
@@ -219,7 +256,7 @@ export async function askPluginChat(
   let timer: NodeJS.Timeout | undefined
   try {
     const outcome = await Promise.race([
-      runTurn({ prompt: memoryPrompt, cwd, timeoutMs, tag }),
+      runTurn({ prompt: memoryPrompt, cwd, timeoutMs, tag, visible }),
       new Promise<'outer-timeout'>((resolve) => {
         timer = setTimeout(() => resolve('outer-timeout'), timeoutMs + OUTER_GRACE_MS)
         timer.unref?.()
@@ -242,6 +279,20 @@ export async function askPluginChat(
     const text = (outcome.text ?? '').trim()
     if (!text) {
       throw new PluginChatError('failed', 'The assistant returned an empty answer')
+    }
+    if (visible) {
+      const sessionId = typeof outcome.sessionId === 'string' && outcome.sessionId ? outcome.sessionId : null
+      if (!sessionId) {
+        // The engine answered but reported no persisted id. Do not hand back the
+        // internal bridge id: the archive cannot open it, so a success here
+        // would promise a conversation that does not exist.
+        throw new PluginChatError(
+          'failed',
+          `Plugin "${id}" asked for a visible conversation, but the engine reported no openable session; the answer is not in the archive`,
+        )
+      }
+      log.info(`done ${tag} (${text.length} chars, session ${sessionId})`)
+      return { text, sessionId }
     }
     log.info(`done ${tag} (${text.length} chars)`)
     return { text, sessionId: null }

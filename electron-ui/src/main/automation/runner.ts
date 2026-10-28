@@ -35,6 +35,7 @@ import type { AuxiliaryEngine } from '../llm/auxiliary-engine'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { buildMemoryBlockForTurn, prefixWithMemoryContext } from '../sessions/memory-context'
 import { createLogger } from '../utils/logger'
+import { buildPersonaPromptPrefix, filterModelForEngine } from './persona-plan'
 import type { AutomationRunOutcome, AutomationRunRequest } from './types'
 
 const log = createLogger('automation-runner')
@@ -136,7 +137,7 @@ function runCodexTurn(bridge: CodexBridge, start: () => Promise<void>, timeoutMs
   })
 }
 
-function createCodexRun(req: AutomationRunRequest, bridgeId: string): EngineRun {
+function createCodexRun(req: AutomationRunRequest, bridgeId: string, model: string | undefined): EngineRun {
   const bridge = codexBridgeManager.create(bridgeId)
   let turnText = ''
   let first = true
@@ -160,7 +161,7 @@ function createCodexRun(req: AutomationRunRequest, bridgeId: string): EngineRun 
         // Same argument construction as a manual chat turn — in particular it
         // injects the API key saved in Settings, which a bare `env: {}` omits.
         const args = buildCodexTurnArgs(
-          { prompt, cwd: req.cwd, model: req.model },
+          { prompt, cwd: req.cwd, model },
           {
             // A background run writes files when the user asked for it, but
             // only inside the workspace, and never asks for anything it cannot
@@ -329,10 +330,16 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
   }
 
   const bridgeId = `${AUTOMATION_BRIDGE_TAG}${jobId}-${Date.now().toString(36)}`
+  // A persona preset ships a Claude model id; Codex would reject it. Drop it on
+  // the Codex path so the engine falls back to its own default model.
+  const codexModel = engine.kind === 'codex' ? filterModelForEngine(req.model, 'codex') : undefined
   const run = engine.kind === 'codex'
-    ? createCodexRun(req, bridgeId)
+    ? createCodexRun(req, bridgeId, codexModel)
     : createClaudeRun(req, bridgeId, engine)
   activeRuns.set(jobId, bridgeId)
+  if (req.personaId) {
+    log.info(`Automation ${jobId} runs as persona ${req.personaName ?? req.personaId}`)
+  }
 
   // Memory for a run nobody is watching. One snapshot per run: every prompt in
   // the job belongs to the same conversation, so re-reading the tiers between
@@ -340,13 +347,15 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
   // a failed read sends the raw prompt rather than failing the job.
   const memoryText = await buildMemoryBlockForTurn(req.cwd)
 
-  // PERSONA RULE: a scheduled run gets no persona. `AutomationJob` stores only a
-  // workflow id or a raw prompt, and neither `MainWorkflow` nor its steps carry
-  // a persona binding; there is also no session to bind one to. Falling back to
-  // `prefs.activePersonaId` would be inventing a global default for a run the
-  // user never saw created — the wrong expert (or the wrong model and cost)
-  // would silently drive a 3 a.m. job. Until workflows can store a persona, the
-  // honest choice is the plain assistant.
+  // PERSONA RULE: a scheduled run adopts the persona its workflow binds, so a
+  // job that fires at 3 a.m. behaves as the expert the user chose when they built
+  // the workflow. The binding is resolved in the scheduler and carried on the
+  // request; it is absent for a plain `prompt` job and for a workflow whose
+  // persona was deleted, and those runs stay the plain assistant. Falling back
+  // to `prefs.activePersonaId` would instead invent a global default for a run
+  // the user never saw created — the wrong expert (and the wrong model and cost)
+  // would silently drive the job.
+  const systemPrefix = buildPersonaPromptPrefix(req.systemPrompt, req.outputStyle)
 
   const remaining = (): number => Math.min(TURN_TIMEOUT_MS, req.deadline - Date.now())
 
@@ -357,8 +366,10 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
       if (remaining() <= 0) {
         return { ok: false, error: 'Run exceeded its time budget', sessionId: run.sessionId() }
       }
+      // Memory stays outermost; inside it the order matches a chat turn:
+      // persona prompt, output style, then the workflow's own step.
       const turn = await run.send(
-        prefixWithMemoryContext(req.prompts[i], memoryText),
+        prefixWithMemoryContext(systemPrefix + req.prompts[i], memoryText),
         remaining(),
       )
       if (!turn.ok) {

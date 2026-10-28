@@ -253,11 +253,16 @@ export interface PluginAiEvent {
   message?: string
 }
 
-/** A private answer-only assistant turn, requested by a plugin (`chat.ask`). */
+/** One answer-only assistant turn, requested by a plugin (`chat.ask`). */
 export interface PluginChatAskArgs {
   prompt: string
-  /** Ask for a visible session. Refused today; kept so the shape is stable. */
+  /**
+   * Ask for a persisted conversation the user can open in the archive. The
+   * turn still runs read-only and cannot use tools; only its persistence
+   * changes. Defaults to false (a private turn that leaves no archive entry).
+   */
   visible?: boolean
+  /** Human-readable attribution only; not used as the session title. */
   title?: string
   /** Millisecond budget, clamped to 5 s … 10 min (default 60 s). */
   timeoutMs?: number
@@ -265,8 +270,20 @@ export interface PluginChatAskArgs {
 
 export interface PluginChatAnswer {
   text: string
-  /** Always null for a private turn: no session is created. */
+  /**
+   * The id the archive opens. Set for a visible turn; null for a private turn,
+   * which creates no session. A visible turn that cannot produce an openable
+   * id rejects with a coded error instead of returning success here.
+   */
   sessionId: string | null
+}
+
+/** A plugin's visible `chat.ask` created an archive conversation. */
+export interface PluginConversationCreatedEvent {
+  pluginId: string
+  /** Display label in the app language, for attribution. */
+  pluginLabel: string
+  sessionId: string
 }
 
 /** Stream events of the recruit dialog's "polish the job description" call. */
@@ -845,6 +862,11 @@ const electronAPI = {
     const handler = (_event: Electron.IpcRendererEvent, data: PluginAiEvent) => callback(data)
     ipcRenderer.on('plugin:ai:event', handler)
     return () => { ipcRenderer.removeListener('plugin:ai:event', handler) }
+  },
+  onPluginConversationCreated: (callback: (event: PluginConversationCreatedEvent) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: PluginConversationCreatedEvent) => callback(data)
+    ipcRenderer.on('plugin:conversation-created', handler)
+    return () => { ipcRenderer.removeListener('plugin:conversation-created', handler) }
   },
 
   // ── Recruit dialog: polish a drafted job description ──

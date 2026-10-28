@@ -1989,7 +1989,11 @@
     "breadcrumbList": "工作流",
     "clickToEditTitle": "点击编辑标题",
     "stepNameRequired": "步骤名称不能为空",
-    "doubleClickToEdit": "双击编辑"
+    "doubleClickToEdit": "双击编辑",
+    "personaLabel": "定时运行时使用的专家",
+    "personaDefault": "默认（不使用专家）",
+    "personaHint": "定时自动化会以该专家身份运行此工作流；在此处点击“运行”仍使用当前对话的专家。",
+    "personaMissing": "该专家已被删除——定时运行将使用默认助手。"
   },
   "snippet": {
     "title": "文本片段",
@@ -2983,7 +2987,9 @@
       "toggleFailed": "无法更新自动化：{{error}}",
       "runFailed": "无法启动运行：{{error}}",
       "deleteFailed": "无法删除自动化：{{error}}"
-    }
+    },
+    "personaHint": "该工作流的定时运行使用此专家；工作流页面上的“运行”按钮仍使用当前对话的专家。",
+    "personaMissing": "专家已删除"
   },
   "speculation": {
     "title": "投机预览",
@@ -3099,5 +3105,8 @@
     "effort": {
       "unsupported": "{{model}} 不支持该档位"
     }
+  },
+  "plugin": {
+    "conversationCreated": "{{name}} 发起了一段对话，可在档案中查看。"
   }
 }

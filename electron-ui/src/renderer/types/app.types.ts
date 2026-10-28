@@ -335,6 +335,11 @@ export interface Workflow {
   steps: WorkflowStep[]   // ordered list of steps (max 20)
   icon: string            // emoji icon
   presetKey?: string      // if this is an installed preset, the i18n key root (e.g. 'weeklyReport')
+  /**
+   * Expert a scheduled automation runs this workflow as. Undefined = the plain
+   * assistant. Manual "Run" is unaffected: it uses the open conversation's expert.
+   */
+  personaId?: string
   teamwork?: boolean      // true = multi-agent teamwork workflow, false/undefined = single-agent workflow
   createdAt: number       // epoch ms
   updatedAt: number       // epoch ms
