@@ -2584,7 +2584,9 @@
     "addAgent": "Recruit expert",
     "addWorkflow": "New workflow",
     "presetsAgents": "Suggested experts · click to add",
+    "presetsAgentsEmpty": "Start with a suggested expert · click to add",
     "presetsWorkflows": "Suggested workflows · click to add",
+    "presetsWorkflowsEmpty": "Start with a suggested workflow · click to add",
     "import": "Import",
     "importFromClipboard": "Import workflow JSON from the clipboard",
     "imported": "Imported {{count}} workflow(s)",
@@ -2604,8 +2606,10 @@
     "sortRuns": "Most runs",
     "skills": "Skills",
     "skillsSub": "Reusable prompt packages (SKILL.md) that a slash command drops into chat. Click a card to read its content.",
+    "skillsSubEmpty": "Reusable prompt packages (SKILL.md) that a slash command drops into chat.",
     "addSkill": "New skill",
-    "presetsSkills": "More skills from the marketplace · click to install"
+    "presetsSkills": "More skills from the marketplace · click to install",
+    "presetsSkillsEmpty": "Start from the marketplace · click to install"
   },
   "pluginEdit": {
     "title": "Edit with AI",

@@ -105,13 +105,13 @@ export default function WorkflowPanel() {
           <WorkflowPersonasSection />
         </div>
 
-        <div style={{ height: 1, background: 'var(--glass-border)', margin: '28px 0 24px' }} />
+        <div style={{ height: 1, background: 'var(--glass-border)', margin: '28px 0' }} />
 
         <div data-employees-section="skills">
           <EmployeesSkillsSection state={skillState} onOpenSkill={openSkill} />
         </div>
 
-        <div style={{ height: 1, background: 'var(--glass-border)', margin: '28px 0 24px' }} />
+        <div style={{ height: 1, background: 'var(--glass-border)', margin: '28px 0' }} />
 
         <div data-employees-section="workflows">
           <WorkflowsSection crud={crud} />
@@ -214,22 +214,24 @@ function WorkflowsSection({ crud }: { crud: ReturnType<typeof useWorkflowCrud> }
           })}
         </div>
 
-        <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: 320 }}>
-          <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
-          <input
-            type="text"
-            value={crud.searchQuery}
-            onChange={e => crud.setSearchQuery(e.target.value)}
-            placeholder={t('workflow.searchPlaceholder')}
-            style={{
-              width: '100%', height: 28, paddingLeft: 28, paddingRight: 10, boxSizing: 'border-box',
-              background: 'var(--bg-hover)', border: '1px solid var(--glass-border)', borderRadius: 8,
-              fontSize: 12, color: 'var(--text-primary)', outline: 'none', transition: 'all 0.15s ease',
-            }}
-            onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
-            onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }}
-          />
-        </div>
+        {crud.workflows.length > 0 && (
+          <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: 320 }}>
+            <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+            <input
+              type="text"
+              value={crud.searchQuery}
+              onChange={e => crud.setSearchQuery(e.target.value)}
+              placeholder={t('workflow.searchPlaceholder')}
+              style={{
+                width: '100%', height: 28, paddingLeft: 28, paddingRight: 10, boxSizing: 'border-box',
+                background: 'var(--bg-hover)', border: '1px solid var(--glass-border)', borderRadius: 8,
+                fontSize: 12, color: 'var(--text-primary)', outline: 'none', transition: 'all 0.15s ease',
+              }}
+              onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)' }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }}
+            />
+          </div>
+        )}
 
         {allInCategory.length > 1 && (
           <select
@@ -252,25 +254,22 @@ function WorkflowsSection({ crud }: { crud: ReturnType<typeof useWorkflowCrud> }
       {visible.length === 0 && crud.searchQuery ? (
         <div style={{ padding: '28px 0', textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>{t('workflow.noResults')}</div>
       ) : (
-        <>
-          {allInCategory.length === 0 && (
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
-              {category === 'teamwork' ? t('workflow.teamworkEmptyHint') : t('workflow.emptyHint')}
-            </div>
-          )}
+        visible.length > 0 && (
           <div style={EMPLOYEE_GRID}>
             {visible.map(wf => (
               <WorkflowCard key={wf.id} wf={wf} onDuplicate={crud.duplicateWorkflow} onDelete={crud.deleteWorkflow} />
             ))}
             {!crud.searchQuery && <AddCard label={t('employees.addWorkflow')} onClick={createNew} minHeight={148} />}
           </div>
-        </>
+        )
       )}
 
       {/* Presets not yet installed */}
       {presets.length > 0 && !crud.searchQuery && (
         <>
-          <SubLabel>{t('employees.presetsWorkflows')}</SubLabel>
+          <SubLabel style={allInCategory.length === 0 ? { marginTop: 4 } : undefined}>
+            {t(allInCategory.length === 0 ? 'employees.presetsWorkflowsEmpty' : 'employees.presetsWorkflows')}
+          </SubLabel>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
             {presets.map(preset => {
               const key = preset.presetKey ?? ''

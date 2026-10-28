@@ -146,8 +146,9 @@ export default function SettingsGeneral({
 
   return (
     <>
-      {/* Settings search */}
-      <div style={{ marginBottom: 12, position: 'relative', display: 'flex', alignItems: 'center' }}>
+      {/* Settings search — a page-level filter, but held to a readable measure
+          instead of stretching into a 1200px ruler. */}
+      <div style={{ marginBottom: 12, position: 'relative', display: 'flex', alignItems: 'center', maxWidth: 640 }}>
         <Search size={14} style={{ position: 'absolute', left: 10, color: 'var(--text-muted)', pointerEvents: 'none' }} />
         <input
           value={settingsFilter}
@@ -173,6 +174,10 @@ export default function SettingsGeneral({
         )}
       </div>
 
+      {/* Sections flow into two balanced columns on wide windows (see
+          .settings-group-columns); each card stays whole, so collapsing one
+          never slices another in half. */}
+      <div className="settings-group-columns">
       {/* Group 1: Prompts */}
       {isGroupVisible('prompts') && (
       <SettingsGroup title={t('settings.groups.prompts')} icon={<MessageSquare size={14} />} groupKey="prompts">
@@ -717,6 +722,7 @@ export default function SettingsGeneral({
 
       </SettingsGroup>
       )}
+      </div>
 
       {/* Save button */}
       <button

@@ -28,8 +28,17 @@ export function useEmployeeSkills() {
     try {
       const result = await window.electronAPI.skillsList(workingDir || undefined)
       const list: SkillInfo[] = result || []
-      setSkills(list)
-      setInstalledNames(new Set(list.map(s => s.name.toLowerCase())))
+      // The main process can return the project root twice when the tab cwd and
+      // the persisted workingDir are the same; a skill row is unique by path.
+      const seen = new Set<string>()
+      const unique = list.filter(s => {
+        const key = s.dirPath.toLowerCase()
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      setSkills(unique)
+      setInstalledNames(new Set(unique.map(s => s.name.toLowerCase())))
     } catch (err) {
       console.error('Failed to load skills:', err)
     } finally {
@@ -210,13 +219,14 @@ export function EmployeesSkillsSection({ state, onOpenSkill }: {
 
   const openCreator = () => useUiStore.getState().setMainView('skill-creator')
   const openMarketplace = () => useUiStore.getState().setMainView('skill-marketplace')
+  const isEmpty = state.skills.length === 0
 
   return (
     <section>
       <SectionHeader
         icon={<Puzzle size={14} />}
         title={t('employees.skills')}
-        subtitle={t('employees.skillsSub')}
+        subtitle={t(isEmpty ? 'employees.skillsSubEmpty' : 'employees.skillsSub')}
         count={state.skills.length}
         actions={
           <>
@@ -267,12 +277,7 @@ export function EmployeesSkillsSection({ state, onOpenSkill }: {
       {visible.length === 0 && searchQuery ? (
         <div style={{ padding: '20px 0', textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>{t('skills.noResults')}</div>
       ) : (
-        <>
-          {state.skills.length === 0 && !state.loading && (
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
-              {t('skills.noSkillsHint')}
-            </div>
-          )}
+        state.skills.length > 0 && (
           <div style={EMPLOYEE_GRID}>
             {visible.map(skill => (
               <div
@@ -291,12 +296,14 @@ export function EmployeesSkillsSection({ state, onOpenSkill }: {
             ))}
             {!searchQuery && <AddCard label={t('employees.addSkill')} onClick={openCreator} minHeight={148} />}
           </div>
-        </>
+        )
       )}
 
       {available.length > 0 && !searchQuery && (
         <>
-          <SubLabel>{t('employees.presetsSkills')}</SubLabel>
+          <SubLabel style={isEmpty ? { marginTop: 4 } : undefined}>
+            {t(isEmpty ? 'employees.presetsSkillsEmpty' : 'employees.presetsSkills')}
+          </SubLabel>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
             {available.map(skill => (
               <PresetCard

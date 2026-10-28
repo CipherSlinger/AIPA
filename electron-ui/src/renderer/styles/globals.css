@@ -931,3 +931,28 @@ mark.search-current-match {
   margin: 0 6px;
   background: linear-gradient(90deg, transparent, var(--border) 10%, var(--border) 90%, transparent);
 }
+
+/* ── Settings layout ────────────────────────────────────────────────────────
+   Settings keeps the rail and its nav pinned; only the content area is given a
+   measure. The page column below is centred inside the content area (never the
+   window), so the nav never drifts. */
+.settings-page-column {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* General section cards flow into two balanced columns on wide windows. Cards
+   are never split mid-card, and the layout falls back to one column when the
+   window is too narrow to give each card a usable measure. */
+.settings-group-columns {
+  column-count: 1;
+  column-gap: 16px;
+}
+.settings-group-columns > * {
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+}
+@media (min-width: 1180px) {
+  .settings-group-columns { column-count: 2; }
+}

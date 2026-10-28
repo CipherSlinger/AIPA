@@ -31,6 +31,16 @@ export default function SettingsGroup({ title, icon, children, groupKey }: Setti
       borderRadius: 10,
       marginBottom: 12,
       overflow: 'hidden',
+      // On single-column pages the card is centred at a readable measure, so a
+      // wide window never turns its inputs into full-width rulers. In the
+      // General page's two-column flow the column is narrower than this cap.
+      // `width: 100%` is required: auto cross-axis margins in the column flex
+      // container would otherwise shrink the card to its fit-content width.
+      width: '100%',
+      maxWidth: 800,
+      marginLeft: 'auto',
+      marginRight: 'auto',
+      breakInside: 'avoid',
     }}>
       <button
         onClick={toggle}

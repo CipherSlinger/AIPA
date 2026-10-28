@@ -12,7 +12,7 @@
 // ledger into a row of 研发部 / 前端组 / 后端组 groups with no visible relation;
 // the leaf is shown per record instead, and the group is the company.
 
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   Archive,
   ArrowUpDown,
@@ -41,6 +41,22 @@ type TimeRange = 'all' | 'today' | 'week' | 'month'
 const UNASSIGNED = '__unassigned__'
 /** Stable empty fallback for an unset `archivedSessions` pref. */
 const EMPTY_ARCHIVED: string[] = []
+
+// ── Fixed geometry ───────────────────────────────────────────────────────────
+// The ledger is windowed, so every block's size has to be known without
+// measuring the DOM. These numbers mirror the styles below exactly: a row is
+// 35px (including its 1px separator), a group header is 25px, the card border
+// contributes 2px, groups are separated by an 18px flex gap and the scroller
+// has 12px of top padding.
+const ROW_H = 35
+const GROUP_HEADER_H = 25
+const CARD_BORDER_H = 2
+const GROUP_GAP = 18
+const LEDGER_PAD_TOP = 12
+/** Off-screen rows kept mounted on each side so fast scrolling stays blank-free. */
+const OVERSCAN_ROWS = 8
+/** Initial slice rendered before the scroller has been measured. */
+const INITIAL_VIEWPORT_H = 900
 
 interface ArchiveRecord {
   session: SessionListItem
@@ -170,6 +186,56 @@ export default function ArchivePanel() {
       return b.latest - a.latest
     })
   }, [records])
+
+  // Scroll window. The ledger only mounts rows near the viewport; everything
+  // else is represented by two spacer divs inside the group card, so the card's
+  // border and the group header stay in normal flow and keep their offsets.
+  const ledgerRef = useRef<HTMLDivElement>(null)
+  const [viewport, setViewport] = useState({ top: 0, height: INITIAL_VIEWPORT_H })
+
+  useLayoutEffect(() => {
+    const el = ledgerRef.current
+    if (!el) return
+    let frame = 0
+    const sync = () => {
+      frame = 0
+      const top = el.scrollTop
+      const height = el.clientHeight
+      setViewport(v => (v.top === top && v.height === height ? v : { top, height }))
+    }
+    const onScroll = () => {
+      if (frame) return
+      frame = requestAnimationFrame(sync)
+    }
+    sync()
+    el.addEventListener('scroll', onScroll, { passive: true })
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(sync) : null
+    observer?.observe(el)
+    return () => {
+      if (frame) cancelAnimationFrame(frame)
+      el.removeEventListener('scroll', onScroll)
+      observer?.disconnect()
+    }
+  }, [])
+
+  /** Groups with their analytic offsets, so windowing never has to measure. */
+  const layout = useMemo(() => {
+    let y = LEDGER_PAD_TOP
+    return groups.map(group => {
+      const key = group.root?.id ?? UNASSIGNED
+      const isCollapsed = !!collapsed[key]
+      const cardHeight = isCollapsed ? 0 : group.records.length * ROW_H + CARD_BORDER_H
+      const item = {
+        key,
+        group,
+        isCollapsed,
+        rowsTop: y + GROUP_HEADER_H + 1,
+        cardHeight,
+      }
+      y += GROUP_HEADER_H + cardHeight + GROUP_GAP
+      return item
+    })
+  }, [groups, collapsed])
 
   const summary = useMemo(() => {
     const weekCutoff = Date.now() - TIME_WINDOWS.week
@@ -347,7 +413,7 @@ export default function ArchivePanel() {
       </div>
 
       {/* Ledger */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 24px' }}>
+      <div ref={ledgerRef} style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 24px' }}>
         {sessionsLoading && sessions.length === 0 ? (
           <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
             {t('archive.loading')}
@@ -367,10 +433,16 @@ export default function ArchivePanel() {
             clearLabel={t('archive.clearFilters')}
           />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {groups.map(group => {
-              const key = group.root?.id ?? UNASSIGNED
-              const isCollapsed = !!collapsed[key]
+          <div style={{ display: 'flex', flexDirection: 'column', gap: GROUP_GAP }}>
+            {layout.map(item => {
+              const { key, group, isCollapsed } = item
+              const count = group.records.length
+              // Only the rows intersecting the viewport (plus an overscan band)
+              // mount. Two spacers keep the card at its full analytic height.
+              const visStart = viewport.top - OVERSCAN_ROWS * ROW_H
+              const visEnd = viewport.top + viewport.height + OVERSCAN_ROWS * ROW_H
+              const start = Math.max(0, Math.min(count, Math.floor((visStart - item.rowsTop) / ROW_H)))
+              const end = Math.max(start, Math.min(count, Math.ceil((visEnd - item.rowsTop) / ROW_H)))
               return (
                 <div key={key}>
                   {/* Group header — the company (or a legacy top-level department) */}
@@ -378,6 +450,7 @@ export default function ArchivePanel() {
                     onClick={() => setCollapsed(c => ({ ...c, [key]: !c[key] }))}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 7, width: '100%',
+                      height: GROUP_HEADER_H, boxSizing: 'border-box',
                       background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 8px',
                       color: 'var(--text-secondary)', textAlign: 'left',
                     }}
@@ -414,12 +487,15 @@ export default function ArchivePanel() {
                     <div style={{
                       border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden',
                       background: 'var(--bg-hover)',
+                      height: item.cardHeight, boxSizing: 'border-box',
                     }}>
-                      {group.records.map((record, i) => (
+                      {start > 0 && <div style={{ height: start * ROW_H }} aria-hidden="true" />}
+                      {group.records.slice(start, end).map((record, i) => (
                         <ArchiveRow
                           key={record.session.sessionId}
                           record={record}
-                          first={i === 0}
+                          index={start + i}
+                          first={start + i === 0}
                           opening={opening === record.session.sessionId}
                           onOpen={() => void open(record)}
                           onToggleArchived={() => toggleArchived(record.session.sessionId)}
@@ -427,6 +503,7 @@ export default function ArchivePanel() {
                           locale={resolvedLocale}
                         />
                       ))}
+                      {end < count && <div style={{ height: (count - end) * ROW_H }} aria-hidden="true" />}
                     </div>
                   )}
                 </div>
@@ -478,9 +555,11 @@ function EmptyState({
 }
 
 function ArchiveRow({
-  record, first, opening, onOpen, onToggleArchived, t, locale,
+  record, index, first, opening, onOpen, onToggleArchived, t, locale,
 }: {
   record: ArchiveRecord
+  /** Absolute row index inside the group — used for windowing verification. */
+  index: number
   first: boolean
   opening: boolean
   onOpen: () => void
@@ -495,6 +574,8 @@ function ArchiveRow({
 
   return (
     <div
+      data-archive-row={index}
+      data-session-id={session.sessionId}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={onOpen}
@@ -504,7 +585,9 @@ function ArchiveRow({
       title={session.lastPrompt || title}
       style={{
         display: 'flex', alignItems: 'center', gap: 10,
-        padding: '8px 12px', cursor: 'pointer',
+        // Fixed height keeps the analytic offsets in `layout` exact.
+        height: ROW_H, boxSizing: 'border-box',
+        padding: '0 12px', cursor: 'pointer',
         borderTop: first ? 'none' : '1px solid var(--bg-active)',
         background: hovered ? 'var(--bg-active)' : 'transparent',
         opacity: record.archived ? 0.55 : 1,

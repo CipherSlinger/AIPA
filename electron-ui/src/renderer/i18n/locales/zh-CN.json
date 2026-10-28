@@ -2584,7 +2584,9 @@
     "addAgent": "招募专家",
     "addWorkflow": "新建工作流",
     "presetsAgents": "推荐专家 · 点击添加",
+    "presetsAgentsEmpty": "从推荐专家开始 · 点击添加",
     "presetsWorkflows": "推荐工作流 · 点击添加",
+    "presetsWorkflowsEmpty": "从推荐工作流开始 · 点击添加",
     "import": "导入",
     "importFromClipboard": "从剪贴板粘贴工作流 JSON 导入",
     "imported": "已导入 {{count}} 个工作流",
@@ -2604,8 +2606,10 @@
     "sortRuns": "按运行次数",
     "skills": "技能",
     "skillsSub": "可复用的提示词包（SKILL.md），在对话中用斜杠命令调用。点击卡片查看内容。",
+    "skillsSubEmpty": "可复用的提示词包（SKILL.md），在对话中用斜杠命令调用。",
     "addSkill": "新建技能",
-    "presetsSkills": "技能市场中的更多技能 · 点击安装"
+    "presetsSkills": "技能市场中的更多技能 · 点击安装",
+    "presetsSkillsEmpty": "从技能市场开始 · 点击安装"
   },
   "pluginEdit": {
     "title": "AI 编辑插件",

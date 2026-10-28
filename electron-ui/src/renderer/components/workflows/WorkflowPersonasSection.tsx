@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { Download, Upload, Bot } from 'lucide-react'
+import { Download, Upload, Bot, Plus } from 'lucide-react'
 import { usePrefsStore, useUiStore, useChatStore } from '../../store'
 import { useI18n } from '../../i18n'
 import type { Persona } from '../../types/app.types'
@@ -170,37 +170,39 @@ export default function WorkflowPersonasSection() {
                 {t('persona.exportPersonas')}
               </ToolbarButton>
             )}
+            <ToolbarButton onClick={() => useUiStore.getState().openPersonaEditor(null, 'workflows')} primary disabled={atLimit}>
+              <Plus size={13} />
+              {t('employees.addAgent')}
+            </ToolbarButton>
           </>
         }
       />
 
-      {personas.length === 0 && (
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
-          {t('persona.noPersonasHint')}
+      {personas.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', gap: 12 }}>
+          {personas.map(p => (
+            <PersonaIconTile
+              key={p.id}
+              persona={p}
+              isActive={effectivePersonaId === p.id}
+              isDeleting={deletingId === p.id}
+              onDelete={handleDelete}
+            />
+          ))}
+          <AddCard
+            label={atLimit ? t('persona.maxReached') : t('employees.addAgent')}
+            onClick={() => useUiStore.getState().openPersonaEditor(null, 'workflows')}
+            disabled={atLimit}
+            minHeight={118}
+          />
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', gap: 12 }}>
-        {personas.map(p => (
-          <PersonaIconTile
-            key={p.id}
-            persona={p}
-            isActive={effectivePersonaId === p.id}
-            isDeleting={deletingId === p.id}
-            onDelete={handleDelete}
-          />
-        ))}
-        <AddCard
-          label={atLimit ? t('persona.maxReached') : t('employees.addAgent')}
-          onClick={() => useUiStore.getState().openPersonaEditor(null, 'workflows')}
-          disabled={atLimit}
-          minHeight={118}
-        />
-      </div>
-
       {availablePresets.length > 0 && !atLimit && (
         <>
-          <SubLabel>{t('employees.presetsAgents')}</SubLabel>
+          <SubLabel style={personas.length === 0 ? { marginTop: 4 } : undefined}>
+            {t(personas.length === 0 ? 'employees.presetsAgentsEmpty' : 'employees.presetsAgents')}
+          </SubLabel>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
             {availablePresets.map((preset, i) => (
               <PresetCard

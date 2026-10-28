@@ -178,11 +178,15 @@ export function PresetCard({ icon, title, subtitle, onClick }: {
   )
 }
 
-export function SubLabel({ children }: { children: React.ReactNode }) {
+export function SubLabel({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <div style={{
       fontSize: 10, fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase',
-      letterSpacing: '0.07em', margin: '16px 0 8px',
+      letterSpacing: '0.07em',
+      // Longhands, not the `margin` shorthand: a conditional marginTop override
+      // that later disappears would otherwise leave the shorthand's top at 0.
+      marginTop: 16, marginRight: 0, marginBottom: 8, marginLeft: 0,
+      ...style,
     }}>
       {children}
     </div>

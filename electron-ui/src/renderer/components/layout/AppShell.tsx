@@ -244,16 +244,14 @@ export default function AppShell() {
                   {t('settings.title')}
                 </span>
               </div>
-              {/* Settings content */}
+              {/* Settings content. The settings panel owns its own readable
+                  column (see SettingsPanel), so this wrapper stays fluid: the
+                  rail + nav remain pinned and only the form area gets a measure. */}
               <div style={{
                 flex: 1, overflow: 'auto',
-                // Left-align the settings page against the nav rail. Centering this
-                // wrapper (with its 800px cap) pushed the settings nav ~300px into
-                // the main area and left a large dead gutter. The cap stays so the
-                // form column keeps a readable measure.
                 display: 'flex',
               }}>
-                <div style={{ width: '100%', maxWidth: 800 }}>
+                <div style={{ width: '100%', minWidth: 0 }}>
                   <React.Suspense fallback={<PanelSkeleton />}>
                     <SettingsPanel />
                   </React.Suspense>

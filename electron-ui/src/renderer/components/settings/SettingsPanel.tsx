@@ -181,8 +181,19 @@ export default function SettingsPanel() {
         })}
       </div>
 
-      {/* Content area */}
+      {/* Content area — fluid, with the readable page column centred inside it.
+          The nav above stays pinned to the rail because only this pane centres. */}
       <div style={{ flex: 1, padding: '20px 24px', overflowY: 'auto' }}>
+        {settingsTab === 'memory' ? (
+          // MemoryPanel is a full-height panel with its own toolbar; it opts out
+          // of the readable page column so its split panes keep the full pane.
+          <div style={{ margin: '-20px -24px', height: 'calc(100% + 40px)' }}>
+            <React.Suspense fallback={null}>
+              <MemoryPanel />
+            </React.Suspense>
+          </div>
+        ) : (
+        <div className="settings-page-column">
         {settingsTab === 'general' ? (
           <SettingsGeneral
             local={local}
@@ -199,13 +210,6 @@ export default function SettingsPanel() {
             saved={saved}
             onSave={save}
           />
-        ) : settingsTab === 'memory' ? (
-          // MemoryPanel is a full-height panel with its own toolbar; cancel the content padding
-          <div style={{ margin: '-20px -24px', height: 'calc(100% + 40px)' }}>
-            <React.Suspense fallback={null}>
-              <MemoryPanel />
-            </React.Suspense>
-          </div>
         ) : settingsTab === 'permissions' ? (
           <PermissionsSettingsPanel />
         ) : settingsTab === 'stats' ? (
@@ -230,6 +234,8 @@ export default function SettingsPanel() {
               window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' }))
             }}
           />
+        )}
+        </div>
         )}
       </div>
     </div>
