@@ -2270,7 +2270,21 @@
   "statusBar": {
     "today": "today",
     "connected": "Connected",
-    "idle": "Idle"
+    "idle": "Idle",
+    "background": {
+      "title": "Background work",
+      "running": "Running {{count}}",
+      "retry": "Retry {{count}}",
+      "aria": "{{label}} — background work. Open details.",
+      "runningNow": "Running now",
+      "waitingRetry": "Waiting to retry",
+      "nextUp": "Next up",
+      "runningFor": "for {{time}}",
+      "retryDue": "due in {{time}}",
+      "at": "at {{time}}",
+      "openSettings": "Open Settings → Automations",
+      "manage": "Manage automations"
+    }
   },
   "dailyBriefing": {
     "goodMorning": "Good morning!",
@@ -2996,7 +3010,8 @@
       "error": "Failed",
       "skipped": "Skipped (hourly limit)",
       "running": "Running…",
-      "budgetSkipped": "Skipped (spend limit)"
+      "budgetSkipped": "Skipped (spend limit)",
+      "globalBudgetSkipped": "Skipped (daily budget reached)"
     },
     "field": {
       "name": "Name",
@@ -3149,7 +3164,23 @@
       "freshRunHint": "Each run starts fresh from this prompt; this conversation's context is not carried over.",
       "clippedHint": "The message was longer than 4,000 characters, so only the first 4,000 were kept. The rest is not part of the prompt."
     },
-    "createdToast": "“{{name}}” is scheduled: {{schedule}}"
+    "createdToast": "“{{name}}” is scheduled: {{schedule}}",
+    "budget": {
+      "label": "Daily budget for all automations",
+      "placeholder": "No cap",
+      "hint": "One cap across every automation, over the last 24 hours. Leave it empty for no cap. Per-job limits still apply on top of it; Run now is never checked.",
+      "save": "Save",
+      "clear": "Clear",
+      "invalid": "Enter a positive dollar amount, or leave it empty for no cap.",
+      "failed": "Could not change the daily budget: {{error}}",
+      "readout": "Last 24 h: {{spent}} reported across all automations",
+      "readoutWithLimit": "Last 24 h: {{spent}} reported of {{limit}}",
+      "unmeasured": "Last 24 h: runs happened but no engine reported a cost, so the budget cannot be enforced.",
+      "noRuns": "Last 24 h: no runs, so the budget is untested.",
+      "lowerBoundNote": "Some runs did not report cost, so the total is a lower bound.",
+      "partialNote": "History is capped, so an older run in this window may be missing from the total.",
+      "help": "The daily budget covers every scheduled run together. Each job's own limit still applies, and Run now is never blocked by either."
+    }
   },
   "speculation": {
     "title": "Speculative Preview",

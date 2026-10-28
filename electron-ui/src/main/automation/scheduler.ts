@@ -25,9 +25,11 @@ import { AUTOMATION_RETRY_POLICY, isPendingRetryExpired, nextRetryAfterFailure }
 import { appendRunRecord, countFailureStreak, createSkipRecord, MAX_RUN_ERROR_CHARS } from './run-history'
 import { addToLifetimeTotals } from './run-usage'
 import {
+  checkGlobalSpendLimit,
   checkSpendLimit,
   MAX_DAILY_COST_LIMIT_USD,
   normalizeDailyCostLimit,
+  summarizeGlobalSpendWindow,
   summarizeSpendWindow,
 } from './spend-guard'
 import { pickRunModel, resolveScheduledPersona } from './persona-plan'
@@ -93,6 +95,13 @@ const running = new Map<string, { startedAt: number }>()
 let timer: NodeJS.Timeout | null = null
 /** Global pause: scheduled runs are suspended; per-job `enabled` is untouched. */
 let pausedAll = false
+/**
+ * One daily spend cap for all jobs together; absent means no cap. Owned by the
+ * scheduler for the same reason as `pausedAll` — it is rail state for the whole
+ * store, read by the tick and written atomically with the jobs — and persisted
+ * as a sibling key under `automations.json`.
+ */
+let globalDailyCostLimitUsd: number | undefined
 
 // ── Validation ───────────────────────────────────────
 
@@ -287,7 +296,11 @@ function resolveCwd(action: AutomationAction): string {
 // ── Persistence / broadcast ──────────────────────────
 
 function persist(): void {
-  writeAutomationStore({ jobs, pausedAll })
+  writeAutomationStore({
+    jobs,
+    pausedAll,
+    ...(globalDailyCostLimitUsd !== undefined ? { globalDailyCostLimitUsd } : {}),
+  })
 }
 
 function broadcastChanged(): void {
@@ -333,6 +346,42 @@ function hasHourlyCapacity(job: AutomationJob, now: number): boolean {
 function resolveModel(): string | undefined {
   const model = getPref('model')
   return typeof model === 'string' && model.trim() ? model.trim() : undefined
+}
+
+/**
+ * Refuse a scheduled run and record why.
+ *
+ * Shared by the per-job and the global spend rails so the two can never disagree
+ * about what a skip means: nothing started, the record carries no spend, session
+ * or duration (`createSkipRecord` enforces that shape), a pending retry is
+ * resolved so it cannot fire again a tick later, and the regular schedule
+ * advances so the refused occurrence does not re-check every tick.
+ * `countFailureStreak` keeps ignoring skips, so a skip is not a failure.
+ */
+function recordSpendSkip(
+  job: AutomationJob,
+  now: number,
+  retryAttempt: number | undefined,
+  code: 'budget_exceeded' | 'global_budget_exceeded',
+): void {
+  const isRetry = retryAttempt !== undefined
+  // A retry is due now, not at the regular occurrence still on the calendar.
+  const skippedAt = isRetry ? now : (job.nextRunAt ?? now)
+  job.lastRunAt = skippedAt
+  job.lastStatus = 'skipped'
+  job.lastError = code
+  job.lastRunLate = false
+  job.lastUsage = undefined
+  // A skip is not an attempt: no spend, no session, and the failure streak
+  // neither grows nor resets. The retry marker keeps the refused wait visible
+  // in the history.
+  job.history = appendRunRecord(job.history, createSkipRecord(skippedAt, code, retryAttempt))
+  // The rail resolved the retry: it must not stay pending and retry again a
+  // tick later, which would be the loop the limit exists to stop.
+  job.pendingRetry = undefined
+  // A retry must not move the regular schedule; only an occurrence does.
+  if (!isRetry) job.nextRunAt = nextRunAfter(job.trigger, now)
+  persistAndBroadcast()
 }
 
 async function startRun(
@@ -410,32 +459,13 @@ async function startRun(
   // Manual runs bypass it: Run now is the user spending on purpose. A window
   // whose engines reported no money is *not* treated as $0 spent — the run is
   // allowed and the row says the limit could not be checked (see spend-guard).
-  const spend = checkSpendLimit(job, now, opts.manual ? 'manual' : 'scheduled')
+  const source = opts.manual ? 'manual' : 'scheduled'
+  const spend = checkSpendLimit(job, now, source)
   if (spend.kind === 'blocked') {
-    const isRetry = opts.retryAttempt !== undefined
-    // A retry is due now, not at the regular occurrence still on the calendar.
-    const skippedAt = isRetry ? now : (job.nextRunAt ?? now)
-    job.lastRunAt = skippedAt
-    job.lastStatus = 'skipped'
-    job.lastError = 'budget_exceeded'
-    job.lastRunLate = false
-    job.lastUsage = undefined
-    // A skip is not an attempt: no spend, no session, and the failure streak
-    // neither grows nor resets. `createSkipRecord` enforces that shape. The
-    // retry marker keeps the refused wait visible in the history.
-    job.history = appendRunRecord(
-      job.history,
-      createSkipRecord(skippedAt, 'budget_exceeded', opts.retryAttempt),
-    )
-    // The rail resolved the retry: it must not stay pending and retry again a
-    // tick later, which would be the loop the limit exists to stop.
-    job.pendingRetry = undefined
-    // A retry must not move the regular schedule; only an occurrence does.
-    if (!isRetry) job.nextRunAt = nextRunAfter(job.trigger, now)
-    persistAndBroadcast()
+    recordSpendSkip(job, now, opts.retryAttempt, 'budget_exceeded')
     log.warn(
-      `Automation "${job.name}" ${isRetry ? `retry ${opts.retryAttempt} ` : ''}skipped — reported `
-      + `spend in the last 24 h is at its ${job.dailyCostLimitUsd} USD limit`,
+      `Automation "${job.name}" ${opts.retryAttempt !== undefined ? `retry ${opts.retryAttempt} ` : ''}`
+      + `skipped — reported spend in the last 24 h is at its ${job.dailyCostLimitUsd} USD limit`,
     )
     return
   }
@@ -443,6 +473,28 @@ async function startRun(
     log.warn(
       `Automation "${job.name}" started despite its spend limit — no run in the last `
       + '24 h reported a cost, so the limit cannot be evaluated',
+    )
+  }
+
+  // The global daily cap, checked only after the per-job rail has allowed the
+  // run: when both would refuse, the job's own limit is the more specific reason
+  // and one skip record is enough. `jobs` is the live list including this job, so
+  // the shared window covers every job's runs — the whole point of one number.
+  // Manual runs are `not_applicable` here for the same reason as above.
+  const globalSpend = checkGlobalSpendLimit(jobs, globalDailyCostLimitUsd, now, source)
+  if (globalSpend.kind === 'blocked') {
+    recordSpendSkip(job, now, opts.retryAttempt, 'global_budget_exceeded')
+    log.warn(
+      `Automation "${job.name}" ${opts.retryAttempt !== undefined ? `retry ${opts.retryAttempt} ` : ''}`
+      + `skipped — reported spend across all jobs in the last 24 h is at the `
+      + `${globalDailyCostLimitUsd} USD daily budget`,
+    )
+    return
+  }
+  if (globalSpend.kind === 'allowed' && globalSpend.unmeasured) {
+    log.warn(
+      `Automation "${job.name}" started despite the daily budget — no run in the last `
+      + '24 h reported a cost, so the budget cannot be evaluated',
     )
   }
 
@@ -727,6 +779,7 @@ export function startAutomationScheduler(
   const store = readAutomationStore()
   jobs = store.jobs
   pausedAll = store.pausedAll
+  globalDailyCostLimitUsd = store.globalDailyCostLimitUsd
   const now = Date.now()
   let repaired = false
   for (const job of jobs) {
@@ -780,9 +833,16 @@ export function startAutomationScheduler(
 export function listAutomationJobs(): { jobs: AutomationJobView[]; limits: AutomationLimits } {
   return {
     jobs: jobs.map(toView),
-    // The pause is dynamic state, not a rail, so it is merged in here rather
-    // than added to the constant.
-    limits: { ...AUTOMATION_LIMITS, pausedAll },
+    // The pause and the global cap are dynamic state, not constants, so they are
+    // merged in here rather than added to `AUTOMATION_LIMITS`. The spend snapshot
+    // is derived from this same `jobs` array at call time, so the settings
+    // readout and the rows it sits beside can never disagree.
+    limits: {
+      ...AUTOMATION_LIMITS,
+      pausedAll,
+      ...(globalDailyCostLimitUsd !== undefined ? { globalDailyCostLimitUsd } : {}),
+      globalSpend: summarizeGlobalSpendWindow(jobs, Date.now(), globalDailyCostLimitUsd),
+    },
   }
 }
 
@@ -970,11 +1030,50 @@ export function setAutomationPausedAll(paused: boolean): AutomationPauseResult {
   return { ok: true, pausedAll }
 }
 
+export type AutomationGlobalBudgetResult =
+  | { ok: true; globalDailyCostLimitUsd?: number; changed: boolean }
+  | { ok: false; error: string }
+
+/**
+ * Set or clear the daily budget that covers every job together.
+ *
+ * `null` clears it. An unusable number is an error rather than a silent "no
+ * cap", because a typo must not quietly remove the rail the user asked for —
+ * the same rule as the per-job field. A value equal to the stored one is a
+ * no-op: no write and no `automation:changed` broadcast, so a settings page that
+ * saves without editing does not make every automation surface refresh.
+ */
+export function setAutomationGlobalBudget(limitUsd: number | null): AutomationGlobalBudgetResult {
+  let next: number | undefined
+  if (limitUsd !== null) {
+    try {
+      next = validateDailyCostLimit(limitUsd)
+    } catch (err) {
+      return { ok: false, error: errorCode(err) }
+    }
+  }
+  if (next === globalDailyCostLimitUsd) {
+    return {
+      ok: true,
+      ...(next !== undefined ? { globalDailyCostLimitUsd: next } : {}),
+      changed: false,
+    }
+  }
+  globalDailyCostLimitUsd = next
+  persistAndBroadcast()
+  log.info(`Automation daily budget ${next !== undefined ? `set to ${next} USD` : 'cleared'}`)
+  return {
+    ok: true,
+    ...(next !== undefined ? { globalDailyCostLimitUsd: next } : {}),
+    changed: true,
+  }
+}
+
 /**
  * "Run now" is an explicit user gesture: it ignores `enabled`, the global
- * pause, the hourly cap, and the spend limit, but not the concurrency rail —
- * an in-flight run still owns the job, and hidden background work must never
- * queue up behind a click.
+ * pause, the hourly cap, the spend limit, and the global daily budget, but not
+ * the concurrency rail — an in-flight run still owns the job, and hidden
+ * background work must never queue up behind a click.
  */
 export function runAutomationNow(id: string): AutomationMutationResult {
   const job = jobs.find(j => j.id === id)

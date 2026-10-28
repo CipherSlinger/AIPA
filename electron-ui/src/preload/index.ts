@@ -433,6 +433,25 @@ export interface AutomationSpendWindowData {
   partial: boolean
 }
 
+/**
+ * Mirrors main's `AutomationGlobalSpendWindow`: reported spend across *every*
+ * job in the shared rolling 24 h. A missing `measuredUsd` means no run reported
+ * money, never that the spend was zero; `unreportedRuns > 0` or `partial` makes
+ * any figure a lower bound.
+ */
+export interface AutomationGlobalSpendData {
+  /** The active global cap, absent when the user has not set one. */
+  limitUsd?: number
+  /** Sum of reported costs across all jobs in the window. */
+  measuredUsd?: number
+  /** In-window attempts that reported no cost. */
+  unreportedRuns: number
+  /** No cost was reported for a window that had attempts, so the cap is unevaluable. */
+  unmeasured: boolean
+  /** Some job's capped history may not reach back to the window start. */
+  partial: boolean
+}
+
 export interface AutomationJobData {
   id: string
   name: string
@@ -502,6 +521,18 @@ export interface AutomationLimitsData {
    * reading each row's own switch.
    */
   pausedAll: boolean
+  /**
+   * One daily spend cap covering all jobs together, over the same rolling 24 h
+   * as the per-job limits. Absent means no cap; per-job limits still apply on
+   * top of it.
+   */
+  globalDailyCostLimitUsd?: number
+  /**
+   * The shared window's figures, derived at list time from the same jobs the
+   * caller receives. Present even without a cap so the settings readout can show
+   * yesterday's total before the user decides on a number.
+   */
+  globalSpend?: AutomationGlobalSpendData
   /** Retry policy exposed for the dialog/row copy; mirrors main's constants. */
   retry: {
     maxRetries: number
@@ -530,6 +561,15 @@ export type AutomationMutationData =
 
 export type AutomationPauseData =
   | { ok: true; pausedAll: boolean }
+  | { ok: false; error: string }
+
+/**
+ * Result of setting the global daily budget. `changed: false` means the stored
+ * value already matched, so nothing was written and no `automation:changed`
+ * event was sent.
+ */
+export type AutomationGlobalBudgetData =
+  | { ok: true; globalDailyCostLimitUsd?: number; changed: boolean }
   | { ok: false; error: string }
 
 /**
@@ -687,6 +727,10 @@ const electronAPI = {
     ipcRenderer.invoke('automation:runNow', id) as Promise<AutomationMutationData>,
   automationSetPausedAll: (paused: boolean) =>
     ipcRenderer.invoke('automation:setPausedAll', paused) as Promise<AutomationPauseData>,
+  // `null` clears the global daily budget; the main process validates and
+  // broadcasts `automation:changed` only when the value actually changed.
+  automationSetGlobalBudget: (limitUsd: number | null) =>
+    ipcRenderer.invoke('automation:setGlobalBudget', limitUsd) as Promise<AutomationGlobalBudgetData>,
   onAutomationChanged: (cb: () => void): Unsubscribe => {
     const handler = () => cb()
     ipcRenderer.on('automation:changed', handler)

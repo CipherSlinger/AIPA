@@ -2270,7 +2270,21 @@
   "statusBar": {
     "today": "今日",
     "connected": "已连接",
-    "idle": "空闲"
+    "idle": "空闲",
+    "background": {
+      "title": "后台任务",
+      "running": "运行中 {{count}}",
+      "retry": "待重试 {{count}}",
+      "aria": "{{label}} — 后台任务。打开详情。",
+      "runningNow": "正在运行",
+      "waitingRetry": "等待重试",
+      "nextUp": "接下来",
+      "runningFor": "已运行 {{time}}",
+      "retryDue": "{{time}}后重试",
+      "at": "{{time}}",
+      "openSettings": "打开 设置 → 定时任务",
+      "manage": "管理定时任务"
+    }
   },
   "dailyBriefing": {
     "goodMorning": "早上好!",
@@ -2996,7 +3010,8 @@
       "error": "失败",
       "skipped": "已跳过（超出每小时上限）",
       "running": "正在运行…",
-      "budgetSkipped": "已跳过（花费上限）"
+      "budgetSkipped": "已跳过（花费上限）",
+      "globalBudgetSkipped": "已跳过（达到每日预算）"
     },
     "field": {
       "name": "名称",
@@ -3149,7 +3164,23 @@
       "freshRunHint": "每次运行都从这段提示开始，不会带上当前对话的上下文。",
       "clippedHint": "这条消息超过 4000 个字符，只保留了前 4000 个字符，其余内容不会出现在提示中。"
     },
-    "createdToast": "“{{name}}”已排程：{{schedule}}"
+    "createdToast": "“{{name}}”已排程：{{schedule}}",
+    "budget": {
+      "label": "所有自动化的每日预算",
+      "placeholder": "不限额",
+      "hint": "所有自动化共用一个限额，按过去 24 小时计算。留空表示不限额。单个任务的限额仍然叠加生效；手动运行不受检查。",
+      "save": "保存",
+      "clear": "清除",
+      "invalid": "请输入正数金额，留空表示不限额。",
+      "failed": "无法更改每日预算：{{error}}",
+      "readout": "最近 24 小时：所有自动化共报告 {{spent}}",
+      "readoutWithLimit": "最近 24 小时：已报告 {{spent}}，限额 {{limit}}",
+      "unmeasured": "最近 24 小时：有运行发生，但没有任何引擎报告费用，因此无法执行预算。",
+      "noRuns": "最近 24 小时：没有运行，预算尚未经过检验。",
+      "lowerBoundNote": "有些运行没有报告费用，因此这个总额只是下限。",
+      "partialNote": "历史记录有上限，这个时间段内较早的一次运行可能未计入总额。",
+      "help": "每日预算覆盖所有定时运行；每个任务自己的限额仍然生效，手动运行不会被两者阻止。"
+    }
   },
   "speculation": {
     "title": "投机预览",

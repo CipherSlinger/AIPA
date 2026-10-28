@@ -131,6 +131,14 @@ export interface AutomationStore {
   jobs: AutomationJob[]
   /** Global pause; false whenever the stored value is absent or malformed. */
   pausedAll: boolean
+  /**
+   * One daily spend cap for all jobs together, in USD. Like `pausedAll` this is
+   * timing/rail state owned by the scheduler, not a property of any one job, so
+   * it lives beside `jobs` rather than on a job. Absent means no cap; an
+   * unusable stored value also reads as absent (never as a cap of 0, which would
+   * refuse every run forever).
+   */
+  globalDailyCostLimitUsd?: number
 }
 
 export function readAutomationStore(): AutomationStore {
@@ -139,6 +147,7 @@ export function readAutomationStore(): AutomationStore {
   try {
     const parsed = JSON.parse(fs.readFileSync(file, 'utf-8')) as Record<string, unknown>
     const list = Array.isArray(parsed.jobs) ? parsed.jobs : []
+    const globalDailyCostLimitUsd = normalizeDailyCostLimit(parsed.globalDailyCostLimitUsd)
     return {
       jobs: list
         .map(normalizeJob)
@@ -148,6 +157,10 @@ export function readAutomationStore(): AutomationStore {
       // every job because of a malformed flag would be the worse outcome, and
       // the user would have no visible cause for the silence.
       pausedAll: parsed.pausedAll === true,
+      // A negative number, a string, a typo above the maximum or a hand edit all
+      // fail open to "no cap": the alternative is enforcing a number the user
+      // never intended, and 0 in particular would block every scheduled run.
+      ...(globalDailyCostLimitUsd !== undefined ? { globalDailyCostLimitUsd } : {}),
     }
   } catch (err) {
     // A corrupt file must not stop the app; keep it on disk for inspection and
@@ -167,6 +180,11 @@ export function writeAutomationStore(store: AutomationStore): void {
       JSON.stringify({
         version: STORE_VERSION,
         pausedAll: store.pausedAll === true,
+        // Omitted, not `null` or `0`: "cleared" and "never set" must round-trip
+        // as the same state, and both mean "no cap".
+        ...(store.globalDailyCostLimitUsd !== undefined
+          ? { globalDailyCostLimitUsd: store.globalDailyCostLimitUsd }
+          : {}),
         jobs: store.jobs,
       }, null, 2),
       'utf-8',
@@ -187,11 +205,20 @@ export function readAutomationJobs(): AutomationJob[] {
 }
 
 /**
- * Write only the jobs, preserving the global pause it did not set.
+ * Write only the jobs, preserving the global state it did not set.
  *
  * Kept for older harnesses and simple callers; the scheduler uses
- * `writeAutomationStore` so one atomic write carries both halves of the state.
+ * `writeAutomationStore` so one atomic write carries every half of the state.
+ * The pause and the global cap are read back rather than defaulted, or a simple
+ * job write would silently clear both.
  */
 export function writeAutomationJobs(jobs: AutomationJob[]): void {
-  writeAutomationStore({ jobs, pausedAll: readAutomationStore().pausedAll })
+  const current = readAutomationStore()
+  writeAutomationStore({
+    jobs,
+    pausedAll: current.pausedAll,
+    ...(current.globalDailyCostLimitUsd !== undefined
+      ? { globalDailyCostLimitUsd: current.globalDailyCostLimitUsd }
+      : {}),
+  })
 }

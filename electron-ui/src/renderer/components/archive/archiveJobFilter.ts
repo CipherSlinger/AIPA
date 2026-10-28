@@ -223,9 +223,17 @@ export function jobLastOutcomeText(
     return { text: `${t('automation.status.success')} · ${when}`, color: 'var(--success-text)' }
   }
   if (job.lastStatus === 'skipped') {
-    const budget = job.lastError === 'budget_exceeded'
+    // Three rails can skip a run: the hourly cap (the generic label), the job's
+    // own spend limit, and the budget shared by every job. They read differently
+    // because only the first is a cadence decision; a budget stop names which
+    // budget, since the job's own limit may not even be set.
+    const text = job.lastError === 'global_budget_exceeded'
+      ? t('automation.status.globalBudgetSkipped')
+      : job.lastError === 'budget_exceeded'
+        ? t('automation.status.budgetSkipped')
+        : t('automation.status.skipped')
     return {
-      text: `${budget ? t('automation.status.budgetSkipped') : t('automation.status.skipped')} · ${when}`,
+      text: `${text} · ${when}`,
       color: 'var(--warning-text)',
     }
   }

@@ -7,10 +7,11 @@
 // `automation:changed` instead of guessing what the scheduler did.
 
 import { useCallback, useEffect, useState } from 'react'
-import { AlarmClock, AlertTriangle, Clock, History, Pause, Pencil, Play, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { AlarmClock, AlertTriangle, Clock, History, Pause, Pencil, Play, Plus, RotateCcw, Trash2, Wallet } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { usePrefsStore } from '../../store'
 import SettingsGroup from './SettingsGroup'
+import { INPUT_STYLE } from './settingsConstants'
 import Toggle from '../ui/Toggle'
 import { formatTokens } from '../../utils/formatUtils'
 import AutomationDialog, { ASSISTANT_PERSONA_ID, type WorkflowOption } from '../automation/AutomationDialog'
@@ -67,6 +68,11 @@ export default function SettingsAutomations() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [pauseBusy, setPauseBusy] = useState(false)
+  // The budget field is kept as text so an empty value means "no cap" instead of
+  // $0; a null draft means "show what the store says", and typing replaces it.
+  const [budgetDraft, setBudgetDraft] = useState<string | null>(null)
+  const [budgetBusy, setBudgetBusy] = useState(false)
+  const [budgetError, setBudgetError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   // The pause travels in the scheduler's limits payload; a null payload (the
@@ -75,6 +81,12 @@ export default function SettingsAutomations() {
   // Only enabled jobs are affected by a pause: a job already switched off is
   // not suspended a second time, and counting it would overstate the damage.
   const enabledCount = jobs.filter(job => job.enabled).length
+
+  // The one daily cap across every job. `globalSpend` is derived by the main
+  // process at list time from the same jobs, so it is safe to show beside them.
+  const globalLimit = limits?.globalDailyCostLimitUsd
+  const globalSpend = limits?.globalSpend
+  const budgetText = budgetDraft ?? (globalLimit !== undefined ? String(globalLimit) : '')
 
   const refresh = useCallback(async () => {
     try {
@@ -138,12 +150,14 @@ export default function SettingsAutomations() {
     if (record.status === 'success') return { text: t('automation.status.success'), color: 'var(--success-text)' }
     if (record.status === 'skipped') {
       // The generic skip label names the hourly cap; a spend-stop must say so
-      // instead, or the row would blame the wrong rail.
-      const budget = record.error === 'budget_exceeded'
-      return {
-        text: budget ? t('automation.status.budgetSkipped') : t('automation.status.skipped'),
-        color: WARNING,
-      }
+      // instead, or the row would blame the wrong rail. The global budget gets
+      // its own words: the job's own limit may not even be set.
+      const text = record.error === 'global_budget_exceeded'
+        ? t('automation.status.globalBudgetSkipped')
+        : record.error === 'budget_exceeded'
+          ? t('automation.status.budgetSkipped')
+          : t('automation.status.skipped')
+      return { text, color: WARNING }
     }
     return { text: t('automation.status.error'), color: 'var(--danger-text)' }
   }, [t])
@@ -216,6 +230,81 @@ export default function SettingsAutomations() {
     }
   }
 
+  /**
+   * Save or clear the one daily budget. `null` is the wire-level "no cap"; an
+   * emptied field saves the same thing so clearing never requires a second click
+   * on a different button.
+   *
+   * Only values that cannot be a dollar amount are refused here. The upper bound
+   * (`MAX_DAILY_COST_LIMIT_USD`) belongs to the main process, and its refusal
+   * comes back as a stable code shown in this same inline slot.
+   */
+  const saveGlobalBudget = async (clear: boolean) => {
+    if (budgetBusy) return
+    setBudgetError(null)
+    let value: number | null = null
+    if (!clear) {
+      const text = budgetText.trim()
+      if (text !== '') {
+        const parsed = Number(text)
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+          setBudgetError(t('automation.budget.invalid'))
+          return
+        }
+        value = parsed
+      }
+    }
+    setBudgetBusy(true)
+    try {
+      const result = await window.electronAPI.automationSetGlobalBudget(value)
+      if (result.ok) {
+        // Show the normalized number (or an empty field) rather than the raw
+        // draft, so "5.00" is rewritten as the value the store actually holds.
+        setBudgetDraft(result.globalDailyCostLimitUsd !== undefined
+          ? String(result.globalDailyCostLimitUsd)
+          : '')
+      } else {
+        setBudgetError(errorText(result.error))
+      }
+    } catch (err) {
+      setBudgetError(t('automation.budget.failed', { error: String(err) }))
+    } finally {
+      setBudgetBusy(false)
+    }
+  }
+
+  /**
+   * The shared window's readout.
+   *
+   * Same honesty rules as the per-job row: an unmeasured window says so instead
+   * of printing $0, and a lower bound is prefixed with `≥` because some run in
+   * the window reported no money or an evicted record may sit inside it.
+   */
+  const budgetReadout = ((): { text: string; notes: string[]; color: string } | null => {
+    if (!globalSpend) return null
+    const limitText = globalLimit !== undefined ? costText(globalLimit) : null
+    if (globalSpend.measuredUsd !== undefined) {
+      const lowerBound = globalSpend.partial || globalSpend.unreportedRuns > 0
+      const spent = `${lowerBound ? '≥ ' : ''}${costText(globalSpend.measuredUsd)}`
+      const notes: string[] = []
+      if (globalSpend.unreportedRuns > 0) notes.push(t('automation.budget.lowerBoundNote'))
+      if (globalSpend.partial) notes.push(t('automation.budget.partialNote'))
+      return {
+        text: limitText
+          ? t('automation.budget.readoutWithLimit', { spent, limit: limitText })
+          : t('automation.budget.readout', { spent }),
+        notes,
+        color: globalLimit !== undefined && globalSpend.measuredUsd + 1e-9 >= globalLimit
+          ? WARNING
+          : SECONDARY,
+      }
+    }
+    if (globalSpend.unmeasured) {
+      return { text: t('automation.budget.unmeasured'), notes: [], color: WARNING }
+    }
+    return { text: t('automation.budget.noRuns'), notes: [], color: SECONDARY }
+  })()
+
   const toggleJob = async (job: AutomationJobData, enabled: boolean) => {
     setError(null)
     setBusyId(job.id)
@@ -268,12 +357,14 @@ export default function SettingsAutomations() {
     if (job.lastStatus === 'success') return { text: `${t('automation.status.success')} · ${when}${late}`, color: 'var(--success-text)' }
     if (job.lastStatus === 'skipped') {
       // A spend stop is still a skip, not a failure of the work; name the rail
-      // that stopped it so it is not mistaken for the hourly cap.
-      const budget = job.lastError === 'budget_exceeded'
-      return {
-        text: `${budget ? t('automation.status.budgetSkipped') : t('automation.status.skipped')} · ${when}`,
-        color: WARNING,
-      }
+      // that stopped it so it is not mistaken for the hourly cap. The global
+      // daily budget is a different rail from the job's own limit.
+      const text = job.lastError === 'global_budget_exceeded'
+        ? t('automation.status.globalBudgetSkipped')
+        : job.lastError === 'budget_exceeded'
+          ? t('automation.status.budgetSkipped')
+          : t('automation.status.skipped')
+      return { text: `${text} · ${when}`, color: WARNING }
     }
     const detail = errorText(job.lastError)
     return {
@@ -428,6 +519,68 @@ export default function SettingsAutomations() {
             <span>{t('automation.pauseAll.banner')}</span>
           </div>
         )}
+
+        {/* One daily cap across every job. It sits beside Pause-all because it
+            is the other switch over the whole store rather than a property of a
+            job; the per-job fields still exist and still apply on top of it. */}
+        <div style={{
+          marginBottom: 10, padding: '7px 9px', borderRadius: 6,
+          border: '1px solid var(--border)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Wallet size={13} style={{ flexShrink: 0, color: SECONDARY }} />
+            <div style={{ flex: 1, minWidth: 140, fontSize: 11.5, color: SECONDARY, lineHeight: 1.45 }}>
+              <div>{t('automation.budget.label')}</div>
+              {budgetReadout && (
+                <div style={{ marginTop: 2, fontSize: 11, color: budgetReadout.color }}>
+                  {budgetReadout.text}
+                  {budgetReadout.notes.length > 0 && (
+                    // Named inline, not only in a tooltip: a total that may be
+                    // low must not look exact on a settings page the user only
+                    // glances at.
+                    <div style={{ fontSize: 10.5, color: SECONDARY }}>
+                      {budgetReadout.notes.join(' · ')}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={budgetText}
+              onChange={e => { setBudgetDraft(e.target.value); setBudgetError(null) }}
+              placeholder={t('automation.budget.placeholder')}
+              aria-label={t('automation.budget.label')}
+              disabled={budgetBusy}
+              style={{ ...INPUT_STYLE, width: 96, fontSize: 12, padding: '4px 8px' }}
+            />
+            <button
+              style={{ ...smallButtonStyle, opacity: budgetBusy ? 0.5 : 1 }}
+              disabled={budgetBusy}
+              onClick={() => saveGlobalBudget(false)}
+            >
+              {t('automation.budget.save')}
+            </button>
+            {globalLimit !== undefined && (
+              <button
+                style={{ ...smallButtonStyle, opacity: budgetBusy ? 0.5 : 1 }}
+                disabled={budgetBusy}
+                onClick={() => saveGlobalBudget(true)}
+              >
+                {t('automation.budget.clear')}
+              </button>
+            )}
+          </div>
+          <div style={{ fontSize: 10.5, color: SECONDARY, marginTop: 4, lineHeight: 1.45 }}>
+            {t('automation.budget.hint')}
+          </div>
+          {budgetError && (
+            <div style={{ fontSize: 11, color: 'var(--danger-text)', marginTop: 4 }}>
+              {budgetError}
+            </div>
+          )}
+        </div>
 
         {error && (
           <div style={{
@@ -788,6 +941,7 @@ export default function SettingsAutomations() {
           <li>{t('automation.appMustRun')}</li>
           <li>{t('automation.missedRunRule')}</li>
           <li>{t('automation.pauseAll.help')}</li>
+          <li>{t('automation.budget.help')}</li>
           <li>
             {t('automation.limitsNote', {
               count: limits?.maxRunsPerHour ?? 12,

@@ -12,6 +12,7 @@ import { useFocusTimer, FOCUS_PRESETS } from './useStatusBarTimers'
 import { useStreamingSpeed } from './useStreamingSpeed'
 import { useMemoryUsage } from '../../hooks/useMemoryUsage'
 import StatusBarTokenPopup from './StatusBarTokenPopup'
+import BackgroundWorkIndicator from './BackgroundWorkIndicator'
 
 // Per-model pricing tiers (inspired by Claude Code modelCost.ts)
 // Format: [inputCostPerMtok, outputCostPerMtok]
@@ -420,6 +421,11 @@ export default function StatusBar() {
           )}
         </div>
 
+        {/* Background work: scheduled runs in flight or waiting to retry
+            (wave 24). Renders nothing when idle, so its absence is the default
+            state. Kept at the end of the flexible center zone so appearing
+            never shifts the fixed left/right segments. */}
+        <BackgroundWorkIndicator />
       </div>
 
       <Separator />

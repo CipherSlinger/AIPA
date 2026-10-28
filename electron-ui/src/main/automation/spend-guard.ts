@@ -19,10 +19,21 @@
  *
  * Pure and Electron-free so `.scratch/wave17-spend-guard-harness` can pin `now`
  * and exercise the boundaries without a scheduler or a window.
+ *
+ * The second half of this module is the *global* daily cap: one number across
+ * every job, because three jobs with a $5 limit each can still spend $15 a day.
+ * It sums the same per-job windows rather than keeping a ledger of its own, so
+ * deleting a job also removes its spend from the total — which is what "the
+ * automations this app still knows about" means.
  */
 
 import { AUTOMATION_HISTORY_CAP } from './run-history'
-import type { AutomationJob, AutomationRunRecordStatus, AutomationSpendWindow } from './types'
+import type {
+  AutomationGlobalSpendWindow,
+  AutomationJob,
+  AutomationRunRecordStatus,
+  AutomationSpendWindow,
+} from './types'
 
 /** A run counts as inside the window when `windowStart < startedAt <= now`. */
 export const SPEND_WINDOW_MS = 24 * 60 * 60_000
@@ -155,6 +166,107 @@ export function checkSpendLimit(
 
   const summary = summarizeSpendWindow(job, now)
   if (summary.reportedCostUsd !== undefined && summary.reportedCostUsd + 1e-9 >= limit) {
+    return { kind: 'blocked', summary }
+  }
+  return { kind: 'allowed', summary, unmeasured: summary.unmeasured }
+}
+
+// ── The global daily cap ─────────────────────────────
+//
+// Three jobs with a $5 limit each can still spend $15 a day. The per-job rail
+// answers "which job is over its own budget"; users asked for one number that
+// covers the day, so this half of the module sums every job's window instead of
+// one job's. The rules are deliberately the same ones, not a parallel policy:
+// only reported money counts, a window that reported nothing is unevaluable
+// (and therefore allowed, loudly flagged), and a manual run is the user
+// spending on purpose and is never blocked.
+
+/**
+ * What the shared rolling window holds across every job.
+ *
+ * Each job is summarised by `summarizeSpendWindow` rather than by folding the
+ * histories again here: that function owns the definition of "inside the
+ * window", "is an attempt", and "the capped history makes this a lower bound",
+ * and a second implementation would eventually disagree with the first. Only
+ * the totals are summed.
+ *
+ * Deleted jobs do not appear: their history left the store with them. A ledger
+ * that remembered them would be a second source of truth for money, and the
+ * user was asking for a cap on what the app still knows about, not an audit.
+ */
+export function summarizeGlobalSpendWindow(
+  jobs: readonly AutomationJob[],
+  now: number,
+  globalDailyCostLimitUsd?: unknown,
+): AutomationGlobalSpendWindow {
+  const limitUsd = normalizeDailyCostLimit(globalDailyCostLimitUsd)
+  let measuredUsd: number | undefined
+  let unreportedRuns = 0
+  let attemptedRuns = 0
+  let partial = false
+
+  for (const job of jobs) {
+    const summary = summarizeSpendWindow(job, now)
+    if (summary.reportedCostUsd !== undefined) {
+      measuredUsd = (measuredUsd ?? 0) + summary.reportedCostUsd
+    }
+    unreportedRuns += summary.unreportedRuns
+    attemptedRuns += summary.attemptedRuns
+    // One job whose history no longer reaches the window start is enough to
+    // make the shared total a lower bound: the evicted runs could belong to any
+    // job, and the cap covers all of them.
+    if (summary.partial) partial = true
+  }
+
+  return {
+    ...(limitUsd !== undefined ? { limitUsd } : {}),
+    ...(measuredUsd !== undefined ? { measuredUsd } : {}),
+    unreportedRuns,
+    // With a partial window and no report, the missing runs may have spent
+    // money the sum never saw, so the cap is equally unevaluable.
+    unmeasured: measuredUsd === undefined && (attemptedRuns > 0 || partial),
+    partial,
+  }
+}
+
+/**
+ * Why a scheduled run may or may not start, considering every job's spend.
+ *
+ * Same decision shape as the per-job rail on purpose; `not_applicable` means
+ * there is no cap, or the user asked for this run by hand.
+ */
+export type GlobalSpendGuardDecision =
+  | { kind: 'not_applicable' }
+  | { kind: 'allowed'; summary: AutomationGlobalSpendWindow; unmeasured: boolean }
+  | { kind: 'blocked'; summary: AutomationGlobalSpendWindow }
+
+/**
+ * Decide whether a scheduled run may start under the shared daily cap.
+ *
+ * `jobs` is the scheduler's live list, including the job about to run: its own
+ * earlier runs today are part of what the cap is counting. The scheduler calls
+ * this only after the per-job rail has allowed the run — when both rails would
+ * refuse, the more specific per-job reason wins and only one skip is written.
+ *
+ * At or above the limit blocks, with the same epsilon as the per-job rail so a
+ * sum that is mathematically exactly at the cap is treated as at the cap. A
+ * window whose runs reported no money is allowed (`unmeasured` tells the caller
+ * to say the cap could not be checked); a window whose *measured* sum is
+ * already over the cap is blocked even if other runs went unreported, because
+ * the known spend alone has exhausted the budget.
+ */
+export function checkGlobalSpendLimit(
+  jobs: readonly AutomationJob[],
+  globalDailyCostLimitUsd: unknown,
+  now: number,
+  source: 'scheduled' | 'manual',
+): GlobalSpendGuardDecision {
+  if (source === 'manual') return { kind: 'not_applicable' }
+  const limit = normalizeDailyCostLimit(globalDailyCostLimitUsd)
+  if (limit === undefined) return { kind: 'not_applicable' }
+
+  const summary = summarizeGlobalSpendWindow(jobs, now, limit)
+  if (summary.measuredUsd !== undefined && summary.measuredUsd + 1e-9 >= limit) {
     return { kind: 'blocked', summary }
   }
   return { kind: 'allowed', summary, unmeasured: summary.unmeasured }

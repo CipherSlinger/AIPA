@@ -228,6 +228,35 @@ export interface AutomationSpendWindow {
   partial: boolean
 }
 
+/**
+ * The reported spend of *every* job inside the shared rolling 24-hour window.
+ *
+ * The per-job window answers "is this job over its own limit"; this one answers
+ * the question a user with three $5 jobs actually asked — "how much can today
+ * cost me in total". Jobs that were deleted are not represented: their history
+ * left the store with them, and a separate ledger to remember them would be a
+ * second source of truth for money.
+ *
+ * `measuredUsd` is absent when nothing in the window reported money; it is
+ * never `0`, because `$0` is a real report from some engines.
+ */
+export interface AutomationGlobalSpendWindow {
+  /** The normalized global cap, absent when the user has not set one. */
+  limitUsd?: number
+  /** Sum of reported costs across all jobs in the window. */
+  measuredUsd?: number
+  /** In-window attempts that reported no cost, making `measuredUsd` a lower bound. */
+  unreportedRuns: number
+  /**
+   * No cost was reported for a window that had attempts, or whose capped
+   * history cannot prove it had none, so the cap cannot be evaluated. A run is
+   * allowed in that state, and every surface must say why.
+   */
+  unmeasured: boolean
+  /** Some job's capped history may not reach back to `windowStart`. */
+  partial: boolean
+}
+
 export interface AutomationJobView extends AutomationJob {
   /** The workflow this job names no longer exists in prefs. */
   actionMissing: boolean
@@ -262,6 +291,19 @@ export interface AutomationLimits {
    * carries the same fact for callers that only list jobs.
    */
   pausedAll: boolean
+  /**
+   * One daily spend cap for *all* jobs together, over the same rolling 24 h as
+   * the per-job rail. Absent means no cap; a per-job limit still applies on top
+   * of it, whichever the user set.
+   */
+  globalDailyCostLimitUsd?: number
+  /**
+   * The shared window's live figures, computed at list time from the same job
+   * array the caller is about to see, so the settings readout can never disagree
+   * with the history it came from. Present even when no cap is set: seeing last
+   * day's total is what makes the field worth filling in.
+   */
+  globalSpend?: AutomationGlobalSpendWindow
   /**
    * The opt-in retry policy, exposed so the dialog and pending row can name
    * the actual numbers instead of repeating them in translation copy.

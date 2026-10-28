@@ -12,6 +12,7 @@ import {
   listAutomationJobs,
   runAutomationNow,
   setAutomationEnabled,
+  setAutomationGlobalBudget,
   setAutomationPausedAll,
   updateAutomationJob,
 } from '../automation/scheduler'
@@ -43,4 +44,20 @@ export function registerAutomationHandlers(): void {
   // per-job setEnabled channel: individual switches keep working while paused.
   ipcMain.handle('automation:setPausedAll', (_event, paused: boolean) =>
     setAutomationPausedAll(paused === true))
+
+  // One daily cap for every job together, beside the global pause because it is
+  // the same kind of state: a rail over the whole store, not a field on a job.
+  // `null` clears it. Anything that is not a number is rejected rather than
+  // coerced, so a renderer bug cannot silently remove the budget.
+  ipcMain.handle('automation:setGlobalBudget', (_event, limitUsd: number | null) => {
+    try {
+      if (limitUsd !== null && typeof limitUsd !== 'number') {
+        return { ok: false, error: 'cost_limit_invalid' }
+      }
+      return setAutomationGlobalBudget(limitUsd)
+    } catch (err) {
+      console.error('[automation:setGlobalBudget]', err)
+      return { ok: false, error: 'unexpected_error' }
+    }
+  })
 }
