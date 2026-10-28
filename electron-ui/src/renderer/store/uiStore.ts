@@ -1,6 +1,6 @@
 // UI store — extracted from store/index.ts (Iteration 440)
 import { create } from 'zustand'
-import { ToastItem, ToastType } from '../components/ui/Toast'
+import { ToastAction, ToastItem, ToastType } from '../components/ui/Toast'
 import type { SettingsTab } from '../components/settings/settingsConstants'
 import { usePluginStore } from './pluginStore'
 
@@ -36,7 +36,9 @@ interface UiState {
   toggleCommandPalette: () => void
   focusMode: boolean
   toggleFocusMode: () => void
-  addToast: (type: ToastType, message: string, duration?: number) => void
+  // `action` is the fourth positional argument so the hundreds of existing
+  // `addToast(type, message, duration?)` calls keep compiling untouched.
+  addToast: (type: ToastType, message: string, duration?: number, action?: ToastAction) => void
   removeToast: (id: string) => void
 
   // NavRail active item tracking
@@ -253,12 +255,12 @@ export const useUiStore = create<UiState>((set) => ({
     // Exiting focus mode: restore sidebar
     return { focusMode: false, sidebarOpen: true }
   }),
-  addToast: (type, message, duration) => {
+  addToast: (type, message, duration, action) => {
     const id = `toast-${Date.now()}-${Math.random()}`
     // Error toasts persist longer (8s default vs 4s)
     const effectiveDuration = duration ?? (type === 'error' ? 8000 : 4000)
     set((s) => ({
-      toasts: [...s.toasts, { id, type, message, duration: effectiveDuration }],
+      toasts: [...s.toasts, { id, type, message, duration: effectiveDuration, action }],
     }))
   },
   removeToast: (id) => set((s) => ({ toasts: s.toasts.filter(t => t.id !== id) })),

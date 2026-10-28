@@ -21,6 +21,7 @@ import { nextFireTime, parseCron } from '../utils/cron'
 import { createLogger } from '../utils/logger'
 import { getAllowedFsRoots, safePath } from '../utils/validate'
 import { readAutomationJobs, writeAutomationJobs } from './job-store'
+import { addToLifetimeTotals } from './run-usage'
 import { pickRunModel, resolveWorkflowPersona } from './persona-plan'
 import type { StoredPersona, WorkflowPersonaBinding } from './persona-plan'
 import { abortAutomationRun } from './runner'
@@ -264,6 +265,8 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
     job.lastSessionId = null
     job.lastRunLate = false
     job.lastDurationMs = null
+    // Nothing ran, so the previous run's spend must not masquerade as this one's.
+    job.lastUsage = undefined
     log.warn(`Automation "${job.name}" disabled — its workflow no longer exists`)
     persistAndBroadcast()
     return
@@ -272,6 +275,7 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
     job.lastRunAt = now
     job.lastStatus = 'error'
     job.lastError = 'nothing_to_run'
+    job.lastUsage = undefined
     if (!opts.manual) job.nextRunAt = nextRunAfter(job.trigger, now)
     persistAndBroadcast()
     return
@@ -330,6 +334,13 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
   job.lastError = outcome.ok ? null : (outcome.error || 'run_failed')
   job.lastSessionId = outcome.sessionId ?? null
   job.lastRunLate = opts.late
+  // A failed run still reports what its completed turns spent, so usage lives on
+  // the outcome, not only on success. `undefined` here clears a stale figure
+  // from an earlier run when this engine reported nothing.
+  job.lastUsage = outcome.usage
+  const totals = addToLifetimeTotals(job, outcome.usage)
+  job.totalTokens = totals.totalTokens
+  job.totalCostUsd = totals.totalCostUsd
   persistAndBroadcast()
   log.info(`Automation "${job.name}" finished: ${job.lastStatus}${outcome.sessionId ? ` (session ${outcome.sessionId})` : ''}`)
   // `raiseAttention` owns the one delivery decision for every surface: pet
@@ -427,6 +438,7 @@ function tick(): void {
       job.lastStatus = 'skipped'
       job.lastError = 'hourly_limit'
       job.lastRunLate = false
+      job.lastUsage = undefined
       job.nextRunAt = nextRunAfter(job.trigger, now)
       dirty = true
       log.warn(`Automation "${job.name}" skipped — more than ${AUTOMATION_LIMITS.maxRunsPerHour} runs this hour`)
@@ -458,6 +470,9 @@ export function startAutomationScheduler(
     if (job.lastStatus === 'running') {
       job.lastStatus = 'error'
       job.lastError = 'interrupted'
+      // The interrupted run never wrote a usage figure; an older run's would be
+      // read as this failed run's spend.
+      job.lastUsage = undefined
       repaired = true
     }
     // Due-while-closed jobs keep their past nextRunAt: the first tick runs them

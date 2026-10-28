@@ -130,7 +130,26 @@ export default function ExportDialog({ onClose }: Props) {
       if ((result as any)?.error) {
         addToast('error', t('chat.exportFailed', { error: (result as any).error }))
       } else {
-        addToast('success', t('chat.exportSuccess'))
+        // The dialog closes on success, so the toast is the only place the
+        // finished file can be reached. Longer than the 4s default because
+        // the notice has to be read before the button is usable.
+        addToast('success', t('chat.exportSuccess'), 8000, {
+          label: t('toast.action.showInFolder'),
+          ariaLabel: t('toast.action.showInFolderAria'),
+          onClick: () => {
+            void window.electronAPI.shellShowItemInFolder(filePath)
+              .then((shown) => {
+                if (shown && !shown.success) {
+                  console.error('[AIPA] Failed to reveal exported file', filePath, shown.error)
+                  addToast('error', t('chat.exportShowFailed'))
+                }
+              })
+              .catch((err: unknown) => {
+                console.error('[AIPA] Failed to reveal exported file', filePath, err)
+                addToast('error', t('chat.exportShowFailed'))
+              })
+          },
+        })
         onClose()
       }
     } catch (err: any) {

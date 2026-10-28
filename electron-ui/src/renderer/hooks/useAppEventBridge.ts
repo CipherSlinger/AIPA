@@ -93,15 +93,26 @@ export function useAppEventBridge() {
     // A plugin's visible `chat.ask` writes a real transcript, but the sidebar
     // does not poll: until something refetches, the conversation is invisible.
     // The toast names the plugin so the new entry is not mistaken for the
-    // user's own. Toasts have no action slot today, so opening stays in the
-    // archive rather than pretending there is an "Open" button.
-    const offPluginConversation = window.electronAPI.onPluginConversationCreated(({ pluginId, pluginLabel }) => {
+    // user's own, and its "Open" posts the same `aipa:openSession` event the
+    // archive uses, so persona and working-directory restoration match.
+    const offPluginConversation = window.electronAPI.onPluginConversationCreated(({ pluginId, pluginLabel, sessionId }) => {
       void listSessionsShared().then((list) => {
         if (list) useSessionStore.getState().setSessions(list as SessionListItem[])
       })
+      const t = getT()
+      const name = pluginLabel || pluginId
       useUiStore.getState().addToast(
         'info',
-        getT()('plugin.conversationCreated', { name: pluginLabel || pluginId }),
+        t('plugin.conversationCreated', { name }),
+        // A 4s window is too short to read the notice and reach a button.
+        8000,
+        {
+          label: t('toast.action.open'),
+          ariaLabel: t('toast.action.openAria', { name }),
+          onClick: () => {
+            window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: sessionId }))
+          },
+        },
       )
     })
 

@@ -7,6 +7,8 @@
  * must survive a restart and its runs must be readable afterwards.
  */
 
+import type { RunUsage } from './run-usage'
+
 export type AutomationTrigger =
   | { kind: 'cron'; expr: string }
   | { kind: 'interval'; minutes: number }
@@ -43,6 +45,16 @@ export interface AutomationJob {
   /** True when the last run fired after its scheduled minute (app was closed). */
   lastRunLate: boolean
   lastDurationMs: number | null
+  /**
+   * What the most recent completed run spent, when its engine reported usage.
+   * Absent after a run that reported nothing, and on a job that never ran, so
+   * the row stays empty instead of showing zeros.
+   */
+  lastUsage?: RunUsage
+  /** Lifetime input + output tokens reported across this job's runs. */
+  totalTokens?: number
+  /** Lifetime cost as the engine reported it; absent when no run reported one. */
+  totalCostUsd?: number
   /** Starts, including failed ones; skips by a safety rail do not count. */
   runCount: number
   /** Start timestamps inside the rolling hour, for the runaway guard. */
@@ -100,4 +112,9 @@ export interface AutomationRunOutcome {
   error?: string
   /** Last assistant text, trimmed, for the completion notification. */
   summary?: string
+  /**
+   * What the run spent before finishing or failing. A run that died after some
+   * turns still carries their usage, so a failure does not hide the spend.
+   */
+  usage?: RunUsage
 }

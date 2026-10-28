@@ -185,7 +185,8 @@
       "declined": "已拒绝",
       "cancelled": "已取消",
       "requestingInformation": "正在请求信息"
-    }
+    },
+    "exportShowFailed": "无法在文件夹中显示该文件"
   },
   "sessionReuse": {
     "menu": {
@@ -2989,7 +2990,18 @@
       "deleteFailed": "无法删除自动化：{{error}}"
     },
     "personaHint": "该工作流的定时运行使用此专家；工作流页面上的“运行”按钮仍使用当前对话的专家。",
-    "personaMissing": "专家已删除"
+    "personaMissing": "专家已删除",
+    "usage": {
+      "tokens": "{{count}} Token",
+      "totalCost": "累计 {{cost}}",
+      "tooltip": {
+        "input": "输入 {{count}} Token",
+        "output": "输出 {{count}} Token",
+        "cached": "缓存 {{count}} Token",
+        "totalTokens": "累计 {{count}} Token",
+        "totalCost": "累计费用 {{cost}}"
+      }
+    }
   },
   "speculation": {
     "title": "投机预览",
@@ -3107,6 +3119,14 @@
     }
   },
   "plugin": {
-    "conversationCreated": "{{name}} 发起了一段对话，可在档案中查看。"
+    "conversationCreated": "{{name}} 发起了一段对话。"
+  },
+  "toast": {
+    "action": {
+      "open": "打开",
+      "openAria": "打开 {{name}} 发起的对话",
+      "showInFolder": "在文件夹中显示",
+      "showInFolderAria": "在文件夹中显示导出的文件"
+    }
   }
 }

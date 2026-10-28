@@ -4,11 +4,19 @@ import { useT } from '../../i18n'
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
 
+export interface ToastAction {
+  label: string
+  onClick: () => void
+  // Spoken name when `label` is terse ("Open") and needs the object it acts on.
+  ariaLabel?: string
+}
+
 export interface ToastItem {
   id: string
   type: ToastType
   message: string
   duration?: number  // ms, default 4000
+  action?: ToastAction
 }
 
 interface ToastProps {
@@ -50,15 +58,41 @@ const VARIANT_STYLES: Record<ToastType, { bg: string; border: string; color: str
   },
 }
 
-const TOAST_KEYFRAMES = `
+const TOAST_STYLES = `
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(12px) scale(0.96); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
+/* The type accent tints the border and hover wash; the focus ring uses the
+   theme accent because the pastel type colours do not clear 3:1 on the light
+   popup surface. The global reduced-motion rule collapses the transition. */
+.aipa-toast-action {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 1px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--toast-accent);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.aipa-toast-action:hover {
+  background: var(--toast-accent-soft);
+}
+.aipa-toast-action:focus-visible {
+  outline: 2px solid var(--accent-solid);
+  outline-offset: 2px;
+}
 `
 
 export function Toast({ toast, onDismiss }: ToastProps) {
-  const { id, type, message, duration = 4000 } = toast
+  const { id, type, message, duration = 4000, action } = toast
   const Icon = ICONS[type]
   const v = VARIANT_STYLES[type]
   const t = useT()
@@ -69,9 +103,20 @@ export function Toast({ toast, onDismiss }: ToastProps) {
     return () => clearTimeout(timer)
   }, [id, duration, onDismiss])
 
+  // Dismiss in `finally`: a handler that throws must not leave a dead button
+  // on screen until the timer catches up.
+  const runAction = () => {
+    if (!action) return
+    try {
+      action.onClick()
+    } finally {
+      onDismiss(id)
+    }
+  }
+
   return (
     <>
-      <style>{TOAST_KEYFRAMES}</style>
+      <style>{TOAST_STYLES}</style>
       <div
         role={type === 'error' || type === 'warning' ? 'alert' : 'status'}
         style={{
@@ -100,6 +145,22 @@ export function Toast({ toast, onDismiss }: ToastProps) {
         }} />
         <Icon size={16} color={v.iconColor} style={{ flexShrink: 0, marginTop: 1, marginLeft: 8 }} />
         <span style={{ flex: 1, fontSize: 13, fontWeight: 500, lineHeight: 1.4, color: 'var(--text-primary)' }}>{message}</span>
+        {action && (
+          <button
+            type="button"
+            className="aipa-toast-action"
+            onClick={runAction}
+            aria-label={action.ariaLabel ?? action.label}
+            style={{
+              // Custom properties carry the per-type accent into the stylesheet
+              // rules for hover and focus, which inline styles cannot express.
+              '--toast-accent': v.iconColor,
+              '--toast-accent-soft': `${v.iconColor}22`,
+            } as React.CSSProperties}
+          >
+            {action.label}
+          </button>
+        )}
         <button
           onClick={() => onDismiss(id)}
           style={{

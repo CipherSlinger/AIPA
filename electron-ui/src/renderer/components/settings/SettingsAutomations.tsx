@@ -12,6 +12,7 @@ import { usePrefsStore } from '../../store'
 import SettingsGroup from './SettingsGroup'
 import Toggle from '../ui/Toggle'
 import { INPUT_STYLE } from './settingsConstants'
+import { formatTokens } from '../../utils/formatUtils'
 import { pushEscapeHandler } from '../ui/escapeStack'
 import type {
   AutomationInputData,
@@ -76,6 +77,17 @@ function pad(n: number): string {
 
 function clockText(hour: number, minute: number): string {
   return `${pad(hour)}:${pad(minute)}`
+}
+
+/**
+ * Money as the engine reported it. Costs stay compact: a settings row has room
+ * for `$0.03`, and very small amounts keep a third digit instead of rounding
+ * away to `$0.00`.
+ */
+function costText(usd: number): string {
+  if (usd < 0.001) return '<$0.001'
+  if (usd < 0.01) return `$${usd.toFixed(3)}`
+  return `$${usd.toFixed(2)}`
 }
 
 /** Render a stored cron back into the dialog's fields, or null when custom. */
@@ -223,6 +235,55 @@ export default function SettingsAutomations() {
     }
   }
 
+  /**
+   * Spend appended to the status line.
+   *
+   * Codex reports tokens but no money, so the cost segment is omitted rather
+   * than rendered as `$0`. Only an actual run (success or failure) has spend:
+   * a skipped or interrupted job leaves the previous figure out of this line.
+   */
+  const usageLine = (job: AutomationJobData): { text: string; title: string } | null => {
+    if (job.lastStatus !== 'success' && job.lastStatus !== 'error') return null
+    const usage = job.lastUsage
+    // Cache reads stay out of the headline count: they are reported separately
+    // and would dwarf the conversation tokens in a compact figure.
+    const runTokens = usage ? usage.inputTokens + usage.outputTokens : 0
+    const runCost = usage?.costUsd !== undefined && usage.costUsd > 0 ? usage.costUsd : 0
+    const totalCost = job.totalCostUsd !== undefined && job.totalCostUsd > 0 ? job.totalCostUsd : 0
+    if (runTokens === 0 && runCost === 0 && totalCost === 0) return null
+
+    const parts: string[] = []
+    if (runTokens > 0) parts.push(t('automation.usage.tokens', { count: formatTokens(runTokens) }))
+    if (runCost > 0) parts.push(costText(runCost))
+    // The first run's lifetime total is its own cost; repeating it would add a
+    // segment that says nothing. After that, the running total earns its place.
+    if (totalCost > 0 && totalCost > runCost + 1e-9) {
+      parts.push(t('automation.usage.totalCost', { cost: costText(totalCost) }))
+    }
+
+    const detail: string[] = []
+    if (usage) {
+      if (usage.inputTokens > 0) {
+        detail.push(t('automation.usage.tooltip.input', { count: formatTokens(usage.inputTokens) }))
+      }
+      if (usage.outputTokens > 0) {
+        detail.push(t('automation.usage.tooltip.output', { count: formatTokens(usage.outputTokens) }))
+      }
+      if (usage.cachedInputTokens !== undefined && usage.cachedInputTokens > 0) {
+        detail.push(t('automation.usage.tooltip.cached', { count: formatTokens(usage.cachedInputTokens) }))
+      }
+    }
+    const lifetime: string[] = []
+    if (job.totalTokens !== undefined && job.totalTokens > 0) {
+      lifetime.push(t('automation.usage.tooltip.totalTokens', { count: formatTokens(job.totalTokens) }))
+    }
+    if (totalCost > 0) {
+      lifetime.push(t('automation.usage.tooltip.totalCost', { cost: costText(totalCost) }))
+    }
+    const title = [...(detail.length > 0 ? [detail.join(' · ')] : []), ...lifetime].join('\n')
+    return { text: parts.join(' · '), title }
+  }
+
   return (
     <div className="settings-group-columns">
       <SettingsGroup title={t('automation.title')} icon={<AlarmClock size={13} />} groupKey="automations">
@@ -258,6 +319,7 @@ export default function SettingsAutomations() {
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {jobs.map((job, index) => {
               const status = statusLine(job)
+              const usage = usageLine(job)
               const persona = jobPersona(job)
               const busy = busyId === job.id || job.running
               return (
@@ -321,7 +383,15 @@ export default function SettingsAutomations() {
                       )}
                     </div>
 
-                    <div style={{ fontSize: 11, color: status.color, marginTop: 4 }}>{status.text}</div>
+                    <div style={{ fontSize: 11, color: status.color, marginTop: 4, lineHeight: 1.45 }}>
+                      <span>{status.text}</span>
+                      {usage && (
+                        // Muted so the spend reads as an aside to the outcome,
+                        // not a second status. The tooltip carries the parts a
+                        // compact row has no room for.
+                        <span style={{ color: SECONDARY }} title={usage.title}>{` · ${usage.text}`}</span>
+                      )}
+                    </div>
 
                     {job.actionMissing && (
                       // Icon hugs the first line; centring it against a wrapped

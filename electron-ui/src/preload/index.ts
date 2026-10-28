@@ -316,6 +316,14 @@ export type AutomationActionData =
 
 export type AutomationRunStatusData = 'success' | 'error' | 'skipped' | 'running'
 
+/** Mirrors main's `RunUsage`; cost stays absent when the engine reported none. */
+export interface AutomationRunUsageData {
+  inputTokens: number
+  outputTokens: number
+  cachedInputTokens?: number
+  costUsd?: number
+}
+
 export interface AutomationJobData {
   id: string
   name: string
@@ -331,6 +339,12 @@ export interface AutomationJobData {
   lastSessionId: string | null
   lastRunLate: boolean
   lastDurationMs: number | null
+  /** What the last completed run spent, when the engine reported usage. */
+  lastUsage?: AutomationRunUsageData
+  /** Lifetime input + output tokens across this job's runs. */
+  totalTokens?: number
+  /** Lifetime cost reported by the engine; absent when none was reported. */
+  totalCostUsd?: number
   runCount: number
   recentRuns: number[]
   /** The workflow this job targets no longer exists. */

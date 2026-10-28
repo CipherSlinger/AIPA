@@ -11,6 +11,7 @@ import { app } from 'electron'
 import * as fs from 'fs'
 import * as path from 'path'
 import { createLogger } from '../utils/logger'
+import { normalizeCost, normalizeRunUsage, normalizeTokenCount } from './run-usage'
 import type { AutomationAction, AutomationJob, AutomationRunStatus, AutomationTrigger } from './types'
 
 const log = createLogger('automation-store')
@@ -75,6 +76,12 @@ function normalizeJob(raw: unknown): AutomationJob | null {
     lastSessionId: typeof job.lastSessionId === 'string' ? job.lastSessionId : null,
     lastRunLate: job.lastRunLate === true,
     lastDurationMs: numberOrNull(job.lastDurationMs),
+    // Optional accounting: restore a valid record as-is, and leave a missing or
+    // malformed one undefined. Writing 0 here would turn "the engine never
+    // reported a cost" into "$0".
+    lastUsage: normalizeRunUsage(job.lastUsage),
+    totalTokens: normalizeTokenCount(job.totalTokens),
+    totalCostUsd: normalizeCost(job.totalCostUsd),
     runCount: typeof job.runCount === 'number' && job.runCount >= 0 ? Math.floor(job.runCount) : 0,
     recentRuns,
   }

@@ -185,7 +185,8 @@
       "declined": "Declined",
       "cancelled": "Cancelled",
       "requestingInformation": "Requesting information"
-    }
+    },
+    "exportShowFailed": "Could not show the file in its folder"
   },
   "sessionReuse": {
     "menu": {
@@ -2989,7 +2990,18 @@
       "deleteFailed": "Could not delete the automation: {{error}}"
     },
     "personaHint": "Scheduled runs of this workflow use this expert. The workflow's own Run button still uses the current conversation's expert.",
-    "personaMissing": "Expert deleted"
+    "personaMissing": "Expert deleted",
+    "usage": {
+      "tokens": "{{count}} tok",
+      "totalCost": "total {{cost}}",
+      "tooltip": {
+        "input": "Input {{count}} tok",
+        "output": "Output {{count}} tok",
+        "cached": "Cached {{count}} tok",
+        "totalTokens": "All runs {{count}} tok",
+        "totalCost": "All runs cost {{cost}}"
+      }
+    }
   },
   "speculation": {
     "title": "Speculative Preview",
@@ -3107,6 +3119,14 @@
     }
   },
   "plugin": {
-    "conversationCreated": "{{name}} started a conversation. You can open it from the archive."
+    "conversationCreated": "{{name}} started a conversation."
+  },
+  "toast": {
+    "action": {
+      "open": "Open",
+      "openAria": "Open the conversation started by {{name}}",
+      "showInFolder": "Show in folder",
+      "showInFolderAria": "Show the exported file in its folder"
+    }
   }
 }

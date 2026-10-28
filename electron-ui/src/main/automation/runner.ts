@@ -36,6 +36,8 @@ import { streamBridgeManager } from '../pty/stream-bridge'
 import { buildMemoryBlockForTurn, prefixWithMemoryContext } from '../sessions/memory-context'
 import { createLogger } from '../utils/logger'
 import { buildPersonaPromptPrefix, filterModelForEngine } from './persona-plan'
+import { RunUsageAccumulator, readTurnUsage } from './run-usage'
+import type { TurnUsage } from './run-usage'
 import type { AutomationRunOutcome, AutomationRunRequest } from './types'
 
 const log = createLogger('automation-runner')
@@ -68,6 +70,8 @@ function summarize(text: string): string | undefined {
 interface TurnResult {
   ok: boolean
   error?: string
+  /** What this turn spent, when the engine reported it — failures included. */
+  usage?: TurnUsage
 }
 
 /**
@@ -100,6 +104,11 @@ function runCodexTurn(bridge: CodexBridge, start: () => Promise<void>, timeoutMs
     let settled = false
     let turnError = ''
     let timer: NodeJS.Timeout | undefined
+    // Codex reports the turn's usage as it progresses; each update restates the
+    // turn's totals, so only the latest snapshot is kept. `result` is not used:
+    // when a turn reports no update the bridge can replay the previous turn's
+    // cached snapshot, which would double-count it in a multi-prompt run.
+    let turnUsage: TurnUsage | undefined
 
     const finish = (result: TurnResult) => {
       if (settled) return
@@ -108,7 +117,8 @@ function runCodexTurn(bridge: CodexBridge, start: () => Promise<void>, timeoutMs
       bridge.off('result', onResult)
       bridge.off('turnError', onTurnError)
       bridge.off('processExit', onExit)
-      resolve(result)
+      bridge.off('tokenUsageUpdated', onUsage)
+      resolve(turnUsage ? { ...result, usage: turnUsage } : result)
     }
 
     const onResult = (data: { subtype?: string }) => {
@@ -121,10 +131,15 @@ function runCodexTurn(bridge: CodexBridge, start: () => Promise<void>, timeoutMs
     const onExit = (data: { code?: number }) => {
       finish({ ok: false, error: `Codex exited (code ${data?.code ?? '?'})` })
     }
+    const onUsage = (data: { usage?: unknown }) => {
+      const parsed = readTurnUsage(data?.usage)
+      if (parsed) turnUsage = parsed
+    }
 
     bridge.on('result', onResult)
     bridge.on('turnError', onTurnError)
     bridge.on('processExit', onExit)
+    bridge.on('tokenUsageUpdated', onUsage)
 
     timer = setTimeout(() => {
       // A wedged engine would otherwise hold a concurrency slot forever.
@@ -212,6 +227,7 @@ function createClaudeRun(
   let streamed = ''
   let resultText = ''
   let sessionId: string | undefined
+  let turnUsage: TurnUsage | undefined
   let first = true
 
   const collectText = (data: { text?: string }) => {
@@ -230,6 +246,7 @@ function createClaudeRun(
     async send(prompt: string, timeoutMs: number): Promise<TurnResult> {
       streamed = ''
       resultText = ''
+      turnUsage = undefined
       return new Promise<TurnResult>((resolve) => {
         let settled = false
         let turnError = ''
@@ -248,6 +265,8 @@ function createClaudeRun(
         const onResult = (data: {
           subtype?: string
           claudeSessionId?: string
+          totalCostUsd?: unknown
+          usage?: unknown
           event?: Record<string, unknown>
         }) => {
           // The result envelope carries the real JSONL session id. It is the
@@ -256,6 +275,12 @@ function createClaudeRun(
             ? data.claudeSessionId
             : (typeof data?.event?.session_id === 'string' ? data.event.session_id : '')
           if (real) sessionId = real
+          // Each result in session mode is one turn, so its `usage` and
+          // `total_cost_usd` are that turn's spend and can be added as-is.
+          turnUsage = readTurnUsage(
+            data?.usage ?? data?.event?.usage,
+            data?.totalCostUsd ?? data?.event?.total_cost_usd,
+          ) ?? turnUsage
           // Claude puts the complete answer on the envelope; the accumulated
           // deltas are only a fallback (they can double-count the `assistant`
           // message and its `content_block_delta`s).
@@ -264,8 +289,8 @@ function createClaudeRun(
           }
           const subtype = typeof data?.subtype === 'string' ? data.subtype : 'success'
           finish(subtype === 'success'
-            ? { ok: true }
-            : { ok: false, error: turnError || `Turn ended with ${subtype}` })
+            ? { ok: true, usage: turnUsage }
+            : { ok: false, error: turnError || `Turn ended with ${subtype}`, usage: turnUsage })
         }
         const onApiError = (data: { message?: string }) => {
           if (data?.message) turnError = String(data.message)
@@ -336,6 +361,9 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
   const run = engine.kind === 'codex'
     ? createCodexRun(req, bridgeId, codexModel)
     : createClaudeRun(req, bridgeId, engine)
+  // Spend is accumulated across the job's prompts: every turn is one result in
+  // the same conversation, and a failure after N turns must still report them.
+  const usage = new RunUsageAccumulator()
   activeRuns.set(jobId, bridgeId)
   if (req.personaId) {
     log.info(`Automation ${jobId} runs as persona ${req.personaName ?? req.personaId}`)
@@ -364,7 +392,12 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
       // Checked once per prompt so a run that is already out of budget does
       // not start another turn only to time out against a 1 ms timer.
       if (remaining() <= 0) {
-        return { ok: false, error: 'Run exceeded its time budget', sessionId: run.sessionId() }
+        return {
+          ok: false,
+          error: 'Run exceeded its time budget',
+          sessionId: run.sessionId(),
+          usage: usage.total(),
+        }
       }
       // Memory stays outermost; inside it the order matches a chat turn:
       // persona prompt, output style, then the workflow's own step.
@@ -372,12 +405,18 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
         prefixWithMemoryContext(systemPrefix + req.prompts[i], memoryText),
         remaining(),
       )
+      usage.add(turn.usage)
       if (!turn.ok) {
         log.warn(`Automation ${jobId} step ${i + 1} failed: ${turn.error}`)
         // A failed turn may still have written a transcript (Claude reports its
         // session id on the error result; Codex reports the thread id first).
         // Keep it so the failure notification can open what was produced.
-        return { ok: false, error: turn.error, sessionId: run.sessionId() }
+        return {
+          ok: false,
+          error: turn.error,
+          sessionId: run.sessionId(),
+          usage: usage.total(),
+        }
       }
     }
 
@@ -388,10 +427,10 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
     if (!sessionId) {
       log.warn(`Automation ${jobId} finished without a reported session id; the run will not be openable`)
     }
-    return { ok: true, sessionId, summary: summarize(run.lastText()) }
+    return { ok: true, sessionId, summary: summarize(run.lastText()), usage: usage.total() }
   } catch (err) {
     log.warn(`Automation ${jobId} failed:`, err)
-    return { ok: false, error: String(err), sessionId: run.sessionId() }
+    return { ok: false, error: String(err), sessionId: run.sessionId(), usage: usage.total() }
   } finally {
     activeRuns.delete(jobId)
     run.dispose()
