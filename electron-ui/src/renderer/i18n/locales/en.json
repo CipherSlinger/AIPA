@@ -3660,5 +3660,19 @@
     "reached": "limit reached",
     "spendControlReached": "spend limit reached",
     "hint": "Account limits as reported by Codex. AIPA shows the numbers without estimates."
+  },
+  "branch": {
+    "action": "Branch from here",
+    "blocked": {
+      "notUser": "Only a user message can start a branch.",
+      "noTurnId": "This message was loaded from disk without a turn id, so it cannot be branched.",
+      "guidance": "This message was sent into a running turn, so it is not a branch point.",
+      "noSession": "Open a conversation before branching.",
+      "streaming": "Wait for the current turn to finish before branching."
+    },
+    "failed": "Could not branch this conversation.",
+    "created": "Branched into a new conversation",
+    "createdFrom": "Branched from “{{excerpt}}”",
+    "createdEmpty": "Branched into a new empty conversation — there was no earlier history to keep"
   }
 }

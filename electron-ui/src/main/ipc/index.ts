@@ -7,6 +7,7 @@ import { fallbackShellManager } from '../pty/fallback-shell'
 import {
   codexBridgeManager,
   renameCodexThread,
+  forkCodexThread,
   fetchCodexModels,
   fetchCodexAccountUsage,
   fetchCodexRateLimits,
@@ -740,14 +741,36 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     }
   })
 
-  // Codex-specific: fork a thread
-  ipcMain.handle('cli:forkThread', async (_e, { sessionId, lastTurnId }: { sessionId: string; lastTurnId?: string }) => {
-    const codexBridge = codexBridgeManager.get(sessionId)
-    if (codexBridge) {
-      const newThreadId = await codexBridge.forkThread(lastTurnId)
-      return { success: true, threadId: newThreadId }
+  // Codex-specific: branch a conversation from an earlier user message.
+  //
+  // Validates like `cli:steerTurn` and resolves with a result instead of
+  // throwing: the engine's own refusal text (`-32600`, verbatim) is what the
+  // renderer shows, and a rejected IPC call would reach it as an opaque
+  // "Error invoking remote method" instead.
+  //
+  // `sessionId` is the Codex thread id (the id `session:list`/`session:load`
+  // use), not a bridge id. `forkCodexThread` always uses a throwaway
+  // app-server: `thread/fork` emits `thread/started`, which would retarget a
+  // live bridge at the new branch. Detaching also means this can never resume
+  // or join another conversation's bridge.
+  ipcMain.handle('cli:forkThread', async (_e, args: { sessionId?: unknown; beforeTurnId?: unknown } | undefined) => {
+    const threadId = typeof args?.sessionId === 'string' ? args.sessionId.trim() : ''
+    if (!threadId) {
+      return { success: false, error: 'Missing sessionId' }
     }
-    return { success: false, error: 'No active codex bridge' }
+    const beforeTurnId = typeof args?.beforeTurnId === 'string' && args.beforeTurnId.trim()
+      ? args.beforeTurnId.trim()
+      : undefined
+    try {
+      const fork = await forkCodexThread(threadId, beforeTurnId)
+      // `turnCount` is how much history the branch kept. The renderer opens an
+      // empty branch (0 turns — branching before the first message) directly,
+      // because there is no transcript for `session:load` to read.
+      return { success: true, threadId: fork.threadId, turnCount: fork.turnCount }
+    } catch (err) {
+      log.warn('forkThread error:', String(err))
+      return { success: false, error: String(err) }
+    }
   })
 
   // ── Engine routing ──────────────────────────────────
@@ -957,6 +980,10 @@ function wireCodexBridge(
   // Codex-specific events
   bridge.on('itemStarted', (d) => sink('cli:itemStarted', d))
   bridge.on('itemCompleted', (d) => sink('cli:itemCompleted', d))
+  // The engine's echo of the user's prompt, carrying the turn it started. The
+  // renderer uses it to tag its locally-added user row with a `turnId` — the
+  // only value `thread/fork` accepts as a branch point.
+  bridge.on('userMessageTurn', (d) => sink('cli:userMessageTurn', d))
   bridge.on('toolProgress', (d) => sink('cli:toolProgress', d))
   // Live `apply_patch` snapshots; the Edit card grows while Codex writes.
   bridge.on('patchUpdated', (d) => sink('cli:patchUpdated', d))

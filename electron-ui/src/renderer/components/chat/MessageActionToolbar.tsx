@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { StandardChatMessage } from '../../types/app.types'
-import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Pin, Languages, StickyNote, ThumbsUp, ThumbsDown, Undo2, ChevronDown, FileText, Braces, GitBranch } from 'lucide-react'
+import { Copy, Check, Bookmark, Code2, Pencil, MessageSquareQuote, NotebookPen, Volume2, VolumeX, Brain, Pin, Languages, StickyNote, ThumbsUp, ThumbsDown, Undo2, ChevronDown, FileText, Braces, GitBranch, GitFork } from 'lucide-react'
 import { useT } from '../../i18n'
 
 // ---------- ActionButton ----------
@@ -121,6 +121,10 @@ interface MessageActionToolbarProps {
   onCopyCodeBlocks?: () => void
   hasCodeBlocks?: boolean
   onFork?: () => void
+  /** Codex native branch; shown only for a row with a known turn id. */
+  onBranch?: () => void
+  /** Set when the action is visible but cannot run (a turn is streaming). */
+  branchBlockedReason?: string
 }
 
 // ---------- Component ----------
@@ -138,6 +142,8 @@ export default function MessageActionToolbar({
   onCopyCodeBlocks,
   hasCodeBlocks,
   onFork,
+  onBranch,
+  branchBlockedReason,
 }: MessageActionToolbarProps) {
   const t = useT()
   const [showCopyMenu, setShowCopyMenu] = useState(false)
@@ -158,6 +164,7 @@ export default function MessageActionToolbar({
   // Whether any "left group" buttons are visible (edit / fork / rewind)
   const hasLeftGroup = (isUser && hasOnEdit && !globalIsStreaming) ||
     (isUser && !!onFork && !globalIsStreaming) ||
+    (isUser && (!!onBranch || !!branchBlockedReason)) ||
     (!!onRewind && !isLastMessage && !globalIsStreaming && !isPermission && !isPlan)
 
   // Whether right assistant-only group is visible (save/remember)
@@ -211,6 +218,26 @@ export default function MessageActionToolbar({
           title={t('message.editMessage')}
         >
           <Pencil size={13} />
+        </ActionButton>
+      )}
+
+      {/* Branch from here (Codex user message with a known turn id). The
+          button appears in the toolbar's hover/focus group, so it is reachable
+          by keyboard; while a turn streams it stays visible but disabled and
+          its title says why. */}
+      {isUser && (onBranch || branchBlockedReason) && (
+        <ActionButton
+          onClick={(e) => {
+            e.stopPropagation()
+            if (branchBlockedReason) return
+            onBranch?.()
+          }}
+          title={branchBlockedReason || t('branch.action')}
+          aria-label={branchBlockedReason || t('branch.action')}
+          disabled={!!branchBlockedReason}
+          style={branchBlockedReason ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+        >
+          <GitFork size={13} />
         </ActionButton>
       )}
 

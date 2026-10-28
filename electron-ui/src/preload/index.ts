@@ -1111,8 +1111,22 @@ const electronAPI = {
       /** The engine's own rejection text (`-32600` and friends), verbatim. */
       error?: string
     }>,
-  cliForkThread: (args: { sessionId: string; lastTurnId?: string }) =>
-    ipcRenderer.invoke('cli:forkThread', args) as Promise<{ success: boolean; threadId?: string; error?: string }>,
+  /**
+   * Branch a Codex conversation from an earlier user message.
+   *
+   * `sessionId` is the Codex thread id. `beforeTurnId` is exclusive: the new
+   * thread keeps every turn before it (omit it to copy the whole thread). The
+   * reply's `error` is the engine's own text, verbatim. `turnCount` is how much
+   * history the branch kept (0 = an empty branch, `null` = the engine did not
+   * say), which decides whether the new thread has a transcript to open.
+   */
+  threadFork: (args: { sessionId: string; beforeTurnId?: string }) =>
+    ipcRenderer.invoke('cli:forkThread', args) as Promise<{
+      success: boolean
+      threadId?: string
+      turnCount?: number | null
+      error?: string
+    }>,
 
   // ── Engine routing ─────────────────────────────
   // Which engine the next chat turn will run on. Read-only and derived from

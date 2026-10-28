@@ -43,6 +43,15 @@ import { useAwaySummary } from '../../hooks/useAwaySummary'
 import { useSpeculation } from '../../hooks/useSpeculation'
 import { useEvidenceReveal } from '../../hooks/useEvidenceReveal'
 import { personaModelOf, resolveEffectiveModel } from '../../lib/sessionModel'
+import {
+  branchToastParams,
+  decideFork,
+  deriveBranchLabel,
+  forkBlockedKey,
+  isEmptyBranch,
+  readForkResult,
+} from './forkDecision'
+import { adoptEmptyBranch } from '../departments/openSessionCore'
 
 const NOTE_BANNER_STYLE: React.CSSProperties = {
   display: 'flex',
@@ -334,6 +343,46 @@ export default function ChatPanel() {
     }
   }, [currentSessionId, currentSessionTitle, isStreaming, messages, prefs.forkMap, addToast, t])
 
+  // Codex branch handler (wave 45): fork the real engine thread before the
+  // selected user message and open the new conversation. Unlike `handleFork`
+  // above (the file-level fork), this asks the engine, so it needs the turn id
+  // the row learned from the engine's userMessage echo.
+  const handleBranch = useCallback(async (msgId: string) => {
+    const message = messages.find(m => m.id === msgId) as StandardChatMessage | undefined
+    const decision = decideFork(message, { isStreaming, sessionId: currentSessionId })
+    if (!decision.allowed) {
+      addToast('info', t(forkBlockedKey(decision.reason)))
+      return
+    }
+    const label = deriveBranchLabel(currentSessionTitle, message?.content)
+    try {
+      const result = await window.electronAPI.threadFork({
+        sessionId: currentSessionId as string,
+        beforeTurnId: decision.beforeTurnId,
+      })
+      const outcome = readForkResult(result)
+      if (!outcome.ok) {
+        // The engine's own refusal, verbatim; only a reply without any text
+        // falls back to AIPA's sentence.
+        addToast('error', outcome.error || t('branch.failed'))
+        return
+      }
+      // An empty branch has no rollout for `session:load` to read; adopt its
+      // thread id so the next message resumes it instead of starting a new one.
+      if (isEmptyBranch(outcome.turnCount)) {
+        adoptEmptyBranch(outcome.threadId)
+        addToast('success', t('branch.createdEmpty'))
+        return
+      }
+      addToast('success', label.excerpt
+        ? t('branch.createdFrom', branchToastParams(label))
+        : t('branch.created'))
+      window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: outcome.threadId }))
+    } catch (err) {
+      addToast('error', String(err))
+    }
+  }, [messages, isStreaming, currentSessionId, currentSessionTitle, addToast, t])
+
   return (
     <div
       className="flex flex-col h-full"
@@ -577,6 +626,7 @@ export default function ChatPanel() {
             evidenceMessageIdx={evidenceIndex}
             onEdit={handleEditMessage}
             onFork={handleFork}
+            onBranch={handleBranch}
             onScrollTop={handleScrollTop}
             tabId={activeTabId}
             restoreScrollTop={restoreScrollTop}

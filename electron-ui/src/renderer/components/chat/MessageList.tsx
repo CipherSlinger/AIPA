@@ -19,6 +19,7 @@ import { useBuildItems, useMessageListMaps } from './messageListUtils'
 import { useMessageListScroll } from './useMessageListScroll'
 import { useMessageNavigation } from './useMessageNavigation'
 import { useEngineSteps } from './useEngineSteps'
+import { branchAvailability, forkBlockedKey } from './forkDecision'
 
 // PERF: module-level handlers so every <Message> receives identical callback
 // identities across renders (store actions are read via getState()).
@@ -51,6 +52,8 @@ interface Props {
   evidenceMessageIdx?: number
   onEdit?: (msgId: string, newContent: string) => void
   onFork?: (msgIdx: number) => void
+  /** Codex: branch the engine thread before the user message with this id. */
+  onBranch?: (msgId: string) => void
   /** Reports the scroll offset as the user scrolls, for per-tab restore. */
   onScrollTop?: (scrollTop: number) => void
   /** Tab identity — when it changes, `restoreScrollTop` is applied once. */
@@ -59,7 +62,7 @@ interface Props {
   restoreScrollTop?: number
 }
 
-export default function MessageList({ messages, onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, onRespondHookCallback, onRespondElicitation, sessionId, isStreaming, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, evidenceMessageIdx, onEdit, onFork, onScrollTop, tabId, restoreScrollTop }: Props) {
+export default function MessageList({ messages, onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, onRespondHookCallback, onRespondElicitation, sessionId, isStreaming, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, evidenceMessageIdx, onEdit, onFork, onBranch, onScrollTop, tabId, restoreScrollTop }: Props) {
   const resolvePlan = useChatStore(s => s.resolvePlan)
   const addToast = useUiStore(s => s.addToast)
   const rewindToMessage = useChatStore(s => s.rewindToMessage)
@@ -221,6 +224,20 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
     return handler
   }, [])
 
+  // Same stable-identity pattern for the Codex branch action: the handler is
+  // created once per row and reads the latest callback through a ref.
+  const onBranchRef = useRef(onBranch)
+  onBranchRef.current = onBranch
+  const branchHandlersRef = useRef(new Map<string, () => void>())
+  const getBranchHandler = useCallback((msgId: string) => {
+    let handler = branchHandlersRef.current.get(msgId)
+    if (!handler) {
+      handler = () => { onBranchRef.current?.(msgId) }
+      branchHandlersRef.current.set(msgId, handler)
+    }
+    return handler
+  }, [])
+
   const renderMessage = useCallback((msg: ChatMessage, isHighlighted: boolean, msgIdx: number, isLast: boolean) => {
     if (msg.role === 'permission') {
       return (
@@ -270,6 +287,12 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
     // A single malformed message (e.g., bad markdown, huge content) won't crash the
     // entire ChatPanel. PermissionCard and PlanCard are simple enough not to need it.
     const rawContent = (msg as StandardChatMessage).content || ''
+    // A Codex user row is branchable while it still carries the turn id the
+    // engine echoed. Disk-loaded rows have none, so they never offer it. While
+    // a turn streams the action stays visible but disabled with the reason.
+    const branch = onBranch && msg.role === 'user'
+      ? branchAvailability(msg as StandardChatMessage, { isStreaming: !!isStreaming, sessionId })
+      : { visible: false, enabled: false, reason: null as null }
     // PERF: stable, per-message callback identities. Message branches on
     // message.role itself, so the fork/rewind callbacks can be created in the
     // callback body — Message.memo bails out when the message object is unchanged.
@@ -288,12 +311,18 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         onBookmark={handleBookmark}
         onCollapse={handleCollapse}
         onEdit={onEdit}
-        onFork={onFork ? getForkHandler(msg.id) : undefined}
+        // A natively branchable Codex row uses the engine branch action; the
+        // file-level fork dialog remains for rows that have no turn id.
+        onFork={onFork && !branch.visible ? getForkHandler(msg.id) : undefined}
+        onBranch={branch.enabled ? getBranchHandler(msg.id) : undefined}
+        branchBlockedReason={branch.visible && !branch.enabled && branch.reason
+          ? t(forkBlockedKey(branch.reason))
+          : undefined}
         onRewind={sessionId ? handleRewind : undefined}
       />
       </MessageErrorBoundary>
     )
-  }, [onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, onRespondHookCallback, onRespondElicitation, sessionId, resolvePlan, searchQuery, searchCaseSensitive, showAvatarMap, showTimestampMap, onEdit, onFork, getForkHandler, handleRewind, lastUserMsgId, assistantReplyMap])
+  }, [onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, onRespondHookCallback, onRespondElicitation, sessionId, isStreaming, resolvePlan, searchQuery, searchCaseSensitive, showAvatarMap, showTimestampMap, onEdit, onFork, onBranch, getForkHandler, getBranchHandler, handleRewind, lastUserMsgId, assistantReplyMap, t])
 
   return (
     <div style={{ height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>

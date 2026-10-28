@@ -3660,5 +3660,19 @@
     "reached": "已达上限",
     "spendControlReached": "已达支出上限",
     "hint": "Codex 报告的账户额度。AIPA 只显示原始数字，不做估计。"
+  },
+  "branch": {
+    "action": "从这里分支",
+    "blocked": {
+      "notUser": "只有用户消息可以作为分支起点。",
+      "noTurnId": "这条消息来自磁盘记录，没有轮次标识，无法从这里分支。",
+      "guidance": "这条消息是在运行中的轮次里追加的，不是分支起点。",
+      "noSession": "请先打开一个会话再分支。",
+      "streaming": "请等当前轮次结束后再分支。"
+    },
+    "failed": "无法为此会话创建分支。",
+    "created": "已创建新的分支会话",
+    "createdFrom": "已从“{{excerpt}}”创建新分支",
+    "createdEmpty": "已创建新的空分支会话——这条消息之前没有可保留的历史"
   }
 }

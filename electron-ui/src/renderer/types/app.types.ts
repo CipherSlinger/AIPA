@@ -90,6 +90,14 @@ export interface StandardChatMessage {
    * looks like an ordinary prompt would imply a fresh answer is coming.
    */
   guidance?: GuidanceReceipt
+  /**
+   * The Codex turn this user row started, learned from the engine's
+   * `userMessage` item echo. Absent on rows loaded from disk (the transcript
+   * does not persist turn ids) and on guidance rows (those name their turn in
+   * `guidance.turnId`). A row without a turn id cannot be branched from:
+   * `thread/fork` has no other way to name a branch point.
+   */
+  turnId?: string
   fileAttachments?: { name: string; path: string; size: number }[]  // file context attachments
   rating?: 'up' | 'down' | null
   bookmarked?: boolean

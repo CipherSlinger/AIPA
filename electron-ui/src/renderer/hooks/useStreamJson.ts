@@ -1515,7 +1515,13 @@ export function useStreamJson() {
             // exactly that id as its `expectedTurnId` precondition.
             const startedTurn = (data.event as { turn?: { id?: unknown } } | undefined)?.turn
             const turnId = typeof startedTurn?.id === 'string' ? startedTurn.id : ''
-            if (turnId) useChatStore.getState().setLiveTurnId(turnId)
+            if (turnId) {
+              useChatStore.getState().setLiveTurnId(turnId)
+              // Fallback attribution: the row the user just sent is the one
+              // this turn answers. The exact echo (`cli:userMessageTurn`) is
+              // preferred but may be missing on older builds.
+              useChatStore.getState().attachTurnToLastUserMessage(turnId)
+            }
             // A new turn is no longer covered by the previous turn's reroute
             // report. Warnings stay until `cli:result` (they can arrive before
             // `turn/started` during initialize).
@@ -1525,6 +1531,18 @@ export function useStreamJson() {
             // that each produced one unhandled item must not merge into one
             // "2 engine steps" row just because no visible message sat between.
             beginEngineTurn(useChatStore.getState().viewSessionId)
+          }
+          break
+        }
+        case 'cli:userMessageTurn': {
+          // The engine's echo of a user prompt, carrying the turn it started.
+          // Same ownership rule as every other turn event: a background bridge
+          // must not tag a row in the visible transcript.
+          const sid = typeof data.sessionId === 'string' ? data.sessionId : ''
+          if (!sid || !useChatStore.getState().isOwnedStreamEvent(sid)) break
+          const turnId = (data as { turnId?: unknown }).turnId
+          if (typeof turnId === 'string' && turnId) {
+            useChatStore.getState().attachTurnToLastUserMessage(turnId)
           }
           break
         }

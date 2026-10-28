@@ -1417,6 +1417,44 @@ export class CodexBridge extends EventEmitter {
   }
 
   /**
+   * Fork a thread into a new conversation branch, optionally stopping before
+   * one of its turns.
+   *
+   * Verified against Codex 0.145 (`app-server --stdio`) with a mock Responses
+   * provider:
+   *   request  { threadId, beforeTurnId? }            → thread/fork
+   *   response { thread: { id, forkedFromId, cwd, turns, preview, … }, … }
+   * `beforeTurnId` is **exclusive**: naming turn N keeps every turn before N,
+   * so naming the first turn produces a branch with no history. Omitting it
+   * copies the whole thread. A `beforeTurnId` that belongs to another thread
+   * (or does not exist) fails with JSON-RPC -32600:
+   *   `beforeTurnId '<id>' was not found in the source thread`
+   * A freshly spawned app-server can fork a thread created by another process
+   * without `thread/resume`; it only needs the normal `initialize` handshake.
+   * The response's thread carries the source thread's `cwd`, not the fork
+   * process's. This method takes the id explicitly instead of relying on
+   * `currentThreadId` so a detached bridge can fork a thread it does not own.
+   */
+  async forkThread(
+    threadId: string,
+    beforeTurnId?: string,
+  ): Promise<{ threadId: string; turnCount: number | null }> {
+    if (typeof threadId !== 'string' || !THREAD_ID_RE.test(threadId)) {
+      throw new Error(`Invalid Codex thread id: ${threadId}`)
+    }
+    const result = await this._sendRequest('thread/fork', {
+      threadId,
+      ...(beforeTurnId ? { beforeTurnId } : {}),
+    }) as { thread?: { id?: unknown; turns?: unknown } } | null
+    const newThreadId = typeof result?.thread?.id === 'string' ? result.thread.id : ''
+    if (!newThreadId) throw new Error('thread/fork returned no thread id')
+    // How much history the branch kept. `null` means the response did not say,
+    // which is not the same as "empty": a caller must not treat it as zero.
+    const turnCount = Array.isArray(result?.thread?.turns) ? result.thread.turns.length : null
+    return { threadId: newThreadId, turnCount }
+  }
+
+  /**
    * Reload the MCP configuration the running engine uses.
    *
    * `config/mcpServer/reload` takes no parameters (the schema types them as
@@ -1663,19 +1701,6 @@ export class CodexBridge extends EventEmitter {
       }
       this.proc = null
     }
-  }
-
-  /**
-   * Fork the current thread into a new conversation branch.
-   * Codex-specific feature.
-   */
-  async forkThread(lastTurnId?: string): Promise<string | null> {
-    if (!this.currentThreadId) return null
-    const result = await this._sendRequest('thread/fork', {
-      threadId: this.currentThreadId,
-      ...(lastTurnId ? { lastTurnId } : {}),
-    }) as { thread?: { id: string } }
-    return result?.thread?.id ?? null
   }
 
   /**
@@ -2519,9 +2544,13 @@ export class CodexBridge extends EventEmitter {
       // ── Turn lifecycle ─────────────────────────
       case 'turn/started': {
         const turn = params.turn as Record<string, unknown> | undefined
-        this.currentTurnId = (turn?.id as string) ?? this.currentTurnId
+        const turnId = (turn?.id as string) ?? this.currentTurnId
+        this.currentTurnId = turnId
         this.errorTurnId = null
-        this.emit('messageStart', { sessionId: sid, event: params })
+        // `turnId` is also a new top-level field: the renderer attributes the
+        // user's just-added row to the turn it started without digging into
+        // the raw event. Existing fields stay untouched.
+        this.emit('messageStart', { sessionId: sid, turnId: turnId ?? null, event: params })
         break
       }
 
@@ -2614,7 +2643,15 @@ export class CodexBridge extends EventEmitter {
         const itemId = (params.itemId as string) ?? ''
         if (itemId) this.streamedTextItems.add(itemId)
         if (delta) {
-          this.emit('textDelta', { sessionId: sid, text: delta, itemId })
+          // 0.145 puts `turnId` on the notification itself (verified); carrying
+          // it lets a consumer attribute the answer to its turn. No existing
+          // field changes.
+          this.emit('textDelta', {
+            sessionId: sid,
+            text: delta,
+            itemId,
+            ...(typeof params.turnId === 'string' ? { turnId: params.turnId } : {}),
+          })
         }
         break
       }
@@ -3096,7 +3133,31 @@ export class CodexBridge extends EventEmitter {
         // duplicate the whole message.
         if (this.streamedTextItems.has(itemId)) break
         const content = (item.text as string) ?? extractContentText(item.content)
-        if (content) this.emit('textDelta', { sessionId: sid, text: content, itemId })
+        if (content) {
+          this.emit('textDelta', {
+            sessionId: sid,
+            text: content,
+            itemId,
+            ...(typeof params.turnId === 'string' ? { turnId: params.turnId } : {}),
+          })
+        }
+        break
+      }
+
+      // The engine echoes the user's prompt as an item. It carries the turn it
+      // started (`params.turnId`), which is the only way the renderer can learn
+      // which turn a locally-added user row belongs to — and therefore the only
+      // valid `beforeTurnId` for branching from that row. Emitted on both
+      // phases; the renderer's attach is idempotent.
+      case 'userMessage': {
+        const turnId = typeof params.turnId === 'string' ? params.turnId : ''
+        if (!turnId) break
+        this.emit('userMessageTurn', {
+          sessionId: sid,
+          itemId,
+          turnId,
+          text: extractContentText(item.content),
+        })
         break
       }
 
@@ -3333,9 +3394,6 @@ export class CodexBridge extends EventEmitter {
         break
       }
 
-      case 'userMessage':
-        break
-
       default:
         log.debug(`Unknown item type: ${itemType} (phase=${phase})`)
         this.emit(phase === 'started' ? 'itemStarted' : 'itemCompleted', {
@@ -3485,6 +3543,44 @@ export async function renameCodexThread(threadId: string, name: string): Promise
     log.debug(`renameCodexThread failed for ${threadId}:`, String(err))
     return false
   }
+}
+
+/**
+ * Fork a Codex thread from outside a turn (branch a conversation from an
+ * earlier message).
+ *
+ * Always runs on a throwaway app-server, never on the live bridge that owns
+ * the conversation. This is deliberate and comes from the wire: `thread/fork`
+ * makes the server emit `thread/started` for the new branch on the forking
+ * connection (verified on 0.145). `CodexBridge` treats that notification as
+ * "the conversation moved" — it overwrites `currentThreadId`, and the IPC
+ * wiring re-maps the bridge id to the new thread. Reusing a live bridge would
+ * therefore send the user's next message in the original conversation into
+ * the fork. A detached process has no renderer sink and no conversation state,
+ * so it also cannot disturb a turn running in any other session.
+ *
+ * A fresh app-server can fork a persisted thread without `thread/resume`; it
+ * only needs the normal `initialize` handshake.
+ *
+ * `beforeTurnId` is exclusive on the wire (see `CodexBridge.forkThread`), so a
+ * caller naming a user message's turn gets the history *before* that message.
+ * `turnCount` says how much history the branch kept (`null` when the engine's
+ * reply did not say) — branching before the first turn yields an empty thread,
+ * which the caller must open differently from one with a transcript.
+ */
+export async function forkCodexThread(
+  threadId: string,
+  beforeTurnId?: string,
+  opts: { cwd?: string; env?: Record<string, string> } = {},
+): Promise<{ threadId: string; turnCount: number | null }> {
+  if (typeof threadId !== 'string' || !THREAD_ID_RE.test(threadId)) {
+    throw new Error(`Invalid Codex thread id: ${threadId}`)
+  }
+  return await CodexBridge.withDetached(
+    opts.cwd ?? process.cwd(),
+    opts.env ?? {},
+    (bridge) => bridge.forkThread(threadId, beforeTurnId),
+  )
 }
 
 // ── Read-only protocol probes ───────────────────────

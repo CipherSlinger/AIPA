@@ -225,6 +225,15 @@ interface ChatState {
   /** Mark a user message's images as undelivered, with the honest reason. */
   markAttachmentsNotSent: (msgId: string, reason: string) => void
   /**
+   * Tag the newest still-unattributed user row with the Codex turn it started.
+   * The engine echoes each prompt as a `userMessage` item carrying `turnId`;
+   * this matches that echo to the row the renderer added just before the turn.
+   * Guidance rows are skipped (they name their turn in `guidance.turnId`), and
+   * a row that already has a turn id makes this a no-op — the echo arrives on
+   * both `item/started` and `item/completed`.
+   */
+  attachTurnToLastUserMessage: (turnId: string) => void
+  /**
    * The turn currently running in the main process, as the composer knows it:
    * which engine owns it, and the Codex turn id once `turn/started` names it.
    * Steering is only legal against this id, never against a remembered one.
@@ -570,6 +579,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
         : m
     )),
   })),
+
+  attachTurnToLastUserMessage: (turnId) => set((s) => {
+    if (!turnId) return s
+    for (let i = s.messages.length - 1; i >= 0; i--) {
+      const msg = s.messages[i]
+      if (msg.role !== 'user') continue
+      const std = msg as StandardChatMessage
+      // Guidance entered a turn that was already running; its turn id is in
+      // the receipt, not a branch point of its own.
+      if (std.guidance) continue
+      // Already attributed: the second phase of the same item echo is a no-op.
+      if (std.turnId) return s
+      const messages = s.messages.slice()
+      messages[i] = { ...std, turnId }
+      return { messages }
+    }
+    return s
+  }),
 
   beginLiveTurn: (engine) => set({ liveTurn: { engine, turnId: null } }),
 

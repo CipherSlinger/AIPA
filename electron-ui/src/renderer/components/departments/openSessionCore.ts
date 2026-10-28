@@ -47,3 +47,23 @@ export async function openSessionCore(
     window.electronAPI.prefsSet('workingDir', deptDirectory)
   }
 }
+
+/**
+ * Open a branch that has no history yet.
+ *
+ * Codex persists a forked thread only once it has a turn, so a branch created
+ * before the first user message has no rollout file: `session:load` returns
+ * nothing and the normal open path would report it missing. The thread id is
+ * real, though — sending the next message resumes it and starts turn one.
+ *
+ * The branch keeps the source thread's working directory (the engine copies
+ * it), so the window's current directory is deliberately left alone.
+ */
+export function adoptEmptyBranch(threadId: string): void {
+  useUiStore.getState().setMainView('chat')
+  useUiStore.getState().closeSettingsModal()
+  useUiStore.getState().setFromDepartment(false)
+  useChatStore.getState().clearMessages()
+  useChatStore.getState().setSessionId(threadId)
+  useUiStore.getState().clearUnreadForSession(threadId)
+}

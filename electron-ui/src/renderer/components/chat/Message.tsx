@@ -25,6 +25,10 @@ interface Props {
   onCollapse?: (msgId: string) => void
   onEdit?: (msgId: string, newContent: string) => void
   onFork?: () => void
+  /** Codex: branch the engine thread before this user message. */
+  onBranch?: () => void
+  /** Localized reason the branch action is visible but disabled (streaming). */
+  branchBlockedReason?: string
   searchQuery?: string
   searchCaseSensitive?: boolean
   showAvatar?: boolean
@@ -34,7 +38,7 @@ interface Props {
   hasAssistantReply?: boolean
 }
 
-export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, onEdit, onFork, searchQuery, searchCaseSensitive, showAvatar = true, showTimestamp = true, isLastUserMsg = false, isLastMessage = false, hasAssistantReply = false }: Props) {
+export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, onEdit, onFork, onBranch, branchBlockedReason, searchQuery, searchCaseSensitive, showAvatar = true, showTimestamp = true, isLastUserMsg = false, isLastMessage = false, hasAssistantReply = false }: Props) {
   const t = useT()
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
@@ -438,6 +442,8 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             onCopyCodeBlocks={isAssistant && (message as StandardChatMessage).content?.includes('```') ? handleCopyCodeBlocks : undefined}
             hasCodeBlocks={!!(message as StandardChatMessage).content?.includes('```')}
             onFork={!isPermission && !isPlan && onFork ? onFork : undefined}
+            onBranch={!isPermission && !isPlan ? onBranch : undefined}
+            branchBlockedReason={!isPermission && !isPlan ? branchBlockedReason : undefined}
           />
         )}
       </div>
@@ -514,5 +520,9 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   if (prevProps.isLastMessage !== nextProps.isLastMessage) return false
   if (prevProps.isLastUserMsg !== nextProps.isLastUserMsg) return false
   if (prevProps.hasAssistantReply !== nextProps.hasAssistantReply) return false
+  // The branch action appears/disappears as the turn id arrives and as the
+  // turn starts/ends; the toolbar must re-render with that state.
+  if (!!prevProps.onBranch !== !!nextProps.onBranch) return false
+  if (prevProps.branchBlockedReason !== nextProps.branchBlockedReason) return false
   return true
 })
