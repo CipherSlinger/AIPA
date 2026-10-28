@@ -8,7 +8,7 @@
 // re-renders on hover.
 
 import React, { useMemo, useState } from 'react'
-import { MessageSquare, Pin, Trash2 } from 'lucide-react'
+import { MessageSquare, PenLine, Pin, Trash2 } from 'lucide-react'
 import { SessionListItem } from '../../types/app.types'
 import { formatRelativeTime, readSessionPersonaId } from './deptUtils'
 import { useI18n } from '../../i18n'
@@ -44,6 +44,11 @@ interface EmployeeFigureProps {
   /** Whether this session is streaming right now — drives the working pose. */
   isStreaming?: boolean
   isLoading?: boolean
+  /**
+   * The user filed this conversation here by hand. The label is theirs, not a
+   * folder match — a fact worth a small marker, never a change in status.
+   */
+  filedByHand?: boolean
   onDelete?: () => void
 }
 
@@ -53,6 +58,7 @@ export default function EmployeeFigure({
   isActive,
   isStreaming,
   isLoading,
+  filedByHand,
   onDelete,
 }: EmployeeFigureProps) {
   const { t, resolvedLocale } = useI18n()
@@ -187,6 +193,24 @@ export default function EmployeeFigure({
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             textAlign: 'center',
           }}>
+            {/* A pen before the name, not a badge: a quiet note that this label
+                is the user's choice, not a folder match. Inline so neither the
+                tile's height nor the roster's grid cell moves. */}
+            {filedByHand && (
+              <span
+                role="img"
+                title={t('dept.filedByHandTip')}
+                aria-label={t('dept.filedByHand')}
+                style={{
+                  display: 'inline-flex',
+                  verticalAlign: '-1px',
+                  marginRight: 4,
+                  color: 'var(--text-faint)',
+                }}
+              >
+                <PenLine size={9} aria-hidden="true" />
+              </span>
+            )}
             {title}
           </div>
           {/* The same origin badge the archive shows, on the roster's session

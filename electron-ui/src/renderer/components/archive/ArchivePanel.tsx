@@ -21,8 +21,10 @@ import {
   ChevronDown,
   ChevronRight,
   ExternalLink,
+  FolderInput,
   FolderOpen,
   Inbox,
+  PenLine,
   Search,
   X,
 } from 'lucide-react'
@@ -35,10 +37,12 @@ import {
 } from '../departments/deptUtils'
 import { buildDeptLookup, resolveDeptForSession } from '../departments/sessionFiling'
 import { openSessionCore } from '../departments/openSessionCore'
+import FileUnderDeptDialog from '../chat/FileUnderDeptDialog'
 import { displayTitle } from '../../lib/sessionTitle'
 import { formatDateTimeShort } from '../../utils/formatDate'
 import { CommandOnlyNotice, EmptyState, Pill } from './ArchiveChrome'
 import ArchiveJobSummary from './ArchiveJobSummary'
+import { filterByHandFiling, hasHandFiling } from './archiveFiling'
 import {
   deriveJobOptions, isFilteredEmpty, jobAfterOriginChange, resolveJobSelection,
   visibleJobOptions, type ArchiveOriginKind,
@@ -123,6 +127,11 @@ interface ArchiveRecord {
   archived: boolean
   /** No human-authored message in the transcript — a run of commands only. */
   commandOnly: boolean
+  /**
+   * The user filed this conversation by hand. True even when the target node
+   * was deleted: the assertion outlived the node, and the row says so.
+   */
+  handFiled: boolean
 }
 
 interface ArchiveGroup {
@@ -171,6 +180,11 @@ export default function ArchivePanel() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [opening, setOpening] = useState<string | null>(null)
   const [showCommandOnly, setShowCommandOnly] = useState<boolean>(readShowCommandOnly)
+  // Client-side only: the hand-filed toggle narrows what is already loaded and
+  // never starts an IPC call or re-reads the session list.
+  const [onlyHandFiled, setOnlyHandFiled] = useState(false)
+  // One dialog for the panel, opened for whichever row asked for it.
+  const [filingSessionId, setFilingSessionId] = useState<string | null>(null)
 
   // Remember the reveal choice; the toggle itself still works if storage throws.
   useEffect(() => {
@@ -202,6 +216,9 @@ export default function ArchivePanel() {
         // count then separates a command echo from a real run with a lost title.
         commandOnly: displayTitle(session, untitled) === untitled
           && (session.messageCount ?? 0) <= COMMAND_ONLY_MAX_MESSAGES,
+        // The marker and the filter share this one question, so a removed
+        // filing is "filed by hand" here even though it owns no live node.
+        handFiled: hasHandFiling(filings, session.sessionId),
       }
     }),
     [sessions, lookup, filings, archivedSet, byId, untitled],
@@ -270,10 +287,20 @@ export default function ArchivePanel() {
     return searching || showCommandOnly ? matched : matched.filter(r => !r.commandOnly)
   }, [scopedRecords, searching, queryText, showCommandOnly])
 
+  // The hand-filed toggle composes last, over the fully filtered listing, so it
+  // cannot resurrect a row another filter excluded. `hidden` is what the notice
+  // below the ledger reports, and it never starts an IPC call.
+  const handFiltered = useMemo(
+    () => filterByHandFiling(records, filings, onlyHandFiled),
+    [records, filings, onlyHandFiled],
+  )
+  const visibleRecords = handFiltered.visible
+  const handHiddenCount = handFiltered.hidden
+
   // Group by the top of each branch, newest-worked group first, 未分派 last.
   const groups: ArchiveGroup[] = useMemo(() => {
     const byRoot = new Map<string, ArchiveGroup>()
-    for (const record of records) {
+    for (const record of visibleRecords) {
       const key = record.root?.id ?? UNASSIGNED
       let group = byRoot.get(key)
       if (!group) {
@@ -288,7 +315,7 @@ export default function ArchivePanel() {
       if (!b.root) return -1
       return b.latest - a.latest
     })
-  }, [records])
+  }, [visibleRecords])
 
   // Scroll window. The ledger only mounts rows near the viewport; everything
   // else is represented by two spacer divs inside the group card, so the card's
@@ -345,10 +372,10 @@ export default function ArchivePanel() {
   // quietly reporting a total the user cannot see.
   const summary = useMemo(() => {
     const weekCutoff = Date.now() - TIME_WINDOWS.week
-    const week = records.filter(r => r.session.timestamp >= weekCutoff).length
-    const rootIds = new Set(records.map(r => r.root?.id).filter(Boolean) as string[])
-    return { total: records.length, roots: rootIds.size, week }
-  }, [records])
+    const week = visibleRecords.filter(r => r.session.timestamp >= weekCutoff).length
+    const rootIds = new Set(visibleRecords.map(r => r.root?.id).filter(Boolean) as string[])
+    return { total: visibleRecords.length, roots: rootIds.size, week }
+  }, [visibleRecords])
 
   /** The filter's options — one per branch that actually holds work. */
   const filterTargets = useMemo(() => {
@@ -404,8 +431,9 @@ export default function ArchivePanel() {
   }, [jobFilter])
 
   const exportLedger = useCallback(() => {
-    // `groups` is built from `records`, so the export is exactly the filtered
-    // ledger. Each row keeps its full origin, which carries the job id/name.
+    // `groups` is built from the fully filtered ledger, so the export is exactly
+    // what the user can see. Each row keeps its full origin, which carries the
+    // job id/name.
     const data = groups.map(group => ({
       company: group.root?.name ?? t('archive.unassigned'),
       directory: group.root?.directory ?? null,
@@ -437,18 +465,19 @@ export default function ArchivePanel() {
   }, [groups, t])
 
   const filtersActive = deptFilter !== 'all' || timeRange !== 'all' || originFilter !== 'all'
-    || jobFilter !== null || showArchived || query.trim().length > 0
+    || jobFilter !== null || showArchived || onlyHandFiled || query.trim().length > 0
   const clearFilters = () => {
     setDeptFilter('all')
     setTimeRange('all')
     setOriginFilter('all')
     setJobFilter(null)
     setShowArchived(false)
+    setOnlyHandFiled(false)
     setQuery('')
   }
 
   const filteredEmpty = isFilteredEmpty({
-    records: records.length,
+    records: visibleRecords.length,
     scopedRecords: scopedRecords.length,
     allRecords: allRecords.length,
     filtersActive,
@@ -460,6 +489,7 @@ export default function ArchivePanel() {
   const activeFilterNames = [
     originFilter !== 'all' ? t(`archive.origin.${originFilter}`) : null,
     jobFilter !== null ? (jobOptions.find(option => option.jobId === jobFilter)?.jobName ?? null) : null,
+    onlyHandFiled ? t('archive.onlyFiled') : null,
   ].filter((name): name is string => name !== null)
   const activeFilterDescription = activeFilterNames.join(' · ')
 
@@ -501,14 +531,14 @@ export default function ArchivePanel() {
             badge and the summary on the same 44px line. */}
         <button
           onClick={exportLedger}
-          disabled={records.length === 0}
+          disabled={visibleRecords.length === 0}
           className="archive-hover-btn"
           style={{
             display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
             height: 26, padding: '0 11px', borderRadius: 8, fontSize: 11, fontWeight: 600,
             border: '1px solid var(--border)', background: 'transparent',
-            color: records.length === 0 ? 'var(--text-faint)' : 'var(--success-text)',
-            cursor: records.length === 0 ? 'not-allowed' : 'pointer',
+            color: visibleRecords.length === 0 ? 'var(--text-faint)' : 'var(--success-text)',
+            cursor: visibleRecords.length === 0 ? 'not-allowed' : 'pointer',
             transition: 'background 0.15s ease',
           }}
         >
@@ -593,6 +623,18 @@ export default function ArchivePanel() {
 
         <Pill active={showArchived} onClick={() => setShowArchived(v => !v)}>
           {t('archive.showArchived')}
+        </Pill>
+
+        {/* The archive's own review filter: the rows the user filed by hand,
+            including filings whose department no longer exists. It narrows the
+            loaded listing only — no IPC, no re-read. */}
+        <Pill
+          active={onlyHandFiled}
+          ariaPressed={onlyHandFiled}
+          title={t('archive.onlyFiledTip')}
+          onClick={() => setOnlyHandFiled(v => !v)}
+        >
+          <PenLine size={10} />{t('archive.onlyFiled')}
         </Pill>
 
         <div style={{
@@ -680,13 +722,15 @@ export default function ArchivePanel() {
           <EmptyState
             icon={<Search size={30} style={{ color: 'var(--accent)', opacity: 0.5 }} />}
             title={t('archive.noMatchTitle')}
-            hint={activeFilterDescription
-              ? t('archive.noMatchFilteredHint', { filter: activeFilterDescription })
-              : t('archive.noMatchHint')}
+            hint={onlyHandFiled
+              ? t('archive.onlyFiledEmpty')
+              : activeFilterDescription
+                ? t('archive.noMatchFilteredHint', { filter: activeFilterDescription })
+                : t('archive.noMatchHint')}
             onClear={clearFilters}
             clearLabel={t('archive.clearFilters')}
           />
-        ) : records.length === 0 && (searching || showCommandOnly || commandOnlyCount === 0) ? (
+        ) : visibleRecords.length === 0 && (searching || showCommandOnly || commandOnlyCount === 0) ? (
           <EmptyState
             icon={<Search size={30} style={{ color: 'var(--accent)', opacity: 0.5 }} />}
             title={t('archive.noMatchTitle')}
@@ -765,6 +809,7 @@ export default function ArchivePanel() {
                           opening={opening === record.session.sessionId}
                           onOpen={() => void open(record)}
                           onToggleArchived={() => toggleArchived(record.session.sessionId)}
+                          onFile={() => setFilingSessionId(record.session.sessionId)}
                           t={t}
                           locale={resolvedLocale}
                         />
@@ -790,6 +835,30 @@ export default function ArchivePanel() {
         />
       )}
 
+      {/* The filter never hides rows silently. When it leaves something on
+          screen, say how many it removed; when it leaves nothing, the empty
+          state above already names the filter. */}
+      {onlyHandFiled && handHiddenCount > 0 && visibleRecords.length > 0 && (
+        <div style={{
+          flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8,
+          padding: '7px 16px', borderTop: '1px solid var(--border)',
+          fontSize: 10, color: 'var(--text-subtle)',
+        }}>
+          <span>{t('archive.onlyFiledHidden', { count: String(handHiddenCount) })}</span>
+          <button
+            onClick={() => setOnlyHandFiled(false)}
+            className="archive-hover-link"
+            style={{
+              background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+              color: 'var(--text-muted)', fontSize: 10,
+              textDecoration: 'underline', textUnderlineOffset: 3,
+            }}
+          >
+            {t('archive.show')}
+          </button>
+        </div>
+      )}
+
       {unassignedCount > 0 && deptFilter === 'all' && (
         <div style={{
           flexShrink: 0, padding: '7px 16px', borderTop: '1px solid var(--border)',
@@ -798,12 +867,22 @@ export default function ArchivePanel() {
           {t('archive.unassignedHint', { count: String(unassignedCount) })}
         </div>
       )}
+
+      {/* One dialog per panel, not per row. The row only names the session; the
+          store subscription refreshes the listing and the filter's count once
+          the dialog writes or clears the filing. */}
+      {filingSessionId !== null && (
+        <FileUnderDeptDialog
+          sessionId={filingSessionId}
+          onClose={() => setFilingSessionId(null)}
+        />
+      )}
     </div>
   )
 }
 
 function ArchiveRow({
-  record, index, first, opening, onOpen, onToggleArchived, t, locale,
+  record, index, first, opening, onOpen, onToggleArchived, onFile, t, locale,
 }: {
   record: ArchiveRecord
   /** Absolute row index inside the group — used for windowing verification. */
@@ -812,6 +891,8 @@ function ArchiveRow({
   opening: boolean
   onOpen: () => void
   onToggleArchived: () => void
+  /** Open the panel's single file-under-department dialog for this session. */
+  onFile: () => void
   t: ReturnType<typeof useT>
   locale: UiLocale
 }) {
@@ -891,6 +972,21 @@ function ArchiveRow({
         #{employeeTag(session.sessionId)}
       </span>
 
+      {/* Hand-filed marker. The width is reserved even when the row has no
+          filing, so revealing the pen never shifts the department columns.
+          The tooltip says "by you, not by the folder" and never names a live
+          department — a removed filing is described by the tag beside it. */}
+      <span
+        data-hand-filed={record.handFiled ? 'true' : undefined}
+        title={record.handFiled ? t('archive.filedByYouTip') : undefined}
+        style={{
+          flexShrink: 0, width: 14, display: 'flex', alignItems: 'center',
+          justifyContent: 'center', color: 'var(--accent-text)',
+        }}
+      >
+        {record.handFiled && <PenLine size={10} />}
+      </span>
+
       {/* A manual filing whose node was deleted. The remembered name is the
           only honest label; the working folder is deliberately not shown as
           its department, and the row is not moved to a live node. */}
@@ -953,6 +1049,24 @@ function ArchiveRow({
         }}
       >
         <Archive size={12} />
+      </button>
+
+      <button
+        onClick={(e) => { e.stopPropagation(); onFile() }}
+        title={t('archive.fileActionTip')}
+        aria-label={t('archive.fileAction')}
+        data-file-session-action
+        // Same hover/focus idiom as the archive toggle: revealed on row hover,
+        // and `row-action` keeps it visible when it is the keyboard's next stop.
+        className="row-action"
+        style={{
+          flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer',
+          color: 'var(--text-muted)', display: 'flex', padding: 2,
+          opacity: hovered ? 1 : 0,
+          transition: 'opacity 0.15s ease',
+        }}
+      >
+        <FolderInput size={12} />
       </button>
 
       <span style={{

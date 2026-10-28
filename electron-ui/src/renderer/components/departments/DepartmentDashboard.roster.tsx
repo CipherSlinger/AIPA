@@ -34,6 +34,11 @@ interface DeptRosterProps {
   personas: Persona[]
   /** Persona an unbound position inherits. */
   defaultPersonaId?: string
+  /**
+   * Session ids on this page the user filed by hand. Membership is already
+   * decided by `sessions`; this only marks the label's provenance.
+   */
+  filedByHand: ReadonlySet<string>
   onToggleSelect: (sessionId: string) => void
   onOpenSession: (session: SessionListItem) => void
   onDeleteSession?: (sessionId: string) => void
@@ -58,6 +63,7 @@ export default function DeptRoster({
   deptColor,
   personas,
   defaultPersonaId,
+  filedByHand,
   onToggleSelect,
   onOpenSession,
   onDeleteSession,
@@ -197,6 +203,7 @@ export default function DeptRoster({
           isStreaming={!selectMode && session.sessionId === currentSessionId && isStreaming}
           onClick={selectMode ? () => {} : () => onOpenSession(session)}
           isLoading={loadingSessionId === session.sessionId}
+          filedByHand={filedByHand.has(session.sessionId)}
           onDelete={selectMode ? undefined : () => onDeleteSession?.(session.sessionId)}
         />
       </div>

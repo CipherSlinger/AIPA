@@ -3031,7 +3031,9 @@
       "count": "{{count}} 个任务",
       "openInSettings": "在设置 → 自动化中管理",
       "more": "另有 {{count}} 个"
-    }
+    },
+    "filedByHand": "手动归档",
+    "filedByHandTip": "这段对话是你手动归到这里的。它出现在这个部门，是因为你的选择，而不是按文件夹匹配——这并不代表工作是这个部门做的。"
   },
   "archive": {
     "summaryTask": "{{count}} 项任务",
@@ -3086,7 +3088,14 @@
       "spendLastRun": "上次运行 {{spend}}"
     },
     "removedDeptTag": "部门已删除",
-    "removedDeptTip": "你曾把这个会话归到「{{name}}」，但这个部门已经不存在。它仍留在这里，显示为未分派，而不会按原工作目录重新归属。"
+    "removedDeptTip": "你曾把这个会话归到「{{name}}」，但这个部门已经不存在。它仍留在这里，显示为未分派，而不会按原工作目录重新归属。",
+    "filedByYouTip": "这条记录由你手动归档，而不是按工作目录归属。它是你本人的指定，优先于会话实际运行所在的文件夹。",
+    "onlyFiled": "仅看手动归档",
+    "onlyFiledTip": "只显示你手动归到某个部门的会话。即使目标部门已被删除，这条归档仍然算数，并留在未分派分组中。",
+    "onlyFiledHidden": "仅看手动归档：已隐去 {{count}} 条",
+    "onlyFiledEmpty": "当前范围内没有由你手动归档的会话。清除这个筛选即可看到档案库的其余内容。",
+    "fileAction": "归到部门",
+    "fileActionTip": "手动把这个会话归到某个部门。这会覆盖它的工作目录，但不会移动磁盘上的任何文件。"
   },
   "canvas": {
     "copyPrompt": "复制提示词",

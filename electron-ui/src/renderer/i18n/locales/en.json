@@ -3031,7 +3031,9 @@
       "count": "{{count}} job(s)",
       "openInSettings": "Open Settings → Automations",
       "more": "+{{count}} more"
-    }
+    },
+    "filedByHand": "filed by hand",
+    "filedByHandTip": "This conversation was filed here by hand. Its place on this roster is your choice, not a folder match — it does not mean this department did the work."
   },
   "archive": {
     "summaryTask": "{{count}} tasks",
@@ -3086,7 +3088,14 @@
       "spendLastRun": "Last run {{spend}}"
     },
     "removedDeptTag": "removed",
-    "removedDeptTip": "You filed this conversation under {{name}}, but that department no longer exists. It stays here as unassigned rather than being re-filed by its working folder."
+    "removedDeptTip": "You filed this conversation under {{name}}, but that department no longer exists. It stays here as unassigned rather than being re-filed by its working folder.",
+    "filedByYouTip": "Filed by you by hand, not by its working folder. This is your own assertion and it takes precedence over the folder the conversation ran in.",
+    "onlyFiled": "Hand-filed only",
+    "onlyFiledTip": "Show only conversations you filed under a department by hand. A filing whose department was deleted still counts; it stays in the unassigned group.",
+    "onlyFiledHidden": "Hand-filed only hides {{count}} rows",
+    "onlyFiledEmpty": "No conversations in this view were filed by hand. Clear this filter to see the rest of the archive.",
+    "fileAction": "File under a department",
+    "fileActionTip": "File this conversation under a department by hand. This overrides its working folder; nothing moves on disk."
   },
   "canvas": {
     "copyPrompt": "Copy Prompt",

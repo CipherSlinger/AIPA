@@ -11,6 +11,7 @@ import {
   usePrefsStore,
   type Position,
 } from '../../store'
+import type { FilingMap } from '../../store/departmentStore'
 import type { Persona, SessionListItem } from '../../types/app.types'
 import RecruitEmployeeModal from './RecruitEmployeeModal'
 import PositionEditorModal from './PositionEditorModal'
@@ -42,6 +43,25 @@ import {
 // memo that filters these.
 const NO_POSITIONS: Position[] = []
 const NO_PERSONAS: Persona[] = []
+
+/**
+ * The sessions on this page whose label comes from the user's own filing.
+ *
+ * `sessions` is already the membership decision, so this only asks whether a
+ * manual entry exists for each one — it never re-resolves ownership. A filing
+ * that merely pins the node the folder already implied still counts: it is an
+ * explicit label, not a folder match.
+ */
+export function selectFiledByHandSessions(
+  sessions: readonly Pick<SessionListItem, 'sessionId'>[],
+  filings: Readonly<FilingMap>,
+): Set<string> {
+  const out = new Set<string>()
+  for (const session of sessions) {
+    if (filings[session.sessionId]) out.add(session.sessionId)
+  }
+  return out
+}
 
 interface DeptViewProps {
   deptId: string
@@ -117,6 +137,13 @@ export default function DeptView({
   const [handbookOpen, setHandbookOpen] = useState(false)
   // Page-local, like the handbook dialog: closing the department page closes it.
   const [briefOpen, setBriefOpen] = useState(false)
+
+  // Which tiles got here by a manual filing. Folded into the same page state
+  // as membership so an unfamiliar employee can say why it is standing here.
+  const filedByHand = useMemo(
+    () => selectFiledByHandSessions(deptSessions, filings),
+    [deptSessions, filings],
+  )
 
   const sortedSessions = useMemo(
     () => sortSessions(deptSessions, sortOrder),
@@ -403,6 +430,7 @@ export default function DeptView({
           deptColor={dept.color}
           personas={personas}
           defaultPersonaId={dept.defaultPersonaId}
+          filedByHand={filedByHand}
           onToggleSelect={toggleSelect}
           onOpenSession={onOpenSession}
           onDeleteSession={onDeleteSession}
