@@ -27,9 +27,21 @@
  * fabricated or bridge id: telling the plugin a conversation exists when the
  * archive cannot open it is worse than telling it the visible turn did not
  * happen.
+ *
+ * A visible ask may also pass back the `sessionId` it was given and continue
+ * that conversation. The continuation rule lives in
+ * `plugin-chat-continuation.ts`; this file owns the request-level checks and
+ * the rails. A continuation is verified against the plugin-origin ledger
+ * before any slot is claimed, so an id the plugin does not own is refused
+ * without creating a session or spending a model call.
  */
 import { listNavPlugins } from './nav-plugin-manager'
 import { pluginAiCwd } from './plugin-services'
+import {
+  decidePluginChatContinuation,
+  type PluginChatContinuationEvidence,
+  type PluginChatContinuationRefusalCode,
+} from './plugin-chat-continuation'
 import { assembleMemoryContext, prefixWithMemoryContext, readPersonalMemories } from '../sessions/memory-context'
 import { createLogger } from '../utils/logger'
 
@@ -42,6 +54,7 @@ export type PluginChatErrorCode =
   | 'plugin_unknown'
   | 'permission_denied'
   | 'invalid_request'
+  | PluginChatContinuationRefusalCode
   | 'unsupported'
   | 'busy'
   | 'rate_limited'
@@ -66,6 +79,14 @@ export interface PluginChatAskArgs {
   /** Ask for a persisted conversation the user can open later. */
   visible?: boolean
   /**
+   * Continue a conversation this plugin started with an earlier visible ask.
+   * Pass the id that ask returned. A continuation is always persisted (it
+   * continues a conversation that already is) and returns the same id, so
+   * `visible: true` is required; a private ask with a session id is refused
+   * with `session_requires_visible`.
+   */
+  sessionId?: string
+  /**
    * Human-readable attribution only (logs). There is no session-title channel
    * on this capability, so it is never used as the archived conversation's title.
    */
@@ -89,6 +110,20 @@ export interface PluginChatTurn {
   tag: string
   /** Persist the rollout / JSONL so the archive can open the conversation. */
   visible: boolean
+  /** Existing conversation to continue; absent starts a new thread. */
+  sessionId?: string
+}
+
+/**
+ * How the host verifies a continuation before any model work starts. The IPC
+ * layer supplies evidence from the origin ledger and the archive; the rule
+ * itself stays pure.
+ */
+export interface PluginChatContinuationContext {
+  /** Engine that will serve this ask; null when none can authenticate. */
+  targetEngine: 'codex' | 'claude' | null
+  /** Ownership and openability of an id, read only for a continuation. */
+  evidence: (sessionId: string) => PluginChatContinuationEvidence
 }
 
 export type PluginChatRunner = (turn: PluginChatTurn) => Promise<{
@@ -157,6 +192,24 @@ function clampTimeout(requested: unknown): number {
 }
 
 /**
+ * A continuation id is opaque to this layer; it is only passed to the evidence
+ * reader and back to the engine. Reject a non-string or empty value instead of
+ * treating it as "start a new thread", because a plugin that sent an id asked
+ * to continue something.
+ */
+function readSessionId(value: unknown): string | null {
+  if (value === undefined || value === null) return null
+  if (typeof value !== 'string') {
+    throw new PluginChatError('invalid_request', 'sessionId must be a string when provided')
+  }
+  const trimmed = value.trim()
+  if (!trimmed) {
+    throw new PluginChatError('invalid_request', 'sessionId must be a non-empty string when provided')
+  }
+  return trimmed
+}
+
+/**
  * Attribution/logging text only. Strip control characters and collapse
  * whitespace so a plugin-supplied title cannot forge extra log lines; it never
  * reaches a filesystem path or the archived conversation.
@@ -216,6 +269,7 @@ export async function askPluginChat(
   pluginId: string,
   args: PluginChatAskArgs | undefined,
   runTurn: PluginChatRunner,
+  continuation: PluginChatContinuationContext,
 ): Promise<PluginChatAnswer> {
   const id = assertChatPermission(pluginId)
 
@@ -230,11 +284,45 @@ export async function askPluginChat(
   const visible = args?.visible === true
   const title = sanitizeTitle(args?.title)
   const timeoutMs = clampTimeout(args?.timeoutMs)
+  const requestedSessionId = readSessionId(args?.sessionId)
+
+  // Verify before claiming a slot or spawning anything: every refusal here is
+  // free of side effects and model spend. The evidence reader is skipped for a
+  // private request, whose contradiction the pure rule settles on its own.
+  if (requestedSessionId) {
+    let evidence: PluginChatContinuationEvidence | undefined
+    if (visible) {
+      try {
+        evidence = continuation.evidence(requestedSessionId)
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err)
+        log.warn(`continuation check failed for ${id}: ${detail}`)
+        throw new PluginChatError('failed', 'Could not verify the conversation to continue')
+      }
+    }
+    const decision = decidePluginChatContinuation({
+      pluginId: id,
+      sessionId: requestedSessionId,
+      visible,
+      targetEngine: continuation.targetEngine,
+      ...(evidence ? { evidence } : {}),
+    })
+    if (!decision.ok) {
+      // Code and plugin id only: never the prompt, the answer, or a transcript.
+      log.warn(`continuation refused for ${id}: ${decision.code}`)
+      throw new PluginChatError(decision.code, decision.reason)
+    }
+  }
+
   claimSlot(id)
   const tag = tagFor(id)
 
   // The title is diagnostic only: `title` never becomes a session title.
-  log.info(`ask ${tag}${visible ? ' (visible)' : ''}${title ? ` "${title}"` : ''} (${timeoutMs}ms)`)
+  log.info(
+    `ask ${tag}${visible ? ' (visible)' : ''}`
+    + `${requestedSessionId ? ` (continuing ${requestedSessionId})` : ''}`
+    + `${title ? ` "${title}"` : ''} (${timeoutMs}ms)`,
+  )
 
   // A plugin's question is still the user's assistant talking to itself: give it
   // the same persistent-memory block a manual turn sends. It reads from the
@@ -256,7 +344,14 @@ export async function askPluginChat(
   let timer: NodeJS.Timeout | undefined
   try {
     const outcome = await Promise.race([
-      runTurn({ prompt: memoryPrompt, cwd, timeoutMs, tag, visible }),
+      runTurn({
+        prompt: memoryPrompt,
+        cwd,
+        timeoutMs,
+        tag,
+        visible,
+        ...(requestedSessionId ? { sessionId: requestedSessionId } : {}),
+      }),
       new Promise<'outer-timeout'>((resolve) => {
         timer = setTimeout(() => resolve('outer-timeout'), timeoutMs + OUTER_GRACE_MS)
         timer.unref?.()
@@ -279,6 +374,12 @@ export async function askPluginChat(
     const text = (outcome.text ?? '').trim()
     if (!text) {
       throw new PluginChatError('failed', 'The assistant returned an empty answer')
+    }
+    if (requestedSessionId) {
+      // The resumed conversation keeps its id. Returning the engine's own id
+      // (or dropping it) would split one archive conversation into two handles.
+      log.info(`done ${tag} (${text.length} chars, continued session ${requestedSessionId})`)
+      return { text, sessionId: requestedSessionId }
     }
     if (visible) {
       const sessionId = typeof outcome.sessionId === 'string' && outcome.sessionId ? outcome.sessionId : null

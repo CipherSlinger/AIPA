@@ -70,6 +70,8 @@
     .step-item { display: flex; align-items: flex-start; gap: 12px; font-size: 13px; line-height: 1.6; }
     .step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
     code { font-family: monospace; background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    pre { font-family: monospace; background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 10px 0 0 0; font-size: 12px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+    pre code { background: none; padding: 0; }
   </style>
 </head>
 <body>
@@ -203,7 +205,15 @@
           • <code>{ type: 'aipa:sendPrompt', payload: { prompt: '...' } }</code> —— 自动填入主对话框并唤起 AI；<br/>
           • <code>{ type: 'aipa:toast', payload: { type: 'success', message: '...' } }</code> —— 触发桌面轻提示；<br/>
           • <code>{ type: 'aipa:storage:set', payload: { key, value } }</code> —— 跨会话持久化存储插件数据。<br/>
-          • <code>aipa:invoke</code> + <code>chat.ask</code> —— 直接向 AI 提问并拿回答案（清单需声明 <code>"chat"</code> 权限；不会创建会话，也不会出现在档案里）。
+          • <code>aipa:invoke</code> + <code>chat.ask</code> —— 直接向 AI 提问并拿回答案（清单需声明 <code>"chat"</code> 权限；默认的私密提问不会创建会话，也不会出现在档案里；<code>visible: true</code> 会创建一段可在档案里打开的会话——两者都只读）。
+          <pre><code>// 第一次可见提问：创建一段会话
+{ method: 'chat.ask', payload: { prompt: '帮我规划周末旅行', visible: true } }
+→ { ok: true, result: { text: '…', sessionId: 'abc' } }
+
+// 继续同一段会话：把上次返回的 sessionId 传回去
+{ method: 'chat.ask', payload: { prompt: '那要带什么？', visible: true, sessionId: 'abc' } }
+→ { ok: true, result: { text: '…', sessionId: 'abc' } }</code></pre>
+          插件只能继续自己用 <code>visible: true</code> 创建的会话；用户自己的对话和其他插件的会话会被明确拒绝，并带回可分支的错误码。
         </div>
       </div>
     </div>
@@ -337,6 +347,14 @@
           • <code>{ type: 'aipa:toast', payload: { type: 'success', message: '...' } }</code> — show a desktop toast;<br/>
           • <code>{ type: 'aipa:storage:set', payload: { key, value } }</code> — persist plugin data across sessions.<br/>
           • <code>aipa:invoke</code> + <code>chat.ask</code> — ask the AI a question and get the answer back (requires the <code>"chat"</code> permission; a private turn creates no session, and <code>visible: true</code> persists one the user can open in the archive — both read-only).
+          <pre><code>// First visible ask: creates a conversation
+{ method: 'chat.ask', payload: { prompt: 'Plan a weekend trip', visible: true } }
+→ { ok: true, result: { text: '…', sessionId: 'abc' } }
+
+// Continue the same conversation: pass back the id it returned
+{ method: 'chat.ask', payload: { prompt: 'What should I pack?', visible: true, sessionId: 'abc' } }
+→ { ok: true, result: { text: '…', sessionId: 'abc' } }</code></pre>
+          A plugin may only continue a conversation its own visible ask created; user chats and other plugins' conversations are refused with a typed error code.
         </div>
       </div>
     </div>

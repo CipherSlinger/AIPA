@@ -15,6 +15,7 @@ import { useChatPanelEvents } from './useChatPanelEvents'
 import ChatHeader from './ChatHeader'
 import ChatInput from './ChatInput'
 import MessageList from './MessageList'
+import SessionOriginLine from './SessionOriginLine'
 import SearchBar from './SearchBar'
 import TaskQueuePanel from './TaskQueuePanel'
 import TaskDashboard from './TaskDashboard'
@@ -536,6 +537,10 @@ export default function ChatPanel() {
           </button>
         </div>
       )}
+
+      {/* Who started this conversation. Sits on the transcript's reading
+          column, above it, and renders nothing at all for the user's own. */}
+      <SessionOriginLine />
 
       {/* Messages */}
       <div className="flex-1 overflow-hidden" style={{ display: 'flex', flexDirection: 'column' }}>

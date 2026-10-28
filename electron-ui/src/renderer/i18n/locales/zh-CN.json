@@ -186,7 +186,13 @@
       "cancelled": "已取消",
       "requestingInformation": "正在请求信息"
     },
-    "exportShowFailed": "无法在文件夹中显示该文件"
+    "exportShowFailed": "无法在文件夹中显示该文件",
+    "origin": {
+      "automationBy": "由",
+      "automationSuffix": "发起 · {{time}}",
+      "pluginStarted": "由插件 {{name}} 发起 · {{time}}",
+      "openAutomation": "打开定时任务"
+    }
   },
   "sessionReuse": {
     "menu": {

@@ -289,6 +289,16 @@ export interface PluginChatAskArgs {
    * changes. Defaults to false (a private turn that leaves no archive entry).
    */
   visible?: boolean
+  /**
+   * Continue a conversation this plugin created with an earlier visible ask:
+   * pass the `sessionId` that ask returned. A continuation is always persisted
+   * and returns the same id, so it requires `visible: true`. Passing it on a
+   * private ask is refused with `session_requires_visible`; ids that are
+   * unknown, user-started, owned by another plugin, or un-resumable by the
+   * current engine are refused with the other `session_*` codes. None of those
+   * refusals creates a session or spends a model call.
+   */
+  sessionId?: string
   /** Human-readable attribution only; not used as the session title. */
   title?: string
   /** Millisecond budget, clamped to 5 s … 10 min (default 60 s). */
@@ -299,13 +309,17 @@ export interface PluginChatAnswer {
   text: string
   /**
    * The id the archive opens. Set for a visible turn; null for a private turn,
-   * which creates no session. A visible turn that cannot produce an openable
-   * id rejects with a coded error instead of returning success here.
+   * which creates no session. A continuation returns the same id it was given.
+   * A new visible turn that cannot produce an openable id rejects with a coded
+   * error instead of returning success here.
    */
   sessionId: string | null
 }
 
-/** A plugin's visible `chat.ask` created an archive conversation. */
+/**
+ * A plugin's visible `chat.ask` created an archive conversation. A continuation
+ * of an existing conversation is not announced again.
+ */
 export interface PluginConversationCreatedEvent {
   pluginId: string
   /** Display label in the app language, for attribution. */

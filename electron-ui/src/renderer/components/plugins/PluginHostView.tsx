@@ -47,6 +47,10 @@ const INVOKE_METHODS: Record<string, {
     call: (api, id, p) => api.pluginChatAsk(id, {
       prompt: String(p?.prompt || ''),
       visible: p?.visible === true,
+      // Continuing a conversation this plugin started: pass through the id an
+      // earlier visible ask returned. Main owns every validation (ownership,
+      // engine, visibility), so this only forwards a string.
+      sessionId: typeof p?.sessionId === 'string' ? p.sessionId : undefined,
       title: typeof p?.title === 'string' ? p.title : undefined,
       timeoutMs: typeof p?.timeoutMs === 'number' ? p.timeoutMs : undefined,
     }),

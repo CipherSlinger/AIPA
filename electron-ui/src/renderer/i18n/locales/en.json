@@ -186,7 +186,13 @@
       "cancelled": "Cancelled",
       "requestingInformation": "Requesting information"
     },
-    "exportShowFailed": "Could not show the file in its folder"
+    "exportShowFailed": "Could not show the file in its folder",
+    "origin": {
+      "automationBy": "Started by",
+      "automationSuffix": "· {{time}}",
+      "pluginStarted": "Started by the {{name}} plugin · {{time}}",
+      "openAutomation": "Open Automations"
+    }
   },
   "sessionReuse": {
     "menu": {

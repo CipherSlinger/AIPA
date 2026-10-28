@@ -52,6 +52,7 @@ import { migrateLegacyTasks, startWorkCalendarReminders } from '../plugins/work-
 import { readPluginData, writePluginData, fetchGithubCommits, scanFolderChanges, startPluginAi, abortPluginAi, resolvePluginTurnTarget, type GithubCommitsArgs, type ScanFolderArgs } from '../plugins/plugin-services'
 import { startPluginEdit, sendPluginEdit, abortPluginEdit, endPluginEdit } from '../plugins/plugin-edit-session'
 import { askPluginChat } from '../plugins/plugin-chat'
+import { shouldAnnouncePluginConversation } from '../plugins/plugin-chat-continuation'
 import { getCliPath } from '../utils/cli-path'
 import { resolveAuxiliaryEngine, noteAuxiliaryEngineUnavailable, deriveSessionTitle } from '../llm/auxiliary-engine'
 import { validateApiKey, validateModelName, validateFlags, safePath, getAllowedFsRoots, isValidSessionId } from '../utils/validate'
@@ -473,6 +474,11 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
         return { success: false, error: 'Missing prompt' }
       }
       const safeArgs = { ...args }
+      // This channel is reachable from the renderer. Only the plugin handler
+      // may name a conversation to resume, and only after the origin ledger
+      // proved the plugin owns it; a renderer caller gets a new private turn.
+      delete safeArgs.resumeSessionId
+      delete safeArgs.sessionId
       if (typeof safeArgs.cwd === 'string' && safeArgs.cwd) {
         safeArgs.cwd = safePath(
           safeArgs.cwd,
@@ -1165,8 +1171,12 @@ async function registerLegacySendMessage(
       ...(args as any),
       skipPermissions,
       permissionMode: permissionMode as import('../pty/stream-bridge').PermissionMode | undefined,
-      // A background turn never resumes a user conversation.
-      resumeSessionId: internal ? undefined : ((args.sessionId as string) || undefined),
+      // A background turn normally never resumes a user conversation. The one
+      // exception is a plugin continuation, which `runInternalTurn` sets only
+      // after the origin ledger proved the plugin owns the conversation.
+      resumeSessionId: typeof args.resumeSessionId === 'string' && args.resumeSessionId
+        ? args.resumeSessionId
+        : (internal ? undefined : ((args.sessionId as string) || undefined)),
       sessionId: bridgeId,
       env,
     })
@@ -1226,6 +1236,12 @@ async function runInternalTurn(
   // it later. Everything else about the turn — the internal bridge tag, the
   // private sink, `plan` mode, deny-everything approvals — stays the same.
   const visible = args.visible === true
+  // A plugin continuation names an existing conversation. It is honoured only
+  // when the plugin handler has already checked the origin ledger; all other
+  // internal callers leave it unset, and `cli:runInternal` strips it.
+  const resumeSessionId = typeof args.resumeSessionId === 'string' && args.resumeSessionId.trim()
+    ? args.resumeSessionId.trim()
+    : ''
 
   let streamed = ''
   let resultText = ''
@@ -1350,6 +1366,9 @@ async function runInternalTurn(
     // plugin turn is the one exception — its whole point is a persisted
     // conversation — but it keeps the read-only mode and private sink above.
     ephemeral: !visible,
+    // Codex resumes via `threadId`, the legacy bridge via `--resume`; these two
+    // fields are where each one reads the id. An empty pair keeps the turn new.
+    ...(resumeSessionId ? { sessionId: resumeSessionId, resumeSessionId } : {}),
     ...(internalTag ? { internalTag } : {}),
   }
 
@@ -1436,6 +1455,43 @@ async function runInternalTurn(
     return { success: false, error: lastError || 'Empty response', ...visibility }
   }
   return { success: true, text, ...visibility }
+}
+
+/**
+ * Engine `runInternalTurn` will pick for a plugin ask, using that function's
+ * own rule: explicit Anthropic credentials mean the Claude bridge; otherwise
+ * the engine this profile can authenticate with. A continuation is refused
+ * when this engine cannot resume the conversation's engine.
+ */
+function pluginAskTargetEngine(env: Record<string, string> | undefined): 'codex' | 'claude' | null {
+  const explicitEnv = env ?? {}
+  if ('ANTHROPIC_API_KEY' in explicitEnv || 'ANTHROPIC_AUTH_TOKEN' in explicitEnv) {
+    return explicitEnv.OPENAI_API_KEY ? 'codex' : 'claude'
+  }
+  const engine = resolveAuxiliaryEngine()
+  return engine.kind === 'none' ? null : engine.kind
+}
+
+/**
+ * The evidence behind a continuation refusal: ownership from the plugin-origin
+ * ledger, and whether the archive can still open the id and on which engine.
+ * A Codex id is recognised by its rollout/index entry; anything else is only
+ * believed when a Claude JSONL actually reads back.
+ */
+function pluginChatContinuationEvidence(sessionId: string): {
+  ownerPluginId: string | null
+  openable: boolean
+  engine: 'codex' | 'claude' | null
+} {
+  const owner = readPluginSessionOrigins(app.getPath('userData'))
+    .find(record => record.sessionId === sessionId)
+  const codex = isCodexSession(sessionId)
+  const openable = codex || loadClaudeSession(sessionId).length > 0
+  return {
+    ownerPluginId: owner?.pluginId ?? null,
+    openable,
+    engine: codex ? 'codex' : (openable ? 'claude' : null),
+  }
 }
 
 /**
@@ -2246,9 +2302,11 @@ function registerNavPluginHandlers(win: BrowserWindow, send: (ch: string, ...a: 
   // permission mode and a private event sink, so nothing reaches the renderer.
   // A private turn is also ephemeral. A visible turn persists the thread and
   // reports the openable id; the event below tells the renderer to refresh the
-  // archive and name the plugin that started the conversation. The permission
-  // itself is checked inside `askPluginChat`, which returns a coded error the
-  // plugin can branch on.
+  // archive and name the plugin that started the conversation. With a
+  // `sessionId`, the same visible turn continues an earlier conversation this
+  // plugin started, after the origin ledger check inside `askPluginChat`. The
+  // permission itself is checked there too, and every refusal carries a code
+  // the plugin can branch on.
   safeHandle('plugin:chat:ask', async (_e, { pluginId, args }: {
     pluginId: string
     args?: import('../plugins/plugin-chat').PluginChatAskArgs
@@ -2256,6 +2314,7 @@ function registerNavPluginHandlers(win: BrowserWindow, send: (ch: string, ...a: 
     // Route like chat / ai.generate: a gateway or compatible provider serves
     // the turn on its own credentials; otherwise the default engine does.
     const target = resolvePluginTurnTarget()
+    const requestedSessionId = typeof args?.sessionId === 'string' ? args.sessionId.trim() : ''
     const answer = await askPluginChat(pluginId, args, (turn) => runInternalTurn({
       prompt: turn.prompt,
       cwd: turn.cwd,
@@ -2263,25 +2322,34 @@ function registerNavPluginHandlers(win: BrowserWindow, send: (ch: string, ...a: 
       internalTag: turn.tag,
       answerOnly: true,
       visible: turn.visible,
+      ...(turn.sessionId ? { resumeSessionId: turn.sessionId } : {}),
       ...(target ? { model: target.model, env: target.env } : {}),
-    }))
+    }), {
+      targetEngine: pluginAskTargetEngine(target?.env),
+      evidence: pluginChatContinuationEvidence,
+    })
     // askPluginChat only returns a sessionId for a visible turn whose id the
     // archive can open, so the renderer is never told about a phantom session.
     if (args?.visible === true && answer.sessionId) {
       // Record before announcing: the renderer refreshes the archive on the
       // event below, and a row arriving before its origin would read as
-      // user-started until the next refresh. Recording is best-effort; it
-      // must never fail the plugin's ask.
+      // user-started until the next refresh. A continuation refreshes its
+      // existing record so the ledger's cap cannot evict a conversation that
+      // is still in use. Recording is best-effort; it must never fail the ask.
       recordPluginSessionOrigin(app.getPath('userData'), {
         sessionId: answer.sessionId,
         pluginId,
         pluginLabel: pluginLabel(pluginId),
       })
-      send('plugin:conversation-created', {
-        pluginId,
-        pluginLabel: pluginLabel(pluginId),
-        sessionId: answer.sessionId,
-      })
+      // A continuation already has an archive row; announcing it again would
+      // read as a second conversation.
+      if (shouldAnnouncePluginConversation(true, requestedSessionId || null, answer.sessionId)) {
+        send('plugin:conversation-created', {
+          pluginId,
+          pluginLabel: pluginLabel(pluginId),
+          sessionId: answer.sessionId,
+        })
+      }
     }
     return answer
   })
