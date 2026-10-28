@@ -334,13 +334,16 @@ A fresh AIPA opens on an empty org chart, and building a company from nothing me
 ```text
 ┌─ 🏗️ Start from a company ────────────────────────────────────────────┐
 │  ┌──────────────┐ ┌──────────────┐                                   │
-│  │ </> Software │ │ ✍️ Content   │  ← four company types, each       │
+│  │ </> Software │ │ ✍️ Content   │  ← five company types, each       │
 │  │     Company  │ │    Studio    │    covering every function        │
 │  └──────────────┘ └──────────────┘                                   │
 │  ┌──────────────┐ ┌──────────────┐                                   │
 │  │ 🛒 E-commerce│ │ ⚗️ Research  │                                   │
 │  │     Company  │ │    Team      │                                   │
 │  └──────────────┘ └──────────────┘                                   │
+│  ┌───────────────────────────────┐                                   │
+│  │ 🏛️ Imperial Court             │                                   │
+│  └───────────────────────────────┘                                   │
 │  ┌──────────────────────┐ ┌──────────────────────┐                   │
 │  │📂 Use my existing    │ │⬚ Start blank         │                   │
 │  │   folders            │ │                      │                   │
@@ -363,7 +366,8 @@ A fresh AIPA opens on an empty org chart, and building a company from nothing me
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Four company types**: Software Company, Content Studio, E-commerce Company and Research Team — each covering **every function a company actually needs**. The software one alone creates Product, Design, Engineering, QA, DevOps, Data, Security, Customer Success and Marketing, rather than a handful of departments in one field
+- **Five company types**: Software Company, Content Studio, E-commerce Company, Research Team and Imperial Court — each covering **every function a company actually needs**. The software one alone creates Product, Design, Engineering, QA, DevOps, Data, Security, Customer Success and Marketing, rather than a handful of departments in one field
+- **The fifth is a working separation of powers**: the Imperial Court template is the classical 三省六部制 — the Secretariat (中书省) drafts the edict, the Chancellery (门下省) reviews it and may send it back, and the Department of State Affairs (尚书省) executes through its six ministries (Personnel, Revenue, Rites, War, Justice, Works). Nine departments, six teams and seventeen open positions in all, with the Censorate (御史台) standing outside that chain to report on the whole of it, the Court of Judicial Review and the Imperial Academy holding their own authority, and the remaining courts handling rites, receptions and the treasury. The separation is *working*, not decorative: the Chancellery can reject what the Secretariat wrote, and the Censorate reports on both
 - **Company → department → team, all three levels at once**: a team is a subfolder (`~/AIPA/Software Company/Engineering/Backend/`) that owns employees and sessions just like a department
 - **Positions hang first, work later**: the template also writes a job title and a job description onto every node, shown in the roster as a dimmed “open position”. **Applying a template makes zero model calls** — the session is only created when you click “Hire”, and that description becomes the employee's first message
 - **Real folders on disk**: confirming creates the directories parent-first (defaulting to `~/AIPA`), so the nodes are immediately recruitable

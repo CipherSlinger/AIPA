@@ -2409,7 +2409,9 @@
         "ecommerce": "E-commerce company",
         "ecommerceDesc": "Sourcing, supply chain, store ops, visual, ads, support, fulfilment, compliance, data, finance",
         "research": "Research group",
-        "researchDesc": "Literature, design, collection, analysis, modelling, writing, visuals, review, funding, outreach"
+        "researchDesc": "Literature, design, collection, analysis, modelling, writing, visuals, review, funding, outreach",
+        "imperial": "Imperial court",
+        "imperialDesc": "Drafting, review and execution split three ways, the six ministries at work, the Censorate watching from outside"
       },
       "allExist": "All of these already exist",
       "previewTitle": "About to create",

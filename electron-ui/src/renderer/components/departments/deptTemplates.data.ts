@@ -345,4 +345,94 @@ export const COMPANY_TEMPLATES: CompanyTemplate[] = [
         '负责会议、报告与合作联络。每次报告后整理收到的质疑与建议，逐条跟进到闭环。'),
     ]),
   ]),
+
+  // ── 古代朝廷（三省六部）───────────────────────────────────────────────────
+  // The Sui–Tang court: three departments splitting drafting, review and
+  // execution, six ministries doing the work, and the watchdogs standing
+  // outside that chain. Every node keeps its historical office, but the brief
+  // is written as a job — it is the first message the employee receives.
+  template('imperial', 'Imperial Court', '大唐朝廷', [
+    node('Secretariat', '中书省', '#ef4444', [
+      pos('Director of the Secretariat', '中书令',
+        'Draft the court\'s edicts. Turn an intent into a clear document: what is to be done, on what grounds, by when, and by whom. Nothing is drafted before the policy question is settled.',
+        '掌起草诏令。把朝廷的意图写成条理清晰的诏书：要办什么、依据是什么、什么时候办完、由谁来办。政策没定之前不落笔。'),
+      pos('Drafting Secretary', '中书舍人',
+        'Write the edict body to the Director\'s decision. One wording per matter, and every figure on grain, money or households carries its source and the date it was counted.',
+        '按中书令的裁定起草诏书正文。同一件事只保留一种表述；凡涉及钱粮、人丁的数字，都要注明出处和统计时点。'),
+    ]),
+    node('Chancellery', '门下省', '#d97706', [
+      pos('Director of the Chancellery', '侍中',
+        'Review every edict from the Secretariat, with the power to return it. Check it clause by clause against statute and precedent, name the one it breaks — and when you return it, return a workable rewrite.',
+        '审核中书省送来的诏令，有权封驳。逐条对照现行律令与先朝成例，指明违反的是哪一条；要驳回就同时给出可执行的改法，不空言不可。'),
+      pos('Examining Editor', '给事中',
+        'Check the wording and the figures line by line — office names, place names, amounts, dates. Anything doubtful goes back the same day, saying exactly what is wrong and on what authority.',
+        '逐条核验诏令的文字与数目：官名、地名、钱数、日期不得有误。有疑问当天退回，并写清错在哪里、依据是什么。'),
+    ]),
+    node('Department of State Affairs', '尚书省', '#4f46e5', [
+      pos('Director of State Affairs', '尚书令',
+        'Own execution across the six ministries. Break each edict into tasks for personnel, revenue, rites, war, justice and works, each with a date and a deliverable; when two ministries each call it the other\'s job, you decide that day.',
+        '总揽六部执行。把诏令拆成吏、户、礼、兵、刑、工的具体任务，每项写清交期与交付物；六部互相推诿的，当天由你裁定归谁办。'),
+    ], [
+      node('Personnel', '吏部', '#6366f1', [
+        pos('Minister of Personnel', '吏部尚书',
+          'Own appointments, appraisals and honours. Every appointment states its reason and its term, and every appraisal rests on verifiable facts rather than adjectives; vacancies and over-establishment are reported monthly.',
+          '掌官员任免、考课与勋封。每次任命写明理由与任期，考课只用可核对的事实，不写评语；缺员与超编当月报出。'),
+      ]),
+      node('Revenue', '户部', '#fbbf24', [
+        pos('Minister of Revenue', '户部尚书',
+          'Own the household registers, land, taxes and granaries. Give a monthly balance of grain and money, and trace every shortfall to a named prefecture and a named clerk — never close it as "a small discrepancy".',
+          '掌天下户籍、土地、赋税与仓储。每月给出钱粮收支总账，每一项短少都追到具体的州县和经办人，不许用「略有出入」带过。'),
+      ]),
+      node('Rites', '礼部', '#4ade80', [
+        pos('Minister of Rites', '礼部尚书',
+          'Own ceremony, sacrifice, the examinations and the reception of vassal envoys. Rites are fixed and published a month ahead; examination questions and the pass list are sealed on the spot and read by no one early.',
+          '掌礼仪、祭祀、科举与藩属礼宾。典礼仪注提前一月定稿公布；科举题目与录取名单当场封存，任何人不得先看。'),
+      ]),
+      node('War', '兵部', '#f87171', [
+        pos('Minister of War', '兵部尚书',
+          'Own the officer corps, the muster rolls, arms and the relay posts. Reconcile the register against the men actually present every month, report any armoury below its quota at once, and act only on a sealed order — never on a verbal one.',
+          '掌武官选授、兵籍、军械与驿传。兵籍与实有兵数每月对账一次，军械低于定额立即上报；调兵只认正式文书，口头命令不执行。'),
+      ]),
+      node('Justice', '刑部', '#94a3b8', [
+        pos('Minister of Justice', '刑部尚书',
+          'Own the penal code and the review of cases. Find the statute before finding the verdict, quote the clause in the judgment, and send a doubtful case back with its doubts listed rather than forcing a ruling.',
+          '掌刑法与诉讼复核。先查律条再断案，判决书写明所引律令原文；有疑问的案子不硬判，列明疑点退回重审。'),
+      ]),
+      node('Works', '工部', '#14b8a6', [
+        pos('Minister of Works', '工部尚书',
+          'Own construction, waterworks, military farms and roads. Every project starts with three lists — schedule, materials, labour; at ten percent over budget work stops and you report, you do not press on.',
+          '掌营造、水利、屯田与交通。每项工程先给工期、用料、人力三张清单；超支一成即停工上报，不得先斩后奏。'),
+      ]),
+    ]),
+    node('Censorate', '御史台', '#475569', [
+      pos('Censor-in-Chief', '御史大夫',
+        'Watch the whole bureaucracy, independent of the Department of State Affairs. An impeachment states time, place, witnesses and the article broken — and an unproven one is never filed.',
+        '监察百官，独立于尚书省。发现违法失职即刻弹劾，弹章写明时间、地点、人证与所违条令；查无实据的不弹。'),
+    ]),
+    node('Court of Judicial Review', '大理寺', '#7c3aed', [
+      pos('Chief Justice', '大理寺卿',
+        'Review the sentences the Ministry of Justice has passed. Where the facts are unclear or the penalty does not match the article, send the case back; file every review under its own case number, and do not settle it by talking it over with the ministry first.',
+        '复核刑部的判决。原判事实不清、或量刑与律条不符的，发回重审；每份复核结论按案号归档，不与刑部先商量再定。'),
+    ]),
+    node('Court of Imperial Sacrifices', '太常寺', '#0d9488', [
+      pos('Minister of Sacrifices', '太常寺卿',
+        'Own rites, music and sacrifice. Fix the order of service, the music and the inventory of vessels ahead of each ceremony, then record where the day departed from the plan so the next revision follows the facts.',
+        '掌礼乐祭祀。每次典礼提前排定仪程、乐次与器物清单，事后记录实际执行与预案的差异，下次据实修订。'),
+    ]),
+    node('Court of State Ceremonial', '鸿胪寺', '#2563eb', [
+      pos('Chamberlain for Ceremonial', '鸿胪寺卿',
+        'Own foreign envoys and tribute missions. Register each envoy\'s rank, gifts, route and the reception owed to them; every promise made to them is written down before it is spoken twice.',
+        '掌外宾朝贡与使节往来。登记每位来使的品级、贡物、行程与应得的接待规格；许诺给对方的每一句话，先说一遍就落一份书面。'),
+    ]),
+    node('Imperial Academy', '国子监', '#db2777', [
+      pos('Chancellor of the Academy', '国子监祭酒',
+        'Own teaching and the textbooks. Publish the term\'s curriculum in advance, revise the texts once a quarter, and examine every student by the same standard regardless of birth.',
+        '掌国子监教学与教材。学期课程提前公布，教材每季校订一次；考核对所有学子用同一把尺子，不因出身改标准。'),
+    ]),
+    node('Court of the Treasury', '太府寺', '#ca8a04', [
+      pos('Treasurer of the Court', '太府寺卿',
+        'Own the treasury\'s outflow. No payment leaves without a document from the Department of State Affairs; books close daily and balance monthly, and a mismatch between vault and ledger seals the vault that day to count it.',
+        '掌国库钱帛出纳。没有尚书省的文书一律不放款；账目日清月结，库房与账面不符当天封库盘点。'),
+    ]),
+  ]),
 ]

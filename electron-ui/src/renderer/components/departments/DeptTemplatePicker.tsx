@@ -15,6 +15,7 @@ import { createPortal } from 'react-dom'
 import {
   AlertTriangle,
   Building2,
+  Landmark,
   Check,
   Code,
   FlaskConical,
@@ -45,6 +46,7 @@ const DOMAIN_ICONS: Record<string, LucideIcon> = {
   content: PenLine,
   ecommerce: ShoppingCart,
   research: FlaskConical,
+  imperial: Landmark,
 }
 
 type Choice = { kind: 'preset'; id: string } | { kind: 'import' } | { kind: 'blank' }
@@ -148,7 +150,7 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose, busy])
 
-  const card = (active: boolean, onClick: () => void, key: string, icon: React.ReactNode, title: string, desc: string) => (
+  const card = (active: boolean, onClick: () => void, key: string, icon: React.ReactNode, title: string, desc: string, style?: React.CSSProperties) => (
     <button
       key={key}
       onClick={onClick}
@@ -164,6 +166,7 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
         cursor: 'pointer',
         transition: 'all 0.15s ease',
         position: 'relative',
+        ...style,
       }}
     >
       <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: active ? '#818cf8' : 'var(--text-secondary)' }}>
@@ -252,9 +255,12 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
         {/* Body */}
         <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-            {COMPANY_TEMPLATES.map(p => {
+            {COMPANY_TEMPLATES.map((p, i) => {
               const Icon = DOMAIN_ICONS[p.id] || Building2
               const active = choice.kind === 'preset' && choice.id === p.id
+              // An odd count would leave a half-width hole in the last row; the
+              // trailing card takes the whole row instead of sitting lopsided.
+              const odd = COMPANY_TEMPLATES.length % 2 === 1 && i === COMPANY_TEMPLATES.length - 1
               return card(
                 active,
                 () => { setChoice({ kind: 'preset', id: p.id }); setFailed([]); setError(null) },
@@ -262,6 +268,7 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
                 <Icon size={13} />,
                 t(p.labelKey),
                 t(p.descKey),
+                odd ? { gridColumn: 'span 2' } : undefined,
               )
             })}
           </div>
