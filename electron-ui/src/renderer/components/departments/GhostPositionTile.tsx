@@ -15,7 +15,8 @@ import { Pencil, Trash2, UserPlus } from 'lucide-react'
 import type { Position } from '../../store'
 import type { Persona } from '../../types/app.types'
 import { GhostSilhouette } from './employeeFigureArt'
-import { useT } from '../../i18n'
+import { useI18n } from '../../i18n'
+import { positionDisplayBrief, positionDisplayTitle } from './deptUtils'
 
 interface GhostPositionTileProps {
   position: Position
@@ -28,17 +29,18 @@ interface GhostPositionTileProps {
 }
 
 export default function GhostPositionTile({ position, persona, onHire, onEdit, onDismiss }: GhostPositionTileProps) {
-  const t = useT()
+  const { t, resolvedLocale } = useI18n()
   const [confirmingDismiss, setConfirmingDismiss] = useState(false)
   const color = position.color || '#6366f1'
+  const title = positionDisplayTitle(position, resolvedLocale)
 
   return (
     <div
       className="emp-tile emp-ghost"
       role="button"
       tabIndex={0}
-      aria-label={`${t('dept.positionOpen')} — ${position.title}`}
-      title={position.brief}
+      aria-label={`${t('dept.positionOpen')} — ${title}`}
+      title={positionDisplayBrief(position, resolvedLocale)}
       onClick={onHire}
       onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -137,7 +139,7 @@ export default function GhostPositionTile({ position, persona, onHire, onEdit, o
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             textAlign: 'center',
           }}>
-            {position.title}
+            {title}
           </div>
           {/* The role the seat will be hired as. No persona means the seat
               inherits the department default at hire time. */}

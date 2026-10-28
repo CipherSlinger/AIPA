@@ -15,6 +15,7 @@ import { CostBadge, ContextBadge, ContextProgressBar } from './ContextIndicator'
 import type { ConversationStats, BookmarkedMessage } from '../../hooks/useConversationStats'
 import type { SessionChanges } from '../../hooks/useSessionChanges'
 import SaveTemplateDialog from './SaveTemplateDialog'
+import SessionReuseMenu from './SessionReuseMenu'
 import CompactButton from './CompactButton'
 import WorktreeDialog from './WorktreeDialog'
 import { listSessionsShared } from '../../utils/sessionListShared'
@@ -604,6 +605,15 @@ export default function ChatHeader({
       >
         <FilePlus2 size={15} />
       </button>
+
+      {/* Turn this conversation into a workflow or a skill */}
+      <SessionReuseMenu
+        messageCount={messageCount}
+        sessionTitle={sessionTitle}
+        headerBtnStyle={headerBtnStyle}
+        hoverIn={hoverIn}
+        hoverOut={hoverOut}
+      />
 
       {/* Copy conversation */}
       <button

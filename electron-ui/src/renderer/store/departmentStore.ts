@@ -8,6 +8,12 @@ import { create } from 'zustand'
 
 export type OrgNodeKind = 'company' | 'department' | 'team'
 
+/** The same text in both interface languages. */
+export interface LocalizedText {
+  en: string
+  zh: string
+}
+
 /**
  * A pre-seeded but unstaffed post ("ghost position"). Applying a company
  * template writes these in; hiring one turns its `brief` into the new
@@ -18,6 +24,13 @@ export interface Position {
   id: string
   title: string
   brief: string
+  /**
+   * The template's bilingual title/brief, kept only until the user edits that
+   * field. `title`/`brief` stay the resolved copy for every consumer that does
+   * not care about language.
+   */
+  presetTitle?: LocalizedText
+  presetBrief?: LocalizedText
   color?: string
   /**
    * The persona this seat is hired as. Absent means "inherit": the hire flow
@@ -31,6 +44,12 @@ export interface Position {
 export interface Department {
   id: string
   name: string
+  /**
+   * A template's bilingual name, kept only until the user renames the node.
+   * `name` remains the resolved copy so the directory join, exports and every
+   * consumer that never looks at language keep working unchanged.
+   */
+  presetName?: LocalizedText
   directory: string  // 部门办公室：工作目录
   color?: string     // Optional accent color for visual distinction
   createdAt: number
@@ -166,7 +185,14 @@ export const useDepartmentStore = create<DepartmentState>((set) => ({
 
   updateDepartment: (id, updates) => {
     set((s) => {
-      const updated = s.departments.map((d) => (d.id === id ? { ...d, ...updates } : d))
+      const updated = s.departments.map((d) => {
+        if (d.id !== id) return d
+        const next = { ...d, ...updates }
+        // The user's wording wins for good: once they rename a template node,
+        // a later language switch must not overwrite it.
+        if (updates.name !== undefined) delete next.presetName
+        return next
+      })
       saveDepartments(updated)
       return { departments: updated }
     })
@@ -189,7 +215,18 @@ export const useDepartmentStore = create<DepartmentState>((set) => ({
     set((s) => {
       const updated = s.departments.map((d) => (
         d.id === deptId && d.positions?.length
-          ? { ...d, positions: d.positions.map(p => (p.id === positionId ? { ...p, ...updates } : p)) }
+          ? {
+            ...d,
+            positions: d.positions.map(p => {
+              if (p.id !== positionId) return p
+              const next = { ...p, ...updates }
+              // Editing a field detaches just that field from the template, so
+              // a language switch keeps the user's wording for it alone.
+              if (updates.title !== undefined && updates.presetTitle === undefined) delete next.presetTitle
+              if (updates.brief !== undefined && updates.presetBrief === undefined) delete next.presetBrief
+              return next
+            }),
+          }
           : d
       ))
       saveDepartments(updated)

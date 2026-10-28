@@ -9,7 +9,8 @@ import { useState } from 'react'
 import { BookOpen } from 'lucide-react'
 import type { Department } from '../../store'
 import type { Persona } from '../../types/app.types'
-import { useT } from '../../i18n'
+import { useI18n } from '../../i18n'
+import { deptDisplayName } from './deptUtils'
 import DeptModal, {
   modalFieldStyle,
   modalLabelStyle,
@@ -26,7 +27,7 @@ interface DeptHandbookModalProps {
 }
 
 export default function DeptHandbookModal({ dept, personas, onCancel, onSave }: DeptHandbookModalProps) {
-  const t = useT()
+  const { t, resolvedLocale } = useI18n()
   const [handbook, setHandbook] = useState(dept.handbook ?? '')
   const [defaultPersonaId, setDefaultPersonaId] = useState<string | undefined>(dept.defaultPersonaId)
   const accent = dept.color || '#6366f1'
@@ -34,7 +35,7 @@ export default function DeptHandbookModal({ dept, personas, onCancel, onSave }: 
   return (
     <DeptModal
       title={t('dept.handbookTitle')}
-      subtitle={dept.name}
+      subtitle={deptDisplayName(dept, resolvedLocale)}
       accent={accent}
       icon={<BookOpen size={15} />}
       width={500}

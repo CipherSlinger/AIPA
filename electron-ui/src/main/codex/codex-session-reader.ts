@@ -16,6 +16,8 @@ import path from 'path'
 import os from 'os'
 import { isPathInside, isValidSessionId } from '../utils/validate'
 import { cleanPrompt, deriveTitle, isSyntheticPrompt } from '../sessions/prompt-text'
+import { buildSnippet, contentContainsQuery } from '../sessions/search-types'
+import type { SearchResult } from '../sessions/search-types'
 
 // ── Constants ────────────────────────────────────────
 
@@ -330,19 +332,111 @@ export function deleteSession(sessionId: string): boolean {
 
 // ── Session Search ───────────────────────────────────
 
+/** Prose a normalized rollout entry contributes to search (text blocks only). */
+function normalizedEntryText(entry: NormalizedEntry): string {
+  const content = entry.message.content
+  if (typeof content === 'string') return content
+  if (!Array.isArray(content)) return ''
+  const parts: string[] = []
+  for (const block of content) {
+    if (!block || typeof block !== 'object') continue
+    const b = block as Record<string, unknown>
+    if (b.type === 'text' && typeof b.text === 'string') parts.push(b.text)
+  }
+  return parts.join('\n')
+}
+
+let codexSearchEpoch = 0
+
 /**
- * Search sessions by query string (basic text match).
+ * Cross-session content search over Codex rollout files.
+ *
+ * Rollouts are read one at a time (they live in date-sharded directories, so
+ * there is no index to rely on). A byte-level prefilter skips files that do not
+ * contain the query; only those that pass are parsed through the same
+ * `normalizeRollout` used by `loadSession`, so a hit points at a message the
+ * renderer can actually find. Cost is one read per candidate file per query;
+ * the corpus here is small, and the newest-first order lets the limit stop the
+ * scan early.
  */
-export function searchSessions(query: string, limit = 20): CodexSessionListItem[] {
-  const allSessions = listSessions()
+export async function searchSessions(query: string, limit = 20): Promise<SearchResult[]> {
+  if (!query || query.length < 2) return []
+
+  const epoch = ++codexSearchEpoch
+  const isCurrent = () => epoch === codexSearchEpoch
   const lowerQuery = query.toLowerCase()
 
-  return allSessions
-    .filter(s =>
-      (s.lastPrompt && s.lastPrompt.toLowerCase().includes(lowerQuery)) ||
-      (s.title && s.title.toLowerCase().includes(lowerQuery))
-    )
-    .slice(0, limit)
+  const candidates: Array<{ filePath: string; mtimeMs: number; size: number }> = []
+  for (const root of [getSessionsDir(), getArchivedDir()]) {
+    for (const filePath of collectRolloutFiles(root)) {
+      if (!isSessionPathSafe(filePath)) continue
+      try {
+        const stat = await fs.promises.stat(filePath)
+        candidates.push({ filePath, mtimeMs: stat.mtimeMs, size: stat.size })
+      } catch { /* vanished mid-walk */ }
+    }
+  }
+  candidates.sort((a, b) => b.mtimeMs - a.mtimeMs)
+
+  // The rollout file's derived title loses to a user-set index name, exactly as
+  // it does in the sidebar.
+  const indexTitles = new Map<string, string>()
+  for (const entry of readSessionIndex()) {
+    const name = entry.thread_name || entry.name
+    if (name) indexTitles.set(sessionIndexId(entry), name)
+  }
+
+  const results: SearchResult[] = []
+  for (const file of candidates) {
+    if (!isCurrent() || results.length >= limit) break
+
+    let content: string
+    try {
+      content = await fs.promises.readFile(file.filePath, 'utf-8')
+    } catch { continue }
+    if (!isCurrent()) break
+    if (!contentContainsQuery(content, query, lowerQuery)) continue
+
+    const lines = parseJsonLines(content)
+    const fallback = new Date(file.mtimeMs).toISOString()
+    const summary = summarizeRollout(file.filePath, file, lines)
+    if (!summary) continue
+    summaryCache.set(file.filePath, { mtimeMs: file.mtimeMs, size: file.size, item: summary })
+
+    let match: { snippet: string; timestamp: number; role: 'user' | 'assistant' } | null = null
+    let newest = summary.timestamp
+    for (const entry of normalizeRollout(lines, fallback)) {
+      const parsed = entry.timestamp ? Date.parse(entry.timestamp) : 0
+      if (!Number.isNaN(parsed) && parsed > newest) newest = parsed
+      if (match) continue
+      const role = entry.type === 'user' ? 'user' : entry.type === 'assistant' ? 'assistant' : null
+      if (!role) continue
+      const snippet = buildSnippet(normalizedEntryText(entry), query)
+      if (snippet) {
+        match = { snippet, timestamp: Number.isNaN(parsed) ? 0 : parsed, role }
+      }
+    }
+
+    const title = indexTitles.get(summary.sessionId) || summary.title
+    const titleMatched = !!title && title.toLowerCase().includes(lowerQuery)
+    if (!match && !titleMatched) continue
+
+    results.push({
+      sessionId: summary.sessionId,
+      title,
+      project: summary.project,
+      matchType: match ? 'content' : 'title',
+      snippet: match ? match.snippet : title || '',
+      timestamp: newest || summary.timestamp || file.mtimeMs,
+      engine: 'codex',
+      ...(match && match.timestamp > 0
+        ? { messageTimestamp: match.timestamp, messageRole: match.role }
+        : {}),
+    })
+  }
+
+  if (!isCurrent()) return []
+  return results.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit)
 }
 
 // ── Session Fork ─────────────────────────────────────
@@ -402,16 +496,19 @@ const summaryCache = new Map<string, {
   item: CodexSessionListItem | null
 }>()
 
+function parseJsonLines(content: string): RolloutLine[] {
+  return content
+    .split('\n')
+    .filter(l => l.trim())
+    .map(line => {
+      try { return JSON.parse(line) as RolloutLine } catch { return null }
+    })
+    .filter((line): line is RolloutLine => line !== null)
+}
+
 function readJsonLines(filePath: string): RolloutLine[] {
   try {
-    const content = fs.readFileSync(filePath, 'utf-8')
-    return content
-      .split('\n')
-      .filter(l => l.trim())
-      .map(line => {
-        try { return JSON.parse(line) as RolloutLine } catch { return null }
-      })
-      .filter((line): line is RolloutLine => line !== null)
+    return parseJsonLines(fs.readFileSync(filePath, 'utf-8'))
   } catch {
     return []
   }
@@ -448,6 +545,77 @@ function meaningfulUserText(raw: string): string {
   return cleanPrompt(raw)
 }
 
+/**
+ * Derive the list row from already-parsed rollout lines. Split out of
+ * `parseSessionFile` so the content search can summarise a file it has
+ * already read instead of reading it a second time.
+ */
+function summarizeRollout(
+  filePath: string,
+  stat: { mtimeMs: number },
+  lines: RolloutLine[],
+): CodexSessionListItem | null {
+  if (lines.length === 0) return null
+  let sessionId = uuidFromRolloutName(filePath) ?? path.basename(filePath, '.jsonl')
+  let cwd: string | undefined
+  let firstTs: string | undefined
+  let firstPrompt = ''
+  let responseMessages = 0
+  let eventMessages = 0
+  let userText: string | null = null
+
+  for (const line of lines) {
+    const payload = (line.payload ?? {}) as Record<string, unknown>
+    firstTs ??= isoTime(line.timestamp)
+    if (line.type === 'session_meta') {
+      if (typeof payload.id === 'string') sessionId = payload.id
+      if (typeof payload.cwd === 'string') cwd = payload.cwd
+      firstTs = isoTime(payload.timestamp) ?? firstTs
+    } else if (line.type === 'turn_context') {
+      if (!cwd && typeof payload.cwd === 'string') cwd = payload.cwd
+    } else if (line.type === 'response_item' && payload.type === 'message') {
+      const role = payload.role
+      if (role !== 'user' && role !== 'assistant') continue
+      responseMessages++
+      if (role !== 'user') continue
+      const text = meaningfulUserText(extractContentText(payload.content))
+      if (text && !firstPrompt) firstPrompt = text
+    } else if (line.type === 'event_msg') {
+      const type = payload.type
+      if (type !== 'user_message' && type !== 'agent_message') continue
+      eventMessages++
+      if (type !== 'user_message') continue
+      const text = meaningfulUserText(String(payload.message ?? ''))
+      if (text && !firstPrompt) firstPrompt = text
+    } else if (line.type === 'user' || line.type === 'assistant') {
+      // forkSession output (already Claude-shaped)
+      const message = line.message as Record<string, unknown> | undefined
+      if (!message) continue
+      responseMessages++
+      if (line.type !== 'user') continue
+      const text = meaningfulUserText(extractContentText(message.content))
+      if (!text || text === userText) continue
+      userText = text
+      if (!firstPrompt) firstPrompt = text
+    }
+  }
+
+  const firstTimestamp = firstTs ? Date.parse(firstTs) : stat.mtimeMs
+  return {
+    sessionId,
+    lastPrompt: firstPrompt.slice(0, 100),
+    title: firstPrompt ? deriveTitle(firstPrompt) : undefined,
+    timestamp: firstTimestamp,
+    // The rollout's session_meta carries the real cwd; keep it whole so the
+    // renderer can join it against a department directory.
+    project: cwd || '',
+    projectSlug: cwd ? pathToSlug(cwd) : '',
+    cwd,
+    messageCount: Math.max(responseMessages, eventMessages),
+    firstTimestamp,
+  }
+}
+
 function parseSessionFile(filePath: string): CodexSessionListItem | null {
   let stat: fs.Stats
   try {
@@ -464,67 +632,7 @@ function parseSessionFile(filePath: string): CodexSessionListItem | null {
 
   let item: CodexSessionListItem | null = null
   try {
-    const lines = readJsonLines(filePath)
-    if (lines.length > 0) {
-      let sessionId = uuidFromRolloutName(filePath) ?? path.basename(filePath, '.jsonl')
-      let cwd: string | undefined
-      let firstTs: string | undefined
-      let firstPrompt = ''
-      let responseMessages = 0
-      let eventMessages = 0
-      let userText: string | null = null
-
-      for (const line of lines) {
-        const payload = (line.payload ?? {}) as Record<string, unknown>
-        firstTs ??= isoTime(line.timestamp)
-        if (line.type === 'session_meta') {
-          if (typeof payload.id === 'string') sessionId = payload.id
-          if (typeof payload.cwd === 'string') cwd = payload.cwd
-          firstTs = isoTime(payload.timestamp) ?? firstTs
-        } else if (line.type === 'turn_context') {
-          if (!cwd && typeof payload.cwd === 'string') cwd = payload.cwd
-        } else if (line.type === 'response_item' && payload.type === 'message') {
-          const role = payload.role
-          if (role !== 'user' && role !== 'assistant') continue
-          responseMessages++
-          if (role !== 'user') continue
-          const text = meaningfulUserText(extractContentText(payload.content))
-          if (text && !firstPrompt) firstPrompt = text
-        } else if (line.type === 'event_msg') {
-          const type = payload.type
-          if (type !== 'user_message' && type !== 'agent_message') continue
-          eventMessages++
-          if (type !== 'user_message') continue
-          const text = meaningfulUserText(String(payload.message ?? ''))
-          if (text && !firstPrompt) firstPrompt = text
-        } else if (line.type === 'user' || line.type === 'assistant') {
-          // forkSession output (already Claude-shaped)
-          const message = line.message as Record<string, unknown> | undefined
-          if (!message) continue
-          responseMessages++
-          if (line.type !== 'user') continue
-          const text = meaningfulUserText(extractContentText(message.content))
-          if (!text || text === userText) continue
-          userText = text
-          if (!firstPrompt) firstPrompt = text
-        }
-      }
-
-      const firstTimestamp = firstTs ? Date.parse(firstTs) : stat.mtimeMs
-      item = {
-        sessionId,
-        lastPrompt: firstPrompt.slice(0, 100),
-        title: firstPrompt ? deriveTitle(firstPrompt) : undefined,
-        timestamp: firstTimestamp,
-        // The rollout's session_meta carries the real cwd; keep it whole so the
-        // renderer can join it against a department directory.
-        project: cwd || '',
-        projectSlug: cwd ? pathToSlug(cwd) : '',
-        cwd,
-        messageCount: Math.max(responseMessages, eventMessages),
-        firstTimestamp,
-      }
-    }
+    item = summarizeRollout(filePath, stat, readJsonLines(filePath))
   } catch {
     item = null
   }

@@ -60,7 +60,7 @@ export function displayTitle(
 }
 
 /** Skip marker-only and bare-command lines so the preview starts at real prose. */
-function firstMeaningfulLine(text: string | null | undefined): string {
+export function firstMeaningfulLine(text: string | null | undefined): string {
   if (!text) return ''
   for (const line of text.split('\n')) {
     const cleaned = stripPromptGlyph(

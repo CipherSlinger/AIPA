@@ -4,6 +4,7 @@ import ErrorBoundary from './components/shared/ErrorBoundary'
 import { ToastContainer } from './components/ui/Toast'
 import { usePrefsStore, useChatStore, useUiStore, useSessionStore } from './store'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
+import { useAppEventBridge } from './hooks/useAppEventBridge'
 import { useContextHealth } from './hooks/useContextHealth'
 import { populateDefaultPresetsIfEmpty } from './utils/presetPopulator'
 import { listSessionsShared } from './utils/sessionListShared'
@@ -16,6 +17,7 @@ const OnboardingWizard = lazy(() => import('./components/onboarding/OnboardingWi
 const CommandPalette = lazy(() => import('./components/ui/CommandPalette'))
 const SessionQuickSwitcher = lazy(() => import('./components/shared/SessionQuickSwitcher'))
 const ShortcutCheatsheet = lazy(() => import('./components/shared/ShortcutCheatsheet'))
+const GlobalSearchOverlay = lazy(() => import('./components/search/GlobalSearchOverlay'))
 
 export default function App() {
   const prefs = usePrefsStore(s => s.prefs)
@@ -28,6 +30,7 @@ export default function App() {
   const toggleCommandPalette = useUiStore(s => s.toggleCommandPalette)
   const sessionSwitcherOpen = useUiStore(s => s.sessionSwitcherOpen)
   const setSessionSwitcherOpen = useUiStore(s => s.setSessionSwitcherOpen)
+  const globalSearchOpen = useUiStore(s => s.globalSearchOpen)
   const toggleFocusMode = useUiStore(s => s.toggleFocusMode)
   const toasts = useUiStore(s => s.toasts)
   const removeToast = useUiStore(s => s.removeToast)
@@ -131,10 +134,9 @@ export default function App() {
               // Sessions are sorted by timestamp descending -- first entry is most recent
               const mostRecent = sessions.sort((a: any, b: any) => b.timestamp - a.timestamp)[0]
               if (mostRecent) {
-                // Dispatch after a short delay to ensure SessionList is mounted and listening
-                setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: mostRecent.sessionId }))
-                }, 300)
+                // The app-level event bridge owns opening sessions; it is
+                // already listening by the time this await resolves.
+                window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: mostRecent.sessionId }))
               }
             }
           } catch { /* session resume is best-effort */ }
@@ -307,6 +309,10 @@ export default function App() {
     toggleCommandPalette, toggleFocusMode, setShowShortcuts, setPrefs,
   )
 
+  // Session-open and search-focus events from the tray, palette, switcher and
+  // shortcuts share one listener, mounted here.
+  useAppEventBridge()
+
   // Context health + cost threshold warnings (inspired by Claude Code)
   useContextHealth()
 
@@ -358,6 +364,7 @@ export default function App() {
           {sessionSwitcherOpen && (
             <SessionQuickSwitcher onClose={() => setSessionSwitcherOpen(false)} />
           )}
+          {globalSearchOpen && <GlobalSearchOverlay />}
         </Suspense>
       </>
     </ErrorBoundary>

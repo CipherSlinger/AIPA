@@ -64,6 +64,35 @@ function recountUserMessages(messages: ChatMessage[]): number {
   return n
 }
 
+/**
+ * Deltas are only accepted from the bridge the composer started. Background
+ * jobs (memory extraction, away summary) run their own bridge; without this
+ * check their tokens were appended to whatever conversation was on screen.
+ *
+ * A missing `streamSessionId` must never mean "accept anything": `clearMessages`
+ * nulls it while the previous bridge is still running in the main process, so a
+ * session switch mid-stream would otherwise pour A's answer into B's transcript.
+ */
+function isTurnSession(sessionId: string): boolean {
+  if (!useChatStoreRef) return true
+  const s = useChatStoreRef.getState()
+  // An event without a bridge id cannot be attributed to anyone.
+  if (!sessionId) return false
+  // The bridge the composer declared owns the transcript.
+  if (s.streamSessionId) return sessionId === s.streamSessionId
+  // Between dispatch and the send reply the bridge id is not known yet, so the
+  // only bridge that may speak is the one this turn started. If a session was
+  // opened in the meantime the conversation no longer matches and the window
+  // belongs to a bridge the user left.
+  if (s.streamPending) {
+    return s.streamConversationId === null || s.streamConversationId === s.viewSessionId
+  }
+  // `clearMessages()` wiped an in-flight turn. It may still be talking, but its
+  // words belong to its own conversation — never to whatever is now on screen.
+  const orphan = s.orphanedStream
+  return !!orphan && orphan.visible && orphan.bridgeId === sessionId
+}
+
 function flushStreamingBuffer() {
   streamingBuffer.rafId = 0
   if (!streamingBuffer.dirty) return
@@ -150,6 +179,38 @@ interface ChatState {
   addMessage: (msg: ChatMessage) => void
   appendTextDelta: (sessionId: string, text: string) => void
   setStreaming: (v: boolean) => void
+  /**
+   * Bridge id of the turn the composer started. Deltas from any other bridge
+   * (background memory extraction, away summary) are dropped by
+   * appendTextDelta/appendThinkingDelta.
+   */
+  streamSessionId: string | null
+  /**
+   * Engine session id of the conversation the live/expected bridge answers in.
+   * `null` = a brand-new conversation whose id is not known yet.
+   */
+  streamConversationId: string | null
+  /**
+   * True from the moment a turn is dispatched until its bridge id is announced
+   * by `setStreamSession` — text deltas can arrive before that reply does.
+   */
+  streamPending: boolean
+  /**
+   * The conversation the user is actually looking at. Unlike `currentSessionId`
+   * this is never overwritten by a flushing delta — `flushStreamingBuffer`
+   * writes the bridge id into `currentSessionId`, which makes it useless as a
+   * "same view?" test while a turn is in flight.
+   */
+  viewSessionId: string | null
+  /**
+   * A bridge that was mid-turn when `clearMessages()` wiped the view. It keeps
+   * running in the main process; it may only write again while its own
+   * conversation is the one that was reopened (`visible`).
+   */
+  orphanedStream: { bridgeId: string; conversationId: string; visible: boolean } | null
+  /** Record the conversation a freshly dispatched turn belongs to. */
+  beginTurn: () => void
+  setStreamSession: (id: string | null) => void
   setSessionId: (id: string | null) => void
   setWorkingDir: (dir: string) => void
   addToolUse: (msgId: string, toolId: string, name: string, input: Record<string, unknown>) => void
@@ -302,6 +363,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   isStreaming: false,
   currentSessionId: null,
+  streamSessionId: null,
+  streamConversationId: null,
+  streamPending: false,
+  viewSessionId: null,
+  orphanedStream: null,
   workingDir: '',
   pendingToolUses: new Map(),
   lastUsage: null,
@@ -341,11 +407,37 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   appendTextDelta: (sessionId, text) => {
+    if (!isTurnSession(sessionId)) return
     streamingBuffer.contentChunks.push(text)
     streamingBuffer.sessionId = sessionId
     streamingBuffer.dirty = true
     scheduleFlush()
   },
+
+  beginTurn: () => set((s) => ({
+    streamPending: true,
+    streamConversationId: s.viewSessionId,
+    orphanedStream: null,
+  })),
+
+  setStreamSession: (id) => set((s) => {
+    if (!id) return { streamSessionId: null, streamPending: false }
+    // A bridge announced after the user left its conversation must not claim
+    // the new view — its deltas would land in the wrong transcript.
+    const stillOnScreen =
+      s.streamConversationId === null || s.streamConversationId === s.viewSessionId
+    if (stillOnScreen) return { streamSessionId: id, streamPending: false }
+    // Remember the bridge instead of discarding it: reopening the conversation
+    // it belongs to reattaches the stream, so a slow send reply cannot cut that
+    // turn off. An empty `streamConversationId` is the abandoned first-turn
+    // marker written by clearMessages — that one has no view to return to.
+    return {
+      streamPending: false,
+      orphanedStream: s.streamConversationId
+        ? { bridgeId: id, conversationId: s.streamConversationId, visible: false }
+        : s.orphanedStream,
+    }
+  }),
 
   setStreaming: (v) => {
     // Flush any pending streaming buffer before finalizing
@@ -369,11 +461,30 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
         return m
       })
-      return { isStreaming: v, messages: msgs }
+      // A finished (or aborted) turn owns no stream any more: releasing the
+      // bridge here keeps `clearMessages` from orphaning completed streams and
+      // makes the next send establish its own expectation.
+      return {
+        isStreaming: v,
+        messages: msgs,
+        ...(v ? {} : {
+          streamSessionId: null,
+          streamPending: false,
+          orphanedStream: null,
+        }),
+      }
     })
   },
 
-  setSessionId: (id) => set({ currentSessionId: id }),
+  setSessionId: (id) => set((s) => ({
+    currentSessionId: id,
+    viewSessionId: id,
+    // Opening the conversation an interrupted bridge belongs to reattaches it;
+    // any other view keeps that bridge's deltas out.
+    orphanedStream: s.orphanedStream
+      ? { ...s.orphanedStream, visible: id !== null && id === s.orphanedStream.conversationId }
+      : null,
+  })),
   setWorkingDir: (dir) => set({ workingDir: dir }),
 
   addToolUse: (msgId, toolId, name, input) => {
@@ -422,7 +533,45 @@ export const useChatStore = create<ChatState>((set, get) => ({
     streamingBuffer.sessionId = null
     streamingBuffer.dirty = false
     userMessageCount = 0
-    set({ messages: [], currentSessionId: null, currentSessionTitle: null, isStreaming: false, totalSessionCost: 0, lastCost: null, lastUsage: null, lastContextUsage: null, modelUsage: {}, sessionPersonaId: undefined, isPlanMode: false, changedFiles: [], tempSystemPrompt: null, hookEvents: [], dreamEvents: [], permissionDenials: [], lastNumTurns: null, lastDurationMs: null, lastResultUuid: null, fastModeState: null })
+    const s = get()
+    // A turn that is still streaming keeps running in the main process after
+    // the transcript is wiped. Remember which conversation it was answering in;
+    // the next setSessionId() decides whether that view may reattach. A finished
+    // bridge (isStreaming false) is not worth remembering.
+    const orphan = s.isStreaming && s.streamSessionId && s.streamConversationId
+      ? { bridgeId: s.streamSessionId, conversationId: s.streamConversationId, visible: false }
+      : s.orphanedStream
+        ? { ...s.orphanedStream, visible: false }
+        : null
+    set({
+      messages: [],
+      currentSessionId: null,
+      viewSessionId: null,
+      streamSessionId: null,
+      // A first turn whose bridge id is still in flight has no session id to be
+      // reopened with, so abandon it: `''` never matches a real conversation and
+      // its late announcement cannot claim another view.
+      streamConversationId: s.streamPending ? (s.streamConversationId ?? '') : s.streamConversationId,
+      orphanedStream: orphan,
+      currentSessionTitle: null,
+      isStreaming: false,
+      totalSessionCost: 0,
+      lastCost: null,
+      lastUsage: null,
+      lastContextUsage: null,
+      modelUsage: {},
+      sessionPersonaId: undefined,
+      isPlanMode: false,
+      changedFiles: [],
+      tempSystemPrompt: null,
+      hookEvents: [],
+      dreamEvents: [],
+      permissionDenials: [],
+      lastNumTurns: null,
+      lastDurationMs: null,
+      lastResultUuid: null,
+      fastModeState: null,
+    })
   },
   loadHistory: (messages) => {
     recountUserMessages(messages)
@@ -430,6 +579,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   appendThinkingDelta: (sessionId, text) => {
+    if (!isTurnSession(sessionId)) return
     streamingBuffer.thinkingChunks.push(text)
     streamingBuffer.sessionId = sessionId
     streamingBuffer.dirty = true
@@ -859,6 +1009,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         activeTabId: null,
         messages: [],
         currentSessionId: null,
+        viewSessionId: null,
         currentSessionTitle: null,
         isStreaming: false,
         totalSessionCost: 0,
@@ -885,6 +1036,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             activeTabId: sole.id,
             messages: sole.snapshot.messages,
             currentSessionId: sole.snapshot.sessionId,
+            viewSessionId: sole.snapshot.sessionId,
             currentSessionTitle: sole.snapshot.sessionTitle,
             totalSessionCost: sole.snapshot.totalSessionCost,
             lastCost: sole.snapshot.lastCost,
@@ -920,6 +1072,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           activeTabId: newActive.id,
           messages: newActive.snapshot.messages,
           currentSessionId: newActive.snapshot.sessionId,
+          viewSessionId: newActive.snapshot.sessionId,
           currentSessionTitle: newActive.snapshot.sessionTitle,
           totalSessionCost: newActive.snapshot.totalSessionCost,
           lastCost: newActive.snapshot.lastCost,
@@ -980,6 +1133,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         activeTabId: tabId,
         messages: targetTab.snapshot.messages,
         currentSessionId: targetTab.snapshot.sessionId,
+        viewSessionId: targetTab.snapshot.sessionId,
         currentSessionTitle: targetTab.snapshot.sessionTitle,
         totalSessionCost: targetTab.snapshot.totalSessionCost,
         lastCost: targetTab.snapshot.lastCost,

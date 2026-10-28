@@ -49,24 +49,18 @@ ${excerpt}
 Return only the summary text, no preamble.`
 
   try {
-    const result = await window.electronAPI.cliSendMessage({
+    // Internal bridge: no cli:* events reach the chat listener, and the text
+    // comes back from the invoke instead of being read out of the chat store.
+    const result = await window.electronAPI.cliRunInternal({
       prompt,
       cwd: workingDir,
       model,
-      env: {},
-      flags: ['--print', '--max-turns', '1'],
+      timeoutMs: 90_000,
     })
 
     if (signal.aborted) return null
-
-    // Wait briefly for the stream to settle
-    await new Promise(resolve => setTimeout(resolve, 3000))
-    if (signal.aborted) return null
-
-    // Extract from the most recent assistant message
-    const allMsgs = useChatStore.getState().messages as StandardChatMessage[]
-    const lastAssistant = [...allMsgs].reverse().find(m => m.role === 'assistant')
-    return lastAssistant?.content?.slice(0, 500) ?? null
+    if (!result?.success || !result.text) return null
+    return result.text.slice(0, 500)
   } catch {
     return null
   }

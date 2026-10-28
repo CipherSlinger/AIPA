@@ -38,6 +38,7 @@ import { useT } from '../../i18n'
 import { useIdleReturn } from '../../hooks/useIdleReturn'
 import { useAwaySummary } from '../../hooks/useAwaySummary'
 import { useSpeculation } from '../../hooks/useSpeculation'
+import { useEvidenceReveal } from '../../hooks/useEvidenceReveal'
 
 const NOTE_BANNER_STYLE: React.CSSProperties = {
   display: 'flex',
@@ -116,10 +117,32 @@ export default function ChatPanel() {
 
   const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleFileDrop } = useDragAndDrop(addToast)
 
+  // A cross-session search hit scrolls to and briefly flashes its message. The
+  // overlay resolved the transcript timestamp to an index before switching
+  // views; this hook turns that hand-off into MessageList's existing props.
+  const { evidenceIndex, evidenceQuery, scrollToEvidenceIndex } = useEvidenceReveal(currentSessionId)
+
   // Export dialog state
   const [showExport, setShowExport] = useState(false)
 
   useChatPanelShortcuts(() => setShowExport(true), copyConversation, setSearchOpen, sendMessage, abort)
+
+  // "/" and Ctrl+Shift+F arrive as a store flag, not a DOM event: those
+  // shortcuts also work from views where this panel is unmounted, so the
+  // request has to survive until the panel exists. Consuming it here keeps a
+  // later remount from reopening the search bar.
+  const searchFocusPending = useUiStore(s => s.searchFocusPending)
+  const consumeSearchFocus = useUiStore(s => s.consumeSearchFocus)
+  useEffect(() => {
+    if (!searchFocusPending) return
+    consumeSearchFocus()
+    setSearchOpen(true)
+    // Opening mounts SearchBar, which focuses itself. An already-open bar needs
+    // the focus handed to it after the state change commits.
+    requestAnimationFrame(() => {
+      document.querySelector<HTMLInputElement>('.search-bar-input')?.focus()
+    })
+  }, [searchFocusPending, consumeSearchFocus, setSearchOpen])
 
   // Idle return detection
   const { showDialog: showIdleDialog, idleDuration, awaySummary, summaryLoading, dismiss: dismissIdle, suppressForever: suppressIdleForever } = useIdleReturn()
@@ -144,7 +167,7 @@ export default function ChatPanel() {
   // Event listeners + budget warning (extracted Iteration 441)
   useChatPanelEvents(
     currentSessionId, isStreaming, totalSessionCost, prefs.maxBudgetUsd,
-    sendMessage, sessionNotes, setEditingNote, setNoteText, newConversation,
+    sendMessage, sessionNotes, setEditingNote, setNoteText,
   )
 
   // Scroll-to-message state (for bookmarks panel)
@@ -500,10 +523,11 @@ export default function ChatPanel() {
             onRespondElicitation={respondElicitation}
             sessionId={currentSessionId}
             isStreaming={isStreaming}
-            searchQuery={searchQuery}
+            searchQuery={evidenceQuery ?? searchQuery}
             searchCaseSensitive={caseSensitive}
-            highlightedMessageIdx={searchMatches.length > 0 ? searchMatches[currentMatchIdx] : undefined}
-            scrollToMessageIdx={scrollToMessageIdx}
+            highlightedMessageIdx={evidenceIndex ?? (searchMatches.length > 0 ? searchMatches[currentMatchIdx] : undefined)}
+            scrollToMessageIdx={scrollToEvidenceIndex ?? scrollToMessageIdx}
+            evidenceMessageIdx={evidenceIndex}
             onEdit={handleEditMessage}
             onFork={handleFork}
             onScrollTop={handleScrollTop}

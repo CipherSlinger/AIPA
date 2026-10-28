@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useChatStore, useUiStore } from '../../store'
+import { useChatStore } from '../../store'
 
 /**
  * Hook encapsulating all global keyboard shortcuts for ChatPanel.
@@ -35,15 +35,8 @@ export function useChatPanelShortcuts(
         e.preventDefault()
         setSearchOpen(true)
       }
-      // Ctrl+Shift+F: Global cross-session search
-      if (e.ctrlKey && e.shiftKey && e.key === 'F') {
-        e.preventDefault()
-        const uiState = useUiStore.getState()
-        if (!uiState.sidebarOpen || uiState.sidebarTab !== 'history') {
-          uiState.setActiveNavItem('history')
-        }
-        window.dispatchEvent(new CustomEvent('aipa:globalSearchFocus'))
-      }
+      // Ctrl+Shift+F moved to useAppShortcuts: the overlay opens from any view,
+      // and this hook only exists while ChatPanel is mounted.
       // Ctrl+Shift+K: Compact conversation context
       if (e.ctrlKey && e.shiftKey && e.key === 'K') {
         e.preventDefault()

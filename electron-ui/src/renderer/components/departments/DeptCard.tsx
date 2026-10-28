@@ -26,9 +26,9 @@ import React, { useState } from 'react'
 import { BarChart3, ChevronRight, FolderOpen, MessageSquare, Plus, Trash2, UserPlus, Users } from 'lucide-react'
 import type { Department } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
-import { useT } from '../../i18n'
+import { useI18n } from '../../i18n'
 import { cardStyle } from '../workflows/EmployeesShared'
-import { baseName, formatRelativeTime } from './deptUtils'
+import { baseName, deptDisplayName, formatRelativeTime } from './deptUtils'
 import DeptPortrait from './DeptPortrait'
 
 const ACCENT = '#6366f1'
@@ -75,9 +75,10 @@ function DeptCard({
   dept, sessions, sessionsLoading, hasActiveSession, dense,
   onEnter, onRecruit, onStats, onDelete,
 }: DeptCardProps) {
-  const t = useT()
+  const { t, resolvedLocale } = useI18n()
   const [hovered, setHovered] = useState(false)
   const color = dept.color || ACCENT
+  const name = deptDisplayName(dept, resolvedLocale)
   const messageCount = sessions.reduce((sum, s) => sum + (s.messageCount ?? 0), 0)
   const openPositions = dept.positions?.length ?? 0
   // Sized against the narrowest card each density allows (216px / 180px): the
@@ -94,6 +95,8 @@ function DeptCard({
       transform: hovered ? 'scale(1.06)' : 'scale(1)',
       transition: 'transform 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
     }}>
+      {/* Raw `name`, not the display translation: the face should not change
+          when the interface language does. */}
       <DeptPortrait name={dept.name} seed={dept.id} color={color} size={portraitSize} />
     </span>
   )
@@ -109,7 +112,7 @@ function DeptCard({
       paddingRight: dense ? 40 : 0,
     }}>
       <span
-        title={dept.name}
+        title={name}
         style={{
           fontSize: dense ? 12 : 13, fontWeight: 700, color: 'var(--text-primary)',
           // The clamp box takes the full reserved width, so a wrapped name must
@@ -119,7 +122,7 @@ function DeptCard({
           ...NAME_CLAMP,
         }}
       >
-        {dept.name}
+        {name}
       </span>
       {hasActiveSession && (
         <span style={{

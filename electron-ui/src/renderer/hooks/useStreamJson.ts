@@ -42,6 +42,46 @@ function buildPermissionRule(toolName: string, toolInput: Record<string, unknown
   return toolName
 }
 
+/**
+ * Background turns (memory extraction, away summary) carry an `internal-`
+ * bridge id and are never published on the cli:* channels. The tag is still
+ * checked here: the listener subscribes to every bridge, so a leak in the main
+ * process must not be able to write into the open conversation.
+ */
+const INTERNAL_SESSION_PREFIX = 'internal-'
+function isInternalCliEvent(data: unknown): boolean {
+  const d = data as { internal?: unknown; sessionId?: unknown } | null
+  if (!d) return false
+  if (d.internal === true) return true
+  return typeof d.sessionId === 'string' && d.sessionId.startsWith(INTERNAL_SESSION_PREFIX)
+}
+
+/**
+ * Invariant: a cli:result may mutate the open conversation only when it is
+ * (a) the bridge this hook started, (b) carries the engine session id that is
+ * already on screen, or (c) belongs to a conversation that has no real id yet
+ * (a new chat, or the sidebar's `pending-` placeholder waiting for its first
+ * result). Anything else is another tab's or a background job's turn: it must
+ * not switch currentSessionId, append messages, or set usage/cost.
+ */
+function isResultForActiveConversation(data: unknown, activeBridgeId: string | null): boolean {
+  const d = data as { sessionId?: unknown; claudeSessionId?: unknown } | null
+  if (!d) return false
+  const bridgeSessionId = typeof d.sessionId === 'string' ? d.sessionId : ''
+  const store = useChatStore.getState()
+  // A bridge the user walked away from mid-turn. Its result reports on its own
+  // conversation, never on whatever is on screen now: applying it would relabel
+  // this view with the other session id and re-visible the orphan, letting the
+  // rest of that turn land in this transcript.
+  const orphan = store.orphanedStream
+  if (orphan && bridgeSessionId === orphan.bridgeId) return orphan.visible
+  if (activeBridgeId && bridgeSessionId === activeBridgeId) return true
+  const engineSessionId = typeof d.claudeSessionId === 'string' ? d.claudeSessionId : ''
+  const current = store.currentSessionId
+  if (!current || current.startsWith('pending-')) return true
+  return engineSessionId === current || bridgeSessionId === current
+}
+
 // Write a permanent allow/deny rule to ~/.claude/settings.json
 async function writePermissionRule(type: 'allow' | 'deny', toolName: string, toolInput: Record<string, unknown>) {
   const rule = buildPermissionRule(toolName, toolInput)
@@ -118,6 +158,11 @@ export function useStreamJson() {
     }
     useChatStore.getState().addMessage(userMsg)
     useChatStore.getState().setStreaming(true)
+    // Deltas can arrive before cliSendMessage resolves with the bridge id;
+    // record which conversation this turn belongs to so the store only accepts
+    // that bridge's events and drops anything the user has since navigated away
+    // from.
+    useChatStore.getState().beginTurn()
     // Prevent system idle sleep while streaming (if enabled in prefs)
     if (prefs.preventSleep !== false && window.electronAPI?.windowPreventSleep) {
       window.electronAPI.windowPreventSleep(true)
@@ -321,6 +366,9 @@ export function useStreamJson() {
 
         if (result?.success && result.sessionId) {
           activeBridgeIdRef.current = result.sessionId
+          // Provider bridges publish on the same cli:* channels; declare them as
+          // the active stream so the store guard does not drop their deltas.
+          useChatStore.getState().setStreamSession(result.sessionId)
         } else if (!result?.success) {
           // The provider branch returns before any bridge exists, so no
           // cli:error/cli:messageEnd will arrive. Surface the failure and
@@ -360,6 +408,8 @@ export function useStreamJson() {
 
     if (result?.success && result.sessionId) {
       activeBridgeIdRef.current = result.sessionId
+      // Only this bridge's deltas may enter the streaming buffer.
+      useChatStore.getState().setStreamSession(result.sessionId)
     }
 
     return result
@@ -464,6 +514,10 @@ export function useStreamJson() {
     }
 
     const unsub = window.electronAPI.onCliEvent(null as unknown as string, (event, data: any) => {
+      // Internal turns own no conversation. Drop their events before any
+      // handler can touch the store.
+      if (isInternalCliEvent(data)) return
+
       switch (event) {
         case 'cli:assistantText': {
           useChatStore.getState().appendTextDelta(data.sessionId as string, data.text as string)
@@ -676,6 +730,10 @@ export function useStreamJson() {
           break
         }
         case 'cli:result': {
+          if (!isResultForActiveConversation(data, activeBridgeIdRef.current)) {
+            console.debug('[cli:result] ignored result from another conversation:', data.sessionId)
+            break
+          }
           // Handle error subtypes before normal result processing
           const resultSubtype = (data.subtype as string | undefined) ?? 'success'
           if (resultSubtype === 'error_max_structured_output_retries') {

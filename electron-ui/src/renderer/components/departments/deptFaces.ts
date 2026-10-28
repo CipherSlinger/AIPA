@@ -4,12 +4,13 @@
 // for the whole desk in the chart. That stand-in has to read at a glance:
 // a QA desk and a design studio should not both be the same round head.
 //
-// The look is decided by the department's *name*, not its colour. Name is the
-// only thing that survives a template: `COMPANY_TEMPLATES` freezes the name in
-// whichever locale was active when the template was applied, so the same
-// department arrives as "Product" or "产品部" depending on the install. Every
-// rule below therefore carries both spellings, and the whole list is matched
-// against a lower-cased name, so English and Chinese are one lookup.
+// The look is decided by the department's *name*, not its colour. A template
+// node keeps that `name` frozen in whichever locale was active when it was
+// applied — the display translation lives in `presetName` — so switching
+// language does not re-cast every face. The same department therefore arrives
+// as "Product" or "产品部" depending on the install. Every rule below carries
+// both spellings, and the whole list is matched against a lower-cased name, so
+// English and Chinese are one lookup.
 //
 // The list is ordered most-specific first. `研究设计部` (Study Design) must hit
 // its own rule before the generic `设计` (design) rule swallows it, and

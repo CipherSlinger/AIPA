@@ -9204,3 +9204,35 @@ Status: SUCCESS
 - [x] No screenshot / OCR / AI call implemented
 - [x] No IPC or UI integration; `src/main/ipc/index.ts` unchanged
 - [x] Temporary verification scripts removed after use
+
+## Iteration 5 — Automation/session correctness fixes (Backend)
+_Date: 2026-10-28 | Sprint Backend_
+
+### Summary
+Fixed seven verified main-process defects: automation runs now reuse the chat credential/arg
+builder; internal turns are ephemeral; internal completion waits for the engine terminal event;
+scheduled runs carry the selected model; preset workflow prompts are localized from the renderer
+locale JSON; the scheduler resolves its window lazily; and the UI language resolves `system`
+through `app.getLocale()`.
+
+### Files Changed
+- `src/main/codex/codex-turn-args.ts` — new shared builder for credentials, sandbox, approval policy, args
+- `src/main/automation/runner.ts` — first turn built through `buildCodexTurnArgs` (Settings key injected)
+- `src/main/automation/workflow-plan.ts` — new main-side prompt plan mirroring the renderer plan, localized via copied locale JSON
+- `src/main/automation/scheduler.ts` — lazy window provider, model forwarding, `system` locale, notification without a live window
+- `src/main/ipc/index.ts` — live-window tracking, scheduler wiring, internal turn `ephemeral`, completion on `cli:result`
+- `scripts/copy-main-locales.js` — copies renderer locale JSON into `dist/main/locales` during `build:main`
+- `package.json` — `build:main` runs the locale copy
+
+### API Changes
+- No new IPC channel. `automation:*` and `cli:runInternal` keep their signatures.
+
+### Build
+Status: SUCCESS — `npm run check`: 0 errors, 124 warnings; three-target build clean.
+
+### Acceptance Criteria
+- [x] Settings-only API key reaches a scheduled automation run (fake app-server saw the key; no `account/read`)
+- [x] Internal Codex turn sends `thread/start { ephemeral: true }`
+- [x] Claude internal turn waits for `result` (final text, not the earlier `message_stop` text)
+- [x] Scheduled run forwards `prefs.model`; Chinese preset prompts resolve to Chinese text
+- [x] Notification is shown and its click activates the app with no live window; `system` language resolves to Chinese

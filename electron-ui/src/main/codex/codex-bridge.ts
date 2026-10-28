@@ -1258,6 +1258,11 @@ class CodexBridgeManager {
    */
   findByThreadId(threadId: string): { bridgeId: string; bridge: CodexBridge } | null {
     for (const [bridgeId, bridge] of this.bridges) {
+      // Background bridges (`internal-…`): automation runs, memory extraction,
+      // and other app-initiated turns. Their threads can be opened from the
+      // archive while a run is still in flight; attaching the user's message
+      // to that bridge would inject it into the hidden run, so never reuse one.
+      if (bridgeId.startsWith('internal-')) continue
       if (bridge.getThreadId() === threadId) return { bridgeId, bridge }
     }
     return null

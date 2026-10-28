@@ -58,27 +58,18 @@ export function useAutoMemory() {
         .map(m => `[${m.role.toUpperCase()}]: ${m.content.slice(0, 1000)}`)
         .join('\n\n')
 
-      // Use CLI in print mode for extraction
-      await window.electronAPI.cliSendMessage({
+      // The extraction turn runs on its own internal bridge: its tokens never
+      // reach the chat channels, and the final text comes back from the invoke.
+      const result = await window.electronAPI.cliRunInternal({
         prompt: `${conversationText}\n\n${EXTRACT_PROMPT}`,
         cwd: prefs.workingDir || await window.electronAPI.fsGetHome(),
         model: prefs.advisorModel || prefs.model,
-        env: {},
-        flags: ['--print', '--max-turns', '1'],
+        timeoutMs: 90_000,
       })
-
-      // The result will be streamed back but we use --print mode
-      // so we wait for the response; however since stream-bridge fires events,
-      // let's try to parse the last assistant message content after a short delay
-      await new Promise(resolve => setTimeout(resolve, 3000))
-
-      // Try to find the extraction result from the most recent messages
-      const allMsgs = useChatStore.getState().messages
-      const lastAssistant = [...allMsgs].reverse().find(m => m.role === 'assistant') as StandardChatMessage | undefined
-      if (!lastAssistant?.content) return
+      if (!result?.success || !result.text) return
 
       // Parse JSON from the response
-      const jsonMatch = lastAssistant.content.match(/\[[\s\S]*\]/)
+      const jsonMatch = result.text.match(/\[[\s\S]*\]/)
       if (!jsonMatch) return
 
       let extracted: { content: string; category: MemoryCategory; memoryType?: string }[]

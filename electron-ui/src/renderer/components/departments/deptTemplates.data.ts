@@ -1,9 +1,10 @@
 // The built-in company templates. Data only — preview/apply live in deptPresets.ts.
 //
 // Node names, position titles and briefs are NOT UI copy: once applied they are
-// user data, stored in localStorage and renameable. So each carries both
-// locales and we freeze whichever was active at creation, rather than letting a
-// later language switch rename the user's own company.
+// user data, stored in localStorage and renameable. Each therefore carries both
+// locales, and `applyTemplate` stores the bilingual pair beside the resolved
+// copy: a template node follows the interface language until the user renames
+// it, at which point only their own wording survives.
 
 /** A name or brief in both locales. */
 export interface LocalizedText {

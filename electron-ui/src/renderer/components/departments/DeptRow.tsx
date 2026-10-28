@@ -4,8 +4,8 @@
 import { useState, useEffect, useCallback, type DragEvent } from 'react'
 import { MoreHorizontal, Check, X, GripVertical, ChevronRight, LogIn } from 'lucide-react'
 import { useDepartmentStore, useUiStore, type Department } from '../../store'
-import { useT } from '../../i18n'
-import { DEPT_COLORS } from './deptUtils'
+import { useI18n } from '../../i18n'
+import { DEPT_COLORS, deptDisplayName } from './deptUtils'
 import DeptRowMenu from './DeptRowMenu'
 import DeptDeleteConfirm from './DeptDeleteConfirm'
 
@@ -41,11 +41,12 @@ export default function DeptRow({
   draggingId, dragOverId, unreadCount,
   onDragStart, onDragEnd, onDragOver, onDrop,
 }: Props) {
-  const t = useT()
+  const { t, resolvedLocale } = useI18n()
+  const name = deptDisplayName(dept, resolvedLocale)
   const [hovered, setHovered] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [editName, setEditName] = useState(dept.name)
+  const [editName, setEditName] = useState(name)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [focused, setFocused] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -207,7 +208,7 @@ export default function DeptRow({
             whiteSpace: 'nowrap',
             transition: 'all 0.15s ease',
           }}>
-            {dept.name}
+            {name}
           </span>
           {lastActive > 0 && !isCollapsed && (
             <div style={{
@@ -382,7 +383,7 @@ export default function DeptRow({
 
       {menuOpen && (
         <DeptRowMenu
-          onRename={() => { setMenuOpen(false); setEditing(true); setEditName(dept.name) }}
+          onRename={() => { setMenuOpen(false); setEditing(true); setEditName(name) }}
           onDelete={handleDelete}
         />
       )}

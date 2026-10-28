@@ -154,7 +154,7 @@ export default function StatusBar() {
   // Compact handler for token popup (Iteration 517)
   const handleCompactFromTokenPopup = () => {
     setShowTokenPopup(false)
-    window.dispatchEvent(new CustomEvent('aipa:compactRequest'))
+    window.dispatchEvent(new CustomEvent('aipa:triggerCompact'))
   }
 
   if (!showStatusBar) return null

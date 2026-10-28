@@ -13,8 +13,8 @@ import React from 'react'
 import { AlertTriangle, Building2 } from 'lucide-react'
 import { descendantIds, type Department } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
-import { useT } from '../../i18n'
-import { formatRelativeTime, kindOf } from './deptUtils'
+import { useI18n, useT } from '../../i18n'
+import { deptDisplayName, formatRelativeTime, kindOf } from './deptUtils'
 import { COMPANY_TEMPLATES } from './deptPresets'
 
 const ACCENT = '#6366f1'
@@ -50,7 +50,8 @@ export interface DeptStatsPopoverProps {
 }
 
 export function DeptStatsPopover({ dept, sessions, position, onClose, onEnter }: DeptStatsPopoverProps) {
-  const t = useT()
+  const { t, resolvedLocale } = useI18n()
+  const name = deptDisplayName(dept, resolvedLocale)
   const totalMessages = sessions.reduce((sum, s) => sum + (s.messageCount ?? 0), 0)
   const todayStart = new Date().setHours(0, 0, 0, 0)
   const todayCount = sessions.filter(s => s.timestamp >= todayStart).length
@@ -68,7 +69,7 @@ export function DeptStatsPopover({ dept, sessions, position, onClose, onEnter }:
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${dept.name.replace(/[^a-z0-9]/gi, '_')}_employees.json`
+    a.download = `${name.replace(/[^a-z0-9]/gi, '_')}_employees.json`
     a.click()
     URL.revokeObjectURL(url)
     onClose()
@@ -88,7 +89,7 @@ export function DeptStatsPopover({ dept, sessions, position, onClose, onEnter }:
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         <div style={{ width: 10, height: 10, borderRadius: '50%', background: dept.color || ACCENT, flexShrink: 0 }} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{dept.name}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{name}</span>
         <button
           onClick={onClose}
           style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2, fontSize: 14, lineHeight: 1 }}
@@ -160,7 +161,7 @@ export interface DeleteDeptPopoverProps {
  * count would hide how far the cascade actually reaches.
  */
 export function DeleteDeptPopover({ node, departments, position, onCancel, onConfirm }: DeleteDeptPopoverProps) {
-  const t = useT()
+  const { t, resolvedLocale } = useI18n()
   const doomed = descendantIds(departments, node.id)
   const below = departments.filter(d => d.id !== node.id && doomed.has(d.id))
   const deptCount = below.filter(d => kindOf(d) === 'department').length
@@ -183,7 +184,7 @@ export function DeleteDeptPopover({ node, departments, position, onCancel, onCon
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
         <AlertTriangle size={13} style={{ color: '#f87171', flexShrink: 0 }} />
         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', ...ELLIPSIS }}>
-          {node.name}
+          {deptDisplayName(node, resolvedLocale)}
         </span>
         <button
           onClick={onCancel}

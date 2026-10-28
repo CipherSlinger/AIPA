@@ -4,6 +4,7 @@ import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import FloatingPortal from '../ui/FloatingPortal'
 import { useClickOutside } from '../../hooks/useClickOutside'
+import { runWorkflowIntoQueue } from '../workflows/runWorkflow'
 import type { Persona, Workflow } from '../../types/app.types'
 
 const EMPTY_PERSONAS: Persona[] = []
@@ -56,8 +57,9 @@ export default function PersonaPicker() {
 
   const handleRunWorkflow = useCallback((workflowId: string) => {
     setShowPicker(false)
-    window.dispatchEvent(new CustomEvent('aipa:runWorkflow', { detail: workflowId }))
-  }, [])
+    const workflow = workflows.find(w => w.id === workflowId)
+    if (workflow) runWorkflowIntoQueue(workflow, t)
+  }, [workflows, t])
 
   if (personas.length === 0 && workflows.length === 0) return null
 

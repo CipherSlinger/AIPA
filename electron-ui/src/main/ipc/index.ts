@@ -5,6 +5,7 @@ import * as path from 'path'
 import { ptyManager } from '../pty/pty-manager'
 import { fallbackShellManager } from '../pty/fallback-shell'
 import { codexBridgeManager } from '../codex/codex-bridge'
+import { buildCodexTurnArgs } from '../codex/codex-turn-args'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { speculationManager, isSafeToSpeculate } from '../pty/speculation-bridge'
 import { readSettings, writeSettings, listSessions as listClaudeSessions, loadSession as loadClaudeSession, deleteSession as deleteClaudeSession, forkSession as forkClaudeSession, renameSession, generateSessionTitle, generatePromptSuggestion, generateAwaySummary, rewindSession, searchSessions as searchClaudeSessions, detectTurnInterruption, getDreamConsolidationMtime } from '../sessions/session-reader'
@@ -31,6 +32,9 @@ import { registerFsHandlers } from './fs-handlers'
 import { registerWindowHandlers } from './window-handlers'
 import { registerDiagnosticsHandlers } from './diagnostics-handlers'
 import { registerBackupHandlers } from './backup-handlers'
+import { registerAutomationHandlers } from './automation-handlers'
+import { startAutomationScheduler } from '../automation/scheduler'
+import { runAutomation } from '../automation/runner'
 import { createLogger } from '../utils/logger'
 import { notifyClawdState, isClawdRunning, launchClawd } from '../clawd-bridge'
 import { getClawdInitError } from '../clawd-integration'
@@ -45,6 +49,14 @@ const mcpServerToolsCache: Record<string, string[]> = {}
 // from app.on('activate') on macOS). Registering a handler twice on the
 // same channel crashes Electron with "Attempted to register a second handler".
 let handlersRegistered = false
+
+/**
+ * The window push events should go to. It is a module-level reference rather
+ * than a captured argument because `createWindow` runs again after the first
+ * window is destroyed (macOS activate, tray "show"), and handlers registered
+ * once must keep working against the new one.
+ */
+let liveWindow: BrowserWindow | null = null
 
 /**
  * Safely register an IPC handle, removing any previous handler first.
@@ -65,15 +77,18 @@ function cacheMcpTools(initData: unknown): void {
 }
 
 export function registerAllHandlers(win: BrowserWindow): void {
+  liveWindow = win
   if (handlersRegistered) {
     log.info('IPC handlers already registered, updating window reference only')
-    // Update the send function reference for push events
+    // `send` and the scheduler read `liveWindow`, so a recreated window is
+    // picked up without re-registering every handler.
     return
   }
   handlersRegistered = true
 
   const send = (channel: string, ...args: unknown[]) => {
-    if (!win.isDestroyed()) win.webContents.send(channel, ...args)
+    const target = liveWindow
+    if (target && !target.isDestroyed()) target.webContents.send(channel, ...args)
   }
 
   try {
@@ -95,6 +110,15 @@ export function registerAllHandlers(win: BrowserWindow): void {
     registerClawdHandlers()
     registerRecruitHandlers(send)
     registerNavPluginHandlers(win, send)
+    registerAutomationHandlers()
+    // Started last: its first tick may run a due job, and every channel it
+    // broadcasts on already exists by then. The scheduler resolves the window
+    // lazily: it outlives this one and must not hold a destroyed reference.
+    startAutomationScheduler(
+      () => (liveWindow && !liveWindow.isDestroyed() ? liveWindow : null),
+      send,
+      runAutomation,
+    )
     log.info('All IPC handlers registered successfully')
   } catch (err) {
     log.error('Failed to register some IPC handlers:', String(err))
@@ -208,6 +232,23 @@ function registerPtyHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
 // ----------------------------------------
 // CLI handlers — CodexBridge (primary) + legacy StreamBridge (fallback)
 // ----------------------------------------
+
+/** Renderer-push sink shared by both engines. */
+type BridgeSink = (channel: string, data: Record<string, unknown>) => void
+
+/**
+ * Bridge-id prefix reserved for background turns. The renderer subscribes to
+ * every bridge (onCliEvent(null)), so an untagged background turn used to pour
+ * its tokens into whichever conversation was open. Internal turns get a fresh
+ * bridge with this prefix and their events are consumed here instead of being
+ * forwarded to the renderer.
+ */
+export const INTERNAL_BRIDGE_PREFIX = 'internal-'
+
+function isInternalBridgeId(id: unknown): boolean {
+  return typeof id === 'string' && id.startsWith(INTERNAL_BRIDGE_PREFIX)
+}
+
 function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknown[]) => void): void {
   ipcMain.handle('cli:sendMessage', async (_e, args) => {
     // Validate and sanitize renderer-supplied flags, model, cwd and resume id
@@ -235,13 +276,40 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     // ── CodexBridge path (primary) ──
     // Use CodexBridge when OPENAI_API_KEY is set or no explicit ANTHROPIC key
     const useCodex = !args.env?.ANTHROPIC_API_KEY || args.env?.OPENAI_API_KEY
+    const sink: BridgeSink = (channel, data) => send(channel, data)
 
     if (useCodex) {
-      return registerCodexSendMessage(args, send)
+      return registerCodexSendMessage(args, sink)
     }
 
     // ── Legacy StreamBridge fallback ──
-    return registerLegacySendMessage(args, send)
+    return registerLegacySendMessage(args, sink)
+  })
+
+  // Background work (memory extraction, away summary) runs a real CLI turn but
+  // owns no conversation. The caller gets the final text from this invoke, so
+  // it never has to scrape the chat store for output that was never its own —
+  // and the turn's events never reach the renderer at all.
+  ipcMain.handle('cli:runInternal', async (_e, args: Record<string, unknown> | undefined) => {
+    try {
+      if (!args || typeof args.prompt !== 'string' || !args.prompt.trim()) {
+        return { success: false, error: 'Missing prompt' }
+      }
+      const safeArgs = { ...args }
+      if (typeof safeArgs.cwd === 'string' && safeArgs.cwd) {
+        safeArgs.cwd = safePath(
+          safeArgs.cwd,
+          getAllowedFsRoots(getPref('workingDir') as string | undefined),
+        )
+      }
+      if (typeof safeArgs.model === 'string' && safeArgs.model) {
+        validateModelName(safeArgs.model)
+      }
+      return await runInternalTurn(safeArgs)
+    } catch (err) {
+      log.warn('cli:runInternal rejected:', String(err))
+      return { success: false, error: String(err) }
+    }
   })
 
   ipcMain.handle('cli:abort', (_e, sessionId) => {
@@ -328,68 +396,49 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
 
 // ── CodexBridge send message implementation ──────────
 
-/**
- * Map a renderer permission mode onto an explicit Codex sandbox.
- *
- * Codex defaults `sandbox` from ~/.codex/config.toml when the field is omitted,
- * which can be danger-full-access even for approvalPolicy 'never'. Passing it
- * explicitly keeps "approve nothing" from also meaning "write anywhere".
- * `acceptEdits` keeps workspace writes (that is its whole point); bypass/dontAsk
- * are also workspace-scoped — full disk access stays a config.toml decision the
- * user makes deliberately, not something the UI silently opts them into.
- */
-function resolveCodexSandbox(permissionMode: string | undefined): string {
-  switch (permissionMode) {
-    case 'bypassPermissions':
-    case 'dontAsk':
-    case 'acceptEdits':
-    case 'default':
-      return 'workspaceWrite'
-    case 'plan':
-      return 'readOnly'
-    default:
-      return 'workspaceWrite'
-  }
-}
-
 /** Wire a CodexBridge to the renderer, reusing the legacy channel names. */
 function wireCodexBridge(
   bridge: import('../codex/codex-bridge').CodexBridge,
   bridgeId: string,
-  send: (ch: string, ...a: unknown[]) => void,
+  sink: BridgeSink,
+  internal = false,
 ): void {
-  bridge.on('textDelta', (d) => send('cli:assistantText', d))
-  bridge.on('thinkingDelta', (d) => send('cli:thinkingDelta', d))
-  bridge.on('toolUse', (d) => send('cli:toolUse', d))
-  bridge.on('toolResult', (d) => send('cli:toolResult', d))
-  bridge.on('messageStop', (d) => send('cli:messageEnd', d))
+  bridge.on('textDelta', (d) => sink('cli:assistantText', d))
+  bridge.on('thinkingDelta', (d) => sink('cli:thinkingDelta', d))
+  bridge.on('toolUse', (d) => sink('cli:toolUse', d))
+  bridge.on('toolResult', (d) => sink('cli:toolResult', d))
+  bridge.on('messageStop', (d) => sink('cli:messageEnd', d))
   bridge.on('result', (d) => {
     // Map codexThreadId → claudeSessionId for renderer compatibility
     const mapped = { ...d, claudeSessionId: d.codexThreadId ?? d.threadId }
-    send('cli:result', mapped)
+    sink('cli:result', mapped)
   })
-  bridge.on('messageStart', (d) => send('cli:messageStart', d))
-  bridge.on('processExit', (d) => send('cli:processExit', d))
-  bridge.on('stderr', (d) => send('cli:error', { sessionId: bridgeId, error: d }))
-  bridge.on('permissionRequest', (d) => send('cli:permissionRequest', d))
+  bridge.on('messageStart', (d) => sink('cli:messageStart', d))
+  bridge.on('processExit', (d) => sink('cli:processExit', d))
+  bridge.on('stderr', (d) => sink('cli:error', { sessionId: bridgeId, error: d }))
+  bridge.on('permissionRequest', (d) => sink('cli:permissionRequest', d))
   bridge.on('systemInit', (d) => {
     cacheMcpTools(d)
-    send('cli:systemInit', d)
+    sink('cli:systemInit', d)
   })
   // Token accounting + failure/checklist signals the renderer's ChatPanel and
   // TokenUsageBar already know how to consume; without these the Codex path
   // had no context meter, no warnings and a failed turn looked like a hang.
-  bridge.on('tokenUsageUpdated', (d) => send('cli:tokenUsageUpdated', d))
-  bridge.on('turnError', (d) => send('cli:turnError', d))
-  bridge.on('threadStatusChanged', (d) => send('cli:threadStatusChanged', d))
-  bridge.on('planUpdated', (d) => send('cli:planUpdated', d))
-  bridge.on('compacted', (d) => send('cli:compacted', d))
+  bridge.on('tokenUsageUpdated', (d) => sink('cli:tokenUsageUpdated', d))
+  bridge.on('turnError', (d) => sink('cli:turnError', d))
+  bridge.on('threadStatusChanged', (d) => sink('cli:threadStatusChanged', d))
+  bridge.on('planUpdated', (d) => sink('cli:planUpdated', d))
+  bridge.on('compacted', (d) => sink('cli:compacted', d))
   // Codex-specific events
-  bridge.on('itemStarted', (d) => send('cli:itemStarted', d))
-  bridge.on('itemCompleted', (d) => send('cli:itemCompleted', d))
-  bridge.on('toolProgress', (d) => send('cli:toolProgress', d))
-  bridge.on('threadStarted', (d) => send('cli:threadStarted', d))
-  bridge.on('threadClosed', (d) => send('cli:threadClosed', d))
+  bridge.on('itemStarted', (d) => sink('cli:itemStarted', d))
+  bridge.on('itemCompleted', (d) => sink('cli:itemCompleted', d))
+  bridge.on('toolProgress', (d) => sink('cli:toolProgress', d))
+  bridge.on('threadStarted', (d) => sink('cli:threadStarted', d))
+  bridge.on('threadClosed', (d) => sink('cli:threadClosed', d))
+
+  // A background turn must not drive the desktop pet — it has no session id
+  // the pet can attribute, and it would flip the state while the user reads.
+  if (internal) return
 
   // Clawd desktop pet notifications
   bridge.on('textDelta', () => notifyClawdState('thinking', bridgeId))
@@ -399,9 +448,51 @@ function wireCodexBridge(
   bridge.on('processExit', () => notifyClawdState('idle', bridgeId))
 }
 
+/** Wire the legacy StreamBridge to the renderer (shared by user + internal turns). */
+function wireStreamBridge(
+  bridge: import('../pty/stream-bridge').StreamBridge,
+  bridgeId: string,
+  sink: BridgeSink,
+  internal = false,
+): void {
+  bridge.on('textDelta', (d) => sink('cli:assistantText', d))
+  bridge.on('thinkingDelta', (d) => sink('cli:thinkingDelta', d))
+  bridge.on('toolUse', (d) => sink('cli:toolUse', d))
+  bridge.on('toolResult', (d) => sink('cli:toolResult', d))
+  bridge.on('messageStop', (d) => sink('cli:messageEnd', d))
+  bridge.on('result', (d) => sink('cli:result', d))
+  bridge.on('processExit', (d) => sink('cli:processExit', d))
+  bridge.on('stderr', (d) => sink('cli:error', { sessionId: bridgeId, error: d }))
+  bridge.on('permissionRequest', (d) => sink('cli:permissionRequest', d))
+  bridge.on('hookEvent', (d) => sink('cli:hookEvent', d))
+  bridge.on('hookCallback', (d) => sink('cli:hookCallback', d))
+  bridge.on('mcpElicitation', (d) => sink('cli:elicitation', d))
+  bridge.on('systemInit', (d) => {
+    cacheMcpTools(d)
+    sink('cli:systemInit', d)
+  })
+  bridge.on('notification', (d) => sink('cli:notification', d))
+  bridge.on('planApprovalRequest', (d) => sink('cli:planApprovalRequest', d))
+  bridge.on('apiError', (d) => sink('cli:apiError', d))
+  bridge.on('worktreeState', (d) => sink('cli:worktreeState', d))
+  bridge.on('customTitle', (d) => sink('cli:customTitle', d))
+  bridge.on('taskCompleted', (d) => sink('cli:taskCompleted', d))
+
+  if (internal) return
+
+  bridge.on('textDelta', () => notifyClawdState('thinking', bridgeId))
+  bridge.on('thinkingDelta', () => notifyClawdState('thinking', bridgeId))
+  bridge.on('toolUse', () => notifyClawdState('working', bridgeId))
+  bridge.on('result', () => notifyClawdState('happy', bridgeId))
+  bridge.on('apiError', () => notifyClawdState('error', bridgeId))
+  bridge.on('notification', () => notifyClawdState('notification', bridgeId))
+  bridge.on('processExit', () => notifyClawdState('idle', bridgeId))
+}
+
 async function registerCodexSendMessage(
   args: Record<string, unknown>,
-  send: (ch: string, ...a: unknown[]) => void
+  sink: BridgeSink,
+  internal = false,
 ): Promise<{ success: boolean; sessionId?: string; error?: string }> {
   const existingBridgeId = args.activeBridgeId as string | undefined
   const prompt = args.prompt as string
@@ -410,8 +501,9 @@ async function registerCodexSendMessage(
   // Sending the literal string would just make the model talk about a slash command.
   const isCompact = /^\/compact\b/.test(prompt.trim())
 
-  // Reuse existing bridge for follow-up messages
-  if (existingBridgeId) {
+  // Reuse existing bridge for follow-up messages (never for a background turn,
+  // which must not join a user conversation's thread).
+  if (existingBridgeId && !internal) {
     const existingBridge = codexBridgeManager.get(existingBridgeId)
     if (existingBridge) {
       try {
@@ -419,7 +511,7 @@ async function registerCodexSendMessage(
           await existingBridge.compactThread()
           // A notification follows, but only for current Codex builds; emit
           // once more so the renderer can never stay stuck in "compacting".
-          send('cli:compacted', { sessionId: existingBridgeId })
+          sink('cli:compacted', { sessionId: existingBridgeId })
         } else {
           await existingBridge.sendFollowUp(prompt, input)
         }
@@ -432,14 +524,14 @@ async function registerCodexSendMessage(
 
   // A live bridge may already own this thread even when the renderer lost its
   // bridge id (new tab, rebuilt renderer, TokenUsageBar's direct /compact call).
-  const requestedThreadId = args.sessionId as string | undefined
+  const requestedThreadId = internal ? undefined : args.sessionId as string | undefined
   if (requestedThreadId) {
     const live = codexBridgeManager.findByThreadId(requestedThreadId)
     if (live) {
       try {
         if (isCompact) {
           await live.bridge.compactThread()
-          send('cli:compacted', { sessionId: live.bridgeId })
+          sink('cli:compacted', { sessionId: live.bridgeId })
         } else {
           await live.bridge.sendFollowUp(prompt, input)
         }
@@ -451,47 +543,36 @@ async function registerCodexSendMessage(
   }
 
   // Create new CodexBridge
-  const bridgeId = `codex-${Date.now()}`
+  const bridgeId = `${internal ? INTERNAL_BRIDGE_PREFIX : ''}codex-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
   const bridge = codexBridgeManager.create(bridgeId)
-  wireCodexBridge(bridge, bridgeId, send)
+  wireCodexBridge(bridge, bridgeId, sink, internal)
 
-  // Inject OpenAI API key if not explicitly set
-  const env = (args.env as Record<string, string>) || {}
-  if (!env.OPENAI_API_KEY && !env.ANTHROPIC_API_KEY) {
-    env.OPENAI_API_KEY = getApiKey()
-  }
-
-  // Map permissionMode to Codex approvalPolicy
-  const permissionMode = args.permissionMode as string | undefined
-  let approvalPolicy: import('../codex/codex-bridge').ApprovalPolicy | undefined
-  switch (permissionMode) {
-    case 'bypassPermissions': approvalPolicy = 'never'; break
-    case 'acceptEdits': approvalPolicy = 'unless-allow-listed'; break
-    case 'dontAsk': approvalPolicy = 'never'; break
-    case 'default': approvalPolicy = 'on-request'; break
-    default: approvalPolicy = undefined
-  }
-
-  // Sandbox must be explicit: without it the turn inherits ~/.codex/config.toml,
-  // which may be danger-full-access even under approvalPolicy 'never'.
-  const sandbox = resolveCodexSandbox(permissionMode)
-
-  const bridgeArgs: import('../codex/codex-bridge').CodexSendMessageArgs = {
-    prompt,
-    ...(input ? { input } : {}),
-    cwd: (args.cwd as string) || process.cwd(),
-    threadId: (args.sessionId as string) || undefined,
-    model: args.model as string | undefined,
-    env,
-    approvalPolicy,
-    sandbox,
-    personality: 'pragmatic',
-  }
+  // Credentials and sandbox defaults come from the shared builder, so a
+  // background/automation caller cannot accidentally construct a turn that
+  // runs without the key the user saved in Settings.
+  const bridgeArgs = buildCodexTurnArgs(
+    {
+      prompt,
+      ...(input ? { input } : {}),
+      cwd: (args.cwd as string) || process.cwd(),
+      threadId: (args.sessionId as string) || undefined,
+      model: args.model as string | undefined,
+      env: (args.env as Record<string, string>) || {},
+      permissionMode: args.permissionMode as string | undefined,
+    },
+    {
+      // A background turn has no UI to answer an approval prompt (its events
+      // never reach the renderer), so it must never ask: deny and let the
+      // model finish. It must also not leave a rollout in session history.
+      ...(internal ? { approvalPolicy: 'never' as const, ephemeral: true } : {}),
+      ...(args.ephemeral === true ? { ephemeral: true } : {}),
+    },
+  )
 
   try {
     if (isCompact) {
       await bridge.compactSession(bridgeArgs)
-      send('cli:compacted', { sessionId: bridgeId })
+      sink('cli:compacted', { sessionId: bridgeId })
     } else {
       await bridge.sendMessage(bridgeArgs)
     }
@@ -500,7 +581,7 @@ async function registerCodexSendMessage(
     // The handshake/turn never started; don't leave a half-initialized
     // app-server process behind waiting for input.
     try { bridge.abort() } catch { /* already gone */ }
-    send('cli:error', { sessionId: bridgeId, error: String(err) })
+    sink('cli:error', { sessionId: bridgeId, error: String(err) })
     return { success: false, error: String(err) }
   }
 }
@@ -509,54 +590,22 @@ async function registerCodexSendMessage(
 
 async function registerLegacySendMessage(
   args: Record<string, unknown>,
-  send: (ch: string, ...a: unknown[]) => void
+  sink: BridgeSink,
+  internal = false,
 ): Promise<{ success: boolean; sessionId?: string; error?: string }> {
   const skipPermissions: boolean = !!(args.flags as string[] || []).includes('--dangerously-skip-permissions')
   const permissionMode = args.permissionMode as string | undefined
 
   const existingBridgeId = args.activeBridgeId as string | undefined
-  if (existingBridgeId && streamBridgeManager.get(existingBridgeId)) {
+  if (existingBridgeId && !internal && streamBridgeManager.get(existingBridgeId)) {
     const bridge = streamBridgeManager.get(existingBridgeId)!
     bridge.sendFollowUp(args.prompt as string, args.sessionId as string | undefined)
     return { success: true, sessionId: existingBridgeId }
   }
 
-  const bridgeId = `bridge-${Date.now()}`
+  const bridgeId = `${internal ? INTERNAL_BRIDGE_PREFIX : ''}bridge-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
   const bridge = streamBridgeManager.create(bridgeId)
-
-  bridge.on('textDelta', (d) => send('cli:assistantText', d))
-  bridge.on('thinkingDelta', (d) => send('cli:thinkingDelta', d))
-  bridge.on('toolUse', (d) => send('cli:toolUse', d))
-  bridge.on('toolResult', (d) => send('cli:toolResult', d))
-  bridge.on('messageStop', (d) => send('cli:messageEnd', d))
-  bridge.on('result', (d) => send('cli:result', d))
-  bridge.on('processExit', (d) => send('cli:processExit', d))
-  bridge.on('stderr', (d) => send('cli:error', { sessionId: bridgeId, error: d }))
-  bridge.on('permissionRequest', (d) => send('cli:permissionRequest', d))
-  bridge.on('hookEvent', (d: unknown) => {
-    const w = BrowserWindow.getAllWindows()[0]
-    if (w && !w.isDestroyed()) w.webContents.send('cli:hookEvent', d)
-  })
-  bridge.on('hookCallback', (d) => send('cli:hookCallback', d))
-  bridge.on('mcpElicitation', (d) => send('cli:elicitation', d))
-  bridge.on('systemInit', (d) => {
-    cacheMcpTools(d)
-    send('cli:systemInit', d)
-  })
-  bridge.on('notification', (d) => send('cli:notification', d))
-  bridge.on('planApprovalRequest', (d) => send('cli:planApprovalRequest', d))
-  bridge.on('apiError', (d) => send('cli:apiError', d))
-  bridge.on('worktreeState', (d) => send('cli:worktreeState', d))
-  bridge.on('customTitle', (d) => send('cli:customTitle', d))
-  bridge.on('taskCompleted', (d) => send('cli:taskCompleted', d))
-
-  bridge.on('textDelta', () => notifyClawdState('thinking', bridgeId))
-  bridge.on('thinkingDelta', () => notifyClawdState('thinking', bridgeId))
-  bridge.on('toolUse', () => notifyClawdState('working', bridgeId))
-  bridge.on('result', () => notifyClawdState('happy', bridgeId))
-  bridge.on('apiError', () => notifyClawdState('error', bridgeId))
-  bridge.on('notification', () => notifyClawdState('notification', bridgeId))
-  bridge.on('processExit', () => notifyClawdState('idle', bridgeId))
+  wireStreamBridge(bridge, bridgeId, sink, internal)
 
   const env = (args.env as Record<string, string>) || {}
   const hasExplicitApiKey = 'ANTHROPIC_API_KEY' in env
@@ -571,15 +620,140 @@ async function registerLegacySendMessage(
       ...(args as any),
       skipPermissions,
       permissionMode: permissionMode as import('../pty/stream-bridge').PermissionMode | undefined,
-      resumeSessionId: (args.sessionId as string) || undefined,
+      // A background turn never resumes a user conversation.
+      resumeSessionId: internal ? undefined : ((args.sessionId as string) || undefined),
       sessionId: bridgeId,
       env,
     })
     return { success: true, sessionId: bridgeId }
   } catch (err) {
-    send('cli:error', { sessionId: bridgeId, error: String(err) })
+    sink('cli:error', { sessionId: bridgeId, error: String(err) })
     return { success: false, error: String(err) }
   }
+}
+
+// ── Internal (background) turns ──────────────────────────
+
+/**
+ * Run one CLI turn that belongs to no conversation: the bridge gets an
+ * `internal-` id, its events go to a private sink, and the final text is the
+ * invoke's result. Both engines are reachable through the same two helpers,
+ * so the isolation is identical for Codex and the legacy Claude bridge.
+ */
+async function runInternalTurn(
+  args: Record<string, unknown>,
+): Promise<{ success: boolean; text?: string; error?: string }> {
+  const prompt = String(args.prompt ?? '')
+  const timeoutMs = Math.min(Math.max(Number(args.timeoutMs) || 60_000, 5_000), 180_000)
+
+  let streamed = ''
+  let resultText = ''
+  let lastError = ''
+  let failure = ''
+  let settle: () => void = () => {}
+  const finished = new Promise<void>((resolve) => { settle = resolve })
+  let settled = false
+  const done = () => {
+    if (settled) return
+    settled = true
+    settle()
+  }
+
+  const sink: BridgeSink = (channel, data) => {
+    switch (channel) {
+      case 'cli:assistantText':
+        if (typeof data.text === 'string') streamed += data.text
+        break
+      case 'cli:result': {
+        // Terminal for both engines: Codex emits it from turn/completed, and
+        // the Claude bridge only after the whole turn is done. Claude also
+        // puts the complete answer on the result envelope; Codex does not, so
+        // the accumulated deltas remain the fallback.
+        const event = data.event as Record<string, unknown> | undefined
+        if (typeof event?.result === 'string') resultText = event.result
+        if (typeof data.subtype === 'string' && data.subtype !== 'success') failure = data.subtype
+        done()
+        break
+      }
+      case 'cli:processExit':
+        done()
+        break
+      // `cli:messageEnd` is deliberately NOT terminal. On the legacy Claude
+      // bridge it mirrors every `assistant`/`message_stop` event, i.e. it fires
+      // once per assistant message — long before `cli:result`, which is where
+      // Claude puts the final text. Settling here used to abort the bridge
+      // before the answer existed and made every reply look empty.
+      case 'cli:error':
+        if (typeof data.error === 'string') lastError = data.error
+        break
+      case 'cli:permissionRequest': {
+        // Nobody is watching this turn; deny instead of waiting for a reply.
+        const sid = String(data.sessionId ?? '')
+        const requestId = String(data.requestId ?? '')
+        const codex = codexBridgeManager.get(sid)
+        if (codex) codex.respondApproval(requestId, false)
+        streamBridgeManager.get(sid)?.respondPermission(requestId, false)
+        break
+      }
+    }
+  }
+
+  const sendArgs: Record<string, unknown> = {
+    prompt,
+    cwd: (args.cwd as string) || process.cwd(),
+    model: args.model,
+    env: (args.env as Record<string, string>) || {},
+    flags: [],
+    // Read-only turns: a memory extraction must not be able to edit the repo.
+    permissionMode: 'plan',
+    // Background work is not a conversation: do not persist a rollout that
+    // would show up in the sidebar/archive with quoted private text.
+    ephemeral: true,
+  }
+  const env = sendArgs.env as Record<string, string>
+  const useCodex = !env.ANTHROPIC_API_KEY || !!env.OPENAI_API_KEY
+
+  let launched: { success: boolean; sessionId?: string; error?: string }
+  try {
+    launched = useCodex
+      ? await registerCodexSendMessage(sendArgs, sink, true)
+      : await registerLegacySendMessage(sendArgs, sink, true)
+  } catch (err) {
+    return { success: false, error: String(err) }
+  }
+  const bridgeId = launched.sessionId
+  if (!launched.success || !bridgeId) {
+    return { success: false, error: launched.error || 'Failed to start internal turn' }
+  }
+
+  let timer: NodeJS.Timeout | undefined
+  const timedOut = await Promise.race([
+    finished.then(() => false),
+    new Promise<boolean>((resolve) => {
+      timer = setTimeout(() => resolve(true), timeoutMs)
+      timer.unref?.()
+    }),
+  ])
+  if (timer) clearTimeout(timer)
+
+  // Single-shot bridge: reap the process instead of letting it idle until the
+  // app exits (Codex keeps a whole app-server alive per bridge).
+  if (isInternalBridgeId(bridgeId)) {
+    codexBridgeManager.abort(bridgeId)
+    streamBridgeManager.abort(bridgeId)
+  }
+
+  if (timedOut) {
+    return { success: false, error: `Internal turn timed out after ${timeoutMs}ms`, text: streamed || undefined }
+  }
+  if (failure) {
+    return { success: false, error: failure, text: resultText || streamed || undefined }
+  }
+  const text = resultText || streamed
+  if (!text.trim()) {
+    return { success: false, error: lastError || 'Empty response' }
+  }
+  return { success: true, text }
 }
 
 // ----------------------------------------
@@ -662,12 +836,23 @@ function registerSessionHandlers(): void {
     }
   })
 
-  ipcMain.handle('session:search', (_e: Electron.IpcMainInvokeEvent, { query, limit }: { query: string; limit?: number }) => {
+  ipcMain.handle('session:search', async (_e: Electron.IpcMainInvokeEvent, { query, limit }: { query: string; limit?: number }) => {
     try {
-      // Search both Codex and Claude sessions
-      const codexResults = searchCodexSessions(query, limit)
-      const claudeResults = searchClaudeSessions(query, limit)
-      return [...codexResults, ...claudeResults].slice(0, limit || 20)
+      const capped = Math.min(Math.max(Number(limit) || 20, 1), 100)
+      const [codexResults, claudeResults] = await Promise.all([
+        searchCodexSessions(query, capped),
+        searchClaudeSessions(query, capped),
+      ])
+      // Both engines can surface the same id after a migration; keep one row
+      // per session and let the newest hit represent it.
+      const bySession = new Map<string, (typeof codexResults)[number] | (typeof claudeResults)[number]>()
+      for (const hit of [...codexResults, ...claudeResults]) {
+        const existing = bySession.get(hit.sessionId)
+        if (!existing || hit.timestamp > existing.timestamp) bySession.set(hit.sessionId, hit)
+      }
+      return [...bySession.values()]
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, capped)
     } catch (err) {
       log.warn('session:search error:', String(err))
       return []

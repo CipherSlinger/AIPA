@@ -66,6 +66,12 @@ export function useAppShortcuts(
         e.preventDefault()
         toggleCommandPalette()
       }
+      // Ctrl+Shift+F: global cross-session search. This lives at App level, so
+      // it works from every view and even while a text field has focus.
+      if (e.ctrlKey && e.shiftKey && e.key === 'F') {
+        e.preventDefault()
+        useUiStore.getState().setGlobalSearchOpen(true)
+      }
       // Ctrl+/: Shortcut cheatsheet
       if (e.ctrlKey && !e.shiftKey && e.key === '/') {
         e.preventDefault()
@@ -162,7 +168,14 @@ export function useAppShortcuts(
           useUiStore.getState().setActiveNavItem(tab === 'history' ? 'department' : tab)
         }
       }
-      // / key: Focus session search (when not in an input)
+      // / key: "find in what I'm reading".
+      //
+      // A loaded conversation means the in-session search bar — the existing
+      // behaviour, unchanged, including the jump back to chat from another
+      // view. With no conversation loaded there is nothing in-session to
+      // search, so the same keystroke opens the cross-session overlay instead
+      // of focusing a bar over an empty transcript. The two surfaces therefore
+      // never compete for `/`: one only opens where the other has no target.
       if (e.key === '/' && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
         const activeEl = document.activeElement
         const inInput = activeEl instanceof HTMLTextAreaElement || activeEl instanceof HTMLInputElement || (activeEl as HTMLElement)?.isContentEditable
@@ -170,10 +183,12 @@ export function useAppShortcuts(
         if (!inInput && !hasModal) {
           e.preventDefault()
           const ui = useUiStore.getState()
-          if (ui.mainView !== 'chat') {
-            ui.setActiveNavItem('chat')
+          if (useChatStore.getState().messages.length > 0) {
+            if (ui.mainView !== 'chat') ui.setActiveNavItem('chat')
+            ui.requestSearchFocus()
+          } else {
+            ui.setGlobalSearchOpen(true)
           }
-          window.dispatchEvent(new CustomEvent('aipa:globalSearchFocus'))
         }
       }
       // Ctrl+[ / Ctrl+]: Navigate between sessions

@@ -16,7 +16,8 @@ import React from 'react'
 import { UserPlus } from 'lucide-react'
 import type { Department } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
-import { useT } from '../../i18n'
+import { useI18n } from '../../i18n'
+import { deptDisplayName } from './deptUtils'
 import DeptPortrait from './DeptPortrait'
 import { HLine, VLine } from './orgConnectors'
 
@@ -81,7 +82,7 @@ export interface TeamStripProps {
 export function TeamStrip({
   teams, deptId, sessionsByDept, sessionsLoading, cardWidth, dense, onSelectDept,
 }: TeamStripProps) {
-  const t = useT()
+  const { t, resolvedLocale } = useI18n()
   if (teams.length === 0) return null
 
   // How wide one chip would be if `n` teams were shown. The overflow chip takes a
@@ -120,6 +121,7 @@ export function TeamStrip({
           const count = sessionsByDept[team.id]?.length ?? 0
           const open = team.positions?.length ?? 0
           const color = team.color || ACCENT
+          const name = deptDisplayName(team, resolvedLocale)
           return (
             <button
               key={team.id}
@@ -127,7 +129,7 @@ export function TeamStrip({
               // The name rides in the tooltip too: it is the one thing the chip
               // can still clip, and the directory alone does not say who the
               // team is.
-              title={team.directory ? `${team.name} — ${team.directory}` : team.name}
+              title={team.directory ? `${name} — ${team.directory}` : name}
               style={{
                 // flexShrink 0 is load-bearing: the connector drops are placed at
                 // slotWidth/2, so a chip that shrank to fit long content would
@@ -144,7 +146,7 @@ export function TeamStrip({
                   network glyph. 20px is the largest that still fits three chips
                   across the narrowest (180px) card. */}
               <DeptPortrait name={team.name} seed={team.id} color={color} size={dense ? 20 : 26} />
-              <span style={NAME_CLAMP}>{team.name}</span>
+              <span style={NAME_CLAMP}>{name}</span>
               {/* Count, then the open positions as their own accent mark — never
                   summed into it (a ghost post is not an employee; the card footer
                   makes the same split). The words were the problem: "· Open 3"
@@ -179,7 +181,7 @@ export function TeamStrip({
         {overflow > 0 && (
           <button
             onClick={() => onSelectDept(deptId)}
-            title={teams.map(team => team.name).join('、')}
+            title={teams.map(team => deptDisplayName(team, resolvedLocale)).join('、')}
             style={{
               width: slotWidth, flexShrink: 0, boxSizing: 'border-box', padding: '5px 4px', borderRadius: 8,
               cursor: 'pointer', border: '1px dashed var(--border)', background: 'transparent',

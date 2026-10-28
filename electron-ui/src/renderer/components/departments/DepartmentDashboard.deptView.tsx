@@ -17,8 +17,10 @@ import PositionEditorModal from './PositionEditorModal'
 import PositionHireModal from './PositionHireModal'
 import DeptHandbookModal from './DeptHandbookModal'
 import { bindPersonaToNewSession } from './personaBinding'
-import { sessionMatchesDir, teamsOf } from './deptUtils'
-import { useT } from '../../i18n'
+import {
+  deptDisplayName, positionDisplayBrief, sessionMatchesDir, teamsOf,
+} from './deptUtils'
+import { useI18n } from '../../i18n'
 import DeptHeader from './DepartmentDashboard.header'
 import DeptStats from './DepartmentDashboard.stats'
 import DeptTeamStrip from './DepartmentDashboard.teams'
@@ -58,7 +60,7 @@ export default function DeptView({
   onDeleteSession,
   autoNewSession,
 }: DeptViewProps) {
-  const t = useT()
+  const { t, resolvedLocale } = useI18n()
   const departments = useDepartmentStore(s => s.departments)
   const dept = departments.find(d => d.id === deptId) ?? null
 
@@ -117,8 +119,8 @@ export default function DeptView({
   // into a timestamp group — a position has no timestamp, so it stays pinned at
   // the top of the roster under its own heading.
   const matchPositions = useMemo(
-    () => searchPositions(openPositions, searchQuery),
-    [openPositions, searchQuery],
+    () => searchPositions(openPositions, searchQuery, resolvedLocale),
+    [openPositions, searchQuery, resolvedLocale],
   )
 
   // Recruiting is a conversation with the recruiter, not an immediate session:
@@ -175,11 +177,11 @@ export default function DeptView({
   const hirePosition = useCallback((position: Position, personaId?: string) => {
     if (!dept) return
     setHiringPosition(null)
-    startWork(dept.directory, withHandbook(position.brief), personaId)
+    startWork(dept.directory, withHandbook(positionDisplayBrief(position, resolvedLocale)), personaId)
     // Dropping the seat right away is safe: the session is guaranteed to be
     // created, and the real employee appears with the next session-list refresh.
     removePosition(dept.id, position.id)
-  }, [dept, startWork, withHandbook, removePosition])
+  }, [dept, startWork, withHandbook, removePosition, resolvedLocale])
 
   // Seat binding → department default → currently active persona. This is the
   // same order the modal shows, so the highlighted chip is what will be used.
@@ -187,10 +189,15 @@ export default function DeptView({
     position.personaId || dept?.defaultPersonaId || activePersonaId
   ), [dept, activePersonaId])
 
-  const savePosition = useCallback((data: { title: string; brief: string; personaId?: string }) => {
+  const savePosition = useCallback((data: { title?: string; brief?: string; personaId?: string }) => {
     if (!dept || !positionEditor) return
-    if (positionEditor === 'new') addPosition(dept.id, data)
-    else updatePosition(dept.id, positionEditor.id, data)
+    if (positionEditor === 'new') {
+      addPosition(dept.id, { title: data.title ?? '', brief: data.brief ?? '', personaId: data.personaId })
+    } else {
+      // Only the fields the editor marked as changed are written; untouched ones
+      // keep their template link and follow the interface language.
+      updatePosition(dept.id, positionEditor.id, data)
+    }
     setPositionEditor(null)
   }, [dept, positionEditor, addPosition, updatePosition])
 
@@ -201,8 +208,8 @@ export default function DeptView({
 
   const handleExport = useCallback(() => {
     if (!dept) return
-    exportSessionsToFile(dept.name, deptSessions)
-  }, [dept, deptSessions])
+    exportSessionsToFile(deptDisplayName(dept, resolvedLocale), deptSessions)
+  }, [dept, deptSessions, resolvedLocale])
 
   const openFiles = useCallback(() => {
     if (!dept) return
@@ -377,7 +384,7 @@ export default function DeptView({
 
       {recruitOpen && (
         <RecruitEmployeeModal
-          deptName={dept.name}
+          deptName={deptDisplayName(dept, resolvedLocale)}
           deptColor={dept.color}
           defaultPersonaId={dept.defaultPersonaId}
           onCancel={() => setRecruitOpen(false)}
@@ -388,7 +395,7 @@ export default function DeptView({
       {positionEditor && (
         <PositionEditorModal
           position={positionEditor === 'new' ? undefined : positionEditor}
-          deptName={dept.name}
+          deptName={deptDisplayName(dept, resolvedLocale)}
           accent={dept.color}
           personas={personas}
           defaultPersonaId={dept.defaultPersonaId}
@@ -400,7 +407,7 @@ export default function DeptView({
       {hiringPosition && (
         <PositionHireModal
           position={hiringPosition}
-          deptName={dept.name}
+          deptName={deptDisplayName(dept, resolvedLocale)}
           accent={dept.color}
           personas={personas}
           initialPersonaId={initialPersonaFor(hiringPosition)}

@@ -263,7 +263,7 @@ export default function InputToolbar({
       )}
       {/* Manual compact button */}
       <button
-        onClick={() => window.dispatchEvent(new CustomEvent('aipa:compact'))}
+        onClick={() => window.dispatchEvent(new CustomEvent('aipa:triggerCompact'))}
         title={t('toolbar.compactContext')}
         style={toolbarBtnStyle}
         onMouseEnter={toolbarHoverIn}

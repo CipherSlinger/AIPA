@@ -2,8 +2,32 @@
 // Kept in its own module so OrgChart.tsx and DepartmentDashboard.tsx can both
 // use them without importing each other.
 
-import type { Department } from '../../store'
+import type { Department, Position } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
+
+/** The locales the renderer can actually resolve (never `system`). */
+export type UiLocale = 'en' | 'zh-CN'
+
+/**
+ * What to print for a node in the current interface language. A node created
+ * from a template keeps the bilingual original until the user renames it;
+ * `name` is the copy resolved at creation, so it is also the fallback for every
+ * hand-made node and every record older than `presetName`.
+ */
+export function deptDisplayName(node: Pick<Department, 'name' | 'presetName'>, locale: UiLocale): string {
+  if (!node.presetName) return node.name
+  return (locale === 'zh-CN' ? node.presetName.zh : node.presetName.en) || node.name
+}
+
+export function positionDisplayTitle(position: Pick<Position, 'title' | 'presetTitle'>, locale: UiLocale): string {
+  if (!position.presetTitle) return position.title
+  return (locale === 'zh-CN' ? position.presetTitle.zh : position.presetTitle.en) || position.title
+}
+
+export function positionDisplayBrief(position: Pick<Position, 'brief' | 'presetBrief'>, locale: UiLocale): string {
+  if (!position.presetBrief) return position.brief
+  return (locale === 'zh-CN' ? position.presetBrief.zh : position.presetBrief.en) || position.brief
+}
 
 /** The three session fields the directory join is allowed to look at. */
 type SessionDirFields = Pick<SessionListItem, 'cwd' | 'project' | 'projectSlug'>

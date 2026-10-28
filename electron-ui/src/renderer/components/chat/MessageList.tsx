@@ -46,6 +46,8 @@ interface Props {
   searchCaseSensitive?: boolean
   highlightedMessageIdx?: number
   scrollToMessageIdx?: number
+  /** Row to flash after a cross-session search hit lands here. */
+  evidenceMessageIdx?: number
   onEdit?: (msgId: string, newContent: string) => void
   onFork?: (msgIdx: number) => void
   /** Reports the scroll offset as the user scrolls, for per-tab restore. */
@@ -56,7 +58,7 @@ interface Props {
   restoreScrollTop?: number
 }
 
-export default function MessageList({ messages, onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, onRespondHookCallback, onRespondElicitation, sessionId, isStreaming, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, onEdit, onFork, onScrollTop, tabId, restoreScrollTop }: Props) {
+export default function MessageList({ messages, onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, onRespondHookCallback, onRespondElicitation, sessionId, isStreaming, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, evidenceMessageIdx, onEdit, onFork, onScrollTop, tabId, restoreScrollTop }: Props) {
   const resolvePlan = useChatStore(s => s.resolvePlan)
   const addToast = useUiStore(s => s.addToast)
   const rewindToMessage = useChatStore(s => s.rewindToMessage)
@@ -315,6 +317,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
           }
           const msg = item.msg
           const isHighlighted = item.msgIdx === highlightedMessageIdx
+          const isEvidence = item.msgIdx === evidenceMessageIdx
           const isFocused = item.msgIdx === focusedMsgIdx
           const isLastMessage = item.msgIdx === messages.length - 1
           const entranceClass = isLastMessage
@@ -325,7 +328,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
               key={msg.id}
               data-index={virtualRow.index}
               ref={virtualizer.measureElement}
-              className={entranceClass}
+              className={[entranceClass, isEvidence ? 'evidence-flash' : undefined].filter(Boolean).join(' ') || undefined}
               style={{
                 position: 'absolute',
                 top: 0,

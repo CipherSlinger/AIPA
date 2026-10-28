@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import { spawn } from 'child_process'
+import { TextDecoder } from 'util'
 import { isPathInside, isValidSessionId } from '../utils/validate'
 import {
   dropCachedSummary,
@@ -10,6 +11,10 @@ import {
   setCachedSummary,
 } from './session-index-cache'
 import { cleanPrompt, deriveTitle, isSyntheticPrompt } from './prompt-text'
+import { buildSnippet, contentContainsQuery, textFromBlocks } from './search-types'
+import type { SearchResult } from './search-types'
+
+export type { SearchResult } from './search-types'
 
 const CLAUDE_DIR = path.join(os.homedir(), '.claude')
 const SETTINGS_PATH = path.join(CLAUDE_DIR, 'settings.json')
@@ -518,113 +523,196 @@ export function generateAwaySummary(context: string, cliPath: string): Promise<s
   })
 }
 
-export interface SearchResult {
+interface ClaudeSearchFile {
   sessionId: string
-  title?: string
-  project: string
-  matchType: 'title' | 'content'
-  snippet: string
-  timestamp: number
+  projectSlug: string
+  filePath: string
+  mtimeMs: number
 }
 
-export function searchSessions(query: string, limit = 30): SearchResult[] {
+/**
+ * Stream a file looking for the query without materialising it.
+ *
+ * A single project can hold a hundreds-of-megabytes transcript; `readFile`
+ * on it would allocate a string larger than several ordinary sessions and
+ * stall the main process. Streaming keeps the miss path (the common one)
+ * flat in memory, and lets a superseded search stop mid-file.
+ */
+async function fileContainsQuery(
+  filePath: string,
+  query: string,
+  lowerQuery: string,
+  isCurrent: () => boolean,
+): Promise<boolean> {
+  const decoder = new TextDecoder('utf-8')
+  let handle: Awaited<ReturnType<typeof fs.promises.open>> | undefined
+  try {
+    handle = await fs.promises.open(filePath, 'r')
+    const buffer = Buffer.allocUnsafe(64 * 1024)
+    let carry = ''
+    for (;;) {
+      if (!isCurrent()) return false
+      const { bytesRead } = await handle.read(buffer, 0, buffer.length, null)
+      if (bytesRead === 0) break
+      const chunk = carry + decoder.decode(buffer.subarray(0, bytesRead), { stream: true })
+      if (contentContainsQuery(chunk, query, lowerQuery)) return true
+      // A multi-byte character may straddle the boundary; the decoder holds
+      // it, but a query could still span chunks, so keep the tail.
+      carry = chunk.slice(-Math.max(0, query.length - 1))
+    }
+    return false
+  } catch {
+    return false
+  } finally {
+    if (handle) await handle.close().catch(() => { /* already gone */ })
+  }
+}
+
+interface ClaudeFileHit {
+  title?: string
+  timestamp: number
+  matchType: 'title' | 'content'
+  snippet: string
+  messageTimestamp?: number
+  messageRole?: 'user' | 'assistant'
+}
+
+function scanClaudeFile(content: string, query: string, lowerQuery: string): ClaudeFileHit | null {
+  let title: string | undefined
+  let timestamp = 0
+  let match: { snippet: string; messageTimestamp: number; messageRole: 'user' | 'assistant' } | null = null
+
+  for (const line of content.split('\n')) {
+    if (!line || line.charCodeAt(0) !== 123 /* '{' */) continue
+    try {
+      const entry = JSON.parse(line) as Record<string, unknown>
+
+      if (typeof entry.timestamp === 'string') {
+        const t = new Date(entry.timestamp).getTime()
+        if (!Number.isNaN(t) && t > timestamp) timestamp = t
+      }
+
+      if (entry.type === 'session-title' && entry.title) {
+        title = String(entry.title)
+      }
+
+      if (!match && (entry.type === 'user' || entry.type === 'assistant')) {
+        const message = entry.message as Record<string, unknown> | undefined
+        const text = textFromBlocks(message?.content)
+        if (text.toLowerCase().includes(lowerQuery)) {
+          const matchedTs = typeof entry.timestamp === 'string'
+            ? new Date(entry.timestamp).getTime()
+            : 0
+          match = {
+            snippet: buildSnippet(text, query),
+            messageTimestamp: Number.isNaN(matchedTs) ? 0 : matchedTs,
+            messageRole: entry.type === 'user' ? 'user' : 'assistant',
+          }
+        }
+      }
+    } catch { /* one malformed line must not hide the rest of the transcript */ }
+  }
+
+  if (match && match.snippet) {
+    return {
+      title,
+      timestamp,
+      matchType: 'content',
+      snippet: match.snippet,
+      messageTimestamp: match.messageTimestamp,
+      messageRole: match.messageRole,
+    }
+  }
+  if (title && title.toLowerCase().includes(lowerQuery)) {
+    return { title, timestamp, matchType: 'title', snippet: title }
+  }
+  return null
+}
+
+// Newest-first file order makes a full scan stop as soon as the result limit is
+// reached; without it a common query would read the whole corpus to render 30
+// rows. The counter lets a newer keystroke cancel a scan already in flight.
+let claudeSearchEpoch = 0
+
+/**
+ * Cross-session content search over Claude transcripts.
+ *
+ * Asynchronous on purpose: the IPC handler is the only caller and a synchronous
+ * scan of the corpus would freeze the window. Files are byte-filtered before
+ * any JSON parsing, so only sessions that actually contain the query pay for a
+ * parse.
+ */
+export async function searchSessions(query: string, limit = 30): Promise<SearchResult[]> {
   if (!query || query.length < 2 || !fs.existsSync(PROJECTS_DIR)) return []
 
-  const results: SearchResult[] = []
+  const epoch = ++claudeSearchEpoch
+  const isCurrent = () => epoch === claudeSearchEpoch
   const lowerQuery = query.toLowerCase()
+  const files: ClaudeSearchFile[] = []
 
   try {
     const projectDirs = fs.readdirSync(PROJECTS_DIR, { withFileTypes: true })
       .filter(d => d.isDirectory())
-
     for (const dir of projectDirs) {
-      if (results.length >= limit) break
       const projectSlug = dir.name
       const dirPath = path.join(PROJECTS_DIR, projectSlug)
-
+      let names: string[]
       try {
-        const files = fs.readdirSync(dirPath).filter(f => f.endsWith('.jsonl'))
-
-        for (const file of files) {
-          if (results.length >= limit) break
-          const sessionId = file.replace('.jsonl', '')
-          const filePath = path.join(dirPath, file)
-          if (!isValidSessionId(sessionId) || !isPathInside(PROJECTS_DIR, filePath)) continue
-
-          try {
-            const content = fs.readFileSync(filePath, 'utf-8')
-            const lines = content.split('\n').filter(l => l.trim())
-
-            let title: string | undefined
-            let timestamp = 0
-            let titleMatched = false
-            let bestSnippet = ''
-
-            for (const line of lines) {
-              try {
-                const entry = JSON.parse(line)
-
-                if (entry.timestamp) {
-                  const t = new Date(entry.timestamp).getTime()
-                  if (t > timestamp) timestamp = t
-                }
-
-                if (entry.type === 'session-title' && entry.title) {
-                  title = String(entry.title)
-                  if (title.toLowerCase().includes(lowerQuery)) {
-                    titleMatched = true
-                  }
-                }
-
-                // Search in message content
-                if (!bestSnippet && (entry.type === 'user' || entry.type === 'assistant')) {
-                  let text = ''
-                  if (entry.message?.content) {
-                    const c = entry.message.content
-                    if (typeof c === 'string') text = c
-                    else if (Array.isArray(c)) {
-                      const textPart = c.find((p: Record<string, unknown>) => p.type === 'text')
-                      if (textPart?.text) text = String(textPart.text)
-                    }
-                  }
-                  const lowerText = text.toLowerCase()
-                  const idx = lowerText.indexOf(lowerQuery)
-                  if (idx !== -1) {
-                    const start = Math.max(0, idx - 40)
-                    const end = Math.min(text.length, idx + query.length + 40)
-                    bestSnippet = (start > 0 ? '...' : '') +
-                      text.slice(start, end).replace(/\n/g, ' ') +
-                      (end < text.length ? '...' : '')
-                  }
-                }
-              } catch {}
-            }
-
-            if (titleMatched) {
-              results.push({
-                sessionId,
-                title,
-                project: decodeProjectSlug(projectSlug),
-                matchType: 'title',
-                snippet: title || '',
-                timestamp,
-              })
-            } else if (bestSnippet) {
-              results.push({
-                sessionId,
-                title,
-                project: decodeProjectSlug(projectSlug),
-                matchType: 'content',
-                snippet: bestSnippet,
-                timestamp,
-              })
-            }
-          } catch {}
-        }
-      } catch {}
+        names = fs.readdirSync(dirPath).filter(f => f.endsWith('.jsonl'))
+      } catch { continue }
+      for (const file of names) {
+        const sessionId = file.replace('.jsonl', '')
+        const filePath = path.join(dirPath, file)
+        if (!isValidSessionId(sessionId) || !isPathInside(PROJECTS_DIR, filePath)) continue
+        try {
+          const stat = fs.statSync(filePath)
+          files.push({ sessionId, projectSlug, filePath, mtimeMs: stat.mtimeMs })
+        } catch { /* vanished between readdir and stat */ }
+      }
     }
-  } catch {}
+  } catch {
+    return []
+  }
 
+  files.sort((a, b) => b.mtimeMs - a.mtimeMs)
+
+  const CONCURRENCY = 3
+  const results: SearchResult[] = []
+  let cursor = 0
+
+  const worker = async () => {
+    while (isCurrent() && cursor < files.length && results.length < limit) {
+      const file = files[cursor++]
+      if (!(await fileContainsQuery(file.filePath, query, lowerQuery, isCurrent))) continue
+      if (!isCurrent()) return
+      let content: string
+      try {
+        content = await fs.promises.readFile(file.filePath, 'utf-8')
+      } catch { continue }
+      if (!isCurrent()) return
+      const hit = scanClaudeFile(content, query, lowerQuery)
+      if (!hit) continue
+      results.push({
+        sessionId: file.sessionId,
+        title: hit.title,
+        project: decodeProjectSlug(file.projectSlug),
+        matchType: hit.matchType,
+        snippet: hit.snippet,
+        timestamp: hit.timestamp || Date.now(),
+        engine: 'claude',
+        ...(hit.matchType === 'content' && hit.messageTimestamp
+          ? { messageTimestamp: hit.messageTimestamp, messageRole: hit.messageRole }
+          : {}),
+      })
+    }
+  }
+
+  await Promise.all(Array.from(
+    { length: Math.min(CONCURRENCY, files.length) },
+    () => worker(),
+  ))
+
+  if (!isCurrent()) return []
   return results.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit)
 }
 

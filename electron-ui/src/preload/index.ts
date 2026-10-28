@@ -32,6 +32,23 @@ export interface McpServerConfigData {
   disabled: boolean
 }
 
+/**
+ * One row of `session:search`. The main process merges Claude and Codex hits,
+ * so both engines arrive in this shape. `messageTimestamp` + `messageRole`
+ * identify the transcript entry when `matchType === 'content'`.
+ */
+export interface SessionSearchResultData {
+  sessionId: string
+  title?: string
+  project: string
+  matchType: 'title' | 'content'
+  snippet: string
+  timestamp: number
+  engine: 'claude' | 'codex'
+  messageTimestamp?: number
+  messageRole?: 'user' | 'assistant'
+}
+
 export interface NavPluginManifest {
   id: string
   name: string
@@ -103,6 +120,61 @@ export type PluginEditEvent =
   | { pluginId: string; type: 'done'; text: string }
   | { pluginId: string; type: 'error'; message: string }
 
+// ── Automations ────────────────────────────────────────────────────────────
+// Mirrors src/main/automation/types.ts. Declared inline so preload keeps no
+// runtime dependency on main-process modules.
+
+export type AutomationTriggerData =
+  | { kind: 'cron'; expr: string }
+  | { kind: 'interval'; minutes: number }
+
+export type AutomationActionData =
+  | { kind: 'workflow'; workflowId: string }
+  | { kind: 'prompt'; prompt: string; cwd?: string }
+
+export type AutomationRunStatusData = 'success' | 'error' | 'skipped' | 'running'
+
+export interface AutomationJobData {
+  id: string
+  name: string
+  enabled: boolean
+  trigger: AutomationTriggerData
+  action: AutomationActionData
+  createdAt: number
+  updatedAt: number
+  nextRunAt: number | null
+  lastRunAt: number | null
+  lastStatus: AutomationRunStatusData | null
+  lastError: string | null
+  lastSessionId: string | null
+  lastRunLate: boolean
+  lastDurationMs: number | null
+  runCount: number
+  recentRuns: number[]
+  /** The workflow this job targets no longer exists. */
+  actionMissing: boolean
+  /** A run is in flight right now. */
+  running: boolean
+}
+
+export interface AutomationLimitsData {
+  minIntervalMinutes: number
+  maxRunsPerHour: number
+  maxConcurrentRuns: number
+  maxJobs: number
+}
+
+export interface AutomationInputData {
+  name: string
+  enabled: boolean
+  trigger: AutomationTriggerData
+  action: AutomationActionData
+}
+
+export type AutomationMutationData =
+  | { ok: true; job: AutomationJobData }
+  | { ok: false; error: string }
+
 const electronAPI = {
   // ── IPC readiness check ────────────────────
   ipcPing: () => ipcRenderer.invoke('ipc:ping') as Promise<{ ok: boolean; timestamp: number }>,
@@ -124,6 +196,12 @@ const electronAPI = {
     ipcRenderer.invoke('cli:generateSuggestion', { context }) as Promise<string>,
   cliGenerateAwaySummary: (context: string) =>
     ipcRenderer.invoke('cli:generateAwaySummary', { context }) as Promise<string>,
+  /**
+   * Run a background turn that belongs to no conversation. Its events are not
+   * published on the cli:* channels; the final text comes back here.
+   */
+  cliRunInternal: (args: { prompt: string; cwd?: string; model?: string; timeoutMs?: number }) =>
+    ipcRenderer.invoke('cli:runInternal', args) as Promise<{ success: boolean; text?: string; error?: string }>,
   cliRespondHookCallback: (args: { sessionId: string; requestId: string; response: Record<string, unknown> }) =>
     ipcRenderer.invoke('cli:respondHookCallback', args),
   cliRespondElicitation: (args: { sessionId: string; requestId: string; result: Record<string, unknown> }) =>
@@ -161,11 +239,34 @@ const electronAPI = {
   sessionRename: (sessionId: string, title: string) => ipcRenderer.invoke('session:rename', { sessionId, title }),
   sessionGenerateTitle: (description: string) => ipcRenderer.invoke('session:generateTitle', { description }),
   sessionRewind: (sessionId: string, beforeTimestamp: string) => ipcRenderer.invoke('session:rewind', { sessionId, beforeTimestamp }),
-  sessionSearch: (query: string, limit?: number) => ipcRenderer.invoke('session:search', { query, limit }),
+  sessionSearch: (query: string, limit?: number) =>
+    ipcRenderer.invoke('session:search', { query, limit }) as Promise<SessionSearchResultData[]>,
   sessionDetectInterruption: (sessionId: string) => ipcRenderer.invoke('session:detectInterruption', { sessionId }),
   sessionGetStats: () => ipcRenderer.invoke('session:getStats'),
   /** Returns mtime (ms) of .consolidate-lock — used to detect dream completions */
   sessionGetDreamMtime: () => ipcRenderer.invoke('session:getDreamMtime') as Promise<number>,
+
+  // ── Automations (main-process scheduler) ──
+  automationList: () =>
+    ipcRenderer.invoke('automation:list') as Promise<{
+      jobs: AutomationJobData[]
+      limits: AutomationLimitsData | null
+    }>,
+  automationCreate: (input: AutomationInputData) =>
+    ipcRenderer.invoke('automation:create', input) as Promise<AutomationMutationData>,
+  automationUpdate: (id: string, input: AutomationInputData) =>
+    ipcRenderer.invoke('automation:update', id, input) as Promise<AutomationMutationData>,
+  automationDelete: (id: string) =>
+    ipcRenderer.invoke('automation:delete', id) as Promise<{ ok: boolean; error?: string }>,
+  automationSetEnabled: (id: string, enabled: boolean) =>
+    ipcRenderer.invoke('automation:setEnabled', id, enabled) as Promise<AutomationMutationData>,
+  automationRunNow: (id: string) =>
+    ipcRenderer.invoke('automation:runNow', id) as Promise<AutomationMutationData>,
+  onAutomationChanged: (cb: () => void): Unsubscribe => {
+    const handler = () => cb()
+    ipcRenderer.on('automation:changed', handler)
+    return () => { ipcRenderer.removeListener('automation:changed', handler) }
+  },
 
   // ── Config / prefs ───────────────────────
   configRead: () => ipcRenderer.invoke('config:read'),

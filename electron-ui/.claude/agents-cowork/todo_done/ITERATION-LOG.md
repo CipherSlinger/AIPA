@@ -103,3 +103,43 @@ Status: SUCCESS
 - [x] Navigating to dept view always shows org chart (not a drilled-in dept)
 - [x] Sessions always refresh when entering DepartmentDashboard (no stale cache)
 - [x] "+" card appears as last card in each dept's session row in OrgChart; clicking navigates to new chat with dept's working dir
+
+## Iteration 4 — Automations: the assistant starts work on its own (Backend)
+_Date: 2026-10-28 | Sprint Backend_
+
+### Summary
+Added a main-process scheduler and job store so a workflow or prompt can run on a cron/interval
+schedule without the user typing anything. Each run opens its own real Codex thread (so it shows up
+in the archive with a title), records its outcome on the job, and raises a notification whose click
+opens the produced session. Jobs live in `userData/automations.json`; state is never pushed through
+the Settings save loop. Settings gained an "Automations" page in both locales.
+
+### Files Changed
+- `src/main/automation/types.ts` — job / trigger / action / limits contracts, shared with preload by mirror
+- `src/main/automation/job-store.ts` — atomic JSON store (`{version:1, jobs:[]}`), normalisation of unknown or old records
+- `src/main/automation/runner.ts` — one run = one Codex bridge (`internal-automation-…`), workflow steps as follow-up turns, 10 min turn timeout, auto-denied approvals
+- `src/main/automation/scheduler.ts` — 15 s ticker, validation, missed-run and runaway rules, boot repair, notifications
+- `src/main/ipc/automation-handlers.ts` — `automation:*` channel registration
+- `src/main/ipc/index.ts` — registers handlers, starts the scheduler last so every broadcast channel exists
+- `src/main/codex/codex-bridge.ts` — `findByThreadId` skips `internal-` bridges so a user message can never attach to a hidden run
+- `src/preload/index.ts` — `automationList/Create/Update/Delete/SetEnabled/RunNow`, `onAutomationChanged`
+- `src/renderer/components/settings/SettingsAutomations.tsx` — job list, create/edit dialog, "how it works" group
+- `src/renderer/components/settings/settingsConstants.ts`, `SettingsPanel.tsx` — new "Automations" tab
+- `src/renderer/i18n/locales/en.json`, `zh-CN.json` — `automation.*` strings in both locales
+- `.claude/agents-cowork/todo/api-spec-automations-2026-10-28.md` — contract for the frontend
+
+### API Changes
+- New IPC: `automation:list`, `automation:create`, `automation:update`, `automation:delete`,
+  `automation:setEnabled`, `automation:runNow` (renderer → main) and `automation:changed` (main → renderer)
+
+### Build
+Status: SUCCESS — `tsc -p tsconfig.main.json`, `tsc -p tsconfig.preload.json`, `vite build` all clean.
+`npm run check`: 0 errors, 124 warnings (unchanged ceiling).
+
+### Acceptance Criteria
+- [x] Build passes on all three targets
+- [x] A job due in the near future fires with the window hidden, creates a named session, records `success`, and notifies
+- [x] A run owed while the app was closed fires once on the next start and is flagged late (36/36 harness assertions)
+- [x] Rails hold: no duplicate in-flight run, hourly cap marks `skipped`, workflow deletion disables the job with `workflow_missing`
+- [x] Every user-visible string present in both locale files, key sets identical
+- [x] No path traversal from a job's `cwd` (validated against the allowed fs roots)

@@ -3,8 +3,9 @@
 
 import { ArrowLeft, BookOpen, ChevronRight, FolderOpen, MessageSquarePlus } from 'lucide-react'
 import type { Department } from '../../store'
-import { useT } from '../../i18n'
+import { useI18n } from '../../i18n'
 import type { SortOrder } from './DepartmentDashboard.data'
+import { deptDisplayName } from './deptUtils'
 
 const SORT_OPTIONS = [
   ['recent', '↓Time'],
@@ -44,7 +45,7 @@ export default function DeptHeader({
   onSortChange,
   onNewSession,
 }: DeptHeaderProps) {
-  const t = useT()
+  const { t, resolvedLocale } = useI18n()
 
   return (
     <div style={{
@@ -129,7 +130,7 @@ export default function DeptHeader({
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
             >
               <ArrowLeft size={9} />
-              {parentDept.name}
+              {deptDisplayName(parentDept, resolvedLocale)}
             </button>
             <ChevronRight size={9} style={{ opacity: 0.5, flexShrink: 0 }} />
             <span style={{ opacity: 0.7 }}>{t('dept.team')}</span>
@@ -144,7 +145,7 @@ export default function DeptHeader({
           alignItems: 'center',
           gap: 6,
         }}>
-          {dept.name}
+          {deptDisplayName(dept, resolvedLocale)}
           {active && (
             <div style={{
               width: 7, height: 7,

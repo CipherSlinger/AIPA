@@ -1,14 +1,14 @@
 import { useState, useMemo, useCallback } from 'react'
-import { usePrefsStore, useChatStore, useUiStore } from '../../store'
+import { usePrefsStore, useUiStore } from '../../store'
 import { Workflow, WorkflowStep } from '../../types/app.types'
 import { useT } from '../../i18n'
-import { MAX_WORKFLOWS, MAX_NAME_LENGTH, MAX_DESC_LENGTH, PRESET_WORKFLOWS, PRESET_TEAMWORK_WORKFLOWS, getWorkflowQueuePlan, stepHasContent } from './workflowConstants'
+import { MAX_WORKFLOWS, MAX_NAME_LENGTH, MAX_DESC_LENGTH, PRESET_WORKFLOWS, PRESET_TEAMWORK_WORKFLOWS, stepHasContent } from './workflowConstants'
+import { runWorkflowIntoQueue } from './runWorkflow'
 
 export function useWorkflowCrud() {
   const t = useT()
   const prefs = usePrefsStore(s => s.prefs)
   const setPrefs = usePrefsStore(s => s.setPrefs)
-  const addToQueue = useChatStore(s => s.addToQueue)
   const addToast = useUiStore(s => s.addToast)
 
   const workflows: Workflow[] = prefs.workflows || []
@@ -39,20 +39,8 @@ export function useWorkflowCrud() {
   }, [setPrefs])
 
   const runWorkflow = useCallback((wf: Workflow) => {
-    const { entries, skippedSteps } = getWorkflowQueuePlan(wf, t)
-    if (entries.length === 0) {
-      addToast('info', t('workflow.nothingToRun'))
-      return
-    }
-    entries.forEach(entry => {
-      addToQueue(entry.prompt, { workflowId: wf.id, stepIndex: entry.stepIndex })
-    })
-    if (skippedSteps.length > 0) addToast('info', t('workflow.stepsSkipped', { count: String(skippedSteps.length) }))
-    saveWorkflows(workflows.map(w =>
-      w.id === wf.id ? { ...w, runCount: w.runCount + 1, updatedAt: Date.now() } : w
-    ))
-    addToast('success', t('workflow.running', { name: wf.presetKey ? t(`workflow.preset.${wf.presetKey}`) : wf.name, count: String(entries.length) }))
-  }, [addToQueue, workflows, saveWorkflows, addToast, t])
+    runWorkflowIntoQueue(wf, t)
+  }, [t])
 
   const createWorkflow = useCallback(() => {
     if (!newName.trim() || !newSteps.some(stepHasContent)) return

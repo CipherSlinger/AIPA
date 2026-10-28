@@ -10,6 +10,8 @@ export const SETTINGS_TABS = [
   { id: 'general', labelKey: 'settings.tabs.general' },
   { id: 'ai-engine', labelKey: 'settings.tabs.ai-engine' },
   { id: 'memory', labelKey: 'settings.tabs.memory' },
+  // Main-process scheduler for "do this on its own" jobs — see src/main/automation/.
+  { id: 'automations', labelKey: 'settings.tabs.automations' },
   { id: 'permissions', labelKey: 'settings.tabs.permissions' },
   { id: 'stats', labelKey: 'settings.tabs.stats' },
   // Plugins and MCP servers share this page, hence the label key's name.

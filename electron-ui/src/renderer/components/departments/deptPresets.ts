@@ -145,9 +145,15 @@ export async function applyTemplate(
         id: newPositionId(),
         title: loc(p.title, locale),
         brief: loc(p.brief, locale),
+        // Keep the other language alongside the resolved copy: the node is
+        // still the template's, so a later interface-language switch may
+        // re-render it. Renaming drops the link (see departmentStore).
+        presetTitle: { ...p.title },
+        presetBrief: { ...p.brief },
       }))
       const created = addDepartment({
         name,
+        presetName: { ...node.name },
         directory: dir,
         color: node.color ?? DEPT_COLORS[result.departments % DEPT_COLORS.length],
         parentId,

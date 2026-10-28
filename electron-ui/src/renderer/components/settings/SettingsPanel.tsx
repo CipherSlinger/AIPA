@@ -7,6 +7,7 @@ import SettingsAbout from './SettingsAbout'
 import SettingsStats from './SettingsStats'
 import PermissionsSettingsPanel from './PermissionsSettingsPanel'
 import SettingsAdvanced from './SettingsAdvanced'
+import SettingsAutomations from './SettingsAutomations'
 
 const MemoryPanel = React.lazy(() => import('../memory/MemoryPanel'))
 import SettingsPlugins from './SettingsPlugins'
@@ -221,6 +222,8 @@ export default function SettingsPanel() {
             <div style={{ height: 1, background: 'var(--border)' }} />
             <SettingsProjectMcp />
           </div>
+        ) : settingsTab === 'automations' ? (
+          <SettingsAutomations />
         ) : settingsTab === 'advanced' ? (
           <SettingsAdvanced />
         ) : (

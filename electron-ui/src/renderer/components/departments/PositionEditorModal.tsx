@@ -8,7 +8,8 @@ import { useState } from 'react'
 import { Briefcase, UserPlus } from 'lucide-react'
 import type { Position } from '../../store'
 import type { Persona } from '../../types/app.types'
-import { useT } from '../../i18n'
+import { useI18n } from '../../i18n'
+import { positionDisplayBrief, positionDisplayTitle } from './deptUtils'
 import DeptModal, {
   modalFieldStyle,
   modalLabelStyle,
@@ -26,21 +27,38 @@ interface PositionEditorModalProps {
   /** The department's default persona — what an unbound position inherits. */
   defaultPersonaId?: string
   onCancel: () => void
-  onSave: (data: { title: string; brief: string; personaId?: string }) => void
+  /** Editing sends only the fields that changed, so an untouched field keeps
+   *  its link to the template translation. */
+  onSave: (data: { title?: string; brief?: string; personaId?: string }) => void
 }
 
 export default function PositionEditorModal({
   position, deptName, accent, personas, defaultPersonaId, onCancel, onSave,
 }: PositionEditorModalProps) {
-  const t = useT()
-  const [title, setTitle] = useState(position?.title ?? '')
-  const [brief, setBrief] = useState(position?.brief ?? '')
+  const { t, resolvedLocale } = useI18n()
+  // Edit what is on screen, not the creation-locale copy: saving is the user
+  // taking ownership of the wording.
+  // Captured once: the comparison that decides what counts as "edited" must not
+  // move under a locale change while the dialog is open.
+  const [initialTitle] = useState(() => (position ? positionDisplayTitle(position, resolvedLocale) : ''))
+  const [initialBrief] = useState(() => (position ? positionDisplayBrief(position, resolvedLocale) : ''))
+  const [title, setTitle] = useState(initialTitle)
+  const [brief, setBrief] = useState(initialBrief)
   const [personaId, setPersonaId] = useState<string | undefined>(position?.personaId)
   const canSave = title.trim().length > 0
 
   const save = () => {
     if (!canSave) return
-    onSave({ title: title.trim(), brief: brief.trim(), personaId })
+    if (!position) {
+      onSave({ title: title.trim(), brief: brief.trim(), personaId })
+      return
+    }
+    // Untouched fields are not written back: keeping them out of the payload is
+    // what lets them follow a later language switch.
+    const changes: { title?: string; brief?: string; personaId?: string } = { personaId }
+    if (title.trim() !== initialTitle) changes.title = title.trim()
+    if (brief.trim() !== initialBrief) changes.brief = brief.trim()
+    onSave(changes)
   }
 
   return (

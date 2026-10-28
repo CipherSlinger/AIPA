@@ -5,8 +5,8 @@
 import { Users } from 'lucide-react'
 import type { Department } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
-import { useT } from '../../i18n'
-import { sessionMatchesDir } from './deptUtils'
+import { useI18n } from '../../i18n'
+import { deptDisplayName, sessionMatchesDir } from './deptUtils'
 
 interface DeptTeamStripProps {
   teams: Department[]
@@ -18,7 +18,7 @@ interface DeptTeamStripProps {
 }
 
 export default function DeptTeamStrip({ teams, sessions, homeDir, deptColor, onSelectDept }: DeptTeamStripProps) {
-  const t = useT()
+  const { t, resolvedLocale } = useI18n()
 
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
@@ -41,7 +41,9 @@ export default function DeptTeamStrip({ teams, sessions, homeDir, deptColor, onS
             onMouseLeave={e => { e.currentTarget.style.background = `${color}12` }}
           >
             <Users size={11} style={{ flexShrink: 0, color }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{team.name}</span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {deptDisplayName(team, resolvedLocale)}
+            </span>
             <span style={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{teamCount}</span>
             {teamOpen > 0 && (
               <span style={{ color, fontVariantNumeric: 'tabular-nums' }}>· {t('dept.positionOpen')} {teamOpen}</span>

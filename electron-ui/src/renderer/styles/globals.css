@@ -410,6 +410,35 @@ code:not(pre code) {
 }
 
 /* Spinner rotation */
+/* Cross-session search overlay (components/search) */
+@keyframes gsearch-fade {
+  from { opacity: 0 }
+  to { opacity: 1 }
+}
+@keyframes gsearch-slide {
+  from { opacity: 0; transform: translateX(-50%) translateY(-8px) }
+  to { opacity: 1; transform: translateX(-50%) translateY(0) }
+}
+
+/* A search hit lands on its evidence: the row glows once, then settles.
+   The inline outline from `highlightedMessageIdx` fades out with this. */
+@keyframes evidence-flash {
+  0%   { background: rgba(99,102,241,0.30); box-shadow: 0 0 0 2px rgba(99,102,241,0.85), 0 0 26px rgba(99,102,241,0.35); }
+  45%  { background: rgba(99,102,241,0.12); box-shadow: 0 0 0 2px rgba(99,102,241,0.45); }
+  100% { background: transparent; box-shadow: 0 0 0 0 rgba(99,102,241,0); }
+}
+.evidence-flash {
+  animation: evidence-flash 2.4s ease-out both;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .evidence-flash {
+    animation: none;
+    background: rgba(99,102,241,0.18);
+  }
+}
+
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }

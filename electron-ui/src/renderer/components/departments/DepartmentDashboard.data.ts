@@ -4,6 +4,7 @@
 
 import type { Position } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
+import { positionDisplayBrief, positionDisplayTitle, type UiLocale } from './deptUtils'
 
 export type SortOrder = 'recent' | 'oldest' | 'msgs'
 export type Translate = (key: string, params?: Record<string, string | number>) => string
@@ -46,10 +47,13 @@ export function pinnedFirst(sessions: SessionListItem[]): SessionListItem[] {
   return [...pinned, ...rest]
 }
 
-export function searchPositions(positions: Position[], query: string): Position[] {
+export function searchPositions(positions: Position[], query: string, locale: UiLocale): Position[] {
   const q = query.trim().toLowerCase()
   if (!q) return positions
-  return positions.filter(p => p.title.toLowerCase().includes(q) || p.brief.toLowerCase().includes(q))
+  return positions.filter(p =>
+    positionDisplayTitle(p, locale).toLowerCase().includes(q) ||
+    positionDisplayBrief(p, locale).toLowerCase().includes(q),
+  )
 }
 
 export interface SessionGroup {

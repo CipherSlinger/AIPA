@@ -54,6 +54,33 @@ interface UiState {
   pendingRecruitBrief: string | null
   setPendingRecruitBrief: (text: string | null) => void
 
+  // "/" and Ctrl+Shift+F ask for the in-session search field. The request waits
+  // here because ChatPanel is unmounted in every other view: a DOM event fired
+  // while another view is in front would reach no listener. ChatPanel consumes
+  // the flag when it mounts, so a later remount does not reopen the search.
+  searchFocusPending: boolean
+  requestSearchFocus: () => void
+  consumeSearchFocus: () => void
+
+  // Global (cross-session) search overlay. Lives in the store, not in App, so
+  // any view — and the shortcuts that fire while another view is mounted — can
+  // open it without a DOM listener.
+  globalSearchOpen: boolean
+  setGlobalSearchOpen: (open: boolean) => void
+
+  // Evidence hand-off from the search overlay to ChatPanel. The overlay knows
+  // the matched message only as a timestamp; ChatPanel owns the parsed message
+  // array that turns it into an index. The nonce makes two clicks on the same
+  // message distinguishable.
+  pendingReveal: {
+    sessionId: string
+    messageIndex: number
+    query: string
+    nonce: number
+  } | null
+  requestReveal: (reveal: { sessionId: string; messageIndex: number; query: string }) => void
+  consumeReveal: () => void
+
   // Always-on-top (pin window)
   alwaysOnTop: boolean
   setAlwaysOnTop: (v: boolean) => void
@@ -218,6 +245,16 @@ export const useUiStore = create<UiState>((set) => ({
   setQuotedText: (text) => set({ quotedText: text }),
   pendingRecruitBrief: null,
   setPendingRecruitBrief: (text) => set({ pendingRecruitBrief: text }),
+  searchFocusPending: false,
+  requestSearchFocus: () => set({ searchFocusPending: true }),
+  consumeSearchFocus: () => set({ searchFocusPending: false }),
+  globalSearchOpen: false,
+  setGlobalSearchOpen: (open) => set({ globalSearchOpen: open }),
+  pendingReveal: null,
+  requestReveal: (reveal) => set({
+    pendingReveal: { ...reveal, nonce: Date.now() },
+  }),
+  consumeReveal: () => set({ pendingReveal: null }),
   setAlwaysOnTop: (v) => set({ alwaysOnTop: v }),
   terminalResumeSessionId: null,
   setTerminalResumeSessionId: (id) => set({ terminalResumeSessionId: id }),

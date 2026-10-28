@@ -9,7 +9,8 @@ import { useState } from 'react'
 import { UserPlus } from 'lucide-react'
 import type { Position } from '../../store'
 import type { Persona } from '../../types/app.types'
-import { useT } from '../../i18n'
+import { useI18n } from '../../i18n'
+import { positionDisplayBrief, positionDisplayTitle } from './deptUtils'
 import DeptModal, {
   modalLabelStyle,
   modalPrimaryButtonStyle,
@@ -33,13 +34,13 @@ interface PositionHireModalProps {
 export default function PositionHireModal({
   position, deptName, accent, personas, initialPersonaId, hasHandbook, onCancel, onConfirm,
 }: PositionHireModalProps) {
-  const t = useT()
+  const { t, resolvedLocale } = useI18n()
   const [personaId, setPersonaId] = useState<string | undefined>(initialPersonaId)
 
   return (
     <DeptModal
       title={t('dept.positionHireTitle')}
-      subtitle={`${deptName} · ${position.title}`}
+      subtitle={`${deptName} · ${positionDisplayTitle(position, resolvedLocale)}`}
       accent={accent}
       icon={<UserPlus size={15} />}
       onClose={onCancel}
@@ -62,7 +63,7 @@ export default function PositionHireModal({
         fontSize: 12, lineHeight: 1.65, color: 'var(--text-secondary)',
         maxHeight: 150, overflow: 'auto', whiteSpace: 'pre-wrap',
       }}>
-        {position.brief || t('dept.positionNoBrief')}
+        {positionDisplayBrief(position, resolvedLocale) || t('dept.positionNoBrief')}
       </div>
 
       <label style={{ ...modalLabelStyle, marginTop: 4 }}>{t('dept.positionPersona')}</label>

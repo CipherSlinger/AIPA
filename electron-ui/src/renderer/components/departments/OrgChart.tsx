@@ -31,10 +31,11 @@ import {
 } from 'lucide-react'
 import { useChatStore, useDepartmentStore, useSessionStore, type Department } from '../../store'
 import { SessionListItem } from '../../types/app.types'
-import { useT } from '../../i18n'
+import { useI18n } from '../../i18n'
 import { ToolbarButton } from '../workflows/EmployeesShared'
 import {
-  baseName, childrenOf, deptByNormDir, deptBySlug, findDeptForSession, kindOf, teamsOf,
+  baseName, childrenOf, deptByNormDir, deptBySlug, deptDisplayName, findDeptForSession, kindOf,
+  positionDisplayTitle, teamsOf,
 } from './deptUtils'
 import OrgSection, { type OrgSectionProps } from './OrgSection'
 import { CARD_MIN_FULL, DENSE_FROM } from './orgLayout'
@@ -64,7 +65,7 @@ export interface OrgChartProps {
 }
 
 export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartProps) {
-  const t = useT()
+  const { t, resolvedLocale } = useI18n()
   const departments = useDepartmentStore(s => s.departments)
   const allSessions = useSessionStore(s => s.sessions)
   const sessionsLoading = useSessionStore(s => s.loading)
@@ -133,7 +134,7 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
     const companies = departments.filter(d => kindOf(d) === 'company')
     const out: SectionGroup[] = companies.map(company => ({
       key: company.id,
-      title: company.name,
+      title: deptDisplayName(company, resolvedLocale),
       node: company,
       departments: childrenOf(departments, company.id).filter(d => kindOf(d) !== 'team'),
     }))
@@ -142,7 +143,7 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
     const orphans = departments.filter(d => !d.parentId && kindOf(d) === 'department')
     if (orphans.length > 0) out.push({ key: '__top', title: t('dept.company'), departments: orphans })
     return out
-  }, [departments, t])
+  }, [departments, t, resolvedLocale])
 
   const q = deptSearch.trim().toLowerCase()
   /** A department matches on its own name, or on any team's name or position. */
@@ -151,13 +152,16 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
     for (const group of groups) {
       if (!q) { out[group.key] = group.departments; continue }
       out[group.key] = group.departments.filter(d => {
-        if (d.name.toLowerCase().includes(q) || d.directory.toLowerCase().includes(q)) return true
-        if ((teamsByDept[d.id] ?? []).some(team => team.name.toLowerCase().includes(q))) return true
-        return (d.positions ?? []).some(p => p.title.toLowerCase().includes(q))
+        const name = deptDisplayName(d, resolvedLocale)
+        if (name.toLowerCase().includes(q) || d.directory.toLowerCase().includes(q)) return true
+        if ((teamsByDept[d.id] ?? []).some(team =>
+          deptDisplayName(team, resolvedLocale).toLowerCase().includes(q))) return true
+        return (d.positions ?? []).some(p =>
+          positionDisplayTitle(p, resolvedLocale).toLowerCase().includes(q))
       })
     }
     return out
-  }, [groups, q, teamsByDept])
+  }, [groups, q, teamsByDept, resolvedLocale])
 
   // Past DENSE_FROM cards in a row the whole tree compacts so it still fits.
   // Taken across sections so two companies do not render at two densities.

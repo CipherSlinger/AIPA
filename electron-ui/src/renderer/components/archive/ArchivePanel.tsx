@@ -27,7 +27,10 @@ import {
 import { useDepartmentStore, usePrefsStore, useSessionStore, type Department } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
 import { useT, useI18n } from '../../i18n'
-import { deptByNormDir, deptBySlug, deptEmoji, findDeptForSession, kindOf, rootOf } from '../departments/deptUtils'
+import {
+  deptByNormDir, deptBySlug, deptDisplayName, deptEmoji, findDeptForSession, kindOf, rootOf,
+  type UiLocale,
+} from '../departments/deptUtils'
 import { openSessionCore } from '../departments/openSessionCore'
 import { displayTitle } from '../../lib/sessionTitle'
 import { CommandOnlyNotice, EmptyState, Pill } from './ArchiveChrome'
@@ -406,7 +409,7 @@ export default function ArchivePanel() {
         >
           <option value="all">{t('archive.allDepartments')}</option>
           {filterTargets.map(d => (
-            <option key={d.id} value={d.id}>{d.name}</option>
+            <option key={d.id} value={d.id}>{deptDisplayName(d, resolvedLocale)}</option>
           ))}
           <option value={UNASSIGNED}>{t('archive.unassigned')}</option>
         </select>
@@ -591,7 +594,7 @@ function ArchiveRow({
   onOpen: () => void
   onToggleArchived: () => void
   t: ReturnType<typeof useT>
-  locale: string
+  locale: UiLocale
 }) {
   const [hovered, setHovered] = useState(false)
   const { session } = record
@@ -675,8 +678,8 @@ function ArchiveRow({
           <FolderOpen size={10} />
           <span style={ELLIPSIS}>
             {kindOf(record.dept) === 'team'
-              ? `${record.dept.name} · ${t('dept.team')}`
-              : record.dept.name}
+              ? `${deptDisplayName(record.dept, locale)} · ${t('dept.team')}`
+              : deptDisplayName(record.dept, locale)}
           </span>
         </span>
       )}
