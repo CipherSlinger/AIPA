@@ -1,5 +1,6 @@
 import { ipcMain, BrowserWindow, shell, app, dialog } from 'electron'
 import * as fs from 'fs'
+import * as os from 'os'
 import * as path from 'path'
 import { ptyManager } from '../pty/pty-manager'
 import { fallbackShellManager } from '../pty/fallback-shell'
@@ -11,11 +12,15 @@ import { readSettings, writeSettings, listSessions as listClaudeSessions, loadSe
 import { listSessions as listCodexSessions, loadSession as loadCodexSession, deleteSession as deleteCodexSession, forkSession as forkCodexSession, searchSessions as searchCodexSessions, isCodexSession } from '../codex/codex-session-reader'
 import { addMcpServer, getMcpConfigInfo, readMcpServers, removeMcpServer, setMcpServerEnabledRouted } from '../config/mcp-config'
 import { getSessionStats } from '../sessions/session-stats'
-import { getApiKey, setApiKey, getPref, setPref, getAllPrefs, resetAllPrefs } from '../config/config-manager'
+import { getApiKey, setApiKey, getPref, getRawPref, setPref, getAllPrefs, resetAllPrefs } from '../config/config-manager'
 import { redactProviderSecrets } from '../providers'
 import type { ModelProviderConfig } from '../providers'
 import { readCLISettings, writeCLISettings } from '../config/cli-settings-manager'
-import { listMemoryFiles, readMemoryFile, writeMemoryFile, createMemoryFile, deleteMemoryFile } from '../sessions/memory-manager'
+import { listMemoryFiles, readMemoryFile, writeMemoryFile, createMemoryFile, deleteMemoryFile, writeConsolidatedMemoryFile, deleteConsolidatedMemoryFile } from '../sessions/memory-manager'
+import { createDreamService } from '../memory/dream-service'
+import { createDreamTranscriptReader } from '../memory/dream-transcript'
+import { setDreamService, getDreamService, dreamNoteTurnStart, dreamNoteTurnEnd, dreamNoteTurnCancelled } from '../memory/dream-runtime'
+import { registerDreamHandlers } from './memory-dream-handlers'
 import { checkIsGitRepo, listWorktrees, createWorktree, removeWorktree } from '../sessions/worktree-manager'
 import { listPlugins, setPluginEnabled, uninstallPlugin, registerLocalPlugin } from '../plugins/plugin-manager'
 import { initNavPluginManager, listNavPlugins, reloadNavPlugins, openPluginFolder } from '../plugins/nav-plugin-manager'
@@ -197,6 +202,56 @@ export function registerAllHandlers(win: BrowserWindow): void {
     registerRecruitHandlers(send)
     registerNavPluginHandlers(win, send)
     registerAutomationHandlers()
+
+    // Background memory consolidation ("dream"). Created even while the
+    // preference is off: the console must be able to show its state and turn
+    // it on without restarting the app — `isEnabled` is read on every tick.
+    const dream = createDreamService({
+      storePath: path.join(app.getPath('userData'), 'memory-dream.json'),
+      claudeDir: path.join(os.homedir(), '.claude'),
+      writeMemoryFile: writeConsolidatedMemoryFile,
+      deleteMemoryFile: deleteConsolidatedMemoryFile,
+      isEnabled: () => getPref('dreamConsolidationEnabled') !== false,
+      runTurn: async (prompt, options) => {
+        // The advisor model is the user's explicit choice for background work;
+        // otherwise inherit the chat model. `runInternalTurn` drops a Claude id
+        // on the Codex path, so cross-engine ids cannot break the turn.
+        const advisor = getRawPref('advisorModel')
+        const model = typeof advisor === 'string' && advisor.trim()
+          ? advisor.trim()
+          : (getPref('model') as string | undefined)
+        // A session may have been opened in a directory that no longer exists
+        // (deleted worktree); let the engine run in its own default instead of
+        // failing the pass on spawn.
+        const cwd = options.cwd && fs.existsSync(options.cwd) ? options.cwd : undefined
+        const result = await runInternalTurn({
+          prompt,
+          timeoutMs: options.timeoutMs,
+          internalTag: 'dream-consolidate',
+          answerOnly: true,
+          ...(cwd ? { cwd } : {}),
+          ...(model ? { model } : {}),
+        })
+        return { success: result.success, text: result.text, error: result.error }
+      },
+      readTranscript: createDreamTranscriptReader(),
+      getPersonalMemories: () => {
+        const items = getRawPref('memories')
+        if (!Array.isArray(items)) return []
+        return items
+          .map(item => (
+            item && typeof item === 'object' && typeof (item as { content?: unknown }).content === 'string'
+              ? (item as { content: string }).content
+              : ''
+          ))
+          .filter(text => text.trim().length > 0)
+      },
+      emitPass: (record) => send('memory:dream:pass', record),
+    })
+    setDreamService(dream)
+    registerDreamHandlers(getDreamService)
+    dream.start()
+
     // Started last: its first tick may run a due job, and every channel it
     // broadcasts on already exists by then. The scheduler resolves the window
     // lazily: it outlives this one and must not hold a destroyed reference.
@@ -402,6 +457,9 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     // A stopped turn is not a failed one, and its pending approvals are moot.
     markBridgeAborted(sessionId)
     clearAttentionForBridge(sessionId)
+    // Release the dream pass's "turn in flight" gate even if the bridge never
+    // reports an exit; a stopped turn is not consolidated.
+    if (typeof sessionId === 'string') dreamNoteTurnCancelled(sessionId)
     // Try CodexBridge first, then legacy
     const codexBridge = codexBridgeManager.get(sessionId)
     if (codexBridge) {
@@ -546,6 +604,18 @@ function wireCodexBridge(
     return
   }
 
+  // Background memory consolidation observes finished user turns only —
+  // internal bridges returned above, and automation runs never pass through
+  // this wiring. The result is where the durable thread id is known; an exit
+  // without one releases the "turn in flight" gate without counting a turn.
+  bridge.on('result', (d) => {
+    dreamNoteTurnEnd(bridgeId, d.codexThreadId ?? d.threadId ?? null, {
+      success: d.subtype === 'success',
+      engine: 'codex',
+    })
+  })
+  bridge.on('processExit', () => dreamNoteTurnCancelled(bridgeId))
+
   // Clawd desktop pet notifications
   bridge.on('textDelta', () => notifyClawdState('thinking', bridgeId))
   bridge.on('thinkingDelta', () => notifyClawdState('thinking', bridgeId))
@@ -644,6 +714,17 @@ function wireStreamBridge(
   bridge.on('toolUse', () => notifyClawdState('working', bridgeId))
   bridge.on('result', () => notifyClawdState('happy', bridgeId))
   bridge.on('apiError', () => notifyClawdState('error', bridgeId))
+
+  // Same dream bookkeeping as the Codex path. Claude reveals its session id on
+  // the result envelope, so the earlier `noteBridgeSession` mapping is the
+  // fallback for a resumed conversation.
+  bridge.on('result', (d) => {
+    dreamNoteTurnEnd(bridgeId, d.claudeSessionId ?? sessionForBridge(bridgeId), {
+      success: d.subtype === 'success',
+      engine: 'claude',
+    })
+  })
+  bridge.on('processExit', () => dreamNoteTurnCancelled(bridgeId))
   bridge.on('notification', () => notifyClawdState('notification', bridgeId))
   bridge.on('processExit', () => notifyClawdState('idle', bridgeId))
 
@@ -721,6 +802,11 @@ async function registerCodexSendMessage(
   if (existingBridgeId && !internal) {
     const existingBridge = codexBridgeManager.get(existingBridgeId)
     if (existingBridge) {
+      // `/compact` is housekeeping, not a conversational turn; it must not
+      // increment the dream pass's "turns waiting" counter.
+      if (!internal && !isCompact) {
+        dreamNoteTurnStart(existingBridgeId, typeof args.cwd === 'string' ? args.cwd : undefined)
+      }
       try {
         if (isCompact) {
           await existingBridge.compactThread()
@@ -732,6 +818,7 @@ async function registerCodexSendMessage(
         }
         return { success: true, sessionId: existingBridgeId }
       } catch (err) {
+        dreamNoteTurnCancelled(existingBridgeId)
         return { success: false, error: String(err) }
       }
     }
@@ -743,6 +830,9 @@ async function registerCodexSendMessage(
   if (requestedThreadId) {
     const live = codexBridgeManager.findByThreadId(requestedThreadId)
     if (live) {
+      if (!internal && !isCompact) {
+        dreamNoteTurnStart(live.bridgeId, typeof args.cwd === 'string' ? args.cwd : undefined)
+      }
       try {
         if (isCompact) {
           await live.bridge.compactThread()
@@ -752,6 +842,7 @@ async function registerCodexSendMessage(
         }
         return { success: true, sessionId: live.bridgeId }
       } catch (err) {
+        dreamNoteTurnCancelled(live.bridgeId)
         return { success: false, error: String(err) }
       }
     }
@@ -790,6 +881,9 @@ async function registerCodexSendMessage(
     },
   )
 
+  if (!internal && !isCompact) {
+    dreamNoteTurnStart(bridgeId, (args.cwd as string) || undefined)
+  }
   try {
     if (isCompact) {
       await bridge.compactSession(bridgeArgs)
@@ -799,6 +893,7 @@ async function registerCodexSendMessage(
     }
     return { success: true, sessionId: bridgeId }
   } catch (err) {
+    dreamNoteTurnCancelled(bridgeId)
     // The handshake/turn never started; don't leave a half-initialized
     // app-server process behind waiting for input.
     try { bridge.abort() } catch { /* already gone */ }
@@ -820,8 +915,14 @@ async function registerLegacySendMessage(
   const existingBridgeId = args.activeBridgeId as string | undefined
   if (existingBridgeId && !internal && streamBridgeManager.get(existingBridgeId)) {
     const bridge = streamBridgeManager.get(existingBridgeId)!
-    bridge.sendFollowUp(args.prompt as string, args.sessionId as string | undefined)
-    return { success: true, sessionId: existingBridgeId }
+    dreamNoteTurnStart(existingBridgeId, typeof args.cwd === 'string' ? args.cwd : undefined)
+    try {
+      bridge.sendFollowUp(args.prompt as string, args.sessionId as string | undefined)
+      return { success: true, sessionId: existingBridgeId }
+    } catch (err) {
+      dreamNoteTurnCancelled(existingBridgeId)
+      return { success: false, error: String(err) }
+    }
   }
 
   const tag = internal && typeof args.internalTag === 'string' ? `${args.internalTag}-` : ''
@@ -840,6 +941,9 @@ async function registerLegacySendMessage(
   }
   env.CLAUDECODE = ''
 
+  if (!internal) {
+    dreamNoteTurnStart(bridgeId, (args.cwd as string) || undefined)
+  }
   try {
     await bridge.sendMessage({
       ...(args as any),
@@ -852,6 +956,7 @@ async function registerLegacySendMessage(
     })
     return { success: true, sessionId: bridgeId }
   } catch (err) {
+    dreamNoteTurnCancelled(bridgeId)
     sink('cli:error', { sessionId: bridgeId, error: String(err) })
     return { success: false, error: String(err) }
   }

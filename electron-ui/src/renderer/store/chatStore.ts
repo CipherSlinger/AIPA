@@ -351,9 +351,25 @@ interface ChatState {
   pendingPlanApproval: { sessionId: string; requestId: string; from: string; planContent: string; planFilePath: string } | null
   setPendingPlanApproval: (req: { sessionId: string; requestId: string; from: string; planContent: string; planFilePath: string } | null) => void
 
-  // DreamTask events: memory consolidation runs detected via .consolidate-lock mtime
-  dreamEvents: Array<{ id: string; timestamp: number; sessionsReviewed?: number }>
-  addDreamEvent: (event: { id: string; timestamp: number; sessionsReviewed?: number }) => void
+  // DreamTask events: memory consolidation runs. `source: 'cli'` is the CLI's
+  // own `.consolidate-lock` marker; `source: 'dream'` is an AIPA background pass
+  // that wrote `entries` memory statements to `file`.
+  dreamEvents: Array<{
+    id: string
+    timestamp: number
+    sessionsReviewed?: number
+    source?: 'cli' | 'dream'
+    entries?: number
+    file?: string
+  }>
+  addDreamEvent: (event: {
+    id: string
+    timestamp: number
+    sessionsReviewed?: number
+    source?: 'cli' | 'dream'
+    entries?: number
+    file?: string
+  }) => void
   clearDreamEvents: () => void
 
   // Result event stats (P0-5): permission denials, turns, duration from CLI result

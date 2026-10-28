@@ -2,20 +2,23 @@
  * clawd-attention.ts — the single path from main-process events to the
  * desktop pet's attention bubble.
  *
- * Four things can need the user while AIPA is in the background:
+ * Five things can need the user while AIPA is in the background:
  *   - an approval is waiting          (Codex approval / Claude permission / plan)
  *   - an answer is needed             (Claude MCP elicitation)
- *   - a task failed                   (failed turn, bridge crash, API error)
+ *   - a task failed                   (failed turn, bridge crash, API error,
+ *                                      failed automation run)
  *   - a plugin job finished           (plugin AI generate / plugin edit)
+ *   - an automation run finished      (a hidden scheduled run)
  *
- * All four raise one record shape and share one queue, so there is exactly one
+ * All five raise one record shape and share one queue, so there is exactly one
  * bubble on screen and exactly one rule for when it may appear. Sources never
  * talk to the pet directly — they call `raiseAttention`.
  *
  * Quiet rule: nothing is shown while the main window is focused, visible and
  * not minimised. Items raised while the user is looking stay queued (approvals
  * and questions) so that alt-tabbing away surfaces them; transient items
- * (failures, plugin completions) expire instead of nagging later.
+ * (failures, plugin completions, finished automation runs) expire instead of
+ * nagging later.
  *
  * Dedupe rule: the queue is keyed by `kind + session` (or bridge, or plugin).
  * A repeated failure in the same session refreshes one bubble instead of
@@ -24,11 +27,14 @@
  * ("3 plugin jobs finished") whose click opens a chooser, never an arbitrary
  * job. Rendering is debounced so a burst becomes one bubble.
  *
- * Notification rule: for these four events the pet bubble *is* the
- * notification. None of them shows a native OS notification today (chat
- * completions do, and keep doing so), so nothing is duplicated. When the pet
- * cannot show (disabled, hidden, asleep, or its own "hide bubbles" setting),
- * we stay silent rather than fall back to a second surface.
+ * Notification rule: for these events the pet bubble *is* the notification.
+ * Chat completions keep their native OS notification, and so does an
+ * automation run when the pet cannot speak; the scheduler owns that fallback
+ * and uses `raiseAttention`'s return value to skip it when the pet took the
+ * event. This module still never shows a native notification itself, so the
+ * same run can never be announced twice. When the pet cannot show (disabled,
+ * hidden, asleep, or its own "hide bubbles" setting), we stay silent rather
+ * than fall back to a second surface.
  */
 
 import { BrowserWindow, Menu, app } from 'electron'
@@ -55,7 +61,7 @@ const { createTranslator } = require('./clawd/src/i18n') as {
   createTranslator: (getLang: () => string) => (key: string) => string
 }
 
-export type AttentionKind = 'approval' | 'clarification' | 'failed' | 'plugin-done'
+export type AttentionKind = 'approval' | 'clarification' | 'failed' | 'plugin-done' | 'automation-done'
 
 export interface AttentionInput {
   kind: AttentionKind
@@ -99,6 +105,7 @@ const KIND_PRIORITY: Record<AttentionKind, number> = {
   clarification: 1,
   failed: 2,
   'plugin-done': 3,
+  'automation-done': 4,
 }
 
 /** A burst of events becomes one bubble: wait for the quiet gap first. */
@@ -209,11 +216,15 @@ function noteFailureAttention(input: AttentionInput): void {
 /**
  * Record something that needs the user. Cheap and safe to call from any event
  * handler; rendering is always asynchronous.
+ *
+ * Returns true when the pet can take this event right now. A caller that also
+ * owns a native notification (the automation scheduler) uses that to make the
+ * pet the one and only announcement for the run.
  */
-export function raiseAttention(input: AttentionInput): void {
-  if (!initialized) return
-  if (!isAttentionEnabled()) return
-  if (!input || !input.kind) return
+export function raiseAttention(input: AttentionInput): boolean {
+  if (!initialized) return false
+  if (!isAttentionEnabled()) return false
+  if (!input || !input.kind) return false
 
   const now = Date.now()
   // The renderer's completion notification is sent from the same result event
@@ -250,7 +261,7 @@ export function raiseAttention(input: AttentionInput): void {
     item.createdAt = now
     items.set(PLUGIN_DONE_KEY, item)
     scheduleRender()
-    return
+    return willShowNow(item)
   }
 
   const key = attentionKey(input)
@@ -266,12 +277,12 @@ export function raiseAttention(input: AttentionInput): void {
     if (input.bridgeId) existing.bridgeId = input.bridgeId
     if (input.pluginId) existing.pluginId = input.pluginId
     scheduleRender()
-    return
+    return willShowNow(existing)
   }
 
   const requestIds = new Set<string>()
   if (input.requestId) requestIds.add(input.requestId)
-  items.set(key, {
+  const item: AttentionItem = {
     key,
     kind: input.kind,
     sessionId: input.sessionId || null,
@@ -283,8 +294,10 @@ export function raiseAttention(input: AttentionInput): void {
     count: Math.max(1, requestIds.size),
     requestIds,
     lastShownAt: 0,
-  })
+  }
+  items.set(key, item)
   scheduleRender()
+  return willShowNow(item)
 }
 
 /**
@@ -449,13 +462,27 @@ function canSummon(): boolean {
 }
 
 /**
+ * Whether this specific item is about to be shown: the quiet rule allows it,
+ * no other bubble is on screen, the backoff after a failed show has elapsed,
+ * and `pickNext` would choose it. A caller that also owns a native
+ * notification should treat anything else as "the pet is not announcing this
+ * now" — a queued item behind an approval may show much later, or expire.
+ */
+function willShowNow(item: AttentionItem): boolean {
+  if (!canSummon()) return false
+  if (current) return false
+  if (Date.now() - lastShowFailureAt < SHOW_RETRY_MS) return false
+  return pickNext()?.key === item.key
+}
+
+/**
  * A transient item that was already on screen is not repeated when the user
  * comes back: they are now looking at the app, which shows the same outcome.
  * Approvals and questions stay queued because they are still actionable.
  */
 function dropShownTransientItems(): void {
   for (const [key, item] of items) {
-    if (item.kind !== 'failed' && item.kind !== 'plugin-done') continue
+    if (item.kind !== 'failed' && item.kind !== 'plugin-done' && item.kind !== 'automation-done') continue
     if (item !== current && !item.lastShownAt) continue
     items.delete(key)
   }
@@ -560,10 +587,19 @@ function buildPayload(item: AttentionItem): BuiltBubble {
         ? fmt(t('attentionPluginDoneBodyCount'), { n: pluginJobCount })
         : (name ? fmt(t('attentionPluginDoneBody'), { name }) : t('attentionPluginDoneBodyGeneric'))
       break
+    case 'automation-done':
+      // `detail` carries the automation's name, which makes the bubble say
+      // which job actually ran rather than just "something finished".
+      title = t('attentionAutomationDoneTitle')
+      pill = t('attentionAutomationDonePill')
+      message = name
+        ? fmt(t('attentionAutomationDoneBody'), { name })
+        : t('attentionAutomationDoneBodyGeneric')
+      break
   }
 
   const payload: ClawdAttentionBubblePayload = {
-    mode: item.kind === 'plugin-done' ? 'done' : 'attention',
+    mode: item.kind === 'plugin-done' || item.kind === 'automation-done' ? 'done' : 'attention',
     lang,
     title,
     message,

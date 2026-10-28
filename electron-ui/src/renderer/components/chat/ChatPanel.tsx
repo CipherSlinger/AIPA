@@ -107,6 +107,29 @@ export default function ChatPanel() {
     }
   }, [activeTabId, currentSessionTitle, updateTabTitle])
 
+  // A background memory pass can finish while a conversation is open. Only a
+  // pass that actually wrote memory is news; "nothing new" stays in the
+  // Memory console's log rather than interrupting the chat.
+  const addDreamEvent = useChatStore(s => s.addDreamEvent)
+  useEffect(() => {
+    return window.electronAPI.onMemoryDreamPass(record => {
+      // The main process emits an unavailable record at most once per outage,
+      // so this warning cannot repeat on every retry.
+      if (record.status === 'unavailable') {
+        addToast('warning', t('dream.unavailable'))
+        return
+      }
+      if (record.status !== 'written' || record.entryCount <= 0) return
+      addDreamEvent({
+        id: record.id,
+        timestamp: record.createdAt,
+        source: 'dream',
+        entries: record.entryCount,
+        file: record.filePath,
+      })
+    })
+  }, [addDreamEvent, addToast, t])
+
   const { sendMessage, abort, respondPermission, respondHookCallback, respondElicitation, grantToolPermission, alwaysAllowTool, alwaysDenyTool, newConversation } = useStreamJson()
 
   // Extracted hooks

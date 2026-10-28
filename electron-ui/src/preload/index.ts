@@ -33,6 +33,39 @@ export interface McpServerConfigData {
 }
 
 /**
+ * One background memory consolidation pass, as listed in the Memory console.
+ *
+ * `statements` is empty for a failed/empty pass; `filePath` is only set when a
+ * file was actually written. The renderer addresses a pass by `id`, never by
+ * its path, so deleting one cannot be redirected at an arbitrary file.
+ */
+export interface DreamPassData {
+  id: string
+  status: 'written' | 'empty' | 'junk' | 'unavailable' | 'error'
+  createdAt: number
+  sessionId: string
+  projectSlug: string
+  filePath: string
+  entryCount: number
+  statements: string[]
+  trigger: 'idle' | 'manual'
+  note?: string
+}
+
+export interface DreamStatusData {
+  enabled: boolean
+  running: boolean
+  pendingSessions: number
+  passes: number
+}
+
+export interface DreamRunNowResult {
+  ok: boolean
+  record?: DreamPassData
+  error?: string
+}
+
+/**
  * One row of `session:search`. The main process merges Claude and Codex hits,
  * so both engines arrive in this shape. `messageTimestamp` + `messageRole`
  * identify the transcript entry when `matchType === 'content'`.
@@ -526,6 +559,22 @@ const electronAPI = {
     ipcRenderer.invoke('memory:create', args) as Promise<{ success: boolean; filePath: string }>,
   memoryDelete: (filePath: string) =>
     ipcRenderer.invoke('memory:delete', { filePath }) as Promise<{ success: boolean }>,
+
+  // ── Dream consolidation (background memory passes) ───────────────────────
+  memoryDreamList: () =>
+    ipcRenderer.invoke('memory:dream:list') as Promise<DreamPassData[]>,
+  memoryDreamStatus: () =>
+    ipcRenderer.invoke('memory:dream:status') as Promise<DreamStatusData>,
+  memoryDreamRunNow: (sessionId?: string) =>
+    ipcRenderer.invoke('memory:dream:runNow', { sessionId }) as Promise<DreamRunNowResult>,
+  /** Delete one pass (and the file it wrote, if any). */
+  memoryDreamDelete: (passId: string) =>
+    ipcRenderer.invoke('memory:dream:delete', { passId }) as Promise<{ ok: boolean; error?: string }>,
+  onMemoryDreamPass: (cb: (record: DreamPassData) => void): Unsubscribe => {
+    const handler = (_: Electron.IpcRendererEvent, record: DreamPassData) => cb(record)
+    ipcRenderer.on('memory:dream:pass', handler)
+    return () => { ipcRenderer.removeListener('memory:dream:pass', handler) }
+  },
 
   // ── Worktree ─────────────────────────────────────────────────────────────
   worktreeIsGitRepo: (cwd: string) =>

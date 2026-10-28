@@ -31,6 +31,12 @@ interface StoreSchema {
    * fires while the main window is hidden, minimised or unfocused.
    */
   petAttentionAlerts: boolean
+  /**
+   * Background memory consolidation ("dream"): turns idle conversations into
+   * append-only project memory files. Default on; the Memory console exposes
+   * the switch and its pass log.
+   */
+  dreamConsolidationEnabled: boolean
 }
 
 const store = new Store<StoreSchema>({
@@ -54,6 +60,7 @@ const store = new Store<StoreSchema>({
     windowBounds: null,
     clawdEnabled: true,
     petAttentionAlerts: true,
+    dreamConsolidationEnabled: true,
   },
   // Removed hardcoded encryptionKey — API key is now encrypted via safeStorage
 })

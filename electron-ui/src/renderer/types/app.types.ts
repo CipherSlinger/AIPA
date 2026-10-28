@@ -177,6 +177,7 @@ export interface AppPrefs {
   disallowedTools?: string[]   // tools blocked from CLI via --disallowedTools (Iteration 527)
   clawdEnabled?: boolean       // show Clawd desktop pet that reacts to AI session state (Iteration 615)
   petAttentionAlerts?: boolean // summon the pet for background approvals/questions/failures/plugin completions (default true)
+  dreamConsolidationEnabled?: boolean // background memory consolidation passes (default true)
 }
 
 export interface SessionFolder {

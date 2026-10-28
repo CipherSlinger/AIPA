@@ -1,21 +1,26 @@
 /**
- * DreamTaskCard — visualises completed auto-dream (memory consolidation) events.
+ * DreamTaskCard — visualises completed memory consolidation events.
  *
- * DreamTask is an in-process sub-agent in the CLI that consolidates memory files
- * in the background after every N sessions.  It runs outside the stream-json
- * event flow and updates ~/.claude/projects/<hash>/.consolidate-lock on completion.
- * AIPA detects this via mtime polling around the cli:result event.
+ * Two sources feed this card:
+ *  - the CLI's own in-process "auto-dream", detected by AIPA polling
+ *    `~/.claude/projects/<hash>/.consolidate-lock` around `cli:result`; it
+ *    reports only that a run happened (`sessionsReviewed` when known);
+ *  - AIPA's background consolidation pass (`source: 'dream'`), which reports
+ *    how many memory entries it wrote and to which file.
  *
- * This component renders a compact card shown below the chat whenever at least
- * one dream event occurred during the current conversation.
+ * Shown below the chat while at least one event happened in this conversation.
  */
 import React, { useState } from 'react'
 import { Brain, ChevronDown, ChevronRight } from 'lucide-react'
+import { useT } from '../../i18n'
 
 export interface DreamEvent {
   id: string
   timestamp: number
   sessionsReviewed?: number
+  source?: 'cli' | 'dream'
+  entries?: number
+  file?: string
 }
 
 interface DreamTaskCardProps {
@@ -38,20 +43,34 @@ function ensureSpinKeyframe() {
 
 export default function DreamTaskCard({ events }: DreamTaskCardProps) {
   ensureSpinKeyframe()
+  const t = useT()
   const [expanded, setExpanded] = useState(false)
 
   if (events.length === 0) return null
 
   const latest = events[events.length - 1]
+  const written = latest.source === 'dream'
   const label =
     events.length === 1
       ? new Date(latest.timestamp).toLocaleTimeString()
-      : `${events.length} consolidations`
+      : `${events.length} ${t('dream.cardCountSuffix')}`
+
+  const detailOf = (ev: DreamEvent): string | null => {
+    if (ev.entries != null && ev.entries > 0) {
+      return t('dream.cardEntries', { count: ev.entries })
+    }
+    if (ev.sessionsReviewed != null) {
+      return t('dream.cardSessions', { count: ev.sessionsReviewed })
+    }
+    return null
+  }
+
+  const latestDetail = detailOf(latest)
 
   return (
     <div
       role="status"
-      aria-label="Memory consolidation completed"
+      aria-label={t('dream.cardAria')}
       style={{
         display: 'inline-flex',
         flexDirection: 'column',
@@ -73,7 +92,7 @@ export default function DreamTaskCard({ events }: DreamTaskCardProps) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <Brain size={12} color="rgba(167,139,250,0.82)" />
         <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-          Memory Consolidation
+          {t('dream.cardTitle')}
         </span>
         <span
           style={{
@@ -82,7 +101,7 @@ export default function DreamTaskCard({ events }: DreamTaskCardProps) {
             fontStyle: 'italic',
           }}
         >
-          auto-dream
+          {written ? t('dream.cardSourceDream') : t('dream.cardSourceCli')}
         </span>
         <span
           style={{
@@ -109,7 +128,7 @@ export default function DreamTaskCard({ events }: DreamTaskCardProps) {
               color: 'rgba(167,139,250,0.60)',
               transition: 'all 0.15s ease',
             }}
-            aria-label={expanded ? 'Collapse history' : 'Expand history'}
+            aria-label={expanded ? t('dream.cardCollapse') : t('dream.cardExpand')}
           >
             {expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
           </button>
@@ -124,7 +143,7 @@ export default function DreamTaskCard({ events }: DreamTaskCardProps) {
           fontSize: 10,
         }}
       >
-        Background memory files updated
+        {latestDetail || t('dream.cardSubtitle')}
       </div>
 
       {/* Expanded history */}
@@ -138,29 +157,28 @@ export default function DreamTaskCard({ events }: DreamTaskCardProps) {
             borderRadius: 6,
           }}
         >
-          {events.map(ev => (
-            <div
-              key={ev.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '2px 0',
-                color: 'var(--text-secondary)',
-                fontSize: 10,
-              }}
-            >
-              <Brain size={9} color="rgba(139,92,246,0.60)" />
-              <span style={{ fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
-                {new Date(ev.timestamp).toLocaleTimeString()}
-              </span>
-              {ev.sessionsReviewed != null && (
-                <span style={{ color: 'var(--text-faint)' }}>
-                  · {ev.sessionsReviewed} session{ev.sessionsReviewed !== 1 ? 's' : ''} reviewed
+          {events.map(ev => {
+            const detail = detailOf(ev)
+            return (
+              <div
+                key={ev.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '2px 0',
+                  color: 'var(--text-secondary)',
+                  fontSize: 10,
+                }}
+              >
+                <Brain size={9} color="rgba(139,92,246,0.60)" />
+                <span style={{ fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
+                  {new Date(ev.timestamp).toLocaleTimeString()}
                 </span>
-              )}
-            </div>
-          ))}
+                {detail && <span style={{ color: 'var(--text-faint)' }}>· {detail}</span>}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

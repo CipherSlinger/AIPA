@@ -13,6 +13,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Brain,
+  Moon,
   Plus,
   Search,
   Trash2,
@@ -29,8 +30,9 @@ import { CATEGORY_CONFIG, CATEGORIES, MAX_MEMORIES, MEMORY_TYPES, MEMORY_TYPE_CO
 import { useMemoryCrud } from './useMemoryCrud'
 import MemoryAddForm from './MemoryAddForm'
 import MemoryItemCard from './MemoryItemCard'
+import DreamConsolidationTab from './DreamConsolidationTab'
 
-type MemoryTab = 'personal' | 'project' | 'memdir' | 'config'
+type MemoryTab = 'personal' | 'project' | 'memdir' | 'dream' | 'config'
 
 // ─── Project Memory (MEMORY.md) viewer/editor ────────────────────────────────
 
@@ -1333,6 +1335,10 @@ export default function MemoryPanel() {
             <Brain size={11} />
             {t('memory.memdirTab')}
           </button>
+          <button style={tabStyle(activeTab === 'dream')} onClick={() => setActiveTab('dream')}>
+            <Moon size={11} />
+            {t('dream.tabLabel')}
+          </button>
           <button style={tabStyle(activeTab === 'config')} onClick={() => setActiveTab('config')}>
             <FileText size={11} />
             {t('memory.instructionTab')}
@@ -1688,6 +1694,13 @@ export default function MemoryPanel() {
       {activeTab === 'memdir' && (
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <MemdirTab />
+        </div>
+      )}
+
+      {/* Dream consolidation tab body */}
+      {activeTab === 'dream' && (
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <DreamConsolidationTab />
         </div>
       )}
 

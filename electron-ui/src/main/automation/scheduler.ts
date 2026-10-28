@@ -16,6 +16,7 @@ import { app, BrowserWindow, Notification } from 'electron'
 import * as fs from 'fs'
 import * as os from 'os'
 import { getPref, getRawPref } from '../config/config-manager'
+import { raiseAttention } from '../clawd-attention'
 import { nextFireTime, parseCron } from '../utils/cron'
 import { createLogger } from '../utils/logger'
 import { getAllowedFsRoots, safePath } from '../utils/validate'
@@ -283,7 +284,43 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
   job.lastRunLate = opts.late
   persistAndBroadcast()
   log.info(`Automation "${job.name}" finished: ${job.lastStatus}${outcome.sessionId ? ` (session ${outcome.sessionId})` : ''}`)
-  notifyCompletion(job, outcome)
+  // The pet and the native notification are two surfaces for one event: the
+  // raise decides which one speaks, and `attended` records that decision.
+  const attended = raiseAutomationAttention(job, outcome)
+  notifyCompletion(job, outcome, attended)
+}
+
+/**
+ * Route a finished run into the desktop pet's attention queue.
+ *
+ * Failures use the existing `failed` shape (same bubble as a failed chat turn),
+ * successes get `automation-done` so a hidden job that worked is announced
+ * without pretending something broke. Both carry the run's session id, so the
+ * click opens the conversation the run produced.
+ *
+ * Returns true only when the pet will show the item right now. The pet applies
+ * its own quiet rule (window focused, hidden, DND, bubbles off), so a "false"
+ * here means the scheduler's native notification is the fallback rather than a
+ * duplicate.
+ */
+function raiseAutomationAttention(job: AutomationJob, outcome: AutomationRunOutcome): boolean {
+  const sessionId = outcome.sessionId ?? null
+  if (outcome.ok) {
+    return raiseAttention({
+      kind: 'automation-done',
+      sessionId,
+      // A run that produced no openable session still needs an identity for
+      // dedupe; the job id is stable, so a repeat refreshes one bubble.
+      bridgeId: sessionId ? null : `automation:${job.id}`,
+      detail: job.name,
+    })
+  }
+  return raiseAttention({
+    kind: 'failed',
+    sessionId,
+    bridgeId: sessionId ? null : `automation:${job.id}`,
+    detail: clip(outcome.error || 'run_failed', 90),
+  })
 }
 
 /**
@@ -331,13 +368,24 @@ function openMainWindow(): BrowserWindow | null {
   return created
 }
 
-function notifyCompletion(job: AutomationJob, outcome: AutomationRunOutcome): void {
+function notifyCompletion(job: AutomationJob, outcome: AutomationRunOutcome, attended: boolean): void {
+  // The pet already announced this run (it only speaks while the window is in
+  // the background). Firing here too would show the same result twice.
+  if (attended) {
+    log.debug(`Automation "${job.name}" notification handled by the desktop pet`)
+    return
+  }
   if (!Notification.isSupported()) return
 
   const zh = resolveUiLanguage() === 'zh-CN'
   const title = zh ? `自动化：${job.name}` : `Automation: ${job.name}`
+  // Only promise an openable transcript when there is one: the legacy engine
+  // can finish without reporting a session id, and the click handler below
+  // cannot open what does not exist.
   const body = outcome.ok
-    ? (outcome.summary || (zh ? '已完成，点击打开这次的会话' : 'Finished — click to open this run'))
+    ? (outcome.summary || (outcome.sessionId
+      ? (zh ? '已完成，点击打开这次的会话' : 'Finished — click to open this run')
+      : (zh ? '已完成' : 'Finished')))
     : (zh ? `运行失败：${clip(outcome.error || '未知错误', 200)}` : `Run failed: ${clip(outcome.error || 'unknown error', 200)}`)
 
   try {

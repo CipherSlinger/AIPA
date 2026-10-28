@@ -307,3 +307,56 @@ export function deleteMemoryFile(filePath: string): void {
   invalidateMemoryCache(safe)
   log.info('deleteMemoryFile:', safe)
 }
+
+/**
+ * Resolve a file written by the background consolidation pass.
+ *
+ * The normal memory writer resolves roots by listing existing project
+ * directories. A consolidation may be the first thing to create
+ * `<projects>/<slug>/memory/`, so that check would reject its own new file.
+ * This validates the shape instead: one project segment, a `memory` segment,
+ * and a `dream-*.md` filename. No renderer path ever reaches it — the pass is
+ * addressed by its record id.
+ */
+function resolveConsolidatedPath(filePath: string): string {
+  if (typeof filePath !== 'string' || !filePath.trim()) {
+    throw new Error('Invalid consolidation file path')
+  }
+  const projectsRoot = path.join(getClaudeDir(), 'projects')
+  const resolved = path.resolve(filePath)
+  const relative = path.relative(projectsRoot, resolved)
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
+    throw new Error('Consolidation file must live under the projects directory')
+  }
+  const parts = relative.split(path.sep)
+  if (
+    parts.length !== 3 ||
+    !isValidProjectHash(parts[0]) ||
+    parts[1] !== 'memory' ||
+    !parts[2].startsWith('dream-') ||
+    !parts[2].endsWith('.md')
+  ) {
+    throw new Error('Invalid consolidation file path')
+  }
+  return resolved
+}
+
+/**
+ * Create a consolidation file. `wx` makes the write append-only in practice:
+ * an existing pass file is never edited by a later pass, so deleting a file
+ * removes exactly one consolidation.
+ */
+export function writeConsolidatedMemoryFile(filePath: string, content: string): void {
+  const safe = resolveConsolidatedPath(filePath)
+  fs.mkdirSync(path.dirname(safe), { recursive: true })
+  fs.writeFileSync(safe, content, { encoding: 'utf-8', flag: 'wx' })
+  invalidateMemoryCache(safe)
+  log.info('writeConsolidatedMemoryFile:', safe)
+}
+
+export function deleteConsolidatedMemoryFile(filePath: string): void {
+  const safe = resolveConsolidatedPath(filePath)
+  if (fs.existsSync(safe)) fs.unlinkSync(safe)
+  invalidateMemoryCache(safe)
+  log.info('deleteConsolidatedMemoryFile:', safe)
+}

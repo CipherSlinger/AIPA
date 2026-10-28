@@ -34,7 +34,11 @@ export interface AutomationJob {
   lastRunAt: number | null
   lastStatus: AutomationRunStatus | null
   lastError: string | null
-  /** Codex thread id of the run's transcript, so the result can be opened. */
+  /**
+   * Openable id of the run's transcript: the Codex thread id, or the Claude
+   * JSONL session id on the legacy engine. Null when the engine reported none,
+   * never a fabricated/internal bridge id.
+   */
   lastSessionId: string | null
   /** True when the last run fired after its scheduled minute (app was closed). */
   lastRunLate: boolean

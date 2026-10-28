@@ -8,3 +8,4 @@ type: project
 
 - [Clawd IPC channels](project_clawd_ipc.md) — clawd:launch, clawd:isRunning IPC channels + clawdEnabled pref (Iteration 615)
 - [Auxiliary engine routing](project_auxiliary_engine_routing.md) — how hidden prompts pick Codex / active provider / legacy CLI, and what must stay Claude-only
+- [Automation engine + attention](project_automation_engine_attention.md) — automations reuse the auxiliary engine resolver; pet replaces the scheduler notification (raiseAttention returns a boolean)

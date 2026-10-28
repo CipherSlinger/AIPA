@@ -264,13 +264,20 @@ export function EmptyOrgState({ onPickPreset }: EmptyOrgStateProps) {
           {t('dept.presets.emptyHint')}
         </div>
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', maxWidth: 620 }}>
+      {/* Five templates, laid out three-up so the second row is a centred pair
+          rather than a single orphan. A fixed flex basis (not auto sizing)
+          keeps every chip the same width and the rows aligned. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', alignItems: 'stretch', width: '100%', maxWidth: 620 }}>
         {COMPANY_TEMPLATES.map(p => (
           <button
             key={p.id}
             onClick={() => onPickPreset(p.id)}
             style={{
-              padding: '7px 14px', borderRadius: 9, cursor: 'pointer',
+              flex: '0 0 calc((100% - 16px) / 3)',
+              boxSizing: 'border-box',
+              minHeight: 34,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '7px 14px', borderRadius: 9, cursor: 'pointer', textAlign: 'center', lineHeight: 1.25,
               border: '1px solid rgba(99,102,241,0.28)', background: 'rgba(99,102,241,0.07)',
               color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600,
             }}
