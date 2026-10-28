@@ -204,7 +204,10 @@ let askHistoryInFlight = false
 let askHistoryAbort: AbortController | null = null
 let askHistoryGeneration = 0
 
-export function registerAllHandlers(win: BrowserWindow): void {
+export function registerAllHandlers(
+  win: BrowserWindow,
+  options: { onAutomationsChanged?: () => void } = {},
+): void {
   liveWindow = win
   if (handlersRegistered) {
     log.info('IPC handlers already registered, updating window reference only')
@@ -217,6 +220,13 @@ export function registerAllHandlers(win: BrowserWindow): void {
   const send = (channel: string, ...args: unknown[]) => {
     const target = liveWindow
     if (target && !target.isDestroyed()) target.webContents.send(channel, ...args)
+    // The scheduler has a single "something changed" signal, and the menus need
+    // it too: they exist while the window is hidden in the tray, where the
+    // renderer (and this broadcast) is not what the user is looking at. A
+    // listener that throws must not break the renderer notification above.
+    if (channel === 'automation:changed') {
+      try { options.onAutomationsChanged?.() } catch { /* menu refresh is best-effort */ }
+    }
   }
 
   try {

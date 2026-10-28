@@ -21,6 +21,7 @@ import { nextFireTime, parseCron } from '../utils/cron'
 import { createLogger } from '../utils/logger'
 import { getAllowedFsRoots, safePath } from '../utils/validate'
 import { readAutomationJobs, writeAutomationJobs } from './job-store'
+import { AUTOMATION_RETRY_POLICY, isPendingRetryExpired, nextRetryAfterFailure } from './retry-policy'
 import { appendRunRecord, countFailureStreak, createSkipRecord, MAX_RUN_ERROR_CHARS } from './run-history'
 import { addToLifetimeTotals } from './run-usage'
 import {
@@ -62,6 +63,12 @@ export const AUTOMATION_LIMITS: AutomationLimits = {
   maxRunsPerHour: 12,
   maxConcurrentRuns: 2,
   maxJobs: 50,
+  // The retry numbers have one home (`AUTOMATION_RETRY_POLICY`); this is the
+  // read-only copy the UI uses for its copy, not a second policy.
+  retry: {
+    maxRetries: AUTOMATION_RETRY_POLICY.maxRetries,
+    delaysMinutes: AUTOMATION_RETRY_POLICY.delaysMs.map(ms => ms / 60_000),
+  },
 }
 
 interface SchedulerContext {
@@ -155,6 +162,15 @@ function validatePersonaId(value: unknown): string | undefined {
  * malformed value can never accidentally silence a failure or a success.
  */
 function validateQuietOnSuccess(value: unknown): boolean | undefined {
+  return value === true ? true : undefined
+}
+
+/**
+ * The opt-in retry flag. Like quiet mode, only a real boolean true turns it on;
+ * anything else is off, which is the behaviour every job had before retries
+ * existed and the safe default for a setting that spends money.
+ */
+function validateRetryOnFailure(value: unknown): boolean | undefined {
   return value === true ? true : undefined
 }
 
@@ -310,10 +326,17 @@ function resolveModel(): string | undefined {
   return typeof model === 'string' && model.trim() ? model.trim() : undefined
 }
 
-async function startRun(job: AutomationJob, opts: { manual: boolean; late: boolean }): Promise<void> {
+async function startRun(
+  job: AutomationJob,
+  opts: { manual: boolean; late: boolean; retryAttempt?: number },
+): Promise<void> {
   if (!ctx || running.has(job.id)) return
   const now = Date.now()
   const locale = resolveUiLanguage()
+  // A manual run is the user spending now, and an ordinary occurrence is a
+  // fresh chance; either supersedes a retry that was waiting for this moment.
+  // A retry start has already had its pending record cleared by the tick.
+  if (opts.manual || opts.retryAttempt === undefined) job.pendingRetry = undefined
 
   const prompts = resolveActionPrompts(job.action, locale)
   if (prompts === null) {
@@ -321,6 +344,7 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
     // the row say why instead of failing every interval.
     job.enabled = false
     job.nextRunAt = null
+    job.pendingRetry = undefined
     job.lastRunAt = now
     job.lastStatus = 'error'
     job.lastError = 'workflow_missing'
@@ -339,6 +363,7 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
       sessionId: null,
       error: 'workflow_missing',
       late: false,
+      ...(opts.retryAttempt !== undefined ? { retry: opts.retryAttempt } : {}),
     })
     log.warn(`Automation "${job.name}" disabled — its workflow no longer exists`)
     persistAndBroadcast()
@@ -349,6 +374,9 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
     job.lastStatus = 'error'
     job.lastError = 'nothing_to_run'
     job.lastUsage = undefined
+    // Nothing to send means retrying would fail the same way; resolve the wait
+    // instead of spending another attempt on it.
+    job.pendingRetry = undefined
     job.history = appendRunRecord(job.history, {
       startedAt: now,
       status: 'error',
@@ -356,8 +384,12 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
       sessionId: null,
       error: 'nothing_to_run',
       late: false,
+      ...(opts.retryAttempt !== undefined ? { retry: opts.retryAttempt } : {}),
     })
-    if (!opts.manual) job.nextRunAt = nextRunAfter(job.trigger, now)
+    // A retry leaves the regular schedule alone; only an occurrence advances it.
+    if (!opts.manual && opts.retryAttempt === undefined) {
+      job.nextRunAt = nextRunAfter(job.trigger, now)
+    }
     persistAndBroadcast()
     return
   }
@@ -371,20 +403,30 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
   // allowed and the row says the limit could not be checked (see spend-guard).
   const spend = checkSpendLimit(job, now, opts.manual ? 'manual' : 'scheduled')
   if (spend.kind === 'blocked') {
-    const skippedAt = job.nextRunAt ?? now
+    const isRetry = opts.retryAttempt !== undefined
+    // A retry is due now, not at the regular occurrence still on the calendar.
+    const skippedAt = isRetry ? now : (job.nextRunAt ?? now)
     job.lastRunAt = skippedAt
     job.lastStatus = 'skipped'
     job.lastError = 'budget_exceeded'
     job.lastRunLate = false
     job.lastUsage = undefined
     // A skip is not an attempt: no spend, no session, and the failure streak
-    // neither grows nor resets. `createSkipRecord` enforces that shape.
-    job.history = appendRunRecord(job.history, createSkipRecord(skippedAt, 'budget_exceeded'))
-    job.nextRunAt = nextRunAfter(job.trigger, now)
+    // neither grows nor resets. `createSkipRecord` enforces that shape. The
+    // retry marker keeps the refused wait visible in the history.
+    job.history = appendRunRecord(
+      job.history,
+      createSkipRecord(skippedAt, 'budget_exceeded', opts.retryAttempt),
+    )
+    // The rail resolved the retry: it must not stay pending and retry again a
+    // tick later, which would be the loop the limit exists to stop.
+    job.pendingRetry = undefined
+    // A retry must not move the regular schedule; only an occurrence does.
+    if (!isRetry) job.nextRunAt = nextRunAfter(job.trigger, now)
     persistAndBroadcast()
     log.warn(
-      `Automation "${job.name}" skipped — reported spend in the last 24 h is at its `
-      + `${job.dailyCostLimitUsd} USD limit`,
+      `Automation "${job.name}" ${isRetry ? `retry ${opts.retryAttempt} ` : ''}skipped — reported `
+      + `spend in the last 24 h is at its ${job.dailyCostLimitUsd} USD limit`,
     )
     return
   }
@@ -413,7 +455,11 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
   job.recentRuns = [...job.recentRuns, startedAt]
     .filter(t => now - t < 3_600_000)
     .slice(-MAX_REPORTED_RUNS)
-  if (!opts.manual) job.nextRunAt = nextRunAfter(job.trigger, now)
+  // A retry is an extra attempt for the same occurrence: advancing the regular
+  // schedule here would push the job's own cadence every time it retried.
+  if (!opts.manual && opts.retryAttempt === undefined) {
+    job.nextRunAt = nextRunAfter(job.trigger, now)
+  }
   persistAndBroadcast()
 
   let outcome: AutomationRunOutcome
@@ -442,7 +488,8 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
   }
 
   running.delete(job.id)
-  const durationMs = Date.now() - startedAt
+  const finishedAt = Date.now()
+  const durationMs = finishedAt - startedAt
   const sessionId = outcome.sessionId ?? null
   const error = outcome.ok ? null : clip(outcome.error || 'run_failed', MAX_RUN_ERROR_CHARS)
   job.lastRunAt = startedAt
@@ -462,8 +509,22 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
     sessionId,
     error,
     late: opts.late,
+    ...(opts.retryAttempt !== undefined ? { retry: opts.retryAttempt } : {}),
     ...(outcome.usage ? { usage: outcome.usage } : {}),
   })
+  // Success ends the occurrence; a failure under the policy schedules the next
+  // bounded attempt. `nextRetryAfterFailure` returns nothing for a default-off
+  // job, a manual run, an exhausted budget, or when the regular occurrence
+  // would arrive first. A failed retry is never rewritten as a success here.
+  job.pendingRetry = outcome.ok
+    ? undefined
+    : nextRetryAfterFailure({
+        retryOnFailure: job.retryOnFailure === true,
+        manual: opts.manual,
+        attempt: opts.retryAttempt ?? 0,
+        now: finishedAt,
+        nextRunAt: job.nextRunAt,
+      })
   const totals = addToLifetimeTotals(job, outcome.usage)
   job.totalTokens = totals.totalTokens
   job.totalCostUsd = totals.totalCostUsd
@@ -543,10 +604,58 @@ function tick(): void {
     if (!job.enabled) continue
     if (running.has(job.id)) continue
 
+    // A pending retry is a bounded wait owned by this one ticker. Expire it
+    // first: once the next regular occurrence has arrived, running both would
+    // be a burst, and a retry left over from days ago must never fire now.
+    if (job.pendingRetry && isPendingRetryExpired(job.pendingRetry, now)) {
+      log.info(
+        `Automation "${job.name}" dropped stale retry ${job.pendingRetry.attempt} — `
+        + 'the next scheduled occurrence has arrived',
+      )
+      job.pendingRetry = undefined
+      dirty = true
+    }
+
+    if (job.pendingRetry && now >= job.pendingRetry.dueAt) {
+      // Global slot limit: leave the retry due rather than skipping it, exactly
+      // like a due occurrence, so it runs when a slot frees.
+      if (running.size >= AUTOMATION_LIMITS.maxConcurrentRuns) break
+      const retry = job.pendingRetry
+      if (!hasHourlyCapacity(job, now)) {
+        // A retry is a scheduled run, so the runaway guard applies. Resolve the
+        // wait with a skip record: leaving it pending would re-check every tick
+        // and never terminate.
+        job.pendingRetry = undefined
+        job.lastRunAt = retry.dueAt
+        job.lastStatus = 'skipped'
+        job.lastError = 'hourly_limit'
+        job.lastRunLate = false
+        job.lastUsage = undefined
+        job.history = appendRunRecord(
+          job.history,
+          createSkipRecord(retry.dueAt, 'hourly_limit', retry.attempt),
+        )
+        dirty = true
+        log.warn(
+          `Automation "${job.name}" retry ${retry.attempt} skipped — more than `
+          + `${AUTOMATION_LIMITS.maxRunsPerHour} runs this hour`,
+        )
+        continue
+      }
+      // Cleared before the run so a crash cannot replay the same attempt; a
+      // failed outcome schedules its successor once the result is known.
+      job.pendingRetry = undefined
+      // `late` stays false: it describes a missed cron occurrence, while the
+      // record's `retry` number already says why this run happened off-cadence.
+      void startRun(job, { manual: false, late: false, retryAttempt: retry.attempt })
+      continue
+    }
+
     if (job.nextRunAt === null) {
       const next = nextRunAfter(job.trigger, now)
       if (next === null) {
         job.enabled = false
+        job.pendingRetry = undefined
         job.lastStatus = 'error'
         job.lastError = 'cron_invalid'
         dirty = true
@@ -665,6 +774,7 @@ export function createAutomationJob(input: AutomationInput): AutomationMutationR
     const action = validateAction(input?.action)
     const personaId = validatePersonaId(input?.personaId)
     const quietOnSuccess = validateQuietOnSuccess(input?.quietOnSuccess)
+    const retryOnFailure = validateRetryOnFailure(input?.retryOnFailure)
     const dailyCostLimitUsd = validateDailyCostLimit(input?.dailyCostLimitUsd)
     const enabled = input?.enabled !== false
     const job: AutomationJob = {
@@ -675,6 +785,7 @@ export function createAutomationJob(input: AutomationInput): AutomationMutationR
       action,
       ...(personaId ? { personaId } : {}),
       ...(quietOnSuccess ? { quietOnSuccess } : {}),
+      ...(retryOnFailure ? { retryOnFailure } : {}),
       ...(dailyCostLimitUsd !== undefined ? { dailyCostLimitUsd } : {}),
       createdAt: now,
       updatedAt: now,
@@ -707,10 +818,12 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     const action = validateAction(input?.action)
     const personaId = validatePersonaId(input?.personaId)
     const quietOnSuccess = validateQuietOnSuccess(input?.quietOnSuccess)
+    const retryOnFailure = validateRetryOnFailure(input?.retryOnFailure)
     const dailyCostLimitUsd = validateDailyCostLimit(input?.dailyCostLimitUsd)
     const enabled = input?.enabled !== false
 
     const previousTrigger = JSON.stringify(job.trigger)
+    const triggerChanged = JSON.stringify(trigger) !== previousTrigger
     const wasEnabled = job.enabled
     job.name = name
     job.trigger = trigger
@@ -722,15 +835,21 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     // default is "announce", and an absent flag keeps a legacy job reading
     // exactly as it did before this setting existed.
     job.quietOnSuccess = quietOnSuccess
+    // Same rule for retries: absent means "never retry", which spends nothing.
+    job.retryOnFailure = retryOnFailure
     // Same rule for the spend rail: an empty field removes the limit rather than
     // storing 0, which would block every scheduled run forever.
     job.dailyCostLimitUsd = dailyCostLimitUsd
     job.enabled = enabled
     job.updatedAt = Date.now()
+    // A pending retry belongs to the old schedule/policy. A schedule change,
+    // disabling the job, or turning retries off must not let it fire under the
+    // new settings.
+    if (!enabled || triggerChanged || !retryOnFailure) job.pendingRetry = undefined
     // Keep the existing schedule unless it is genuinely invalidated — renaming
     // a job should not push its next run a full interval into the future.
     if (!enabled) job.nextRunAt = null
-    else if (JSON.stringify(trigger) !== previousTrigger || !wasEnabled) {
+    else if (triggerChanged || !wasEnabled) {
       job.nextRunAt = nextRunAfter(trigger, job.updatedAt)
     }
     persistAndBroadcast()
@@ -756,6 +875,9 @@ export function setAutomationEnabled(id: string, enabled: boolean): AutomationMu
   job.updatedAt = Date.now()
   // Re-enabling starts a fresh schedule; an old nextRunAt would fire at once.
   job.nextRunAt = job.enabled ? nextRunAfter(job.trigger, job.updatedAt) : null
+  // A job that is off must not keep a retry waiting; turning it back on is a
+  // fresh start, not a resumption of the old failure.
+  if (!job.enabled) job.pendingRetry = undefined
   persistAndBroadcast()
   return { ok: true, job: toView(job) }
 }

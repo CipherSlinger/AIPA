@@ -22,6 +22,7 @@
  * Pure and Electron-free so `.scratch/wave15-run-history-harness` can exercise
  * append, eviction, restore and streak rules without a store or a window.
  */
+import { AUTOMATION_RETRY_POLICY } from './retry-policy'
 import { normalizeRunUsage } from './run-usage'
 import type { AutomationRunRecord, AutomationRunRecordStatus } from './types'
 
@@ -63,13 +64,29 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
     : null
   const errorText = typeof record.error === 'string' ? record.error.trim() : ''
   const error = errorText ? errorText.slice(0, MAX_RUN_ERROR_CHARS) : null
+  // Only an attempt the policy could actually have made survives restore. A
+  // success may carry it: a retry that works is still marked as a retry.
+  const retry = typeof record.retry === 'number' &&
+    Number.isInteger(record.retry) &&
+    record.retry >= 1 &&
+    record.retry <= AUTOMATION_RETRY_POLICY.maxRetries
+    ? record.retry
+    : undefined
 
   // Invariants the scheduler relies on, enforced again on restore so a corrupt
   // row cannot claim spend or a transcript for a run that never happened:
   //  - a skip is not an attempt: no duration, no session, no spend, not late;
   //  - a success has no error.
   if (status === 'skipped') {
-    return { startedAt, status, durationMs: null, sessionId: null, error, late: false }
+    return {
+      startedAt,
+      status,
+      durationMs: null,
+      sessionId: null,
+      error,
+      late: false,
+      ...(retry !== undefined ? { retry } : {}),
+    }
   }
   if (status === 'success') {
     const usage = normalizeRunUsage(record.usage)
@@ -80,6 +97,7 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
       sessionId,
       error: null,
       late: record.late === true,
+      ...(retry !== undefined ? { retry } : {}),
       ...(usage ? { usage } : {}),
     }
   }
@@ -91,6 +109,7 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
     sessionId,
     error,
     late: record.late === true,
+    ...(retry !== undefined ? { retry } : {}),
     ...(usage ? { usage } : {}),
   }
 }
@@ -114,8 +133,15 @@ export function normalizeRunHistory(value: unknown): AutomationRunRecord[] {
  * One constructor for every rail (the hourly runaway cap, the spend limit) so a
  * skip can never accidentally carry what only a real run earns: no duration, no
  * transcript, no spend, and never "late". `error` names the rail instead.
+ *
+ * `retry` marks a rail refusal of a pending retry, so the history can still
+ * tell that the wait ended in a skip rather than an attempt.
  */
-export function createSkipRecord(startedAt: number, error: string): AutomationRunRecord {
+export function createSkipRecord(
+  startedAt: number,
+  error: string,
+  retry?: number,
+): AutomationRunRecord {
   return {
     startedAt,
     status: 'skipped',
@@ -123,6 +149,7 @@ export function createSkipRecord(startedAt: number, error: string): AutomationRu
     sessionId: null,
     error: clipError(error),
     late: false,
+    ...(retry !== undefined ? { retry } : {}),
   }
 }
 
@@ -143,7 +170,8 @@ export function appendRunRecord(
  * "N failures in a row" for the settings row.
  *
  * A skip is not an attempt: the runaway guard fired before any work started,
- * so it neither adds to nor clears a failure streak. A success ends the streak.
+ * so it neither adds to nor clears a failure streak. A failed retry is an
+ * attempt like any other, so it grows the streak; a successful retry ends it.
  * Returns 0 when the history is empty or the latest attempt succeeded, which is
  * also what hides the clause on a job that is fine.
  */

@@ -260,6 +260,10 @@ export default function App() {
       window.electronAPI.onMenuEvent('openSettings', () => {
         useUiStore.getState().openSettingsModal()
       }),
+      // Menu / tray: Automations > Manage Automations -- land on that tab
+      window.electronAPI.onMenuEvent('openAutomations', () => {
+        useUiStore.getState().openSettingsAt('automations')
+      }),
       // Menu: Help > Keyboard Shortcuts (Ctrl+/)
       window.electronAPI.onMenuEvent('keyboardShortcuts', () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' }))

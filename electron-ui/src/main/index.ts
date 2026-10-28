@@ -8,6 +8,9 @@ import { listNavPlugins } from './plugins/nav-plugin-manager'
 import { decodePluginPath, pluginHost } from './plugins/plugin-url'
 import { endAllPluginEdits } from './plugins/plugin-edit-session'
 import { registerAllHandlers } from './ipc/index'
+import { buildAutomationsSubmenu } from './automation-menu'
+import { listAutomationJobs, runAutomationNow } from './automation/scheduler'
+import type { AutomationJobView } from './automation/types'
 import { ptyManager } from './pty/pty-manager'
 import { listSessions } from './sessions/session-reader'
 import { saveNow as saveSessionIndexNow } from './sessions/session-index-cache'
@@ -20,6 +23,18 @@ const isDev = process.env.NODE_ENV === 'development'
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let isQuitting = false
+
+/**
+ * The session rows last handed to `rebuildAppMenu`. Automation changes force a
+ * rebuild, and the session list is unrelated to them (and expensive to read),
+ * so reuse the rows already computed instead of rescanning every transcript.
+ */
+let appMenuRecentSessions: Electron.MenuItemConstructorOptions[] | null = null
+let appMenuBuilt = false
+/** Same rows for the tray, reused when only the automations changed. */
+let trayRecentSessions: Electron.MenuItemConstructorOptions[] | null = null
+/** Coalesces a burst of `automation:changed` broadcasts into one menu rebuild. */
+let automationMenuRefreshQueued = false
 
 // Expose quit state for embedded clawd (avoids passing closures through factory)
 Object.defineProperty(global, '__aipaIsQuitting', {
@@ -134,7 +149,7 @@ function createWindow(): void {
   mainWindow.on('unmaximize', saveBounds)
 
   // Register IPC handlers BEFORE loading the renderer to eliminate race conditions.
-  registerAllHandlers(mainWindow)
+  registerAllHandlers(mainWindow, { onAutomationsChanged: scheduleAutomationMenuRefresh })
 
   // Load renderer first — defer heavy clawd init until after renderer is ready.
   // Calling initClawdIntegration synchronously here would block the event loop
@@ -318,7 +333,81 @@ function createAppMenu(): void {
   rebuildAppMenu(recentSessionItems)
 }
 
+/**
+ * Menu labels are inline bilingual (`isZh`), matching the tray; the main
+ * process does not load the renderer's i18n catalogs.
+ */
+function isZhMenu(): boolean {
+  const prefLang = (getPref as any)('language')
+  return prefLang === 'zh-CN' || (prefLang !== 'en' && app.getLocale().toLowerCase().startsWith('zh'))
+}
+
+function showMainWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+function openAutomationsSettings(): void {
+  showMainWindow()
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  mainWindow.webContents.send('menu:openAutomations')
+}
+
+function runAutomationNowFromMenu(id: string): void {
+  const result = runAutomationNow(id)
+  if (result.ok) return
+  // The menu snapshot can be stale: the job may have started or been deleted
+  // between the last rebuild and the click. A native menu has nowhere to show
+  // an error, so surface the refusal by bringing the window forward instead of
+  // swallowing it.
+  log.warn(`Run-now refused for automation ${id}: ${result.error}`)
+  showMainWindow()
+}
+
+/** The Automations row, with the job list read fresh at rebuild time. */
+function automationsMenuItem(isZh: boolean): Electron.MenuItemConstructorOptions {
+  let jobs: AutomationJobView[] = []
+  try {
+    jobs = listAutomationJobs().jobs
+  } catch (err) {
+    // A broken automation store must not take the whole menu down.
+    log.warn('Could not list automations for the menu:', String(err))
+  }
+  return {
+    label: isZh ? '定时任务' : 'Automations',
+    submenu: buildAutomationsSubmenu(jobs, {
+      isZh,
+      runNow: runAutomationNowFromMenu,
+      openSettings: openAutomationsSettings,
+    }),
+  }
+}
+
+/**
+ * The scheduler broadcasts `automation:changed` for create/edit/delete,
+ * enable/disable and the start/end of a run. That is the only refresh signal:
+ * rebuilding on every tick would burn main-process time for a menu that cannot
+ * have changed. Bursts (a run start and finish, or one workflow deletion
+ * disabling several jobs) coalesce into a single rebuild.
+ */
+function scheduleAutomationMenuRefresh(): void {
+  if (!appMenuBuilt && !tray) return
+  if (automationMenuRefreshQueued) return
+  automationMenuRefreshQueued = true
+  setImmediate(() => {
+    automationMenuRefreshQueued = false
+    if (isQuitting) return
+    if (appMenuBuilt && appMenuRecentSessions) rebuildAppMenu(appMenuRecentSessions)
+    // Sessions did not change, and rescanning them synchronously here would
+    // turn a background run's start/finish into main-process work.
+    if (tray) rebuildTrayMenu({ reuseSessionCache: true })
+  })
+}
+
 function rebuildAppMenu(recentSessionItems: Electron.MenuItemConstructorOptions[]): void {
+  const isZh = isZhMenu()
   const template = Menu.buildFromTemplate([
     {
       label: 'File',
@@ -329,6 +418,8 @@ function rebuildAppMenu(recentSessionItems: Electron.MenuItemConstructorOptions[
           label: 'Recent Sessions',
           submenu: recentSessionItems,
         },
+        { type: 'separator' },
+        automationsMenuItem(isZh),
         { type: 'separator' },
         { label: 'Export Conversation', accelerator: 'CmdOrCtrl+Shift+E', click: () => mainWindow?.webContents.send('menu:exportConversation') },
         { type: 'separator' },
@@ -384,6 +475,8 @@ function rebuildAppMenu(recentSessionItems: Electron.MenuItemConstructorOptions[
     },
   ])
   Menu.setApplicationMenu(template)
+  appMenuRecentSessions = recentSessionItems
+  appMenuBuilt = true
 }
 
 function createTray(): void {
@@ -433,33 +526,44 @@ function updateTrayTooltip(): void {
   }
 }
 
-/** Rebuild the tray context menu with current state (recent sessions, theme) */
-function rebuildTrayMenu(): void {
+/**
+ * Rebuild the tray context menu with current state (recent sessions, theme).
+ *
+ * `reuseSessionCache` is for rebuilds caused by something other than the
+ * session list (automations): re-reading every transcript synchronously would
+ * block the main process for a menu section that cannot have changed.
+ */
+function rebuildTrayMenu(options: { reuseSessionCache?: boolean } = {}): void {
   if (!tray) return
 
   // Detect current locale
-  const prefLang = (getPref as any)('language')
-  const isZh = prefLang === 'zh-CN' || (prefLang !== 'en' && app.getLocale().toLowerCase().startsWith('zh'))
+  const isZh = isZhMenu()
 
   // Fetch recent sessions (last 5, sorted by timestamp desc)
-  let recentSessionItems: Electron.MenuItemConstructorOptions[] = []
-  try {
-    const sessions = listSessions()
-    const sorted = sessions.sort((a, b) => b.timestamp - a.timestamp).slice(0, 5)
-    if (sorted.length > 0) {
-      recentSessionItems = sorted.map(s => ({
-        label: (s.title || s.lastPrompt || 'Untitled').slice(0, 50),
-        click: () => {
-          mainWindow?.show()
-          mainWindow?.focus()
-          mainWindow?.webContents.send('menu:openSession', s.sessionId)
-        },
-      }))
-    } else {
+  let recentSessionItems: Electron.MenuItemConstructorOptions[]
+  if (options.reuseSessionCache && trayRecentSessions) {
+    recentSessionItems = trayRecentSessions
+  } else {
+    recentSessionItems = []
+    try {
+      const sessions = listSessions()
+      const sorted = sessions.sort((a, b) => b.timestamp - a.timestamp).slice(0, 5)
+      if (sorted.length > 0) {
+        recentSessionItems = sorted.map(s => ({
+          label: (s.title || s.lastPrompt || 'Untitled').slice(0, 50),
+          click: () => {
+            mainWindow?.show()
+            mainWindow?.focus()
+            mainWindow?.webContents.send('menu:openSession', s.sessionId)
+          },
+        }))
+      } else {
+        recentSessionItems = [{ label: isZh ? '暂无最近会话' : 'No recent sessions', enabled: false }]
+      }
+    } catch {
       recentSessionItems = [{ label: isZh ? '暂无最近会话' : 'No recent sessions', enabled: false }]
     }
-  } catch {
-    recentSessionItems = [{ label: isZh ? '暂无最近会话' : 'No recent sessions', enabled: false }]
+    trayRecentSessions = recentSessionItems
   }
 
   // Detect current theme
@@ -491,6 +595,9 @@ function rebuildTrayMenu(): void {
         mainWindow?.webContents.send('menu:newSession')
       },
     },
+    // Automations sit next to New Chat because both are ways to start work;
+    // everything after this point is navigation or app-level settings.
+    automationsMenuItem(isZh),
     {
       label: isZh ? '询问剪贴板内容' : 'Ask about Clipboard',
       click: () => {
@@ -535,7 +642,9 @@ function rebuildTrayMenu(): void {
     },
   ])
   tray.setContextMenu(contextMenu)
-  updateTrayTooltip()
+  // The tooltip carries the session count, so it needs the same scan the
+  // cached rebuild just skipped.
+  if (!options.reuseSessionCache) updateTrayTooltip()
 }
 
 function registerGlobalHotkey(): void {

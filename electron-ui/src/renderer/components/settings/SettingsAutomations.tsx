@@ -7,7 +7,7 @@
 // `automation:changed` instead of guessing what the scheduler did.
 
 import { useCallback, useEffect, useState } from 'react'
-import { AlarmClock, AlertTriangle, Clock, History, Pencil, Play, Plus, Trash2 } from 'lucide-react'
+import { AlarmClock, AlertTriangle, Clock, History, Pencil, Play, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { usePrefsStore } from '../../store'
 import SettingsGroup from './SettingsGroup'
@@ -453,6 +453,25 @@ export default function SettingsAutomations() {
                       )}
                     </div>
 
+                    {job.pendingRetry && (
+                      // The row must say a retry is already waiting, not just
+                      // that the last run failed; the time is the promise the
+                      // scheduler will keep on its next tick.
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        fontSize: 11, color: WARNING, marginTop: 3, lineHeight: 1.45,
+                      }}>
+                        <RotateCcw size={11} style={{ flexShrink: 0 }} />
+                        <span>
+                          {t('automation.retry.pending', {
+                            attempt: job.pendingRetry.attempt,
+                            count: limits?.retry?.maxRetries ?? 2,
+                            time: timeText(job.pendingRetry.dueAt),
+                          })}
+                        </span>
+                      </div>
+                    )}
+
                     {spendLimit && (
                       // The limit's own line, separate from the last run's spend:
                       // it answers "how close am I to the rail", not "what did
@@ -531,6 +550,13 @@ export default function SettingsAutomations() {
                                 <span style={{ color: state.color }} title={detail || undefined}>
                                   {state.text}{detail ? `: ${clipText(detail)}` : ''}
                                 </span>
+                                {record.retry !== undefined && (
+                                  // Without this, a night with three attempts looks
+                                  // like three separate scheduled runs.
+                                  <span style={{ color: 'var(--accent-text)' }}>
+                                    {t('automation.retry.badge', { attempt: record.retry })}
+                                  </span>
+                                )}
                                 {duration && <span>{duration}</span>}
                                 {tokens > 0 && <span>{t('automation.usage.tokens', { count: formatTokens(tokens) })}</span>}
                                 {cost && <span>{cost}</span>}

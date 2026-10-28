@@ -2987,7 +2987,8 @@
       "expert": "专家",
       "spendLimit": "花费上限（美元）",
       "spendLimitPlaceholder": "不限",
-      "quietOnSuccess": "成功时静默"
+      "quietOnSuccess": "成功时静默",
+      "retryOnFailure": "失败时自动重试"
     },
     "action": {
       "workflow": "运行工作流",
@@ -3084,6 +3085,13 @@
     "quietOnSuccess": {
       "hint": "运行成功时不会通知你。失败一定会通知——这个开关无法让失败静音。",
       "row": "成功时静默"
+    },
+    "retryOnFailure": {
+      "hint": "定时运行失败后最多重试 {{count}} 次，分别等待 {{first}} 分钟和 {{second}} 分钟。每次重试都会重新执行任务并再次产生花费。「立即运行」不会重试；手动运行会取消等待中的重试。"
+    },
+    "retry": {
+      "pending": "待重试 {{attempt}} / {{count}} · {{time}}",
+      "badge": "重试 {{attempt}}"
     }
   },
   "speculation": {

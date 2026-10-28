@@ -378,8 +378,21 @@ export interface AutomationRunRecordData {
   error: string | null
   /** True when this run fired after its scheduled minute (app was closed). */
   late: boolean
+  /**
+   * 1-based retry attempt, absent for an ordinary scheduled run. A successful
+   * retry still carries it, so the history can tell retries apart.
+   */
+  retry?: number
   /** What this run spent, when its engine reported usage; absent otherwise. */
   usage?: AutomationRunUsageData
+}
+
+/** A retry of a failed occurrence, waiting for its due time. Mirrors main. */
+export interface AutomationPendingRetryData {
+  dueAt: number
+  attempt: number
+  /** The next regular occurrence; the retry is stale at or after it. */
+  expiresAt: number
 }
 
 /**
@@ -413,6 +426,10 @@ export interface AutomationJobData {
    * announced and cannot be silenced by this flag.
    */
   quietOnSuccess?: boolean
+  /** Opt-in retry of failed scheduled runs; absent/false never retries. */
+  retryOnFailure?: boolean
+  /** The retry currently waiting for its due time, if any. */
+  pendingRetry?: AutomationPendingRetryData
   /** Scheduled-run spend limit in USD over a rolling 24 h; absent means none. */
   dailyCostLimitUsd?: number
   createdAt: number
@@ -449,6 +466,11 @@ export interface AutomationLimitsData {
   maxRunsPerHour: number
   maxConcurrentRuns: number
   maxJobs: number
+  /** Retry policy exposed for the dialog/row copy; mirrors main's constants. */
+  retry: {
+    maxRetries: number
+    delaysMinutes: number[]
+  }
 }
 
 export interface AutomationInputData {
@@ -460,6 +482,8 @@ export interface AutomationInputData {
   personaId?: string
   /** Omitting this is the default (announce success); failures stay loud. */
   quietOnSuccess?: boolean
+  /** Omitted/false never retries; a retry spends again and is opt-in only. */
+  retryOnFailure?: boolean
   /** Omitted clears the scheduled-run spend limit; 0 is not a limit. */
   dailyCostLimitUsd?: number
 }

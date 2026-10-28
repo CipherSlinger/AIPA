@@ -11,6 +11,7 @@ import { app } from 'electron'
 import * as fs from 'fs'
 import * as path from 'path'
 import { createLogger } from '../utils/logger'
+import { normalizePendingRetry } from './retry-policy'
 import { normalizeRunHistory } from './run-history'
 import { normalizeCost, normalizeRunUsage, normalizeTokenCount } from './run-usage'
 import { normalizeDailyCostLimit } from './spend-guard'
@@ -59,6 +60,8 @@ function normalizeJob(raw: unknown): AutomationJob | null {
   const status = typeof job.lastStatus === 'string' && STATUSES.includes(job.lastStatus as AutomationRunStatus)
     ? job.lastStatus as AutomationRunStatus
     : null
+  const enabled = job.enabled !== false
+  const retryOnFailure = job.retryOnFailure === true
   const recentRuns = Array.isArray(job.recentRuns)
     ? job.recentRuns.filter((t): t is number => typeof t === 'number' && Number.isFinite(t)).slice(-24)
     : []
@@ -66,7 +69,7 @@ function normalizeJob(raw: unknown): AutomationJob | null {
   return {
     id: job.id,
     name: job.name.trim(),
-    enabled: job.enabled !== false,
+    enabled,
     trigger: job.trigger,
     action: job.action,
     // Absent and '' both mean "follow the workflow"; only a real id is kept,
@@ -78,6 +81,15 @@ function normalizeJob(raw: unknown): AutomationJob | null {
     // (announce success), so a job saved before this field existed keeps
     // behaving exactly as it did.
     quietOnSuccess: job.quietOnSuccess === true ? true : undefined,
+    // Default off: only a genuine opt-in is restored, so a job saved before
+    // this setting existed can never start spending on retries after an update.
+    retryOnFailure: retryOnFailure ? true : undefined,
+    // A disabled job or a job that no longer opted in must not carry a retry
+    // into the next launch. A valid one is restored even when its due time has
+    // passed (the first tick either runs it or expires it).
+    pendingRetry: enabled && retryOnFailure
+      ? normalizePendingRetry(job.pendingRetry)
+      : undefined,
     createdAt: numberOrNull(job.createdAt) ?? Date.now(),
     updatedAt: numberOrNull(job.updatedAt) ?? Date.now(),
     nextRunAt: numberOrNull(job.nextRunAt),

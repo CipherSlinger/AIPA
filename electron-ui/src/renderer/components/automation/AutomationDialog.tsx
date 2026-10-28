@@ -108,6 +108,8 @@ export default function AutomationDialog({
   )
   // Off unless the job opted in: existing jobs keep announcing their successes.
   const [quietOnSuccess, setQuietOnSuccess] = useState(job?.quietOnSuccess === true)
+  // Off by default: a retry spends again, so it must be a deliberate choice.
+  const [retryOnFailure, setRetryOnFailure] = useState(job?.retryOnFailure === true)
   const [scheduleKind, setScheduleKind] = useState<ScheduleKind>(() => {
     if (!job) return 'daily'
     if (job.trigger.kind === 'interval') return 'interval'
@@ -171,6 +173,9 @@ export default function AutomationDialog({
       // Omitting quiet mode when it is off is what turns it off on an edit;
       // absence is the default (announce success), never `false`.
       ...(quietOnSuccess ? { quietOnSuccess: true } : {}),
+      // Same for retries: omitting the flag on an edit clears it, and absent
+      // means "never retry" for every job that did not opt in.
+      ...(retryOnFailure ? { retryOnFailure: true } : {}),
       // Omitting a cleared limit is what removes it; sending 0 would block
       // every scheduled run.
       ...(spendLimitValue !== undefined ? { dailyCostLimitUsd: spendLimitValue } : {}),
@@ -344,6 +349,34 @@ export default function AutomationDialog({
               the user decides the number. */}
           <div style={{ fontSize: 11, color: SECONDARY, marginTop: 4, lineHeight: 1.5 }}>
             {t('automation.spend.limitHint')}
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          {/* Beside the spend limit because that is the cost of opting in: the
+              hint says plainly that each retry runs and spends again. */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+            <div style={{ paddingTop: 1 }}>
+              <Toggle
+                value={retryOnFailure}
+                onChange={setRetryOnFailure}
+                aria-label={t('automation.field.retryOnFailure')}
+              />
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                {t('automation.field.retryOnFailure')}
+              </div>
+              <div style={{ fontSize: 11, color: SECONDARY, marginTop: 2, lineHeight: 1.5 }}>
+                {/* The numbers come from the scheduler's policy payload. The
+                    fallbacks only cover the moment before the limits load. */}
+                {t('automation.retryOnFailure.hint', {
+                  count: limits?.retry?.maxRetries ?? 2,
+                  first: limits?.retry?.delaysMinutes?.[0] ?? 10,
+                  second: limits?.retry?.delaysMinutes?.[1] ?? 30,
+                })}
+              </div>
+            </div>
           </div>
         </div>
 

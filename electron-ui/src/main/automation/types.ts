@@ -48,8 +48,30 @@ export interface AutomationRunRecord {
   error: string | null
   /** True when this run fired after its scheduled minute (app was closed). */
   late: boolean
+  /**
+   * 1-based retry attempt this record belongs to, or absent for an ordinary
+   * scheduled occurrence. A success can carry it too: a retry that works is
+   * still a retry, and the history must be able to say so.
+   */
+  retry?: number
   /** What this run spent, when its engine reported usage; absent otherwise. */
   usage?: RunUsage
+}
+
+/**
+ * A retry of a failed scheduled occurrence, waiting for its due time.
+ *
+ * Persisted with the job so a restart does not lose it, and bounded by
+ * `expiresAt`: once the next regular occurrence has arrived, running the retry
+ * as well would be a burst, so the first tick drops it.
+ */
+export interface AutomationPendingRetry {
+  /** Epoch ms when the retry should start. */
+  dueAt: number
+  /** 1-based attempt number, capped by `AUTOMATION_RETRY_POLICY.maxRetries`. */
+  attempt: number
+  /** Epoch ms of the next regular occurrence; the retry is stale at or after it. */
+  expiresAt: number
 }
 
 export interface AutomationJob {
@@ -72,6 +94,17 @@ export interface AutomationJob {
    * itself is unaffected: its record, history and usage are still persisted.
    */
   quietOnSuccess?: boolean
+  /**
+   * Opt-in retry of failed unattended runs. Absent/false — the default for
+   * every existing and new job — never retries: a retry spends again and
+   * repeats the job's side effects, so it must be a deliberate choice.
+   */
+  retryOnFailure?: boolean
+  /**
+   * The retry currently waiting for its due time. Absent when none is pending;
+   * cleared by a success, a manual run, a schedule change, or a rail refusal.
+   */
+  pendingRetry?: AutomationPendingRetry
   createdAt: number
   updatedAt: number
   /** Epoch ms of the next scheduled occurrence; null only for a dead cron. */
@@ -170,6 +203,15 @@ export interface AutomationLimits {
   maxRunsPerHour: number
   maxConcurrentRuns: number
   maxJobs: number
+  /**
+   * The opt-in retry policy, exposed so the dialog and pending row can name
+   * the actual numbers instead of repeating them in translation copy.
+   */
+  retry: {
+    maxRetries: number
+    /** Wait before each retry, in minutes, in attempt order. */
+    delaysMinutes: number[]
+  }
 }
 
 /** What the IPC handlers hand to the scheduler after validation. */
@@ -188,6 +230,11 @@ export interface AutomationInput {
    * (announce success); the scheduler stores it only when true.
    */
   quietOnSuccess?: boolean
+  /**
+   * Opt-in retry of failed scheduled runs. Omitted/false is the default and
+   * stores no flag; manual runs are never retried regardless.
+   */
+  retryOnFailure?: boolean
   /**
    * Optional scheduled-run spend limit in USD. Omitted/null clears it; the
    * scheduler stores an absent value rather than `0`.

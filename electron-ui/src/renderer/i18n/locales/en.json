@@ -2987,7 +2987,8 @@
       "expert": "Expert",
       "spendLimit": "Spend limit (USD)",
       "spendLimitPlaceholder": "No limit",
-      "quietOnSuccess": "Quiet on success"
+      "quietOnSuccess": "Quiet on success",
+      "retryOnFailure": "Retry failed runs"
     },
     "action": {
       "workflow": "Run a workflow",
@@ -3084,6 +3085,13 @@
     "quietOnSuccess": {
       "hint": "A successful run won't notify you. Failures are always announced — this switch can't silence them.",
       "row": "quiet on success"
+    },
+    "retryOnFailure": {
+      "hint": "Retries a failed scheduled run up to {{count}} times, after {{first}} and {{second}} minutes. Every retry runs the job again and spends again. Run now is never retried, and starting a run manually cancels a pending retry."
+    },
+    "retry": {
+      "pending": "Retry {{attempt}} of {{count}} pending · at {{time}}",
+      "badge": "retry {{attempt}}"
     }
   },
   "speculation": {
