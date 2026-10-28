@@ -374,7 +374,14 @@ function normalizedEntryText(entry: NormalizedEntry): string {
 // (mtimeMs, size); see ../sessions/search-index.ts for freshness and budget
 // rules. Uncached or truncated files still take the old disk path.
 
-async function extractCodexSearchDoc(file: SearchIndexFile): Promise<SearchIndexDoc> {
+/**
+ * Extract the searchable prose of one rollout. `maxChars` is the index's store
+ * cap; excerpt extraction passes Infinity to see a long rollout's newest lines.
+ */
+async function extractCodexSearchDoc(
+  file: SearchIndexFile,
+  maxChars = MAX_FILE_CHARS,
+): Promise<SearchIndexDoc> {
   const lines: RolloutLine[] = []
   for await (const line of readJsonlLines(file.filePath)) {
     if (!line.trim()) continue
@@ -401,7 +408,7 @@ async function extractCodexSearchDoc(file: SearchIndexFile): Promise<SearchIndex
     if (!role) continue
     const text = normalizedEntryText(entry)
     if (!text) continue
-    if (chars + text.length > MAX_FILE_CHARS) {
+    if (chars + text.length > maxChars) {
       partial = true
       continue
     }
@@ -428,6 +435,105 @@ const codexSearchIndex = new SessionSearchIndex('codex', extractCodexSearchDoc)
 /** Test/debug hook: what the in-memory index currently holds. */
 export function getSearchIndexStats(): SearchIndexStats {
   return codexSearchIndex.stats
+}
+
+/** Async rollout walk, so locating a transcript never blocks the main thread. */
+async function collectRolloutFilesAsync(root: string): Promise<string[]> {
+  const files: string[] = []
+  const walk = async (dir: string, depth: number): Promise<void> => {
+    if (depth > 8) return
+    let entries: fs.Dirent[]
+    try {
+      entries = await fs.promises.readdir(dir, { withFileTypes: true })
+    } catch {
+      return
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name)
+      if (entry.isDirectory()) await walk(full, depth + 1)
+      else if (entry.isFile() && entry.name.endsWith('.jsonl')) files.push(full)
+    }
+  }
+  await walk(root, 0)
+  return files
+}
+
+/** Read only a rollout's session_meta line, without materialising the file. */
+async function readSessionMetaIdAsync(filePath: string): Promise<string | null> {
+  for await (const line of readJsonlLines(filePath)) {
+    if (!line.trim()) continue
+    try {
+      const parsed = JSON.parse(line) as RolloutLine
+      if (parsed.type !== 'session_meta') continue
+      const payload = (parsed.payload ?? {}) as Record<string, unknown>
+      return typeof payload.id === 'string' ? payload.id : null
+    } catch { /* one malformed line must not hide the rest */ }
+  }
+  return null
+}
+
+/** `findSessionFile`, without the synchronous directory walk and file reads. */
+async function findSessionFileAsync(sessionId: string): Promise<string | null> {
+  const direct = [
+    path.join(getSessionsDir(), `${sessionId}.jsonl`),
+    path.join(getSessionsDir(), sessionId, `${sessionId}.jsonl`),
+    path.join(getArchivedDir(), `${sessionId}.jsonl`),
+  ]
+  for (const filePath of direct) {
+    if (!isSessionPathSafe(filePath)) continue
+    try {
+      await fs.promises.access(filePath)
+      return filePath
+    } catch { /* try the next candidate */ }
+  }
+
+  const all = [
+    ...await collectRolloutFilesAsync(getSessionsDir()),
+    ...await collectRolloutFilesAsync(getArchivedDir()),
+  ]
+  const byName = all.find(f => path.basename(f).includes(sessionId))
+  if (byName) return byName
+  for (const filePath of all) {
+    if (await readSessionMetaIdAsync(filePath) === sessionId) return filePath
+  }
+  return null
+}
+
+/**
+ * The user/assistant prose of one Codex rollout, for quoting evidence.
+ *
+ * The search that produced the hit has already synced the index, so the cached
+ * document is preferred. A partial (prefix-only) or deferred document falls
+ * back to the same streaming extractor with its store cap lifted. Never uses
+ * the synchronous `loadSession`/`findSessionFile` path: eight multi-megabyte
+ * rollouts parsed on the calling tick would freeze every other IPC.
+ */
+export async function readSessionProse(sessionId: string): Promise<SearchIndexRecord[]> {
+  if (!isValidSessionId(sessionId)) return []
+
+  const cached = codexSearchIndex.findBySessionId(sessionId)
+  if (cached && !cached.deferred && !cached.partial) return cached.records
+
+  let filePath = cached?.filePath ?? null
+  if (filePath && !isSessionPathSafe(filePath)) filePath = null
+  if (!filePath) filePath = await findSessionFileAsync(sessionId)
+  if (!filePath || !isSessionPathSafe(filePath)) return []
+
+  let stat: fs.Stats
+  try {
+    stat = await fs.promises.stat(filePath)
+  } catch {
+    return []
+  }
+
+  const doc = await extractCodexSearchDoc({
+    filePath,
+    sessionId,
+    projectSlug: cached?.projectSlug ?? '',
+    mtimeMs: stat.mtimeMs,
+    size: stat.size,
+  }, Number.POSITIVE_INFINITY)
+  return doc.records
 }
 
 async function collectCodexSearchFiles(): Promise<SearchIndexFile[]> {

@@ -250,7 +250,7 @@ export default function QuickReplyChips({ onInsert }: QuickReplyChipsProps) {
           flexWrap: 'wrap',
           alignItems: 'center',
           gap: 6,
-          padding: '8px 0',
+          padding: '8px 10px',
           flexShrink: 0,
         }}
       >

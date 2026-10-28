@@ -88,7 +88,10 @@ function HighlightedText({ text, query, caseSensitive = false }: { text: string;
   )
 }
 
-// Extract plain text from React children tree (used for callout detection)
+// Extract plain text from React children tree. With rehype-highlight active a
+// highlighted block's children are an array of <span> elements, so anything
+// that needs the code's source (copy/save/run/preview/line count) must walk the
+// tree instead of stringifying it.
 function extractText(children: React.ReactNode): string {
   if (typeof children === 'string') return children
   if (typeof children === 'number') return String(children)
@@ -114,10 +117,21 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
         components={{
-          code({ node, inline, className, children, ...props }: any) {
-            const isInline = inline as boolean
+          code({ node, className, children, ...props }: any) {
+            // react-markdown v9 stopped passing the `inline` flag. A fenced
+            // block always reaches us with a trailing newline (and usually a
+            // language class); an inline span never carries either. Without
+            // this, every `code span` in prose was promoted to a full code
+            // block with its own header and Copy button.
+            //
+            // rehype-highlight hands highlighted blocks their children as React
+            // elements, so the raw source has to come from the tree. `String()`
+            // produced "[object Object], ,[object Object]…" for every
+            // highlighted block, which then fed copy, save, run and preview.
+            const raw = extractText(children)
+            const isInline = !className && !raw.includes('\n')
             const match = /language-(\w+)/.exec((className as string) || '')
-            const codeText = String(children).replace(/\n$/, '')
+            const codeText = raw.replace(/\n$/, '')
             const lineCount = codeText.split('\n').length
 
             if (isInline) {
@@ -135,7 +149,7 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                     padding: '1px 4px',
                     fontSize: '0.85em',
                     fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-                    color: '#a5b4fc',
+                    color: 'var(--accent-muted)',
                   }}
                   {...props}
                 >

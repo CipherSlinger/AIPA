@@ -187,20 +187,6 @@ export function subtreeOf(depts: Department[], root: Department): Department[] {
   return out
 }
 
-/** Format a duration in ms to a compact human string: "2m", "1h 4m", "3d" */
-export function formatDuration(ms: number): string {
-  if (ms < 60000) return '<1m'
-  const minutes = Math.floor(ms / 60000)
-  const hours = Math.floor(minutes / 60)
-  const days = Math.floor(hours / 24)
-  if (days >= 1) return `${days}d`
-  if (hours >= 1) {
-    const remainMins = minutes % 60
-    return remainMins > 0 ? `${hours}h ${remainMins}m` : `${hours}h`
-  }
-  return `${minutes}m`
-}
-
 /**
  * The persona an employee was hired as. chatStore owns the write (via
  * `setSessionPersonaId`); this is the matching read, so a roster can show who is
@@ -215,8 +201,17 @@ export function readSessionPersonaId(sessionId: string): string | undefined {
   }
 }
 
-/** "刚刚" / "12 分钟前" / "3 天前" — units come from the session.* i18n keys. */
-export function formatRelativeTime(timestamp: number, t: (key: string) => string): string {
+/**
+ * "刚刚" / "12 分钟前" / "3 天前" — units come from the session.* i18n keys.
+ * Past a week it falls back to a date, which must follow the interface language
+ * (the app can be in Chinese on an English system, and vice versa), so callers
+ * pass `resolvedLocale` through.
+ */
+export function formatRelativeTime(
+  timestamp: number,
+  t: (key: string) => string,
+  locale?: UiLocale,
+): string {
   const diff = Date.now() - timestamp
   const minutes = Math.floor(diff / 60000)
   const hours = Math.floor(diff / 3600000)
@@ -226,5 +221,5 @@ export function formatRelativeTime(timestamp: number, t: (key: string) => string
   if (minutes < 60) return `${minutes}${t('session.minutesAgo')}`
   if (hours < 24) return `${hours}${t('session.hoursAgo')}`
   if (days < 7) return `${days}${t('session.daysAgo')}`
-  return new Date(timestamp).toLocaleDateString()
+  return new Date(timestamp).toLocaleDateString(locale)
 }

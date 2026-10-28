@@ -2439,6 +2439,8 @@
     "title": "Departments",
     "company": "AIPA Company",
     "companyTag": "Company",
+    "departmentTag": "Department",
+    "teamTag": "Team",
     "companyStaff": "{{depts}} departments · {{staff}} employees",
     "staff": "Employees",
     "stats": "Department stats",
@@ -2466,12 +2468,16 @@
     "empLoading": "Loading",
     "empFire": "Dismiss",
     "recent": "Recent",
+    "sortRecent": "↓ Time",
+    "sortOldest": "↑ Time",
+    "sortMsgs": "Msgs",
     "expandAll": "Expand all",
     "collapseAll": "Collapse all",
     "keyboardHint": "Press + to create a department",
     "collapsedCount": "departments hidden",
     "msgCount": "Messages",
     "enter": "Enter",
+    "changeColor": "Click to change color",
     "backToDept": "Back to department",
     "confirmDelete": "Delete this department?",
     "confirmDeleteCompany": "Delete this company?",
@@ -2749,6 +2755,23 @@
     "engineClaude": "Claude",
     "engineCodex": "Codex"
   },
+  "askHistory": {
+    "entry": "Ask AIPA…",
+    "ctrlEnterHint": "Ctrl+Enter ask AIPA",
+    "cancelHint": "Esc closes the overlay",
+    "cancel": "Close",
+    "reading": "Reading your history…",
+    "noSources": "No sessions mention that. Try different words.",
+    "sourcesTitle": "Sources",
+    "citeLabel": "Open source {{n}}: {{title}}",
+    "answerLabel": "AIPA's answer from your history",
+    "untitled": "Untitled session",
+    "unknownProject": "Unfiled",
+    "failed": "AIPA could not answer that question",
+    "busy": "AIPA is already answering another question",
+    "timeout": "That took too long — try a narrower question",
+    "empty": "AIPA returned an empty answer"
+  },
   "automation": {
     "title": "Automations",
     "description": "Let the assistant start work on its own — a workflow or a prompt, on a schedule you set.",
@@ -2847,5 +2870,19 @@
       "runFailed": "Could not start the run: {{error}}",
       "deleteFailed": "Could not delete the automation: {{error}}"
     }
+  },
+  "speculation": {
+    "title": "Speculative Preview",
+    "preparing": "Preparing speculative preview…",
+    "accepted": "Speculation accepted",
+    "discarded": "Speculation discarded",
+    "fileOne": "1 file",
+    "fileMany": "{{count}} files",
+    "toolCalls": "Tool calls ({{count}})",
+    "filesToModify": "Files to be modified",
+    "moreFiles": "+{{count}} more",
+    "accept": "Accept",
+    "discard": "Discard",
+    "sandboxNote": "Pre-executed in sandbox"
   }
 }

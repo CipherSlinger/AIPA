@@ -111,6 +111,8 @@
   --text-faint:      rgba(255,255,255,0.38);
   --glass-shimmer:   rgba(255,255,255,0.04);
   --cta-gradient:    linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88));
+  /* Welcome greeting headline — dark text on the light theme, not a pale glow */
+  --hero-gradient:   linear-gradient(135deg, #e0e7ff, #c4b5fd);
 
   /* Accent variants (mirrors light-theme additions for parity) */
   --accent-bg:       rgba(99,102,241,0.10);
@@ -240,6 +242,8 @@
 
   /* CTA gradient (blue-to-violet for light mode) */
   --cta-gradient: linear-gradient(135deg, rgba(37,99,235,0.88), rgba(124,58,237,0.88));
+  /* Deep indigo headline: #e0e7ff was invisible on white */
+  --hero-gradient: linear-gradient(135deg, #312e81, #6d28d9);
 
   /* Glass-morphism surfaces (light theme overrides) */
   --glass-bg-low:    rgba(240,242,250,0.85);

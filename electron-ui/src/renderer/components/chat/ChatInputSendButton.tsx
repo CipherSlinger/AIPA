@@ -90,9 +90,6 @@ export default function ChatInputSendButton({ isStreaming, inputLength, hasConte
         }}
       >
         {isStreaming ? <Square size={14} /> : <Send size={14} />}
-        {!isStreaming && (
-          <span style={{ position: 'absolute', bottom: -14, fontSize: 9, color: 'var(--text-muted)', opacity: 0.5, whiteSpace: 'nowrap', fontFamily: 'inherit' }}>Enter</span>
-        )}
       </button>
     </div>
   )

@@ -245,6 +245,19 @@ export class SessionSearchIndex {
     }
   }
 
+  /**
+   * The indexed document for a reader-facing session id, or null when the file
+   * has not been extracted yet. Used by excerpt extraction: the search that
+   * produced the hits has just reconciled this index, so quoting a session is a
+   * map walk instead of a fresh multi-megabyte read.
+   */
+  findBySessionId(sessionId: string): SearchIndexDoc | null {
+    for (const doc of this.docs.values()) {
+      if (doc.sessionId === sessionId) return doc
+    }
+    return null
+  }
+
   private warm(): boolean {
     return this.loadedFromCache || this.builtThisProcess
   }

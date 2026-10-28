@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from 'react'
 import { History, X, MessageSquare, Layers, Clock, ArrowRight, Lightbulb } from 'lucide-react'
 import { useUiStore, useSessionStore, usePrefsStore, useChatStore } from '../../store'
 import { useT } from '../../i18n'
@@ -123,6 +123,14 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
   // Adaptive layout: measure container height and hide low-priority sections when space is tight
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerHeight, setContainerHeight] = useState(800)
+  // Measure before the first paint: the ResizeObserver's initial entry was
+  // arriving late, so a window shorter than the 800px default kept the
+  // "tall window" section set and the welcome column was clipped instead of
+  // switching to its compact form.
+  useLayoutEffect(() => {
+    const el = containerRef.current
+    if (el) setContainerHeight(el.clientHeight)
+  }, [])
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
@@ -138,8 +146,10 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
   const showTemplates = containerHeight > 650
   const showTips = containerHeight > 600
   const showRecentPrompts = containerHeight > 550
-  const showQuickActions = containerHeight > 480
-  const showDailySummary = containerHeight > 430
+  // Daily summary + quick actions add ~300px together; showing them at 520px
+  // (a 1280x800 window) pushed the suggestion cards under the composer.
+  const showQuickActions = containerHeight > 700
+  const showDailySummary = containerHeight > 600
   const showUsageStats = containerHeight > 370
   const showContinueLastChat = containerHeight > 320
   const compactGap = containerHeight < 500 ? 8 : containerHeight < 650 ? 12 : 20
@@ -153,7 +163,10 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
         alignItems: 'center',
         height: '100%',
         color: 'var(--text-muted)',
-        overflow: 'hidden',
+        // Anything that still exceeds a short window scrolls instead of
+        // being chopped off mid-card by the composer.
+        overflowY: 'auto',
+        overflowX: 'hidden',
         background: 'transparent',
         animation: 'fadeIn 0.15s ease',
       }}
@@ -261,7 +274,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
               background: 'rgba(99,102,241,0.10)',
               border: '1px solid rgba(99,102,241,0.20)',
               borderRadius: 20,
-              color: '#a5b4fc',
+              color: 'var(--accent-muted)',
               cursor: 'pointer',
               fontSize: 12,
               fontWeight: 600,

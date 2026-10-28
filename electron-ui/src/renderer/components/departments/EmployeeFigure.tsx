@@ -11,7 +11,7 @@ import React, { useMemo, useState } from 'react'
 import { MessageSquare, Pin, Trash2 } from 'lucide-react'
 import { SessionListItem } from '../../types/app.types'
 import { formatRelativeTime, readSessionPersonaId } from './deptUtils'
-import { useT } from '../../i18n'
+import { useI18n } from '../../i18n'
 import { useChatStore, usePrefsStore } from '../../store'
 import { Figure, GhostSilhouette, lookFor } from './employeeFigureArt'
 import { displayTitle } from '../../lib/sessionTitle'
@@ -54,7 +54,7 @@ export default function EmployeeFigure({
   isLoading,
   onDelete,
 }: EmployeeFigureProps) {
-  const t = useT()
+  const { t, resolvedLocale } = useI18n()
   const colorLabels = usePrefsStore(s => s.prefs?.sessionColorLabels ?? EMPTY_COLOR_LABELS)
   const setPrefs = usePrefsStore(s => s.setPrefs)
   const personas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
@@ -227,7 +227,7 @@ export default function EmployeeFigure({
                 {session.messageCount}
               </span>
             ) : null}
-            <span>{formatRelativeTime(session.timestamp, t)}</span>
+            <span>{formatRelativeTime(session.timestamp, t, resolvedLocale)}</span>
           </div>
         </>
       )}

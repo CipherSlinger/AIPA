@@ -641,8 +641,17 @@ function scanClaudeFile(content: string, query: string, lowerQuery: string): Cla
 
 interface ClaudeSearchFile extends SearchIndexFile {}
 
-/** Extract the searchable prose of one Claude transcript. */
-async function extractClaudeSearchDoc(file: SearchIndexFile): Promise<SearchIndexDoc> {
+/**
+ * Extract the searchable prose of one Claude transcript.
+ *
+ * `maxChars` is the store cap (the index keeps only the file's prefix to stay
+ * within budget). Excerpt extraction passes Infinity so a session quoted from
+ * a long transcript still exposes its newest matching line.
+ */
+async function extractClaudeSearchDoc(
+  file: SearchIndexFile,
+  maxChars = MAX_FILE_CHARS,
+): Promise<SearchIndexDoc> {
   let title: string | undefined
   let timestamp = 0
   let chars = 0
@@ -674,7 +683,7 @@ async function extractClaudeSearchDoc(file: SearchIndexFile): Promise<SearchInde
     const text = textFromBlocks(message?.content)
     if (!text || partial) continue
 
-    if (chars + text.length > MAX_FILE_CHARS) {
+    if (chars + text.length > maxChars) {
       // Keep the metadata pass running (title and timestamp still matter), but
       // stop growing the buffer; a miss in the prefix is verified on disk.
       partial = true
@@ -708,6 +717,69 @@ const claudeSearchIndex = new SessionSearchIndex('claude', extractClaudeSearchDo
 /** Test/debug hook: what the in-memory index currently holds. */
 export function getSearchIndexStats(): SearchIndexStats {
   return claudeSearchIndex.stats
+}
+
+/** Locate a transcript's file without the synchronous directory walk. */
+async function findClaudeSearchFile(sessionId: string): Promise<ClaudeSearchFile | null> {
+  let projectDirs: fs.Dirent[]
+  try {
+    projectDirs = await fs.promises.readdir(PROJECTS_DIR, { withFileTypes: true })
+  } catch {
+    return null
+  }
+
+  for (const dir of projectDirs) {
+    if (!dir.isDirectory()) continue
+    const dirPath = path.join(PROJECTS_DIR, dir.name)
+    if (!isPathInside(PROJECTS_DIR, dirPath)) continue
+    const filePath = path.join(dirPath, `${sessionId}.jsonl`)
+    if (!isPathInside(PROJECTS_DIR, filePath)) continue
+    try {
+      const stat = await fs.promises.stat(filePath)
+      if (!stat.isFile()) continue
+      return {
+        filePath,
+        sessionId,
+        projectSlug: dir.name,
+        mtimeMs: stat.mtimeMs,
+        size: stat.size,
+      }
+    } catch { /* this project does not hold the session */ }
+  }
+  return null
+}
+
+/**
+ * The user/assistant prose of one Claude session, for quoting evidence.
+ *
+ * Async on purpose. The sync `loadSession` reads and JSON-parses the entire
+ * transcript on the calling tick, and excerpt extraction runs for up to eight
+ * multi-megabyte files in a row — that froze every other IPC while the ask was
+ * being prepared. Prefer the search index the preceding query just synced;
+ * fall back to the same streaming extractor with its store cap lifted, so a
+ * partial (prefix-only) index document still yields the newest lines.
+ */
+export async function readSessionProse(sessionId: string): Promise<SearchIndexRecord[]> {
+  if (!isValidSessionId(sessionId)) return []
+
+  const cached = claudeSearchIndex.findBySessionId(sessionId)
+  if (cached && !cached.deferred && !cached.partial) return cached.records
+
+  // Even a deferred document knows its path; only a not-yet-extracted session
+  // needs the directory walk.
+  let file: ClaudeSearchFile | null = cached && isPathInside(PROJECTS_DIR, cached.filePath)
+    ? {
+        filePath: cached.filePath,
+        sessionId,
+        projectSlug: cached.projectSlug,
+        mtimeMs: cached.mtimeMs,
+        size: cached.size,
+      }
+    : await findClaudeSearchFile(sessionId)
+  if (!file) return []
+
+  const doc = await extractClaudeSearchDoc(file, Number.POSITIVE_INFINITY)
+  return doc.records
 }
 
 /** Match a cached document, mirroring `scanClaudeFile`'s first-match semantics. */

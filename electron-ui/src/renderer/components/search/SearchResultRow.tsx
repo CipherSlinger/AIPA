@@ -42,7 +42,8 @@ function emphasise(snippet: string, query: string): React.ReactNode[] {
   return parts.length > 0 ? parts : [snippet]
 }
 
-function relativeTime(timestamp: number, t: ReturnType<typeof useT>): string {
+/** Shared with the ask-answer source list, so both surfaces date rows alike. */
+export function relativeTime(timestamp: number, t: ReturnType<typeof useT>): string {
   const diff = Math.max(0, Date.now() - timestamp)
   const minutes = Math.floor(diff / 60_000)
   if (minutes < 1) return t('message.justNow')

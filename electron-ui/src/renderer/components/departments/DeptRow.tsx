@@ -5,21 +5,9 @@ import { useState, useEffect, useCallback, type DragEvent } from 'react'
 import { MoreHorizontal, Check, X, GripVertical, ChevronRight, LogIn } from 'lucide-react'
 import { useDepartmentStore, useUiStore, type Department } from '../../store'
 import { useI18n } from '../../i18n'
-import { DEPT_COLORS, deptDisplayName } from './deptUtils'
+import { DEPT_COLORS, deptDisplayName, formatRelativeTime } from './deptUtils'
 import DeptRowMenu from './DeptRowMenu'
 import DeptDeleteConfirm from './DeptDeleteConfirm'
-
-function formatLastActive(ts: number, t: (key: string) => string): string {
-  const diff = Date.now() - ts
-  const m = Math.floor(diff / 60000)
-  const h = Math.floor(diff / 3600000)
-  const d = Math.floor(diff / 86400000)
-  if (m < 1) return t('dept.justNow')
-  if (m < 60) return `${m}m ago`
-  if (h < 24) return `${h}h ago`
-  if (d < 7) return `${d}d ago`
-  return new Date(ts).toLocaleDateString()
-}
 
 interface Props {
   dept: Department
@@ -160,7 +148,7 @@ export default function DeptRow({
           updateDepartment(dept.id, { color: nextColor })
         }}
         onMouseDown={e => e.stopPropagation()}
-        title="Click to change color"
+        title={t('dept.changeColor')}
         style={{
           width: 12,
           height: 12,
@@ -217,7 +205,7 @@ export default function DeptRow({
               marginTop: 3,
               lineHeight: 1.4,
             }}>
-              {formatLastActive(lastActive, t)}
+              {formatRelativeTime(lastActive, t, resolvedLocale)}
             </div>
           )}
         </div>

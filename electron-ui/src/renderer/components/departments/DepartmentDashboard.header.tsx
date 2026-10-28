@@ -5,13 +5,26 @@ import { ArrowLeft, BookOpen, ChevronRight, FolderOpen, MessageSquarePlus } from
 import type { Department } from '../../store'
 import { useI18n } from '../../i18n'
 import type { SortOrder } from './DepartmentDashboard.data'
-import { deptDisplayName } from './deptUtils'
+import { deptDisplayName, kindOf } from './deptUtils'
 
 const SORT_OPTIONS = [
-  ['recent', '↓Time'],
-  ['oldest', '↑Time'],
-  ['msgs', 'Msgs'],
+  ['recent', 'dept.sortRecent'],
+  ['oldest', 'dept.sortOldest'],
+  ['msgs', 'dept.sortMsgs'],
 ] as const
+
+// The breadcrumb names the node you are *on*, not "the level below a company".
+// `parentDept` is set for any node with a parent — a department under a company,
+// a team under a department, and even a company whose record somehow has a
+// parent — so the label has to follow `kindOf`, the same rule the org chart uses
+// to decide whether a node is a section, a card or a team strip.
+const KIND_LABEL_KEY: Record<ReturnType<typeof kindOf>, string> = {
+  // A tag, not the plural "teams" used in counts; capitalized like the other
+  // two so the breadcrumb reads as one row of labels.
+  team: 'dept.teamTag',
+  department: 'dept.departmentTag',
+  company: 'dept.companyTag',
+}
 
 interface DeptHeaderProps {
   dept: Department
@@ -113,8 +126,9 @@ export default function DeptHeader({
 
       {/* Dept name + dir */}
       <div style={{ flex: 1, overflow: 'hidden' }}>
-        {/* Breadcrumb — a team is a desk of its own, so its page needs to say
-            which department it belongs to and offer the way back up. */}
+        {/* Breadcrumb — every nested node (department or team) is a desk of its
+            own, so its page says which node it sits under and offers the way
+            back up. The trailing label is the current node's kind. */}
         {parentDept && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>
             <button
@@ -133,7 +147,7 @@ export default function DeptHeader({
               {deptDisplayName(parentDept, resolvedLocale)}
             </button>
             <ChevronRight size={9} style={{ opacity: 0.5, flexShrink: 0 }} />
-            <span style={{ opacity: 0.7 }}>{t('dept.team')}</span>
+            <span style={{ opacity: 0.7 }}>{t(KIND_LABEL_KEY[kindOf(dept)])}</span>
           </div>
         )}
         <div style={{
@@ -299,7 +313,7 @@ export default function DeptHeader({
       </button>
 
       <div style={{ display: 'flex', gap: 2, background: 'var(--bg-hover)', borderRadius: 6, padding: 2, flexShrink: 0 }}>
-        {SORT_OPTIONS.map(([val, label]) => (
+        {SORT_OPTIONS.map(([val, labelKey]) => (
           <button
             key={val}
             onClick={() => onSortChange(val)}
@@ -315,7 +329,7 @@ export default function DeptHeader({
               transition: 'all 0.15s ease',
             }}
           >
-            {label}
+            {t(labelKey)}
           </button>
         ))}
       </div>

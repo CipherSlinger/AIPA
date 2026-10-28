@@ -269,8 +269,10 @@ function CollapsiblePre({ children, className }: { children: React.ReactNode; cl
         ref={preRef}
         style={{
           margin: 0,
-          borderRadius: '0 0 8px 8px',
+          borderRadius: '0 0 9px 9px',
           borderTop: '1px solid var(--glass-border)',
+          // The bundled highlight theme (github-dark) paints the <code> itself,
+          // so the panel behind it stays dark in both themes by design.
           background: 'rgba(8,8,16,1)',
           lineHeight: 1.5,
           maxHeight: isOverflow && collapsed ? CODE_COLLAPSE_THRESHOLD : undefined,
@@ -292,7 +294,7 @@ function CollapsiblePre({ children, className }: { children: React.ReactNode; cl
             background: collapsed ? 'linear-gradient(transparent, rgba(12,12,22,0.98))' : 'var(--bg-hover)',
             border: collapsed ? 'none' : '1px solid var(--glass-border-md)',
             borderTop: collapsed ? 'none' : '1px solid var(--glass-border-md)',
-            borderRadius: collapsed ? 0 : '0 0 8px 8px',
+            borderRadius: collapsed ? 0 : '0 0 9px 9px',
             color: 'var(--text-secondary)',
             cursor: 'pointer',
             fontSize: 11,
@@ -372,7 +374,7 @@ export default function CodeBlockWithHeader({
           alignItems: 'center',
           background: 'var(--bg-hover)',
           padding: '4px 12px',
-          borderRadius: '8px 8px 0 0',
+          borderRadius: '9px 9px 0 0',
           borderBottom: '1px solid var(--glass-border)',
         }}
       >
@@ -431,10 +433,13 @@ export default function CodeBlockWithHeader({
                 textAlign: 'right',
                 paddingRight: 12,
                 paddingLeft: 8,
-                paddingTop: 14,
-                paddingBottom: 14,
-                borderRight: '1px solid var(--border)',
-                color: 'var(--text-faint)',
+                // Match the 12px pre padding so line 1 sits level with the code.
+                paddingTop: 12,
+                paddingBottom: 12,
+                // The code surface stays dark in both themes (the bundled
+                // highlight theme is dark-only), so the gutter must stay light.
+                borderRight: '1px solid rgba(255,255,255,0.08)',
+                color: 'rgba(255,255,255,0.30)',
                 fontSize: 11,
                 lineHeight: '1.5',
                 fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",

@@ -2439,6 +2439,8 @@
     "title": "部门",
     "company": "AIPA 公司",
     "companyTag": "公司",
+    "departmentTag": "部门",
+    "teamTag": "团队",
     "companyStaff": "共 {{depts}} 个部门 · {{staff}} 名员工",
     "staff": "员工",
     "stats": "部门统计",
@@ -2468,12 +2470,16 @@
     "empLoading": "载入中",
     "empFire": "解雇",
     "recent": "最近",
+    "sortRecent": "↓ 时间",
+    "sortOldest": "↑ 时间",
+    "sortMsgs": "消息数",
     "expandAll": "全部展开",
     "collapseAll": "全部折叠",
     "keyboardHint": "按 + 创建部门",
     "collapsedCount": "个部门已折叠",
     "msgCount": "消息数",
     "enter": "进入",
+    "changeColor": "点击更换颜色",
     "backToDept": "返回部门",
     "pendingSessionOpen": "打开",
     "recruitTitle": "招募新员工",
@@ -2749,6 +2755,23 @@
     "engineClaude": "Claude",
     "engineCodex": "Codex"
   },
+  "askHistory": {
+    "entry": "问 AIPA…",
+    "ctrlEnterHint": "Ctrl+Enter 问 AIPA",
+    "cancelHint": "Esc 关闭浮层",
+    "cancel": "关闭",
+    "reading": "正在阅读你的历史记录…",
+    "noSources": "没有会话提到这个。换些词试试。",
+    "sourcesTitle": "来源",
+    "citeLabel": "打开来源 {{n}}：{{title}}",
+    "answerLabel": "AIPA 根据你的历史给出的回答",
+    "untitled": "未命名会话",
+    "unknownProject": "未归属",
+    "failed": "AIPA 没能回答这个问题",
+    "busy": "AIPA 正在回答另一个问题",
+    "timeout": "回答超时了——试着问得更具体一些",
+    "empty": "AIPA 返回了空答案"
+  },
   "automation": {
     "title": "自动化",
     "description": "让助手自己开始工作——按你设定的时间运行一个工作流或发送一条提示词。",
@@ -2847,5 +2870,19 @@
       "runFailed": "无法启动运行：{{error}}",
       "deleteFailed": "无法删除自动化：{{error}}"
     }
+  },
+  "speculation": {
+    "title": "投机预览",
+    "preparing": "正在准备投机预览…",
+    "accepted": "投机结果已采纳",
+    "discarded": "投机结果已丢弃",
+    "fileOne": "1 个文件",
+    "fileMany": "{{count}} 个文件",
+    "toolCalls": "工具调用（{{count}}）",
+    "filesToModify": "将要修改的文件",
+    "moreFiles": "另有 {{count}} 个",
+    "accept": "采纳",
+    "discard": "丢弃",
+    "sandboxNote": "已在沙箱中预执行"
   }
 }

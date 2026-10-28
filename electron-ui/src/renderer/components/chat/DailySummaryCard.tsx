@@ -139,7 +139,7 @@ export default function DailySummaryCard() {
       borderRadius: 12,
       position: 'relative',
       transition: 'all 0.15s ease',
-      boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+      boxShadow: 'var(--popup-shadow)',
     }}>
       {/* Dismiss button */}
       <button

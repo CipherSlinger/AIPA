@@ -10,6 +10,7 @@ import { streamBridgeManager } from '../pty/stream-bridge'
 import { speculationManager, isSafeToSpeculate } from '../pty/speculation-bridge'
 import { readSettings, writeSettings, listSessions as listClaudeSessions, loadSession as loadClaudeSession, deleteSession as deleteClaudeSession, forkSession as forkClaudeSession, renameSession, rewindSession, searchSessions as searchClaudeSessions, detectTurnInterruption, getDreamConsolidationMtime } from '../sessions/session-reader'
 import { listSessions as listCodexSessions, loadSession as loadCodexSession, deleteSession as deleteCodexSession, forkSession as forkCodexSession, searchSessions as searchCodexSessions, isCodexSession } from '../codex/codex-session-reader'
+import { historyAskStatus, collectHistoryDigest, buildAskPrompt } from '../sessions/ask-history'
 import { addMcpServer, getMcpConfigInfo, readMcpServers, removeMcpServer, setMcpServerEnabledRouted } from '../config/mcp-config'
 import { getSessionStats } from '../sessions/session-stats'
 import { getApiKey, setApiKey, getPref, getRawPref, setPref, getAllPrefs, resetAllPrefs } from '../config/config-manager'
@@ -166,6 +167,18 @@ function cacheMcpTools(initData: unknown): void {
     if (srv.tools && srv.tools.length > 0) mcpServerToolsCache[srv.name] = srv.tools
   }
 }
+
+// One "ask about your history" turn at a time, process-wide. The digest is a
+// few thousand characters and the turn is read-only, but two concurrent asks
+// would fight over each reader's search epoch (the newer call cancels the
+// older one) and produce an empty digest for whoever lost.
+let askHistoryInFlight = false
+// Abort plumbing for that single ask. `generation` keeps a cancelled handler's
+// `finally` from clearing the state of the ask that replaced it: cancelling
+// hands the slot back immediately, so a new question may already be running
+// by the time the aborted one unwinds.
+let askHistoryAbort: AbortController | null = null
+let askHistoryGeneration = 0
 
 export function registerAllHandlers(win: BrowserWindow): void {
   liveWindow = win
@@ -991,7 +1004,11 @@ function pickModelForEngine(
  */
 async function runInternalTurn(
   args: Record<string, unknown>,
+  signal?: AbortSignal,
 ): Promise<{ success: boolean; text?: string; error?: string }> {
+  // Nobody is waiting for a turn that was cancelled before it even started.
+  if (signal?.aborted) return { success: false, error: 'aborted' }
+
   const prompt = String(args.prompt ?? '')
   // Ten minutes is the ceiling a plugin may ask for; background callers that
   // want less still get their own bound.
@@ -1115,24 +1132,53 @@ async function runInternalTurn(
     return { success: false, error: launched.error || 'Failed to start internal turn' }
   }
 
+  // The caller may have cancelled while the handshake was in flight; the
+  // bridge exists now, so reap it rather than wait for the model.
+  if (signal?.aborted) {
+    if (isInternalBridgeId(bridgeId)) {
+      codexBridgeManager.abort(bridgeId)
+      streamBridgeManager.abort(bridgeId)
+    }
+    return { success: false, error: 'aborted' }
+  }
+
   let timer: NodeJS.Timeout | undefined
-  const timedOut = await Promise.race([
-    finished.then(() => false),
-    new Promise<boolean>((resolve) => {
-      timer = setTimeout(() => resolve(true), timeoutMs)
+  let abortListener: (() => void) | undefined
+  const waits: Array<Promise<'done' | 'timeout' | 'aborted'>> = [
+    finished.then(() => 'done' as const),
+    new Promise<'timeout'>((resolve) => {
+      timer = setTimeout(() => resolve('timeout'), timeoutMs)
       timer.unref?.()
     }),
-  ])
+  ]
+  if (signal) {
+    waits.push(new Promise<'aborted'>((resolve) => {
+      // Registered only after `bridgeId` is known and the listener is removed
+      // below, so a late abort cannot leak into the next turn.
+      if (signal.aborted) {
+        resolve('aborted')
+        return
+      }
+      abortListener = () => resolve('aborted')
+      signal.addEventListener('abort', abortListener, { once: true })
+    }))
+  }
+  const outcome = await Promise.race(waits)
   if (timer) clearTimeout(timer)
+  if (abortListener) signal?.removeEventListener('abort', abortListener)
 
   // Single-shot bridge: reap the process instead of letting it idle until the
-  // app exits (Codex keeps a whole app-server alive per bridge).
+  // app exits (Codex keeps a whole app-server alive per bridge). The abort path
+  // takes the same route as the timeout path.
   if (isInternalBridgeId(bridgeId)) {
     codexBridgeManager.abort(bridgeId)
     streamBridgeManager.abort(bridgeId)
   }
 
-  if (timedOut) {
+  if (outcome === 'aborted') {
+    return { success: false, error: 'aborted', text: streamed || undefined }
+  }
+  if (outcome === 'timeout') {
     return { success: false, error: `Internal turn timed out after ${timeoutMs}ms`, text: streamed || undefined }
   }
   if (failure) {
@@ -1327,6 +1373,94 @@ function registerSessionHandlers(): void {
     } catch (err) {
       log.warn('session:search error:', String(err))
       return []
+    }
+  })
+
+  // ── Ask AIPA about your history ──
+  //
+  // A question from the global search overlay: local retrieval first, then one
+  // private turn on the engine this profile can authenticate with. The prompt
+  // is never logged and the result carries only the answer plus the cited
+  // sources; everything the model saw stays in this process.
+  ipcMain.handle('session:askHistoryStatus', (): { available: boolean; reason?: string } => {
+    return historyAskStatus()
+  })
+
+  // The overlay unmounts mid-run when it is closed. Without this the handler
+  // kept the slot "busy" until the 90 s turn timed out, and the next question
+  // was rejected even though nobody would ever see the old answer.
+  ipcMain.handle('session:askHistoryCancel', (): void => {
+    askHistoryGeneration++
+    askHistoryAbort?.abort()
+    askHistoryAbort = null
+    askHistoryInFlight = false
+  })
+
+  ipcMain.handle('session:askHistory', async (
+    _e: Electron.IpcMainInvokeEvent,
+    { question, locale }: { question: string; locale?: string },
+  ): Promise<{
+    ok: boolean
+    answer?: string
+    sources?: Awaited<ReturnType<typeof collectHistoryDigest>>['sources']
+    error?: string
+    available?: boolean
+    reason?: string
+  }> => {
+    const trimmed = typeof question === 'string' ? question.trim() : ''
+    if (!trimmed || trimmed.length > 500) return { ok: false, error: 'invalid_question' }
+
+    const status = historyAskStatus()
+    if (!status.available) return { ok: false, available: false, reason: status.reason }
+    if (askHistoryInFlight) return { ok: false, error: 'busy' }
+
+    const generation = ++askHistoryGeneration
+    const controller = new AbortController()
+    askHistoryAbort = controller
+    askHistoryInFlight = true
+    try {
+      const normalizedLocale = /^zh/i.test(locale || '') ? 'zh-CN' : 'en'
+      const { sources, digest } = await collectHistoryDigest(trimmed, {
+        locale: normalizedLocale,
+        signal: controller.signal,
+      })
+      if (controller.signal.aborted) return { ok: false, error: 'aborted' }
+      // Nothing matched. Skipping the turn is honest and saves a model call:
+      // the renderer shows its own "no matching history" copy.
+      if (sources.length === 0) return { ok: true, answer: '', sources: [] }
+
+      const result = await runInternalTurn({
+        prompt: buildAskPrompt(trimmed, digest, sources, normalizedLocale),
+        timeoutMs: 90_000,
+        internalTag: 'ask-history',
+        // Answer from the excerpts alone; a read-only turn must not reach for
+        // tools (the Claude bridge needs the empty tool list for that).
+        answerOnly: true,
+        cwd: getPref('workingDir'),
+      }, controller.signal)
+
+      if (!result.success) {
+        const code = result.error === 'aborted'
+          ? 'aborted'
+          : /timed out/i.test(result.error || '') ? 'timeout' : 'failed'
+        if (code !== 'aborted') {
+          log.warn(`session:askHistory ${code}:`, String(result.error || 'unknown').slice(0, 300))
+        }
+        return { ok: false, error: code }
+      }
+      const answer = (result.text || '').trim()
+      if (!answer) return { ok: false, error: 'empty_response' }
+      return { ok: true, answer, sources }
+    } catch (err) {
+      log.warn('session:askHistory error:', String(err).slice(0, 300))
+      return { ok: false, error: 'failed' }
+    } finally {
+      // A cancellation already handed the slot to the next ask: only the
+      // handler that still owns this generation may clear the state.
+      if (askHistoryGeneration === generation) {
+        askHistoryInFlight = false
+        if (askHistoryAbort === controller) askHistoryAbort = null
+      }
     }
   })
 

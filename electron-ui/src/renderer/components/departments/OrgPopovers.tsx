@@ -60,7 +60,7 @@ export function DeptStatsPopover({ dept, sessions, position, onClose, onEnter }:
   const exportSessions = () => {
     const data = sessions.map(s => ({
       id: s.sessionId,
-      title: s.title || s.lastPrompt?.slice(0, 60) || 'Untitled',
+      title: s.title || s.lastPrompt?.slice(0, 60) || t('session.untitled'),
       lastPrompt: s.lastPrompt,
       messageCount: s.messageCount,
       timestamp: new Date(s.timestamp).toISOString(),
@@ -104,7 +104,7 @@ export function DeptStatsPopover({ dept, sessions, position, onClose, onEnter }:
         ...(openPositions > 0 ? [{ label: t('dept.positions'), value: openPositions as number | string }] : []),
         {
           label: t('dept.statsLastActive'),
-          value: sessions.length === 0 ? '—' : formatRelativeTime(sessions[0].timestamp, t),
+          value: sessions.length === 0 ? '—' : formatRelativeTime(sessions[0].timestamp, t, resolvedLocale),
         },
       ].map(({ label, value }) => (
         <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--bg-hover)' }}>

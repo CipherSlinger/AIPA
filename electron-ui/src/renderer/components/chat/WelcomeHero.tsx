@@ -41,7 +41,7 @@ export default function WelcomeHero({ greeting, displayName, activePersona, acce
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
           <span style={{
-            background: 'linear-gradient(135deg, #e0e7ff, #c4b5fd)',
+            background: 'var(--hero-gradient)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
           }}>

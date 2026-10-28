@@ -272,7 +272,7 @@ function DeptCard({
           </span>
         ) : (
           <span style={{ marginLeft: 'auto', ...ELLIPSIS }}>
-            {sessions[0] ? formatRelativeTime(sessions[0].timestamp, t) : '—'}
+            {sessions[0] ? formatRelativeTime(sessions[0].timestamp, t, resolvedLocale) : '—'}
           </span>
         )}
       </div>

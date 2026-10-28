@@ -111,11 +111,19 @@ export function buildDeptStats(
   return stats
 }
 
-/** Download the department's sessions as JSON — the only bulk action here. */
-export function exportSessionsToFile(deptName: string, sessions: SessionListItem[]): void {
+/**
+ * Download the department's sessions as JSON — the only bulk action here.
+ * `untitled` is passed in rather than baked in: the file is opened by the user,
+ * so its fallback titles belong to the interface language.
+ */
+export function exportSessionsToFile(
+  deptName: string,
+  sessions: SessionListItem[],
+  untitled: string,
+): void {
   const data = sessions.map(s => ({
     id: s.sessionId,
-    title: s.title || s.lastPrompt?.slice(0, 60) || 'Untitled',
+    title: s.title || s.lastPrompt?.slice(0, 60) || untitled,
     lastPrompt: s.lastPrompt,
     messageCount: s.messageCount,
     timestamp: new Date(s.timestamp).toISOString(),

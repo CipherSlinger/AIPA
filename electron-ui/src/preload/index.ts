@@ -82,6 +82,33 @@ export interface SessionSearchResultData {
   messageRole?: 'user' | 'assistant'
 }
 
+/**
+ * One session cited by an "Ask AIPA about your history" answer. It is the
+ * search-row shape plus the excerpt that surfaced it, which is exactly what
+ * `revealSessionEvidence` needs to reopen the matched message.
+ */
+export interface AskHistorySourceData extends SessionSearchResultData {
+  matchType: 'content'
+  /**
+   * The search term the cited excerpt line contains. Pass this — not the whole
+   * question — to `revealSessionEvidence` so the opened transcript highlights
+   * text that is actually on that line.
+   */
+  matchedTerm: string
+}
+
+/** Result of `session:askHistory`. `error` is a code, never engine detail. */
+export interface AskHistoryResultData {
+  ok: boolean
+  answer?: string
+  sources?: AskHistorySourceData[]
+  /** Set when no authenticated engine could run the turn. */
+  available?: boolean
+  reason?: string
+  /** 'invalid_question' | 'busy' | 'aborted' | 'timeout' | 'failed' | 'empty_response' */
+  error?: string
+}
+
 export interface NavPluginManifest {
   id: string
   name: string
@@ -290,6 +317,13 @@ const electronAPI = {
   sessionRewind: (sessionId: string, beforeTimestamp: string) => ipcRenderer.invoke('session:rewind', { sessionId, beforeTimestamp }),
   sessionSearch: (query: string, limit?: number) =>
     ipcRenderer.invoke('session:search', { query, limit }) as Promise<SessionSearchResultData[]>,
+  /** Whether this profile can run an ask turn; the overlay hides the row when not. */
+  sessionAskHistoryStatus: () =>
+    ipcRenderer.invoke('session:askHistoryStatus') as Promise<{ available: boolean; reason?: string }>,
+  sessionAskHistory: ({ question, locale }: { question: string; locale?: string }) =>
+    ipcRenderer.invoke('session:askHistory', { question, locale }) as Promise<AskHistoryResultData>,
+  /** Abort the in-flight ask (the overlay closes mid-run) and free the slot. */
+  sessionAskHistoryCancel: () => ipcRenderer.invoke('session:askHistoryCancel') as Promise<void>,
   sessionDetectInterruption: (sessionId: string) => ipcRenderer.invoke('session:detectInterruption', { sessionId }),
   sessionGetStats: () => ipcRenderer.invoke('session:getStats'),
   /** Returns mtime (ms) of .consolidate-lock — used to detect dream completions */

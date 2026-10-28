@@ -208,8 +208,8 @@ export default function DeptView({
 
   const handleExport = useCallback(() => {
     if (!dept) return
-    exportSessionsToFile(deptDisplayName(dept, resolvedLocale), deptSessions)
-  }, [dept, deptSessions, resolvedLocale])
+    exportSessionsToFile(deptDisplayName(dept, resolvedLocale), deptSessions, t('session.untitled'))
+  }, [dept, deptSessions, resolvedLocale, t])
 
   const openFiles = useCallback(() => {
     if (!dept) return

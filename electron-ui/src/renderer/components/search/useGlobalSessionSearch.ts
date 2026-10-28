@@ -11,14 +11,21 @@ const RESULT_LIMIT = 40
  * an earlier keystroke can never overwrite the results of a later one. The main
  * process cancels superseded scans too; the guard here is the renderer half of
  * that contract.
+ *
+ * `enabled` exists for the "ask about your history" turn: that retrieval runs
+ * `searchSessions` in the main process, and those readers cancel a superseded
+ * scan through a module-level epoch. A keystroke here would start a second
+ * scan and silently empty the ask's digest, so the overlay disables this hook
+ * while the turn is running. Re-enabling runs the current query immediately.
  */
-export function useGlobalSessionSearch(query: string) {
+export function useGlobalSessionSearch(query: string, enabled = true) {
   const [results, setResults] = useState<SessionSearchResultData[]>([])
   const [status, setStatus] = useState<GlobalSearchStatus>('idle')
   const [searchedQuery, setSearchedQuery] = useState('')
   const sequence = useRef(0)
 
   useEffect(() => {
+    if (!enabled) return
     const trimmed = query.trim()
     if (trimmed.length < 2) {
       sequence.current++
@@ -53,7 +60,7 @@ export function useGlobalSessionSearch(query: string) {
     }, DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [query])
+  }, [query, enabled])
 
   return { results, status, searchedQuery }
 }

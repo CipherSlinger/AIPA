@@ -8,6 +8,7 @@
 import React, { useState } from 'react'
 import { Zap, Check, X, ChevronDown, ChevronRight, FileEdit } from 'lucide-react'
 import type { SpeculationState, SpeculationStatus } from '../../hooks/useSpeculation'
+import { useT } from '../../i18n'
 
 interface SpeculationCardProps {
   status: SpeculationStatus
@@ -34,6 +35,7 @@ function IndigoSpinner() {
 
 export default function SpeculationCard({ status, result, onAccept, onReject }: SpeculationCardProps) {
   const [expanded, setExpanded] = useState(false)
+  const t = useT()
 
   if (status === 'idle') return null
 
@@ -50,7 +52,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
         display: 'flex', alignItems: 'center', gap: 8,
       }}>
         <Check size={12} style={{ color: '#4ade80', flexShrink: 0 }} />
-        <span style={{ fontSize: 11, color: 'rgba(34,197,94,0.82)' }}>Speculation accepted</span>
+        <span style={{ fontSize: 11, color: 'rgba(34,197,94,0.82)' }}>{t('speculation.accepted')}</span>
       </div>
     )
   }
@@ -72,7 +74,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
         opacity: 0.60,
       }}>
         <X size={12} style={{ color: '#f87171', flexShrink: 0 }} />
-        <span style={{ fontSize: 11, color: 'rgba(248,113,113,0.60)', textDecoration: 'line-through' }}>Speculation discarded</span>
+        <span style={{ fontSize: 11, color: 'rgba(248,113,113,0.60)', textDecoration: 'line-through' }}>{t('speculation.discarded')}</span>
       </div>
     )
   }
@@ -95,7 +97,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
         <IndigoSpinner />
         <Zap size={11} style={{ color: '#a5b4fc', flexShrink: 0, animation: 'pulse 1.5s ease-in-out infinite' }} />
         <span style={{ fontSize: 11, color: 'rgba(165,180,252,0.82)' }}>
-          Preparing speculative preview…
+          {t('speculation.preparing')}
         </span>
       </div>
     )
@@ -131,7 +133,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Title — opacity 0.82 */}
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(165,180,252,0.82)' }}>
-            Speculative Preview
+            {t('speculation.title')}
           </span>
           {/* Subtitle — opacity 0.60 */}
           <div style={{
@@ -149,7 +151,9 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
               border: '1px solid rgba(99,102,241,0.28)',
               borderRadius: 6, padding: '1px 5px', fontWeight: 600,
             }}>
-              {result.changedFiles.length} file{result.changedFiles.length !== 1 ? 's' : ''}
+              {result.changedFiles.length === 1
+                ? t('speculation.fileOne')
+                : t('speculation.fileMany', { count: result.changedFiles.length })}
             </span>
           )}
           {/* Timestamp / metadata — opacity 0.38 */}
@@ -187,7 +191,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
           {hasTools && (
             <div style={{ marginBottom: 6 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 4 }}>
-                Tool calls ({result.toolActions.length})
+                {t('speculation.toolCalls', { count: result.toolActions.length })}
               </div>
               {result.toolActions.slice(0, 3).map((ta, i) => (
                 <div key={i} style={{
@@ -210,7 +214,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
           {hasFiles && (
             <div style={{ marginBottom: 8 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 4 }}>
-                Files to be modified
+                {t('speculation.filesToModify')}
               </div>
               {result.changedFiles.slice(0, 5).map((f, i) => (
                 <div key={i} style={{
@@ -230,7 +234,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
               ))}
               {result.changedFiles.length > 5 && (
                 <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>
-                  +{result.changedFiles.length - 5} more
+                  {t('speculation.moreFiles', { count: result.changedFiles.length - 5 })}
                 </div>
               )}
             </div>
@@ -259,7 +263,7 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
           onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))' }}
         >
           <Check size={10} />
-          Accept
+          {t('speculation.accept')}
         </button>
         {/* Reject — ghost glass */}
         <button
@@ -284,11 +288,11 @@ export default function SpeculationCard({ status, result, onAccept, onReject }: 
           }}
         >
           <X size={10} />
-          Discard
+          {t('speculation.discard')}
         </button>
         <span style={{ flex: 1 }} />
         <span style={{ fontSize: 9, color: 'var(--text-muted)', alignSelf: 'center' }}>
-          Pre-executed in sandbox
+          {t('speculation.sandboxNote')}
         </span>
       </div>
     </div>
