@@ -3069,6 +3069,32 @@
       "expired": "Timed out — no answer was sent",
       "resolvedShort": "Resolved",
       "expiredShort": "Timed out"
+    },
+    "diff": {
+      "title": "Changes in this turn",
+      "expand": "Show the changes made in this turn",
+      "collapse": "Hide the changes made in this turn",
+      "filesOne": "1 file",
+      "files": "{{count}} files",
+      "copy": "Copy diff",
+      "copied": "Diff copied",
+      "copyFailed": "Couldn't copy the diff",
+      "truncated": "The earlier part of this diff was trimmed — only the end is shown.",
+      "region": "Diff for this turn",
+      "empty": "The diff was empty or couldn't be read.",
+      "showAll": "Show all {{count}} lines"
+    },
+    "thread": {
+      "approval": {
+        "untrusted": "asks before every action",
+        "onRequest": "asks when it needs to",
+        "never": "never asks",
+        "unlessAllowListed": "asks unless allow-listed",
+        "always": "always asks"
+      },
+      "effort": "effort {{level}}",
+      "modelMismatch": "This conversation runs on {{running}}, but the model picker shows {{picker}}.",
+      "settingsAria": "Settings reported by the Codex thread"
     }
   }
 }

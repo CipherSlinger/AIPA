@@ -4,6 +4,8 @@
 import React from 'react'
 import { Calculator } from 'lucide-react'
 import { useT } from '../../i18n'
+import { useChatStore, usePrefsStore } from '../../store'
+import { personaModelOf, resolveEffectiveModel } from '../../lib/sessionModel'
 
 interface ChatInputComposeStatusProps {
   input: string
@@ -11,6 +13,19 @@ interface ChatInputComposeStatusProps {
   calcResult: string | null
   hasInputHistory: boolean
 }
+
+// Codex reports the policy the thread actually runs with. The labels say what
+// it does, not whether it is "safe": `never` means the thread asks nothing.
+const APPROVAL_LABEL_KEYS: Record<string, string> = {
+  untrusted: 'codex.thread.approval.untrusted',
+  'on-request': 'codex.thread.approval.onRequest',
+  never: 'codex.thread.approval.never',
+  // Legacy wire values still emitted by older builds.
+  'unless-allow-listed': 'codex.thread.approval.unlessAllowListed',
+  always: 'codex.thread.approval.always',
+}
+
+const KNOWN_EFFORTS = new Set(['auto', 'low', 'medium', 'high', 'max'])
 
 const SEP = (
   <span style={{
@@ -25,6 +40,26 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
   const t = useT()
   const trimmed = input.trim()
 
+  // What the Codex thread reports (thread/settings/updated). Reported only —
+  // this line never writes prefs or changes what a turn sends.
+  const threadSettings = useChatStore(s => s.threadSettings)
+  const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
+  const sessionModelOverride = useChatStore(s => s.sessionModelOverride)
+  const pickerModel = usePrefsStore(s =>
+    resolveEffectiveModel(s.prefs.model, personaModelOf(s.prefs, sessionPersonaId), sessionModelOverride)
+  )
+
+  const reportedModel = threadSettings?.model ?? null
+  const approvalPolicy = threadSettings?.approvalPolicy ?? null
+  const approvalKey = approvalPolicy ? APPROVAL_LABEL_KEYS[approvalPolicy] : undefined
+  const approvalLabel = approvalPolicy ? (approvalKey ? t(approvalKey) : approvalPolicy) : null
+  const effort = threadSettings?.effort ?? null
+  const effortLabel = effort ? (KNOWN_EFFORTS.has(effort) ? t(`effort.${effort}`) : effort) : null
+  const modelMismatch = !!reportedModel && !!pickerModel && reportedModel !== pickerModel
+  // A settings report whose fields were all null has nothing to say; do not
+  // render an empty strip for it.
+  const hasThreadLine = !!(reportedModel || approvalLabel || effortLabel)
+
   const isOverLimit = input.length > 10000
   const isNearLimit = input.length > 5000
 
@@ -32,6 +67,56 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
 
   return (
     <>
+      {/* Settings the Codex thread actually runs with. Nothing here is
+          interactive: the picker above stays the only way to change a model. */}
+      {threadSettings && hasThreadLine && (
+        <div
+          role="status"
+          aria-label={t('codex.thread.settingsAria')}
+          style={{
+            display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6,
+            padding: '2px 12px',
+            background: 'var(--glass-bg-mid)',
+            borderTop: '1px solid var(--border)',
+            lineHeight: 1.5,
+          }}
+        >
+          {reportedModel && (
+            <span
+              title={reportedModel}
+              style={{
+                fontSize: 10, color: 'var(--text-muted)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                maxWidth: 220,
+              }}
+            >
+              {reportedModel}
+            </span>
+          )}
+          {modelMismatch && (
+            <span
+              aria-label={t('codex.thread.modelMismatch', { running: reportedModel ?? '', picker: pickerModel })}
+              title={t('codex.thread.modelMismatch', { running: reportedModel ?? '', picker: pickerModel })}
+              style={{
+                display: 'inline-block', width: 5, height: 5, borderRadius: '50%',
+                background: 'var(--warning-text)', flexShrink: 0,
+              }}
+            />
+          )}
+          {reportedModel && (approvalLabel || effortLabel) && SEP}
+          {approvalLabel && (
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+              {approvalLabel}
+            </span>
+          )}
+          {approvalLabel && effortLabel && SEP}
+          {effortLabel && (
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+              {t('codex.thread.effort', { level: effortLabel })}
+            </span>
+          )}
+        </div>
+      )}
       {/* Compose status */}
       {trimmed.length > 0 && (
         <div style={{

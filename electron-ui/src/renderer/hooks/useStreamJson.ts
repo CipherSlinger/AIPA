@@ -84,6 +84,52 @@ function isResultForActiveConversation(data: unknown, activeBridgeId: string | n
   return engineSessionId === current || bridgeSessionId === current
 }
 
+/**
+ * Thread-level Codex reports (`thread/settings/updated`) describe the whole
+ * conversation, not a turn: they can arrive right after `thread/start`, before
+ * any delta exists, so the turn-scoped ownership rule below would drop them.
+ * They must still never be applied to another conversation's view: accept only
+ * the bridge this composer started, or — when no bridge is live — an event that
+ * names the conversation already on screen.
+ */
+function isThreadReportForActiveConversation(data: unknown, activeBridgeId: string | null): boolean {
+  const d = data as { sessionId?: unknown } | null
+  const sid = typeof d?.sessionId === 'string' ? d.sessionId : ''
+  if (!sid) return false
+  const store = useChatStore.getState()
+  const orphan = store.orphanedStream
+  if (orphan && sid === orphan.bridgeId) return orphan.visible
+  if (activeBridgeId && sid === activeBridgeId) return true
+  const current = store.currentSessionId
+  // No open conversation: this report belongs to nobody on screen.
+  if (!current) return false
+  // A brand-new conversation has no session id yet, and `thread/start`'s
+  // settings report can arrive before `cliSendMessage` returns the bridge id.
+  // The read-only settings are safe to accept in that window; an older
+  // conversation's report is not.
+  if (current.startsWith('pending-')) return true
+  return sid === current
+}
+
+/**
+ * `sandboxPolicy` is an object in current Codex builds and a plain string in
+ * older ones. Keep a short label; the store must never hold protocol internals
+ * that the renderer would be tempted to print raw.
+ */
+function compactSandboxPolicy(value: unknown): string | null {
+  if (typeof value === 'string') return value || null
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>
+    const kind = record.type ?? record.kind ?? record.mode
+    if (typeof kind === 'string' && kind) return kind
+  }
+  return null
+}
+
+function compactString(value: unknown): string | null {
+  return typeof value === 'string' && value ? value : null
+}
+
 // Write a permanent allow/deny rule to ~/.claude/settings.json
 async function writePermissionRule(type: 'allow' | 'deny', toolName: string, toolInput: Record<string, unknown>) {
   const rule = buildPermissionRule(toolName, toolInput)
@@ -1113,6 +1159,48 @@ export function useStreamJson() {
           if (typeof d.requestId === 'string' && d.requestId) {
             useChatStore.getState().settleServerRequest(d.requestId, 'expired')
           }
+          break
+        }
+        case 'cli:messageStart': {
+          // `turn/started` from Codex. A new turn owns the transcript now, so
+          // the previous turn's aggregate diff must not sit under its answer.
+          const sid = typeof data.sessionId === 'string' ? data.sessionId : ''
+          if (sid && useChatStore.getState().isOwnedStreamEvent(sid)) {
+            useChatStore.getState().clearTurnDiff()
+          }
+          break
+        }
+        case 'cli:turnDiffUpdated': {
+          // Codex's own aggregate patch for the turn — it includes changes made
+          // by shell commands, which the per-tool cards cannot show. It belongs
+          // to a turn, so the deltas' ownership rule applies: only the bridge
+          // this composer started may paint this view.
+          const sid = typeof data.sessionId === 'string' ? data.sessionId : ''
+          if (!useChatStore.getState().isOwnedStreamEvent(sid)) break
+          const diff = typeof data.diff === 'string' ? data.diff : ''
+          if (!diff) break
+          useChatStore.getState().setTurnDiff({
+            sessionId: sid,
+            threadId: compactString(data.threadId),
+            turnId: compactString(data.turnId),
+            diff,
+            truncated: data.truncated === true,
+          })
+          break
+        }
+        case 'cli:threadSettingsUpdated': {
+          // The settings the thread is actually running with. Reported, never
+          // applied: writing `prefs.model` from here would silently change what
+          // the next turn sends.
+          if (!isThreadReportForActiveConversation(data, activeBridgeIdRef.current)) break
+          const settings = (data.settings ?? {}) as Record<string, unknown>
+          useChatStore.getState().setThreadSettings({
+            model: compactString(settings.model),
+            modelProvider: compactString(settings.modelProvider),
+            approvalPolicy: compactString(settings.approvalPolicy),
+            effort: compactString(settings.effort),
+            sandboxPolicy: compactSandboxPolicy(settings.sandboxPolicy),
+          })
           break
         }
         case 'cli:apiError': {

@@ -39,6 +39,37 @@ export interface TabInfo {
   cwd?: string
 }
 
+// ── Codex turn diff (turn/diff/updated) ──────────
+/**
+ * The aggregate patch for the turn. Authoritative in a way the file-edit tool
+ * cards are not: it also contains changes made by shell commands. Kept beside
+ * the transcript, never inside it — `messages` is persisted and re-parsed by
+ * the session readers, and a synthetic diff message would poison both.
+ */
+export interface TurnDiffUpdate {
+  sessionId: string
+  threadId: string | null
+  turnId: string | null
+  /** Unified-diff text, already tail-limited by the bridge (32 KiB). */
+  diff: string
+  /** `true` means the beginning of the diff is missing, not the end. */
+  truncated: boolean
+}
+
+// ── Codex thread settings (thread/settings/updated) ──
+/**
+ * Only the compact, user-meaningful fields. Null means Codex did not report
+ * that field; `sandboxPolicy` is stringified to a short label because the
+ * protocol value is sometimes an object.
+ */
+export interface ThreadSettingsSummary {
+  model: string | null
+  modelProvider: string | null
+  approvalPolicy: string | null
+  effort: string | null
+  sandboxPolicy: string | null
+}
+
 // ── Streaming buffer for throttled delta accumulation ──
 // Append-only: chunks are pushed onto the buffered arrays and handed to the
 // streaming message's `_contentChunks` in place. The expensive `.join('')` over
@@ -344,6 +375,19 @@ interface ChatState {
   addChangedFile: (filePath: string, toolName: string) => void
   clearChangedFiles: () => void
 
+  // Codex aggregate turn diff — see TurnDiffUpdate. Cleared with the
+  // conversation and when a new turn starts, so a finished turn's card cannot
+  // sit under the next turn's answer.
+  turnDiff: TurnDiffUpdate | null
+  setTurnDiff: (update: TurnDiffUpdate | null) => void
+  clearTurnDiff: () => void
+
+  // Settings the Codex thread actually runs with (model / approval / effort).
+  // Read-only reporting: nothing here drives what a turn sends.
+  threadSettings: ThreadSettingsSummary | null
+  setThreadSettings: (settings: ThreadSettingsSummary | null) => void
+  clearThreadSettings: () => void
+
   // Temporary system prompt override (Iteration 523): set per-session, cleared on new conversation
   tempSystemPrompt: string | null
   setTempSystemPrompt: (prompt: string | null) => void
@@ -447,6 +491,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   sessionModelOverride: undefined,
   isPlanMode: false,
   changedFiles: [],
+  turnDiff: null,
+  threadSettings: null,
   tempSystemPrompt: null,
   hookEvents: [],
   dreamEvents: [],
@@ -654,6 +700,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       sessionModelOverride: undefined,
       isPlanMode: false,
       changedFiles: [],
+      turnDiff: null,
+      threadSettings: null,
       tempSystemPrompt: null,
       hookEvents: [],
       dreamEvents: [],
@@ -1031,6 +1079,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   }),
   clearChangedFiles: () => set({ changedFiles: [] }),
+  setTurnDiff: (turnDiff) => set({ turnDiff }),
+  clearTurnDiff: () => set({ turnDiff: null }),
+  setThreadSettings: (threadSettings) => set({ threadSettings }),
+  clearThreadSettings: () => set({ threadSettings: null }),
 
   // Temp system prompt override (Iteration 523)
   setTempSystemPrompt: (prompt) => set({ tempSystemPrompt: prompt }),
@@ -1189,6 +1241,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         sessionPersonaId: undefined,
         sessionModelOverride: undefined,
         isPlanMode: false,
+        turnDiff: null,
+        threadSettings: null,
         tempSystemPrompt: null,
       })
       return
@@ -1215,6 +1269,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
             modelUsage: sole.snapshot.modelUsage,
             sessionPersonaId: sole.snapshot.sessionPersonaId,
             sessionModelOverride: sole.snapshot.sessionModelOverride,
+            // A turn diff belongs to the conversation that produced it; the
+            // snapshot does not carry one, so the reopened tab starts clean.
+            turnDiff: null,
+            threadSettings: null,
             isStreaming: false,
           })
         } else {
@@ -1252,6 +1310,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
           modelUsage: newActive.snapshot.modelUsage,
           sessionPersonaId: newActive.snapshot.sessionPersonaId,
           sessionModelOverride: newActive.snapshot.sessionModelOverride,
+          turnDiff: null,
+          threadSettings: null,
           isStreaming: false,
         })
       } else {
@@ -1315,6 +1375,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         modelUsage: targetTab.snapshot.modelUsage,
         sessionPersonaId: targetTab.snapshot.sessionPersonaId,
         sessionModelOverride: targetTab.snapshot.sessionModelOverride,
+        turnDiff: null,
+        threadSettings: null,
         isStreaming: false,
       })
     } else {

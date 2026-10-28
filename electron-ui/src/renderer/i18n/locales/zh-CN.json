@@ -3069,6 +3069,32 @@
       "expired": "已超时，未发送任何回答",
       "resolvedShort": "已处理",
       "expiredShort": "已超时"
+    },
+    "diff": {
+      "title": "本轮改动",
+      "expand": "展开本轮改动",
+      "collapse": "收起本轮改动",
+      "filesOne": "1 个文件",
+      "files": "{{count}} 个文件",
+      "copy": "复制改动",
+      "copied": "已复制改动",
+      "copyFailed": "复制改动失败",
+      "truncated": "这段改动的前半部分已被截断，只显示末尾部分。",
+      "region": "本轮改动内容",
+      "empty": "改动内容为空或无法解析。",
+      "showAll": "显示全部 {{count}} 行"
+    },
+    "thread": {
+      "approval": {
+        "untrusted": "每次操作前都询问",
+        "onRequest": "需要时才询问",
+        "never": "从不询问",
+        "unlessAllowListed": "除白名单外都会询问",
+        "always": "总是询问"
+      },
+      "effort": "思考强度 {{level}}",
+      "modelMismatch": "本会话实际运行在 {{running}}，而模型选择器显示 {{picker}}。",
+      "settingsAria": "Codex 会话报告的设置"
     }
   }
 }

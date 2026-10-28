@@ -7,7 +7,7 @@ import { AppPrefs, PermissionMode, SessionListItem } from '../types/app.types'
 
 // ── Re-exports from sub-modules ──────────────────
 export { useChatStore } from './chatStore'
-export type { TaskQueueItem, TabInfo, TabSnapshot } from './chatStore'
+export type { TaskQueueItem, TabInfo, TabSnapshot, TurnDiffUpdate, ThreadSettingsSummary } from './chatStore'
 export { getTabScrollTop } from './chatStore'
 
 export { useUiStore } from './uiStore'

@@ -33,6 +33,7 @@ import ExportDialog from './ExportDialog'
 import ToolApprovalDialog from './ToolApprovalDialog'
 import PlanApprovalCard from './PlanApprovalCard'
 import DreamTaskCard from './DreamTaskCard'
+import TurnDiffCard from './TurnDiffCard'
 import { getTemplateById } from '../../utils/promptTemplates'
 import { useT } from '../../i18n'
 import { useIdleReturn } from '../../hooks/useIdleReturn'
@@ -572,6 +573,11 @@ export default function ChatPanel() {
         </div>
         {isStreaming && <ThinkingIndicator />}
       </div>
+
+      {/* Codex aggregate diff for the turn. A sibling *after* MessageList, not
+          a message: inserting it into the transcript would move the list's
+          scroll anchor and poison the persisted session shape. */}
+      <TurnDiffCard />
 
       {/* Regenerate button with model picker (extracted Iteration 441) */}
       {canRegenerate && (
