@@ -14,7 +14,7 @@
     var root = document.createElement('div')
     main.innerHTML = ''
     main.appendChild(root)
-    main.scrollTop = 0
+    window.scrollTo(0, 0)
     current = name
     tabs.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('active', t.getAttribute('data-view') === name) })
     WC.views[name].mount(root)

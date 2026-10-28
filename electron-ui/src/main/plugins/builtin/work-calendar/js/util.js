@@ -53,6 +53,15 @@
     d.setDate(d.getDate() - offset)
     return toKey(d)
   }
+  /** ISO-8601 week number (week 1 is the week holding the first Thursday). */
+  function isoWeek(key) {
+    var d = parseKey(key)
+    var thursday = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+    thursday.setDate(thursday.getDate() - ((thursday.getDay() + 6) % 7) + 3)
+    var firstThursday = new Date(thursday.getFullYear(), 0, 4)
+    firstThursday.setDate(firstThursday.getDate() - ((firstThursday.getDay() + 6) % 7) + 3)
+    return 1 + Math.round((thursday - firstThursday) / (7 * 86400000))
+  }
   function monthStart(year, month) { return toKey(new Date(year, month, 1)) }
   function monthEnd(year, month) { return toKey(new Date(year, month + 1, 0)) }
   function dayDiff(fromKey, toKeyStr) {
@@ -78,7 +87,7 @@
 
   WC.date = {
     pad: pad, toKey: toKey, parseKey: parseKey, todayKey: todayKey, addDays: addDays,
-    weekStart: weekStart, monthStart: monthStart, monthEnd: monthEnd, dayDiff: dayDiff,
+    weekStart: weekStart, isoWeek: isoWeek, monthStart: monthStart, monthEnd: monthEnd, dayDiff: dayDiff,
     weekdayLabel: weekdayLabel, fmtCN: fmtCN, fmtDot: fmtDot, fmtDateTime: fmtDateTime, isDateKey: isDateKey,
   }
 
@@ -108,11 +117,14 @@
   WC.PRIORITY_BADGE = { low: 'badge-outline', medium: '', high: 'badge-warn', urgent: 'badge-danger' }
   WC.REPORT_TYPE = { weekly: WC.L('周报', 'Weekly'), monthly: WC.L('月报', 'Monthly') }
 
-  var BAR_COLORS = ['#3b82f6', '#6366f1', '#8b5cf6', '#0ea5e9', '#14b8a6', '#0891b2']
-  WC.barColor = function (id) {
+  // Bar palette lives in style.css (--bar-1 … --bar-6) so a re-theme is one edit.
+  // Tasks bound to the same work source share a hue; unbound tasks hash by id.
+  var BAR_SLOTS = 6
+  WC.taskColor = function (task) {
+    var key = String((task && (task.workSourceId || task.id)) || '')
     var hash = 0
-    for (var i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) % 997
-    return BAR_COLORS[hash % BAR_COLORS.length]
+    for (var i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) % 997
+    return 'var(--bar-' + (hash % BAR_SLOTS + 1) + ')'
   }
 
   WC.options = function (map, selected) {

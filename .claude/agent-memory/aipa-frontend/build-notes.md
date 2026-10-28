@@ -1,8 +1,12 @@
 # 构建注意事项
 
-## 重要：npm run build 会 segfault
+## 2026-10-28 验证：`npm run build` 当前可正常完成
 
-在此机器上 `npm run build` 会导致 segfault，必须分步执行：
+在 Windows 开发机（electron-ui/）上连续三次完整执行 `npm run build`
+（icons → main → plugins → clawd → preload → renderer）均在 ~8s 内成功，
+没有 segfault。此前记录的 segfault 可能是旧 Linux 环境或内存压力导致。
+
+分步构建仍可作为 fallback：
 
 ```bash
 # 在 electron-ui/ 目录下

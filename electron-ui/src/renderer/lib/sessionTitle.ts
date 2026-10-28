@@ -13,8 +13,15 @@
 const WRAPPER_RE = /<\/?(?:command-name|command-args|command-message|local-command-stdout|local-command-stderr|local-command-caveat|bash-input|bash-stdout|bash-stderr|user-prompt-submit-hook|system-reminder|task-notification)\b/i
 const IMAGE_MARKER_RE = /\[Image(?:\s*#[0-9]+|\s*:[^\]]*)\]/gi
 const INTERRUPTED_RE = /\[Request interrupted by user[^\]]*\]/gi
-const BARE_COMMAND_RE = /^(?:[>❯]\s*)?\/[a-z][\w-]*$/i
+const BARE_COMMAND_RE = /^(?:[>❯›]\s*)?\/[a-z][\w-]*$/i
 const UNTITLED_RE = /^untitled(?: session)?$/i
+/** Terminal chrome the CLI records in front of a message the user typed. */
+const PROMPT_GLYPH_RE = /^[>❯›]\s+/
+
+/** Remove a leading shell-prompt glyph, leaving the words the user typed. */
+function stripPromptGlyph(line: string): string {
+  return line.replace(PROMPT_GLYPH_RE, '').trim()
+}
 
 /** True when a stored title or preview is transcript noise, not user intent. */
 export function isNoisyTitle(text: string | null | undefined): boolean {
@@ -42,7 +49,10 @@ export function displayTitle(
   untitled: string,
   maxLen?: number,
 ): string {
-  const stored = session.title?.trim() ?? ''
+  // A stale stored title can still carry the shell glyph the CLI echoed in
+  // front of the first message, so the same rule applies here as in the main
+  // process.
+  const stored = stripPromptGlyph(session.title?.trim() ?? '')
   const prompt = isNoisyTitle(session.lastPrompt) ? '' : firstMeaningfulLine(session.lastPrompt)
   const title = !isNoisyTitle(stored) ? stored : prompt
   const result = title || untitled
@@ -53,11 +63,13 @@ export function displayTitle(
 function firstMeaningfulLine(text: string | null | undefined): string {
   if (!text) return ''
   for (const line of text.split('\n')) {
-    const cleaned = line
-      .replace(IMAGE_MARKER_RE, ' ')
-      .replace(INTERRUPTED_RE, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
+    const cleaned = stripPromptGlyph(
+      line
+        .replace(IMAGE_MARKER_RE, ' ')
+        .replace(INTERRUPTED_RE, ' ')
+        .replace(/\s+/g, ' ')
+        .trim(),
+    )
     if (cleaned && !BARE_COMMAND_RE.test(cleaned)) return cleaned
   }
   return ''

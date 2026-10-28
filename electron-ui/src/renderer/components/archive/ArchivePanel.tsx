@@ -12,7 +12,7 @@
 // ledger into a row of 研发部 / 前端组 / 后端组 groups with no visible relation;
 // the leaf is shown per record instead, and the group is the company.
 
-import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   Archive,
   ArrowUpDown,
@@ -30,6 +30,7 @@ import { useT, useI18n } from '../../i18n'
 import { deptByNormDir, deptBySlug, deptEmoji, findDeptForSession, kindOf, rootOf } from '../departments/deptUtils'
 import { openSessionCore } from '../departments/openSessionCore'
 import { displayTitle } from '../../lib/sessionTitle'
+import { CommandOnlyNotice, EmptyState, Pill } from './ArchiveChrome'
 
 const ELLIPSIS: React.CSSProperties = {
   overflow: 'hidden',
@@ -42,6 +43,27 @@ type TimeRange = 'all' | 'today' | 'week' | 'month'
 const UNASSIGNED = '__unassigned__'
 /** Stable empty fallback for an unset `archivedSessions` pref. */
 const EMPTY_ARCHIVED: string[] = []
+
+/**
+ * A transcript that never contains a human-authored message still produces a
+ * listing entry: slash commands, `/clear`, `/exit` and harness wrappers all
+ * arrive as user entries, so the title resolves to the untitled fallback.
+ * Such runs are command-bookkeeping, not work. The message count is what keeps
+ * this honest — a long session whose title merely failed to resolve is real
+ * work and must stay in the ledger.
+ */
+const COMMAND_ONLY_MAX_MESSAGES = 4
+/** Remembers the "show command-only rows" choice between launches. */
+const SHOW_COMMAND_ONLY_KEY = 'aipa:archive-showCommandOnly'
+
+/** localStorage can be unavailable (privacy modes, locked profiles); default off. */
+function readShowCommandOnly(): boolean {
+  try {
+    return window.localStorage.getItem(SHOW_COMMAND_ONLY_KEY) === '1'
+  } catch {
+    return false
+  }
+}
 
 // ── Fixed geometry ───────────────────────────────────────────────────────────
 // The ledger is windowed, so every block's size has to be known without
@@ -66,6 +88,8 @@ interface ArchiveRecord {
   /** The top of that node's branch — what the record is grouped under. */
   root: Department | null
   archived: boolean
+  /** No human-authored message in the transcript — a run of commands only. */
+  commandOnly: boolean
 }
 
 interface ArchiveGroup {
@@ -91,30 +115,6 @@ function recordTitle(session: SessionListItem, untitled: string): string {
   return displayTitle(session, untitled)
 }
 
-function Pill({
-  active, onClick, children,
-}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  const [hovered, setHovered] = useState(false)
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        padding: '3px 9px', borderRadius: 999, fontSize: 11, cursor: 'pointer',
-        border: `1px solid ${active ? 'rgba(99,102,241,0.5)' : 'var(--border)'}`,
-        background: active ? 'rgba(99,102,241,0.14)' : hovered ? 'var(--bg-hover)' : 'transparent',
-        color: active ? '#818cf8' : 'var(--text-muted)',
-        fontWeight: active ? 600 : 400,
-        transition: 'all 0.15s ease',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {children}
-    </button>
-  )
-}
-
 export default function ArchivePanel() {
   const t = useT()
   const { resolvedLocale } = useI18n()
@@ -134,6 +134,14 @@ export default function ArchivePanel() {
   const [query, setQuery] = useState('')
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [opening, setOpening] = useState<string | null>(null)
+  const [showCommandOnly, setShowCommandOnly] = useState<boolean>(readShowCommandOnly)
+
+  // Remember the reveal choice; the toggle itself still works if storage throws.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SHOW_COMMAND_ONLY_KEY, showCommandOnly ? '1' : '0')
+    } catch { /* the choice still applies for this session */ }
+  }, [showCommandOnly])
 
   const archivedSet = useMemo(() => new Set(archivedSessions), [archivedSessions])
   const slugIndex = useMemo(() => deptBySlug(departments), [departments])
@@ -141,6 +149,7 @@ export default function ArchivePanel() {
   const byId = useMemo(() => new Map(departments.map(d => [d.id, d])), [departments])
 
   // Every session is a record. Attribution is a lookup, never stored.
+  const untitled = t('session.untitled')
   const allRecords: ArchiveRecord[] = useMemo(
     () => sessions.map(session => {
       const dept = findDeptForSession(session, slugIndex, dirIndex, homeDir)
@@ -149,24 +158,48 @@ export default function ArchivePanel() {
         dept,
         root: dept ? rootOf(dept, byId) : null,
         archived: archivedSet.has(session.sessionId),
+        // An untitled label means no human message named the session; the
+        // count then separates a command echo from a real run with a lost title.
+        commandOnly: displayTitle(session, untitled) === untitled
+          && (session.messageCount ?? 0) <= COMMAND_ONLY_MAX_MESSAGES,
       }
     }),
-    [sessions, slugIndex, dirIndex, homeDir, archivedSet, byId],
+    [sessions, slugIndex, dirIndex, homeDir, archivedSet, byId, untitled],
   )
 
-  const records = useMemo(() => {
-    const q = query.trim().toLowerCase()
+  const queryText = query.trim().toLowerCase()
+  const searching = queryText.length > 0
+
+  // Everything except the search box and the command-only suppression. These
+  // two are applied separately because the hidden count must not depend on the
+  // text being searched, and search must be able to see command-only records.
+  const scopedRecords = useMemo(() => {
     const cutoff = timeRange === 'all' ? 0 : Date.now() - TIME_WINDOWS[timeRange]
     return allRecords.filter(r => {
       if (!showArchived && r.archived) return false
       if (timeRange !== 'all' && r.session.timestamp < cutoff) return false
       // The filter picks a branch, so anything anywhere under it matches.
       if (deptFilter === UNASSIGNED ? r.dept !== null : deptFilter !== 'all' && r.root?.id !== deptFilter) return false
-      if (!q) return true
-      const haystack = `${r.session.title || ''}\n${r.session.lastPrompt || ''}\n${r.session.project || ''}`
-      return haystack.toLowerCase().includes(q)
+      return true
     })
-  }, [allRecords, query, timeRange, showArchived, deptFilter])
+  }, [allRecords, timeRange, showArchived, deptFilter])
+
+  const commandOnlyCount = useMemo(
+    () => scopedRecords.filter(r => r.commandOnly).length,
+    [scopedRecords],
+  )
+
+  const records = useMemo(() => {
+    const matched = searching
+      ? scopedRecords.filter(r => {
+          const haystack = `${r.session.title || ''}\n${r.session.lastPrompt || ''}\n${r.session.project || ''}`
+          return haystack.toLowerCase().includes(queryText)
+        })
+      : scopedRecords
+    // A search that hit a command-only transcript must report the hit; hiding
+    // it behind the default filter would read as "nothing matches".
+    return searching || showCommandOnly ? matched : matched.filter(r => !r.commandOnly)
+  }, [scopedRecords, searching, queryText, showCommandOnly])
 
   // Group by the top of each branch, newest-worked group first, 未分派 last.
   const groups: ArchiveGroup[] = useMemo(() => {
@@ -238,12 +271,15 @@ export default function ArchivePanel() {
     })
   }, [groups, collapsed])
 
+  // The header counts what the ledger shows. When command-only rows are hidden,
+  // the notice below the list accounts for the difference instead of the header
+  // quietly reporting a total the user cannot see.
   const summary = useMemo(() => {
     const weekCutoff = Date.now() - TIME_WINDOWS.week
-    const week = allRecords.filter(r => r.session.timestamp >= weekCutoff).length
-    const rootIds = new Set(allRecords.map(r => r.root?.id).filter(Boolean) as string[])
-    return { total: allRecords.length, roots: rootIds.size, week }
-  }, [allRecords])
+    const week = records.filter(r => r.session.timestamp >= weekCutoff).length
+    const rootIds = new Set(records.map(r => r.root?.id).filter(Boolean) as string[])
+    return { total: records.length, roots: rootIds.size, week }
+  }, [records])
 
   /** The filter's options — one per branch that actually holds work. */
   const filterTargets = useMemo(() => {
@@ -252,10 +288,13 @@ export default function ArchivePanel() {
     return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name))
   }, [allRecords])
 
-  const unassignedCount = useMemo(
-    () => allRecords.filter(r => r.dept === null).length,
-    [allRecords],
-  )
+  // Keep the footer's number aligned with the visible ledger: hidden command
+  // rows are still counted by `allRecords`, and reporting them here would
+  // contradict the header directly above.
+  const unassignedCount = useMemo(() => {
+    const hidingCommandOnly = !searching && !showCommandOnly
+    return allRecords.filter(r => r.dept === null && !(hidingCommandOnly && r.commandOnly)).length
+  }, [allRecords, searching, showCommandOnly])
 
   const open = useCallback(async (record: ArchiveRecord) => {
     setOpening(record.session.sessionId)
@@ -274,6 +313,10 @@ export default function ArchivePanel() {
     setPrefs({ archivedSessions: next })
     window.electronAPI.prefsSet('archivedSessions', next)
   }, [setPrefs])
+
+  const toggleCommandOnly = useCallback(() => {
+    setShowCommandOnly(v => !v)
+  }, [])
 
   const exportLedger = useCallback(() => {
     const data = groups.map(group => ({
@@ -425,7 +468,7 @@ export default function ArchivePanel() {
             title={t('archive.emptyTitle')}
             hint={t('archive.emptyHint')}
           />
-        ) : records.length === 0 ? (
+        ) : records.length === 0 && (searching || showCommandOnly || commandOnlyCount === 0) ? (
           <EmptyState
             icon={<Search size={30} style={{ color: '#6366f1', opacity: 0.45 }} />}
             title={t('archive.noMatchTitle')}
@@ -514,6 +557,17 @@ export default function ArchivePanel() {
         )}
       </div>
 
+      {/* Pinned just above the footer hint: the count has to be readable next
+          to the header it explains, not buried after thousands of rows. */}
+      {!searching && commandOnlyCount > 0 && (
+        <CommandOnlyNotice
+          count={commandOnlyCount}
+          shown={showCommandOnly}
+          onToggle={toggleCommandOnly}
+          t={t}
+        />
+      )}
+
       {unassignedCount > 0 && deptFilter === 'all' && (
         <div style={{
           flexShrink: 0, padding: '7px 16px', borderTop: '1px solid var(--bg-hover)',
@@ -521,35 +575,6 @@ export default function ArchivePanel() {
         }}>
           {t('archive.unassignedHint', { count: String(unassignedCount) })}
         </div>
-      )}
-    </div>
-  )
-}
-
-function EmptyState({
-  icon, title, hint, onClear, clearLabel,
-}: { icon: React.ReactNode; title: string; hint: string; onClear?: () => void; clearLabel?: string }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '56px 20px', textAlign: 'center' }}>
-      <div style={{
-        width: 68, height: 68, borderRadius: 20,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.16)',
-      }}>
-        {icon}
-      </div>
-      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-secondary)' }}>{title}</div>
-      <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.65, maxWidth: 340 }}>{hint}</div>
-      {onClear && (
-        <button
-          onClick={onClear}
-          style={{
-            padding: '6px 14px', borderRadius: 8, fontSize: 12, cursor: 'pointer',
-            border: '1px solid var(--border)', background: 'var(--bg-hover)', color: 'var(--text-secondary)',
-          }}
-        >
-          {clearLabel}
-        </button>
       )}
     </div>
   )
@@ -591,7 +616,9 @@ function ArchiveRow({
         padding: '0 12px', cursor: 'pointer',
         borderTop: first ? 'none' : '1px solid var(--bg-active)',
         background: hovered ? 'var(--bg-active)' : 'transparent',
-        opacity: record.archived ? 0.55 : 1,
+        // Command-only rows are revealable, never promoted: they read as
+        // background, which is what they are.
+        opacity: record.archived || record.commandOnly ? 0.55 : 1,
         transition: 'background 0.15s ease',
       }}
     >
@@ -605,6 +632,15 @@ function ArchiveRow({
       }}>
         {title}
       </span>
+
+      {record.commandOnly && (
+        <span style={{
+          flexShrink: 0, fontSize: 9, padding: '1px 6px', borderRadius: 999,
+          border: '1px solid var(--border)', color: 'var(--text-faint)',
+        }}>
+          {t('archive.commandOnlyTag')}
+        </span>
+      )}
 
       {record.archived && (
         <span style={{

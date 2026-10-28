@@ -55,11 +55,23 @@ const INTERRUPTED_RE = /\[Request interrupted by user[^\]]*\]/gi
  * command echoed back from a shell prompt ("❯ /clear"), which the CLI records
  * verbatim.
  */
-const BARE_COMMAND_RE = /^(?:[>❯]\s*)?\/[a-z][\w-]*$/i
+const BARE_COMMAND_RE = /^(?:[>❯›]\s*)?\/[a-z][\w-]*$/i
+/**
+ * A shell prompt glyph the CLI echoes in front of a typed message. It is
+ * terminal chrome, not part of what the human wrote, so a title drops it when
+ * prose follows. A glyph followed by only a command is handled by
+ * BARE_COMMAND_RE and stays noise.
+ */
+const PROMPT_GLYPH_RE = /^[>❯›]\s+/
 
 /** Strip the placeholder tokens that stand in for attachments and aborts. */
 function stripMarkers(text: string): string {
   return text.replace(IMAGE_MARKER_RE, ' ').replace(INTERRUPTED_RE, ' ')
+}
+
+/** Remove a leading shell-prompt glyph, leaving the words the user typed. */
+function stripPromptGlyph(line: string): string {
+  return line.replace(PROMPT_GLYPH_RE, '').trim()
 }
 
 /** True when every non-empty line is a command, not a message. */
@@ -117,10 +129,11 @@ export function deriveTitle(text: string, maxLen = 80): string {
   if (!cleaned) return ''
 
   // Skip command echoes and marker-only lines so neither "❯ /clear" nor a
-  // pasted image placeholder on line one names the session.
+  // pasted image placeholder on line one names the session. A prompt glyph in
+  // front of real prose is stripped before it can leak into the label.
   const firstLine = cleaned
     .split('\n')
-    .map(line => stripMarkers(line).replace(/[^\S\n]+/g, ' ').trim())
+    .map(line => stripPromptGlyph(stripMarkers(line).replace(/[^\S\n]+/g, ' ').trim()))
     .find(line => line && !BARE_COMMAND_RE.test(line)) ?? ''
   if (!firstLine) return ''
   const withoutEllipsis = firstLine.replace(/(?:\.{3}|…)+$/, '').trim() || firstLine

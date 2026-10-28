@@ -5,6 +5,7 @@
 - [build-notes.md](./build-notes.md) — 构建命令注意事项
 - [tech-constraints.md](./tech-constraints.md) — 技术约束与已知债务
 - [screenshot-harness-dpi.md](./screenshot-harness-dpi.md) — Windows 截图工具在 150% 缩放下会裁掉窗口右侧，看起来像 UI 溢出
+- [plugin-harness-notes.md](./plugin-harness-notes.md) — builtin 插件改完要 bump 版本或删已安装副本；插件暗色 pref 是 vscode
 
 ## Quick Reference
 

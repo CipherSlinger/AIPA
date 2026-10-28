@@ -12,7 +12,7 @@
   var gen = WC.gen
 
   var LANE_TOP = 30
-  var LANE_HEIGHT = 18
+  var LANE_HEIGHT = 24
   var WEEK_NAMES = WC.WEEKDAY_SHORT
 
   var view = {
@@ -112,7 +112,7 @@
         if (!s.after) cls.push('round-r')
         if (t.status === 'done') cls.push('done')
         return '<button class="' + cls.join(' ') + '" data-act="edit-task" data-id="' + t.id + '" title="' +
-          WC.esc(t.title + WC.L('（', ' (') + s.span.startKey + WC.L(' 至 ', ' to ') + s.span.endKey + WC.L('）', ')')) + '" style="background:' + WC.barColor(t.id) +
+          WC.esc(t.title + WC.L('（', ' (') + s.span.startKey + WC.L(' 至 ', ' to ') + s.span.endKey + WC.L('）', ')')) + '" style="--bar-c:' + WC.taskColor(t) +
           ';left:calc(' + (s.startIdx / 7 * 100) + '% + 2px);width:calc(' + ((s.endIdx - s.startIdx + 1) / 7 * 100) + '% - 4px);top:' + (s.lane * LANE_HEIGHT) + 'px">' +
           (s.before ? '' : WC.esc(t.title)) + '</button>'
       }).join('')
@@ -127,7 +127,7 @@
 
       html.push(
         '<div class="cal-row">' +
-          '<div class="cal-weekcol"><span class="wk-date">' + D.fmtDot(wkStart) + '</span>' + reportBtn(store.findWeeklyReport(wkStart, wkEnd), 'week', wkStart) + '</div>' +
+          '<div class="cal-weekcol"><span class="wk-label" title="' + D.fmtCN(wkStart) + '">W' + D.isoWeek(wkStart) + '</span>' + reportBtn(store.findWeeklyReport(wkStart, wkEnd), 'week', wkStart) + '</div>' +
           '<div class="cal-body" style="min-height:' + (LANE_TOP + seg.laneCount * LANE_HEIGHT + 26) + 'px">' +
             '<div class="cal-cells">' + cells.join('') + '</div>' +
             (seg.laneCount ? '<div class="cal-lanes" style="top:' + LANE_TOP + 'px;height:' + (seg.laneCount * LANE_HEIGHT) + 'px">' + bars + '</div>' : '') +
@@ -147,7 +147,7 @@
       var range = s.start === s.end ? '' : s.start.slice(5) + WC.L(' 至 ', ' to ') + s.end.slice(5)
       var badge = t.status === 'done' ? 'badge-accent' : t.status === 'in_progress' ? '' : 'badge-outline'
       return '<li><button class="day-item" data-act="edit-task" data-id="' + t.id + '">' +
-        '<span class="l"><span class="dot" style="background:' + WC.barColor(t.id) + '"></span>' +
+        '<span class="l"><span class="dot" style="background:' + WC.taskColor(t) + '"></span>' +
         '<span class="t">' + WC.esc(t.title) + '</span>' + (range ? '<span class="r">' + range + '</span>' : '') + '</span>' +
         '<span class="badge ' + badge + '">' + WC.STATUS[t.status] + '</span></button></li>'
     }).join('')
@@ -167,7 +167,7 @@
             '<button class="btn" data-act="today">' + WC.icon('undo') + WC.L('回到今天</button>', 'Today</button>') +
             WC.L('<button class="btn btn-icon" data-act="next" title="下一月">', '<button class="btn btn-icon" data-act="next" title="Next month">') + WC.icon('right') + '</button>' +
           '</div>' +
-          '<div class="cal-legend"><span style="color:var(--ok)">' + WC.icon('check', 13) + WC.L('已生成</span><span>', 'Generated</span><span>') + WC.icon('clock', 13) + WC.L('未生成（点击 AI 生成）</span></div>', 'Not generated (click to generate)</span></div>') +
+          '<div class="cal-legend"><span style="color:var(--accent)">' + WC.icon('check', 13) + WC.L('已生成</span><span>', 'Generated</span><span>') + WC.icon('clock', 13) + WC.L('未生成（点击 AI 生成）</span></div>', 'Not generated (click to generate)</span></div>') +
         '</div>' +
         '<div data-grid>' + renderGrid() + '</div>' +
         renderDayPanel() +
@@ -297,7 +297,7 @@
   function previewReport(report) {
     var isWeekly = report.reportType === 'weekly'
     var m = WC.modal({
-      title: '<span style="color:var(--ok);display:flex">' + WC.icon('check', 16) + '</span>' + WC.esc(report.title),
+      title: '<span style="color:var(--accent);display:flex">' + WC.icon('check', 16) + '</span>' + WC.esc(report.title),
       sub: report.periodStart + WC.L(' 至 ', ' to ') + report.periodEnd + (report.updatedAt ? WC.L(' · 更新于 ', ' · updated ') + D.fmtDateTime(report.updatedAt) : ''),
       wide: true,
       tools:
