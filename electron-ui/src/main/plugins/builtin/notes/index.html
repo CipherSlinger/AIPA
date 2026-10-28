@@ -18,6 +18,11 @@
       --accent-hover: #4f46e5;
       --danger: #ef4444;
       --code-bg: #f1f5f9;
+      /* Reading measure for the note body: the text column stays this wide and
+         the extra pane width becomes margin. --gutter is the inset inside the
+         column that also aligns the toolbar title with the first character. */
+      --measure: 760px;
+      --gutter: 26px;
     }
     [data-theme="dark"] {
       --bg: #0f172a;
@@ -65,10 +70,14 @@
     .cat-badge { padding: 1px 5px; border-radius: 4px; background: rgba(99,102,241,0.1); color: var(--accent); font-weight: 600; font-size: 9px; }
 
     /* Right Main Editor */
-    .main { flex: 1; display: flex; flex-direction: column; height: 100%; background: var(--bg); overflow: hidden; }
-    .toolbar { height: 46px; border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-shrink: 0; }
-    .title-input { font-size: 15px; font-weight: 700; color: var(--text); border: none; outline: none; background: transparent; flex: 1; min-width: 120px; }
-    .tools { display: flex; align-items: center; gap: 6px; }
+    .main { flex: 1; display: flex; flex-direction: column; height: 100%; background: var(--bg); overflow: hidden; container-type: inline-size; }
+    .toolbar { height: 50px; border-bottom: 1px solid var(--border); display: flex; justify-content: center; flex-shrink: 0; }
+    .toolbar-inner { width: 100%; max-width: calc(var(--measure) + var(--gutter) * 2); padding: 0 var(--gutter); display: flex; align-items: center; gap: 10px; min-width: 0; }
+    /* The title gets a bounded box so the action cluster sits at the right edge
+       of the content measure instead of being pushed to the far edge of the
+       window by a short title. */
+    .title-input { font-size: 15px; font-weight: 700; color: var(--text); border: none; outline: none; background: transparent; padding: 0; flex: 0 1 360px; min-width: 90px; }
+    .tools { display: flex; align-items: center; gap: 5px; margin-left: auto; flex-shrink: 0; }
     .btn-action { background: transparent; border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 11px; color: var(--text); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s; }
     .btn-action:hover { background: var(--sidebar-hover); border-color: var(--accent); color: var(--accent); }
     .btn-ai { background: linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85)); color: #fff; border: none; font-weight: 600; }
@@ -79,19 +88,52 @@
     .mode-btn.active { background: var(--accent); color: #fff; font-weight: 600; }
 
     .content-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-    .editor-text { width: 100%; height: 100%; border: none; outline: none; padding: 18px 22px; font-size: 13px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Consolas, monospace; background: transparent; color: var(--text); resize: none; }
-    .preview-box { width: 100%; height: 100%; padding: 18px 22px; overflow-y: auto; font-size: 13px; line-height: 1.6; color: var(--text); }
-    .preview-box h1 { font-size: 20px; margin: 14px 0 8px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
-    .preview-box h2 { font-size: 16px; margin: 12px 0 6px; }
-    .preview-box h3 { font-size: 14px; margin: 10px 0 4px; }
-    .preview-box p { margin-bottom: 10px; }
-    .preview-box blockquote { border-left: 3px solid var(--accent); padding-left: 10px; color: var(--text-muted); margin-bottom: 10px; font-style: italic; }
-    .preview-box code { background: var(--code-bg); padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 12px; }
-    .preview-box pre { background: var(--code-bg); padding: 10px; border-radius: 6px; overflow-x: auto; margin-bottom: 10px; }
-    .preview-box pre code { background: transparent; padding: 0; }
-    .preview-box ul, .preview-box ol { padding-left: 18px; margin-bottom: 10px; }
-    .preview-box li { margin-bottom: 3px; }
-    .preview-box hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+    /* Editor: the textarea stays full-bleed (so its scrollbar hugs the pane)
+       while its inline padding centres the text column on the measure. */
+    .editor-text { width: 100%; height: 100%; border: none; outline: none; resize: none; background: transparent; color: var(--text);
+      padding: 26px max(var(--gutter), calc((100% - var(--measure)) / 2)) 48px;
+      font-size: 13px; line-height: 1.72; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Consolas, monospace; }
+
+    /* Preview: #note-preview is the scroll container, .preview-inner the centred
+       column, so the scrollbar stays at the pane edge rather than mid-air. */
+    .preview-box { width: 100%; height: 100%; overflow-y: auto; color: var(--text); }
+    .preview-inner { max-width: calc(var(--measure) + var(--gutter) * 2); margin: 0 auto; padding: 26px var(--gutter) 48px;
+      font-size: 13px; line-height: 1.72; overflow-wrap: break-word; }
+    .preview-inner > :first-child { margin-top: 0; }
+    .preview-inner > :last-child { margin-bottom: 0; }
+
+    .preview-inner p { margin: 0 0 14px; }
+    .preview-inner h1, .preview-inner h2, .preview-inner h3, .preview-inner h4, .preview-inner h5, .preview-inner h6 { font-weight: 650; line-height: 1.35; color: var(--text); }
+    .preview-inner h1 { font-size: 20px; margin: 34px 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+    .preview-inner h2 { font-size: 16px; margin: 28px 0 10px; }
+    .preview-inner h3 { font-size: 14px; margin: 24px 0 8px; }
+    .preview-inner h4 { font-size: 13px; margin: 20px 0 6px; }
+    .preview-inner h5, .preview-inner h6 { font-size: 12.5px; margin: 18px 0 6px; color: var(--text-muted); }
+    .preview-inner strong { font-weight: 650; }
+    .preview-inner ul, .preview-inner ol { margin: 0 0 14px; padding-left: 22px; }
+    .preview-inner li { margin: 0 0 5px; padding-left: 2px; }
+    .preview-inner li:last-child { margin-bottom: 0; }
+    .preview-inner li::marker { color: var(--text-faint); }
+    .preview-inner ul.task-list { list-style: none; padding-left: 2px; }
+    .preview-inner li.task { display: flex; align-items: flex-start; gap: 8px; }
+    .preview-inner li.task input { margin-top: 4px; flex-shrink: 0; accent-color: var(--accent); }
+    .preview-inner li.task .done { color: var(--text-muted); text-decoration: line-through; }
+    .preview-inner blockquote { margin: 0 0 14px; padding: 2px 0 2px 14px; border-left: 3px solid var(--accent); color: var(--text-muted); }
+    .preview-inner li > blockquote { margin: 5px 0 3px; }
+    .preview-inner code { background: var(--code-bg); padding: 2px 5px; border-radius: 4px; font-family: Consolas, "SF Mono", monospace; font-size: 12px; }
+    .preview-inner pre { background: var(--code-bg); padding: 12px 14px; border-radius: 8px; overflow-x: auto; margin: 0 0 14px; line-height: 1.6; }
+    .preview-inner pre code { background: transparent; padding: 0; font-size: 12px; }
+    .preview-inner hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+    .preview-empty { color: var(--text-faint); font-style: italic; }
+
+    /* Narrow panes (the app allows an 800px window): wrap the header instead of
+       clipping any action. */
+    @container (max-width: 600px) {
+      .toolbar { height: auto; min-height: 50px; }
+      .toolbar-inner { flex-wrap: wrap; padding-block: 8px; row-gap: 4px; }
+      .title-input { flex: 1 1 100%; max-width: none; }
+    }
 
     .statusbar { height: 26px; border-top: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: var(--text-faint); flex-shrink: 0; background: var(--sidebar-bg); }
   </style>
@@ -127,25 +169,27 @@
     <!-- Main Editor -->
     <div class="main">
       <div class="toolbar">
-        <input class="title-input" id="note-title" placeholder="输入笔记标题..." data-i18n-ph="Note title..." oninput="onTitleChange()">
-        <div class="tools">
-          <select class="cat-select" id="note-cat" onchange="onCatChange()">
-            <option value="work" data-i18n="💼 Work">💼 工作</option>
-            <option value="ideas" data-i18n="💡 Ideas">💡 灵感</option>
-            <option value="study" data-i18n="📚 Study">📚 学习</option>
-            <option value="prompts" data-i18n="🤖 Prompts">🤖 提示词</option>
-            <option value="todo" data-i18n="✅ To-do">✅ 待办</option>
-          </select>
-          <button class="btn-action" id="btn-pin" onclick="togglePin()" title="置顶" data-i18n-title="Pin">📌</button>
+        <div class="toolbar-inner">
+          <input class="title-input" id="note-title" placeholder="输入笔记标题..." data-i18n-ph="Note title..." oninput="onTitleChange()">
+          <div class="tools">
+            <select class="cat-select" id="note-cat" onchange="onCatChange()">
+              <option value="work" data-i18n="💼 Work">💼 工作</option>
+              <option value="ideas" data-i18n="💡 Ideas">💡 灵感</option>
+              <option value="study" data-i18n="📚 Study">📚 学习</option>
+              <option value="prompts" data-i18n="🤖 Prompts">🤖 提示词</option>
+              <option value="todo" data-i18n="✅ To-do">✅ 待办</option>
+            </select>
+            <button class="btn-action" id="btn-pin" onclick="togglePin()" title="置顶" data-i18n-title="Pin">📌</button>
 
-          <div class="mode-switch">
-            <button class="mode-btn active" id="btn-edit-mode" onclick="setMode('edit')" data-i18n="Edit">编辑</button>
-            <button class="mode-btn" id="btn-preview-mode" onclick="setMode('preview')" data-i18n="Preview">预览</button>
+            <div class="mode-switch">
+              <button class="mode-btn active" id="btn-edit-mode" onclick="setMode('edit')" data-i18n="Edit">编辑</button>
+              <button class="mode-btn" id="btn-preview-mode" onclick="setMode('preview')" data-i18n="Preview">预览</button>
+            </div>
+
+            <button class="btn-action btn-ai" onclick="sendToAI()" title="发送给 AI 对话分析" data-i18n-title="Send to AI chat" data-i18n="🤖 Send to AI">🤖 发送给 AI</button>
+            <button class="btn-action" onclick="copyContent()" title="复制正文" data-i18n-title="Copy content" data-i18n="📋 Copy">📋 复制</button>
+            <button class="btn-action" onclick="deleteCurrentNote()" style="color:var(--danger)" title="删除此笔记" data-i18n-title="Delete note">🗑️</button>
           </div>
-
-          <button class="btn-action btn-ai" onclick="sendToAI()" title="发送给 AI 对话分析" data-i18n-title="Send to AI chat" data-i18n="🤖 Send to AI">🤖 发送给 AI</button>
-          <button class="btn-action" onclick="copyContent()" title="复制正文" data-i18n-title="Copy content" data-i18n="📋 Copy">📋 复制</button>
-          <button class="btn-action" onclick="deleteCurrentNote()" style="color:var(--danger)" title="删除此笔记" data-i18n-title="Delete note">🗑️</button>
         </div>
       </div>
 
@@ -520,34 +564,141 @@
       const note = getActiveNote();
       const prevEl = document.getElementById('note-preview');
       if (!note || !note.content.trim()) {
-        prevEl.innerHTML = '<div style="color:var(--text-faint); font-style:italic;">' + L('无预览内容', 'Nothing to preview') + '</div>';
+        prevEl.innerHTML = '<div class="preview-inner preview-empty">' + L('无预览内容', 'Nothing to preview') + '</div>';
         return;
       }
-      prevEl.innerHTML = parseMarkdown(note.content);
+      prevEl.innerHTML = '<div class="preview-inner">' + parseMarkdown(note.content) + '</div>';
+      prevEl.scrollTop = 0;
     }
 
+    // Inline spans: applied to already-escaped text. Inline code is stashed
+    // first so `**x**` inside a code span stays literal.
+    function renderInline(text) {
+      const codes = [];
+      let html = text.replace(/`([^`]+)`/g, function (_, code) {
+        codes.push('<code>' + code + '</code>');
+        return '\u0000' + (codes.length - 1) + '\u0000';
+      });
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+      html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+      return html.replace(/\u0000(\d+)\u0000/g, function (_, i) { return codes[+i]; });
+    }
+
+    // Block parser. The old version escaped the whole document before matching,
+    // which turned `>` into `&gt;` so blockquotes never matched; it also emitted
+    // bare <li> without a list, ignored ordered lists, and left paragraphs
+    // unwrapped, so no vertical rhythm was possible.
     function parseMarkdown(md) {
-      let html = escapeHtml(md);
-      // Code blocks
-      html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-      // Inline code
-      html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-      // Headings
-      html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-      html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-      html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-      // Blockquotes
-      html = html.replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>');
-      // Checkboxes
-      html = html.replace(/- \[x\] (.*$)/gim, '<div style="margin:3px 0;">☑️ <s>$1</s></div>');
-      html = html.replace(/- \[ \] (.*$)/gim, '<div style="margin:3px 0;">⬜ $1</div>');
-      // Lists
-      html = html.replace(/^[-*] (.*$)/gim, '<li>$1</li>');
-      // Bold & Italic
-      html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-      // Newlines
-      html = html.replace(/\n/g, '<br/>');
+      const lines = String(md || '').replace(/\r\n?/g, '\n').split('\n');
+      let html = '';
+      let para = [];
+      let quote = [];
+      let list = null; // { tag: 'ul' | 'ol', items: [], task: boolean }
+      let i = 0;
+
+      const inline = (s) => renderInline(escapeHtml(s));
+      const isItem = (s) => /^\s*(?:[-*+]\s+(?:\[[ xX]\]\s+)?|\d+[.)]\s+)/.test(s);
+
+      function flushPara() {
+        if (!para.length) return;
+        html += '<p>' + para.map(inline).join('<br>') + '</p>';
+        para = [];
+      }
+      function flushQuote() {
+        if (!quote.length) return;
+        html += '<blockquote>' + quote.map(inline).join('<br>') + '</blockquote>';
+        quote = [];
+      }
+      function flushList() {
+        if (!list) return;
+        const cls = list.tag === 'ul' && list.task ? ' class="task-list"' : '';
+        html += '<' + list.tag + cls + '>' + list.items.join('') + '</' + list.tag + '>';
+        list = null;
+      }
+      function flushAll() { flushPara(); flushList(); flushQuote(); }
+
+      while (i < lines.length) {
+        const line = lines[i];
+
+        // Fenced code block
+        if (/^\s*```/.test(line)) {
+          flushAll();
+          const code = [];
+          i++;
+          while (i < lines.length && !/^\s*```\s*$/.test(lines[i])) { code.push(lines[i]); i++; }
+          i++;
+          html += '<pre><code>' + escapeHtml(code.join('\n')) + '</code></pre>';
+          continue;
+        }
+
+        // Blank line ends a paragraph or quote. A list stays open when the next
+        // non-blank line is another item, so a blank line between items does not
+        // restart the numbering.
+        if (!line.trim()) {
+          flushPara(); flushQuote();
+          let next = '';
+          for (let k = i + 1; k < lines.length; k++) { if (lines[k].trim()) { next = lines[k]; break; } }
+          if (!(list && isItem(next))) flushList();
+          i++;
+          continue;
+        }
+
+        const heading = line.match(/^(#{1,6})\s+(.*)$/);
+        if (heading) {
+          flushAll();
+          const level = heading[1].length;
+          html += '<h' + level + '>' + inline(heading[2]) + '</h' + level + '>';
+          i++;
+          continue;
+        }
+
+        if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(line)) { flushAll(); html += '<hr>'; i++; continue; }
+
+        const quoted = line.match(/^>\s?(.*)$/);
+        if (quoted) {
+          // A quote directly under a list row belongs to that row (as in the
+          // bundled prompts note), not to a document-level blockquote.
+          if (list && list.inItem) {
+            const last = list.items.length - 1;
+            const item = list.items[last];
+            if (/<\/blockquote><\/li>$/.test(item)) {
+              list.items[last] = item.replace(/<\/blockquote><\/li>$/, '<br>' + inline(quoted[1]) + '</blockquote></li>');
+            } else {
+              list.items[last] = item.replace(/<\/li>$/, '<blockquote>' + inline(quoted[1]) + '</blockquote></li>');
+            }
+            i++;
+            continue;
+          }
+          flushPara(); flushList(); quote.push(quoted[1]); i++; continue;
+        }
+
+        const task = line.match(/^\s*[-*+]\s+\[([ xX])\]\s+(.*)$/);
+        const bullet = task ? null : line.match(/^\s*[-*+]\s+(.*)$/);
+        const ordered = (task || bullet) ? null : line.match(/^\s*\d+[.)]\s+(.*)$/);
+        if (task || bullet || ordered) {
+          flushPara(); flushQuote();
+          const tag = ordered ? 'ol' : 'ul';
+          if (list && list.tag !== tag) flushList();
+          if (!list) list = { tag: tag, items: [], task: false, inItem: false };
+          list.inItem = true;
+          if (task) {
+            list.task = true;
+            const checked = task[1].toLowerCase() === 'x';
+            list.items.push('<li class="task"><input type="checkbox" disabled' + (checked ? ' checked' : '') +
+              '><span' + (checked ? ' class="done"' : '') + '>' + inline(task[2]) + '</span></li>');
+          } else {
+            list.items.push('<li>' + inline(bullet ? bullet[1] : ordered[1]) + '</li>');
+          }
+          i++;
+          continue;
+        }
+
+        flushList(); flushQuote();
+        para.push(line);
+        i++;
+      }
+      flushAll();
       return html;
     }
 
