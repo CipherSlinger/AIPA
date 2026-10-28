@@ -35,6 +35,7 @@ import { openSessionCore } from '../departments/openSessionCore'
 import { displayTitle } from '../../lib/sessionTitle'
 import { formatDateTimeShort } from '../../utils/formatDate'
 import { CommandOnlyNotice, EmptyState, Pill } from './ArchiveChrome'
+import SessionOriginBadge from '../shared/SessionOriginBadge'
 
 const ELLIPSIS: React.CSSProperties = {
   overflow: 'hidden',
@@ -43,6 +44,17 @@ const ELLIPSIS: React.CSSProperties = {
 }
 
 type TimeRange = 'all' | 'today' | 'week' | 'month'
+
+/**
+ * How a conversation began. 'user' is the absence of an origin, which keeps
+ * the common case addressable by the filter without inventing a third kind.
+ */
+type OriginFilter = 'all' | 'user' | 'automation' | 'plugin'
+const ORIGIN_FILTERS: OriginFilter[] = ['all', 'user', 'automation', 'plugin']
+
+function originKind(session: SessionListItem): Exclude<OriginFilter, 'all'> {
+  return session.origin?.kind ?? 'user'
+}
 /** Sentinel for the department filter's "not assigned to any department" option. */
 const UNASSIGNED = '__unassigned__'
 /** Stable empty fallback for an unset `archivedSessions` pref. */
@@ -134,6 +146,7 @@ export default function ArchivePanel() {
 
   const [deptFilter, setDeptFilter] = useState<string>('all')
   const [timeRange, setTimeRange] = useState<TimeRange>('all')
+  const [originFilter, setOriginFilter] = useState<OriginFilter>('all')
   const [showArchived, setShowArchived] = useState(false)
   const [query, setQuery] = useState('')
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
@@ -184,9 +197,10 @@ export default function ArchivePanel() {
       if (timeRange !== 'all' && r.session.timestamp < cutoff) return false
       // The filter picks a branch, so anything anywhere under it matches.
       if (deptFilter === UNASSIGNED ? r.dept !== null : deptFilter !== 'all' && r.root?.id !== deptFilter) return false
+      if (originFilter !== 'all' && originKind(r.session) !== originFilter) return false
       return true
     })
-  }, [allRecords, timeRange, showArchived, deptFilter])
+  }, [allRecords, timeRange, showArchived, deptFilter, originFilter])
 
   const commandOnlyCount = useMemo(
     () => scopedRecords.filter(r => r.commandOnly).length,
@@ -337,6 +351,7 @@ export default function ArchivePanel() {
         messageCount: r.session.messageCount ?? 0,
         timestamp: new Date(r.session.timestamp).toISOString(),
         archived: r.archived,
+        origin: r.session.origin ?? null,
       })),
     }))
     const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), companies: data }, null, 2)], { type: 'application/json' })
@@ -348,8 +363,15 @@ export default function ArchivePanel() {
     URL.revokeObjectURL(url)
   }, [groups, t])
 
-  const filtersActive = deptFilter !== 'all' || timeRange !== 'all' || showArchived || query.trim().length > 0
-  const clearFilters = () => { setDeptFilter('all'); setTimeRange('all'); setShowArchived(false); setQuery('') }
+  const filtersActive = deptFilter !== 'all' || timeRange !== 'all' || originFilter !== 'all'
+    || showArchived || query.trim().length > 0
+  const clearFilters = () => {
+    setDeptFilter('all')
+    setTimeRange('all')
+    setOriginFilter('all')
+    setShowArchived(false)
+    setQuery('')
+  }
 
   // The i18n helper only substitutes {{params}} — no ICU plural machinery — so
   // each count picks its own singular/plural key. "N updated this week" gives
@@ -432,6 +454,14 @@ export default function ArchivePanel() {
         {timeOptions.map(range => (
           <Pill key={range} active={timeRange === range} onClick={() => setTimeRange(range)}>
             {t(`archive.time.${range}`)}
+          </Pill>
+        ))}
+
+        <span aria-hidden="true" style={{ width: 1, height: 14, flexShrink: 0, background: 'var(--border)' }} />
+
+        {ORIGIN_FILTERS.map(origin => (
+          <Pill key={origin} active={originFilter === origin} onClick={() => setOriginFilter(origin)}>
+            {t(`archive.origin.${origin}`)}
           </Pill>
         ))}
 
@@ -670,6 +700,8 @@ function ArchiveRow({
       }}>
         {title}
       </span>
+
+      <SessionOriginBadge origin={session.origin} />
 
       {record.commandOnly && (
         <span style={{

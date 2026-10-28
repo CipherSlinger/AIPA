@@ -1994,7 +1994,14 @@
     "personaLabel": "定时运行时使用的专家",
     "personaDefault": "默认（不使用专家）",
     "personaHint": "定时自动化会以该专家身份运行此工作流；在此处点击“运行”仍使用当前对话的专家。",
-    "personaMissing": "该专家已被删除——定时运行将使用默认助手。"
+    "personaMissing": "该专家已被删除——定时运行将使用默认助手。",
+    "scheduleAction": "定时运行",
+    "scheduleActionHint": "按设定的时间自动运行此工作流",
+    "scheduleLine": "已排程：{{schedule}}",
+    "schedulePausedLine": "已暂停 · {{schedule}}",
+    "scheduleAllPaused": "{{count}} 个定时任务 · 全部已暂停",
+    "scheduleCount": "{{count}} 个定时任务",
+    "scheduleMultipleLine": "{{count}} 个定时任务 · 下次：{{time}}"
   },
   "snippet": {
     "title": "文本片段",
@@ -2713,7 +2720,13 @@
     "rounds": "{{count}} 条消息",
     "archive": "归档",
     "unarchive": "恢复",
-    "open": "打开"
+    "open": "打开",
+    "origin": {
+      "all": "全部来源",
+      "user": "我发起的",
+      "automation": "定时任务",
+      "plugin": "插件"
+    }
   },
   "canvas": {
     "copyPrompt": "复制提示词",
@@ -3128,5 +3141,9 @@
       "showInFolder": "在文件夹中显示",
       "showInFolderAria": "在文件夹中显示导出的文件"
     }
+  },
+  "sessionOrigin": {
+    "automationTitle": "定时任务 · {{name}}",
+    "pluginTitle": "由插件 {{name}} 发起"
   }
 }

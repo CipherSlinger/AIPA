@@ -16,6 +16,7 @@ import { buildCodexTurnArgs } from '../codex/codex-turn-args'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { speculationManager, isSafeToSpeculate } from '../pty/speculation-bridge'
 import { readSettings, writeSettings, listSessions as listClaudeSessions, loadSession as loadClaudeSession, deleteSession as deleteClaudeSession, forkSession as forkClaudeSession, renameSession, rewindSession, searchSessions as searchClaudeSessions, detectTurnInterruption, getDreamConsolidationMtime } from '../sessions/session-reader'
+import type { SessionListItem as ClaudeSessionListItem } from '../sessions/session-reader'
 import { listSessions as listCodexSessions, loadSession as loadCodexSession, deleteSession as deleteCodexSession, forkSession as forkCodexSession, searchSessions as searchCodexSessions, isCodexSession } from '../codex/codex-session-reader'
 import {
   historyAskStatus,
@@ -26,6 +27,13 @@ import {
 } from '../sessions/ask-history'
 import { addMcpServer, getMcpConfigInfo, readMcpServers, removeMcpServer, setMcpServerEnabledRouted } from '../config/mcp-config'
 import { getSessionStats } from '../sessions/session-stats'
+import {
+  readPluginSessionOrigins,
+  recordPluginSessionOrigin,
+  resolveSessionOrigins,
+  type SessionOrigin,
+} from '../sessions/session-origins'
+import { readAutomationJobs } from '../automation/job-store'
 import { getApiKey, setApiKey, getPref, getRawPref, setPref, getAllPrefs, resetAllPrefs } from '../config/config-manager'
 import { redactProviderSecrets } from '../providers'
 import type { ModelProviderConfig } from '../providers'
@@ -1498,6 +1506,10 @@ async function generateAwaySummary(context: string): Promise<string> {
 // ----------------------------------------
 // Session handlers
 // ----------------------------------------
+
+/** A `session:list` row plus the origin derived for the renderer. */
+type SessionListRow = ClaudeSessionListItem & { origin?: SessionOrigin }
+
 function registerSessionHandlers(): void {
   // Session listing: merge Codex + Claude sessions (Codex primary, Claude for migration period)
   ipcMain.handle('session:list', () => {
@@ -1506,11 +1518,34 @@ function registerSessionHandlers(): void {
       const claudeSessions = listClaudeSessions()
       // Deduplicate by sessionId, preferring Codex sessions
       const seen = new Set(codexSessions.map(s => s.sessionId))
-      const merged = [...codexSessions]
+      const merged: SessionListRow[] = [...codexSessions]
       for (const s of claudeSessions) {
         if (!seen.has(s.sessionId)) merged.push(s)
       }
-      return merged.sort((a, b) => b.timestamp - a.timestamp)
+      merged.sort((a, b) => b.timestamp - a.timestamp)
+
+      // Origins ride along with the list instead of a second IPC round trip.
+      // The list already scans transcripts; this adds two small metadata reads
+      // (jobs + the plugin ledger), so rows render with the right badge on the
+      // first paint rather than flickering from "started by me" to the truth.
+      // A broken origin source must leave the list intact, never empty it:
+      // both readers already swallow their own errors, and this guard covers
+      // anything else (e.g. an unreadable userData path).
+      try {
+        const origins = resolveSessionOrigins(
+          merged.map(session => session.sessionId),
+          readAutomationJobs(),
+          readPluginSessionOrigins(app.getPath('userData')),
+        )
+        for (const session of merged) {
+          const origin = origins[session.sessionId]
+          if (origin) session.origin = origin
+        }
+      } catch (originErr) {
+        log.warn('session:list origins error:', String(originErr))
+      }
+
+      return merged
     } catch (err) {
       log.warn('session:list error:', String(err))
       return []
@@ -2233,6 +2268,15 @@ function registerNavPluginHandlers(win: BrowserWindow, send: (ch: string, ...a: 
     // askPluginChat only returns a sessionId for a visible turn whose id the
     // archive can open, so the renderer is never told about a phantom session.
     if (args?.visible === true && answer.sessionId) {
+      // Record before announcing: the renderer refreshes the archive on the
+      // event below, and a row arriving before its origin would read as
+      // user-started until the next refresh. Recording is best-effort; it
+      // must never fail the plugin's ask.
+      recordPluginSessionOrigin(app.getPath('userData'), {
+        sessionId: answer.sessionId,
+        pluginId,
+        pluginLabel: pluginLabel(pluginId),
+      })
       send('plugin:conversation-created', {
         pluginId,
         pluginLabel: pluginLabel(pluginId),

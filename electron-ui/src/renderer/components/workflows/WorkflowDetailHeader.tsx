@@ -3,7 +3,7 @@
 // Iteration 539: Added breadcrumb navigation, inline title editing, Run/Stop/Delete semantic buttons, CSS variables.
 
 import React, { useState, useRef, useEffect } from 'react'
-import { ArrowLeft, Edit3, Check, Save, Eye, Play, Square, Trash2 } from 'lucide-react'
+import { ArrowLeft, CalendarClock, Edit3, Check, Save, Eye, Play, Square, Trash2 } from 'lucide-react'
 import type { WorkflowExecutionState } from './useWorkflowExecution'
 import type { WorkflowStep } from '../../types/app.types'
 
@@ -78,6 +78,8 @@ interface Props {
   onRun: () => void
   onStop: () => void
   onDelete: () => void
+  /** Open the automation dialog pre-bound to this workflow (view mode only). */
+  onSchedule?: () => void
   onUpdateIcon: (emoji: string) => void
   onUpdateName: (v: string) => void
   onUpdateDesc: (v: string) => void
@@ -89,7 +91,7 @@ export default function WorkflowDetailHeader({
   execution, isEditMode, saveFlash, steps, runCount, lastRunAt,
   onGoBack, onOpenEditor,
   onEnterEditMode, onExitEditMode, onSave,
-  onRun, onStop, onDelete,
+  onRun, onStop, onDelete, onSchedule,
   onUpdateIcon, onUpdateName, onUpdateDesc, t,
 }: Props) {
   const [showIconPicker, setShowIconPicker] = useState(false)
@@ -392,6 +394,21 @@ export default function WorkflowDetailHeader({
             >
               <Play size={13} />
               <span style={{ fontSize: 12 }}>{t('workflow.run') || 'Run'}</span>
+            </button>
+          )}
+
+          {/* Schedule this workflow on a clock. View mode only: scheduling
+              while editing would bind the saved version, not the one on screen. */}
+          {!isEditMode && onSchedule && (
+            <button
+              onClick={onSchedule}
+              title={t('workflow.scheduleActionHint')}
+              style={actionBtnStyle}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.075)'; e.currentTarget.style.borderColor = 'var(--border-strong)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.035)'; e.currentTarget.style.borderColor = 'var(--glass-border-md)' }}
+            >
+              <CalendarClock size={14} />
+              <span style={{ fontSize: 12 }}>{t('workflow.scheduleAction')}</span>
             </button>
           )}
 

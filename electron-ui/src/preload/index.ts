@@ -2,6 +2,33 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 type Unsubscribe = () => void
 
+/**
+ * Origin attached to a `session:list` row. Mirrors the renderer's
+ * `SessionOrigin`; declared inline so preload keeps no runtime dependency on
+ * renderer modules.
+ */
+export type SessionOriginData =
+  | { kind: 'automation'; jobId: string; jobName: string }
+  | { kind: 'plugin'; pluginId: string; pluginLabel: string }
+
+/**
+ * One row of `session:list`. The renderer's `SessionListItem`
+ * (src/renderer/types/app.types.ts) is the authority; this mirror only keeps
+ * the IPC surface typed.
+ */
+export interface SessionListItemData {
+  sessionId: string
+  lastPrompt: string
+  timestamp: number
+  project: string
+  projectSlug: string
+  cwd?: string
+  title?: string
+  messageCount?: number
+  firstTimestamp?: number
+  origin?: SessionOriginData
+}
+
 export interface SystemInitData {
   sessionId: string
   tools: string[]
@@ -471,7 +498,7 @@ const electronAPI = {
     ipcRenderer.invoke('speculation:abort', { id }),
 
   // ── Sessions ─────────────────────────────
-  sessionList: () => ipcRenderer.invoke('session:list'),
+  sessionList: () => ipcRenderer.invoke('session:list') as Promise<SessionListItemData[]>,
   sessionLoad: (id: string) => ipcRenderer.invoke('session:load', id),
   sessionDelete: (id: string) => ipcRenderer.invoke('session:delete', id),
   sessionFork: (sessionId: string, upToMessageIndex: number) => ipcRenderer.invoke('session:fork', { sessionId, upToMessageIndex }),

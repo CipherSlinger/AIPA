@@ -15,6 +15,7 @@ import { useI18n } from '../../i18n'
 import { useChatStore, usePrefsStore } from '../../store'
 import { Figure, GhostSilhouette, lookFor } from './employeeFigureArt'
 import { displayTitle } from '../../lib/sessionTitle'
+import SessionOriginBadge from '../shared/SessionOriginBadge'
 
 // Stable fallback — avoids a new {} on every Zustand selector call
 const EMPTY_COLOR_LABELS: Record<string, string> = {}
@@ -188,6 +189,9 @@ export default function EmployeeFigure({
           }}>
             {title}
           </div>
+          {/* The same origin badge the archive shows, on the roster's session
+              rows. Tiles are narrow, so it gives up the job/plugin name first. */}
+          <SessionOriginBadge origin={session.origin} style={{ maxWidth: '100%' }} />
           {/* Who is on duty: the persona the employee was hired as, and the model
               it runs. Read-only — changing it happens in the chat persona picker. */}
           {persona && (

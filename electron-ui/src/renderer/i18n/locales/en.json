@@ -1994,7 +1994,14 @@
     "personaLabel": "Expert for scheduled runs",
     "personaDefault": "Default (no expert)",
     "personaHint": "Scheduled automations run this workflow as this expert. Run here still uses the current conversation's expert.",
-    "personaMissing": "This expert was deleted — scheduled runs use the default assistant."
+    "personaMissing": "This expert was deleted — scheduled runs use the default assistant.",
+    "scheduleAction": "Schedule",
+    "scheduleActionHint": "Run this workflow automatically on a schedule",
+    "scheduleLine": "Scheduled: {{schedule}}",
+    "schedulePausedLine": "Paused · {{schedule}}",
+    "scheduleAllPaused": "{{count}} schedules · all paused",
+    "scheduleCount": "{{count}} schedules",
+    "scheduleMultipleLine": "{{count}} schedules · Next: {{time}}"
   },
   "snippet": {
     "title": "Text Snippets",
@@ -2713,7 +2720,13 @@
     "rounds": "{{count}} msgs",
     "archive": "Archive",
     "unarchive": "Restore",
-    "open": "Open"
+    "open": "Open",
+    "origin": {
+      "all": "All origins",
+      "user": "Started by me",
+      "automation": "Scheduled runs",
+      "plugin": "Plugins"
+    }
   },
   "canvas": {
     "copyPrompt": "Copy Prompt",
@@ -3128,5 +3141,9 @@
       "showInFolder": "Show in folder",
       "showInFolderAria": "Show the exported file in its folder"
     }
+  },
+  "sessionOrigin": {
+    "automationTitle": "Scheduled run — {{name}}",
+    "pluginTitle": "Started by the {{name}} plugin"
   }
 }

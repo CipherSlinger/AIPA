@@ -1,3 +1,11 @@
+/**
+ * Who started a conversation besides the user. Absent means the user did —
+ * the common case, and the only one that gets no badge.
+ */
+export type SessionOrigin =
+  | { kind: 'automation'; jobId: string; jobName: string }
+  | { kind: 'plugin'; pluginId: string; pluginLabel: string }
+
 export interface SessionListItem {
   sessionId: string
   lastPrompt: string
@@ -9,6 +17,8 @@ export interface SessionListItem {
   title?: string
   messageCount?: number
   firstTimestamp?: number
+  /** Set by `session:list` when a scheduled job or a plugin opened the session. */
+  origin?: SessionOrigin
 }
 
 export interface SessionMessage {
