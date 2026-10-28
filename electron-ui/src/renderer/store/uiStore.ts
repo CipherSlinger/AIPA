@@ -96,6 +96,12 @@ interface UiState {
   globalSearchSeed: string
   setGlobalSearchSeed: (seed: string) => void
 
+  // Department whose page asked the next overlay mount to open scoped to it.
+  // The overlay reads it once and clears it, so a later search does not
+  // silently stay scoped to a department the user only visited once.
+  globalSearchSeedDeptId: string | null
+  setGlobalSearchSeedDeptId: (id: string | null) => void
+
   // Whether "Ask AIPA about your history" can actually run. `null` means the
   // one-time probe has not answered yet; the palette treats that as available
   // so a slow probe can never hide a working command. `false` removes the
@@ -293,6 +299,8 @@ export const useUiStore = create<UiState>((set) => ({
   setGlobalSearchOpen: (open) => set({ globalSearchOpen: open }),
   globalSearchSeed: '',
   setGlobalSearchSeed: (seed) => set({ globalSearchSeed: seed }),
+  globalSearchSeedDeptId: null,
+  setGlobalSearchSeedDeptId: (id) => set({ globalSearchSeedDeptId: id }),
   askHistoryAvailable: null,
   setAskHistoryAvailable: (available) => set({ askHistoryAvailable: available }),
   pendingReveal: null,

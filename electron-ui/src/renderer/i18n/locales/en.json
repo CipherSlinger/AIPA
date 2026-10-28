@@ -3931,5 +3931,18 @@
         "stoppedEmpty": "Stopped before any text arrived. No answer was produced."
       }
     }
+  },
+  "search": {
+    "deptScope": {
+      "open": "Search this department",
+      "pinned": "Results stay limited to this department while you type; choose All departments to clear it.",
+      "askOnly": "Ask only within {{dept}}",
+      "limits": "Scope: conversations whose working folder resolves to {{dept}} or one of its sub-departments (folder match). Each search term examines up to 100 hits, so a very old conversation can fall outside the cut, and at most the first {{cap}} in-scope sessions in the listing are included. Filing by folder is not proof this department did the work.",
+      "capped": "Only the first {{count}} sessions in scope were searched.",
+      "noMatch": "No transcript in scope under {{dept}} matched this question.",
+      "answerScope": "Answered from {{count}} conversations in scope under {{dept}}.",
+      "scopeOff": "This ask searches your whole history, not only {{dept}}, while the list stays filtered.",
+      "searching": "The transcript index is still building, so an in-scope match may not be visible yet."
+    }
   }
 }

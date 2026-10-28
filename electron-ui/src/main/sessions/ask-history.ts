@@ -29,6 +29,7 @@ import {
   readSessionProse as readCodexSessionProse,
 } from '../codex/codex-session-reader'
 import type { SearchIndexRecord } from './search-index'
+import { SCOPED_SEARCH_LIMIT, filterHistoryMatches, scopeInstruction } from './ask-scope'
 import { resolveAuxiliaryEngine } from '../llm/auxiliary-engine'
 
 /**
@@ -96,6 +97,12 @@ export interface CollectHistoryOptions {
    * question that replaced it.
    */
   signal?: AbortSignal
+  /**
+   * Restrict evidence to these sessions. An empty set is a real answer — the
+   * caller asked about a scope that has no conversations — so it short-circuits
+   * instead of widening back to the whole history.
+   */
+  allowedSessionIds?: ReadonlySet<string>
 }
 
 const MAX_TERMS = 4
@@ -492,6 +499,17 @@ export async function collectHistoryDigest(
   question: string,
   opts: CollectHistoryOptions = {},
 ): Promise<HistoryDigest> {
+  // An empty scope is an answer, not a fallback. The caller named a set of
+  // sessions and that set is empty, so no transcript on this machine is
+  // eligible; searching everything instead would return evidence the caller
+  // explicitly excluded. `indexing: false` too: a zero-source result here is
+  // final, because a background index build cannot add a session that is not
+  // in the scope. The IPC handler already short-circuits zero sources, so the
+  // model is never called.
+  if (opts.allowedSessionIds && opts.allowedSessionIds.size === 0) {
+    return { sources: [], digest: '', indexing: false }
+  }
+
   const locale = opts.locale || 'en'
   const terms = extractSearchTerms(question)
   const probe = wholeStringProbe(question)
@@ -500,7 +518,15 @@ export async function collectHistoryDigest(
     return { sources: [], digest: '', indexing: historyIndexBuilding() }
   }
 
-  const searchLimit = Math.max(1, opts.searchLimit ?? DEFAULT_SEARCH_LIMIT)
+  // Scoped retrieval asks for a deeper slice per term. The global per-term
+  // ranking is shared by every transcript, and a department's sessions can sit
+  // far below the unscoped 20; filtering that short slice would drop real
+  // matches and report silence that is not there. An explicit caller override
+  // still wins.
+  const searchLimit = Math.max(
+    1,
+    opts.searchLimit ?? (opts.allowedSessionIds ? SCOPED_SEARCH_LIMIT : DEFAULT_SEARCH_LIMIT),
+  )
   const matches: Array<{ term: string; hit: SearchResult }> = []
 
   for (const term of probes) {
@@ -514,10 +540,15 @@ export async function collectHistoryDigest(
   }
 
   const maxSessions = Math.max(1, opts.maxSessions ?? DEFAULT_MAX_SESSIONS)
+  // Filter before ranking, not after: the ranking's term counts and the
+  // excerpt budget must only ever see in-scope rows. Filtering afterwards
+  // would let out-of-scope hits claim scoring weight and excerpt slots that
+  // a real in-scope session then loses.
+  const scopedMatches = filterHistoryMatches(matches, opts.allowedSessionIds ?? null)
   // Walk the whole ranking, not a pre-cut top-N: a title-only hit has no prose
   // to quote, and slicing before excerpts let it consume a slot that a later
   // content match would have filled.
-  const ranked = rankHistoryHits(matches)
+  const ranked = rankHistoryHits(scopedMatches)
   const perSourceChars = Math.max(200, opts.perSourceChars ?? DEFAULT_PER_SOURCE_CHARS)
   const totalChars = Math.max(500, opts.totalChars ?? DEFAULT_TOTAL_CHARS)
 
@@ -585,10 +616,14 @@ export function buildAskPrompt(
   sources: AskSource[],
   locale: string,
   history: AskHistoryTurn[] = [],
+  scoped = false,
 ): string {
   const chinese = /^zh/i.test(locale)
   const today = formatLocalDate(Date.now())
   const historySection = renderAskHistorySection(history, chinese)
+  // Only a scoped ask adds this paragraph: an unscoped answer was built from
+  // every transcript, so telling the model it saw a subset would be false.
+  const scopeNote = scoped ? scopeInstruction(locale) : ''
 
   if (chinese) {
     return [
@@ -613,6 +648,7 @@ export function buildAskPrompt(
         '- 前面的对话只用于理解指代（“那个”“它”“上一句”）并保持连贯；每一个事实性陈述仍然必须来自上面的编号片段。',
         '- 不要把前面的回答当作来源引用，也不要默默地与它矛盾。',
       ] : []),
+      ...(scopeNote ? ['', scopeNote] : []),
     ].join('\n')
   }
 
@@ -638,6 +674,7 @@ export function buildAskPrompt(
       '- The earlier exchange exists only to resolve references ("that", "it") and keep the conversation continuous. Every factual claim must still come from the numbered excerpts above.',
       '- Do not cite the earlier answer as a source, and do not silently contradict it.',
     ] : []),
+    ...(scopeNote ? ['', scopeNote] : []),
   ].join('\n')
 }
 

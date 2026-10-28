@@ -170,6 +170,57 @@ export function subtreeNodeIds(
   return out
 }
 
+/** The most sessions one scoped ask may hand to the main process. */
+export const MAX_SCOPE_SESSIONS = 500
+
+export interface DeptSessionScope {
+  ids: string[]
+  /** Distinct sessions that belong to the subtree, before the cap. */
+  total: number
+  truncated: boolean
+}
+
+/**
+ * The session ids a scoped ask may read: conversations whose working folder
+ * resolves to `rootId` or a descendant, in the listing's order.
+ *
+ * Membership is the same folder join the per-row chip uses, so the answer's
+ * corpus and the chip on a hit cannot disagree. A session that is unlisted or
+ * filed elsewhere contributes nothing; `project` is a lossy display label and
+ * is never used as a guess (the slug/cwd join is the only evidence). Duplicate
+ * listing rows collapse to their first occurrence, and the cap keeps the scope
+ * bounded without changing which node a session belongs to.
+ */
+export function sessionIdsInDeptTree(
+  sessions: ReadonlyArray<DeptSessionRef>,
+  departments: ReadonlyArray<Department>,
+  rootId: string,
+  homeDir?: string,
+): DeptSessionScope {
+  const subtree = subtreeNodeIds(departments, rootId)
+  if (subtree.size === 0) return { ids: [], total: 0, truncated: false }
+
+  const bySlug = deptBySlug([...departments])
+  const byNormDir = deptByNormDir([...departments], homeDir)
+  // First occurrence wins: the listing can repeat a session (a title and a
+  // content hit, or a refresh that appended rather than replaced), and the
+  // later copy must not move it to another node.
+  const unique = new Map<string, DeptSessionRef>()
+  for (const session of sessions) {
+    if (!unique.has(session.sessionId)) unique.set(session.sessionId, session)
+  }
+
+  const ids: string[] = []
+  let total = 0
+  for (const session of unique.values()) {
+    const node = findDeptForSession(session, bySlug, byNormDir, homeDir)
+    if (!node || !subtree.has(node.id)) continue
+    total += 1
+    if (ids.length < MAX_SCOPE_SESSIONS) ids.push(session.sessionId)
+  }
+  return { ids, total, truncated: total > ids.length }
+}
+
 export interface DeptFilteredResults<T> {
   visible: T[]
   /** Rows this department filter is keeping out of the current result set. */

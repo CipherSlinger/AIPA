@@ -31,6 +31,7 @@ import {
   buildAskPrompt,
   sanitizeAskHistory,
 } from '../sessions/ask-history'
+import { parseScopeSessionIds } from '../sessions/ask-scope'
 import { collectRelatedSessions } from '../sessions/related-sessions'
 import { addMcpServer, getMcpConfigInfo, readMcpServers, removeMcpServer, setMcpServerEnabledRouted } from '../config/mcp-config'
 import { getSessionStats } from '../sessions/session-stats'
@@ -2097,12 +2098,14 @@ function registerSessionHandlers(): void {
 
   ipcMain.handle('session:askHistory', async (
     event: Electron.IpcMainInvokeEvent,
-    { question, locale, requestId, history }: {
+    { question, locale, requestId, history, scopeSessionIds }: {
       question: string
       locale?: string
       requestId?: string
       /** Last exchange(s) from the overlay; validated below, never trusted. */
       history?: unknown
+      /** Session ids the evidence must come from; validated below, never trusted. */
+      scopeSessionIds?: unknown
     },
   ): Promise<{
     ok: boolean
@@ -2116,6 +2119,12 @@ function registerSessionHandlers(): void {
   }> => {
     const trimmed = typeof question === 'string' ? question.trim() : ''
     if (!trimmed || trimmed.length > 500) return { ok: false, error: 'invalid_question' }
+
+    // `null` means unscoped (search everything); an array — even an empty one —
+    // means the caller named a scope. Ids are never logged: they identify this
+    // machine's conversations.
+    const parsedScope = parseScopeSessionIds(scopeSessionIds)
+    const allowed = parsedScope ? new Set(parsedScope.ids) : undefined
 
     const status = historyAskStatus()
     if (!status.available) return { ok: false, available: false, reason: status.reason }
@@ -2131,6 +2140,7 @@ function registerSessionHandlers(): void {
       let { sources, digest, indexing } = await collectHistoryDigest(trimmed, {
         locale: normalizedLocale,
         signal: controller.signal,
+        allowedSessionIds: allowed,
       })
       if (controller.signal.aborted) return { ok: false, error: 'aborted' }
 
@@ -2152,9 +2162,13 @@ function registerSessionHandlers(): void {
           })
         }
         if (controller.signal.aborted) return { ok: false, error: 'aborted' }
+        // The retry must carry the same scope. Forgetting it here would answer
+        // a department question from the whole history, and the answer would
+        // look exactly like a valid one.
         const retry = await collectHistoryDigest(trimmed, {
           locale: normalizedLocale,
           signal: controller.signal,
+          allowedSessionIds: allowed,
         })
         sources = retry.sources
         digest = retry.digest
@@ -2197,7 +2211,7 @@ function registerSessionHandlers(): void {
       // reject, so a follow-up never fails because of its own context.
       const safeHistory = sanitizeAskHistory(history)
       const result = await runInternalTurn({
-        prompt: buildAskPrompt(trimmed, digest, sources, normalizedLocale, safeHistory),
+        prompt: buildAskPrompt(trimmed, digest, sources, normalizedLocale, safeHistory, parsedScope !== null),
         timeoutMs: 90_000,
         internalTag: 'ask-history',
         // Answer from the excerpts alone; a read-only turn must not reach for

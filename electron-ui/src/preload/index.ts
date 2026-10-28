@@ -1344,14 +1344,16 @@ const electronAPI = {
   /** Whether this profile can run an ask turn; the overlay hides the row when not. */
   sessionAskHistoryStatus: () =>
     ipcRenderer.invoke('session:askHistoryStatus') as Promise<{ available: boolean; reason?: string }>,
-  sessionAskHistory: ({ question, locale, requestId, history }: {
+  sessionAskHistory: ({ question, locale, requestId, history, scopeSessionIds }: {
     question: string
     locale?: string
     requestId: string
     /** Previous exchange(s); the main process validates and caps them. */
     history?: AskHistoryTurnData[]
+    /** Session ids the evidence must come from; an empty array is an empty scope. */
+    scopeSessionIds?: string[]
   }) =>
-    ipcRenderer.invoke('session:askHistory', { question, locale, requestId, history }) as Promise<AskHistoryResultData>,
+    ipcRenderer.invoke('session:askHistory', { question, locale, requestId, history, scopeSessionIds }) as Promise<AskHistoryResultData>,
   /** Abort the in-flight ask (the overlay closes mid-run) and free the slot. */
   sessionAskHistoryCancel: () => ipcRenderer.invoke('session:askHistoryCancel') as Promise<void>,
   /**

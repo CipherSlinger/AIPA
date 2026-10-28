@@ -1,8 +1,8 @@
 // The department view's top bar: identity, breadcrumb, and the handful of
 // actions that act on the whole department rather than on one employee.
 
-import { ArrowLeft, BookOpen, ChevronRight, Download, FolderOpen, ListChecks, MessageSquarePlus, ScrollText } from 'lucide-react'
-import type { Department } from '../../store'
+import { ArrowLeft, BookOpen, ChevronRight, Download, FolderOpen, ListChecks, MessageSquarePlus, ScrollText, Search } from 'lucide-react'
+import { useUiStore, type Department } from '../../store'
 import { useI18n } from '../../i18n'
 import type { SortOrder } from './DepartmentDashboard.data'
 import { deptDisplayName, kindOf } from './deptUtils'
@@ -65,6 +65,19 @@ export default function DeptHeader({
 }: DeptHeaderProps) {
   const { t, resolvedLocale } = useI18n()
   const deptName = deptDisplayName(dept, resolvedLocale)
+  const setGlobalSearchOpen = useUiStore(s => s.setGlobalSearchOpen)
+  const setGlobalSearchSeed = useUiStore(s => s.setGlobalSearchSeed)
+  const setGlobalSearchSeedDeptId = useUiStore(s => s.setGlobalSearchSeedDeptId)
+
+  // Open the global overlay narrowed to this node. The overlay mounts on the
+  // far side of this click, so all three values are parked in the store first:
+  // the department is the one-shot scope seed, and an empty query seed keeps a
+  // question left over from a previous search from returning scoped here.
+  const openScopedSearch = () => {
+    setGlobalSearchSeedDeptId(dept.id)
+    setGlobalSearchSeed('')
+    setGlobalSearchOpen(true)
+  }
 
   return (
     <div style={{
@@ -387,6 +400,43 @@ export default function DeptHeader({
       >
         <ScrollText size={12} style={{ flexShrink: 0 }} />
         <span className="dept-action-label">{t('dept.brief.title')}</span>
+      </button>
+
+      {/* The global search with this node preselected. A department page is
+          already scoped by definition, so the search it opens starts scoped
+          too instead of making the user pick the same node again. */}
+      <button
+        onClick={openScopedSearch}
+        className="dept-action-btn"
+        aria-label={t('search.deptScope.open')}
+        title={t('search.deptScope.open')}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 5,
+          padding: '5px 10px',
+          borderRadius: 6,
+          border: '1px solid var(--border)',
+          background: 'transparent',
+          color: 'var(--text-secondary)',
+          fontSize: 11,
+          cursor: 'pointer',
+          flexShrink: 0,
+          transition: 'border-color 0.15s, color 0.15s, background 0.15s',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'
+          e.currentTarget.style.color = 'var(--accent-text)'
+          e.currentTarget.style.background = 'rgba(99,102,241,0.06)'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.borderColor = 'var(--border)'
+          e.currentTarget.style.color = 'var(--text-secondary)'
+          e.currentTarget.style.background = 'transparent'
+        }}
+      >
+        <Search size={12} style={{ flexShrink: 0 }} />
+        <span className="dept-action-label">{t('search.deptScope.open')}</span>
       </button>
 
       <div style={{ display: 'flex', gap: 2, background: 'var(--bg-hover)', borderRadius: 6, padding: 2, flexShrink: 0 }}>

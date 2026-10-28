@@ -12,7 +12,7 @@
 // message the answer was built from.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Check, Copy, Loader2, Search, Sparkles, X } from 'lucide-react'
+import { Check, Copy, Loader2, Lock, Search, Sparkles, X } from 'lucide-react'
 import type { AskHistorySourceData, SessionSearchResultData } from '../../../preload/index'
 import { useI18n, useT } from '../../i18n'
 import { useDepartmentStore, useSessionStore, useUiStore } from '../../store'
@@ -31,6 +31,7 @@ import {
   type SearchOriginFilter,
 } from './searchOriginFilter'
 import {
+  MAX_SCOPE_SESSIONS,
   buildDeptAttributionMap,
   buildDeptFilterOptions,
   deptAttributionFor,
@@ -39,6 +40,7 @@ import {
   filterResultsByDept,
   isDeptFilterEmpty,
   searchRowKeys,
+  sessionIdsInDeptTree,
 } from './searchDeptAttribution'
 
 /**
@@ -260,7 +262,36 @@ export default function GlobalSearchOverlay() {
   // The org node whose subtree the current rows are narrowed to, or null for
   // every department. Like the origin filter, this is a client view over rows
   // already returned — it never starts a new search.
-  const [deptFilter, setDeptFilter] = useState<string | null>(null)
+  //
+  // The department page seeds this before opening the overlay, so the first
+  // mount reads it once here (a state initializer, not an effect, so the first
+  // result set is already scoped). A node the tree no longer has falls back to
+  // All instead of hiding every row behind a filter the user cannot see.
+  const [deptFilter, setDeptFilter] = useState<string | null>(() => {
+    const seeded = useUiStore.getState().globalSearchSeedDeptId
+    if (!seeded) return null
+    return useDepartmentStore.getState().departments.some(d => d.id === seeded) ? seeded : null
+  })
+  // True while the filter came from a department page. The user explicitly
+  // asked for a scoped search there, so editing the query must keep the
+  // department; a department chosen manually from a normal search is not
+  // pinned and keeps the reset-on-query behaviour.
+  const [deptPinned, setDeptPinned] = useState(() => deptFilter !== null)
+  // Whether the ask reads only this node's subtree. Follows the department
+  // filter by default; the user may turn it off and still keep the row filter.
+  const [askScopeOn, setAskScopeOn] = useState(() => deptFilter !== null)
+  // The scope the visible answer was actually asked with, captured when the
+  // turn starts. The input stays editable and the toggle disappears with the
+  // list, so the receipt and the empty-answer copy must not read live state.
+  const [askedScope, setAskedScope] = useState<{
+    deptId: string
+    label: string
+    /** Sessions handed to the ask after the cap. */
+    count: number
+    /** Distinct sessions in the subtree before the cap. */
+    total: number
+    truncated: boolean
+  } | null>(null)
   const [askAvailable, setAskAvailable] = useState(false)
   const [askState, setAskState] = useState<AskState>('idle')
   const [askAnswer, setAskAnswer] = useState('')
@@ -337,6 +368,17 @@ export default function GlobalSearchOverlay() {
     () => filterResultsByDept(filtered.visible, deptAttributions, departments, deptFilter),
     [filtered, deptAttributions, departments, deptFilter],
   )
+  const deptFilterLabel = useMemo(
+    () => deptOptions.find(option => option.id === deptFilter)?.label ?? '',
+    [deptOptions, deptFilter],
+  )
+  // The corpus a scoped ask may read: sessions whose folder resolves to this
+  // node or a descendant, in listing order. `null` when no department is
+  // selected, so the ask is unrestricted rather than accidentally empty.
+  const deptScope = useMemo(
+    () => (deptFilter ? sessionIdsInDeptTree(sessions, departments, deptFilter, homeDir) : null),
+    [sessions, departments, deptFilter, homeDir],
+  )
 
   const close = useCallback(() => {
     dismissedRef.current = true
@@ -368,10 +410,12 @@ export default function GlobalSearchOverlay() {
   useEffect(() => { askStateRef.current = askState }, [askState])
 
   // The seed is one-shot: consume it on mount so closing and reopening the
-  // overlay does not bring the palette's old question back.
+  // overlay does not bring the palette's old question back — and so a later
+  // search does not silently stay scoped to a department page's node.
   useEffect(() => {
     const store = useUiStore.getState()
     if (store.globalSearchSeed) store.setGlobalSearchSeed('')
+    if (store.globalSearchSeedDeptId) store.setGlobalSearchSeedDeptId(null)
   }, [])
 
   // Live answer text for the running ask. The optional call keeps an older
@@ -452,10 +496,19 @@ export default function GlobalSearchOverlay() {
   const rowKeys = useMemo(() => searchRowKeys(flat), [flat])
 
   // A filter choice that points at a node the org chart no longer has would
-  // hide every row for a reason the user cannot see.
+  // hide every row for a reason the user cannot see. Clearing it also drops the
+  // page's pin: there is no scoped search left to preserve across typing.
   useEffect(() => {
-    if (deptFilter && !deptOptions.some(option => option.id === deptFilter)) setDeptFilter(null)
+    if (deptFilter && !deptOptions.some(option => option.id === deptFilter)) {
+      setDeptFilter(null)
+      setDeptPinned(false)
+    }
   }, [deptFilter, deptOptions])
+
+  // A department filter turns the ask scope on by default (seeded and manual
+  // alike), and clearing the filter turns it off. The effect only follows the
+  // filter, so unchecking the scope while keeping the filter stays unchecked.
+  useEffect(() => { setAskScopeOn(deptFilter !== null) }, [deptFilter])
 
   // A new result set — or a different narrowing — starts at the best visible
   // hit. A session-list refresh alone must not move the selection.
@@ -484,6 +537,19 @@ export default function GlobalSearchOverlay() {
     if (!askAvailable || question.length < ASK_MIN_QUERY || askState === 'running') return
 
     const run = ++askRunRef.current
+    // Freeze the scope of this turn before the network call: the result's
+    // receipt and empty-answer copy must describe what was asked, not the
+    // toggle's state after the user edited the query.
+    const scopeForRun = askScopeOn && deptFilter && deptScope
+      ? {
+          deptId: deptFilter,
+          label: deptFilterLabel,
+          count: deptScope.ids.length,
+          total: deptScope.total,
+          truncated: deptScope.truncated,
+        }
+      : null
+    const scopeIds = askScopeOn && deptScope ? deptScope.ids : undefined
     // Fresh id per ask: the main process echoes it on every progress event,
     // and anything carrying an older id is ignored by the listener.
     const requestId = `ask-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
@@ -495,6 +561,7 @@ export default function GlobalSearchOverlay() {
     setAskIndexing(false)
     setCopied(false)
     setAskedQuestion(question)
+    setAskedScope(scopeForRun)
 
     try {
       const api = window.electronAPI
@@ -506,6 +573,9 @@ export default function GlobalSearchOverlay() {
         // The first ask sends nothing; every later one carries only the last
         // exchange, which is all the model needs to resolve a reference.
         history: lastExchange ? [lastExchange] : undefined,
+        // Omitted means the whole history; an empty array is a deliberately
+        // empty scope, which a department with no filed sessions really is.
+        scopeSessionIds: scopeIds,
       })
       if (run !== askRunRef.current || dismissedRef.current) return
       if (queryRef.current.trim() !== question) {
@@ -539,7 +609,19 @@ export default function GlobalSearchOverlay() {
       setAskDraft('')
       addToast('error', t('askHistory.failed'))
     }
-  }, [addToast, askAvailable, askState, lastExchange, query, resolvedLocale, t])
+  }, [
+    addToast,
+    askAvailable,
+    askScopeOn,
+    askState,
+    deptFilter,
+    deptFilterLabel,
+    deptScope,
+    lastExchange,
+    query,
+    resolvedLocale,
+    t,
+  ])
 
   // Stop is a user decision, not an abort of the overlay: bump the run token
   // so the late invoke result is ignored, clear the partial text, and free the
@@ -715,7 +797,12 @@ export default function GlobalSearchOverlay() {
               // synchronously — an effect would let a stale filter hide the
               // new query's rows for a frame.
               setOriginFilter(current => originFilterForQuery(query, e.target.value, current))
-              setDeptFilter(current => deptFilterForQuery(query, e.target.value, current))
+              // A pinned filter was chosen from a department page, not over
+              // these rows, so typing must not drop it; a manual choice still
+              // resets with the query.
+              setDeptFilter(current => (
+                deptPinned ? current : deptFilterForQuery(query, e.target.value, current)
+              ))
               // Editing invalidates whatever the previous text produced. An
               // answer is simply stale, so return to the list; a running turn
               // must stop, because it streams for a question the input no
@@ -877,7 +964,13 @@ export default function GlobalSearchOverlay() {
                 aria-label={t('globalSearch.dept.filterLabel')}
                 title={t('globalSearch.dept.selectTitle')}
                 value={deptFilter ?? ''}
-                onChange={e => setDeptFilter(e.target.value || null)}
+                onChange={e => {
+                  // A manual choice replaces the page's pin. "All departments"
+                  // therefore clears both the filter and the pin, while a
+                  // hand-picked node keeps the reset-on-query behaviour.
+                  setDeptFilter(e.target.value || null)
+                  setDeptPinned(false)
+                }}
                 onKeyDown={e => {
                   // Let the select keep its own arrow/Enter handling instead of
                   // moving the result selection or opening the highlighted hit.
@@ -899,6 +992,21 @@ export default function GlobalSearchOverlay() {
                   </option>
                 ))}
               </select>
+            )}
+            {/* The select alone cannot say why typing will not clear it. */}
+            {deptFilter && deptPinned && (
+              <span
+                title={t('search.deptScope.pinned')}
+                aria-label={t('search.deptScope.pinned')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  color: 'var(--accent-text)',
+                  flexShrink: 0,
+                }}
+              >
+                <Lock size={11} />
+              </span>
             )}
             {deptFilter && deptFiltered.hidden > 0 && (
               <span style={{ fontSize: 10, color: 'var(--text-muted)', minWidth: 0 }}>
@@ -1027,6 +1135,21 @@ export default function GlobalSearchOverlay() {
               aria-live="polite"
               style={{ padding: '16px 16px 14px' }}
             >
+              {/* After the fact, say which corpus answered: the department the
+                  turn was scoped to and how many sessions it offered. A scope
+                  with zero sessions is not "answered from 0 conversations" —
+                  the empty-answer copy below already names the department. */}
+              {askedScope && askedScope.count > 0 && (
+                <div style={{ fontSize: 10, lineHeight: 1.5, color: 'var(--text-muted)', marginBottom: 8 }}>
+                  {t('search.deptScope.answerScope', {
+                    dept: askedScope.label,
+                    count: askedScope.count,
+                  })}
+                  {askedScope.truncated && (
+                    <> {t('search.deptScope.capped', { count: askedScope.count })}</>
+                  )}
+                </div>
+              )}
               {askAnswer ? (
                 <>
                   {/* The row keeps its height in both states: growing it on
@@ -1067,7 +1190,17 @@ export default function GlobalSearchOverlay() {
                 </>
               ) : (
                 <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                  {t(askIndexing ? 'askHistory.stillIndexing' : 'askHistory.noSources')}
+                  {/* A scoped empty answer only says no in-scope transcript
+                      matched; it does not claim the department never discussed
+                      the topic. The generic copy would erase that difference. */}
+                  {askedScope
+                    ? t('search.deptScope.noMatch', { dept: askedScope.label })
+                    : t(askIndexing ? 'askHistory.stillIndexing' : 'askHistory.noSources')}
+                  {askedScope && askIndexing && (
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                      {t('search.deptScope.searching')}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1165,6 +1298,59 @@ export default function GlobalSearchOverlay() {
 
           {askState === 'idle' && (
             <>
+              {/* With a department filter active the ask can be narrowed to
+                  the same subtree. The scope is independent of the row filter:
+                  turning it off asks the whole history while the list stays
+                  filtered, so the helper line says exactly which corpus will
+                  answer before the user commits. */}
+              {askAvailable && deptFilter && deptScope && (
+                <div
+                  style={{
+                    padding: '7px 16px 8px',
+                    borderBottom: '1px solid var(--border)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
+                    flexShrink: 0,
+                  }}
+                >
+                  <label
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: 11,
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={askScopeOn}
+                      onChange={e => setAskScopeOn(e.target.checked)}
+                      onKeyDown={stopPillActivation}
+                      style={{ margin: 0, accentColor: 'var(--accent-text)', flexShrink: 0 }}
+                    />
+                    <span>{t('search.deptScope.askOnly', { dept: deptFilterLabel })}</span>
+                  </label>
+                  <div style={{ fontSize: 10, lineHeight: 1.5, color: 'var(--text-muted)' }}>
+                    {askScopeOn ? (
+                      <>
+                        {t('search.deptScope.limits', {
+                          dept: deptFilterLabel,
+                          cap: MAX_SCOPE_SESSIONS,
+                        })}
+                        {deptScope.truncated && (
+                          <> {t('search.deptScope.capped', { count: deptScope.ids.length })}</>
+                        )}
+                      </>
+                    ) : (
+                      t('search.deptScope.scopeOff', { dept: deptFilterLabel })
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Pinned first row: an explicit affordance, because Ctrl+Enter
                   alone is invisible. Keyboard users can Tab to it; Enter still
                   opens the highlighted search result. */}
@@ -1268,7 +1454,10 @@ export default function GlobalSearchOverlay() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setDeptFilter(null)}
+                      onClick={() => {
+                        setDeptFilter(null)
+                        setDeptPinned(false)
+                      }}
                       onKeyDown={stopPillActivation}
                       style={{ ...GHOST_BUTTON_STYLE, marginTop: 12 }}
                     >
