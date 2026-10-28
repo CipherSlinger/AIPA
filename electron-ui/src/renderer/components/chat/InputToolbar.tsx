@@ -6,6 +6,7 @@ import ClipboardActionsMenu from './ClipboardActionsMenu'
 import InputToolbarTextTransform from './InputToolbarTextTransform'
 import InputToolbarStyleSelector from './InputToolbarStyleSelector'
 import EffortPicker from './EffortPicker'
+import HistoryAskButton from './HistoryAskButton'
 import { toolbarBtnStyle, toolbarHoverIn, toolbarHoverOut } from './chatInputConstants'
 
 interface InputToolbarProps {
@@ -30,6 +31,8 @@ interface InputToolbarProps {
   isPlanMode?: boolean
   onTogglePlanMode?: () => void
   isStreaming?: boolean
+  /** Session that will receive the history-ask row; null for a new conversation. */
+  sessionId: string | null
 }
 
 export default function InputToolbar({
@@ -53,6 +56,7 @@ export default function InputToolbar({
   isPlanMode,
   onTogglePlanMode,
   isStreaming: isStreamingProp,
+  sessionId,
 }: InputToolbarProps) {
   const t = useT()
   const prefs = usePrefsStore(s => s.prefs)
@@ -199,6 +203,9 @@ export default function InputToolbar({
       >
         <TerminalSquare size={16} />
       </button>
+      {/* Ask your past conversations — retrieval runs in the main process, so
+          the question never enters this conversation's engine thread. */}
+      <HistoryAskButton isStreaming={Boolean(isStreamingProp)} sessionId={sessionId} />
       {/* Voice input with enhanced recording indicator */}
       <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         {/* Pulsing ring animation when recording */}

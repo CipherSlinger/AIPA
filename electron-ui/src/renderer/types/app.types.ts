@@ -91,6 +91,60 @@ export interface HookNotice {
   truncated: boolean
 }
 
+/**
+ * One session cited by an in-chat history answer. The shape is what
+ * `revealSessionEvidence` consumes unchanged; `matchedTerm` is the term the
+ * cited line actually contains, so the reopened transcript highlights real text
+ * instead of the whole question.
+ */
+export interface HistoryAskSource {
+  sessionId: string
+  title?: string
+  project: string
+  matchType: 'content'
+  engine: 'claude' | 'codex'
+  timestamp: number
+  messageTimestamp?: number
+  messageRole?: 'user' | 'assistant'
+  snippet: string
+  matchedTerm: string
+}
+
+export type HistoryAskStatus =
+  | 'running'
+  | 'answered'
+  | 'noMatch'
+  | 'indexing'
+  | 'busy'
+  | 'unavailable'
+  | 'timeout'
+  | 'empty'
+  | 'failed'
+  | 'invalidQuestion'
+  | 'stopped'
+
+/**
+ * A transcript row for one "ask your history" run. It is deliberately not a
+ * model answer and deliberately not part of the conversation's engine context:
+ * retrieval runs in the main process, and the row lives only in this renderer's
+ * in-memory transcript. Nothing writes it to disk, so a reload or a session
+ * switch removes it — `HistoryAskRow` says so rather than implying it is saved.
+ */
+export interface HistoryAskNotice {
+  question: string
+  answer: string
+  sources: HistoryAskSource[]
+  status: HistoryAskStatus
+  /** The main process reported a partially built index; the answer may be incomplete. */
+  indexing: boolean
+  /** Ended before it settled (user Stop, leaving the view, or aborted by main). */
+  stopped: boolean
+  /** The IPC's own code when the ask failed, so the row can show the real one. */
+  errorCode?: string
+  /** `historyAskStatus`'s reason when no authenticated engine was available. */
+  unavailableReason?: string
+}
+
 export interface StandardChatMessage {
   id: string
   role: 'user' | 'assistant' | 'system'
@@ -104,6 +158,8 @@ export interface StandardChatMessage {
    * vocabulary (event name, source path) is never translated away.
    */
   hookNotice?: HookNotice
+  /** An ephemeral answer retrieved from past conversations. Never model output. */
+  historyAsk?: HistoryAskNotice
   attachments?: MessageAttachment[]  // user image attachments (on disk)
   /** Set when the turn failed after the images had been attached: the
    *  transcript must say they were not sent instead of implying delivery. */

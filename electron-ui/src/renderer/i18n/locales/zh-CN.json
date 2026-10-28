@@ -3728,5 +3728,60 @@
     "created": "已创建新的分支会话",
     "createdFrom": "已从“{{excerpt}}”创建新分支",
     "createdEmpty": "已创建新的空分支会话——这条消息之前没有可保留的历史"
+  },
+  "historyAsk": {
+    "chat": {
+      "action": "向过去的对话提问",
+      "popoverTitle": "向过去的对话提问",
+      "popoverHint": "只检索之前的会话；这个问题不会发给当前对话。",
+      "placeholder": "例如：关于登录超时，我们最后是怎么定的？",
+      "ask": "提问",
+      "cancel": "取消",
+      "inline": {
+        "tooShort": "至少输入 {{count}} 个字。",
+        "tooLong": "请控制在 {{count}} 个字以内。",
+        "unavailable": "现在没法向历史提问。"
+      },
+      "disabled": {
+        "unavailable": "向历史提问需要已登录的引擎——请在设置里添加密钥或登录。",
+        "unavailableWithReason": "暂时无法向历史提问（{{reason}}）。",
+        "streaming": "等这一轮回答结束，再向历史提问。",
+        "running": "AIPA 正在回答另一个关于历史的问题。"
+      },
+      "title": "来自你的历史",
+      "badge": "历史对话",
+      "aria": "AIPA 根据你过去的对话给出的回答",
+      "questionLabel": "你问的是",
+      "stop": "停止",
+      "stopHint": "停止检索历史；已经收到的文字会保留。",
+      "copy": "复制",
+      "copyHint": "复制回答，连同 [n] 引用编号",
+      "copied": "已复制",
+      "copyFailed": "没能复制",
+      "sourcesTitle": "来源",
+      "sourceLabel": "打开来源 {{n}}：{{title}}",
+      "indexingNote": "历史索引还在建立中，这条回答可能不完整。",
+      "provenance": "这里的回答来自你过去的对话，而不是当前这段对话。它没有加入当前对话，后面的消息也看不到它。",
+      "corpus": "只检索了你和助手写下的文字；工具输出、代码改动和文件内容从未进入索引。",
+      "ephemeral": "这条记录不会随对话保存——想保留就复制下来。",
+      "status": {
+        "running": "正在阅读你过去的对话…",
+        "answeredOne": "回答来自 1 段过去的会话",
+        "answeredMany": "回答来自 {{count}} 段过去的会话",
+        "answeredNoSources": "已回答，但没能标出来源。",
+        "noMatch": "之前的对话里没有提到这个，所以没有回答可显示。换些词试试。",
+        "indexing": "历史索引还在建立，暂时没有匹配到内容。稍等一下再问。",
+        "busy": "AIPA 正在回答另一个历史问题，这次没有提问。",
+        "unavailable": "向历史提问需要已登录的引擎，这次没有提问。",
+        "unavailableWithReason": "向历史提问需要已登录的引擎（{{reason}}），这次没有提问。",
+        "timeout": "这个问题花了太久，没有收到完整回答。",
+        "empty": "AIPA 返回了空答案。",
+        "invalidQuestion": "这个问题没法提问：内容是空的，或者太长了。",
+        "failed": "AIPA 没能回答这个问题。",
+        "failedWithCode": "AIPA 没能回答这个问题（{{code}}）。",
+        "stoppedPartial": "已停止——下面只是停止前收到的部分内容，不是完整回答。",
+        "stoppedEmpty": "还没收到任何文字就停止了，没有生成回答。"
+      }
+    }
   }
 }

@@ -1,7 +1,7 @@
 // Chat store — extracted from store/index.ts (Iteration 440)
 // Tab support added in Iteration 515
 import { create } from 'zustand'
-import { ChatMessage, ElicitationMessage, HookCallbackMessage, PermissionMessage, PlanMessage, StandardChatMessage } from '../types/app.types'
+import { ChatMessage, ElicitationMessage, HistoryAskNotice, HookCallbackMessage, PermissionMessage, PlanMessage, StandardChatMessage } from '../types/app.types'
 import { sessionModelStorageKey } from '../lib/sessionModel'
 import type { ThreadStatusChip } from '../components/chat/threadStatusText'
 import type { ThreadGoalView } from '../utils/threadGoal'
@@ -230,6 +230,12 @@ interface ChatState {
   pendingToolUses: Map<string, { name: string; input: Record<string, unknown> }>
 
   addMessage: (msg: ChatMessage) => void
+  /**
+   * Patch the ephemeral history-ask row as its answer streams in or settles.
+   * It writes only to the in-memory message array; nothing downstream persists
+   * the row, which is exactly what the row tells the user.
+   */
+  updateHistoryAsk: (messageId: string, patch: Partial<HistoryAskNotice>) => void
   /** Mark a user message's images as undelivered, with the honest reason. */
   markAttachmentsNotSent: (msgId: string, reason: string) => void
   /**
@@ -585,6 +591,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (msg.role === 'user') userMessageCount++
     set((s) => ({ messages: [...s.messages, msg] }))
   },
+
+  updateHistoryAsk: (messageId, patch) => set((s) => ({
+    messages: s.messages.map(message => {
+      if (message.id !== messageId) return message
+      const standard = message as StandardChatMessage
+      if (!standard.historyAsk) return message
+      return { ...standard, historyAsk: { ...standard.historyAsk, ...patch } }
+    }),
+  })),
 
   markAttachmentsNotSent: (msgId, reason) => set((s) => ({
     messages: s.messages.map(m => (

@@ -3728,5 +3728,60 @@
     "created": "Branched into a new conversation",
     "createdFrom": "Branched from “{{excerpt}}”",
     "createdEmpty": "Branched into a new empty conversation — there was no earlier history to keep"
+  },
+  "historyAsk": {
+    "chat": {
+      "action": "Ask your past conversations",
+      "popoverTitle": "Ask your past conversations",
+      "popoverHint": "Searches earlier sessions only. Your question is not sent to this conversation.",
+      "placeholder": "e.g. What did we decide about the login timeout?",
+      "ask": "Ask",
+      "cancel": "Cancel",
+      "inline": {
+        "tooShort": "Type at least {{count}} characters.",
+        "tooLong": "Keep it under {{count}} characters.",
+        "unavailable": "Ask history is not available right now."
+      },
+      "disabled": {
+        "unavailable": "Ask history needs a signed-in engine — add a key or sign in under Settings.",
+        "unavailableWithReason": "Ask history is unavailable ({{reason}}).",
+        "streaming": "Wait for this turn to finish, then ask your history.",
+        "running": "AIPA is already answering another question about your history."
+      },
+      "title": "From your history",
+      "badge": "Past conversations",
+      "aria": "AIPA's answer from your past conversations",
+      "questionLabel": "You asked",
+      "stop": "Stop",
+      "stopHint": "Stop reading your history; the text that already arrived is kept.",
+      "copy": "Copy",
+      "copyHint": "Copy the answer with its [n] citations",
+      "copied": "Copied",
+      "copyFailed": "Could not copy",
+      "sourcesTitle": "Sources",
+      "sourceLabel": "Open source {{n}}: {{title}}",
+      "indexingNote": "The history index is still being built, so this answer may be incomplete.",
+      "provenance": "Answers here come from your past conversations, never from this one. Nothing is added to this conversation, so later turns cannot see it.",
+      "corpus": "Only prose you and the assistant wrote was searched — tool output, diffs and file contents were never indexed.",
+      "ephemeral": "This row is not saved with the conversation — copy it if you want to keep it.",
+      "status": {
+        "running": "Reading your past conversations…",
+        "answeredOne": "Answered from 1 past session",
+        "answeredMany": "Answered from {{count}} past sessions",
+        "answeredNoSources": "Answered, but no source could be cited.",
+        "noMatch": "No earlier conversation mentions that, so there is no answer. Try different words.",
+        "indexing": "The history index is still being built and nothing has matched yet. Ask again in a moment.",
+        "busy": "AIPA is already answering another history question. Nothing was asked.",
+        "unavailable": "History questions need a signed-in engine. Nothing was asked.",
+        "unavailableWithReason": "History questions need a signed-in engine ({{reason}}). Nothing was asked.",
+        "timeout": "The question took too long, and no complete answer arrived.",
+        "empty": "AIPA returned an empty answer.",
+        "invalidQuestion": "That question could not be asked: it was empty or too long.",
+        "failed": "AIPA could not answer that question.",
+        "failedWithCode": "AIPA could not answer that question ({{code}}).",
+        "stoppedPartial": "Stopped — this is only the part that had arrived, not a complete answer.",
+        "stoppedEmpty": "Stopped before any text arrived. No answer was produced."
+      }
+    }
   }
 }

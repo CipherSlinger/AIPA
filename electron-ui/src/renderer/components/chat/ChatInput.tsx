@@ -514,6 +514,7 @@ export default function ChatInput({
         isPlanMode={isPlanMode}
         onTogglePlanMode={handleTogglePlanMode}
         isStreaming={isStreaming}
+        sessionId={sessionId}
       />
       </div>
       <RateLimitChip sessionId={sessionId} />

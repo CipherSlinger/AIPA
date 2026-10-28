@@ -20,6 +20,7 @@ import { pushEscapeHandler } from '../ui/escapeStack'
 import { useGlobalSessionSearch } from './useGlobalSessionSearch'
 import { SearchResultRow, relativeTime } from './SearchResultRow'
 import { revealSessionEvidence } from './revealSessionEvidence'
+import { parseAnswerCitations } from './answerCitations'
 import {
   SEARCH_ORIGIN_FILTERS,
   buildSessionOriginMap,
@@ -178,34 +179,33 @@ function AnswerBody({
   const t = useT()
   const nodes = useMemo(() => {
     const out: React.ReactNode[] = []
-    const re = /\[(\d+)\]/g
-    let from = 0
-    let match: RegExpExecArray | null
-    while ((match = re.exec(answer))) {
-      if (match.index > from) out.push(answer.slice(from, match.index))
-      const n = Number(match[1])
-      const source = sources[n - 1]
-      if (source) {
-        out.push(
-          <button
-            key={`cite-${match.index}`}
-            type="button"
-            onClick={() => onCite(n, source)}
-            aria-label={t('askHistory.citeLabel', {
-              n,
-              title: source.title || t('askHistory.untitled'),
-            })}
-            style={CHIP_STYLE}
-          >
-            [{n}]
-          </button>,
-        )
-      } else {
-        out.push(match[0])
+    // Shared with the in-chat history row: a number that does not map to a
+    // returned source must stay literal text in both places.
+    for (const segment of parseAnswerCitations(answer, sources.length)) {
+      if (segment.kind === 'text') {
+        out.push(segment.text)
+        continue
       }
-      from = re.lastIndex
+      const source = sources[segment.sourceIndex]
+      if (!source) {
+        out.push(segment.raw)
+        continue
+      }
+      out.push(
+        <button
+          key={`cite-${segment.start}`}
+          type="button"
+          onClick={() => onCite(segment.n, source)}
+          aria-label={t('askHistory.citeLabel', {
+            n: segment.n,
+            title: source.title || t('askHistory.untitled'),
+          })}
+          style={CHIP_STYLE}
+        >
+          [{segment.n}]
+        </button>,
+      )
     }
-    if (from < answer.length) out.push(answer.slice(from))
     return out
   }, [answer, sources, onCite, t])
 

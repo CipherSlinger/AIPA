@@ -5,6 +5,7 @@ import { ChatMessage, StandardChatMessage, Persona } from '../../types/app.types
 import MessageContextMenu from './MessageContextMenu'
 import MessageActionToolbar from './MessageActionToolbar'
 import MessageBubbleContent from './MessageBubbleContent'
+import HistoryAskRow from './HistoryAskRow'
 import SelectionToolbar from './SelectionToolbar'
 import ImageLightbox from '../shared/ImageLightbox'
 import ReactionChips from './ReactionChips'
@@ -187,6 +188,13 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   // --- System message ---
   if (isSystem) {
     const content = (message as StandardChatMessage).content || ''
+    // An answer retrieved from past conversations. It is not model output, not
+    // part of this conversation's context, and not saved with the transcript;
+    // the row states all three rather than borrowing the assistant bubble.
+    const historyAsk = (message as StandardChatMessage).historyAsk
+    if (historyAsk) {
+      return <HistoryAskRow messageId={message.id} notice={historyAsk} />
+    }
     // Hook notice. A blocked turn ends with no assistant answer at all, so this
     // row is the only place the user learns that a hook — not the model —
     // stopped it. The hook's own event name, source file and feedback text are
