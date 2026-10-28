@@ -90,6 +90,12 @@ export interface AutomationJob {
   totalTokens?: number
   /** Lifetime cost as the engine reported it; absent when no run reported one. */
   totalCostUsd?: number
+  /**
+   * Optional spend limit in USD for scheduled runs, evaluated over a rolling
+   * 24 hours. Absent means no limit; clearing the field removes it instead of
+   * storing `0`, which would read as "every run is over budget".
+   */
+  dailyCostLimitUsd?: number
   /** Starts, including failed ones; skips by a safety rail do not count. */
   runCount: number
   /** Start timestamps inside the rolling hour, for the runaway guard. */
@@ -109,6 +115,34 @@ export interface AutomationJob {
   history: AutomationRunRecord[]
 }
 
+/**
+ * The reported spend inside a job's rolling 24-hour window.
+ *
+ * Derived on every read, like `failureStreak`, so the number the row compares
+ * with the limit can never disagree with the history it came from.
+ */
+export interface AutomationSpendWindow {
+  /** A run counts when `windowStart < startedAt <= now` (see spend-guard). */
+  windowStart: number
+  /** Sum of reported costs; absent when no run in the window reported one. */
+  reportedCostUsd?: number
+  /** Real runs (success or error) in the window; skips are not attempts. */
+  attemptedRuns: number
+  /** Runs in the window that reported no cost, so the sum is a lower bound. */
+  unreportedRuns: number
+  /**
+   * No cost was reported for a window that had runs (or whose capped history
+   * cannot prove it had none), so the limit cannot be evaluated. Such a run is
+   * allowed; the row says the rail could not bite.
+   */
+  unmeasured: boolean
+  /**
+   * The capped history may not reach back to `windowStart`, so older runs in
+   * the window and any spend they reported are missing from the sum.
+   */
+  partial: boolean
+}
+
 export interface AutomationJobView extends AutomationJob {
   /** The workflow this job names no longer exists in prefs. */
   actionMissing: boolean
@@ -119,6 +153,8 @@ export interface AutomationJobView extends AutomationJob {
    * `history` on every read so it can never disagree with the records shown.
    */
   failureStreak: number
+  /** Present only when the job has a spend limit, so a row without one stays quiet. */
+  spendWindow?: AutomationSpendWindow
 }
 
 export interface AutomationLimits {
@@ -139,6 +175,11 @@ export interface AutomationInput {
    * never a persona whose id is ''), so the scheduler stores it as absent.
    */
   personaId?: string
+  /**
+   * Optional scheduled-run spend limit in USD. Omitted/null clears it; the
+   * scheduler stores an absent value rather than `0`.
+   */
+  dailyCostLimitUsd?: number
 }
 
 /** What the scheduler asks the main process to execute. */

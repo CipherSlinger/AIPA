@@ -108,6 +108,29 @@ export function normalizeRunHistory(value: unknown): AutomationRunRecord[] {
     .slice(-AUTOMATION_HISTORY_CAP)
 }
 
+/**
+ * The record for an occurrence a safety rail refused to start.
+ *
+ * One constructor for every rail (the hourly runaway cap, the spend limit) so a
+ * skip can never accidentally carry what only a real run earns: no duration, no
+ * transcript, no spend, and never "late". `error` names the rail instead.
+ */
+export function createSkipRecord(startedAt: number, error: string): AutomationRunRecord {
+  return {
+    startedAt,
+    status: 'skipped',
+    durationMs: null,
+    sessionId: null,
+    error: clipError(error),
+    late: false,
+  }
+}
+
+function clipError(error: string): string | null {
+  const text = error.trim()
+  return text ? text.slice(0, MAX_RUN_ERROR_CHARS) : null
+}
+
 /** Append one finished run, evicting the oldest once the cap is reached. */
 export function appendRunRecord(
   history: readonly AutomationRunRecord[],

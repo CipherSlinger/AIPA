@@ -35,6 +35,10 @@ import { openSessionCore } from '../departments/openSessionCore'
 import { displayTitle } from '../../lib/sessionTitle'
 import { formatDateTimeShort } from '../../utils/formatDate'
 import { CommandOnlyNotice, EmptyState, Pill } from './ArchiveChrome'
+import {
+  deriveJobOptions, isFilteredEmpty, jobAfterOriginChange, resolveJobSelection,
+  visibleJobOptions, type ArchiveOriginKind,
+} from './archiveJobFilter'
 import SessionOriginBadge from '../shared/SessionOriginBadge'
 
 const ELLIPSIS: React.CSSProperties = {
@@ -49,7 +53,7 @@ type TimeRange = 'all' | 'today' | 'week' | 'month'
  * How a conversation began. 'user' is the absence of an origin, which keeps
  * the common case addressable by the filter without inventing a third kind.
  */
-type OriginFilter = 'all' | 'user' | 'automation' | 'plugin'
+type OriginFilter = ArchiveOriginKind
 const ORIGIN_FILTERS: OriginFilter[] = ['all', 'user', 'automation', 'plugin']
 
 function originKind(session: SessionListItem): Exclude<OriginFilter, 'all'> {
@@ -147,6 +151,8 @@ export default function ArchivePanel() {
   const [deptFilter, setDeptFilter] = useState<string>('all')
   const [timeRange, setTimeRange] = useState<TimeRange>('all')
   const [originFilter, setOriginFilter] = useState<OriginFilter>('all')
+  // One scheduled job under the origin filter; null means "every job".
+  const [jobFilter, setJobFilter] = useState<string | null>(null)
   const [showArchived, setShowArchived] = useState(false)
   const [query, setQuery] = useState('')
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
@@ -187,10 +193,11 @@ export default function ArchivePanel() {
   const queryText = query.trim().toLowerCase()
   const searching = queryText.length > 0
 
-  // Everything except the search box and the command-only suppression. These
-  // two are applied separately because the hidden count must not depend on the
-  // text being searched, and search must be able to see command-only records.
-  const scopedRecords = useMemo(() => {
+  // Everything except the job filter, the search box and the command-only
+  // suppression. These are applied separately because the job options must not
+  // collapse to the job already selected, the hidden count must not depend on
+  // the text being searched, and search must be able to see command-only rows.
+  const originScopedRecords = useMemo(() => {
     const cutoff = timeRange === 'all' ? 0 : Date.now() - TIME_WINDOWS[timeRange]
     return allRecords.filter(r => {
       if (!showArchived && r.archived) return false
@@ -201,6 +208,33 @@ export default function ArchivePanel() {
       return true
     })
   }, [allRecords, timeRange, showArchived, deptFilter, originFilter])
+
+  // The job choices describe the archive, not the current origin/time slice:
+  // picking one must not change the choices or their counts, and a job should
+  // not vanish merely because another filter is narrowing the ledger.
+  const jobOptions = useMemo(
+    () => deriveJobOptions(
+      allRecords.filter(r => showArchived || !r.archived).map(r => r.session),
+    ),
+    [allRecords, showArchived],
+  )
+  const jobChoices = useMemo(() => visibleJobOptions(jobOptions), [jobOptions])
+
+  // A job can vanish from the loaded set (deleted, or all its runs archived
+  // away), or stop being a choice when it becomes the only one left. Either
+  // way the selection would outlive the control that can turn it off.
+  useEffect(() => {
+    const resolved = resolveJobSelection(jobChoices, jobFilter)
+    if (resolved !== jobFilter) setJobFilter(resolved)
+  }, [jobChoices, jobFilter])
+
+  const scopedRecords = useMemo(() => {
+    if (!jobFilter) return originScopedRecords
+    return originScopedRecords.filter(r => {
+      const origin = r.session.origin
+      return origin?.kind === 'automation' && origin.jobId === jobFilter
+    })
+  }, [originScopedRecords, jobFilter])
 
   const commandOnlyCount = useMemo(
     () => scopedRecords.filter(r => r.commandOnly).length,
@@ -336,7 +370,25 @@ export default function ArchivePanel() {
     setShowCommandOnly(v => !v)
   }, [])
 
+  /** Origin kinds are mutually exclusive; a job only survives an automation-capable one. */
+  const selectOrigin = useCallback((kind: OriginFilter) => {
+    setOriginFilter(kind)
+    setJobFilter(current => jobAfterOriginChange(current, kind))
+  }, [])
+
+  const toggleJob = useCallback((jobId: string) => {
+    const turningOn = jobFilter !== jobId
+    setJobFilter(turningOn ? jobId : null)
+    // A job is a scheduled run. Selecting one while "Started by me" is active
+    // would match nothing, so the origin kind follows the job.
+    if (turningOn) {
+      setOriginFilter(kind => (kind === 'all' || kind === 'automation' ? kind : 'automation'))
+    }
+  }, [jobFilter])
+
   const exportLedger = useCallback(() => {
+    // `groups` is built from `records`, so the export is exactly the filtered
+    // ledger. Each row keeps its full origin, which carries the job id/name.
     const data = groups.map(group => ({
       company: group.root?.name ?? t('archive.unassigned'),
       directory: group.root?.directory ?? null,
@@ -364,14 +416,31 @@ export default function ArchivePanel() {
   }, [groups, t])
 
   const filtersActive = deptFilter !== 'all' || timeRange !== 'all' || originFilter !== 'all'
-    || showArchived || query.trim().length > 0
+    || jobFilter !== null || showArchived || query.trim().length > 0
   const clearFilters = () => {
     setDeptFilter('all')
     setTimeRange('all')
     setOriginFilter('all')
+    setJobFilter(null)
     setShowArchived(false)
     setQuery('')
   }
+
+  const filteredEmpty = isFilteredEmpty({
+    records: records.length,
+    scopedRecords: scopedRecords.length,
+    allRecords: allRecords.length,
+    filtersActive,
+    searching,
+    showCommandOnly,
+    commandOnlyCount,
+  })
+  // Name the narrowing the user cannot see rows for, not just "filters".
+  const activeFilterNames = [
+    originFilter !== 'all' ? t(`archive.origin.${originFilter}`) : null,
+    jobFilter !== null ? (jobOptions.find(option => option.jobId === jobFilter)?.jobName ?? null) : null,
+  ].filter((name): name is string => name !== null)
+  const activeFilterDescription = activeFilterNames.join(' · ')
 
   // The i18n helper only substitutes {{params}} — no ICU plural machinery — so
   // each count picks its own singular/plural key. "N updated this week" gives
@@ -460,10 +529,39 @@ export default function ArchivePanel() {
         <span aria-hidden="true" style={{ width: 1, height: 14, flexShrink: 0, background: 'var(--border)' }} />
 
         {ORIGIN_FILTERS.map(origin => (
-          <Pill key={origin} active={originFilter === origin} onClick={() => setOriginFilter(origin)}>
+          <Pill key={origin} active={originFilter === origin} onClick={() => selectOrigin(origin)}>
             {t(`archive.origin.${origin}`)}
           </Pill>
         ))}
+
+        {/* Job-level narrowing lives with the origin kinds it refines. It only
+            appears once there is a real choice — one job is the whole set. */}
+        {jobChoices.length > 0 && (
+          <>
+            <span aria-hidden="true" style={{ width: 1, height: 14, flexShrink: 0, background: 'var(--border)' }} />
+            <span
+              role="group"
+              aria-label={t('archive.jobFilterGroup')}
+              style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, minWidth: 0, maxWidth: '100%' }}
+            >
+              <span style={{ fontSize: 10, color: 'var(--text-subtle)', flexShrink: 0 }}>
+                {t('archive.jobFilterGroup')}
+              </span>
+              {jobChoices.map(job => (
+                <Pill
+                  key={job.jobId}
+                  active={jobFilter === job.jobId}
+                  ariaPressed={jobFilter === job.jobId}
+                  title={t(job.count === 1 ? 'archive.jobSessionCountOne' : 'archive.jobSessionCount', { count: job.count })}
+                  onClick={() => toggleJob(job.jobId)}
+                >
+                  <span style={{ ...ELLIPSIS, maxWidth: 140 }}>{job.jobName}</span>
+                  <span style={{ opacity: 0.65, fontVariantNumeric: 'tabular-nums' }}>{job.count}</span>
+                </Pill>
+              ))}
+            </span>
+          </>
+        )}
 
         <Pill active={showArchived} onClick={() => setShowArchived(v => !v)}>
           {t('archive.showArchived')}
@@ -532,6 +630,16 @@ export default function ArchivePanel() {
             icon={<Inbox size={30} style={{ color: '#6366f1', opacity: 0.45 }} />}
             title={t('archive.emptyTitle')}
             hint={t('archive.emptyHint')}
+          />
+        ) : filteredEmpty ? (
+          <EmptyState
+            icon={<Search size={30} style={{ color: '#6366f1', opacity: 0.45 }} />}
+            title={t('archive.noMatchTitle')}
+            hint={activeFilterDescription
+              ? t('archive.noMatchFilteredHint', { filter: activeFilterDescription })
+              : t('archive.noMatchHint')}
+            onClear={clearFilters}
+            clearLabel={t('archive.clearFilters')}
           />
         ) : records.length === 0 && (searching || showCommandOnly || commandOnlyCount === 0) ? (
           <EmptyState

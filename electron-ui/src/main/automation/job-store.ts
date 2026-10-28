@@ -13,6 +13,7 @@ import * as path from 'path'
 import { createLogger } from '../utils/logger'
 import { normalizeRunHistory } from './run-history'
 import { normalizeCost, normalizeRunUsage, normalizeTokenCount } from './run-usage'
+import { normalizeDailyCostLimit } from './spend-guard'
 import type { AutomationAction, AutomationJob, AutomationRunStatus, AutomationTrigger } from './types'
 
 const log = createLogger('automation-store')
@@ -88,6 +89,9 @@ function normalizeJob(raw: unknown): AutomationJob | null {
     lastUsage: normalizeRunUsage(job.lastUsage),
     totalTokens: normalizeTokenCount(job.totalTokens),
     totalCostUsd: normalizeCost(job.totalCostUsd),
+    // Absent, not 0: a cleared limit must stay cleared after a restart, and 0
+    // would mean every scheduled run is already over budget.
+    dailyCostLimitUsd: normalizeDailyCostLimit(job.dailyCostLimitUsd),
     runCount: typeof job.runCount === 'number' && job.runCount >= 0 ? Math.floor(job.runCount) : 0,
     recentRuns,
     // This whitelist is why every new field needs a line here: a job saved with

@@ -100,6 +100,12 @@ export default function AutomationDialog({
     // assistant — the only run it could have had before this field existed.
     return defaultActionKind === 'prompt' ? ASSISTANT_PERSONA_ID : ''
   })
+  // Kept as text so the empty state means "no limit" rather than 0. A number
+  // state would make clearing the field indistinguishable from a $0 limit,
+  // which would block every scheduled run.
+  const [spendLimitText, setSpendLimitText] = useState(
+    job?.dailyCostLimitUsd !== undefined ? String(job.dailyCostLimitUsd) : '',
+  )
   const [scheduleKind, setScheduleKind] = useState<ScheduleKind>(() => {
     if (!job) return 'daily'
     if (job.trigger.kind === 'interval') return 'interval'
@@ -139,8 +145,16 @@ export default function AutomationDialog({
     return { kind: 'prompt', prompt: prompt.trim() } as const
   }, [actionKind, workflowId, prompt])
 
+  // Empty means no limit. The upper bound is the main process's call; here we
+  // only refuse a value that is not a positive amount at all, so Save cannot
+  // post NaN into a rail that would then never fire.
+  const spendLimitValue = spendLimitText.trim() === '' ? undefined : Number(spendLimitText)
+  const spendLimitValid = spendLimitValue === undefined ||
+    (Number.isFinite(spendLimitValue) && spendLimitValue > 0)
+
   const canSave = name.trim().length > 0 &&
     (actionKind === 'workflow' ? !!workflowId : prompt.trim().length > 0) &&
+    spendLimitValid &&
     !saving
 
   const save = async () => {
@@ -152,6 +166,9 @@ export default function AutomationDialog({
     const input: AutomationInputData = {
       name: name.trim(), enabled, trigger, action,
       ...(personaId ? { personaId } : {}),
+      // Omitting a cleared limit is what removes it; sending 0 would block
+      // every scheduled run.
+      ...(spendLimitValue !== undefined ? { dailyCostLimitUsd: spendLimitValue } : {}),
     }
     try {
       const result = job
@@ -303,6 +320,26 @@ export default function AutomationDialog({
               {t('automation.expert.overrideHint')}
             </div>
           )}
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={labelStyle}>{t('automation.field.spendLimit')}</label>
+          {/* Text rather than a number input: a number input normalizes a
+              half-typed value to '' on some browsers, and an empty field here
+              means "clear the limit" — Save must not do that by accident. */}
+          <input
+            type="text"
+            inputMode="decimal"
+            value={spendLimitText}
+            onChange={e => setSpendLimitText(e.target.value)}
+            placeholder={t('automation.field.spendLimitPlaceholder')}
+            style={{ ...INPUT_STYLE, width: 160 }}
+          />
+          {/* The blind spot and the manual bypass are named once, here, where
+              the user decides the number. */}
+          <div style={{ fontSize: 11, color: SECONDARY, marginTop: 4, lineHeight: 1.5 }}>
+            {t('automation.spend.limitHint')}
+          </div>
         </div>
 
         <div style={{ marginBottom: 12 }}>

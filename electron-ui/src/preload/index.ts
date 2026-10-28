@@ -368,6 +368,20 @@ export interface AutomationRunRecordData {
   usage?: AutomationRunUsageData
 }
 
+/**
+ * Reported spend inside a job's rolling 24-hour window; mirrors main's
+ * `AutomationSpendWindow`. A missing `reportedCostUsd` means no run reported
+ * money, never that the spend was zero.
+ */
+export interface AutomationSpendWindowData {
+  windowStart: number
+  reportedCostUsd?: number
+  attemptedRuns: number
+  unreportedRuns: number
+  unmeasured: boolean
+  partial: boolean
+}
+
 export interface AutomationJobData {
   id: string
   name: string
@@ -379,6 +393,8 @@ export interface AutomationJobData {
    * `__assistant__` is the reserved explicit plain-assistant choice.
    */
   personaId?: string
+  /** Scheduled-run spend limit in USD over a rolling 24 h; absent means none. */
+  dailyCostLimitUsd?: number
   createdAt: number
   updatedAt: number
   nextRunAt: number | null
@@ -400,6 +416,8 @@ export interface AutomationJobData {
   history: AutomationRunRecordData[]
   /** Consecutive failed attempts, ignoring skips. 0 when the last one won. */
   failureStreak: number
+  /** Present only when the job has a spend limit; absent otherwise. */
+  spendWindow?: AutomationSpendWindowData
   /** The workflow this job targets no longer exists. */
   actionMissing: boolean
   /** A run is in flight right now. */
@@ -420,6 +438,8 @@ export interface AutomationInputData {
   action: AutomationActionData
   /** Empty/omitted follows the workflow; absent is not a persona id ''. */
   personaId?: string
+  /** Omitted clears the scheduled-run spend limit; 0 is not a limit. */
+  dailyCostLimitUsd?: number
 }
 
 export type AutomationMutationData =

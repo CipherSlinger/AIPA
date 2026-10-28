@@ -6,15 +6,26 @@ import React, { useState } from 'react'
 import { useT } from '../../i18n'
 
 export function Pill({
-  active, onClick, children,
-}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  active, onClick, title, ariaPressed, children,
+}: {
+  active: boolean
+  onClick: () => void
+  title?: string
+  /** Set on toggles whose on/off state is not obvious from the label alone. */
+  ariaPressed?: boolean
+  children: React.ReactNode
+}) {
   const [hovered, setHovered] = useState(false)
   return (
     <button
+      type="button"
       onClick={onClick}
+      title={title}
+      aria-pressed={ariaPressed}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5, maxWidth: '100%',
         padding: '3px 9px', borderRadius: 999, fontSize: 11, cursor: 'pointer',
         border: `1px solid ${active ? 'rgba(99,102,241,0.5)' : 'var(--border)'}`,
         background: active ? 'rgba(99,102,241,0.14)' : hovered ? 'var(--bg-hover)' : 'transparent',

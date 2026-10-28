@@ -21,8 +21,14 @@ import { nextFireTime, parseCron } from '../utils/cron'
 import { createLogger } from '../utils/logger'
 import { getAllowedFsRoots, safePath } from '../utils/validate'
 import { readAutomationJobs, writeAutomationJobs } from './job-store'
-import { appendRunRecord, countFailureStreak, MAX_RUN_ERROR_CHARS } from './run-history'
+import { appendRunRecord, countFailureStreak, createSkipRecord, MAX_RUN_ERROR_CHARS } from './run-history'
 import { addToLifetimeTotals } from './run-usage'
+import {
+  checkSpendLimit,
+  MAX_DAILY_COST_LIMIT_USD,
+  normalizeDailyCostLimit,
+  summarizeSpendWindow,
+} from './spend-guard'
 import { pickRunModel, resolveScheduledPersona } from './persona-plan'
 import type { StoredPersona, WorkflowPersonaBinding } from './persona-plan'
 import { abortAutomationRun } from './runner'
@@ -143,6 +149,26 @@ function validatePersonaId(value: unknown): string | undefined {
   return id || undefined
 }
 
+/**
+ * A job's optional daily spend limit. An empty input clears it; a value that is
+ * present but unusable is an error rather than a silent "no limit", because a
+ * typo must not quietly remove the rail the user asked for.
+ */
+function validateDailyCostLimit(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined
+  const limit = normalizeDailyCostLimit(
+    typeof value === 'number' ? value : Number(value),
+  )
+  if (limit === undefined) {
+    const n = typeof value === 'number' ? value : Number(value)
+    if (Number.isFinite(n) && n > 0 && n > MAX_DAILY_COST_LIMIT_USD) {
+      throw new AutomationInputError('cost_limit_too_high')
+    }
+    throw new AutomationInputError('cost_limit_invalid')
+  }
+  return limit
+}
+
 function validateAction(value: AutomationAction): AutomationAction {
   if (!value || typeof value !== 'object') throw new AutomationInputError('action_invalid')
   if (value.kind === 'workflow') {
@@ -250,6 +276,11 @@ function toView(job: AutomationJob): AutomationJobView {
     // Derived rather than persisted: the history is the authority, so the
     // streak can never drift from the runs the row is about to list.
     failureStreak: countFailureStreak(job.history),
+    // Only a job with a limit needs the window figures; the row stays quiet on
+    // jobs the user never put a rail on.
+    ...(job.dailyCostLimitUsd !== undefined
+      ? { spendWindow: summarizeSpendWindow(job, Date.now()) }
+      : {}),
   }
 }
 
@@ -320,6 +351,39 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
     if (!opts.manual) job.nextRunAt = nextRunAfter(job.trigger, now)
     persistAndBroadcast()
     return
+  }
+
+  // Spend rail. It sits after the "nothing to run" checks so a job naming a
+  // deleted workflow still gets disabled instead of being masked by a skip,
+  // and before any session or model work so a refused occurrence costs nothing.
+  //
+  // Manual runs bypass it: Run now is the user spending on purpose. A window
+  // whose engines reported no money is *not* treated as $0 spent — the run is
+  // allowed and the row says the limit could not be checked (see spend-guard).
+  const spend = checkSpendLimit(job, now, opts.manual ? 'manual' : 'scheduled')
+  if (spend.kind === 'blocked') {
+    const skippedAt = job.nextRunAt ?? now
+    job.lastRunAt = skippedAt
+    job.lastStatus = 'skipped'
+    job.lastError = 'budget_exceeded'
+    job.lastRunLate = false
+    job.lastUsage = undefined
+    // A skip is not an attempt: no spend, no session, and the failure streak
+    // neither grows nor resets. `createSkipRecord` enforces that shape.
+    job.history = appendRunRecord(job.history, createSkipRecord(skippedAt, 'budget_exceeded'))
+    job.nextRunAt = nextRunAfter(job.trigger, now)
+    persistAndBroadcast()
+    log.warn(
+      `Automation "${job.name}" skipped — reported spend in the last 24 h is at its `
+      + `${job.dailyCostLimitUsd} USD limit`,
+    )
+    return
+  }
+  if (spend.kind === 'allowed' && spend.unmeasured) {
+    log.warn(
+      `Automation "${job.name}" started despite its spend limit — no run in the last `
+      + '24 h reported a cost, so the limit cannot be evaluated',
+    )
   }
 
   // A job may name its own expert; otherwise the workflow's binding applies.
@@ -495,14 +559,7 @@ function tick(): void {
       job.lastUsage = undefined
       // Kept in history so the gap is explainable, but it is not an attempt:
       // the streak ignores it and the record carries no spend or session.
-      job.history = appendRunRecord(job.history, {
-        startedAt: skippedAt,
-        status: 'skipped',
-        durationMs: null,
-        sessionId: null,
-        error: 'hourly_limit',
-        late: false,
-      })
+      job.history = appendRunRecord(job.history, createSkipRecord(skippedAt, 'hourly_limit'))
       job.nextRunAt = nextRunAfter(job.trigger, now)
       dirty = true
       log.warn(`Automation "${job.name}" skipped — more than ${AUTOMATION_LIMITS.maxRunsPerHour} runs this hour`)
@@ -593,6 +650,7 @@ export function createAutomationJob(input: AutomationInput): AutomationMutationR
     const trigger = validateTrigger(input?.trigger)
     const action = validateAction(input?.action)
     const personaId = validatePersonaId(input?.personaId)
+    const dailyCostLimitUsd = validateDailyCostLimit(input?.dailyCostLimitUsd)
     const enabled = input?.enabled !== false
     const job: AutomationJob = {
       id: `auto-${now.toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
@@ -601,6 +659,7 @@ export function createAutomationJob(input: AutomationInput): AutomationMutationR
       trigger,
       action,
       ...(personaId ? { personaId } : {}),
+      ...(dailyCostLimitUsd !== undefined ? { dailyCostLimitUsd } : {}),
       createdAt: now,
       updatedAt: now,
       nextRunAt: enabled ? nextRunAfter(trigger, now) : null,
@@ -631,6 +690,7 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     const trigger = validateTrigger(input?.trigger)
     const action = validateAction(input?.action)
     const personaId = validatePersonaId(input?.personaId)
+    const dailyCostLimitUsd = validateDailyCostLimit(input?.dailyCostLimitUsd)
     const enabled = input?.enabled !== false
 
     const previousTrigger = JSON.stringify(job.trigger)
@@ -641,6 +701,9 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     // Assignment (not omission) is deliberate: clearing the field must remove a
     // previous override, falling back to the workflow binding.
     job.personaId = personaId
+    // Same rule for the spend rail: an empty field removes the limit rather than
+    // storing 0, which would block every scheduled run forever.
+    job.dailyCostLimitUsd = dailyCostLimitUsd
     job.enabled = enabled
     job.updatedAt = Date.now()
     // Keep the existing schedule unless it is genuinely invalidated — renaming
@@ -677,9 +740,9 @@ export function setAutomationEnabled(id: string, enabled: boolean): AutomationMu
 }
 
 /**
- * "Run now" is an explicit user gesture: it ignores `enabled` and the hourly
- * cap, but not the concurrency rail — an in-flight run still owns the job, and
- * hidden background work must never queue up behind a click.
+ * "Run now" is an explicit user gesture: it ignores `enabled`, the hourly cap,
+ * and the spend limit, but not the concurrency rail — an in-flight run still
+ * owns the job, and hidden background work must never queue up behind a click.
  */
 export function runAutomationNow(id: string): AutomationMutationResult {
   const job = jobs.find(j => j.id === id)

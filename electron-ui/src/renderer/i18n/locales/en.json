@@ -2733,7 +2733,11 @@
       "user": "Started by me",
       "automation": "Scheduled runs",
       "plugin": "Plugins"
-    }
+    },
+    "jobFilterGroup": "By job",
+    "jobSessionCount": "{{count}} sessions",
+    "jobSessionCountOne": "{{count}} session",
+    "noMatchFilteredHint": "No record matches {{filter}}. Clear the filters to see the whole archive."
   },
   "canvas": {
     "copyPrompt": "Copy Prompt",
@@ -2953,7 +2957,8 @@
       "success": "Succeeded",
       "error": "Failed",
       "skipped": "Skipped (hourly limit)",
-      "running": "Running…"
+      "running": "Running…",
+      "budgetSkipped": "Skipped (spend limit)"
     },
     "field": {
       "name": "Name",
@@ -2965,7 +2970,9 @@
       "interval": "Every (minutes)",
       "cron": "Cron expression",
       "enabled": "Enabled",
-      "expert": "Expert"
+      "expert": "Expert",
+      "spendLimit": "Spend limit (USD)",
+      "spendLimitPlaceholder": "No limit"
     },
     "action": {
       "workflow": "Run a workflow",
@@ -3011,7 +3018,9 @@
       "deleteFailed": "Could not delete the automation: {{error}}",
       "interrupted": "The run was interrupted when AIPA closed.",
       "run_failed": "The run failed.",
-      "nothing_to_run": "The workflow produced nothing to run."
+      "nothing_to_run": "The workflow produced nothing to run.",
+      "cost_limit_invalid": "The spend limit must be an amount greater than 0.",
+      "cost_limit_too_high": "The spend limit cannot exceed $1000 per day."
     },
     "personaHint": "Scheduled runs of this workflow use this expert. The workflow's own Run button still uses the current conversation's expert.",
     "personaMissing": "Expert deleted",
@@ -3046,6 +3055,16 @@
     "palette": {
       "paused": "Paused",
       "manage": "Manage"
+    },
+    "spend": {
+      "limitHint": "Applies to runs the schedule starts in a rolling 24 hours; Run now is never blocked. Only reported costs count — engines that report no money (Codex, some Claude routes) are not covered, so with no reported cost the limit cannot be checked.",
+      "window": "Last 24 h: {{spent}} of {{limit}}",
+      "windowTitle": "Reported cost of runs started in the last 24 hours. Runs whose engine reported no cost are not included.",
+      "lowerBoundHint": "{{count}} run(s) in this window reported no cost, so the real spend may be higher.",
+      "partialHint": "More than 20 runs happened in this window and older ones left the history, so the real spend may be higher.",
+      "unmeasured": "Last 24 h: no cost reported — the {{limit}} limit cannot be checked",
+      "limitOnly": "Spend limit {{limit}} per 24 h",
+      "noRuns": "Last 24 h: no runs · limit {{limit}}"
     }
   },
   "speculation": {

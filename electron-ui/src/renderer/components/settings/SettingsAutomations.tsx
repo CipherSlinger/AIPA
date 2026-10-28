@@ -34,6 +34,9 @@ type JobExpert =
  * away to `$0.00`.
  */
 function costText(usd: number): string {
+  // A reported $0 is a real report (some engines say the turn was free), and
+  // "<$0.001" would read as a small charge rather than none.
+  if (usd === 0) return '$0'
   if (usd < 0.001) return '<$0.001'
   if (usd < 0.01) return `$${usd.toFixed(3)}`
   return `$${usd.toFixed(2)}`
@@ -120,7 +123,15 @@ export default function SettingsAutomations() {
   /** One past run's outcome, in the same words the status line uses. */
   const runStatus = useCallback((record: AutomationRunRecordData): { text: string; color: string } => {
     if (record.status === 'success') return { text: t('automation.status.success'), color: 'var(--success-text)' }
-    if (record.status === 'skipped') return { text: t('automation.status.skipped'), color: WARNING }
+    if (record.status === 'skipped') {
+      // The generic skip label names the hourly cap; a spend-stop must say so
+      // instead, or the row would blame the wrong rail.
+      const budget = record.error === 'budget_exceeded'
+      return {
+        text: budget ? t('automation.status.budgetSkipped') : t('automation.status.skipped'),
+        color: WARNING,
+      }
+    }
     return { text: t('automation.status.error'), color: 'var(--danger-text)' }
   }, [t])
 
@@ -193,7 +204,15 @@ export default function SettingsAutomations() {
     const when = t('automation.lastRun', { time: timeText(job.lastRunAt) })
     const late = job.lastRunLate ? ` · ${t('automation.ranLate')}` : ''
     if (job.lastStatus === 'success') return { text: `${t('automation.status.success')} · ${when}${late}`, color: 'var(--success-text)' }
-    if (job.lastStatus === 'skipped') return { text: `${t('automation.status.skipped')} · ${when}`, color: WARNING }
+    if (job.lastStatus === 'skipped') {
+      // A spend stop is still a skip, not a failure of the work; name the rail
+      // that stopped it so it is not mistaken for the hourly cap.
+      const budget = job.lastError === 'budget_exceeded'
+      return {
+        text: `${budget ? t('automation.status.budgetSkipped') : t('automation.status.skipped')} · ${when}`,
+        color: WARNING,
+      }
+    }
     const detail = errorText(job.lastError)
     return {
       text: `${t('automation.status.error')}${detail ? `: ${detail}` : ''} · ${when}${late}`,
@@ -250,6 +269,51 @@ export default function SettingsAutomations() {
     return { text: parts.join(' · '), title }
   }
 
+  /**
+   * The spend rail on the row, shown only for a job that has one.
+   *
+   * The figure is the sum of costs the engines actually reported for runs
+   * started in the rolling 24 hours. A window with no reported cost says so
+   * instead of printing $0: Codex reports no money, and a limit that looks
+   * satisfied while it cannot see the spend would be a lie.
+   */
+  const spendLimitLine = (job: AutomationJobData): { text: string; color: string; title: string } | null => {
+    const limit = job.dailyCostLimitUsd
+    if (limit === undefined) return null
+    const limitText = costText(limit)
+    const window = job.spendWindow
+    const windowTitle = t('automation.spend.windowTitle')
+    if (!window) {
+      // Old job data without the derived window (e.g. a window from a moment
+      // ago); the limit itself is still worth naming.
+      return { text: t('automation.spend.limitOnly', { limit: limitText }), color: SECONDARY, title: windowTitle }
+    }
+    if (window.reportedCostUsd !== undefined) {
+      // Unreported runs and evicted history both make the sum a lower bound;
+      // the row marks it rather than presenting it as the whole truth.
+      const lowerBound = window.partial || window.unreportedRuns > 0
+      const spent = `${lowerBound ? '≥ ' : ''}${costText(window.reportedCostUsd)}`
+      const notes = [windowTitle]
+      if (window.unreportedRuns > 0) {
+        notes.push(t('automation.spend.lowerBoundHint', { count: window.unreportedRuns }))
+      }
+      if (window.partial) notes.push(t('automation.spend.partialHint'))
+      return {
+        text: t('automation.spend.window', { spent, limit: limitText }),
+        color: window.reportedCostUsd + 1e-9 >= limit ? WARNING : SECONDARY,
+        title: notes.join('\n'),
+      }
+    }
+    if (window.unmeasured) {
+      return {
+        text: t('automation.spend.unmeasured', { limit: limitText }),
+        color: WARNING,
+        title: windowTitle,
+      }
+    }
+    return { text: t('automation.spend.noRuns', { limit: limitText }), color: SECONDARY, title: windowTitle }
+  }
+
   return (
     <div className="settings-group-columns">
       <SettingsGroup title={t('automation.title')} icon={<AlarmClock size={13} />} groupKey="automations">
@@ -286,6 +350,7 @@ export default function SettingsAutomations() {
             {jobs.map((job, index) => {
               const status = statusLine(job)
               const usage = usageLine(job)
+              const spendLimit = spendLimitLine(job)
               const expert = jobExpert(job)
               const busy = busyId === job.id || job.running
               // Newest first, and only the few the disclosure lists. A job that
@@ -380,6 +445,19 @@ export default function SettingsAutomations() {
                         <span style={{ color: SECONDARY }} title={usage.title}>{` · ${usage.text}`}</span>
                       )}
                     </div>
+
+                    {spendLimit && (
+                      // The limit's own line, separate from the last run's spend:
+                      // it answers "how close am I to the rail", not "what did
+                      // this run cost". Warning colour means the rail is at or
+                      // over the limit, or could not be evaluated.
+                      <div
+                        style={{ fontSize: 11, color: spendLimit.color, marginTop: 3, lineHeight: 1.45 }}
+                        title={spendLimit.title}
+                      >
+                        {spendLimit.text}
+                      </div>
+                    )}
 
                     {job.actionMissing && (
                       // Icon hugs the first line; centring it against a wrapped
