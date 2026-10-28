@@ -15,7 +15,8 @@
  * differently from the identical manual chat turn.
  */
 import { getApiKey } from '../config/config-manager'
-import type { ApprovalPolicy, CodexSendMessageArgs, CodexUserInput } from './codex-bridge'
+import { CODEX_SANDBOX } from './codex-bridge'
+import type { ApprovalPolicy, CodexSandbox, CodexSendMessageArgs, CodexUserInput } from './codex-bridge'
 
 export interface CodexTurnInput {
   prompt: string
@@ -50,17 +51,17 @@ export interface CodexTurnOverrides {
  * are also workspace-scoped — full disk access stays a config.toml decision the
  * user makes deliberately, not something the UI silently opts them into.
  */
-export function resolveCodexSandbox(permissionMode: string | undefined): string {
+export function resolveCodexSandbox(permissionMode: string | undefined): CodexSandbox {
   switch (permissionMode) {
     case 'bypassPermissions':
     case 'dontAsk':
     case 'acceptEdits':
     case 'default':
-      return 'workspaceWrite'
+      return CODEX_SANDBOX.workspaceWrite
     case 'plan':
-      return 'readOnly'
+      return CODEX_SANDBOX.readOnly
     default:
-      return 'workspaceWrite'
+      return CODEX_SANDBOX.workspaceWrite
   }
 }
 

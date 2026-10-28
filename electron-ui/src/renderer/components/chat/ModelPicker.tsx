@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { ChevronDown, Settings } from 'lucide-react'
-import { usePrefsStore, useUiStore } from '../../store'
+import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import FloatingPortal from '../ui/FloatingPortal'
 import { useClickOutside } from '../../hooks/useClickOutside'
@@ -79,6 +79,12 @@ export default function ModelPicker({ model }: ModelPickerProps) {
   const [providerGroups, setProviderGroups] = useState<ProviderGroup[]>([])
   const [loadFailed, setLoadFailed] = useState(false)
 
+  // A persona-bound conversation runs on the persona's model unless the user
+  // explicitly overrides it here. `model` is already the effective model.
+  const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
+  const sessionModelOverride = useChatStore(s => s.sessionModelOverride)
+  const sessionPersona = usePrefsStore(s => (s.prefs.personas || []).find(p => p.id === sessionPersonaId))
+
   const menuRef = useRef<HTMLDivElement>(null)
   useClickOutside(pickerRef, showPicker, useCallback(() => setShowPicker(false), []), [menuRef])
 
@@ -141,12 +147,46 @@ export default function ModelPicker({ model }: ModelPickerProps) {
   }, [showPicker])
 
   const handleModelSwitch = useCallback((modelId: string) => {
-    usePrefsStore.getState().setPrefs({ model: modelId })
-    window.electronAPI.prefsSet('model', modelId)
     setShowPicker(false)
     const shortName = getModelShortName(modelId)
+    if (sessionPersona) {
+      // The conversation is bound to a persona, whose model prompt assembly
+      // reads at send time. Writing `prefs.model` here used to change the
+      // global default while this conversation kept running on the persona —
+      // so record an explicit per-session override instead.
+      if (modelId === sessionPersona.model) {
+        useChatStore.getState().setSessionModelOverride(undefined)
+        useUiStore.getState().addToast('info', t('chat.modelReturnsToPersona', {
+          model: shortName,
+          persona: sessionPersona.name,
+        }))
+      } else {
+        useChatStore.getState().setSessionModelOverride(modelId)
+        useUiStore.getState().addToast('success', t('chat.modelOverridesPersona', {
+          model: shortName,
+          persona: sessionPersona.name,
+        }))
+      }
+      return
+    }
+    // No persona (or its catalogue entry was deleted): the global default is
+    // what this conversation follows. Drop any stale per-session override so
+    // it cannot keep winning at send time.
+    useChatStore.getState().setSessionModelOverride(undefined)
+    usePrefsStore.getState().setPrefs({ model: modelId })
+    window.electronAPI.prefsSet('model', modelId)
     useUiStore.getState().addToast('success', t('chat.modelSwitched', { model: shortName }))
-  }, [t])
+  }, [sessionPersona, t])
+
+  const handleClearOverride = useCallback(() => {
+    setShowPicker(false)
+    useChatStore.getState().setSessionModelOverride(undefined)
+    const personaName = sessionPersona?.name || ''
+    useUiStore.getState().addToast('info', t('chat.modelReturnsToPersona', {
+      model: getModelShortName(sessionPersona?.model),
+      persona: personaName,
+    }))
+  }, [sessionPersona, t])
 
   const handleManageProviders = useCallback(() => {
     setShowPicker(false)
@@ -202,6 +242,11 @@ export default function ModelPicker({ model }: ModelPickerProps) {
         }}
       >
         <span>{getModelShortName(model)}</span>
+        {sessionPersona && sessionModelOverride && (
+          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.02em', opacity: 0.75 }}>
+            {t('chat.modelOverrideTag')}
+          </span>
+        )}
         <ChevronDown size={10} style={{ opacity: 0.6 }} />
       </button>
       {showPicker && (
@@ -226,6 +271,40 @@ export default function ModelPicker({ model }: ModelPickerProps) {
           <div style={{ padding: '8px 12px 2px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid var(--border)', paddingBottom: 6, marginBottom: 2 }}>
             {t('chat.switchModel')}
           </div>
+
+          {/* Say which mechanism a pick uses: in a persona conversation it is a
+              per-session override, not the global default. */}
+          {sessionPersona && (
+            <div style={{ padding: '6px 12px 4px', fontSize: 10, lineHeight: 1.45, color: 'var(--text-muted)' }}>
+              {sessionModelOverride
+                ? t('chat.modelOverrideActive', {
+                    persona: sessionPersona.name,
+                    model: getModelShortName(sessionPersona.model),
+                  })
+                : t('chat.modelPersonaHint', {
+                    persona: sessionPersona.name,
+                    model: getModelShortName(sessionPersona.model),
+                  })}
+            </div>
+          )}
+
+          {sessionPersona && sessionModelOverride && (
+            <button
+              onClick={handleClearOverride}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                width: '100%', textAlign: 'left',
+                padding: '6px 12px', margin: '0 0 2px',
+                background: 'transparent', border: 'none',
+                color: '#818cf8', cursor: 'pointer', fontSize: 11,
+                borderRadius: 7,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.12)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+            >
+              &#8634; {t('chat.modelClearOverride', { model: getModelShortName(sessionPersona.model) })}
+            </button>
+          )}
 
           {displayGroups.map((group, groupIdx) => (
             <div key={group.providerId}>

@@ -619,6 +619,16 @@ export default function SettingsGeneral({
                     </select>
                   </div>
 
+                  {/* Background attention alerts — app pref, not a pet pref:
+                      the main process owns the focus check and the queue. */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t('settings.petAttentionAlerts')}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settings.petAttentionAlertsHint')}</div>
+                    </div>
+                    <Toggle value={local.petAttentionAlerts !== false} onChange={v => updateLocal({ petAttentionAlerts: v })} />
+                  </div>
+
                   {/* Sound Muted */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                     <div>

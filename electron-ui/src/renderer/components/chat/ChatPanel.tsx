@@ -39,6 +39,7 @@ import { useIdleReturn } from '../../hooks/useIdleReturn'
 import { useAwaySummary } from '../../hooks/useAwaySummary'
 import { useSpeculation } from '../../hooks/useSpeculation'
 import { useEvidenceReveal } from '../../hooks/useEvidenceReveal'
+import { personaModelOf, resolveEffectiveModel } from '../../lib/sessionModel'
 
 const NOTE_BANNER_STYLE: React.CSSProperties = {
   display: 'flex',
@@ -61,6 +62,16 @@ export default function ChatPanel() {
   const currentSessionId = useChatStore(s => s.currentSessionId)
   const currentSessionTitle = useChatStore(s => s.currentSessionTitle)
   const prefs = usePrefsStore(s => s.prefs)
+  // The header must show the model this conversation will actually send with:
+  // explicit override > persona model > global default. Showing `prefs.model`
+  // made the picker look effective while persona turns ran on another model.
+  const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
+  const sessionModelOverride = useChatStore(s => s.sessionModelOverride)
+  const effectiveModel = resolveEffectiveModel(
+    prefs.model,
+    personaModelOf(prefs, sessionPersonaId),
+    sessionModelOverride,
+  )
   const addToast = useUiStore(s => s.addToast)
   const focusMode = useUiStore(s => s.focusMode)
   const toggleFocusMode = useUiStore(s => s.toggleFocusMode)
@@ -342,7 +353,7 @@ export default function ChatPanel() {
       <ChatHeader
         sessionTitle={currentSessionTitle}
         sessionId={currentSessionId}
-        model={prefs.model}
+        model={effectiveModel}
         isStreaming={isStreaming}
         elapsedStr={elapsedStr}
         messageCount={messages.length}

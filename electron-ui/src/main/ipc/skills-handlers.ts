@@ -8,6 +8,35 @@ import os from 'os'
 
 const log = createLogger('ipc:skills')
 
+/**
+ * The directory name for an installed skill. This function is the authority:
+ * the renderer mirrors it character for character
+ * (src/renderer/lib/sessionReuse.ts -> skillInstallSlug) so that the path it
+ * previews is the path that gets created.
+ *
+ * A title written entirely in a non-Latin script sanitizes to nothing usable
+ * ("技能" -> "-"), which used to produce a folder of hyphens. A deterministic
+ * hash of the original title is stable across the preview and the install, so
+ * the two agree even though a readable transliteration is not something we can
+ * honestly promise.
+ */
+export function sanitizeSkillDirName(raw: string): string {
+  const slug = raw
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '')
+  if (/[a-z0-9]/.test(slug)) return slug.slice(0, 48)
+
+  let hash = 0x811c9dc5
+  for (let i = 0; i < raw.length; i++) {
+    hash ^= raw.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return `session-${(hash >>> 0).toString(16).padStart(8, '0')}`
+}
+
 interface SkillInfo {
   name: string
   description: string
@@ -160,8 +189,7 @@ export function registerSkillsHandlers(): void {
 
   ipcMain.handle('skills:install', (_e, { name, content }: { name: string; content: string }) => {
     try {
-      // Sanitize name for filesystem use
-      const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase()
+      const safeName = sanitizeSkillDirName(name)
       const skillDir = path.join(os.homedir(), '.claude', 'skills', safeName)
       fs.mkdirSync(skillDir, { recursive: true })
       fs.writeFileSync(path.join(skillDir, 'SKILL.md'), content, 'utf-8')

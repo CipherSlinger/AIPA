@@ -162,6 +162,17 @@ function meaningfulPreview(raw: string | undefined): string {
 }
 
 /**
+ * Does this id name a Codex thread? Rename must know before it spawns an
+ * app-server: a Claude session id is also a UUID, and asking Codex about it
+ * costs a process plus a "thread not found" round trip.
+ */
+export function isCodexSession(sessionId: string): boolean {
+  if (!isValidSessionId(sessionId)) return false
+  if (findSessionFile(sessionId)) return true
+  return readSessionIndex().some(entry => sessionIndexId(entry) === sessionId)
+}
+
+/**
  * List all sessions from the index and session directories.
  */
 export function listSessions(): CodexSessionListItem[] {
@@ -1091,13 +1102,15 @@ function slugify(text: string): string {
 }
 
 /**
- * Encode a directory path the way Claude names its project folders — every path
- * separator and the Windows drive colon becomes a hyphen, so
- * "D:\projects\AIPA" → "D--projects-AIPA". Mirrors `dirToSlug` in the renderer;
- * the two must stay in step, since a mismatch silently empties every roster.
+ * Encode a directory path the way Claude names its project folders — every
+ * non-alphanumeric character becomes a hyphen, so "D:\projects\AIPA" →
+ * "D--projects-AIPA" and "C:\x\.aipa\plugin-data" → "C--x--aipa-plugin-data".
+ * Mirrors `dirToSlug` in the renderer and `cwdToProjectSlug` in promptMemory;
+ * the three must stay in step, since a mismatch silently empties every roster
+ * whenever a path contains a dot, space or underscore.
  */
 function pathToSlug(dir: string): string {
-  return dir.replace(/[/\\:]/g, '-')
+  return dir.replace(/[^a-zA-Z0-9]/g, '-')
 }
 
 /**

@@ -275,6 +275,9 @@ function getObjRect(bounds) {
 let win;
 let hitWin;
 let _aipaMainWindow = null;  // AIPA main window, used as parent for taskbar merge
+// Module-level because the IPC handlers live in createWindow(), which is a
+// different scope than createClawdIntegration() where the callback arrives.
+let _aipaAttentionActivate = null;
 let tray = null;
 let contextMenuOwner = null;
 let currentSize = _settingsController.get("size");
@@ -375,6 +378,10 @@ function syncHitStateAfterLoad() {
     currentState: _state.getCurrentState(),
     miniMode: _mini.getMiniMode(),
     dndEnabled: doNotDisturb,
+    // A single click on the pet opens the attention item instead of poking
+    // it. The flag is synchronous state, not window visibility, so a click
+    // that lands before the bubble finishes loading still works.
+    attentionActive,
   });
 }
 
@@ -462,6 +469,9 @@ let menuOpen = false;
 let idlePaused = false;
 let forceEyeResend = false;
 let themeReloadInProgress = false;
+// True while an AIPA attention item is displayed. Kept apart from the bubble
+// window's visibility so the hit window can act on a click immediately.
+let attentionActive = false;
 
 // ── Permission bubble ──
 const { isAgentEnabled: _isAgentEnabled, isAgentPermissionsEnabled: _isAgentPermissionsEnabled } = require("./agent-gate");
@@ -512,9 +522,33 @@ const {
   syncVisibility: syncUpdateBubbleVisibility,
 } = _updateBubble;
 
+// A second instance of the same generic bubble module: its own window and
+// pending promise, sharing the HTML/preload and IPC channel. Each instance
+// filters incoming IPC by sender, so the updater bubble and the attention
+// bubble never consume each other's actions.
+const _attentionBubbleCtx = {
+  get win() { return win; },
+  get bubbleFollowPet() { return bubbleFollowPet; },
+  get petHidden() { return petHidden; },
+  getPendingPermissions: () => pendingPermissions,
+  getNearestWorkArea,
+  getHitRectScreen,
+  guardAlwaysOnTop,
+  reapplyMacVisibility,
+};
+const _attentionBubble = require("./update-bubble")(_attentionBubbleCtx);
+const {
+  showUpdateBubble: showAttentionBubbleWindow,
+  hideUpdateBubble: hideAttentionBubbleWindow,
+  repositionUpdateBubble: repositionAttentionBubble,
+  handleUpdateBubbleAction: handleAttentionBubbleAction,
+  handleUpdateBubbleHeight: handleAttentionBubbleHeight,
+} = _attentionBubble;
+
 function repositionFloatingBubbles() {
   if (pendingPermissions.length) repositionBubbles();
   repositionUpdateBubble();
+  repositionAttentionBubble();
 }
 
 function reapplyMacVisibility() {
@@ -537,6 +571,7 @@ function reapplyMacVisibility() {
   apply(hitWin);
   for (const perm of pendingPermissions) apply(perm.bubble);
   apply(_updateBubble.getBubbleWindow());
+  apply(_attentionBubble.getBubbleWindow());
   apply(contextMenuOwner);
 }
 
@@ -1486,8 +1521,19 @@ function createWindow() {
 
   ipcMain.on("bubble-height", (event, height) => _perm.handleBubbleHeight(event, height));
   ipcMain.on("permission-decide", (event, behavior) => _perm.handleDecide(event, behavior));
-  ipcMain.on("update-bubble-height", (event, height) => handleUpdateBubbleHeight(event, height));
-  ipcMain.on("update-bubble-action", (event, actionId) => handleUpdateBubbleAction(event, actionId));
+  // Both bubbles share these channels; each handler ignores senders that are
+  // not its own window, so registering both is safe and keeps one preload.
+  ipcMain.on("update-bubble-height", (event, height) => {
+    handleUpdateBubbleHeight(event, height);
+    handleAttentionBubbleHeight(event, height);
+  });
+  ipcMain.on("update-bubble-action", (event, actionId) => {
+    handleUpdateBubbleAction(event, actionId);
+    handleAttentionBubbleAction(event, actionId);
+  });
+  ipcMain.on("attention-open", () => {
+    if (typeof _aipaAttentionActivate === "function") _aipaAttentionActivate();
+  });
 
   initFocusHelper();
   startMainTick();
@@ -1718,8 +1764,9 @@ function installTerminalFocusExtension() {
 
 // ── Factory export ──
 module.exports = function createClawdIntegration(aipaContext) {
-  // aipaContext: { mainWindow, isQuitting: () => boolean, onQuit: (fn) => void }
-  const { mainWindow, isQuitting: isAipaQuitting, onQuit } = aipaContext
+  // aipaContext: { mainWindow, isQuitting: () => boolean, onQuit: (fn) => void,
+  //                onAttentionActivate?: () => void }
+  const { mainWindow, isQuitting: isAipaQuitting, onQuit, onAttentionActivate } = aipaContext
 
   // Wire AIPA's quit state into clawd's isQuitting
   Object.defineProperty(global, '__clawdIsQuitting', {
@@ -1729,6 +1776,8 @@ module.exports = function createClawdIntegration(aipaContext) {
 
   // Store AIPA main window for parent-child relationship (taskbar merge)
   _aipaMainWindow = mainWindow;
+  // Pet clicks route through this while an attention bubble is up.
+  _aipaAttentionActivate = typeof onAttentionActivate === "function" ? onAttentionActivate : null;
 
   // Register cleanup
   onQuit(() => {
@@ -1739,6 +1788,8 @@ module.exports = function createClawdIntegration(aipaContext) {
     _perm.cleanup();
     _server.cleanup();
     _updateBubble.cleanup();
+    _attentionBubble.cleanup();
+    attentionActive = false;
     _state.cleanup();
     _tick.cleanup();
     _mini.cleanup();
@@ -1815,6 +1866,30 @@ module.exports = function createClawdIntegration(aipaContext) {
     notifyState: (state, sessionId) => {
       updateSession(sessionId, state, "aipa", null, null, null, null, null, "aipa");
     },
+    /**
+     * Show one attention item in the pet's generic bubble. Resolves with the
+     * action id the user chose ("open" / "dismiss"), or null when the item was
+     * replaced by a newer one or the bubble was hidden.
+     */
+    showAttentionBubble: (payload) => {
+      // A hidden pet stays hidden: the user asked it to go away, so a
+      // background alert must not resurrect it.
+      if (win && !win.isDestroyed() && !petHidden) win.showInactive();
+      attentionActive = true;
+      syncHitStateAfterLoad();
+      return showAttentionBubbleWindow({ ...payload, requireAction: true, defaultAction: null });
+    },
+    /** Remove the attention bubble (app focused, queue drained, or shutdown). */
+    hideAttentionBubble: () => {
+      if (!attentionActive) return;
+      attentionActive = false;
+      hideAttentionBubbleWindow();
+      syncHitStateAfterLoad();
+    },
+    /** Whether an attention item is currently displayed (for the hit window). */
+    isAttentionBubbleVisible: () => attentionActive,
+    /** The pet's own UI language ("en" | "zh" | "ko"). */
+    getLanguage: () => lang,
     /** Check if clawd windows are alive */
     isRunning: () => win && !win.isDestroyed(),
     /** Get current state for debugging */
@@ -1837,6 +1912,8 @@ module.exports = function createClawdIntegration(aipaContext) {
     setSize: (sizeKey) => _menu.resizeWindow(sizeKey),
     /** Check if bubbles follow pet */
     getBubbleFollow: () => bubbleFollowPet,
+    /** Check if the user hid bubbles in the pet's own settings */
+    getBubblesHidden: () => hideBubbles,
     /** Set whether bubbles follow pet */
     setBubbleFollow: (v) => {
       bubbleFollowPet = v;

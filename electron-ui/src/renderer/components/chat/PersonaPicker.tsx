@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
-import { ChevronDown, Sparkles, Workflow as WorkflowIcon } from 'lucide-react'
+import { AlertTriangle, ChevronDown, Sparkles, Workflow as WorkflowIcon } from 'lucide-react'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import FloatingPortal from '../ui/FloatingPortal'
@@ -19,6 +19,10 @@ export default function PersonaPicker() {
   const workflows = usePrefsStore(s => (s.prefs.workflows as Workflow[] | undefined) ?? EMPTY_WORKFLOWS)
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
   const sessionPersona = personas.find(p => p.id === sessionPersonaId)
+  // The session remembers the persona id even after the catalogue entry is
+  // deleted. Surfacing that is what turns a silent fallback to the default
+  // settings into something the user can act on.
+  const sessionPersonaMissing = Boolean(sessionPersonaId && !sessionPersona)
 
   const menuRef = useRef<HTMLDivElement>(null)
   useClickOutside(pickerRef, showPicker, useCallback(() => setShowPicker(false), []), [menuRef])
@@ -32,25 +36,13 @@ export default function PersonaPicker() {
 
   const handlePersonaSwitch = useCallback((persona: Persona | null) => {
     setShowPicker(false)
+    // Scope the choice to this conversation. The persona's prompt, model and
+    // output style are resolved at send time from this id, so switching here
+    // cannot change what another open conversation sends.
+    useChatStore.getState().setSessionPersonaId(persona?.id)
     if (!persona) {
-      // Clear session persona
-      useChatStore.getState().setSessionPersonaId(undefined)
-      usePrefsStore.getState().setPrefs({ systemPrompt: '', outputStyle: 'default' })
-      window.electronAPI.prefsSet('systemPrompt', '')
-      window.electronAPI.prefsSet('outputStyle', 'default')
       useUiStore.getState().addToast('info', t('persona.deactivated'))
     } else {
-      // Set session persona
-      const resolvedPrompt = persona.presetKey ? t(`persona.presetPrompt.${persona.presetKey}`) : persona.systemPrompt
-      useChatStore.getState().setSessionPersonaId(persona.id)
-      usePrefsStore.getState().setPrefs({
-        model: persona.model,
-        systemPrompt: resolvedPrompt,
-        outputStyle: persona.outputStyle || 'default',
-      })
-      window.electronAPI.prefsSet('model', persona.model)
-      window.electronAPI.prefsSet('systemPrompt', resolvedPrompt)
-      window.electronAPI.prefsSet('outputStyle', persona.outputStyle || 'default')
       useUiStore.getState().addToast('success', t('persona.switchedTo', { name: persona.presetKey ? t(`persona.preset.${persona.presetKey}`) : persona.name }))
     }
   }, [t])
@@ -67,14 +59,22 @@ export default function PersonaPicker() {
     <div style={{ position: 'relative' }} ref={pickerRef}>
       <button
         onClick={() => setShowPicker(!showPicker)}
-        title={sessionPersona ? t('persona.personaActive', { name: sessionPersona.name }) : t('persona.selectPersona')}
+        title={sessionPersona
+          ? t('persona.personaActive', { name: sessionPersona.name })
+          : sessionPersonaMissing
+            ? t('persona.missingHint')
+            : t('persona.selectPersona')}
         style={{
-          background: showPicker ? 'var(--border)' : sessionPersona ? `${sessionPersona.color}18` : 'none',
-          border: `1px solid ${sessionPersona ? sessionPersona.color : 'transparent'}`,
+          background: showPicker
+            ? 'var(--border)'
+            : sessionPersonaMissing
+              ? 'rgba(245,158,11,0.12)'
+              : sessionPersona ? `${sessionPersona.color}18` : 'none',
+          border: `1px solid ${sessionPersona ? sessionPersona.color : sessionPersonaMissing ? 'rgba(245,158,11,0.45)' : 'transparent'}`,
           borderRadius: 8,
           padding: '2px 8px',
           cursor: 'pointer',
-          color: sessionPersona ? sessionPersona.color : 'var(--text-muted)',
+          color: sessionPersona ? sessionPersona.color : sessionPersonaMissing ? '#fbbf24' : 'var(--text-muted)',
           fontSize: 11,
           fontWeight: 500,
           display: 'flex',
@@ -89,8 +89,14 @@ export default function PersonaPicker() {
         }}
         onMouseLeave={(e) => {
           if (!showPicker) {
-            e.currentTarget.style.color = sessionPersona ? sessionPersona.color : 'var(--text-muted)'
-            if (!sessionPersona) e.currentTarget.style.borderColor = 'transparent'
+            e.currentTarget.style.color = sessionPersona
+              ? sessionPersona.color
+              : sessionPersonaMissing ? '#fbbf24' : 'var(--text-muted)'
+            if (!sessionPersona) {
+              e.currentTarget.style.borderColor = sessionPersonaMissing
+                ? 'rgba(245,158,11,0.45)'
+                : 'transparent'
+            }
           }
         }}
       >
@@ -98,6 +104,11 @@ export default function PersonaPicker() {
           <>
             <span style={{ fontSize: 13 }}>{sessionPersona.emoji}</span>
             <span>{sessionPersona.name}</span>
+          </>
+        ) : sessionPersonaMissing ? (
+          <>
+            <AlertTriangle size={11} />
+            <span>{t('persona.missing')}</span>
           </>
         ) : (
           <>
@@ -137,6 +148,18 @@ export default function PersonaPicker() {
           }}>
             {t('persona.selectPersona')}
           </div>
+          {sessionPersonaMissing && (
+            <div style={{
+              padding: '6px 12px',
+              fontSize: 11,
+              lineHeight: 1.45,
+              color: '#fbbf24',
+              background: 'rgba(245,158,11,0.08)',
+              borderBottom: '1px solid var(--border)',
+            }}>
+              {t('persona.missingHint')}
+            </div>
+          )}
           {/* No persona option */}
           <button
             role="option"

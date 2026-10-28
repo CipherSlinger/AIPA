@@ -97,6 +97,10 @@ body { padding: 6px; }
   transform: translateX(60px);
 }
 
+/* An attention bubble is one click target; the updater bubble is not. */
+.card.clickable { cursor: pointer; }
+.card.clickable:hover { border-color: rgba(99, 102, 241, 0.45); }
+
 .header {
   display: flex;
   align-items: center;
@@ -129,6 +133,8 @@ body { padding: 6px; }
 .pill[data-mode="downloading"] { background: #d97757; }
 .pill[data-mode="ready"] { background: #5a9e6f; }
 .pill[data-mode="error"] { background: #d15a5a; }
+.pill[data-mode="attention"] { background: #5b8dd9; }
+.pill[data-mode="done"] { background: #5a9e6f; }
 
 .message {
   font-size: 13px;
@@ -295,9 +301,24 @@ function show(payload) {
   detailEl.textContent = payload.detail || "";
   detailEl.style.display = payload.detail ? "block" : "none";
 
-  modePillEl.textContent = modeLabel(mode, payload.lang || "en");
+  // Attention bubbles pass their own pill label; the updater keeps the
+  // mode-derived one.
+  modePillEl.textContent = payload.pill || modeLabel(mode, payload.lang || "en");
   modePillEl.dataset.mode = mode;
   card.dataset.mode = mode;
+
+  // When the whole card is the action (attention), clicking anywhere on it
+  // resolves the same promise an action button would.
+  if (payload.clickAction) {
+    card.classList.add("clickable");
+    card.onclick = () => {
+      disableButtons();
+      window.updateBubbleAPI.choose(payload.clickAction);
+    };
+  } else {
+    card.classList.remove("clickable");
+    card.onclick = null;
+  }
 
   actionsEl.innerHTML = "";
   for (const action of payload.actions || []) {

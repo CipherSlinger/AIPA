@@ -176,6 +176,7 @@ export interface AppPrefs {
   appendSystemPrompt?: string  // persistent appended system prompt (passed via --append-system-prompt, Iteration 523)
   disallowedTools?: string[]   // tools blocked from CLI via --disallowedTools (Iteration 527)
   clawdEnabled?: boolean       // show Clawd desktop pet that reacts to AI session state (Iteration 615)
+  petAttentionAlerts?: boolean // summon the pet for background approvals/questions/failures/plugin completions (default true)
 }
 
 export interface SessionFolder {

@@ -111,7 +111,9 @@ export function useAutoMemory() {
       const totalAfter = existingMemories.length + newMemories.length
       if (totalAfter > 200) return
 
-      // Save to store and persistence
+      // This electron-store list is the prompt's "personal" memory tier: see
+      // assembleMemoryContext() in promptMemory.ts. Reader and writer are
+      // deliberately the same store — do not redirect one without the other.
       const updatedMemories = [...existingMemories, ...newMemories]
       usePrefsStore.getState().setPrefs({ memories: updatedMemories })
       window.electronAPI.prefsSet('memories', updatedMemories)

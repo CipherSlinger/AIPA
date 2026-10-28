@@ -4,12 +4,12 @@ import * as os from 'os'
 import * as path from 'path'
 import { ptyManager } from '../pty/pty-manager'
 import { fallbackShellManager } from '../pty/fallback-shell'
-import { codexBridgeManager } from '../codex/codex-bridge'
+import { codexBridgeManager, renameCodexThread } from '../codex/codex-bridge'
 import { buildCodexTurnArgs } from '../codex/codex-turn-args'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { speculationManager, isSafeToSpeculate } from '../pty/speculation-bridge'
 import { readSettings, writeSettings, listSessions as listClaudeSessions, loadSession as loadClaudeSession, deleteSession as deleteClaudeSession, forkSession as forkClaudeSession, renameSession, generateSessionTitle, generatePromptSuggestion, generateAwaySummary, rewindSession, searchSessions as searchClaudeSessions, detectTurnInterruption, getDreamConsolidationMtime } from '../sessions/session-reader'
-import { listSessions as listCodexSessions, loadSession as loadCodexSession, deleteSession as deleteCodexSession, forkSession as forkCodexSession, searchSessions as searchCodexSessions, readCodexConfig } from '../codex/codex-session-reader'
+import { listSessions as listCodexSessions, loadSession as loadCodexSession, deleteSession as deleteCodexSession, forkSession as forkCodexSession, searchSessions as searchCodexSessions, readCodexConfig, isCodexSession } from '../codex/codex-session-reader'
 import { addMcpServer, getMcpConfigInfo, readMcpServers, removeMcpServer, setMcpServerEnabledRouted } from '../config/mcp-config'
 import { getSessionStats } from '../sessions/session-stats'
 import { getApiKey, setApiKey, getPref, setPref, getAllPrefs, resetAllPrefs } from '../config/config-manager'
@@ -22,8 +22,9 @@ import { listPlugins, setPluginEnabled, uninstallPlugin, registerLocalPlugin } f
 import { initNavPluginManager, listNavPlugins, reloadNavPlugins, openPluginFolder } from '../plugins/nav-plugin-manager'
 import { pluginUrl } from '../plugins/plugin-url'
 import { migrateLegacyTasks, startWorkCalendarReminders } from '../plugins/work-calendar-reminders'
-import { readPluginData, writePluginData, fetchGithubCommits, scanFolderChanges, startPluginAi, abortPluginAi, type GithubCommitsArgs, type ScanFolderArgs } from '../plugins/plugin-services'
+import { readPluginData, writePluginData, fetchGithubCommits, scanFolderChanges, startPluginAi, abortPluginAi, resolvePluginTurnTarget, type GithubCommitsArgs, type ScanFolderArgs } from '../plugins/plugin-services'
 import { startPluginEdit, sendPluginEdit, abortPluginEdit, endPluginEdit } from '../plugins/plugin-edit-session'
+import { askPluginChat } from '../plugins/plugin-chat'
 import { getCliPath } from '../utils/cli-path'
 import { validateApiKey, validateModelName, validateFlags, safePath, getAllowedFsRoots, isValidSessionId } from '../utils/validate'
 import { registerSkillsHandlers } from './skills-handlers'
@@ -37,7 +38,8 @@ import { startAutomationScheduler } from '../automation/scheduler'
 import { runAutomation } from '../automation/runner'
 import { createLogger } from '../utils/logger'
 import { notifyClawdState, isClawdRunning, launchClawd } from '../clawd-bridge'
-import { getClawdInitError } from '../clawd-integration'
+import { getClawdInitError, getClawdLanguage } from '../clawd-integration'
+import { raiseAttention, resolveAttention, clearAttentionForBridge, bindAttentionSession, refreshAttention } from '../clawd-attention'
 
 const log = createLogger('ipc')
 
@@ -57,6 +59,90 @@ let handlersRegistered = false
  * once must keep working against the new one.
  */
 let liveWindow: BrowserWindow | null = null
+
+// ── Attention bookkeeping ───────────────────────────
+//
+// Bridge events carry the bridge's own id, but opening a conversation needs an
+// openable session id: the Codex thread id, or the Claude JSONL session id.
+// Both can arrive after the first approval event, so the mapping is filled in
+// lazily and the attention queue is re-keyed when it changes.
+
+const bridgeSessions = new Map<string, string>()
+
+/**
+ * Per-bridge turn state for the attention path. A deliberately aborted bridge
+ * exits non-zero, and a failed turn is reported twice (result + exit); neither
+ * may produce a second "task failed" bubble.
+ */
+const bridgeTurns = new Map<string, { sawResult: boolean; aborted: boolean }>()
+
+function trackBridge(bridgeId: string): void {
+  bridgeTurns.set(bridgeId, { sawResult: false, aborted: false })
+}
+
+function noteBridgeSession(bridgeId: string, sessionId: unknown): void {
+  if (typeof sessionId !== 'string' || !sessionId) return
+  bridgeSessions.set(bridgeId, sessionId)
+  bindAttentionSession(bridgeId, sessionId)
+}
+
+function sessionForBridge(bridgeId: string): string | null {
+  return bridgeSessions.get(bridgeId) || null
+}
+
+function markBridgeResult(bridgeId: string): void {
+  const state = bridgeTurns.get(bridgeId)
+  if (state) state.sawResult = true
+}
+
+function markBridgeAborted(bridgeId: string): void {
+  const state = bridgeTurns.get(bridgeId)
+  if (state) state.aborted = true
+}
+
+/** True when an exit code is the first and only failure signal for a bridge. */
+function shouldRaiseExitFailure(bridgeId: string): boolean {
+  const state = bridgeTurns.get(bridgeId)
+  return !!state && !state.aborted && !state.sawResult
+}
+
+function forgetBridge(bridgeId: string): void {
+  bridgeSessions.delete(bridgeId)
+  bridgeTurns.delete(bridgeId)
+}
+
+/** Keep a CLI error message short enough to read in a pet bubble. */
+function clipDetail(value: unknown, max = 90): string | null {
+  if (typeof value !== 'string') return null
+  const text = value.trim().replace(/\s+/g, ' ')
+  if (!text) return null
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text
+}
+
+/**
+ * Plugin jobs the user stopped. Their terminal `error` event is an
+ * acknowledgement, not a failure, so the pet must not call them over it.
+ * Keyed by `pluginId:requestId` for one-shot AI jobs and by `pluginId` for the
+ * persistent edit session.
+ */
+const stoppedPluginJobs = new Set<string>()
+
+function takeStoppedPluginJob(key: string): boolean {
+  return stoppedPluginJobs.delete(key)
+}
+
+/** Plugin label in the pet's language; falls back to the id when unknown. */
+function pluginLabel(pluginId: string): string {
+  try {
+    const plugin = listNavPlugins().find(p => p.manifest.id === pluginId)
+    if (!plugin) return pluginId
+    return getClawdLanguage() === 'zh'
+      ? (plugin.manifest.name || pluginId)
+      : (plugin.manifest.nameEn || plugin.manifest.name || pluginId)
+  } catch {
+    return pluginId
+  }
+}
 
 /**
  * Safely register an IPC handle, removing any previous handler first.
@@ -313,6 +399,9 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
   })
 
   ipcMain.handle('cli:abort', (_e, sessionId) => {
+    // A stopped turn is not a failed one, and its pending approvals are moot.
+    markBridgeAborted(sessionId)
+    clearAttentionForBridge(sessionId)
     // Try CodexBridge first, then legacy
     const codexBridge = codexBridgeManager.get(sessionId)
     if (codexBridge) {
@@ -323,6 +412,8 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
   })
 
   ipcMain.handle('cli:respondPermission', (_e, { sessionId, requestId, allowed }) => {
+    // One answered request clears one queued approval (others may remain).
+    resolveAttention({ kind: 'approval', bridgeId: sessionId, requestId })
     const codexBridge = codexBridgeManager.get(sessionId)
     if (codexBridge) {
       codexBridge.respondApproval(requestId, allowed)
@@ -333,6 +424,8 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
   })
 
   ipcMain.handle('cli:endSession', (_e, sessionId) => {
+    markBridgeAborted(sessionId)
+    clearAttentionForBridge(sessionId)
     const codexBridge = codexBridgeManager.get(sessionId)
     if (codexBridge) {
       codexBridge.endSession()
@@ -369,11 +462,13 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
   })
 
   ipcMain.handle('cli:respondElicitation', (_e, { sessionId, requestId, result }: { sessionId: string; requestId: string; result: Record<string, unknown> }) => {
+    resolveAttention({ kind: 'clarification', bridgeId: sessionId, requestId })
     const bridge = streamBridgeManager.get(sessionId)
     if (bridge) bridge.respondElicitation(requestId, result)
   })
 
   ipcMain.handle('cli:respondPlanApproval', (_e, { sessionId, requestId, approved, feedback }: { sessionId: string; requestId: string; approved: boolean; feedback?: string }) => {
+    resolveAttention({ kind: 'approval', bridgeId: sessionId, requestId })
     const bridge = streamBridgeManager.get(sessionId)
     if (bridge) bridge.respondPlanApproval(requestId, approved, feedback)
   })
@@ -409,6 +504,10 @@ function wireCodexBridge(
   bridge.on('toolResult', (d) => sink('cli:toolResult', d))
   bridge.on('messageStop', (d) => sink('cli:messageEnd', d))
   bridge.on('result', (d) => {
+    // The thread id is what `openSessionCore` can open; learn it as soon as a
+    // turn reports it so a later approval bubble is clickable.
+    noteBridgeSession(bridgeId, d.codexThreadId ?? d.threadId)
+    markBridgeResult(bridgeId)
     // Map codexThreadId → claudeSessionId for renderer compatibility
     const mapped = { ...d, claudeSessionId: d.codexThreadId ?? d.threadId }
     sink('cli:result', mapped)
@@ -433,12 +532,19 @@ function wireCodexBridge(
   bridge.on('itemStarted', (d) => sink('cli:itemStarted', d))
   bridge.on('itemCompleted', (d) => sink('cli:itemCompleted', d))
   bridge.on('toolProgress', (d) => sink('cli:toolProgress', d))
-  bridge.on('threadStarted', (d) => sink('cli:threadStarted', d))
+  bridge.on('threadStarted', (d) => {
+    noteBridgeSession(bridgeId, d.threadId)
+    sink('cli:threadStarted', d)
+  })
   bridge.on('threadClosed', (d) => sink('cli:threadClosed', d))
 
   // A background turn must not drive the desktop pet — it has no session id
   // the pet can attribute, and it would flip the state while the user reads.
-  if (internal) return
+  // It still has to release its attention bookkeeping when the process ends.
+  if (internal) {
+    bridge.on('processExit', () => forgetBridge(bridgeId))
+    return
+  }
 
   // Clawd desktop pet notifications
   bridge.on('textDelta', () => notifyClawdState('thinking', bridgeId))
@@ -446,6 +552,50 @@ function wireCodexBridge(
   bridge.on('toolUse', () => notifyClawdState('working', bridgeId))
   bridge.on('result', () => notifyClawdState('happy', bridgeId))
   bridge.on('processExit', () => notifyClawdState('idle', bridgeId))
+
+  // Attention: the four events that may need the user while AIPA is in the
+  // background. Approvals are per-request so answering one leaves the rest.
+  bridge.on('permissionRequest', (d) => {
+    raiseAttention({
+      kind: 'approval',
+      bridgeId,
+      sessionId: sessionForBridge(bridgeId),
+      requestId: typeof d.requestId === 'string' ? d.requestId : null,
+      detail: clipDetail(d.toolName ?? d.title),
+    })
+  })
+  bridge.on('result', (d) => {
+    // A finished turn answers whatever it was waiting on.
+    resolveAttention({ kind: 'approval', bridgeId })
+    resolveAttention({ kind: 'clarification', bridgeId })
+    if (d.subtype && d.subtype !== 'success') {
+      raiseAttention({
+        kind: 'failed',
+        bridgeId,
+        sessionId: sessionForBridge(bridgeId),
+        detail: clipDetail(d.event?.turn?.error?.message ?? d.event?.error?.message),
+      })
+    }
+  })
+  bridge.on('turnError', (d) => {
+    // Codex is reconnecting; a retryable error is not a failed task.
+    if (d.willRetry) return
+    raiseAttention({
+      kind: 'failed',
+      bridgeId,
+      sessionId: sessionForBridge(bridgeId),
+      detail: clipDetail(d.message),
+    })
+  })
+  bridge.on('processExit', (d) => {
+    if (typeof d.code === 'number' && d.code !== 0 && shouldRaiseExitFailure(bridgeId)) {
+      raiseAttention({ kind: 'failed', bridgeId, sessionId: sessionForBridge(bridgeId) })
+    }
+    // A dead bridge can no longer answer its own requests.
+    resolveAttention({ kind: 'approval', bridgeId })
+    resolveAttention({ kind: 'clarification', bridgeId })
+    forgetBridge(bridgeId)
+  })
 }
 
 /** Wire the legacy StreamBridge to the renderer (shared by user + internal turns). */
@@ -460,7 +610,13 @@ function wireStreamBridge(
   bridge.on('toolUse', (d) => sink('cli:toolUse', d))
   bridge.on('toolResult', (d) => sink('cli:toolResult', d))
   bridge.on('messageStop', (d) => sink('cli:messageEnd', d))
-  bridge.on('result', (d) => sink('cli:result', d))
+  bridge.on('result', (d) => {
+    // Claude only reveals its session id on the result envelope; approvals can
+    // precede it, so the queue is re-keyed here.
+    noteBridgeSession(bridgeId, d.claudeSessionId ?? d.event?.session_id)
+    markBridgeResult(bridgeId)
+    sink('cli:result', d)
+  })
   bridge.on('processExit', (d) => sink('cli:processExit', d))
   bridge.on('stderr', (d) => sink('cli:error', { sessionId: bridgeId, error: d }))
   bridge.on('permissionRequest', (d) => sink('cli:permissionRequest', d))
@@ -478,7 +634,10 @@ function wireStreamBridge(
   bridge.on('customTitle', (d) => sink('cli:customTitle', d))
   bridge.on('taskCompleted', (d) => sink('cli:taskCompleted', d))
 
-  if (internal) return
+  if (internal) {
+    bridge.on('processExit', () => forgetBridge(bridgeId))
+    return
+  }
 
   bridge.on('textDelta', () => notifyClawdState('thinking', bridgeId))
   bridge.on('thinkingDelta', () => notifyClawdState('thinking', bridgeId))
@@ -487,6 +646,62 @@ function wireStreamBridge(
   bridge.on('apiError', () => notifyClawdState('error', bridgeId))
   bridge.on('notification', () => notifyClawdState('notification', bridgeId))
   bridge.on('processExit', () => notifyClawdState('idle', bridgeId))
+
+  // Attention: the legacy Claude path raises the same four shapes as Codex.
+  bridge.on('permissionRequest', (d) => {
+    raiseAttention({
+      kind: 'approval',
+      bridgeId,
+      sessionId: sessionForBridge(bridgeId),
+      requestId: typeof d.requestId === 'string' ? d.requestId : null,
+      detail: clipDetail(d.toolName),
+    })
+  })
+  bridge.on('planApprovalRequest', (d) => {
+    raiseAttention({
+      kind: 'approval',
+      bridgeId,
+      sessionId: sessionForBridge(bridgeId),
+      requestId: typeof d.requestId === 'string' ? d.requestId : null,
+    })
+  })
+  bridge.on('mcpElicitation', (d) => {
+    raiseAttention({
+      kind: 'clarification',
+      bridgeId,
+      sessionId: sessionForBridge(bridgeId),
+      requestId: typeof d.requestId === 'string' ? d.requestId : null,
+    })
+  })
+  bridge.on('result', (d) => {
+    resolveAttention({ kind: 'approval', bridgeId })
+    resolveAttention({ kind: 'clarification', bridgeId })
+    if (d.subtype && d.subtype !== 'success') {
+      raiseAttention({
+        kind: 'failed',
+        bridgeId,
+        sessionId: sessionForBridge(bridgeId),
+        detail: clipDetail(d.subtype),
+      })
+    }
+  })
+  bridge.on('apiError', (d) => {
+    raiseAttention({
+      kind: 'failed',
+      bridgeId,
+      sessionId: sessionForBridge(bridgeId),
+      detail: clipDetail(d.message),
+    })
+  })
+  bridge.on('processExit', (d) => {
+    if (typeof d.code === 'number' && d.code !== 0 && shouldRaiseExitFailure(bridgeId)) {
+      raiseAttention({ kind: 'failed', bridgeId, sessionId: sessionForBridge(bridgeId) })
+    }
+    // A dead bridge can no longer answer its own requests.
+    resolveAttention({ kind: 'approval', bridgeId })
+    resolveAttention({ kind: 'clarification', bridgeId })
+    forgetBridge(bridgeId)
+  })
 }
 
 async function registerCodexSendMessage(
@@ -542,9 +757,15 @@ async function registerCodexSendMessage(
     }
   }
 
-  // Create new CodexBridge
-  const bridgeId = `${internal ? INTERNAL_BRIDGE_PREFIX : ''}codex-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+  // Create new CodexBridge. An internal caller may supply a tag so its run is
+  // attributable in the bridge id (the plugin chat turn uses its plugin id).
+  const tag = internal && typeof args.internalTag === 'string' ? `${args.internalTag}-` : ''
+  const bridgeId = `${internal ? INTERNAL_BRIDGE_PREFIX : ''}${tag}codex-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
   const bridge = codexBridgeManager.create(bridgeId)
+  trackBridge(bridgeId)
+  // A resumed thread is openable from the very first turn, before
+  // `threadStarted` has had a chance to report it.
+  noteBridgeSession(bridgeId, requestedThreadId)
   wireCodexBridge(bridge, bridgeId, sink, internal)
 
   // Credentials and sandbox defaults come from the shared builder, so a
@@ -603,8 +824,12 @@ async function registerLegacySendMessage(
     return { success: true, sessionId: existingBridgeId }
   }
 
-  const bridgeId = `${internal ? INTERNAL_BRIDGE_PREFIX : ''}bridge-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+  const tag = internal && typeof args.internalTag === 'string' ? `${args.internalTag}-` : ''
+  const bridgeId = `${internal ? INTERNAL_BRIDGE_PREFIX : ''}${tag}bridge-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
   const bridge = streamBridgeManager.create(bridgeId)
+  trackBridge(bridgeId)
+  // A resumed conversation already knows its JSONL session id.
+  noteBridgeSession(bridgeId, internal ? undefined : args.sessionId)
   wireStreamBridge(bridge, bridgeId, sink, internal)
 
   const env = (args.env as Record<string, string>) || {}
@@ -644,7 +869,14 @@ async function runInternalTurn(
   args: Record<string, unknown>,
 ): Promise<{ success: boolean; text?: string; error?: string }> {
   const prompt = String(args.prompt ?? '')
-  const timeoutMs = Math.min(Math.max(Number(args.timeoutMs) || 60_000, 5_000), 180_000)
+  // Ten minutes is the ceiling a plugin may ask for; background callers that
+  // want less still get their own bound.
+  const timeoutMs = Math.min(Math.max(Number(args.timeoutMs) || 60_000, 5_000), 600_000)
+  // Optional label embedded in the internal bridge id, so a failure in app
+  // logs can be traced back to the plugin that asked.
+  const internalTag = typeof args.internalTag === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(args.internalTag)
+    ? args.internalTag
+    : ''
 
   let streamed = ''
   let resultText = ''
@@ -698,20 +930,29 @@ async function runInternalTurn(
     }
   }
 
+  const env = (args.env as Record<string, string>) || {}
+  // Explicit Claude credentials mean the caller meant the Claude engine.
+  // Testing the API key for truthiness sent gateway configs (empty key + auth
+  // token) to Codex, which then failed auth or rejected the read-only sandbox.
+  const hasClaudeCredentials = 'ANTHROPIC_API_KEY' in env || 'ANTHROPIC_AUTH_TOKEN' in env
+  const useCodex = !hasClaudeCredentials || !!env.OPENAI_API_KEY
+
   const sendArgs: Record<string, unknown> = {
     prompt,
     cwd: (args.cwd as string) || process.cwd(),
     model: args.model,
-    env: (args.env as Record<string, string>) || {},
-    flags: [],
+    env,
+    // Answer-only turns (plugin `chat.ask`) must not touch tools. Codex's plan
+    // mode already means a read-only sandbox; the Claude CLI needs the empty
+    // tool list to get the same guarantee.
+    flags: args.answerOnly === true && !useCodex ? ['--tools', ''] : [],
     // Read-only turns: a memory extraction must not be able to edit the repo.
     permissionMode: 'plan',
     // Background work is not a conversation: do not persist a rollout that
     // would show up in the sidebar/archive with quoted private text.
     ephemeral: true,
+    ...(internalTag ? { internalTag } : {}),
   }
-  const env = sendArgs.env as Record<string, string>
-  const useCodex = !env.ANTHROPIC_API_KEY || !!env.OPENAI_API_KEY
 
   let launched: { success: boolean; sessionId?: string; error?: string }
   try {
@@ -813,8 +1054,17 @@ function registerSessionHandlers(): void {
       return null
     }
   })
-  ipcMain.handle('session:rename', (_e, { sessionId, title }) => {
+  ipcMain.handle('session:rename', async (_e, { sessionId, title }) => {
     try {
+      if (typeof sessionId !== 'string' || !isValidSessionId(sessionId)) return false
+      const name = String(title ?? '').trim()
+      if (!name) return false
+      // Codex titles live in Codex's own index; appending a Claude
+      // `session-title` line would never surface in the sidebar. Ask the
+      // protocol first, but only for ids the Codex reader can actually see.
+      if (isCodexSession(sessionId)) {
+        return await renameCodexThread(sessionId, name)
+      }
       return renameSession(sessionId, title)
     } catch (err) {
       log.warn('session:rename error:', String(err))
@@ -934,7 +1184,12 @@ function registerConfigHandlers(): void {
     } catch (err) { log.warn('prefs:get error:', String(err)); return null }
   })
   ipcMain.handle('prefs:set', (_e, key, value) => {
-    try { setPref(key, value) } catch (err) { log.warn('prefs:set error:', String(err)) }
+    try {
+      setPref(key, value)
+      // Switching the background pet alerts off also retracts any bubble that
+      // is currently up; switching them on lets queued items surface.
+      if (key === 'petAttentionAlerts') refreshAttention()
+    } catch (err) { log.warn('prefs:set error:', String(err)) }
   })
   ipcMain.handle('prefs:getAll', () => {
     try {
@@ -1235,12 +1490,47 @@ function registerNavPluginHandlers(win: BrowserWindow, send: (ch: string, ...a: 
     const scopedId = `${pluginId}:${requestId}`
     await startPluginAi(
       { requestId: scopedId, prompt, instructions, model, apiKey: getApiKey() || undefined },
-      (event) => send('plugin:ai:event', { ...event, pluginId, requestId })
+      (event) => {
+        send('plugin:ai:event', { ...event, pluginId, requestId })
+        // Terminal events are what the user is waiting for; report them to
+        // the pet when nobody is watching the plugin view.
+        if (event.type === 'done') {
+          stoppedPluginJobs.delete(scopedId)
+          raiseAttention({ kind: 'plugin-done', pluginId, detail: pluginLabel(pluginId) })
+        } else if (event.type === 'error' && !takeStoppedPluginJob(scopedId)) {
+          raiseAttention({ kind: 'failed', pluginId, detail: pluginLabel(pluginId) })
+        }
+      }
     )
     return { started: true }
   })
   safeHandle('plugin:ai:abort', (_e, { pluginId, requestId }: { pluginId: string; requestId: string }) => {
+    // The terminal error this produces is a user cancellation, not a failure.
+    stoppedPluginJobs.add(`${pluginId}:${requestId}`)
     abortPluginAi(`${pluginId}:${requestId}`)
+  })
+
+  // `chat.ask` — a plugin asks the assistant a question and gets the answer
+  // back. The turn is private: `runInternalTurn` gives it an `internal-` bridge,
+  // a read-only permission mode, an ephemeral thread and a private event sink,
+  // so nothing reaches the renderer and the archive stays untouched. The
+  // permission itself is checked inside `askPluginChat`, which returns a coded
+  // error the plugin can branch on.
+  safeHandle('plugin:chat:ask', async (_e, { pluginId, args }: {
+    pluginId: string
+    args?: import('../plugins/plugin-chat').PluginChatAskArgs
+  }) => {
+    // Route like chat / ai.generate: a gateway or compatible provider serves
+    // the turn on its own credentials; otherwise the default engine does.
+    const target = resolvePluginTurnTarget()
+    return askPluginChat(pluginId, args, (turn) => runInternalTurn({
+      prompt: turn.prompt,
+      cwd: turn.cwd,
+      timeoutMs: turn.timeoutMs,
+      internalTag: turn.tag,
+      answerOnly: true,
+      ...(target ? { model: target.model, env: target.env } : {}),
+    }))
   })
 
   // ── Edit drawer: a chat whose cwd IS the plugin folder, so the AI rewrites
@@ -1258,18 +1548,38 @@ function registerNavPluginHandlers(win: BrowserWindow, send: (ch: string, ...a: 
     prompt: string
     model?: string
   }) => {
+    // A new turn clears an earlier "stopped" marker so a genuine failure is
+    // still reported.
+    stoppedPluginJobs.delete(pluginId)
     await startPluginEdit(
       { pluginId, dirPath: editDir(pluginId), prompt, model, apiKey: getApiKey() || undefined },
-      (event) => send('plugin:edit:event', event)
+      (event) => {
+        send('plugin:edit:event', event)
+        // Same completion path as the one-shot AI jobs: a background edit turn
+        // that ends while the app is in the background is a plugin job done.
+        if (event.type === 'done') {
+          stoppedPluginJobs.delete(pluginId)
+          raiseAttention({ kind: 'plugin-done', pluginId, detail: pluginLabel(pluginId) })
+        } else if (event.type === 'error' && !takeStoppedPluginJob(pluginId)) {
+          raiseAttention({ kind: 'failed', pluginId, detail: pluginLabel(pluginId) })
+        }
+      }
     )
     return { started: true }
   })
   safeHandle('plugin:edit:send', async (_e, { pluginId, prompt }: { pluginId: string; prompt: string }) => {
+    stoppedPluginJobs.delete(pluginId)
     await sendPluginEdit(pluginId, prompt)
     return { sent: true }
   })
-  safeHandle('plugin:edit:abort', (_e, { pluginId }: { pluginId: string }) => abortPluginEdit(pluginId))
-  safeHandle('plugin:edit:close', (_e, { pluginId }: { pluginId: string }) => endPluginEdit(pluginId))
+  safeHandle('plugin:edit:abort', (_e, { pluginId }: { pluginId: string }) => {
+    stoppedPluginJobs.add(pluginId)
+    abortPluginEdit(pluginId)
+  })
+  safeHandle('plugin:edit:close', (_e, { pluginId }: { pluginId: string }) => {
+    stoppedPluginJobs.add(pluginId)
+    endPluginEdit(pluginId)
+  })
 }
 
 // ----------------------------------------

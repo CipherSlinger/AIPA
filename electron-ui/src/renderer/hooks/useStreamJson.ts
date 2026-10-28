@@ -6,6 +6,8 @@ import { getT } from '../i18n'
 import { resolveProvider, sendCompletionNotification, playCompletionSound, getActiveApiKey, rotateApiKey } from './streamJsonUtils'
 import { useAutoCompact } from './useAutoCompact'
 import { useAutoMemory } from './useAutoMemory'
+import { assembleMemoryContext, createElectronMemoryIo } from './promptMemory'
+import { composeSystemPromptParts, resolvePersonaTurnSettings } from './promptAssembly'
 import { listSessionsShared } from '../utils/sessionListShared'
 // parseTokenBudget used by token display utilities
 // import { parseTokenBudget } from '../utils/tokenUtils'
@@ -199,73 +201,42 @@ export function useStreamJson() {
     const currentTabForCwd = useChatStore.getState().tabs.find(t => t.id === useChatStore.getState().activeTabId)
     const effectiveCwdEarly = currentTabForCwd?.cwd || prefs.workingDir || ''
 
-    // Build combined system prompt (injected as prefix to first user message for Codex)
-    const systemPromptParts: string[] = []
+    // Resolve the persona that belongs to this conversation. The catalogue
+    // (`prefs.personas`) is global; the selection is per session, which is what
+    // keeps two open conversations from sharing one expert's prompt and model.
+    const personaTurn = resolvePersonaTurnSettings(
+      prefs,
+      useChatStore.getState().sessionPersonaId,
+      (key) => getT()(key),
+      useChatStore.getState().sessionModelOverride,
+    )
 
-    // Inject system presence: date, time, working directory, user name
-    if (prefs.systemPresence !== false) {
-      const now = new Date()
-      const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-      const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown'
-      const presenceParts = [`Current date: ${dateStr}`, `Current time: ${timeStr} (${tz})`]
-      if (effectiveCwdEarly) {
-        presenceParts.push(`Working directory: ${effectiveCwdEarly}`)
-      } else if (prefs.workingDir) {
-        presenceParts.push(`Working directory: ${prefs.workingDir}`)
-      }
-      if (prefs.displayName) {
-        presenceParts.push(`User name: ${prefs.displayName}`)
-      }
-      systemPromptParts.push(`<system_context>\n${presenceParts.join('\n')}\n</system_context>`)
-    }
+    // `/compact` is intercepted in the main process and its result discarded,
+    // so assembling/budgeting every memory tier for it is pure work with no
+    // consumer. Checked before assembly because the slash command has to reach
+    // the detector verbatim further below.
+    const isCompactCommand = /^\/compact\b/.test(prompt.trim())
 
-    if (prefs.systemPrompt?.trim()) {
-      systemPromptParts.push(prefs.systemPrompt.trim())
-    }
+    // Assemble the persistent memory tiers once per turn (sendMessage is the
+    // turn boundary — this code never runs on keystrokes). The result is
+    // already budgeted and labelled by tier.
+    const memoryContext = isCompactCommand
+      ? null
+      : await assembleMemoryContext({
+          prefs,
+          cwd: effectiveCwdEarly,
+          io: createElectronMemoryIo(),
+        })
 
-    // Inject output style modifier
-    if (prefs.outputStyle && prefs.outputStyle !== 'default') {
-      const stylePrompts: Record<string, string> = {
-        explanatory: `You are in Explanatory mode. After providing your main response, add an "Insight" callout block that explains the reasoning behind key decisions or provides deeper context.`,
-        learning: `You are in Step-by-Step Learning mode. Break down complex topics into clear, numbered steps. After explaining a concept, add a "Practice" block that challenges the user to try something.`,
-      }
-      const stylePrompt = stylePrompts[prefs.outputStyle]
-      if (stylePrompt) {
-        systemPromptParts.push(`<output_style>\n${stylePrompt}\n</output_style>`)
-      }
-    }
-
-    // Inject persistent memories as context
-    const memories = prefs.memories || []
-    if (memories.length > 0) {
-      const pinnedMemories = memories.filter(m => m.pinned)
-      const recentMemories = memories
-        .filter(m => !m.pinned)
-        .sort((a, b) => b.updatedAt - a.updatedAt)
-        .slice(0, 10)
-      const allInjected = [...pinnedMemories, ...recentMemories]
-      if (allInjected.length > 0) {
-        const categoryLabels: Record<string, string> = {
-          preference: 'Preference',
-          fact: 'Fact',
-          instruction: 'Instruction',
-          context: 'Context',
-        }
-        const memoryLines = allInjected.map(m =>
-          `- [${categoryLabels[m.category] || m.category}]${m.pinned ? ' (pinned)' : ''} ${m.content}`
-        )
-        systemPromptParts.push(
-          `\n<user_memory>\nThe user has saved the following memories. Use them to personalize your responses:\n${memoryLines.join('\n')}\n</user_memory>`
-        )
-      }
-    }
-
-    // Custom appended system prompt
-    const effectiveAppend = useChatStore.getState().tempSystemPrompt || prefs.appendSystemPrompt
-    if (effectiveAppend?.trim()) {
-      systemPromptParts.push(effectiveAppend.trim())
-    }
+    // Build combined system prompt (injected as prefix to user message: Codex
+    // has no --append-system-prompt equivalent).
+    const systemPromptParts = composeSystemPromptParts({
+      prefs,
+      persona: personaTurn,
+      memoryContext: memoryContext?.text ?? '',
+      cwd: effectiveCwdEarly,
+      appendSystemPrompt: useChatStore.getState().tempSystemPrompt || prefs.appendSystemPrompt,
+    })
 
     // For Codex: system prompt is prepended to the user message (Codex doesn't have --append-system-prompt)
     // System prompt parts will be prepended to the actual prompt below
@@ -278,9 +249,8 @@ export function useStreamJson() {
 
     // `/compact` must reach the main process verbatim (it is intercepted there
     // and mapped to thread/compact/start); a prepended system prompt would hide
-    // the slash command from the detector.
-    const isCompactCommand = /^\/compact\b/.test(prompt.trim())
-
+    // the slash command from the detector. `isCompactCommand` is computed above,
+    // before the (skipped) memory assembly.
     // Prepend system context to the user prompt (Codex doesn't support --append-system-prompt)
     const systemPrefix = !isCompactCommand && systemPromptParts.length > 0
       ? systemPromptParts.join('\n\n') + '\n\n'
@@ -331,8 +301,9 @@ export function useStreamJson() {
       actualPrompt = systemPrefix + prompt
     }
 
-    // Route to appropriate provider based on model
-    const routing = await resolveProvider(prefs.model)
+    // Route by the model this conversation's persona selected, not by whatever
+    // another conversation last wrote into global prefs.
+    const routing = await resolveProvider(personaTurn.model)
 
     if (routing.type === 'provider') {
       // Non-Claude provider: use providerSendMessage IPC
@@ -356,7 +327,7 @@ export function useStreamJson() {
         const result = await window.electronAPI.providerSendMessage({
           providerId: routing.providerId,
           prompt: actualPrompt,
-          model: prefs.model || 'gpt-4o',
+          model: personaTurn.model || 'gpt-4o',
           systemPrompt,
           messages: contextMessages,
           images: attachments?.map(a => a.dataUrl),
@@ -395,7 +366,7 @@ export function useStreamJson() {
       cwd: effectiveCwd,
       sessionId: currentSessionId,
       activeBridgeId: activeBridgeIdRef.current ?? undefined,
-      model: prefs.model,
+      model: personaTurn.model,
       env: {
         // Provide both keys — CodexBridge uses OPENAI_API_KEY, legacy StreamBridge uses ANTHROPIC_API_KEY
         ...(getActiveApiKey() ? { OPENAI_API_KEY: getActiveApiKey(), ANTHROPIC_API_KEY: getActiveApiKey() } : {}),
@@ -484,20 +455,10 @@ export function useStreamJson() {
     useChatStore.getState().denyPendingPermissions()
     useChatStore.getState().clearMessages()
     contextWarningShownRef.current = false
-    // Auto-apply default persona for new sessions (Iteration 407)
-    const defaultPersonaId = usePrefsStore.getState().prefs.activePersonaId
-    if (defaultPersonaId) {
-      const personas = usePrefsStore.getState().prefs.personas || []
-      const persona = personas.find(p => p.id === defaultPersonaId)
-      if (persona) {
-        useChatStore.getState().setSessionPersonaId(defaultPersonaId)
-        const resolvedPrompt = persona.presetKey ? getT()(`persona.presetPrompt.${persona.presetKey}`) : persona.systemPrompt
-        usePrefsStore.getState().setPrefs({ model: persona.model, systemPrompt: resolvedPrompt, outputStyle: persona.outputStyle || 'default' })
-        window.electronAPI.prefsSet('model', persona.model)
-        window.electronAPI.prefsSet('systemPrompt', resolvedPrompt)
-        window.electronAPI.prefsSet('outputStyle', persona.outputStyle || 'default')
-      }
-    }
+    // A new conversation inherits the currently selected persona. It is stored
+    // on the session only: copying it into global prefs is what used to make one
+    // conversation's expert leak into every other conversation.
+    useChatStore.getState().setSessionPersonaId(usePrefsStore.getState().prefs.activePersonaId)
   }, [])
 
   // PERF: this effect is registered once and every store action is read through
@@ -873,7 +834,11 @@ export function useStreamJson() {
             }
           }
           // Completion notification
-          sendCompletionNotification('AIPA', resultText || t('chat.responseComplete'))
+          sendCompletionNotification(
+            'AIPA',
+            resultText || t('chat.responseComplete'),
+            useChatStore.getState().currentSessionId ?? undefined,
+          )
           // DreamTask detection: check if .consolidate-lock mtime advanced since session start
           if (window.electronAPI?.sessionGetDreamMtime && dreamMtimeSnapshotRef.current >= 0) {
             const snapshotMtime = dreamMtimeSnapshotRef.current
@@ -944,7 +909,11 @@ export function useStreamJson() {
             const doneCount = updatedQueue.filter(item => item.status === 'done').length
             if (pendingCount === 0 && doneCount > 0) {
               useUiStore.getState().addToast('success', t('taskQueue.queueComplete', { count: String(doneCount) }))
-              sendCompletionNotification('AIPA', t('taskQueue.queueComplete', { count: String(doneCount) }))
+              sendCompletionNotification(
+                'AIPA',
+                t('taskQueue.queueComplete', { count: String(doneCount) }),
+                useChatStore.getState().currentSessionId ?? undefined,
+              )
             }
             // Auto-send next if not paused
             if (!queueState.queuePaused) {

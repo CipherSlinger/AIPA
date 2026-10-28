@@ -39,6 +39,17 @@ const INVOKE_METHODS: Record<string, {
     }),
   },
   'ai.abort': { permission: 'ai', call: (api, id, p) => api.pluginAiAbort(id, String(p?.requestId || '')) },
+  // A private, answer-only assistant turn: the answer comes back as the
+  // invoke result, not as a stream. No session and no chat event is created.
+  'chat.ask': {
+    permission: 'chat',
+    call: (api, id, p) => api.pluginChatAsk(id, {
+      prompt: String(p?.prompt || ''),
+      visible: p?.visible === true,
+      title: typeof p?.title === 'string' ? p.title : undefined,
+      timeoutMs: typeof p?.timeoutMs === 'number' ? p.timeoutMs : undefined,
+    }),
+  },
 }
 
 function errorMessage(err: unknown): string {
@@ -131,16 +142,25 @@ export default function PluginHostView() {
           target.postMessage({ type: 'aipa:response', requestId: data.requestId, ...body }, '*')
         const spec = Object.prototype.hasOwnProperty.call(INVOKE_METHODS, method) ? INVOKE_METHODS[method] : undefined
         if (!spec) {
-          reply({ ok: false, error: `未知的宿主能力：${method}` })
+          reply({ ok: false, error: `未知的宿主能力：${method}`, code: 'unknown_method' })
           return
         }
         if (!plugin.manifest.permissions?.includes(spec.permission)) {
-          reply({ ok: false, error: `插件未声明 "${spec.permission}" 权限（plugin.json → permissions）` })
+          reply({ ok: false, error: `插件未声明 "${spec.permission}" 权限（plugin.json → permissions）`, code: 'permission_denied' })
           return
         }
         spec.call(window.electronAPI, plugin.manifest.id, data.payload)
           .then(result => reply({ ok: true, result }))
-          .catch(err => reply({ ok: false, error: errorMessage(err) }))
+          .catch(err => {
+            // Main-process capabilities prefix their message with a stable
+            // `[code]` (IPC only carries the message string), so lift it into
+            // a typed field the plugin can branch on.
+            const message = errorMessage(err)
+            const coded = /^\[([a-z_]+)\]\s*([\s\S]*)$/.exec(message)
+            reply(coded
+              ? { ok: false, error: coded[2], code: coded[1] }
+              : { ok: false, error: message })
+          })
       } else if (data.type === 'aipa:ready') {
         sendThemeToIframe()
       } else if (data.type === 'aipa:toast') {

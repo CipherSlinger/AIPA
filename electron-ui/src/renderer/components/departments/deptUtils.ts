@@ -34,14 +34,15 @@ type SessionDirFields = Pick<SessionListItem, 'cwd' | 'project' | 'projectSlug'>
 
 /**
  * Encode a real directory path to Claude's project slug format.
- * Claude replaces all path separators (/ and \) and the Windows drive colon (:)
- * with hyphens, e.g. "C:\Users\osr\Desktop" → "C--Users-osr-Desktop".
+ * Claude replaces every non-alphanumeric character — separators, the Windows
+ * drive colon, and also dots, spaces and underscores — with a hyphen, e.g.
+ * "C:\Users\osr\.aipa\plugin-data" → "C--Users-osr--aipa-plugin-data".
  *
  * Comparing slugs is the only reliable match — the decoded `project` field is
  * lossy because decodeProjectSlug turns every hyphen back into a separator.
  */
 export function dirToSlug(dir: string): string {
-  return dir.replace(/[/\\:]/g, '-')
+  return dir.replace(/[^a-zA-Z0-9]/g, '-')
 }
 
 /**

@@ -1,6 +1,7 @@
 import { ipcMain, BrowserWindow, desktopCapturer, powerSaveBlocker, dialog, app } from 'electron'
 import { createLogger } from '../utils/logger'
 import { getPref } from '../config/config-manager'
+import { shouldSuppressNativeNotification } from '../clawd-attention'
 
 const log = createLogger('ipc:window')
 
@@ -68,8 +69,19 @@ export function registerWindowHandlers(win: BrowserWindow): void {
     }
   })
 
-  // Show a native OS notification with click-to-focus behavior
-  ipcMain.handle('window:showNotification', (_e, opts: { title: string; body: string }) => {
+  // Show a native OS notification with click-to-focus behavior.
+  // `sessionId` identifies the conversation the notification is about, so the
+  // pet only swallows the notice for the turn it already reported as failed.
+  // Older renderers omit it; such a notification is not suppressed because it
+  // cannot be attributed to any particular failure.
+  ipcMain.handle('window:showNotification', (_e, opts: { title: string; body: string; sessionId?: string }) => {
+    const sessionId = typeof opts?.sessionId === 'string' ? opts.sessionId : null
+    // The pet is the notification for a failed background task; the renderer
+    // sends its generic completion notice from the same result event.
+    if (shouldSuppressNativeNotification(sessionId)) {
+      log.debug('native notification suppressed — pet attention bubble is showing')
+      return
+    }
     const { Notification } = require('electron')
     if (!Notification.isSupported()) return
     const notif = new Notification({

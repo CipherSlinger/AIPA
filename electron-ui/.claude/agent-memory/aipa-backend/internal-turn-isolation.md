@@ -12,7 +12,8 @@ Background turns (auto-memory extraction, away summary) must go through `cli:run
 **How to apply:**
 - New background work: `window.electronAPI.cliRunInternal({ prompt, cwd, model, timeoutMs })` and read `result.text`. Don't sleep-and-scrape `useChatStore().messages`.
 - Prompts sent by internal turns are read-only (`permissionMode: 'plan'`, Codex `approvalPolicy: 'never'`), never resume a conversation, and deny permission requests silently.
-- Send `ephemeral: true`: Codex's `thread/start` then writes no rollout, so the turn never appears in session history. The legacy Claude CLI has no equivalent flag — an internal Claude turn still writes a JSONL transcript; do not promise otherwise.
+- Send `ephemeral: true`: Codex's `thread/start` then writes no rollout. On the legacy Claude path `StreamBridge` now forwards it as `--no-session-persistence` (2026-10-28), so an internal Claude turn writes no JSONL either — harness-verified (archive stayed empty).
+- Engine dispatch inside `runInternalTurn` keys on the *presence* of `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN`, not on the API key's truthiness. A gateway config sets an empty API key plus an auth token; the old truthiness test sent it to Codex and failed auth/thread-start.
 - Settle on `cli:result`, not `cli:messageEnd`. Claude emits `message_stop` per assistant message (long before the turn ends); settling there returned partial text and aborted the bridge. Codex's `cli:result` comes from `turn/completed`. Keep the timeout race as the only other exit.
 - Renderer invariant in `useStreamJson`: drop `internal-`/`internal:true` events up front; accept a `cli:result` only when it is the bridge this hook started, carries the on-screen engine session id, or the conversation has no real id yet (`null` / `pending-`).
 - `chatStore.streamSessionId` is the second gate for streamed deltas; set it for CLI *and* provider bridges in `sendMessage`, or provider streaming goes blank.

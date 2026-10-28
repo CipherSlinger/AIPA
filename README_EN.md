@@ -125,8 +125,8 @@ AIPA adopts a modern **two-column layout** eliminating redundant intermediate li
 | **🧩 Plugin Hub** | Unified plugin dashboard, 1-click launch, source inspection, and developer starter guide | Pre-installed at the bottom of NavRail, enables cross-plugin navigation; UI and plugin names follow the app language (EN/ZH) |
 | **📅 Work Calendar Plugin** | Month view with cross-day task bars, drag-to-create tasks, AI-streamed weekly/monthly reports, GitHub & local-folder work sources, person-day tracking | One-click report generation from week badges, preview / regenerate / pull sources, file-backed storage with JSON import/export |
 | **📝 Quick Notes Plugin** | Decoupled hot-pluggable plugin, live Markdown preview, category filters, pinning, AI prompt dispatch | Independent HTML micro-app, upper NavRail placement, Ctrl+3 / Ctrl+Shift+N shortcut bindings, bilingual |
-| **🧠 Memory Hierarchy** | Global memory, Project memory (`.claude/MEMORY.md`), structured memdir (User/Feedback/Project/Ref) | 4-tab memory console (under Settings → Memory, `Ctrl+5`), DreamTask background consolidation detection, decay status dots; under the Codex engine only Personal memories are injected into messages |
-| **🐱 Clawd Pet** | Win32 desktop pet synced with AI thinking, execution, and idle moods | Consolidated taskbar icons, smooth sprite animations, unobtrusive companion |
+| **🧠 Memory Hierarchy** | Five prompt tiers — global and project `MEMORY.md`, global and project structured memdir, and the personal store | 4-tab memory console (under Settings → Memory, `Ctrl+5`); DreamTask lock-file detection and age dots are console feedback only; all five tiers are assembled once per turn into one labelled `<memory_context>` block under per-tier and total character budgets |
+| **🐱 Clawd Pet** | Win32 desktop pet synced with AI thinking, execution, and idle moods; background attention bubbles for approvals, questions, failures and finished plugin jobs | Consolidated taskbar icons, smooth sprite animations, click-to-open bubbles while the window is unfocused, silent while it is focused; Settings → General → “Call Me Through the Pet” |
 | **⚙️ Settings & Channels** | MCP tool servers, OpenClaw external channels, model keys, permissions consolidated | Streamlined into Settings (Settings → Plugins & MCP / Channels) — plugins and MCP servers share one page, and the AI Engine page moves provider config **above Model** (right under the API key pool and its “Add Key”), so keys are added and listed in the same block before you pick a model, keeping navigation clean; providers are now a **compact list** rather than cards — each row keeps only a health dot, name, model-count badge, a test-connection button and an enable toggle, and clicking a row slides a **config drawer** in from the right holding every field (connection mode / API key / auth token / base URL / fetch models / status), so the list always keeps the "what providers exist and how are they doing" overview; MCP configuration is engine-routed — the Codex engine writes `[mcp_servers.*]` tables to `~/.codex/config.toml` and feeds them back into `systemInit`, while Claude still uses `~/.claude/settings.json`; the Hooks page was removed (hooks are only read by the Claude CLI from `~/.claude/settings.json` and have no effect under the Codex engine); the Sandbox page and a batch of inputs whose writes were silently dropped by the settings whitelist (API Key Helper, output style, available models, file suggestions, status line, default shell, respect `.gitignore`, commit attribution, worktree, …) were removed too, leaving only settings that actually persist; on wide windows the General page flows its section cards into **two measured columns** (each 511–592 px, so inputs stay at a readable 478–559 px) inside a centred 1,200 px page column, falling back to one column below 1,180 px — which fills the width that used to sit empty to the right of a 660 px form |
 
 Session handoffs land where they point: auto-resume, the welcome screen's continue button, the quick switcher, the command palette, and the tray / app menu now actually open the session instead of dispatching an “open this session” event into the void, and a lookup that fails raises a visible error rather than doing nothing.
@@ -143,6 +143,9 @@ AIPA runs Codex as its primary engine and Claude Code as the fallback. The cockp
 - **Images reach the model**: attachments are sent as real `image` input parts. The protocol has no document variant, so a non-image attachment is announced in-band — "the engine cannot accept document attachments" — instead of silently shipping base64 into the prompt
 - **Stop stops, then kills**: `turn/interrupt` first, with a 1.5 s grace before the process is force-killed, so an interrupted turn keeps its thread instead of taking the bridge down with it
 - **Approvals use the protocol's real shapes**: the old code answered `{ decision: 'denied' }` to requests that no longer accept it and used the wrong shape for command / file-change / permission approvals — under the default on-request policy that would have blocked tool execution
+- **Renaming is protocol-native**: the sidebar and header rename a Codex session through `thread/name/set`, so the name lands in Codex's own session index (`session_index.jsonl` and its state DB) instead of a local override, and it survives a restart. When no app-server owns the thread, a throwaway one is spawned just for the handshake — the index is writable only through the protocol
+- **`developerInstructions` are sent on both paths**: `thread/start` and `thread/resume` carry them, so a resumed thread keeps the same standing instructions (persona, department handbook, plugin brief) instead of silently losing them
+- **What is deliberately not supported**: under Codex, rewinding or editing an earlier message is not offered — `thread/rollback` exists in the binary but is marked deprecated and scheduled for removal, so the UI does not build on it. Document and file attachments are not supported either: the protocol's input variants are `text`, `image`, `localImage`, `audio`, `localAudio`, `skill` and `mention`, and `mention` does not carry the file or its path to the model. A non-image attachment is therefore announced as text rather than pretended into the prompt
 
 ---
 
@@ -215,6 +218,37 @@ Plugins declare `permissions` in `plugin.json`, then call `postMessage({ type: '
 | `github.commits` | `network` | GitHub commits API from the main process (branch/author filter, token, 20s timeout) |
 | `fs.pickFolder` / `fs.scanFolder` | `fs` | Native folder picker; scan files modified in a date range with `*.ext` filters (skips node_modules/.git etc.) |
 | `ai.generate` / `ai.abort` | `ai` | One ephemeral generation streamed back via `aipa:ai:event` (delta/status/done/error). Routing matches chat: a model owned by an enabled gateway / compatible provider runs on that provider (Claude CLI with its base URL and token); otherwise a read-only Codex turn |
+| `chat.ask` | `chat` | Ask the assistant a question and get the answer back as the invoke result — no UI, no session. The turn is private: an `internal-` bridge with a read-only permission mode and no persistence, so it publishes no `cli:*` events and leaves no archive entry. Routing matches chat / `ai.generate`. Default 60 s timeout (clamped to 5 s … 10 min), at most 2 turns in flight and 10 per minute per plugin; `visible: true` is refused with code `unsupported` for now |
+
+A refusal carries a stable `code` alongside the message (`permission_denied`, `busy`, `rate_limited`, `timeout`, `failed`, …), so a plugin can branch instead of parsing prose. Worked example (manifest `"permissions": ["chat"]`):
+
+```html
+<script>
+  let seq = 0
+  function ask(prompt) {
+    return new Promise((resolve, reject) => {
+      const requestId = `ask-${++seq}`
+      const onMessage = (e) => {
+        const d = e.data
+        if (!d || d.type !== 'aipa:response' || d.requestId !== requestId) return
+        window.removeEventListener('message', onMessage)
+        d.ok ? resolve(d.result.text) : reject(Object.assign(new Error(d.error), { code: d.code }))
+      }
+      window.addEventListener('message', onMessage)
+      window.parent.postMessage({
+        type: 'aipa:invoke',
+        requestId,
+        method: 'chat.ask',
+        payload: { prompt, timeoutMs: 60000 },
+      }, '*')
+    })
+  }
+
+  // The answer belongs to the plugin; render it here, or hand it to the main
+  // chat with aipa:sendPrompt if the user should keep reading it there.
+  ask('Summarise these release notes in one sentence:\n…').then(console.log)
+</script>
+```
 
 > Plugin pages are served from `aipa-plugin://p-<id>-<hash>/<absolute path>`, so relative asset paths (`./js/app.js`, `style.css`) keep working. Each plugin id maps to a fixed host, so its `localStorage` survives edits and folder moves; a plugin that needs to migrate older data can call `aipa:storage:get` on startup (the built-in Quick Notes plugin ships this one-time migration).
 
@@ -438,6 +472,7 @@ HR hangs under no department — it looks sideways at **everyone in the company*
 ```
 
 - **Experts are employees you can switch roles with**: each carries its own expertise, prompt and model, and clicking one moves the current chat into that role; the cards wear a theme-tinted backdrop and a role badge so the job is readable at a glance
+- **A persona belongs to the conversation, not to the app**: switching persona in the chat header only changes the conversation it was switched in — prompt, model and output style are resolved at send time from that session's `sessionPersonaId`, so another open conversation keeps sending as its own persona. A new conversation inherits the persona currently selected in `prefs.activePersonaId`; reopening a session restores its recorded `aipa:session-persona:<id>` mapping. `prefs.personas` remains the global catalogue, referenced by id rather than copied. If the persona was deleted, the header shows an amber “missing” badge and the turn runs on the default settings instead of silently impersonating a surviving persona. Picking a different model in a persona conversation records a per-session override (`aipa:session-model:<id>`) that outranks the persona's model; the picker marks the override and offers a one-click return to the persona's own model, so the header never claims a model the turn will not use
 - **Skills are the prompt packages an employee carries**: stored as `SKILL.md` and invoked from chat with a slash command; opening a card shows the full text, and a two-step confirm deletes it; the list is scanned once per root — the persisted working directory and the tab's cwd are normally the same folder, which used to count every project skill twice
 - **Workflows chain multi-step tasks into reusable pipelines**: single-agent (`singleAgent`) and multi-agent (`teamwork`) flavours, sortable by recently updated / name / runs, and importable by pasting JSON from the clipboard
 - **An empty section has no card**: when there are no skills (or experts, or workflows), the section drops its dashed placeholder entirely — the header keeps the single primary create action, and the suggested presets become the section body under a state-aware label (“Start from the marketplace · click to install”). A dashed card repeating a button that sits 12 px above it read as a broken card, and for a new user the honest next step is a ready-made skill rather than authoring a `SKILL.md`. The add card survives only inside a grid that already has content, where it is an affordance rather than an empty state — which keeps all three sections in one grammar
@@ -522,6 +557,20 @@ The chat header's ⋯ menu can turn the conversation you just had into a reusabl
 - **Harness noise is dropped**: slash commands such as `/clear`, command echoes and image markers never become steps
 - **Caps are stated, not silent**: 20 steps / 12 instructions, with a banner that names how many requests were omitted; a prompt longer than 2 000 characters is trimmed and says so
 - **The user's wording survives**: each step prompt keeps the original text verbatim, and the files and commands touched during that turn are appended as labelled context only while they fit the budget
+- **The install folder always has a usable name**: a title written entirely in a non-Latin script sanitizes to nothing usable (“技能” becomes `-`), which used to create a directory of hyphens. `sanitizeSkillDirName` now falls back to a deterministic FNV-1a hash of the original title, producing `session-1a2b3c4d`, and the renderer mirrors it character for character in `skillInstallSlug` — the path previewed in the dialog and the directory created on install share one normalizer, so they always agree
+
+---
+
+## 🐱 Desktop Pet Attention Alerts
+
+The pet is also AIPA's background notification surface. When the window is hidden, minimised or unfocused, it raises one bubble for four things: an **approval** is waiting, a **question** is waiting for an answer, a **task failed**, or a **plugin job finished**.
+
+- **The bubble opens what needs you**: clicking an approval, question or failure bubble reopens that exact session; a plugin bubble opens that plugin
+- **Quiet while you are looking**: while the window is visible and focused nothing is shown. Approvals and questions raised then stay queued and appear when you leave; failures and plugin completions are transient and expire instead of nagging later
+- **Repeats coalesce**: the queue is keyed by session plus kind, so a second failure in the same conversation refreshes one bubble instead of stacking. Approvals and questions collapse into a count that is decremented one answered request at a time, and a batch of plugin completions becomes one “3 plugin jobs finished” bubble
+- **One notification, not two**: for a failed task the pet is the notification — the renderer's generic native completion notice is suppressed while the bubble is showing, and if the pet cannot show, that native notice remains the fallback. Approvals, questions and plugin completions never had a native notice to duplicate
+- **Internal turns never call**: memory extraction, away summaries and a plugin's `chat.ask` run on an `internal-` bridge with no session to attribute, so they raise no alert
+- **Off switch**: Settings → General → “Call Me Through the Pet” (`petAttentionAlerts`, default on). Turning it off retracts any bubble already on screen
 
 ---
 
@@ -529,31 +578,38 @@ The chat header's ⋯ menu can turn the conversation you just had into a reusabl
 
 ```mermaid
 graph LR
-    subgraph ActiveChat["⚡ Active Chat Context"]
-        CurrentSession["Current Session"]
-        AutoExtract["Auto-Extractor"]
-        CompactEngine["Context Compaction"]
+    subgraph Stores["🗄️ Memory tiers"]
+        GlobalDoc["🌐 global<br/>~/.claude/MEMORY.md"]
+        ProjectDoc["📁 project<br/>&lt;cwd&gt;/.claude/MEMORY.md"]
+        GlobalStructured["🗂️ global-structured<br/>~/.claude/memory/*.md"]
+        ProjectStructured["🗂️ project-structured<br/>~/.claude/projects/&lt;project&gt;/memory/*.md"]
+        Personal["⭐ personal<br/>prefs.memories"]
     end
 
-    subgraph MemoryArchitecture["🗄️ Multi-Tier Persistent Store"]
-        GlobalDoc["🌐 Global Memory (~/.claude/MEMORY.md)"]
-        ProjectDoc["📁 Project Memory (<repo>/.claude/MEMORY.md)"]
-        StructuredMem["🗂️ Structured memdir<br/>• User Profile<br/>• Feedback<br/>• Projects<br/>• References"]
-        RuleFiles["📜 Project Rules (CLAUDE.md)"]
+    subgraph PerTurn["⚡ Once per turn"]
+        Assemble["assembleMemoryContext()<br/>per-tier budgets, project first"]
+        Context["&lt;memory_context&gt;<br/>one &lt;memory tier=… source=…&gt; per tier"]
+        Prompt["Turn prompt"]
     end
 
-    subgraph BackgroundConsolidate["🌙 Background Consolidation"]
-        DreamConsolidate["DreamTask Auto-Consolidation"]
-        TimeDecay["Age Decay (Green / Yellow / Red Dots)"]
+    subgraph Background["🌙 Background"]
+        Auto["Auto-memory extraction"]
+        Dream["DreamTask detection<br/>watches .consolidate-lock mtime"]
     end
 
-    CurrentSession -->|Extract durable facts| AutoExtract
-    AutoExtract -->|Save items| StructuredMem
-    CurrentSession -->|Idle / close| DreamConsolidate
-    DreamConsolidate -->|Deduplicate & merge| GlobalDoc & ProjectDoc
-    TimeDecay -->|Prune stale items| StructuredMem
-    GlobalDoc & ProjectDoc & StructuredMem & RuleFiles -->|Inject slices| CurrentSession
+    Auto -->|writes| Personal
+    GlobalDoc & ProjectDoc & GlobalStructured & ProjectStructured & Personal --> Assemble
+    Assemble --> Context --> Prompt
+    Dream -.->|raises a toast, writes no memory| Prompt
 ```
+
+**Five tiers reach the prompt, in one bounded block.** On every `sendMessage` — once per turn, never per keystroke — `assembleMemoryContext` reads the tiers that exist and emits them in this order: global doc, project doc, global structured, project structured, personal. Each sits in its own `<memory tier="…" source="…">` block inside one `<memory_context>`; a missing file simply drops its tier.
+
+**Budgets are characters, so what fits is deterministic.** The per-tier caps are 3 000 (global doc), 4 000 (project doc), 2 000 (global structured), 3 000 (project structured) and 2 000 (personal), with any single structured file capped at 600 characters. The whole block, framing included, may not exceed 12 000 characters. When the total is tight, allocation runs in priority order — project doc, project structured, personal, global doc, global structured — so the repository's own conventions outrank a large cross-project file; the surviving blocks are still emitted in the order above.
+
+**What DreamTask actually does.** It is detection, not consolidation. It watches the mtime of `~/.claude/<cwd-hash>/.consolidate-lock`, which the CLI touches when a dream completes, and raises one in-chat card and toast for that turn; it never merges, deduplicates or rewrites a memory file. The Memory console's green / yellow / red age dots are likewise a reading aid over structured memdir files — they prune nothing.
+
+**Who writes what.** Auto-memory extraction writes `prefs.memories`, which is the prompt's `personal` tier; it does not write the memdir. In the Memory panel, the Project tab edits the project's `.claude/MEMORY.md`, and the Structured Memory tab reads the memdir files the CLI produces. `~/.claude/MEMORY.md` has no writer inside AIPA — it is read into the `global` tier, but only an external tool or a hand edit changes it.
 
 **Background work is invisible to the open chat.** Auto-memory extraction, the away summary and similar internal turns now run on a private bridge (`cli:runInternal`) with a read-only sandbox and an `internal-` id. Their events never reach the renderer, so their output can no longer be appended to the conversation on screen or reassign the active session.
 

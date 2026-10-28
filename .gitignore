@@ -5,3 +5,4 @@ docs/superpowers/*
 .worktrees/
 electron-ui/docs/superpowers/
 CLAUDE.md
+electron-ui/.scratch/

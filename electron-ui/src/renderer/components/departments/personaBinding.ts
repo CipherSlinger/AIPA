@@ -3,44 +3,27 @@
 // `setSessionPersonaId` is the one mapping mechanism (it owns both the in-memory
 // value and the `aipa:session-persona:<id>` record), but it can only persist once
 // the session has an id. A freshly hired employee has none until its first turn
-// completes and `cli:result` assigns one. So bind twice: apply the persona now
-// so the mounted chat shows it, then re-apply when the id lands, which is what
+// completes and `cli:result` assigns one. So bind twice: set the persona now so
+// the mounted chat runs as it, then re-apply when the id lands, which is what
 // writes the persistent mapping. Nothing here duplicates the store — it only
 // calls its existing action.
 
-import { useChatStore, usePrefsStore } from '../../store'
-import { getT } from '../../i18n'
+import { useChatStore } from '../../store'
 
 /** How long a hire may stay unassigned before we stop waiting for its id. */
 const BIND_TIMEOUT_MS = 10 * 60 * 1000
 
 /**
  * Make the new session actually run as the persona, not merely show its badge.
- * This mirrors what the chat persona picker does: the first message's system
- * prompt and model are read from prefs at send time, so they must be switched
- * before ChatPanel consumes the pending brief.
+ *
+ * This used to copy the persona's model and prompt into global prefs, which is
+ * how the send path found them. Personas are per-session now, so the profile is
+ * read from the session's own binding at send time — writing the globals here
+ * would leak a hired employee's settings into every unrelated conversation.
  */
-export function applyPersonaProfile(personaId: string | undefined): void {
-  if (!personaId) return
-  const persona = (usePrefsStore.getState().prefs.personas ?? []).find(p => p.id === personaId)
-  if (!persona) return
-  const resolvedPrompt = persona.presetKey
-    ? getT()(`persona.presetPrompt.${persona.presetKey}`)
-    : persona.systemPrompt
-  usePrefsStore.getState().setPrefs({
-    model: persona.model,
-    systemPrompt: resolvedPrompt,
-    outputStyle: persona.outputStyle || 'default',
-  })
-  window.electronAPI.prefsSet('model', persona.model)
-  window.electronAPI.prefsSet('systemPrompt', resolvedPrompt)
-  window.electronAPI.prefsSet('outputStyle', persona.outputStyle || 'default')
-}
-
 export function bindPersonaToNewSession(personaId: string | undefined): void {
   if (!personaId) return
 
-  applyPersonaProfile(personaId)
   useChatStore.getState().setSessionPersonaId(personaId)
 
   let done = false

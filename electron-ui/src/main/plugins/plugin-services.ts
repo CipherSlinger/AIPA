@@ -288,7 +288,7 @@ function createRun(
   return { finish, stderrTail: () => lastStderr }
 }
 
-function pluginAiCwd(): string {
+export function pluginAiCwd(): string {
   const cwd = path.join(os.homedir(), '.aipa', 'plugin-data')
   fs.mkdirSync(cwd, { recursive: true })
   return cwd
@@ -316,6 +316,19 @@ function resolvePluginAiTarget(model?: string): { config: ModelProviderConfig; m
     if ((config.models ?? []).some(m => m.id === target)) return { config, model: target }
   }
   return null
+}
+
+/**
+ * Provider routing for a plugin turn, in the shape an internal turn needs.
+ *
+ * Kept next to `resolvePluginAiTarget` so `chat.ask` and `ai.generate` cannot
+ * drift: a gateway-only setup works for one capability and fails the other's
+ * Codex auth check otherwise. Null means "let the default engine run it".
+ */
+export function resolvePluginTurnTarget(model?: string): { model: string; env: Record<string, string> } | null {
+  const target = resolvePluginAiTarget(model)
+  if (!target) return null
+  return { model: target.model, env: { ...buildCliEnv(target.config), CLAUDECODE: '' } }
 }
 
 /**

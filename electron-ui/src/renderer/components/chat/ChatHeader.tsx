@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Search, Download, ClipboardCopy, Maximize2, Minimize2, FolderOpen, FileText, FilePlus2, RefreshCw, MessageSquarePlus, X, GitBranch, Building2, Wrench, Zap, Layers } from 'lucide-react'
 import { useChatStore, useSessionStore, usePrefsStore, useUiStore } from '../../store'
-import type { StandardChatMessage } from '../../types/app.types'
+import type { StandardChatMessage, SessionListItem } from '../../types/app.types'
 import { useT } from '../../i18n'
 import ModelPicker from './ModelPicker'
 import PersonaPicker from './PersonaPicker'
@@ -211,18 +211,30 @@ export default function ChatHeader({
     setIsEditingTitle(true)
   }, [sessionId, sessionTitle, isStreaming])
 
-  const commitTitleEdit = useCallback(() => {
+  const commitTitleEdit = useCallback(async () => {
     const newTitle = editTitleValue.trim()
+    if (!newTitle || !sessionId || newTitle === sessionTitle) {
+      setIsEditingTitle(false)
+      return
+    }
+    // Await the write before reloading the list: on the Codex engine the name
+    // is persisted through the app-server, so an immediate reload would still
+    // read the old title.
+    const saved = await window.electronAPI.sessionRename(sessionId, newTitle)
+    if (!saved) {
+      // Keep the editor open with the typed text: closing it silently left the
+      // old title on screen and made the user believe the rename had worked
+      // until the next list reload. A retry is now one Enter away.
+      useUiStore.getState().addToast('error', t('chat.renameFailed'))
+      return
+    }
     setIsEditingTitle(false)
-    if (!newTitle || !sessionId || newTitle === sessionTitle) return
-    window.electronAPI.sessionRename(sessionId, newTitle)
     useChatStore.getState().setSessionTitle(newTitle)
-    listSessionsShared().then((list: any) => {
-      if (list) {
-        useSessionStore.getState().setSessions(list)
-      }
-    })
-  }, [editTitleValue, sessionId, sessionTitle])
+    const list = await listSessionsShared()
+    if (list) {
+      useSessionStore.getState().setSessions(list as SessionListItem[])
+    }
+  }, [editTitleValue, sessionId, sessionTitle, t])
 
   const cancelTitleEdit = useCallback(() => {
     setIsEditingTitle(false)

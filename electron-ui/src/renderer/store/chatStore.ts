@@ -2,6 +2,7 @@
 // Tab support added in Iteration 515
 import { create } from 'zustand'
 import { ChatMessage, ElicitationMessage, HookCallbackMessage, PermissionMessage, PlanMessage, StandardChatMessage } from '../types/app.types'
+import { sessionModelStorageKey } from '../lib/sessionModel'
 
 // ── Task Queue types ─────────────────────────────
 export interface TaskQueueItem {
@@ -25,6 +26,8 @@ export interface TabSnapshot {
   lastContextUsage: { used: number; total: number } | null
   modelUsage: Record<string, { inputTokens: number; outputTokens: number; cacheTokens: number; costUsd: number; turns: number }>
   sessionPersonaId: string | undefined
+  /** Explicit model pick for this conversation; outranks the persona's model. */
+  sessionModelOverride: string | undefined
 }
 
 export interface TabInfo {
@@ -289,6 +292,11 @@ interface ChatState {
   sessionPersonaId: string | undefined
   setSessionPersonaId: (personaId: string | undefined) => void
 
+  // Per-session model override: an explicit pick beats the persona's model.
+  // undefined means "follow the persona (or the global default when none)".
+  sessionModelOverride: string | undefined
+  setSessionModelOverride: (modelId: string | undefined) => void
+
   // Plan Mode (Iteration 520): Claude only plans, does not execute tools
   isPlanMode: boolean
   setPlanMode: (v: boolean) => void
@@ -382,6 +390,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   compactionCount: 0,
   contextBeforeCompact: null,
   sessionPersonaId: undefined,
+  sessionModelOverride: undefined,
   isPlanMode: false,
   changedFiles: [],
   tempSystemPrompt: null,
@@ -476,15 +485,36 @@ export const useChatStore = create<ChatState>((set, get) => ({
     })
   },
 
-  setSessionId: (id) => set((s) => ({
-    currentSessionId: id,
-    viewSessionId: id,
-    // Opening the conversation an interrupted bridge belongs to reattaches it;
-    // any other view keeps that bridge's deltas out.
-    orphanedStream: s.orphanedStream
-      ? { ...s.orphanedStream, visible: id !== null && id === s.orphanedStream.conversationId }
-      : null,
-  })),
+  setSessionId: (id) => {
+    const personaId = get().sessionPersonaId
+    const modelOverride = get().sessionModelOverride
+    set((s) => ({
+      currentSessionId: id,
+      viewSessionId: id,
+      // Opening the conversation an interrupted bridge belongs to reattaches it;
+      // any other view keeps that bridge's deltas out.
+      orphanedStream: s.orphanedStream
+        ? { ...s.orphanedStream, visible: id !== null && id === s.orphanedStream.conversationId }
+        : null,
+    }))
+    // A new conversation has no id when the persona is chosen; the first
+    // cli:result assigns one. Write the session→persona mapping then, or a
+    // reload would open the conversation without its expert. Only a defined
+    // persona writes: openSessionCore clears it before this runs, so opening an
+    // existing session can never erase the mapping it is about to restore.
+    if (id && personaId) {
+      try {
+        localStorage.setItem(`aipa:session-persona:${id}`, personaId)
+      } catch { /* localStorage unavailable — the live session still works */ }
+    }
+    // Same deferred-write story for an explicit model pick made before the
+    // first turn had an id: persist it to the id that just arrived.
+    if (id && modelOverride) {
+      try {
+        localStorage.setItem(sessionModelStorageKey(id), modelOverride)
+      } catch { /* localStorage unavailable — the live session still works */ }
+    }
+  },
   setWorkingDir: (dir) => set({ workingDir: dir }),
 
   addToolUse: (msgId, toolId, name, input) => {
@@ -561,6 +591,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       lastContextUsage: null,
       modelUsage: {},
       sessionPersonaId: undefined,
+      sessionModelOverride: undefined,
       isPlanMode: false,
       changedFiles: [],
       tempSystemPrompt: null,
@@ -847,6 +878,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
+  setSessionModelOverride: (modelId) => {
+    set({ sessionModelOverride: modelId })
+    // A new conversation has no id yet; `setSessionId` writes the pending pick
+    // once the first turn assigns one (same mechanism as the persona binding).
+    const sessionId = get().currentSessionId
+    if (sessionId) {
+      try {
+        if (modelId) {
+          localStorage.setItem(sessionModelStorageKey(sessionId), modelId)
+        } else {
+          localStorage.removeItem(sessionModelStorageKey(sessionId))
+        }
+      } catch { /* ignore localStorage errors */ }
+    }
+  },
+
   // Plan Mode toggle (Iteration 520)
   setPlanMode: (v) => set({ isPlanMode: v }),
 
@@ -950,6 +997,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         lastContextUsage: null,
         modelUsage: {},
         sessionPersonaId: undefined,
+        sessionModelOverride: undefined,
       },
     }
     // If there's a current session in the store with no tab, snapshot it first as the "initial" tab
@@ -1018,6 +1066,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         lastContextUsage: null,
         modelUsage: {},
         sessionPersonaId: undefined,
+        sessionModelOverride: undefined,
         isPlanMode: false,
         tempSystemPrompt: null,
       })
@@ -1044,6 +1093,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             lastContextUsage: sole.snapshot.lastContextUsage,
             modelUsage: sole.snapshot.modelUsage,
             sessionPersonaId: sole.snapshot.sessionPersonaId,
+            sessionModelOverride: sole.snapshot.sessionModelOverride,
             isStreaming: false,
           })
         } else {
@@ -1080,6 +1130,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           lastContextUsage: newActive.snapshot.lastContextUsage,
           modelUsage: newActive.snapshot.modelUsage,
           sessionPersonaId: newActive.snapshot.sessionPersonaId,
+          sessionModelOverride: newActive.snapshot.sessionModelOverride,
           isStreaming: false,
         })
       } else {
@@ -1114,6 +1165,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             lastContextUsage: state.lastContextUsage,
             modelUsage: state.modelUsage,
             sessionPersonaId: state.sessionPersonaId,
+            sessionModelOverride: state.sessionModelOverride,
           },
         }
       }
@@ -1141,6 +1193,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         lastContextUsage: targetTab.snapshot.lastContextUsage,
         modelUsage: targetTab.snapshot.modelUsage,
         sessionPersonaId: targetTab.snapshot.sessionPersonaId,
+        sessionModelOverride: targetTab.snapshot.sessionModelOverride,
         isStreaming: false,
       })
     } else {

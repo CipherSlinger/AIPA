@@ -28,15 +28,19 @@ export async function resolveProvider(modelId: string | undefined): Promise<{ ty
   return { type: 'claude-cli' }
 }
 
-export function sendCompletionNotification(title: string, summary: string) {
+export function sendCompletionNotification(title: string, summary: string, sessionId?: string) {
   if (document.hasFocus()) return  // Don't notify when window is focused
   if (usePrefsStore.getState().prefs.desktopNotifications === false) return
 
   // Use Electron native notification (click-to-focus) instead of Web Notification API
   try {
+    // The session id lets the main process suppress this only when the pet is
+    // already alerting about *this* session — without it, one failure would
+    // mute every unrelated completion for the next few seconds.
     window.electronAPI.windowShowNotification({
       title,
       body: summary.slice(0, 100),
+      sessionId,
     })
     // Also flash the taskbar icon to attract attention
     window.electronAPI.windowFlashFrame(true)

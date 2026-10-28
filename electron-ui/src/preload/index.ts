@@ -104,6 +104,22 @@ export interface PluginAiEvent {
   message?: string
 }
 
+/** A private answer-only assistant turn, requested by a plugin (`chat.ask`). */
+export interface PluginChatAskArgs {
+  prompt: string
+  /** Ask for a visible session. Refused today; kept so the shape is stable. */
+  visible?: boolean
+  title?: string
+  /** Millisecond budget, clamped to 5 s … 10 min (default 60 s). */
+  timeoutMs?: number
+}
+
+export interface PluginChatAnswer {
+  text: string
+  /** Always null for a private turn: no session is created. */
+  sessionId: string | null
+}
+
 /** Stream events of the recruit dialog's "polish the job description" call. */
 export interface RecruitPolishEvent {
   requestId: string
@@ -443,7 +459,9 @@ const electronAPI = {
     ipcRenderer.invoke('window:setTitleBarOverlay', opts),
   windowFlashFrame: (flash: boolean) =>
     ipcRenderer.invoke('window:flashFrame', flash),
-  windowShowNotification: (opts: { title: string; body: string }) =>
+  // `sessionId` lets main suppress only the notice for the turn the pet already
+  // reported; without it the notice is always shown (never mis-attributed).
+  windowShowNotification: (opts: { title: string; body: string; sessionId?: string }) =>
     ipcRenderer.invoke('window:showNotification', opts),
   windowToggleMaximize: () =>
     ipcRenderer.invoke('window:toggleMaximize'),
@@ -567,6 +585,8 @@ const electronAPI = {
     ipcRenderer.invoke('plugin:ai:generate', args) as Promise<{ started: boolean }>,
   pluginAiAbort: (pluginId: string, requestId: string) =>
     ipcRenderer.invoke('plugin:ai:abort', { pluginId, requestId }) as Promise<void>,
+  pluginChatAsk: (pluginId: string, args: PluginChatAskArgs) =>
+    ipcRenderer.invoke('plugin:chat:ask', { pluginId, args }) as Promise<PluginChatAnswer>,
   onPluginAiEvent: (callback: (event: PluginAiEvent) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, data: PluginAiEvent) => callback(data)
     ipcRenderer.on('plugin:ai:event', handler)

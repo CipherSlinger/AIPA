@@ -19,7 +19,26 @@ const log = createLogger('codex-bridge')
 
 // ── Types ────────────────────────────────────────────
 
+/**
+ * Approval policy names as callers know them. The wire enum (0.145) is
+ * `untrusted | on-request | granular | never`; the legacy names are mapped in
+ * `normalizeApprovalPolicy` because they are spread across older call sites.
+ */
 export type ApprovalPolicy = 'never' | 'unless-allow-listed' | 'on-request' | 'always'
+
+/**
+ * Sandbox values `thread/start` actually accepts (0.145 wire enum, kebab-case).
+ * Code that builds a turn must take the literal from here: writing the
+ * camelCase name by hand fails the whole `thread/start` with "unknown variant",
+ * which silently disables every internal read-only turn.
+ */
+export type CodexSandbox = 'read-only' | 'workspace-write' | 'danger-full-access'
+
+export const CODEX_SANDBOX = {
+  readOnly: 'read-only',
+  workspaceWrite: 'workspace-write',
+  dangerFullAccess: 'danger-full-access',
+} as const satisfies Record<string, CodexSandbox>
 
 /**
  * Codex `UserInput` (app-server protocol, v2). Mirrors the subset AIPA sends:
@@ -42,7 +61,8 @@ export interface CodexSendMessageArgs {
   model?: string
   env: Record<string, string>
   approvalPolicy?: ApprovalPolicy
-  sandbox?: string           // 'readOnly' | 'workspaceWrite' | 'dangerFullAccess'
+  /** Accepts either the wire spelling (`read-only`) or the legacy camelCase. */
+  sandbox?: string
   permissions?: string       // experimental profile id (e.g. ':workspace')
   personality?: 'friendly' | 'pragmatic' | 'none'
   ephemeral?: boolean        // don't persist the thread to Codex session history
@@ -82,6 +102,50 @@ export class CodexAuthError extends Error {}
 /** turn/start and turn/steer expect `UserInput[]`, not a bare string. */
 function toUserInput(prompt: string): CodexUserInput[] {
   return [{ type: 'text', text: prompt }]
+}
+
+/** Codex thread ids are UUIDs; anything else cannot name a real thread. */
+const THREAD_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * The app-server rejects an unknown enum variant with "unknown variant", which
+ * fails the whole `thread/start`. Callers arrived at these fields from two
+ * different generations of Codex, so accept both spellings at the boundary and
+ * send only what 0.145 declares: `read-only | workspace-write | danger-full-access`.
+ */
+const SANDBOX_WIRE: Record<string, string> = {
+  readonly: 'read-only',
+  'read-only': 'read-only',
+  workspacewrite: 'workspace-write',
+  'workspace-write': 'workspace-write',
+  dangerfullaccess: 'danger-full-access',
+  'danger-full-access': 'danger-full-access',
+}
+
+function normalizeSandbox(value: string | undefined): string | undefined {
+  if (!value) return undefined
+  return SANDBOX_WIRE[value.toLowerCase()] ?? value
+}
+
+/**
+ * Map the adapter's approval names onto the 0.145 enum
+ * (`untrusted | on-request | granular | never`). `always` meant "ask before
+ * every command", which is Codex's `untrusted`; `unless-allow-listed` is the
+ * middle ground and becomes `on-request`. `granular` is a struct variant, so it
+ * is never produced here.
+ */
+const APPROVAL_WIRE: Record<string, string> = {
+  always: 'untrusted',
+  'unless-allow-listed': 'on-request',
+  'on-request': 'on-request',
+  onrequest: 'on-request',
+  never: 'never',
+  untrusted: 'untrusted',
+}
+
+function normalizeApprovalPolicy(value: string | undefined): string | undefined {
+  if (!value) return undefined
+  return APPROVAL_WIRE[value.toLowerCase()] ?? value
 }
 
 /** Flatten a Responses-style content array (input_text / output_text / text). */
@@ -380,6 +444,48 @@ export class CodexBridge extends EventEmitter {
   }
 
   /**
+   * Rename a thread through the protocol so the name lands in Codex's own
+   * index (`session_index.jsonl` + state DB) and survives restarts. The
+   * archive title is derived from the first prompt otherwise.
+   */
+  async renameThreadById(threadId: string, name: string): Promise<void> {
+    if (!THREAD_ID_RE.test(threadId)) {
+      throw new Error(`Invalid Codex thread id: ${threadId}`)
+    }
+    const trimmed = name.trim()
+    // Codex rejects an empty name ("thread name must not be empty"); fail here
+    // with a clearer message instead of a JSON-RPC error at the call site.
+    if (!trimmed) throw new Error('Thread name must not be empty')
+    await this._sendRequest('thread/name/set', { threadId, name: trimmed })
+  }
+
+  async renameThread(name: string): Promise<void> {
+    if (!this.currentThreadId) throw new Error('No active thread to rename')
+    await this.renameThreadById(this.currentThreadId, name)
+  }
+
+  /**
+   * Rename without an existing app-server. `thread/name/set` works on a
+   * not-loaded thread, so this only needs the initialize handshake — no resume,
+   * and no model credentials.
+   */
+  async renameDetached(threadId: string, name: string): Promise<void> {
+    const codexPath = getCodexPath()
+    this.proc = spawn(codexPath, ['app-server', '--stdio'], {
+      cwd: process.cwd(),
+      env: sanitizeCodexEnv({}),
+      stdio: ['pipe', 'pipe', 'pipe'],
+    })
+    this._attachOutputHandlers()
+    try {
+      await this._initialize({ silent: true })
+      await this.renameThreadById(threadId, name)
+    } finally {
+      this.abort()
+    }
+  }
+
+  /**
    * Get the current thread ID (for session persistence).
    */
   getThreadId(): string | null {
@@ -388,7 +494,11 @@ export class CodexBridge extends EventEmitter {
 
   // ── Private: Protocol handshake ─────────────────
 
-  private async _initialize(): Promise<void> {
+  /**
+   * `silent` skips the synthetic `systemInit` event (and the MCP probe behind
+   * it) for short-lived processes — a detached rename has no renderer listening.
+   */
+  private async _initialize(opts: { silent?: boolean } = {}): Promise<void> {
     const result = await this._sendRequest('initialize', {
       clientInfo: {
         name: 'aipa_desktop',
@@ -404,6 +514,11 @@ export class CodexBridge extends EventEmitter {
 
     // Send initialized notification (no response expected)
     this._sendNotification('initialized', {})
+
+    if (opts.silent) {
+      log.info('Codex app-server initialized (silent)')
+      return
+    }
 
     // Emit a synthetic systemInit event for compatibility
     const initResult = result as Record<string, unknown> ?? {}
@@ -479,8 +594,8 @@ export class CodexBridge extends EventEmitter {
       cwd: args.cwd,
     }
     if (args.model) params.model = args.model
-    if (args.approvalPolicy) params.approvalPolicy = args.approvalPolicy
-    if (args.sandbox) params.sandbox = args.sandbox
+    if (args.approvalPolicy) params.approvalPolicy = normalizeApprovalPolicy(args.approvalPolicy)
+    if (args.sandbox) params.sandbox = normalizeSandbox(args.sandbox)
     if (args.permissions) params.permissions = args.permissions
     if (args.personality) params.personality = args.personality
     if (args.ephemeral) params.ephemeral = true
@@ -496,10 +611,14 @@ export class CodexBridge extends EventEmitter {
       threadId,
     }
     if (args.model) params.model = args.model
-    if (args.approvalPolicy) params.approvalPolicy = args.approvalPolicy
+    if (args.approvalPolicy) params.approvalPolicy = normalizeApprovalPolicy(args.approvalPolicy)
     // Resuming without the sandbox would silently inherit whatever the user's
     // ~/.codex/config.toml says (possibly danger-full-access), so carry it over.
-    if (args.sandbox) params.sandbox = args.sandbox
+    if (args.sandbox) params.sandbox = normalizeSandbox(args.sandbox)
+    // developerInstructions are persisted in the rollout, so a resume normally
+    // inherits them; passing them again lets a caller (plugin, automation) put
+    // its own instructions on someone else's thread. 0.145 accepts the field.
+    if (args.developerInstructions) params.developerInstructions = args.developerInstructions
     if (args.personality) params.personality = args.personality
 
     const result = await this._sendRequest('thread/resume', params) as { thread?: { id: string } }
@@ -852,6 +971,17 @@ export class CodexBridge extends EventEmitter {
       case 'thread/closed': {
         log.info(`Thread closed: ${params.threadId}`)
         this.emit('threadClosed', { sessionId: sid, threadId: params.threadId })
+        break
+      }
+
+      // Fired for a rename from any client, including this one, so a sidebar
+      // can update in place instead of waiting for the next list load.
+      case 'thread/name/updated': {
+        this.emit('threadNameUpdated', {
+          sessionId: sid,
+          threadId: params.threadId,
+          name: params.threadName,
+        })
         break
       }
 
@@ -1289,3 +1419,40 @@ class CodexBridgeManager {
 }
 
 export const codexBridgeManager = new CodexBridgeManager()
+
+/**
+ * Rename a Codex thread from outside a turn (sidebar / header rename).
+ *
+ * Reuses a live bridge when one owns the thread so the running process and
+ * Codex's on-disk state stay in sync; otherwise spawns a throwaway app-server,
+ * because the session index is only writable through the protocol. Returns
+ * false for anything that is not a Codex thread id, so the caller can fall
+ * back to the Claude session store.
+ */
+export async function renameCodexThread(threadId: string, name: string): Promise<boolean> {
+  if (typeof threadId !== 'string' || !THREAD_ID_RE.test(threadId)) return false
+  const trimmed = name.trim()
+  if (!trimmed) return false
+
+  const live = codexBridgeManager.findByThreadId(threadId)
+  if (live) {
+    try {
+      await live.bridge.renameThreadById(threadId, trimmed)
+      return true
+    } catch (err) {
+      log.warn(`renameCodexThread on live bridge failed for ${threadId}:`, String(err))
+      return false
+    }
+  }
+
+  const bridge = new CodexBridge(`rename-${Date.now()}`)
+  try {
+    await bridge.renameDetached(threadId, trimmed)
+    return true
+  } catch (err) {
+    // "thread not found" is the normal answer for a Claude session id that
+    // happens to look like a UUID; callers treat false as "not a Codex thread".
+    log.debug(`renameCodexThread failed for ${threadId}:`, String(err))
+    return false
+  }
+}

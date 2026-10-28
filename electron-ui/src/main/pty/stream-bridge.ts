@@ -19,6 +19,8 @@ export interface CliSendMessageArgs {
   flags?: string[]
   skipPermissions?: boolean  // legacy — derived from permissionMode
   permissionMode?: PermissionMode
+  /** Background turn: do not write a JSONL transcript into ~/.claude/projects. */
+  ephemeral?: boolean
 }
 
 export class StreamBridge extends EventEmitter {
@@ -51,7 +53,25 @@ export class StreamBridge extends EventEmitter {
       '--output-format', 'stream-json',
       '--permission-prompt-tool', 'stdio',
       ...permissionFlags,
-      ...(isSessionMode ? [] : ['--print', '--verbose']),
+      // `--verbose` is required for stream-json output whenever the CLI decides
+      // it is running non-interactively (stdin is always a pipe here). It used
+      // to be passed only on the print path, so session-mode turns died with
+      // "stream-json requires --verbose" before reading the prompt.
+      '--verbose',
+      ...(isSessionMode ? [] : ['--print']),
+      // A private turn must not leave a transcript that shows up in the
+      // archive/sidebar — the same guarantee Codex's `ephemeral` gives.
+      //
+      // The flag's help text says "only works with --print", but cli.js 2.1.81
+      // guards it with `if (sessionPersistence === false && !isNonInteractive)`
+      // where non-interactive means "--print, --init-only, --sdk-url, or stdout
+      // is not a TTY". We always spawn with piped stdio, so session-mode turns
+      // pass that guard and `shouldSkipPersistence()` honours the flag. It does
+      // fail under a real PTY: "Error: --no-session-persistence can only be
+      // used with --print mode." Do not move it behind `--print` on the
+      // strength of the help text alone — this spawn shape already satisfies
+      // the real guard.
+      ...(args.ephemeral ? ['--no-session-persistence'] : []),
       ...(args.resumeSessionId ? ['--resume', args.resumeSessionId] : []),
       ...(args.model ? ['--model', args.model] : []),
       ...(args.flags || []),

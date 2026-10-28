@@ -233,19 +233,32 @@ export function buildWorkflowDraft(
 /**
  * The directory name `skills:install` will create.
  *
- * The installer is the authority: it lowercases and replaces every character
- * outside `[a-zA-Z0-9_-]` with `-` (see skills-handlers.ts). This mirrors that
- * rule exactly so the dialog's preview is the real path, and the result is
- * passed as the install `name` (the transform is idempotent), which also makes
- * SKILL.md's `name:` agree with its folder. Keep the two in sync — if the
- * installer's rule changes, this must change with it.
+ * The installer is the authority (`sanitizeSkillDirName` in
+ * src/main/ipc/skills-handlers.ts). This mirrors that function character for
+ * character so the dialog's preview is the real path, and the result is passed
+ * as the install `name`, which also makes SKILL.md's `name:` agree with its
+ * folder. Keep the two in sync — if the installer's rule changes, this must
+ * change with it.
  *
- * The empty fallback is applied here because the installer has none; sending
- * this slug means the installer never receives an empty name.
+ * The hash fallback exists because a title in a non-Latin script sanitizes to
+ * dashes only ("技能" -> "-"); both sides derive the same suffix from the same
+ * input, so the preview still matches the created folder.
  */
 export function skillInstallSlug(raw: string): string {
-  const slug = raw.trim().replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase()
-  return slug || `session-${new Date().toISOString().slice(0, 10)}`
+  const slug = raw
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '')
+  if (/[a-z0-9]/.test(slug)) return slug.slice(0, 48)
+
+  let hash = 0x811c9dc5
+  for (let i = 0; i < raw.length; i++) {
+    hash ^= raw.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return `session-${(hash >>> 0).toString(16).padStart(8, '0')}`
 }
 
 /** Markdown continuation lines need indentation to stay inside the list item. */

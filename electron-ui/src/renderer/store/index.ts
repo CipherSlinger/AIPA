@@ -89,6 +89,7 @@ const DEFAULT_PREFS: AppPrefs = {
   appendSystemPrompt: '',
   disallowedTools: [],
   clawdEnabled: true,
+  petAttentionAlerts: true,
 }
 
 export const usePrefsStore = create<PrefsState>((set) => ({

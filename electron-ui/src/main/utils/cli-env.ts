@@ -36,6 +36,9 @@ const CONDITIONAL_PASS = new Set([
   'CLAUDE_CONFIG_DIR',
   'CLAUDE_CLI_PATH',
   'CLAUDE_NODE_PATH',
+  // The CLI refuses to start on Windows without a git-bash it can find; the
+  // documented override must survive the allowlist or every spawn fails.
+  'CLAUDE_CODE_GIT_BASH_PATH',
   'NODE_PATH',
   'NO_COLOR',
   'TERM',

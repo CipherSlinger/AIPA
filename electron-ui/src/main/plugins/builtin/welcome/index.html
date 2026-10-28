@@ -202,7 +202,8 @@
           插件运行在安全独立的沙箱环境中，可直接调用 <code>window.parent.postMessage</code>：<br/>
           • <code>{ type: 'aipa:sendPrompt', payload: { prompt: '...' } }</code> —— 自动填入主对话框并唤起 AI；<br/>
           • <code>{ type: 'aipa:toast', payload: { type: 'success', message: '...' } }</code> —— 触发桌面轻提示；<br/>
-          • <code>{ type: 'aipa:storage:set', payload: { key, value } }</code> —— 跨会话持久化存储插件数据。
+          • <code>{ type: 'aipa:storage:set', payload: { key, value } }</code> —— 跨会话持久化存储插件数据。<br/>
+          • <code>aipa:invoke</code> + <code>chat.ask</code> —— 直接向 AI 提问并拿回答案（清单需声明 <code>"chat"</code> 权限；不会创建会话，也不会出现在档案里）。
         </div>
       </div>
     </div>
@@ -334,7 +335,8 @@
           Plugins run in an isolated sandbox and call <code>window.parent.postMessage</code>:<br/>
           • <code>{ type: 'aipa:sendPrompt', payload: { prompt: '...' } }</code> — fill the main chat input and bring up the AI;<br/>
           • <code>{ type: 'aipa:toast', payload: { type: 'success', message: '...' } }</code> — show a desktop toast;<br/>
-          • <code>{ type: 'aipa:storage:set', payload: { key, value } }</code> — persist plugin data across sessions.
+          • <code>{ type: 'aipa:storage:set', payload: { key, value } }</code> — persist plugin data across sessions.<br/>
+          • <code>aipa:invoke</code> + <code>chat.ask</code> — ask the AI a question and get the answer back (requires the <code>"chat"</code> permission; no session is created and nothing lands in the archive).
         </div>
       </div>
     </div>

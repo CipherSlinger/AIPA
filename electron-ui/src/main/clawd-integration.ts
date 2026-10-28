@@ -17,6 +17,23 @@ declare global {
   var __clawdOnQuitHooks: Array<() => void> | undefined
 }
 
+/**
+ * Payload for a background attention bubble. `lang` is the pet UI language,
+ * `clickAction` is the action id resolved when the user clicks the card, and
+ * `pill` is a short label for the coloured badge.
+ */
+export interface ClawdAttentionBubblePayload {
+  title: string
+  message: string
+  pill: string
+  mode: 'attention' | 'done'
+  lang: string
+  /** Action id resolved when the card (or the pet) is clicked. */
+  clickAction: string
+  /** Optional explicit buttons; the whole card is clickable regardless. */
+  actions?: Array<{ id: string; label: string; variant?: string }>
+}
+
 // Clawd factory return type (CommonJS module, no TS declarations)
 interface ClawdInstance {
   notifyState: (state: string, sessionId: string) => void
@@ -36,6 +53,11 @@ interface ClawdInstance {
   setSoundMuted: (v: boolean) => void
   openSettings: () => void
   resetPosition: () => void
+  showAttentionBubble: (payload: ClawdAttentionBubblePayload) => Promise<string | null>
+  hideAttentionBubble: () => void
+  isAttentionBubbleVisible: () => boolean
+  getLanguage: () => string
+  getBubblesHidden: () => boolean
 }
 
 const log = createLogger('clawd-integration')
@@ -43,6 +65,18 @@ const log = createLogger('clawd-integration')
 let clawdInstance: ClawdInstance | null = null
 let clawdInitError: string | null = null
 let mainWindowRef: BrowserWindow | null = null
+
+/**
+ * Called when the user clicks the pet or its attention bubble. The attention
+ * module sets this; kept here (rather than as a factory argument per call) so
+ * the factory can be created before the attention module exists.
+ */
+let attentionActivateHandler: (() => void) | null = null
+
+/** Register the handler that runs when the pet is clicked while attention is up. */
+export function setClawdAttentionActivateHandler(fn: (() => void) | null): void {
+  attentionActivateHandler = fn
+}
 
 /**
  * Initialize the embedded clawd desktop pet.
@@ -82,6 +116,15 @@ export function initClawdIntegration(mainWindow: BrowserWindow): void {
       onQuit: (fn: () => void) => {
         if (!globalThis.__clawdOnQuitHooks) globalThis.__clawdOnQuitHooks = []
         globalThis.__clawdOnQuitHooks.push(fn)
+      },
+      // The factory sends `attention-open` from the pet's hit window; forward
+      // it to whoever owns the current attention item.
+      onAttentionActivate: () => {
+        try {
+          attentionActivateHandler?.()
+        } catch (err) {
+          log.warn('attention activate handler threw:', String(err))
+        }
       },
     })
 
@@ -145,6 +188,100 @@ export function launchClawd(): void {
     }
   } catch (err) {
     log.warn('launchClawd failed:', String(err))
+  }
+}
+
+/**
+ * Whether the pet can display an attention bubble at all. The attention module
+ * uses this to decide whether it should fall back to a native notification.
+ */
+export function isClawdAttentionAvailable(): boolean {
+  if (!clawdInstance) return false
+  try {
+    return clawdInstance.isRunning()
+  } catch {
+    return false
+  }
+}
+
+/**
+ * The pet's own "Hide Bubbles" setting. Honouring it keeps the background
+ * alert from becoming a second, unwanted notification surface.
+ */
+export function isClawdBubblesHidden(): boolean {
+  if (!clawdInstance) return false
+  try {
+    return clawdInstance.getBubblesHidden()
+  } catch {
+    return false
+  }
+}
+
+/** Whether the user put the pet to sleep (its own "Do Not Disturb"). */
+export function isClawdDoNotDisturb(): boolean {
+  if (!clawdInstance) return false
+  try {
+    return clawdInstance.isDoNotDisturb()
+  } catch {
+    return false
+  }
+}
+
+/** Whether the user hid the pet ("Show Clawd" toggle in its tray menu). */
+export function isClawdPetHidden(): boolean {
+  if (!clawdInstance) return true
+  try {
+    return clawdInstance.isPetHidden()
+  } catch {
+    return true
+  }
+}
+
+/** The pet's UI language ("en" | "zh" | "ko"), or "en" when the pet is off. */
+export function getClawdLanguage(): string {
+  if (!clawdInstance) return 'en'
+  try {
+    return clawdInstance.getLanguage() || 'en'
+  } catch {
+    return 'en'
+  }
+}
+
+/**
+ * Show an attention bubble and resolve with the chosen action id ("open" or
+ * "dismiss"), or null when the item was superseded or the bubble was hidden.
+ * Resolves null immediately when the pet is not available.
+ */
+export function showClawdAttentionBubble(payload: ClawdAttentionBubblePayload): Promise<string | null> {
+  if (!clawdInstance) return Promise.resolve(null)
+  try {
+    return clawdInstance.showAttentionBubble(payload).catch((err: unknown) => {
+      log.warn('showAttentionBubble failed:', String(err))
+      return null
+    })
+  } catch (err) {
+    log.warn('showAttentionBubble threw:', String(err))
+    return Promise.resolve(null)
+  }
+}
+
+/** Remove the attention bubble. Safe to call when nothing is shown. */
+export function hideClawdAttentionBubble(): void {
+  if (!clawdInstance) return
+  try {
+    clawdInstance.hideAttentionBubble()
+  } catch {
+    // Silent — the pet may already be gone.
+  }
+}
+
+/** Whether an attention bubble is currently on screen. */
+export function isClawdAttentionBubbleVisible(): boolean {
+  if (!clawdInstance) return false
+  try {
+    return clawdInstance.isAttentionBubbleVisible()
+  } catch {
+    return false
   }
 }
 

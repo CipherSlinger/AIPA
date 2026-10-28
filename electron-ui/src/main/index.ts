@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu, Tray, globalShortcut, nativeImage, shell, ses
 import path from 'path'
 import fs from 'fs'
 import { initClawdIntegration, shutdownClawdIntegration, getClawdSubmenu } from './clawd-integration'
+import { initClawdAttention, shutdownClawdAttention } from './clawd-attention'
 import { abortAllPluginAi } from './plugins/plugin-services'
 import { listNavPlugins } from './plugins/nav-plugin-manager'
 import { decodePluginPath, pluginHost } from './plugins/plugin-url'
@@ -159,6 +160,9 @@ function createWindow(): void {
   setImmediate(() => {
     if (!mainWindow) return
     try {
+      // Attention first: it only registers focus listeners and a window
+      // getter, and events must be routable as soon as a bridge can raise one.
+      initClawdAttention(() => mainWindow)
       initClawdIntegration(mainWindow)
       rebuildTrayMenu()
     } catch (err) {
@@ -753,6 +757,7 @@ app.on('window-all-closed', () => {
 app.on('before-quit', () => {
   isQuitting = true
   // Run clawd cleanup hooks (registered during initClawdIntegration)
+  try { shutdownClawdAttention() } catch { /* best-effort */ }
   try { shutdownClawdIntegration() } catch { /* best-effort */ }
   // The session list no longer flushes its summary index inline (that was
   // ~400ms of blocking work on the first list of a launch); the debounced

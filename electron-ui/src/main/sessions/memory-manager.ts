@@ -40,7 +40,68 @@ function getGlobalMemoryDir(): string {
   return path.join(getClaudeDir(), 'memory')
 }
 
-function parseMemoryFile(filePath: string, scope: 'global' | 'project', projectHash?: string): MemoryFile | null {
+// ── Cache ──────────────────────────────────────────
+//
+// `memory:list` runs on every message send (the renderer awaits it while
+// assembling the prompt), and it used to walk every project directory and
+// read every memory file — hundreds of milliseconds of synchronous I/O in
+// the main process before the prompt is even routed.
+//
+// The filesystem is still the source of truth. We keep three layers:
+//   - fileCache: parsed file keyed by (path, mtimeMs, size). A stat decides
+//     whether the content may be reused; in-place edits change mtime/size.
+//   - dirCache: markdown filenames in a directory, keyed by the directory's
+//     mtime. Adding/removing a file touches that mtime, so an unchanged
+//     directory skips its readdir (and therefore the file list rebuild).
+//   - projectsCache: the `~/.claude/projects` listing, keyed the same way, so
+//     adding no project skips the top-level readdir too.
+//
+// Every mutation this module performs invalidates the affected entries, so
+// the UI sees its own writes immediately even on coarse-timestamp filesystems.
+interface CachedFile {
+  mtimeMs: number
+  size: number
+  memory: MemoryFile | null
+}
+const fileCache = new Map<string, CachedFile>()
+
+interface CachedDir {
+  mtimeMs: number
+  mdFiles: string[]
+}
+const dirCache = new Map<string, CachedDir>()
+
+let projectsCache: { mtimeMs: number; hashes: string[] } | null = null
+
+function statDirectory(dir: string): fs.Stats | null {
+  try {
+    const st = fs.statSync(dir)
+    return st.isDirectory() ? st : null
+  } catch {
+    return null
+  }
+}
+
+/** Markdown filenames in `dir`; reused verbatim while the directory mtime holds. */
+function listMarkdownFiles(dir: string, st: fs.Stats): string[] {
+  const cached = dirCache.get(dir)
+  if (cached && cached.mtimeMs === st.mtimeMs) return cached.mdFiles
+  try {
+    const mdFiles = fs.readdirSync(dir).filter(f => f.endsWith('.md'))
+    dirCache.set(dir, { mtimeMs: st.mtimeMs, mdFiles })
+    return mdFiles
+  } catch {
+    dirCache.delete(dir)
+    return []
+  }
+}
+
+function parseMemoryFile(
+  filePath: string,
+  scope: 'global' | 'project',
+  projectHash?: string,
+  st?: fs.Stats,
+): MemoryFile | null {
   try {
     const raw = fs.readFileSync(filePath, 'utf-8')
     const fmMatch = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/)
@@ -67,22 +128,64 @@ function parseMemoryFile(filePath: string, scope: 'global' | 'project', projectH
     }
 
     let mtime = 0
-    try { mtime = fs.statSync(filePath).mtimeMs } catch { /* ignore */ }
+    try { mtime = (st ?? fs.statSync(filePath)).mtimeMs } catch { /* ignore */ }
     return { filePath, name, description, type, content, scope, projectHash, mtime }
   } catch {
     return null
   }
 }
 
+/**
+ * Parse one file, reusing the previous parse while (mtime, size) is unchanged.
+ * A stat is still required to notice an edit; the expensive read/parse is not.
+ */
+function parseMemoryFileCached(
+  filePath: string,
+  scope: 'global' | 'project',
+  projectHash?: string,
+): MemoryFile | null {
+  let st: fs.Stats
+  try {
+    st = fs.statSync(filePath)
+  } catch {
+    fileCache.delete(filePath)
+    return null
+  }
+  const cached = fileCache.get(filePath)
+  if (cached && cached.mtimeMs === st.mtimeMs && cached.size === st.size) {
+    return cached.memory
+  }
+  const memory = parseMemoryFile(filePath, scope, projectHash, st)
+  fileCache.set(filePath, { mtimeMs: st.mtimeMs, size: st.size, memory })
+  return memory
+}
+
 /** List global memory files from ~/.claude/memory/ */
 function listGlobalMemories(): MemoryFile[] {
   const memDir = getGlobalMemoryDir()
-  if (!fs.existsSync(memDir)) return []
+  const st = statDirectory(memDir)
+  if (!st) return []
+  const results: MemoryFile[] = []
+  for (const f of listMarkdownFiles(memDir, st)) {
+    const m = parseMemoryFileCached(path.join(memDir, f), 'global')
+    if (m) results.push(m)
+  }
+  return results
+}
+
+/** Project hashes under ~/.claude/projects, reused while that directory is unchanged. */
+function readProjectHashes(): string[] {
+  const projectsDir = path.join(getClaudeDir(), 'projects')
+  const st = statDirectory(projectsDir)
+  if (!st) {
+    projectsCache = null
+    return []
+  }
+  if (projectsCache && projectsCache.mtimeMs === st.mtimeMs) return projectsCache.hashes
   try {
-    return fs.readdirSync(memDir)
-      .filter(f => f.endsWith('.md'))
-      .map(f => parseMemoryFile(path.join(memDir, f), 'global'))
-      .filter((m): m is MemoryFile => m !== null)
+    const hashes = fs.readdirSync(projectsDir).filter(isValidProjectHash)
+    projectsCache = { mtimeMs: st.mtimeMs, hashes }
+    return hashes
   } catch {
     return []
   }
@@ -91,22 +194,24 @@ function listGlobalMemories(): MemoryFile[] {
 /** List project-scoped memory files */
 function listProjectMemories(): MemoryFile[] {
   const projectsDir = path.join(getClaudeDir(), 'projects')
-  if (!fs.existsSync(projectsDir)) return []
   const results: MemoryFile[] = []
-  try {
-    for (const hash of fs.readdirSync(projectsDir)) {
-      const memDir = path.join(projectsDir, hash, 'memory')
-      if (!fs.existsSync(memDir)) continue
-      for (const f of fs.readdirSync(memDir)) {
-        if (!f.endsWith('.md')) continue
-        const m = parseMemoryFile(path.join(memDir, f), 'project', hash)
-        if (m) results.push(m)
-      }
+  for (const hash of readProjectHashes()) {
+    const memDir = path.join(projectsDir, hash, 'memory')
+    const st = statDirectory(memDir)
+    if (!st) continue
+    for (const f of listMarkdownFiles(memDir, st)) {
+      const m = parseMemoryFileCached(path.join(memDir, f), 'project', hash)
+      if (m) results.push(m)
     }
-  } catch {
-    // ignore
   }
   return results
+}
+
+/** Drop cached filesystem state after this module writes; safe to over-clear. */
+function invalidateMemoryCache(filePath?: string): void {
+  if (filePath) fileCache.delete(path.resolve(filePath))
+  dirCache.clear()
+  projectsCache = null
 }
 
 export function listMemoryFiles(scope?: 'global' | 'project' | 'all'): MemoryFile[] {
@@ -136,14 +241,7 @@ function resolveMemoryPath(filePath: string): string {
 /** The `memory` subdirectory of every project, plus nothing else. */
 function getProjectMemoryDirs(): string[] {
   const projectsDir = path.join(getClaudeDir(), 'projects')
-  if (!fs.existsSync(projectsDir)) return []
-  try {
-    return fs.readdirSync(projectsDir)
-      .filter(hash => isValidProjectHash(hash))
-      .map(hash => path.join(projectsDir, hash, 'memory'))
-  } catch {
-    return []
-  }
+  return readProjectHashes().map(hash => path.join(projectsDir, hash, 'memory'))
 }
 
 /**
@@ -172,6 +270,7 @@ export function writeMemoryFile(
   const tmp = safe + '.tmp.' + Date.now()
   fs.writeFileSync(tmp, content, 'utf-8')
   fs.renameSync(tmp, safe)
+  invalidateMemoryCache(safe)
   log.info('writeMemoryFile:', safe)
 }
 
@@ -205,5 +304,6 @@ export function deleteMemoryFile(filePath: string): void {
   // Safety: only allow deletion of memory files in the known memory roots.
   const safe = resolveMemoryPath(filePath)
   fs.unlinkSync(safe)
+  invalidateMemoryCache(safe)
   log.info('deleteMemoryFile:', safe)
 }

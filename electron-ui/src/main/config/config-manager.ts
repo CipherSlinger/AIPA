@@ -25,6 +25,12 @@ interface StoreSchema {
   windowBounds: { x: number; y: number; width: number; height: number; isMaximized: boolean } | null
   // Clawd desktop pet (Iteration 685)
   clawdEnabled: boolean
+  /**
+   * Summon the desktop pet for background attention events (approval waiting,
+   * clarification needed, task failed, plugin job finished). Default on; only
+   * fires while the main window is hidden, minimised or unfocused.
+   */
+  petAttentionAlerts: boolean
 }
 
 const store = new Store<StoreSchema>({
@@ -47,6 +53,7 @@ const store = new Store<StoreSchema>({
     activeProviderId: 'claude-cli',
     windowBounds: null,
     clawdEnabled: true,
+    petAttentionAlerts: true,
   },
   // Removed hardcoded encryptionKey — API key is now encrypted via safeStorage
 })

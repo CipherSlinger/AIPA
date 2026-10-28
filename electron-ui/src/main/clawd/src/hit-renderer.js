@@ -21,6 +21,9 @@ let currentSvg = null;
 let currentState = null;
 let miniMode = false;
 let dndEnabled = false;
+// Set while an attention bubble is up. A click on the pet must open that
+// session, not play the poke/flail reaction.
+let attentionActive = false;
 
 window.hitAPI.onStateSync((data) => {
   if (data.currentSvg !== undefined) currentSvg = data.currentSvg;
@@ -30,6 +33,10 @@ window.hitAPI.onStateSync((data) => {
     area.style.cursor = miniMode ? "default" : "";
   }
   if (data.dndEnabled !== undefined) dndEnabled = data.dndEnabled;
+  if (data.attentionActive !== undefined) {
+    attentionActive = !!data.attentionActive;
+    area.style.cursor = attentionActive && !miniMode ? "pointer" : (miniMode ? "default" : "");
+  }
 });
 
 // --- Drag state ---
@@ -145,6 +152,11 @@ function _getReaction(name) {
 function handleClick(clientX) {
   if (miniMode) {
     window.hitAPI.exitMiniMode();
+    return;
+  }
+  // One click on a pet that is showing attention is a navigation gesture.
+  if (attentionActive) {
+    window.hitAPI.openAttention();
     return;
   }
   if (isReacting || isDragReacting) return;

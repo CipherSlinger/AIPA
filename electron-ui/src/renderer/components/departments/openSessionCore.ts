@@ -9,6 +9,7 @@
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
 import { parseSessionMessages } from '../sessions/sessionUtils'
+import { readSessionModelOverride } from '../../lib/sessionModel'
 
 /**
  * @param origin where the user is opening from. Only the department views get the
@@ -35,6 +36,10 @@ export async function openSessionCore(
     const personaId = localStorage.getItem(`aipa:session-persona:${session.sessionId}`)
     if (personaId) useChatStore.getState().setSessionPersonaId(personaId)
   } catch { /* localStorage unavailable — the session still opens */ }
+  // An explicit pick recorded with the header picker outlives a reload; without
+  // this the reopened conversation would silently fall back to the persona.
+  const modelOverride = readSessionModelOverride(session.sessionId)
+  if (modelOverride) useChatStore.getState().setSessionModelOverride(modelOverride)
   useUiStore.getState().clearUnreadForSession(session.sessionId)
   // An unassigned session keeps whatever directory the user is already in.
   if (deptDirectory) {
