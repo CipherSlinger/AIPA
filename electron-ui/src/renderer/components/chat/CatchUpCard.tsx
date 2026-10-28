@@ -17,13 +17,19 @@
 //
 // It never says the assistant "worked". It names the runs, their times and
 // their outcomes; that is all the data supports.
+//
+// A failed row also offers "Ask AIPA to look into it" (wave 30): it drafts the
+// post-mortem question into a new conversation's composer. The card is inside
+// the chat view already, so that is a store write, not navigation, and nothing
+// is sent until the user presses Enter.
 
 import { useEffect, useState } from 'react'
-import { ArrowUpRight, CalendarClock, X } from 'lucide-react'
+import { ArrowUpRight, CalendarClock, Sparkles, X } from 'lucide-react'
 import type { AutomationJobData } from '../../../preload'
 import { useT } from '../../i18n'
-import { useUiStore } from '../../store'
+import { useChatStore, useUiStore } from '../../store'
 import { errorCodeText, relativeTimeText } from '../workflows/scheduleSummary'
+import { buildInvestigatePrompt } from '../automation/investigatePrompt'
 import {
   appStampStorage,
   claimLaunch,
@@ -55,7 +61,12 @@ export default function CatchUpCard() {
     return previous === null ? null : { previous, now }
   })
   const [summary, setSummary] = useState<CatchUpSummary | null>(null)
+  // The snapshot the summary was derived from. "Ask AIPA" needs the whole job
+  // (trigger, streak, spend rail, history), which the rows do not carry; keeping
+  // the same read means the question never describes a job newer than the row.
+  const [jobs, setJobs] = useState<AutomationJobData[]>([])
   const [dismissed, setDismissed] = useState(false)
+  const addToast = useUiStore(state => state.addToast)
 
   // Spend the launch's one appearance even when there is nothing to report: a
   // run that completes later in this session must not turn a remount into a
@@ -78,8 +89,9 @@ export default function CatchUpCard() {
         if (!alive) return
         // A malformed payload is treated as "nothing to report" rather than
         // crashing the chat view over a background summary.
-        const jobs: AutomationJobData[] = Array.isArray(result?.jobs) ? result.jobs : []
-        setSummary(deriveCatchUpRuns(jobs, launch.previous))
+        const loaded: AutomationJobData[] = Array.isArray(result?.jobs) ? result.jobs : []
+        setJobs(loaded)
+        setSummary(deriveCatchUpRuns(loaded, launch.previous))
       })
       .catch(err => {
         console.error('[AIPA] Could not read what ran while the app was closed', err)
@@ -106,6 +118,25 @@ export default function CatchUpCard() {
     const label = run.outcome === 'error' ? t('automation.status.error') : t('catchUp.skippedOutcome')
     const detail = errorCodeText(run.error, t)
     return detail ? `${label}: ${detail}` : label
+  }
+
+  /**
+   * Draft the post-mortem question for this failed run. The card only exists
+   * inside the chat view, so no navigation is needed; `clearMessages` is the
+   * same new-conversation call the app menu's New Session makes. The question
+   * stays in the composer — this never sends it.
+   */
+  const investigate = (run: CatchUpRun) => {
+    const job = jobs.find(candidate => candidate.id === run.jobId)
+    if (!job) {
+      addToast('warning', t('automation.investigate.unavailable', { name: run.jobName }))
+      return
+    }
+    const record = (job.history ?? []).find(r => r.startedAt === run.startedAt) ?? null
+    const text = buildInvestigatePrompt({ job, record })
+    useChatStore.getState().clearMessages()
+    useUiStore.getState().prefillComposer(text)
+    addToast('success', t('automation.investigate.prepared', { name: job.name }))
   }
 
   return (
@@ -192,27 +223,11 @@ export default function CatchUpCard() {
 
         {summary.rows.map(run => {
           const failed = run.outcome === 'error'
-          return (
-            <button
-              key={`${run.jobId}:${run.startedAt}`}
-              type="button"
-              onClick={() => openRun(run)}
-              title={run.sessionId
-                ? t('statusBar.background.openRun')
-                : t('statusBar.background.openSettings')}
-              style={{
-                display: 'flex', alignItems: 'baseline', gap: 8,
-                width: '100%', minWidth: 0,
-                padding: '2px 4px', margin: '0 -4px',
-                borderRadius: 5,
-                background: 'transparent', border: 'none',
-                textAlign: 'left', cursor: 'pointer',
-                fontSize: 11,
-                color: failed ? 'var(--warning-text)' : 'var(--text-secondary)',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-            >
+          const rowTitle = run.sessionId
+            ? t('statusBar.background.openRun')
+            : t('statusBar.background.openSettings')
+          const label = (
+            <>
               <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {run.jobName}
               </span>
@@ -222,7 +237,76 @@ export default function CatchUpCard() {
               <span style={{ flexShrink: 0, maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {outcomeText(run)}
               </span>
-            </button>
+            </>
+          )
+          const rowStyle = {
+            display: 'flex', alignItems: 'baseline', gap: 8,
+            minWidth: 0,
+            padding: '2px 4px', margin: '0 -4px',
+            borderRadius: 5,
+            background: 'transparent', border: 'none',
+            textAlign: 'left' as const, cursor: 'pointer',
+            fontSize: 11,
+            color: failed ? 'var(--warning-text)' : 'var(--text-secondary)',
+          }
+
+          if (!failed) {
+            return (
+              <button
+                key={`${run.jobId}:${run.startedAt}`}
+                type="button"
+                onClick={() => openRun(run)}
+                title={rowTitle}
+                style={{ ...rowStyle, width: '100%' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+              >
+                {label}
+              </button>
+            )
+          }
+
+          // A failed row asks a question as well as opening the transcript, so
+          // it is a group of siblings rather than one button: a button cannot
+          // legally contain another button, and the row's own text must stay the
+          // main action's accessible name. The question button names its job, so
+          // a screen reader never hears a bare "Ask AIPA".
+          return (
+            <div
+              key={`${run.jobId}:${run.startedAt}`}
+              role="group"
+              aria-label={run.jobName}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '2px 4px', margin: '0 -4px', borderRadius: 5,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+            >
+              <button
+                type="button"
+                onClick={() => openRun(run)}
+                title={rowTitle}
+                style={{ ...rowStyle, flex: 1, padding: 0, margin: 0 }}
+              >
+                {label}
+              </button>
+              <button
+                type="button"
+                onClick={() => investigate(run)}
+                aria-label={t('automation.investigate.aria', { name: run.jobName })}
+                title={t('automation.investigate.title')}
+                style={{
+                  display: 'flex', alignItems: 'center', flexShrink: 0,
+                  padding: 0, border: 'none', background: 'transparent',
+                  color: 'var(--accent-text)', cursor: 'pointer',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--accent-text)' }}
+              >
+                <Sparkles size={11} />
+              </button>
+            </div>
           )
         })}
 

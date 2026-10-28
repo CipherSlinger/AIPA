@@ -3029,7 +3029,9 @@
       "watchRecursive": "including subfolders",
       "watchFlat": "this folder only",
       "watchQuiet": "runs at most once every {{minutes}} min",
-      "watchMissing": "Path not found — not watching"
+      "watchMissing": "Path not found — not watching",
+      "monthly": "Monthly on the {{day}} at {{time}}",
+      "monthlyDay": "{{count}}{{ordinal}}"
     },
     "weekdays": {
       "0": "Sunday",
@@ -3062,7 +3064,8 @@
       "spendLimit": "Spend limit (USD)",
       "spendLimitPlaceholder": "No limit",
       "quietOnSuccess": "Quiet on success",
-      "retryOnFailure": "Retry failed runs"
+      "retryOnFailure": "Retry failed runs",
+      "dayOfMonth": "Day of month"
     },
     "action": {
       "workflow": "Run a workflow",
@@ -3075,7 +3078,8 @@
       "weekly": "Weekly",
       "interval": "Interval",
       "cron": "Custom cron",
-      "watch": "File or folder changes"
+      "watch": "File or folder changes",
+      "monthly": "Monthly"
     },
     "dialog": {
       "createTitle": "New automation",
@@ -3249,6 +3253,18 @@
       "label": "Next runs",
       "none": "No upcoming run",
       "unavailable": "Could not compute the next runs. You can still save — the schedule is checked again when you save."
+    },
+    "investigate": {
+      "ask": "Ask AIPA",
+      "aria": "Ask AIPA to look into the failed run of {{name}}",
+      "title": "Draft a question about this failure in a new conversation. Nothing is sent until you press Enter.",
+      "prepared": "A new conversation about {{name}} is ready. Review the question, then press Enter to send it.",
+      "unavailable": "Could not prepare a question about {{name}}. Open Settings → Automations to see the run."
+    },
+    "monthly": {
+      "dayRequired": "Enter a day from 1 to 31.",
+      "dayRange": "Days run from 1 to 31; this schedule will use the {{day}}.",
+      "shortMonth": "Not every month has a {{day}}. Months without it are skipped entirely — the job does not run in those months, and it does not move to the nearest day either."
     }
   },
   "speculation": {

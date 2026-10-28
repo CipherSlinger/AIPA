@@ -49,6 +49,17 @@ interface UiState {
   quotedText: string | null
   setQuotedText: (text: string | null) => void
 
+  // A drafted message handed to the composer from a surface that is not the
+  // chat view (a failed automation run, say). Deliberately not `quotedText`:
+  // a quote is evidence pasted above what the user types, while this *is* the
+  // message the user is about to send, so it replaces the draft and never
+  // becomes a quote block. A token distinguishes two prefills of the same text;
+  // ChatInput consumes the channel in an effect and clears it, so a remount
+  // cannot re-apply a question the user already saw.
+  composerPrefill: { text: string; token: number } | null
+  prefillComposer: (text: string) => void
+  consumeComposerPrefill: () => void
+
   // A newly recruited employee's job description, handed from the department view
   // to the chat view. ChatPanel mounts on the far side of that view switch, so
   // the brief waits here until the composer is alive enough to send it as the
@@ -267,6 +278,9 @@ export const useUiStore = create<UiState>((set) => ({
   // Any nav click leaves Settings, so its highlight never lingers next to the new item
   setActiveNavItem: (item) => set((s) => ({ settingsModalOpen: false, ...resolveNav(s, item) })),
   setQuotedText: (text) => set({ quotedText: text }),
+  composerPrefill: null,
+  prefillComposer: (text) => set({ composerPrefill: { text, token: Date.now() } }),
+  consumeComposerPrefill: () => set({ composerPrefill: null }),
   pendingRecruitBrief: null,
   setPendingRecruitBrief: (text) => set({ pendingRecruitBrief: text }),
   searchFocusPending: false,

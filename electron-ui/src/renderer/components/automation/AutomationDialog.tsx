@@ -18,6 +18,7 @@ import { pushEscapeHandler } from '../ui/escapeStack'
 import {
   DEFAULT_WATCH_DEBOUNCE_MINUTES,
   clockText,
+  dayOfMonthText,
   describeCron,
   scheduleText,
   watchWarningText,
@@ -47,7 +48,7 @@ export const ASSISTANT_PERSONA_ID = '__assistant__'
 // Stable empty array: an absent pref must not create a new reference per render.
 const EMPTY_PERSONAS: Persona[] = []
 
-type ScheduleKind = 'daily' | 'weekly' | 'interval' | 'cron' | 'watch'
+type ScheduleKind = 'daily' | 'weekly' | 'monthly' | 'interval' | 'cron' | 'watch'
 
 /** The quiet-period bounds the main process enforces, kept in the input too. */
 const WATCH_DEBOUNCE_MIN = 1
@@ -206,6 +207,12 @@ export default function AutomationDialog({
   const [hour, setHour] = useState(initialCron?.hour ?? 9)
   const [minute, setMinute] = useState(initialCron?.minute ?? 0)
   const [weekday, setWeekday] = useState(initialCron?.weekday ?? 1)
+  // Text, not a number state: a number input normalizes a half-typed value to
+  // '' on some browsers, and an empty day must be visible as empty rather than
+  // silently saved as the 1st.
+  const [dayOfMonthInput, setDayOfMonthInput] = useState(
+    initialCron?.dayOfMonth !== undefined ? String(initialCron.dayOfMonth) : '1',
+  )
   const [intervalMinutes, setIntervalMinutes] = useState(
     job?.trigger.kind === 'interval' ? job.trigger.minutes : 60,
   )
@@ -240,6 +247,18 @@ export default function AutomationDialog({
     return translated === key ? code : translated
   }, [t])
 
+  // Digits only. Anything else (blank, "1st", a decimal) blocks Save rather
+  // than being guessed at.
+  const dayDigits = dayOfMonthInput.trim()
+  const dayTyped = /^\d+$/.test(dayDigits) ? Number(dayDigits) : NaN
+  const dayTypedValid = Number.isFinite(dayTyped)
+  // Out-of-range digits are clamped, never rewritten to 28: the day stays the
+  // user's intent for months that do have it, and the line under the field says
+  // which day the trigger actually carries.
+  const dayOfMonth = dayTypedValid ? Math.min(31, Math.max(1, dayTyped)) : 1
+  const dayOutOfRange = dayTypedValid && dayTyped !== dayOfMonth
+  const dayFieldValid = scheduleKind !== 'monthly' || dayTypedValid
+
   const trigger = useMemo<AutomationTriggerData>(() => {
     if (scheduleKind === 'watch') {
       // Clamp here only so a cleared or wild number cannot be sent as NaN; the
@@ -257,8 +276,11 @@ export default function AutomationDialog({
     if (scheduleKind === 'interval') return { kind: 'interval', minutes: Number(intervalMinutes) || 0 }
     if (scheduleKind === 'cron') return { kind: 'cron', expr: cronExpr.trim() }
     if (scheduleKind === 'weekly') return { kind: 'cron', expr: `${minute} ${hour} * * ${weekday}` }
+    // A monthly preset is only a friendlier way to write the same cron the
+    // Custom field accepts, so nothing new reaches the scheduler.
+    if (scheduleKind === 'monthly') return { kind: 'cron', expr: `${minute} ${hour} ${dayOfMonth} * *` }
     return { kind: 'cron', expr: `${minute} ${hour} * * *` }
-  }, [scheduleKind, intervalMinutes, cronExpr, minute, hour, weekday, watchPath, watchRecursive, watchDebounce])
+  }, [scheduleKind, intervalMinutes, cronExpr, minute, hour, weekday, dayOfMonth, watchPath, watchRecursive, watchDebounce])
 
   // Ask main what this trigger would actually do. The preview is main's own
   // next-run maths, not a renderer formula, so an interval and a cron answer
@@ -325,6 +347,7 @@ export default function AutomationDialog({
     (actionKind === 'workflow' ? !!workflowId : prompt.trim().length > 0) &&
     spendLimitValid &&
     watchPathValid &&
+    dayFieldValid &&
     !previewInvalid &&
     !saving
 
@@ -634,7 +657,7 @@ export default function AutomationDialog({
         <div style={{ marginBottom: 12 }}>
           <label style={labelStyle}>{t('automation.field.schedule')}</label>
           <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-            {(['daily', 'weekly', 'interval', 'watch'] as const).map(kind => (
+            {(['daily', 'weekly', 'monthly', 'interval', 'watch'] as const).map(kind => (
               <button
                 key={kind}
                 onClick={() => setScheduleKind(kind)}
@@ -783,34 +806,69 @@ export default function AutomationDialog({
               />
             </div>
           ) : (
-            <div style={{ display: 'flex', gap: 10 }}>
-              {scheduleKind === 'weekly' && (
+            <div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                {scheduleKind === 'weekly' && (
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>{t('automation.field.day')}</label>
+                    <select
+                      value={weekday}
+                      onChange={e => setWeekday(Number(e.target.value))}
+                      style={INPUT_STYLE}
+                    >
+                      {[0, 1, 2, 3, 4, 5, 6].map(d => (
+                        <option key={d} value={d}>{t(`automation.weekdays.${d}`)}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {scheduleKind === 'monthly' && (
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>{t('automation.field.dayOfMonth')}</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={dayOfMonthInput}
+                      onChange={e => setDayOfMonthInput(e.target.value)}
+                      placeholder="1"
+                      aria-invalid={!dayFieldValid || dayOutOfRange}
+                      style={INPUT_STYLE}
+                    />
+                  </div>
+                )}
                 <div style={{ flex: 1 }}>
-                  <label style={labelStyle}>{t('automation.field.day')}</label>
-                  <select
-                    value={weekday}
-                    onChange={e => setWeekday(Number(e.target.value))}
+                  <label style={labelStyle}>{t('automation.field.time')}</label>
+                  <input
+                    type="time"
+                    value={timeValue}
+                    onChange={e => {
+                      const [h, m] = e.target.value.split(':')
+                      if (h !== undefined) setHour(Number(h))
+                      if (m !== undefined) setMinute(Number(m))
+                    }}
                     style={INPUT_STYLE}
-                  >
-                    {[0, 1, 2, 3, 4, 5, 6].map(d => (
-                      <option key={d} value={d}>{t(`automation.weekdays.${d}`)}</option>
-                    ))}
-                  </select>
+                  />
+                </div>
+              </div>
+
+              {/* The day-of-month caveat belongs here, not in a tooltip: the
+                  user is choosing the one field whose cron expression cannot
+                  hold its own meaning in a short month. */}
+              {scheduleKind === 'monthly' && !dayFieldValid && (
+                <div style={{ fontSize: 11, color: 'var(--danger-text)', marginTop: 4, lineHeight: 1.5 }}>
+                  {t('automation.monthly.dayRequired')}
                 </div>
               )}
-              <div style={{ flex: 1 }}>
-                <label style={labelStyle}>{t('automation.field.time')}</label>
-                <input
-                  type="time"
-                  value={timeValue}
-                  onChange={e => {
-                    const [h, m] = e.target.value.split(':')
-                    if (h !== undefined) setHour(Number(h))
-                    if (m !== undefined) setMinute(Number(m))
-                  }}
-                  style={INPUT_STYLE}
-                />
-              </div>
+              {scheduleKind === 'monthly' && dayFieldValid && dayOutOfRange && (
+                <div style={{ fontSize: 11, color: WARNING, marginTop: 4, lineHeight: 1.5 }}>
+                  {t('automation.monthly.dayRange', { day: dayOfMonthText(t, dayOfMonth) })}
+                </div>
+              )}
+              {scheduleKind === 'monthly' && dayFieldValid && dayOfMonth >= 29 && (
+                <div style={{ fontSize: 11, color: SECONDARY, marginTop: 4, lineHeight: 1.5 }}>
+                  {t('automation.monthly.shortMonth', { day: dayOfMonthText(t, dayOfMonth) })}
+                </div>
+              )}
             </div>
           )}
 

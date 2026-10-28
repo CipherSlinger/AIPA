@@ -28,10 +28,12 @@ export function clockText(hour: number, minute: number): string {
 }
 
 export interface CronFields {
-  kind: 'daily' | 'weekly'
+  kind: 'daily' | 'weekly' | 'monthly'
   hour: number
   minute: number
   weekday?: number
+  /** Monthly only. 1-31. */
+  dayOfMonth?: number
 }
 
 /** Render a stored cron back into the dialog's fields, or null when custom. */
@@ -43,7 +45,41 @@ export function describeCron(expr: string): CronFields | null {
   if (minute > 59 || h > 23) return null
   if (dom === '*' && dow === '*') return { kind: 'daily', hour: h, minute }
   if (dom === '*' && /^[0-6]$/.test(dow)) return { kind: 'weekly', hour: h, minute, weekday: Number(dow) }
+  // Monthly: exactly one day of the month, weekday wildcarded. A list (`1,15`),
+  // a range (`1-7`), a step, or a constrained weekday paired with a day uses
+  // POSIX OR semantics or more than one day; the dialog has a single day field
+  // and must not silently rewrite any of those, so they stay "Custom cron".
+  if (/^\d{1,2}$/.test(dom) && dow === '*') {
+    const dayOfMonth = Number(dom)
+    if (dayOfMonth >= 1 && dayOfMonth <= 31) return { kind: 'monthly', hour: h, minute, dayOfMonth }
+  }
   return null
+}
+
+/**
+ * English ordinal suffix for a day number: 1st, 2nd, 3rd, 4th, 11th, 21st,
+ * 22nd, 23rd, 31st. The 11-13 exception is why the last digit alone is not
+ * enough. Locales that do not use an ordinal suffix (zh-CN) simply leave the
+ * `{{ordinal}}` placeholder out of their template — see `dayOfMonthText`.
+ */
+export function ordinalSuffix(day: number): string {
+  const n = Math.abs(Math.trunc(day))
+  const lastTwo = n % 100
+  if (lastTwo >= 11 && lastTwo <= 13) return 'th'
+  const last = n % 10
+  if (last === 1) return 'st'
+  if (last === 2) return 'nd'
+  if (last === 3) return 'rd'
+  return 'th'
+}
+
+/**
+ * A day of the month as a label: "21st" in English, "21" in Chinese. The two
+ * templates share one key, and the one that has no use for the suffix drops
+ * the placeholder rather than branching here on the locale.
+ */
+export function dayOfMonthText(t: Translate, day: number): string {
+  return t('automation.schedule.monthlyDay', { count: day, ordinal: ordinalSuffix(day) })
 }
 
 /**
@@ -103,6 +139,14 @@ export function scheduleText(t: Translate, trigger: AutomationTriggerData, withD
   if (!parsed) return t('automation.schedule.cron', { expr: trigger.expr })
   const time = clockText(parsed.hour, parsed.minute)
   if (parsed.kind === 'daily') return t('automation.schedule.daily', { time })
+  if (parsed.kind === 'monthly') {
+    // "Monthly on the 1st at 09:00" / "每月 1 日 09:00". The ordinal travels as
+    // part of the day label so the zh template never sees an English suffix.
+    return t('automation.schedule.monthly', {
+      day: dayOfMonthText(t, parsed.dayOfMonth ?? 1),
+      time,
+    })
+  }
   return t('automation.schedule.weekly', {
     day: t(`automation.weekdays.${parsed.weekday ?? 0}`),
     time,

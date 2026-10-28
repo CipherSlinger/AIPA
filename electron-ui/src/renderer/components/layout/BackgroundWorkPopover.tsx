@@ -8,22 +8,24 @@
 // and Settings -> Automations otherwise; every other row opens Settings ->
 // Automations because that page owns the controls (Run now, edit, pause).
 //
-// A failed row also carries a second action of its own: run the job again from
-// the panel that announced the failure, without a trip through Settings. The
-// two actions are siblings inside a `role="group"` container — a button cannot
-// legally contain another button, and the main action's accessible name has to
-// stay the row's own text (job, time, reason).
+// A failed row also carries actions of its own: run the job again from the panel
+// that announced the failure, and ask AIPA to look into it (wave 30), both
+// without a trip through Settings. The actions are siblings inside a
+// `role="group"` container — a button cannot legally contain another button, and
+// the main action's accessible name has to stay the row's own text (job, time,
+// reason). "Ask AIPA" drafts the question in a new conversation; it never sends.
 //
 // `now` comes from the parent, which ticks only while this panel is open.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import { AlertTriangle, ArrowUpRight, Loader2, Pause, RotateCcw } from 'lucide-react'
+import { AlertTriangle, ArrowUpRight, Loader2, Pause, RotateCcw, Sparkles } from 'lucide-react'
 import { useI18n } from '../../i18n'
-import { useUiStore } from '../../store'
+import { useChatStore, useUiStore } from '../../store'
 import { formatDuration } from './statusBarConstants'
 import { errorCodeText, relativeTimeText } from '../workflows/scheduleSummary'
 import { failureStreakText, type UnseenFailure } from './automationFailures'
+import { buildInvestigatePrompt } from '../automation/investigatePrompt'
 import type { Translate } from '../automation/scheduleText'
 import type { AutomationJobData } from '../../../preload'
 
@@ -94,6 +96,15 @@ const ROW_MAIN: CSSProperties = {
 const ELLIPSIS: CSSProperties = {
   flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
   whiteSpace: 'nowrap', textAlign: 'left',
+}
+
+/** The square icon actions a failed row offers beside its main button. */
+const ICON_ACTION: CSSProperties = {
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  flexShrink: 0, width: 18, height: 18, padding: 0,
+  border: 'none', borderRadius: 4, background: 'transparent',
+  color: 'var(--text-secondary)', cursor: 'pointer',
+  transition: 'opacity 0.12s ease, color 0.12s ease',
 }
 
 /**
@@ -180,6 +191,13 @@ interface FailureRowProps {
   runTitle: string
   /** Why the action is unavailable while the job is running already. */
   runBusyTitle: string
+  /** Draft a question about this failure in a new conversation. */
+  onInvestigate: () => void
+  investigateAria: string
+  /** What the action does, and that it sends nothing on its own. */
+  investigateTitle: string
+  /** This row's question is being prepared (the job list is being read). */
+  investigating: boolean
   /** A run for this job is in flight right now. */
   running: boolean
   /** This row has already asked for a start and is waiting on the IPC reply. */
@@ -198,12 +216,15 @@ interface FailureRowProps {
  *
  * The main button keeps no aria-label: its accessible name is the text inside
  * it — job, time, reason — which is exactly what a screen-reader user needs to
- * choose. The retry icon beside it names its own job, so a screen reader hears
- * "Run Morning briefing again" rather than a bare "Run again".
+ * choose. The two icon actions beside it name their own job, so a screen reader
+ * hears "Ask AIPA about Morning briefing" and "Run Morning briefing again"
+ * rather than two bare verbs.
  */
 function FailureRow({
   failure, time, error, streak, title, onClick,
-  onRunAgain, runAria, runTitle, runBusyTitle, running, starting, alwaysShowAction,
+  onRunAgain, runAria, runTitle, runBusyTitle,
+  onInvestigate, investigateAria, investigateTitle, investigating,
+  running, starting, alwaysShowAction,
 }: FailureRowProps) {
   // The container tints while either action is hovered or focused. State
   // rather than inline handlers on the buttons keeps the highlight alive when
@@ -212,9 +233,9 @@ function FailureRow({
   const [focused, setFocused] = useState(false)
   const active = hovered || focused
   const locked = running || starting
-  // Locked rows keep the icon on screen: a disabled control that vanishes
+  // Locked rows keep the icons on screen: a disabled control that vanishes
   // reads as a glitch, and the spinner needs to be visible anyway.
-  const actionVisible = active || alwaysShowAction || locked
+  const actionVisible = active || alwaysShowAction || locked || investigating
 
   return (
     <div
@@ -254,6 +275,24 @@ function FailureRow({
       </button>
       <button
         type="button"
+        aria-label={investigateAria}
+        title={investigateTitle}
+        aria-busy={investigating || undefined}
+        onClick={() => { if (!investigating) onInvestigate() }}
+        onMouseEnter={event => { event.currentTarget.style.color = 'var(--text-primary)' }}
+        onMouseLeave={event => { event.currentTarget.style.color = 'var(--accent-text)' }}
+        style={{
+          ...ICON_ACTION,
+          color: 'var(--accent-text)',
+          opacity: actionVisible ? 1 : 0,
+        }}
+      >
+        {investigating
+          ? <Loader2 size={13} style={{ animation: 'spin 0.9s linear infinite' }} />
+          : <Sparkles size={13} />}
+      </button>
+      <button
+        type="button"
         aria-label={runAria}
         title={running ? runBusyTitle : runTitle}
         aria-disabled={locked}
@@ -266,16 +305,13 @@ function FailureRow({
           event.currentTarget.style.color = locked ? 'var(--text-muted)' : 'var(--text-secondary)'
         }}
         style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0, width: 18, height: 18, padding: 0,
-          border: 'none', borderRadius: 4, background: 'transparent',
+          ...ICON_ACTION,
           color: locked ? 'var(--text-muted)' : 'var(--text-secondary)',
           cursor: locked ? 'default' : 'pointer',
           opacity: !actionVisible ? 0 : locked && !starting ? 0.4 : 1,
           // `pointer-events: none` would swallow the tooltip that says why the
           // action is unavailable, so the control stays hoverable and the
           // handler guard above is what makes it inert.
-          transition: 'opacity 0.12s ease, color 0.12s ease',
         }}
       >
         {starting
@@ -307,6 +343,9 @@ export default function BackgroundWorkPopover({
   // The state above is for rendering; this mirror is read synchronously so two
   // clicks inside one frame cannot both pass the guard before React re-renders.
   const startingRef = useRef<Set<string>>(new Set())
+  // The row whose question is being prepared; also blocks a second click while
+  // the job list is on its way.
+  const [investigatingJobId, setInvestigatingJobId] = useState<string | null>(null)
 
   // Focus the panel itself, not a row: activating a row navigates away, so
   // moving focus onto one at open would make Enter do more than the user asked.
@@ -383,6 +422,48 @@ export default function BackgroundWorkPopover({
     // session's persona and working directory, and closes Settings — the same
     // path Settings -> Automations takes from a run's "Open" link.
     window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: sessionId }))
+  }
+
+  /**
+   * Turn a failure into a question, not an answer.
+   *
+   * This panel deliberately receives only the failure rows (see the note in
+   * BackgroundWorkIndicator: it gets ids, not whole jobs, so it cannot start
+   * showing live state of its own). The prompt needs the whole job — trigger,
+   * streak, spend rail, history — so the list is read once at click time, for
+   * this row only. A failed read says so and leaves the conversation alone.
+   */
+  const investigate = async (failure: UnseenFailure) => {
+    const api = window.electronAPI
+    if (!api?.automationList) {
+      addToast('error', t('automation.investigate.unavailable', { name: failure.jobName }))
+      return
+    }
+    setInvestigatingJobId(failure.jobId)
+    try {
+      const result = await api.automationList()
+      const jobs: AutomationJobData[] = Array.isArray(result?.jobs) ? result.jobs : []
+      const job = jobs.find(candidate => candidate.id === failure.jobId)
+      if (!job) {
+        addToast('warning', t('automation.investigate.unavailable', { name: failure.jobName }))
+        return
+      }
+      const record = (job.history ?? []).find(r => r.startedAt === failure.startedAt) ?? null
+      const text = buildInvestigatePrompt({ job, record })
+      // The same new-conversation call the app menu's New Session and the
+      // command palette's New conversation make. The question then waits in the
+      // composer; this never sends it.
+      useChatStore.getState().clearMessages()
+      useUiStore.getState().setActiveNavItem('chat')
+      useUiStore.getState().prefillComposer(text)
+      onClose()
+      addToast('success', t('automation.investigate.prepared', { name: job.name }))
+    } catch (err) {
+      console.error('[AIPA] Could not prepare a question about a failed run', err)
+      addToast('error', t('automation.investigate.unavailable', { name: failure.jobName }))
+    } finally {
+      setInvestigatingJobId(null)
+    }
   }
 
   const timeText = (ts: number) => new Date(ts).toLocaleString(resolvedLocale, {
@@ -500,6 +581,10 @@ export default function BackgroundWorkPopover({
                 // this panel can show "Paused" above a row that still starts.
                 runTitle={t('statusBar.background.runAgainTitle', { name: failure.jobName })}
                 runBusyTitle={t('statusBar.background.runAgainWhileRunning', { name: failure.jobName })}
+                onInvestigate={() => { void investigate(failure) }}
+                investigateAria={t('automation.investigate.aria', { name: failure.jobName })}
+                investigateTitle={t('automation.investigate.title')}
+                investigating={investigatingJobId === failure.jobId}
                 running={runningJobIds.has(failure.jobId)}
                 starting={startingJobs.has(failure.jobId)}
                 alwaysShowAction={!hoverCapable}

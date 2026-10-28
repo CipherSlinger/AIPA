@@ -7,9 +7,9 @@
 // `automation:changed` instead of guessing what the scheduler did.
 
 import { useCallback, useEffect, useState } from 'react'
-import { AlarmClock, AlertTriangle, Clock, Copy, History, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Trash2, Wallet } from 'lucide-react'
+import { AlarmClock, AlertTriangle, Clock, Copy, History, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Sparkles, Trash2, Wallet } from 'lucide-react'
 import { useI18n } from '../../i18n'
-import { usePrefsStore, useUiStore } from '../../store'
+import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { usePluginStore } from '../../store/pluginStore'
 import { getPluginDisplayName } from '../plugins/pluginIcons'
 import SettingsGroup from './SettingsGroup'
@@ -18,6 +18,7 @@ import Toggle from '../ui/Toggle'
 import { formatTokens } from '../../utils/formatUtils'
 import AutomationDialog, { ASSISTANT_PERSONA_ID, type WorkflowOption } from '../automation/AutomationDialog'
 import { scheduleText, watchWarningText } from '../automation/scheduleText'
+import { buildInvestigatePrompt } from '../automation/investigatePrompt'
 import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from '../automation/automationStyles'
 import type {
   AutomationJobData,
@@ -227,6 +228,24 @@ export default function SettingsAutomations() {
     // session's persona and working directory, and closes Settings — the same
     // path the archive and command palette take.
     window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: sessionId }))
+  }
+
+  /**
+   * Turn a failure into a question, not an answer.
+   *
+   * Settings is not the chat view and owns no bridge, so the new conversation
+   * goes through the call the app menu's New Session and the command palette's
+   * New conversation already make: `clearMessages`. The question is then parked
+   * in the composer's prefill channel and the chat view opens; nothing is sent
+   * until the user reads it and presses Enter.
+   */
+  const askInvestigate = (job: AutomationJobData) => {
+    const record = [...(job.history ?? [])].reverse().find(r => r.status === 'error') ?? null
+    const text = buildInvestigatePrompt({ job, record })
+    useChatStore.getState().clearMessages()
+    useUiStore.getState().setActiveNavItem('chat')
+    useUiStore.getState().prefillComposer(text)
+    addToast('success', t('automation.investigate.prepared', { name: job.name }))
   }
 
   /**
@@ -992,6 +1011,24 @@ export default function SettingsAutomations() {
                       </>
                     ) : (
                       <>
+                        {job.lastStatus === 'error' && !job.running && (
+                          // Offered only in a failed state: the point is to turn
+                          // the failure the row is already showing into a
+                          // question. The label stays short so five actions fit;
+                          // the aria-label names the job, because five rows with
+                          // the same words are indistinguishable by ear.
+                          <button
+                            style={{ ...smallButtonStyle, color: 'var(--accent-text)' }}
+                            onClick={() => askInvestigate(job)}
+                            aria-label={t('automation.investigate.aria', { name: job.name })}
+                            title={t('automation.investigate.title')}
+                            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--accent-text)' }}
+                          >
+                            <Sparkles size={11} />
+                            {t('automation.investigate.ask')}
+                          </button>
+                        )}
                         <button
                           style={{ ...smallButtonStyle, opacity: busy ? 0.5 : 1 }}
                           disabled={busy}

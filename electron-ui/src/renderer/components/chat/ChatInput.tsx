@@ -231,6 +231,28 @@ export default function ChatInput({
     return () => cancelAnimationFrame(id)
   }, [focusInputPending, focusComposer, consumeInputFocus])
 
+  // A message prepared elsewhere arrives as a store channel rather than a DOM
+  // event: the chat view (and this composer) may not have been mounted when the
+  // user pressed a button in Settings or in the status bar. This effect is
+  // declared after useChatInputDraft so that, when the same click both starts a
+  // new conversation and prefills it, the prefill lands after the draft hook
+  // has restored the new (empty) session's draft. The channel is cleared in the
+  // same commit so a later remount cannot resurrect the question.
+  const composerPrefill = useUiStore(s => s.composerPrefill)
+  const consumeComposerPrefill = useUiStore(s => s.consumeComposerPrefill)
+  useEffect(() => {
+    if (!composerPrefill) return
+    setInput(composerPrefill.text)
+    consumeComposerPrefill()
+    // The textarea still shows the previous value until this state commits, so
+    // focus and the caret go to the end of it after the frame.
+    const id = requestAnimationFrame(() => {
+      focusComposer()
+      resizeTextarea()
+    })
+    return () => cancelAnimationFrame(id)
+  }, [composerPrefill, setInput, consumeComposerPrefill, focusComposer, resizeTextarea])
+
   // Listen for text insertion requests (e.g., from file browser @mention)
   useEffect(() => {
     const handler = (e: Event) => {

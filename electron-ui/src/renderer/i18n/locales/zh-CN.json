@@ -3029,7 +3029,9 @@
       "watchRecursive": "包含子文件夹",
       "watchFlat": "仅此文件夹",
       "watchQuiet": "每 {{minutes}} 分钟最多运行一次",
-      "watchMissing": "路径不存在——未在监视"
+      "watchMissing": "路径不存在——未在监视",
+      "monthly": "每月 {{day}} 日 {{time}}",
+      "monthlyDay": "{{count}}"
     },
     "weekdays": {
       "0": "周日",
@@ -3062,7 +3064,8 @@
       "spendLimit": "花费上限（美元）",
       "spendLimitPlaceholder": "不限",
       "quietOnSuccess": "成功时静默",
-      "retryOnFailure": "失败时自动重试"
+      "retryOnFailure": "失败时自动重试",
+      "dayOfMonth": "每月几号"
     },
     "action": {
       "workflow": "运行工作流",
@@ -3075,7 +3078,8 @@
       "weekly": "每周",
       "interval": "间隔",
       "cron": "自定义 Cron",
-      "watch": "文件或文件夹变化"
+      "watch": "文件或文件夹变化",
+      "monthly": "每月"
     },
     "dialog": {
       "createTitle": "新建自动化",
@@ -3249,6 +3253,18 @@
       "label": "接下来运行",
       "none": "接下来没有运行",
       "unavailable": "无法计算接下来的运行时间。仍然可以保存，保存时会再次检查。"
+    },
+    "investigate": {
+      "ask": "问问 AIPA",
+      "aria": "让 AIPA 看看「{{name}}」这次失败的运行",
+      "title": "在新对话里起草一个关于这次失败的问题。在你按 Enter 之前不会发送任何内容。",
+      "prepared": "关于「{{name}}」的新对话已准备好。检查一下问题，然后按 Enter 发送。",
+      "unavailable": "无法准备关于「{{name}}」的问题。请在“设置 → 定时任务”中查看这次运行。"
+    },
+    "monthly": {
+      "dayRequired": "请输入 1–31 之间的日期。",
+      "dayRange": "日期范围为 1–31；将按每月 {{day}} 日运行。",
+      "shortMonth": "并非每个月都有 {{day}} 日。没有这一天的月份会被直接跳过——那些月份不会运行，也不会改到最近的日期运行。"
     }
   },
   "speculation": {
