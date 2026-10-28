@@ -192,7 +192,10 @@
       "automationSuffix": "· {{time}}",
       "pluginStarted": "Started by the {{name}} plugin · {{time}}",
       "openAutomation": "Open Automations"
-    }
+    },
+    "scheduleConversation": "Schedule this conversation",
+    "scheduleConversationHint": "Turn this conversation into a recurring automation",
+    "scheduleConversationPreparing": "Preparing the scheduler…"
   },
   "sessionReuse": {
     "menu": {
@@ -3141,7 +3144,12 @@
       "row": "scheduled runs paused",
       "help": "Pause all suspends every scheduled run while leaving each job's own switch as it is. Manual runs still work. Resuming recalculates occurrences missed during the pause instead of firing them all at once.",
       "failed": "Could not change the pause: {{error}}"
-    }
+    },
+    "prompt": {
+      "freshRunHint": "Each run starts fresh from this prompt; this conversation's context is not carried over.",
+      "clippedHint": "The message was longer than 4,000 characters, so only the first 4,000 were kept. The rest is not part of the prompt."
+    },
+    "createdToast": "“{{name}}” is scheduled: {{schedule}}"
   },
   "speculation": {
     "title": "Speculative Preview",

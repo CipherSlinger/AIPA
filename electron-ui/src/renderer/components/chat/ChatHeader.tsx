@@ -16,6 +16,7 @@ import type { ConversationStats, BookmarkedMessage } from '../../hooks/useConver
 import type { SessionChanges } from '../../hooks/useSessionChanges'
 import SaveTemplateDialog from './SaveTemplateDialog'
 import SessionReuseMenu from './SessionReuseMenu'
+import ScheduleConversationButton from './ScheduleConversationButton'
 import CompactButton from './CompactButton'
 import WorktreeDialog from './WorktreeDialog'
 import { listSessionsShared } from '../../utils/sessionListShared'
@@ -624,6 +625,15 @@ export default function ChatHeader({
       {/* Turn this conversation into a workflow or a skill */}
       <SessionReuseMenu
         messageCount={messageCount}
+        sessionTitle={sessionTitle}
+        headerBtnStyle={headerBtnStyle}
+        hoverIn={hoverIn}
+        hoverOut={hoverOut}
+      />
+
+      {/* Run this conversation again on a schedule — sits beside the reuse
+          menu because both turn the current session into a reusable artefact */}
+      <ScheduleConversationButton
         sessionTitle={sessionTitle}
         headerBtnStyle={headerBtnStyle}
         hoverIn={hoverIn}

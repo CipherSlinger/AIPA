@@ -192,7 +192,10 @@
       "automationSuffix": "发起 · {{time}}",
       "pluginStarted": "由插件 {{name}} 发起 · {{time}}",
       "openAutomation": "打开定时任务"
-    }
+    },
+    "scheduleConversation": "定时运行这段对话",
+    "scheduleConversationHint": "把这段对话变成可重复运行的定时任务",
+    "scheduleConversationPreparing": "正在准备定时任务…"
   },
   "sessionReuse": {
     "menu": {
@@ -3141,7 +3144,12 @@
       "row": "定时运行已暂停",
       "help": "全部暂停会暂停所有定时运行，但不改变每个任务自己的开关。手动运行仍然可用。恢复时会重新计算暂停期间错过的运行时间，而不会一次性补跑。",
       "failed": "无法更改暂停状态：{{error}}"
-    }
+    },
+    "prompt": {
+      "freshRunHint": "每次运行都从这段提示开始，不会带上当前对话的上下文。",
+      "clippedHint": "这条消息超过 4000 个字符，只保留了前 4000 个字符，其余内容不会出现在提示中。"
+    },
+    "createdToast": "“{{name}}”已排程：{{schedule}}"
   },
   "speculation": {
     "title": "投机预览",

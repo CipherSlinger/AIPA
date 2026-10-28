@@ -9,7 +9,7 @@ import { decodePluginPath, pluginHost } from './plugins/plugin-url'
 import { endAllPluginEdits } from './plugins/plugin-edit-session'
 import { registerAllHandlers } from './ipc/index'
 import { buildAutomationsSubmenu } from './automation-menu'
-import { listAutomationJobs, runAutomationNow } from './automation/scheduler'
+import { listAutomationJobs, runAutomationNow, setAutomationPausedAll } from './automation/scheduler'
 import type { AutomationJobView } from './automation/types'
 import { ptyManager } from './pty/pty-manager'
 import { listSessions } from './sessions/session-reader'
@@ -366,20 +366,50 @@ function runAutomationNowFromMenu(id: string): void {
   showMainWindow()
 }
 
+/**
+ * Flip the global pause from a menu row. The success path needs no menu work
+ * here: `setAutomationPausedAll` persists and broadcasts `automation:changed`,
+ * and that broadcast is what rebuilds both menus from the new state.
+ */
+function toggleAutomationPause(pausedNow: boolean): void {
+  let result: ReturnType<typeof setAutomationPausedAll>
+  try {
+    result = setAutomationPausedAll(!pausedNow)
+  } catch (err) {
+    log.warn('Pause-all toggle failed:', String(err))
+    return
+  }
+  if (result.ok) return
+  // Same surface as a refused run-now: a native menu cannot show an error, and
+  // nothing changed, so the rows on screen still describe the real state.
+  log.warn(`Pause-all refused: ${result.error}`)
+  showMainWindow()
+}
+
 /** The Automations row, with the job list read fresh at rebuild time. */
 function automationsMenuItem(isZh: boolean): Electron.MenuItemConstructorOptions {
   let jobs: AutomationJobView[] = []
+  let pausedAll = false
   try {
-    jobs = listAutomationJobs().jobs
+    // Jobs and the pause come from one read so the toggle row and every job
+    // row describe the same snapshot.
+    const listed = listAutomationJobs()
+    jobs = listed.jobs
+    pausedAll = listed.limits.pausedAll
+    noteAutomationPause(pausedAll)
   } catch (err) {
-    // A broken automation store must not take the whole menu down.
+    // A broken automation store must not take the whole menu down. The pause
+    // is unknown here; with no jobs listed the toggle row is disabled, so the
+    // submenu makes no claim about a schedule it could not read.
     log.warn('Could not list automations for the menu:', String(err))
   }
   return {
     label: isZh ? '定时任务' : 'Automations',
     submenu: buildAutomationsSubmenu(jobs, {
       isZh,
+      pausedAll,
       runNow: runAutomationNowFromMenu,
+      onTogglePauseAll: () => toggleAutomationPause(pausedAll),
       openSettings: openAutomationsSettings,
     }),
   }
@@ -515,15 +545,44 @@ function createTray(): void {
   })
 }
 
+/**
+ * The global automation pause last read by `automationsMenuItem`. The tray
+ * tooltip repeats it because the tray icon is the one automation surface that
+ * stays visible with the window closed, and "why did nothing run overnight?"
+ * should be answerable by hovering it.
+ */
+let automationPausedAll = false
+/** Session count for the tooltip, cached so a pause change need not rescan. */
+let traySessionCount: number | null = null
+
+function trayTooltipText(): string {
+  let text = 'AIPA - AI Personal Assistant'
+  if (traySessionCount !== null) text += ` (${traySessionCount} sessions)`
+  if (automationPausedAll) text += ' — Automations paused'
+  return text
+}
+
+/**
+ * Record the pause read from the scheduler and refresh the tooltip when it
+ * changed. `rebuildTrayMenu({ reuseSessionCache: true })` — the path a pause
+ * broadcast takes — deliberately skips the session scan, so the tooltip has to
+ * be caught up from the count already on screen.
+ */
+function noteAutomationPause(pausedAll: boolean): void {
+  if (pausedAll === automationPausedAll) return
+  automationPausedAll = pausedAll
+  if (tray && !tray.isDestroyed()) tray.setToolTip(trayTooltipText())
+}
+
 /** Update tray tooltip with session count */
 function updateTrayTooltip(): void {
   if (!tray) return
   try {
-    const sessions = listSessions()
-    tray.setToolTip(`AIPA - AI Personal Assistant (${sessions.length} sessions)`)
+    traySessionCount = listSessions().length
   } catch {
-    tray.setToolTip('AIPA - AI Personal Assistant')
+    traySessionCount = null
   }
+  tray.setToolTip(trayTooltipText())
 }
 
 /**

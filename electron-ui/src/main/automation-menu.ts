@@ -8,8 +8,10 @@
  *
  * Menu rows cannot wrap and native menus do not scroll, so the derivation is
  * deliberately opinionated: names are clipped, a long list stops at
- * `MAX_AUTOMATIONS_IN_MENU` and points at Settings, and every row is either a
- * safe "run now" or a disabled row that says why it cannot run.
+ * `MAX_AUTOMATIONS_IN_MENU` and points at Settings, and every row either starts
+ * its job (a scheduled run, or a manual run that bypasses the global pause) or
+ * is disabled with the reason it cannot run. A job held by the global pause is
+ * never labelled "paused", because its own setting is not what stopped it.
  *
  * No Electron runtime import: only the menu item shape (erased at compile
  * time), so the ordering/label logic can be exercised with plain Node.
@@ -33,8 +35,21 @@ export interface AutomationMenuOptions {
    * and wording can be checked without depending on the wall clock.
    */
   now?: number
+  /**
+   * The global pause, taken from `limits.pausedAll` in the same snapshot as
+   * the jobs. The per-job `pausedAll` field exists for surfaces that can only
+   * list jobs; here one snapshot drives the toggle row and every job row, so
+   * the list can never describe two different worlds.
+   */
+  pausedAll: boolean
   /** Run this job now. The caller owns the refusal handling. */
   runNow: (id: string) => void
+  /**
+   * Flip the global pause to the opposite of `pausedAll`. Passing no target
+   * keeps the menu and its click handler on the same snapshot: the caller
+   * closes over the value it used to build the rows.
+   */
+  onTogglePauseAll: () => void
   /** Open Settings on the Automations tab. */
   openSettings: () => void
 }
@@ -43,19 +58,33 @@ type JobState =
   | 'paused'
   | 'workflow-missing'
   | 'running'
+  | 'held-by-global-pause'
   | 'no-upcoming-run'
   | 'scheduled'
 
 /**
- * How a job's row reads, in menu priority order. A paused job wins even when
- * its workflow is also gone: "paused" is the setting the user last chose, and
- * it explains the missing next run without accusing the workflow. A running
- * job is checked before `nextRunAt` because its run is the fact worth showing.
+ * How a job's row reads, in menu priority order.
+ *
+ * 1. A job switched off by the user is "paused" — that is the setting they
+ *    last chose, and it explains the missing next run even when the workflow
+ *    is also gone.
+ * 2. A job whose workflow was deleted is broken, and resuming will not fix
+ *    it, so it is still named while the global pause hides everything else.
+ * 3. A running job is a live fact. Manual runs are allowed during a pause, so
+ *    "running now" outranks the global hold.
+ * 4. An enabled job under the global pause is held, not scheduled. Its
+ *    `nextRunAt` is frozen across the pause, so showing that countdown would
+ *    promise a run the scheduler will not start. This sits before "no
+ *    upcoming run" because a dead cron is re-evaluated on resume, while the
+ *    pause is the operative reason right now.
+ * 5. An enabled job with no next fire is a dead cron.
+ * 6. Otherwise the row carries the countdown and starts the job.
  */
-function jobState(job: AutomationJobView): JobState {
+function jobState(job: AutomationJobView, pausedAll: boolean): JobState {
   if (!job.enabled) return 'paused'
   if (job.actionMissing) return 'workflow-missing'
   if (job.running) return 'running'
+  if (pausedAll) return 'held-by-global-pause'
   if (job.nextRunAt === null) return 'no-upcoming-run'
   return 'scheduled'
 }
@@ -131,7 +160,7 @@ function jobItem(
 ): MenuItemConstructorOptions {
   const { isZh, runNow } = options
   const name = clipName(job.name)
-  const state = jobState(job)
+  const state = jobState(job, options.pausedAll)
   const status = (en: string, zh: string) => `${name} — ${isZh ? zh : en}`
 
   switch (state) {
@@ -143,6 +172,14 @@ function jobItem(
       // The run already owns this job; a second start is refused by the
       // scheduler, so do not even offer it.
       return { label: status('running now', '运行中'), enabled: false }
+    case 'held-by-global-pause':
+      // The global switch is holding it, not its own `enabled` flag, and the
+      // row must not show the frozen countdown. It stays clickable because a
+      // manual run bypasses the pause; the note above the list says so.
+      return {
+        label: status('held by global pause', '全局暂停中'),
+        click: () => runNow(job.id),
+      }
     case 'no-upcoming-run':
       return { label: status('no upcoming run', '无下次运行'), enabled: false }
     case 'scheduled': {
@@ -165,10 +202,34 @@ export function buildAutomationsSubmenu(
   options: AutomationMenuOptions,
 ): MenuItemConstructorOptions[] {
   const now = options.now ?? Date.now()
-  const { isZh, openSettings } = options
+  const { isZh, pausedAll, onTogglePauseAll, openSettings } = options
+  const hasJobs = jobs.length > 0
 
   const items: MenuItemConstructorOptions[] = []
-  if (jobs.length === 0) {
+  // The switch leads the list: while it is on, every enabled row below is
+  // held, so the reason belongs above them rather than at the bottom.
+  items.push({
+    label: pausedAll
+      ? (isZh ? '恢复全部定时任务' : 'Resume all automations')
+      : (isZh ? '暂停全部定时任务' : 'Pause all automations'),
+    enabled: hasJobs,
+    // No jobs means nothing to pause; a disabled row with a click handler is
+    // still a row Electron will not fire, but omitting it keeps the intent
+    // readable.
+    ...(hasJobs ? { click: () => onTogglePauseAll() } : {}),
+  })
+  if (pausedAll && hasJobs) {
+    // A paused header alone is not enough: the rows below still carry names,
+    // and one of them may be running, so say once why the schedule is quiet
+    // and that a click on a held row still starts it.
+    items.push({
+      label: isZh ? '定时运行已暂停，手动运行不受影响' : 'Scheduled runs paused — Run now still works',
+      enabled: false,
+    })
+  }
+  items.push({ type: 'separator' })
+
+  if (!hasJobs) {
     items.push({ label: isZh ? '暂无定时任务' : 'No automations yet', enabled: false })
   } else {
     const sorted = [...jobs].sort(compareJobs)

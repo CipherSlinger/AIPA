@@ -6,13 +6,14 @@
 // `AutomationInputData` accepts and reports save errors verbatim.
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { Info } from 'lucide-react'
 import { useI18n } from '../../i18n'
-import { usePrefsStore } from '../../store'
+import { usePrefsStore, useUiStore } from '../../store'
 import type { Persona } from '../../types/app.types'
 import Toggle from '../ui/Toggle'
 import { INPUT_STYLE } from '../settings/settingsConstants'
 import { pushEscapeHandler } from '../ui/escapeStack'
-import { clockText, describeCron } from './scheduleText'
+import { clockText, describeCron, scheduleText } from './scheduleText'
 import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from './automationStyles'
 import type {
   AutomationInputData,
@@ -50,6 +51,21 @@ export interface AutomationDialogProps {
    * Name and trigger keep their defaults; the user can still change anything.
    */
   initialWorkflowId?: string
+  /**
+   * Create mode only: open with action "send a prompt" and this text. An empty
+   * string still selects the prompt action, so the caller can prefill a
+   * conversation whose first message the user has yet to write. Absence keeps
+   * today's default (a workflow when one exists).
+   */
+  initialPrompt?: string
+  /** Create mode only: prefill the name. Absent leaves the field empty. */
+  initialName?: string
+  /**
+   * Only meaningful with `initialPrompt`: the caller had to cut the text to
+   * the editor's limit. The dialog then says so rather than presenting the
+   * shortened text as the user's whole message.
+   */
+  initialPromptClipped?: boolean
   onClose: () => void
 }
 
@@ -66,9 +82,13 @@ export default function AutomationDialog({
   workflows,
   limits,
   initialWorkflowId,
+  initialPrompt,
+  initialName,
+  initialPromptClipped,
   onClose,
 }: AutomationDialogProps) {
   const { t } = useI18n()
+  const addToast = useUiStore(s => s.addToast)
   const editing = job !== null
   const personas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
 
@@ -81,16 +101,23 @@ export default function AutomationDialog({
   const initialCron = job && job.trigger.kind === 'cron' ? describeCron(job.trigger.expr) : null
   const cronIsCustom = !!job && job.trigger.kind === 'cron' && !initialCron
 
+  // An explicit prompt prefill wins over the "workflows exist" default: the
+  // caller (the chat header) already decided that this job should send text,
+  // not run a pipeline, and inventing a workflow would be a different job.
   const defaultActionKind: 'workflow' | 'prompt' =
-    job?.action.kind ?? (presetWorkflowId || workflows.length > 0 ? 'workflow' : 'prompt')
+    job?.action.kind ??
+    (presetWorkflowId || (initialPrompt === undefined && workflows.length > 0) ? 'workflow' : 'prompt')
 
-  const [name, setName] = useState(job?.name ?? '')
+  const [name, setName] = useState(job?.name ?? initialName ?? '')
   const [enabled, setEnabled] = useState(job?.enabled ?? true)
   const [actionKind, setActionKind] = useState<'workflow' | 'prompt'>(defaultActionKind)
   const [workflowId, setWorkflowId] = useState(
     job?.action.kind === 'workflow' ? job.action.workflowId : (presetWorkflowId ?? workflows[0]?.id ?? ''),
   )
-  const [prompt, setPrompt] = useState(job?.action.kind === 'prompt' ? job.action.prompt : '')
+  const [prompt, setPrompt] = useState(() => {
+    if (job) return job.action.kind === 'prompt' ? job.action.prompt : ''
+    return initialPrompt ?? ''
+  })
   // '' follows the workflow; ASSISTANT_PERSONA_ID is an explicit plain assistant;
   // anything else is a persona id.
   const [personaChoice, setPersonaChoice] = useState<string>(() => {
@@ -184,8 +211,18 @@ export default function AutomationDialog({
       const result = job
         ? await window.electronAPI.automationUpdate(job.id, input)
         : await window.electronAPI.automationCreate(input)
-      if (result.ok) onClose()
-      else setError(errorText(result.error))
+      if (result.ok) {
+        // A new job's next run is the one fact the user cannot see yet: the
+        // list behind this dialog may not even be open. Name the schedule in
+        // the same words the settings row uses.
+        if (!job) {
+          addToast('success', t('automation.createdToast', {
+            name: name.trim(),
+            schedule: scheduleText(t, trigger),
+          }))
+        }
+        onClose()
+      } else setError(errorText(result.error))
     } catch (err) {
       setError(String(err))
     } finally {
@@ -290,14 +327,23 @@ export default function AutomationDialog({
               </select>
             )
           ) : (
-            <textarea
-              value={prompt}
-              onChange={e => setPrompt(e.target.value)}
-              placeholder={t('automation.action.promptPlaceholder')}
-              rows={4}
-              maxLength={4000}
-              style={{ ...INPUT_STYLE, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }}
-            />
+            <>
+              <textarea
+                value={prompt}
+                onChange={e => setPrompt(e.target.value)}
+                placeholder={t('automation.action.promptPlaceholder')}
+                rows={4}
+                maxLength={4000}
+                style={{ ...INPUT_STYLE, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }}
+              />
+              {/* The caller clips before handing the text over; the editor's own
+                  maxLength cannot tell the user that the source was longer. */}
+              {initialPromptClipped && !editing && (
+                <div style={{ fontSize: 11, color: WARNING, marginTop: 4, lineHeight: 1.5 }}>
+                  {t('automation.prompt.clippedHint')}
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -493,6 +539,21 @@ export default function AutomationDialog({
           <Toggle value={enabled} onChange={setEnabled} aria-label={t('automation.field.enabled')} />
           <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t('automation.field.enabled')}</span>
         </div>
+
+        {actionKind === 'prompt' && (
+          // A scheduled run opens its own session. Saying so here, where the
+          // schedule is decided, keeps anyone from expecting the assistant to
+          // remember the conversation this prompt was lifted from.
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 6,
+            marginBottom: 12, padding: '6px 9px', borderRadius: 6,
+            background: 'var(--bg-hover)', border: '1px solid var(--border)',
+            fontSize: 11, color: SECONDARY, lineHeight: 1.5,
+          }}>
+            <Info size={12} style={{ flexShrink: 0, marginTop: 1 }} />
+            <span>{t('automation.prompt.freshRunHint')}</span>
+          </div>
+        )}
 
         {error && (
           <div style={{
