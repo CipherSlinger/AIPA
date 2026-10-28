@@ -688,13 +688,41 @@ nav[aria-label="Main navigation"]::-webkit-scrollbar {
 *:focus {
   outline: none;
 }
+/* The ring follows each control's own border-radius. A blanket `border-radius:
+   4px` here used to square off pills and rounded rows for as long as they held
+   focus; the outline already mirrors the element's shape, so it is not needed. */
 *:focus-visible {
-  outline: 2px solid rgba(99,102,241,0.60);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 4px;
 }
 *:focus:not(:focus-visible) {
   outline: none;
+}
+
+/* Rows that live inside a clipped card or against a scroller edge cannot show
+   an outside ring — the card's overflow cuts it off. Draw theirs just inside so
+   keyboard focus stays visible without shifting content. */
+.row-focus-inset:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Hover-only row affordances (the archive row's archive button) must still be
+   visible when reached with the keyboard. Their opacity is set inline, so the
+   reveal has to win with `!important`. */
+.row-action:focus-visible {
+  opacity: 1 !important;
+}
+
+/* Clickable list headers and underlined text buttons have no React hover
+   state; give them the same colour-only hover the surrounding rows use. */
+.archive-group-header:hover {
+  color: var(--text-primary) !important;
+}
+.archive-hover-link:hover {
+  color: var(--text-primary) !important;
+}
+.archive-hover-btn:hover:not(:disabled) {
+  background: var(--bg-active) !important;
 }
 
 /* Cursor hint for interactive elements */

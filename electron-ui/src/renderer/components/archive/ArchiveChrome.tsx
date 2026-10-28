@@ -26,12 +26,17 @@ export function Pill({
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 5, maxWidth: '100%',
-        padding: '3px 9px', borderRadius: 999, fontSize: 11, cursor: 'pointer',
-        border: `1px solid ${active ? 'rgba(99,102,241,0.5)' : 'var(--border)'}`,
-        background: active ? 'rgba(99,102,241,0.14)' : hovered ? 'var(--bg-hover)' : 'transparent',
+        // Fixed height matches the select and the search box on the same row;
+        // 3px padding left the chips a couple of pixels shorter than the
+        // fields beside them.
+        height: 24, boxSizing: 'border-box',
+        padding: '0 10px', borderRadius: 999, fontSize: 11, lineHeight: '16px',
+        cursor: 'pointer',
+        border: `1px solid ${active ? 'var(--accent-border)' : 'var(--border)'}`,
+        background: active ? 'var(--accent-bg)' : hovered ? 'var(--bg-hover)' : 'transparent',
         color: active ? 'var(--accent-text)' : 'var(--text-muted)',
         fontWeight: active ? 600 : 400,
-        transition: 'all 0.15s ease',
+        transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease',
         whiteSpace: 'nowrap',
       }}
     >
@@ -57,7 +62,7 @@ export function CommandOnlyNotice({
   return (
     <div style={{
       flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8,
-      padding: '7px 16px', borderTop: '1px solid var(--bg-hover)',
+      padding: '7px 16px', borderTop: '1px solid var(--border)',
       fontSize: 10, color: 'var(--text-subtle)',
     }}>
       <span>
@@ -65,6 +70,7 @@ export function CommandOnlyNotice({
       </span>
       <button
         onClick={onToggle}
+        className="archive-hover-link"
         style={{
           background: 'none', border: 'none', padding: 0, cursor: 'pointer',
           color: 'var(--text-muted)', fontSize: 10,
@@ -83,20 +89,24 @@ export function EmptyState({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '56px 20px', textAlign: 'center' }}>
       <div style={{
-        width: 68, height: 68, borderRadius: 20,
+        // 64px / 16px radius is the empty-state tile shared with the sidebar;
+        // the old 68px / 20px tile was a one-off.
+        width: 64, height: 64, borderRadius: 16,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.16)',
+        background: 'var(--accent-bg)', border: '1px solid var(--accent-border)',
       }}>
         {icon}
       </div>
-      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-secondary)' }}>{title}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{title}</div>
       <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.65, maxWidth: 340 }}>{hint}</div>
       {onClear && (
         <button
           onClick={onClear}
+          className="archive-hover-btn"
           style={{
             padding: '6px 14px', borderRadius: 8, fontSize: 12, cursor: 'pointer',
             border: '1px solid var(--border)', background: 'var(--bg-hover)', color: 'var(--text-secondary)',
+            transition: 'background 0.15s ease',
           }}
         >
           {clearLabel}

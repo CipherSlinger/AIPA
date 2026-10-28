@@ -97,6 +97,7 @@ export default function DeptRow({
           setConfirmDelete(true)
         }
       }}
+      className="row-focus-inset"
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -105,25 +106,25 @@ export default function DeptRow({
         borderRadius: 8,
         marginBottom: 2,
         cursor: editing ? 'default' : 'pointer',
+        // Hover is a background step and selection is the accent tint — the
+        // same two states every other row in the app uses. Focus is left to
+        // the inset `:focus-visible` ring so a click does not leave a row
+        // looking hovered after the pointer moves away.
         background: isActive
-          ? 'rgba(99,102,241,0.10)'
-          : hovered || focused
+          ? 'var(--accent-bg)'
+          : hovered
           ? 'var(--bg-hover)'
           : 'transparent',
-        boxShadow: hovered || focused ? '0 2px 8px rgba(0,0,0,0.3)' : 'none',
-        // Left accent bar for active/focused state
-        borderLeft: isActive
-          ? '3px solid rgba(99,102,241,0.75)'
-          : hovered || focused
-          ? `3px solid ${dept.color ? dept.color + '66' : 'rgba(99,102,241,0.4)'}`
-          : '3px solid transparent',
-        paddingLeft: (isActive || hovered || focused) ? 9 : 12,
+        // Left accent bar for the selected row. The transparent 3px border is
+        // always present and padding is constant, so the title never jumps
+        // sideways when the bar appears.
+        borderLeft: isActive ? '3px solid var(--accent)' : '3px solid transparent',
+        paddingLeft: 9,
         position: 'relative',
-        transition: 'all 0.15s ease',
-        outline: 'none',
+        transition: 'background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease',
         opacity: draggingId === dept.id ? 0.4 : 1,
         borderTop: dragOverId === dept.id && draggingId !== dept.id
-          ? '2px solid #6366f1'
+          ? '2px solid var(--accent)'
           : '2px solid transparent',
       }}
     >
@@ -174,13 +175,13 @@ export default function DeptRow({
           style={{
             flex: 1,
             background: 'var(--bg-hover)',
-            border: '1px solid rgba(99,102,241,0.40)',
+            border: '1px solid var(--accent-border)',
             borderRadius: 5,
             padding: '2px 7px',
             color: 'var(--text-primary)',
             fontSize: 12,
             outline: 'none',
-            boxShadow: '0 0 0 3px rgba(99,102,241,0.10)',
+            boxShadow: '0 0 0 3px var(--accent-bg)',
             transition: 'border-color 0.15s ease',
           }}
         />
@@ -211,19 +212,23 @@ export default function DeptRow({
         </div>
       )}
 
+      {/* A count, not a second title: neutral chip, regular weight. The
+          unread count keeps the solid alert fill because it is the one badge
+          that asks the user to act. */}
       {!editing && count > 0 && (
         <span style={{
           marginLeft: 'auto',
           fontSize: 10,
-          fontWeight: 700,
-          color: 'var(--accent-text)',
-          background: 'rgba(99,102,241,0.15)',
-          borderRadius: 6,
-          padding: '1px 7px',
+          fontWeight: 500,
+          color: 'var(--text-muted)',
+          background: 'var(--bg-active)',
+          borderRadius: 999,
+          padding: '0 6px',
           lineHeight: '16px',
+          height: 16,
           flexShrink: 0,
-          border: '1px solid rgba(99,102,241,0.25)',
-          transition: 'all 0.15s ease',
+          border: '1px solid var(--border)',
+          transition: 'background 0.15s ease',
           fontVariantNumeric: 'tabular-nums',
           fontFeatureSettings: '"tnum"',
         }}>
@@ -234,15 +239,17 @@ export default function DeptRow({
       {!editing && unreadCount > 0 && (
         <span style={{
           fontSize: 9,
-          fontWeight: 700,
-          color: 'rgba(255,255,255,0.95)',
-          background: '#f87171',
-          borderRadius: 20,
-          padding: '1px 5px',
-          lineHeight: '14px',
+          fontWeight: 600,
+          color: 'var(--bubble-user-text)',
+          background: 'var(--danger-solid)',
+          borderRadius: 999,
+          padding: '0 5px',
+          height: 16,
+          lineHeight: '16px',
           flexShrink: 0,
-          minWidth: 14,
+          minWidth: 16,
           textAlign: 'center',
+          fontVariantNumeric: 'tabular-nums',
         }}>
           {unreadCount}
         </span>
@@ -270,11 +277,11 @@ export default function DeptRow({
           title={t('dept.enter')}
           style={{
             border: 'none',
-            background: isActive ? 'rgba(99,102,241,0.25)' : 'rgba(99,102,241,0.12)',
+            background: 'var(--accent-bg)',
             cursor: 'pointer',
-            color: isActive ? 'var(--accent-text)' : 'var(--accent-text)',
+            color: 'var(--accent-text)',
             padding: '3px 7px',
-            borderRadius: 5,
+            borderRadius: 6,
             display: 'flex',
             alignItems: 'center',
             gap: 3,
@@ -282,16 +289,10 @@ export default function DeptRow({
             fontWeight: 700,
             letterSpacing: '0.04em',
             flexShrink: 0,
-            transition: 'all 0.15s ease',
+            transition: 'background 0.15s ease',
           }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(99,102,241,0.28)'
-            e.currentTarget.style.color = 'var(--accent-text)'
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = isActive ? 'rgba(99,102,241,0.25)' : 'rgba(99,102,241,0.12)'
-            e.currentTarget.style.color = isActive ? 'var(--accent-text)' : 'var(--accent-text)'
-          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-border)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--accent-bg)' }}
         >
           <LogIn size={9} />
         </button>
@@ -303,16 +304,16 @@ export default function DeptRow({
             onClick={saveEdit}
             style={{
               border: 'none',
-              background: 'rgba(99,102,241,0.15)',
+              background: 'var(--accent-bg)',
               cursor: 'pointer',
-              color: '#6366f1',
+              color: 'var(--accent-text)',
               padding: '3px 5px',
               borderRadius: 4,
               display: 'flex',
-              transition: 'all 0.15s ease',
+              transition: 'background 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.25)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-border)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--accent-bg)' }}
           >
             <Check size={11} />
           </button>
@@ -328,7 +329,7 @@ export default function DeptRow({
               display: 'flex',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-active)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
           >
             <X size={11} />
@@ -341,7 +342,7 @@ export default function DeptRow({
           onClick={e => { e.stopPropagation(); setMenuOpen(!menuOpen) }}
           style={{
             border: 'none',
-            background: menuOpen ? 'var(--border)' : 'none',
+            background: menuOpen ? 'var(--bg-active)' : 'none',
             cursor: 'pointer',
             color: menuOpen ? 'var(--text-primary)' : 'var(--text-muted)',
             padding: 4,
@@ -352,10 +353,10 @@ export default function DeptRow({
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
-            transition: 'all 0.15s ease',
+            transition: 'background 0.15s ease, color 0.15s ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = 'var(--border)'
+            e.currentTarget.style.background = 'var(--bg-active)'
             e.currentTarget.style.color = 'var(--text-primary)'
           }}
           onMouseLeave={e => {

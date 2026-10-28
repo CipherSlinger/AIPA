@@ -8,11 +8,13 @@ import DeptPanelHeader from './DeptPanelHeader'
 import DeptAddForm from './DeptAddForm'
 import DeptRow from './DeptRow'
 
+// The list shares the global 6px scrollbar so its right gutter lines up with
+// the archive ledger's: same thumb width, same 3px radius, same track.
 const SCROLLBAR_STYLE = `
   .dept-panel-scroll::-webkit-scrollbar,
-  .sidebar-session-scroll::-webkit-scrollbar { width: 4px; }
+  .sidebar-session-scroll::-webkit-scrollbar { width: 6px; }
   .dept-panel-scroll::-webkit-scrollbar-thumb,
-  .sidebar-session-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .sidebar-session-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   .dept-panel-scroll::-webkit-scrollbar-track,
   .sidebar-session-scroll::-webkit-scrollbar-track { background: transparent; }
   @keyframes slideUp {
@@ -96,7 +98,10 @@ export default function DepartmentPanel() {
       />
 
       {/* Department list */}
-      <div className="dept-panel-scroll sidebar-session-scroll" style={{ flex: 1, overflowY: 'auto', padding: '6px 8px', scrollbarWidth: 'thin' }}>
+      {/* No `scrollbarWidth: 'thin'` here: in Chromium it overrides the
+          ::-webkit-scrollbar rules above and left this list with a narrower
+          bar than the archive ledger. */}
+      <div className="dept-panel-scroll sidebar-session-scroll" style={{ flex: 1, overflowY: 'auto', padding: '6px 8px' }}>
         {departments.length === 0 && !showAddForm ? (
           <div style={{
             padding: '32px 16px',
@@ -106,12 +111,13 @@ export default function DepartmentPanel() {
             alignItems: 'center',
             gap: 0,
           }}>
+            {/* Same 64px / 16px-radius tile as the archive's empty states. */}
             <div style={{
               width: 64,
               height: 64,
               borderRadius: 16,
-              background: 'rgba(99,102,241,0.08)',
-              border: '1px solid rgba(99,102,241,0.15)',
+              background: 'var(--accent-bg)',
+              border: '1px solid var(--accent-border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -133,23 +139,21 @@ export default function DepartmentPanel() {
               style={{
                 padding: '7px 18px',
                 borderRadius: 6,
-                border: '1px solid rgba(99,102,241,0.4)',
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(99,102,241,0.06))',
-                color: '#6366f1',
+                border: '1px solid var(--accent-border)',
+                background: 'var(--accent-bg)',
+                color: 'var(--accent-text)',
                 fontSize: 11,
                 fontWeight: 600,
                 cursor: 'pointer',
-                transition: 'background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
+                transition: 'background 0.15s ease, border-color 0.15s ease',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(99,102,241,0.12))'
-                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'
-                e.currentTarget.style.boxShadow = '0 2px 8px rgba(99,102,241,0.2)'
+                e.currentTarget.style.background = 'var(--accent-border)'
+                e.currentTarget.style.borderColor = 'var(--accent)'
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(99,102,241,0.06))'
-                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'
-                e.currentTarget.style.boxShadow = 'none'
+                e.currentTarget.style.background = 'var(--accent-bg)'
+                e.currentTarget.style.borderColor = 'var(--accent-border)'
               }}
             >
               + {t('dept.create')}
@@ -162,10 +166,9 @@ export default function DepartmentPanel() {
               gap: 8,
               alignItems: 'center',
               justifyContent: 'center',
-              opacity: 0.6,
             }}>
               <span>{t('dept.pressToCreate')}</span>
-              <kbd style={{ fontSize: 9, background: 'var(--border)', borderRadius: 3, padding: '0 4px', border: '1px solid var(--border)' }}>N</kbd>
+              <kbd style={{ fontSize: 9, background: 'var(--bg-active)', borderRadius: 3, padding: '0 4px', border: '1px solid var(--border)' }}>N</kbd>
               <span>{t('dept.toCreate')}</span>
             </div>
           </div>
@@ -203,27 +206,25 @@ export default function DepartmentPanel() {
             gap: 6,
             margin: '6px 10px 10px',
             padding: '7px 10px',
-            border: '1px dashed rgba(99,102,241,0.3)',
-            borderRadius: 7,
-            background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(99,102,241,0.05))',
+            border: '1px dashed var(--accent-border)',
+            borderRadius: 6,
+            background: 'var(--accent-bg)',
             color: 'var(--text-muted)',
             fontSize: 11,
             cursor: 'pointer',
             flexShrink: 0,
             width: 'calc(100% - 20px)',
-            transition: 'border-color 0.15s ease, color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease',
+            transition: 'border-color 0.15s ease, color 0.15s ease, background 0.15s ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.borderColor = 'rgba(99,102,241,0.55)'
-            e.currentTarget.style.color = '#6366f1'
-            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.22), rgba(99,102,241,0.08))'
-            e.currentTarget.style.boxShadow = '0 2px 8px rgba(99,102,241,0.1)'
+            e.currentTarget.style.borderColor = 'var(--accent)'
+            e.currentTarget.style.color = 'var(--accent-text)'
+            e.currentTarget.style.background = 'var(--accent-border)'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)'
+            e.currentTarget.style.borderColor = 'var(--accent-border)'
             e.currentTarget.style.color = 'var(--text-muted)'
-            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(99,102,241,0.05))'
-            e.currentTarget.style.boxShadow = 'none'
+            e.currentTarget.style.background = 'var(--accent-bg)'
           }}
         >
           <Plus size={12} />

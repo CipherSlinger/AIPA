@@ -778,6 +778,8 @@ function wireCodexBridge(
   bridge.on('itemStarted', (d) => sink('cli:itemStarted', d))
   bridge.on('itemCompleted', (d) => sink('cli:itemCompleted', d))
   bridge.on('toolProgress', (d) => sink('cli:toolProgress', d))
+  // Live `apply_patch` snapshots; the Edit card grows while Codex writes.
+  bridge.on('patchUpdated', (d) => sink('cli:patchUpdated', d))
   bridge.on('threadStarted', (d) => {
     noteBridgeSession(bridgeId, d.threadId)
     sink('cli:threadStarted', d)

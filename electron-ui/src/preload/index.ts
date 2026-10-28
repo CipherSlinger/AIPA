@@ -785,6 +785,32 @@ export interface CliThreadLifecycleEventData {
   threadId?: string
 }
 
+/**
+ * `cli:patchUpdated` payload (`item/fileChange/patchUpdated`, Codex 0.145).
+ *
+ * Verified wire shape (generated schema + binary discriminant):
+ * `{ itemId, threadId, turnId, changes: Array<{ path, kind, diff }> }`. Each
+ * `diff` is the cumulative unified diff for one file as parsed *so far* — a
+ * snapshot to replace, not a delta — and its tail may sit mid-hunk while the
+ * model is still writing. Every field is optional here because a push payload
+ * is untrusted until `normalizePatchUpdate` validates it; `truncated` is added
+ * by the bridge, not the protocol, when `diff` was tail-clipped to 32 KiB.
+ */
+export interface CliPatchUpdatedEventData {
+  sessionId?: string
+  itemId?: string
+  threadId?: string
+  turnId?: string
+  changes?: Array<{
+    path?: string
+    /** `PatchChangeKind` tagged object, forwarded verbatim. */
+    kind?: unknown
+    diff?: string
+    truncated?: boolean
+  }>
+  [key: string]: unknown
+}
+
 const electronAPI = {
   // ── IPC readiness check ────────────────────
   ipcPing: () => ipcRenderer.invoke('ipc:ping') as Promise<{ ok: boolean; timestamp: number }>,
@@ -1014,6 +1040,7 @@ const electronAPI = {
       'cli:taskCompleted',
       // Codex-specific channels
       'cli:itemStarted', 'cli:itemCompleted', 'cli:toolProgress',
+      'cli:patchUpdated',
       'cli:threadStarted', 'cli:threadClosed', 'cli:messageStart',
       'cli:tokenUsageUpdated', 'cli:turnError', 'cli:threadStatusChanged',
       'cli:planUpdated', 'cli:compacted',

@@ -22,9 +22,7 @@ export default function DeptPanelHeader({
   return (
     <div style={{
       padding: '14px 14px 10px',
-      borderBottom: '1px solid var(--bg-hover)',
-      paddingBottom: 10,
-      marginBottom: 0,
+      borderBottom: '1px solid var(--border)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -35,7 +33,7 @@ export default function DeptPanelHeader({
           width: 2,
           height: 14,
           borderRadius: 2,
-          background: '#6366f1',
+          background: 'var(--accent)',
           opacity: 0.7,
           flexShrink: 0,
         }} />
@@ -49,17 +47,20 @@ export default function DeptPanelHeader({
         }}>
           {t('dept.panelTitle')}
         </span>
+        {/* A quiet count chip: the section title must stay the one bold thing
+            on this line. Same chip as the archive group headers. */}
         {departmentCount > 0 && (
           <span style={{
-            fontSize: 9,
-            fontWeight: 700,
-            color: '#6366f1',
-            background: 'rgba(99,102,241,0.12)',
-            border: '1px solid rgba(99,102,241,0.2)',
-            borderRadius: 10,
-            padding: '0px 5px',
-            lineHeight: '14px',
+            fontSize: 10,
+            fontWeight: 500,
+            color: 'var(--text-muted)',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border)',
+            borderRadius: 999,
+            padding: '0 6px',
+            lineHeight: '16px',
             flexShrink: 0,
+            fontVariantNumeric: 'tabular-nums',
           }}>
             {departmentCount}
           </span>
@@ -77,11 +78,14 @@ export default function DeptPanelHeader({
               color: 'var(--text-muted)',
               display: 'flex',
               alignItems: 'center',
-              padding: '4px 6px',
-              borderRadius: 4,
-              transition: 'all 0.15s ease',
+              justifyContent: 'center',
+              padding: 0,
+              width: 24,
+              height: 24,
+              borderRadius: 6,
+              transition: 'background 0.15s ease, color 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)' }}
           >
             {forceCollapsed === true ? <ChevronsUpDown size={13} /> : <ChevronsDownUp size={13} />}
@@ -91,33 +95,27 @@ export default function DeptPanelHeader({
           onClick={onToggleAddForm}
           title={t('dept.add')}
           style={{
-            border: `1px solid ${showAddForm ? 'rgba(99,102,241,0.5)' : 'rgba(99,102,241,0.3)'}`,
-            background: showAddForm
-              ? 'linear-gradient(135deg, rgba(99,102,241,0.35), rgba(139,92,246,0.3))'
-              : 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.2))',
+            border: `1px solid ${showAddForm ? 'var(--accent)' : 'var(--accent-border)'}`,
+            background: showAddForm ? 'var(--accent-bg)' : 'transparent',
             cursor: 'pointer',
-            color: 'rgba(99,102,241,1)',
-            padding: 4,
-            borderRadius: 8,
+            color: 'var(--accent-text)',
+            padding: 0,
+            borderRadius: 6,
             display: 'flex',
             width: 24,
             height: 24,
             alignItems: 'center',
             justifyContent: 'center',
             fontWeight: 600,
-            transition: 'background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
+            transition: 'background 0.15s ease, border-color 0.15s ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.38), rgba(139,92,246,0.32))'
-            e.currentTarget.style.borderColor = 'rgba(99,102,241,0.55)'
-            e.currentTarget.style.boxShadow = '0 2px 8px rgba(99,102,241,0.25)'
+            e.currentTarget.style.background = 'var(--accent-bg)'
+            e.currentTarget.style.borderColor = 'var(--accent)'
           }}
           onMouseLeave={e => {
-            if (!showAddForm) {
-              e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.2))'
-              e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)'
-              e.currentTarget.style.boxShadow = 'none'
-            }
+            e.currentTarget.style.background = showAddForm ? 'var(--accent-bg)' : 'transparent'
+            e.currentTarget.style.borderColor = showAddForm ? 'var(--accent)' : 'var(--accent-border)'
           }}
         >
           <Plus size={14} />

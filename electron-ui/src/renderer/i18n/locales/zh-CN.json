@@ -238,6 +238,12 @@
       "enteredReview": "进入审阅模式",
       "exitedReview": "退出审阅模式",
       "contextCompaction": "压缩了对话上下文"
+    },
+    "fileEdit": {
+      "liveDiff": "实时差异",
+      "liveHint": "仍在写入——编辑完成后显示最终差异。",
+      "hiddenLines": "还有 {{count}} 行",
+      "partialTruncated": "改动较大，仅显示最新部分。"
     }
   },
   "sessionReuse": {

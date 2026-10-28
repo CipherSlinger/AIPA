@@ -462,6 +462,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
         input={tool.input || {}}
         result={editResult}
         isStreaming={tool.status === 'running'}
+        toolId={tool.id}
       />
     )
   }

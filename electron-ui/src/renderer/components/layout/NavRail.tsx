@@ -69,7 +69,7 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
         borderRadius: 8,
         border: 'none',
         background: isActive
-          ? 'rgba(99,102,241,0.10)'
+          ? 'var(--accent-bg)'
           : hovered
           ? 'var(--bg-hover)'
           : 'transparent',
@@ -77,7 +77,7 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
         marginBottom: 1,
         transition: 'all 0.15s ease',
         color: isActive
-          ? '#818cf8'
+          ? 'var(--accent-text)'
           : hovered
           ? 'var(--text-primary)'
           : 'var(--text-muted)',
@@ -99,8 +99,8 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
             width: 2,
             height: 16,
             borderRadius: '0 2px 2px 0',
-            background: 'rgba(99,102,241,0.6)',
-            opacity: 1,
+            background: 'var(--accent)',
+            opacity: 0.7,
             transition: 'all 0.15s ease',
           }}
         />
@@ -127,7 +127,9 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
         </span>
       )}
 
-      {/* Badge */}
+      {/* Badge. Sized below the 10px nav label: it is a count, not a second
+          title. The label uses the palette's white-on-solid token so the fill
+          (`--danger-solid`) stays readable in both themes. */}
       {badge !== undefined && badge > 0 && (
         <div
           style={{
@@ -137,14 +139,16 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
             minWidth: 16,
             height: 16,
             borderRadius: 8,
-            background: badgeColor || '#6366f1',
-            color: 'var(--text-primary)',
+            background: badgeColor || 'var(--accent-solid)',
+            color: 'var(--bubble-user-text)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '0 4px',
+            padding: '0 5px',
             lineHeight: 1,
             flexShrink: 0,
+            fontSize: 9,
+            fontWeight: 600,
             fontVariantNumeric: 'tabular-nums',
           }}
         >
@@ -162,7 +166,7 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
             width: 8,
             height: 8,
             borderRadius: '50%',
-            background: '#4ade80',
+            background: 'var(--success)',
             border: '1.5px solid var(--bg-nav)',
             animation: 'pulse 2s ease infinite',
             zIndex: 2,
@@ -189,7 +193,7 @@ function NavItem({ icon, label, isActive, onClick, badge, badgeColor, shortcut, 
             fontWeight: 500,
             color: 'var(--text-primary)',
             whiteSpace: 'nowrap',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            boxShadow: 'var(--popup-shadow)',
             pointerEvents: 'none',
             zIndex: 250,
             animation: 'slideUp 0.15s ease',
@@ -298,7 +302,7 @@ export default function NavRail() {
         }}
         pulseDot={isStreaming && !isDepartmentActive}
         badge={unreadSessionCount > 0 ? unreadSessionCount : undefined}
-        badgeColor="#f87171"
+        badgeColor="var(--danger-solid)"
         expanded={navExpanded}
       />
 
@@ -383,7 +387,7 @@ export default function NavRail() {
               ? `${activePersona.color}20`
               : selectedAvatar
               ? selectedAvatar.bg
-              : 'rgba(99,102,241,0.20)',
+              : 'var(--accent-bg)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: navExpanded ? 'flex-start' : 'center',
@@ -395,7 +399,7 @@ export default function NavRail() {
               ? `2px solid ${selectedAvatar.border}`
               : '2px solid transparent',
             boxShadow: avatarHovered
-              ? '0 0 0 2px rgba(99,102,241,0.30)'
+              ? '0 0 0 2px var(--accent-border)'
               : 'none',
             transition: 'all 0.15s ease',
             gap: navExpanded ? 8 : 0,

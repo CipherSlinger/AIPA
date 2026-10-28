@@ -576,6 +576,86 @@ const PLAN_DELTA_MIN_INTERVAL_MS = 150
 const PLAN_DELTA_BUFFER_LIMIT = 16 * 1024
 const TURN_DIFF_LIMIT = 32 * 1024
 
+/**
+ * Bound a diff before it crosses IPC. The tail is kept because the newest
+ * hunks are what a live card is showing; truncation is explicit so the
+ * renderer never mistakes a clipped diff for the whole edit. Shared by
+ * `turn/diff/updated` and `item/fileChange/patchUpdated` so both paths obey
+ * exactly the same limit.
+ */
+function boundPatchText(text: string): { text: string; truncated: boolean } {
+  if (text.length <= TURN_DIFF_LIMIT) return { text, truncated: false }
+  return { text: text.slice(-TURN_DIFF_LIMIT), truncated: true }
+}
+
+export interface CodexPatchUpdatedChange {
+  /** File path exactly as the protocol reported it. */
+  path: string
+  /** `PatchChangeKind`: `{type:'add'}` / `{type:'delete'}` / `{type:'update',move_path?}`. */
+  kind: unknown
+  /** Cumulative unified diff for this file *so far* (a snapshot, not a delta). */
+  diff: string
+  /** True when the tail was clipped by {@link boundPatchText}. */
+  truncated: boolean
+}
+
+export interface CodexPatchUpdated {
+  itemId: string
+  turnId: string
+  threadId: string
+  changes: CodexPatchUpdatedChange[]
+}
+
+/**
+ * Normalize `item/fileChange/patchUpdated` (verified against the 0.145
+ * generated schema, `.scratch/codex-schema/v2/FileChangePatchUpdatedNotification.json`
+ * and the binary string `item/fileChange/patchUpdated`):
+ *
+ *   {
+ *     itemId: string, threadId: string, turnId: string,
+ *     changes: Array<{ path: string, kind: PatchChangeKind, diff: string }>
+ *   }
+ *
+ * `changes` is the same `FileUpdateChange[]` shape the completed `fileChange`
+ * item carries. It is a snapshot of every change parsed from the model's
+ * `apply_patch` call *so far* — each `diff` is the whole unified diff for that
+ * file, not a delta to append (upstream calls these "streaming snapshots"/the
+ * "current state of files touched by an in-progress patch"). A trailing hunk
+ * may still be incomplete, which is why the renderer must not treat it as an
+ * applied or successful edit.
+ *
+ * Returns null for a malformed notification or one with no usable change.
+ */
+export function normalizePatchUpdatedNotification(
+  params: Record<string, unknown>,
+): CodexPatchUpdated | null {
+  const itemId = stringOr(params.itemId)
+  if (!itemId) return null
+  const rawChanges = Array.isArray(params.changes) ? params.changes : []
+  const changes: CodexPatchUpdatedChange[] = []
+  for (const raw of rawChanges) {
+    const change = asRecord(raw)
+    if (!change) continue
+    const path = stringOr(change.path)
+    const diff = stringOr(change.diff)
+    if (!path || !diff) continue
+    const bounded = boundPatchText(diff)
+    changes.push({
+      path,
+      kind: change.kind ?? null,
+      diff: bounded.text,
+      truncated: bounded.truncated,
+    })
+  }
+  if (changes.length === 0) return null
+  return {
+    itemId,
+    turnId: stringOr(params.turnId),
+    threadId: stringOr(params.threadId),
+    changes,
+  }
+}
+
 // ── CodexBridge ──────────────────────────────────────
 
 export class CodexBridge extends EventEmitter {
@@ -599,6 +679,19 @@ export class CodexBridge extends EventEmitter {
   // Item ids whose tool card has been opened, so a completed item without a
   // preceding item/started still gets one before its result resolves.
   private toolStarts = new Set<string>()
+  // `item/fileChange/patchUpdated` names only an item id, not an item type.
+  // Track the file-change items announced by item/started so a stray or
+  // future notification for a command/MCP item is dropped instead of being
+  // painted onto a card that has no diff.
+  private fileChangeItems = new Set<string>()
+  // Stable card ids per file-change item, keyed by path. The patch snapshot can
+  // start with one file and grow, so `changes.length` is not a safe id prefix:
+  // the first path keeps `itemId`, later paths get `itemId:N`, and the same
+  // mapping is reused by the completed item for its authoritative update.
+  private fileChangeCardIds = new Map<string, Map<string, string>>()
+  // Set before teardown; a late stdout line must not reach a renderer that has
+  // already been told this bridge is gone.
+  private cleaningUp = false
   // Server approval responses use different decision enums per method.
   private pendingApprovalKinds = new Map<string, 'command' | 'fileChange' | 'permissions' | 'legacy'>()
   private pendingPermissionProfiles = new Map<string, unknown>()
@@ -1419,6 +1512,10 @@ export class CodexBridge extends EventEmitter {
 
     this.proc!.on('close', (code) => {
       log.info(`Codex process exited with code ${code}`)
+      // No more stdout can be handled, but set the same guard so a patch
+      // notification already queued behind this event cannot be forwarded.
+      this.cleaningUp = true
+      this.fileChangeItems.clear()
       this.emit('processExit', { sessionId: this.bridgeSessionId, code })
       // Reject all pending requests
       for (const [id, pending] of this.pendingRequests) {
@@ -1768,6 +1865,26 @@ export class CodexBridge extends EventEmitter {
    * Forward one tool-output chunk, throttled per item and hard-capped. Dropped
    * intermediate chunks are harmless: the completed item carries the aggregate.
    */
+  /**
+   * Stable Edit-card id for one file of a file-change item. `pathKey` is the
+   * path, or an index placeholder for a malformed change without one. The
+   * first file keeps the bare item id (the single-file convention); later
+   * files get `itemId:N` by first-seen order. Completion resolves the same
+   * map, so a snapshot that adds a file does not renumber the existing cards.
+   */
+  private _fileChangeToolId(itemId: string, pathKey: string): string {
+    let byPath = this.fileChangeCardIds.get(itemId)
+    if (!byPath) {
+      byPath = new Map()
+      this.fileChangeCardIds.set(itemId, byPath)
+    }
+    const existing = byPath.get(pathKey)
+    if (existing) return existing
+    const toolId = byPath.size === 0 ? itemId : `${itemId}:${byPath.size}`
+    byPath.set(pathKey, toolId)
+    return toolId
+  }
+
   private _emitToolProgress(itemId: string, delta: string): void {
     if (!itemId || !delta) return
     const now = Date.now()
@@ -1863,6 +1980,8 @@ export class CodexBridge extends EventEmitter {
         this.streamedTextItems.clear()
         this.streamedThinkingKinds.clear()
         this.toolProgressLastAt.clear()
+        this.fileChangeItems.clear()
+        this.fileChangeCardIds.clear()
         this.planDeltaBuffers.clear()
         this.planDeltaLastEmit.clear()
         // A completed turn cannot still need an answer; drop stale timers
@@ -2022,14 +2141,54 @@ export class CodexBridge extends EventEmitter {
       case 'turn/diff/updated': {
         const diff = stringOr(params.diff)
         if (!diff) break
-        const bounded = diff.length > TURN_DIFF_LIMIT ? diff.slice(-TURN_DIFF_LIMIT) : diff
+        const bounded = boundPatchText(diff)
         this.emit('turnDiffUpdated', {
           sessionId: sid,
           threadId: params.threadId,
           turnId: params.turnId,
-          diff: bounded,
-          truncated: bounded.length < diff.length,
+          diff: bounded.text,
+          truncated: bounded.truncated,
         })
+        break
+      }
+
+      // ── Live file-change patch ─────────────────
+      // Codex streams the patch it is still parsing/writing. Forward the raw
+      // verified fields (see `normalizePatchUpdatedNotification`) so the Edit
+      // card can grow instead of looking frozen until item/completed. Only
+      // items this bridge already announced as file changes may use it; a
+      // bridge that is tearing down forwards nothing at all.
+      case 'item/fileChange/patchUpdated': {
+        if (this.cleaningUp) break
+        const itemId = stringOr(params.itemId)
+        if (!itemId || !this.fileChangeItems.has(itemId)) break
+        const update = normalizePatchUpdatedNotification(params)
+        if (!update) break
+        // `item/started` usually announces a fileChange item before its paths
+        // are known (changes is empty), so the renderer has no Edit card yet.
+        // Open one per file here — with the path from this verified snapshot —
+        // and let the later patchUpdated event feed it. This is the only place
+        // a provisional card may be created: the item id is already known to
+        // be a file change, so no command/MCP card can be mislabeled.
+        for (const change of update.changes) {
+          const toolId = this._fileChangeToolId(update.itemId, change.path)
+          if (this.toolStarts.has(toolId)) continue
+          this.emit('toolUse', {
+            sessionId: sid,
+            event: {
+              id: toolId,
+              name: 'Edit',
+              input: {
+                file_path: change.path,
+                old_string: '',
+                new_string: '',
+                ...(change.kind ? { change_kind: change.kind } : {}),
+              },
+            },
+          })
+          this.toolStarts.add(toolId)
+        }
+        this.emit('patchUpdated', { sessionId: sid, ...update })
         break
       }
 
@@ -2175,6 +2334,12 @@ export class CodexBridge extends EventEmitter {
     const itemId = (item.id as string) ?? ''
     const isDone = phase === 'completed'
     const failed = (status: string) => status === 'failed' || status === 'declined'
+    // Remember file-change items for the streaming patch notification; a
+    // completed item can never receive another patch.
+    if (itemId && itemType === 'fileChange') {
+      if (isDone) this.fileChangeItems.delete(itemId)
+      else this.fileChangeItems.add(itemId)
+    }
 
     switch (itemType) {
       case 'agentMessage':
@@ -2237,37 +2402,55 @@ export class CodexBridge extends EventEmitter {
         const changes = Array.isArray(item.changes) ? item.changes as Array<Record<string, unknown>> : []
         const done = failed(item.status as string)
         if (changes.length === 0) {
+          // `item/started` normally arrives before the patch has paths, so no
+          // card is opened here. If a live patch did open one, resolving the
+          // item still has to close every card it created.
           if (isDone) {
-            this.emit('toolResult', { sessionId: sid, event: { tool_use_id: itemId, content: '', is_error: done } })
+            const ids = this.fileChangeCardIds.get(itemId)
+            const toolIds = new Set(ids ? ids.values() : [itemId])
+            for (const toolId of toolIds) {
+              this.emit('toolResult', { sessionId: sid, event: { tool_use_id: toolId, content: '', is_error: done } })
+              this.toolStarts.delete(toolId)
+            }
           }
+          this.fileChangeCardIds.delete(itemId)
           break
         }
-        changes.forEach((change, idx) => {
+        const cards = changes.map((change, idx) => {
           // A patch item can touch several files; each becomes its own card.
-          const toolId = changes.length === 1 ? itemId : `${itemId}:${idx}`
+          // Stable ids (see `_fileChangeToolId`) keep the same card when the
+          // streaming snapshot grows from one file to several.
           const path = (change.path as string) ?? ''
+          const toolId = this._fileChangeToolId(itemId, path || `__idx_${idx}`)
           const { oldString, newString } = splitUnifiedDiff(change.diff)
-          if (!this.toolStarts.has(toolId)) {
-            this.emit('toolUse', {
-              sessionId: sid,
-              event: {
-                id: toolId,
-                name: 'Edit',
-                input: {
-                  file_path: path,
-                  old_string: oldString,
-                  new_string: newString,
-                  ...(change.kind ? { change_kind: change.kind } : {}),
-                },
-              },
-            })
-            this.toolStarts.add(toolId)
-          }
-          if (isDone) {
-            this.emit('toolResult', { sessionId: sid, event: { tool_use_id: toolId, content: '', is_error: done } })
-            this.toolStarts.delete(toolId)
+          return {
+            toolId,
+            input: {
+              file_path: path,
+              old_string: oldString,
+              new_string: newString,
+              ...(change.kind ? { change_kind: change.kind } : {}),
+            },
           }
         })
+        // Always send the item's input — on started it opens the card, and on
+        // completed it replaces a placeholder/partial input with the finished
+        // diff. The renderer updates an existing id in place instead of
+        // appending a second card, so the final card is authoritative.
+        for (const card of cards) {
+          this.emit('toolUse', {
+            sessionId: sid,
+            event: { id: card.toolId, name: 'Edit', input: card.input },
+          })
+          this.toolStarts.add(card.toolId)
+        }
+        if (isDone) {
+          for (const card of cards) {
+            this.emit('toolResult', { sessionId: sid, event: { tool_use_id: card.toolId, content: '', is_error: done } })
+            this.toolStarts.delete(card.toolId)
+          }
+          this.fileChangeCardIds.delete(itemId)
+        }
         break
       }
 
@@ -2416,6 +2599,9 @@ export class CodexBridge extends EventEmitter {
   }
 
   private _cleanup(): void {
+    // Stop forwarding first: `endSession`/`abort` may still race a stdout line
+    // that was already parsed, and the renderer has moved on.
+    this.cleaningUp = true
     for (const [id, pending] of this.pendingRequests) {
       clearTimeout(pending.timer)
       pending.reject(new Error('Bridge cleanup'))
@@ -2431,6 +2617,8 @@ export class CodexBridge extends EventEmitter {
     this.streamedTextItems.clear()
     this.streamedThinkingKinds.clear()
     this.toolStarts.clear()
+    this.fileChangeItems.clear()
+    this.fileChangeCardIds.clear()
     this.errorTurnId = null
     this.pendingApprovalKinds.clear()
     this.pendingPermissionProfiles.clear()

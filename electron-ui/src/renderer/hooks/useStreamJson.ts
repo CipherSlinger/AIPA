@@ -12,6 +12,8 @@ import { listSessionsShared } from '../utils/sessionListShared'
 import { readThreadLifecycleEvent } from '../utils/threadLifecycle'
 import { describeThreadStatus } from '../components/chat/threadStatusText'
 import { describeEngineItem, TOOL_CARD_KINDS } from '../components/chat/engineStepText'
+import { itemIdFromToolId } from '../components/chat/fileChangePatch'
+import { liveFilePatchStore } from '../components/chat/liveFilePatchStore'
 import {
   adoptEngineStepBucket,
   beginEngineTurn,
@@ -142,6 +144,22 @@ function hasToolCardForItem(itemId: string): boolean {
   return useChatStore.getState().messages.some(message => {
     const toolUses = (message as StandardChatMessage).toolUses
     return Array.isArray(toolUses) && toolUses.some(tool => tool.id === itemId)
+  })
+}
+
+/**
+ * A multi-file Codex patch opens one card per file (`itemId:0`, `itemId:1`).
+ * A live patch names only the parent item id, so accept the family. Patches for
+ * an item the transcript does not show are ignored rather than parked in the
+ * live store.
+ */
+function hasToolCardForItemFamily(itemId: string): boolean {
+  if (!itemId) return false
+  const prefix = `${itemId}:`
+  return useChatStore.getState().messages.some(message => {
+    const toolUses = (message as StandardChatMessage).toolUses
+    return Array.isArray(toolUses)
+      && toolUses.some(tool => tool.id === itemId || tool.id.startsWith(prefix))
   })
 }
 
@@ -748,6 +766,8 @@ export function useStreamJson() {
           // A turn has ended, so no status from inside it can still be true:
           // a "waiting on you" chip must not outlive the turn it described.
           useChatStore.getState().setThreadStatus(null)
+          // No live patch can still be meaningful after its turn ended.
+          liveFilePatchStore.clear()
           stopStreamingAndReleaseSleep()
           // Auto-compact refuses to run while streaming (it would interrupt the
           // turn), so the post-turn check has to happen after the flag clears.
@@ -774,19 +794,6 @@ export function useStreamJson() {
             } as PlanMessage)
             break
           }
-          // Track file changes (Iteration 521: code changes view)
-          {
-            const toolName = e.name as string
-            const input = (e.input as Record<string, unknown>) ?? {}
-            const filePath = (input.file_path || input.path) as string | undefined
-            const isFileModifyingTool =
-              /Edit|Write|Create/i.test(toolName) ||
-              toolName === 'str_replace_editor' ||
-              toolName === 'str_replace_based_edit_tool'
-            if (filePath && isFileModifyingTool) {
-              useChatStore.getState().addChangedFile(filePath, toolName)
-            }
-          }
           {
             const chatState = useChatStore.getState()
             let lastMsg = chatState.messages.at(-1)
@@ -805,17 +812,65 @@ export function useStreamJson() {
               chatState.addMessage(placeholder)
               lastMsg = placeholder
             }
-            chatState.addToolUse(
-              lastMsg.id,
-              e.id as string,
-              e.name as string,
-              e.input as Record<string, unknown>
-            )
+            const toolId = String(e.id ?? '')
+            const toolName = String(e.name ?? '')
+            const toolInput = (e.input as Record<string, unknown>) ?? {}
+            // Codex re-sends a file-change item's input when it completes so
+            // the final Edit card carries the authoritative diff (the started
+            // event usually had no paths yet). Update the existing card in
+            // place; appending would show the same edit twice.
+            const alreadyShown = chatState.messages.some(message => {
+              if (message.role === 'permission') return false
+              const toolUses = (message as StandardChatMessage).toolUses
+              return Array.isArray(toolUses) && toolUses.some(tool => tool.id === toolId)
+            })
+            if (alreadyShown) {
+              const pending = new Map(chatState.pendingToolUses)
+              if (pending.has(toolId)) pending.set(toolId, { name: toolName, input: toolInput })
+              useChatStore.setState({
+                messages: chatState.messages.map(message => {
+                  if (message.role === 'permission') return message
+                  const std = message as StandardChatMessage
+                  if (!std.toolUses?.some(tool => tool.id === toolId)) return message
+                  return {
+                    ...std,
+                    toolUses: std.toolUses.map(tool =>
+                      tool.id === toolId ? { ...tool, name: toolName, input: toolInput } : tool,
+                    ),
+                  }
+                }),
+                pendingToolUses: pending,
+              })
+            } else {
+              chatState.addToolUse(lastMsg.id, toolId, toolName, toolInput)
+            }
+            // Track file changes for the Changes panel (Iteration 521: code
+            // changes view). Only on first sight: Codex re-sends a file-change
+            // toolUse when the item completes, and `addChangedFile` appends
+            // without deduping, so tracking again would list the same file
+            // twice in the Changes panel.
+            if (!alreadyShown) {
+              const filePath = (toolInput.file_path || toolInput.path) as string | undefined
+              const isFileModifyingTool =
+                /Edit|Write|Create/i.test(toolName) ||
+                toolName === 'str_replace_editor' ||
+                toolName === 'str_replace_based_edit_tool'
+              if (filePath && isFileModifyingTool) {
+                useChatStore.getState().addChangedFile(filePath, toolName)
+              }
+            }
+            // A new item may reuse an id from a replayed transcript; forget a
+            // previous completion marker so its live snapshots can land.
+            liveFilePatchStore.beginItem(itemIdFromToolId(toolId))
           }
           break
         }
         case 'cli:toolResult': {
           const e = data.event as Record<string, unknown>
+          // The completed fileChange item is authoritative. Drop the live
+          // snapshot and any queued trailing update before resolving the card,
+          // so a partial patch can never outlive or overwrite the final diff.
+          liveFilePatchStore.completeItem(itemIdFromToolId(String(e.tool_use_id ?? '')))
           useChatStore.getState().resolveToolUse(
             e.tool_use_id as string,
             e.content,
@@ -1326,6 +1381,19 @@ export function useStreamJson() {
           // item already has one, adding a row would show the step twice.
           if (TOOL_CARD_KINDS.has(step.kind) && hasToolCardForItem(step.id)) break
           recordEngineStep(useChatStore.getState().viewSessionId, step)
+          break
+        }
+        case 'cli:patchUpdated': {
+          // A live snapshot of the file change Codex is still writing. Same
+          // ownership rule as every other turn-scoped event: a background or
+          // other-tab turn must not paint this transcript. Patches whose item
+          // has no visible card are dropped by the store's caller; the card's
+          // own completion event remains authoritative.
+          const sid = typeof data.sessionId === 'string' ? data.sessionId : ''
+          if (!sid || !useChatStore.getState().isOwnedStreamEvent(sid)) break
+          const itemId = typeof data.itemId === 'string' ? data.itemId : ''
+          if (!itemId || !hasToolCardForItemFamily(itemId)) break
+          liveFilePatchStore.ingest(data)
           break
         }
         case 'cli:turnDiffUpdated': {

@@ -466,7 +466,7 @@ export default function ArchivePanel() {
         <span style={{
           width: 26, height: 26, borderRadius: 8, flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(99,102,241,0.14)', border: '1px solid rgba(99,102,241,0.28)',
+          background: 'var(--accent-bg)', border: '1px solid var(--accent-border)',
         }}>
           <Archive size={14} color="var(--accent-text)" />
         </span>
@@ -476,15 +476,20 @@ export default function ArchivePanel() {
         <span style={{ flex: 1, fontSize: 11, color: 'var(--text-muted)', ...ELLIPSIS }} title={summaryText}>
           {summaryText}
         </span>
+        {/* A quiet header action: neutral surface, semantic colour on the
+            label only. The old green tinted fill competed with the archive
+            badge and the summary on the same 44px line. */}
         <button
           onClick={exportLedger}
           disabled={records.length === 0}
+          className="archive-hover-btn"
           style={{
             display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
-            padding: '5px 11px', borderRadius: 8, fontSize: 11, fontWeight: 600,
-            border: '1px solid rgba(34,197,94,0.3)', background: 'rgba(34,197,94,0.06)',
+            height: 26, padding: '0 11px', borderRadius: 8, fontSize: 11, fontWeight: 600,
+            border: '1px solid var(--border)', background: 'transparent',
             color: records.length === 0 ? 'var(--text-faint)' : 'var(--success-text)',
             cursor: records.length === 0 ? 'not-allowed' : 'pointer',
+            transition: 'background 0.15s ease',
           }}
         >
           <ArrowUpDown size={11} />{t('archive.export')}
@@ -494,13 +499,13 @@ export default function ArchivePanel() {
       {/* Filters */}
       <div style={{
         flexShrink: 0, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6,
-        padding: '10px 16px', borderBottom: '1px solid var(--bg-hover)',
+        padding: '10px 16px', borderBottom: '1px solid var(--border)',
       }}>
         <select
           value={deptFilter}
           onChange={e => setDeptFilter(e.target.value)}
           onFocus={e => {
-            e.currentTarget.style.boxShadow = '0 0 0 2px var(--accent-border)'
+            e.currentTarget.style.boxShadow = '0 0 0 2px var(--accent-bg)'
             e.currentTarget.style.borderColor = 'var(--accent-border)'
           }}
           onBlur={e => {
@@ -508,7 +513,9 @@ export default function ArchivePanel() {
             e.currentTarget.style.borderColor = 'var(--border)'
           }}
           style={{
-            padding: '4px 8px', borderRadius: 8, fontSize: 11, maxWidth: 180,
+            // 24px is the filter row's common height (fields and chips).
+            height: 24, boxSizing: 'border-box', padding: '0 8px',
+            borderRadius: 8, fontSize: 11, maxWidth: 180,
             border: '1px solid var(--border)', background: 'var(--bg-hover)',
             color: 'var(--text-secondary)', cursor: 'pointer',
             transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
@@ -570,8 +577,9 @@ export default function ArchivePanel() {
 
         <div style={{
           display: 'flex', alignItems: 'center', gap: 5, flex: 1, minWidth: 140,
-          padding: '4px 9px', borderRadius: 8,
+          height: 24, boxSizing: 'border-box', padding: '0 9px', borderRadius: 8,
           border: '1px solid var(--border)', background: 'var(--bg-hover)',
+          transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
         }}>
           <Search size={11} color="var(--text-muted)" style={{ flexShrink: 0 }} />
           <input
@@ -613,6 +621,7 @@ export default function ArchivePanel() {
         {filtersActive && (
           <button
             onClick={clearFilters}
+            className="archive-hover-link"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, textDecoration: 'underline', textUnderlineOffset: 3 }}
           >
             {t('archive.clearFilters')}
@@ -628,18 +637,28 @@ export default function ArchivePanel() {
       {/* Ledger */}
       <div ref={ledgerRef} style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 24px' }}>
         {sessionsLoading && sessions.length === 0 ? (
-          <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
+          // A spinner and a muted sentence, matching the panel fallbacks
+          // elsewhere — not a bare line of 12px text.
+          <div style={{
+            padding: '56px 20px', display: 'flex', flexDirection: 'column',
+            alignItems: 'center', gap: 12, fontSize: 12, color: 'var(--text-muted)',
+          }}>
+            <div style={{
+              width: 20, height: 20, borderRadius: '50%',
+              border: '2px solid var(--border)', borderTopColor: 'var(--accent)',
+              animation: 'spin 0.8s linear infinite',
+            }} />
             {t('archive.loading')}
           </div>
         ) : allRecords.length === 0 ? (
           <EmptyState
-            icon={<Inbox size={30} style={{ color: '#6366f1', opacity: 0.45 }} />}
+            icon={<Inbox size={30} style={{ color: 'var(--accent)', opacity: 0.5 }} />}
             title={t('archive.emptyTitle')}
             hint={t('archive.emptyHint')}
           />
         ) : filteredEmpty ? (
           <EmptyState
-            icon={<Search size={30} style={{ color: '#6366f1', opacity: 0.45 }} />}
+            icon={<Search size={30} style={{ color: 'var(--accent)', opacity: 0.5 }} />}
             title={t('archive.noMatchTitle')}
             hint={activeFilterDescription
               ? t('archive.noMatchFilteredHint', { filter: activeFilterDescription })
@@ -649,7 +668,7 @@ export default function ArchivePanel() {
           />
         ) : records.length === 0 && (searching || showCommandOnly || commandOnlyCount === 0) ? (
           <EmptyState
-            icon={<Search size={30} style={{ color: '#6366f1', opacity: 0.45 }} />}
+            icon={<Search size={30} style={{ color: 'var(--accent)', opacity: 0.5 }} />}
             title={t('archive.noMatchTitle')}
             hint={t('archive.noMatchHint')}
             onClear={clearFilters}
@@ -671,6 +690,7 @@ export default function ArchivePanel() {
                   {/* Group header — the company (or a legacy top-level department) */}
                   <button
                     onClick={() => setCollapsed(c => ({ ...c, [key]: !c[key] }))}
+                    className="archive-group-header"
                     style={{
                       display: 'flex', alignItems: 'center', gap: 7, width: '100%',
                       height: GROUP_HEADER_H, boxSizing: 'border-box',
@@ -689,7 +709,7 @@ export default function ArchivePanel() {
                     {group.root && kindOf(group.root) === 'company' && (
                       <span style={{
                         fontSize: 9, padding: '1px 6px', borderRadius: 999,
-                        border: '1px solid rgba(99,102,241,0.28)', background: 'rgba(99,102,241,0.08)',
+                        border: '1px solid var(--accent-border)', background: 'var(--accent-bg)',
                         color: 'var(--accent-text)',
                       }}>
                         {t('dept.companyTag')}
@@ -752,7 +772,7 @@ export default function ArchivePanel() {
 
       {unassignedCount > 0 && deptFilter === 'all' && (
         <div style={{
-          flexShrink: 0, padding: '7px 16px', borderTop: '1px solid var(--bg-hover)',
+          flexShrink: 0, padding: '7px 16px', borderTop: '1px solid var(--border)',
           fontSize: 10, color: 'var(--text-subtle)',
         }}>
           {t('archive.unassignedHint', { count: String(unassignedCount) })}
@@ -791,12 +811,15 @@ function ArchiveRow({
       tabIndex={0}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen() } }}
       title={session.lastPrompt || title}
+      className="row-focus-inset"
       style={{
         display: 'flex', alignItems: 'center', gap: 10,
         // Fixed height keeps the analytic offsets in `layout` exact.
         height: ROW_H, boxSizing: 'border-box',
         padding: '0 12px', cursor: 'pointer',
-        borderTop: first ? 'none' : '1px solid var(--bg-active)',
+        // Hairlines use the same token as the card border; the brighter
+        // --bg-active read as a second border colour inside the card.
+        borderTop: first ? 'none' : '1px solid var(--border)',
         background: hovered ? 'var(--bg-active)' : 'transparent',
         // Command-only rows are revealable, never promoted: they read as
         // background, which is what they are.
@@ -841,8 +864,8 @@ function ArchiveRow({
         style={{
           flexShrink: 0, fontSize: 10, fontFamily: 'monospace',
           padding: '1px 6px', borderRadius: 5,
-          background: 'rgba(99,102,241,0.10)', color: 'var(--accent-text)',
-          border: '1px solid rgba(99,102,241,0.22)',
+          background: 'var(--accent-bg)', color: 'var(--accent-text)',
+          border: '1px solid var(--accent-border)',
         }}
       >
         #{employeeTag(session.sessionId)}
@@ -884,6 +907,9 @@ function ArchiveRow({
       <button
         onClick={(e) => { e.stopPropagation(); onToggleArchived() }}
         title={record.archived ? t('archive.unarchive') : t('archive.archive')}
+        // Hover-revealed, but `row-action` also reveals it on keyboard focus:
+        // an invisible control must not be the next tab stop.
+        className="row-action"
         style={{
           flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer',
           color: 'var(--text-muted)', display: 'flex', padding: 2,

@@ -238,6 +238,12 @@
       "enteredReview": "Entered review",
       "exitedReview": "Left review",
       "contextCompaction": "Compacted conversation context"
+    },
+    "fileEdit": {
+      "liveDiff": "Live diff",
+      "liveHint": "Still writing — the final diff appears when the edit finishes.",
+      "hiddenLines": "+{{count}} more lines",
+      "partialTruncated": "Showing the latest part of a large patch."
     }
   },
   "sessionReuse": {

@@ -17,8 +17,17 @@
  *   - "Edit applied" green badge when result is present
  */
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo, useSyncExternalStore } from 'react'
 import { FilePen, Check, Clipboard, ChevronDown, ChevronRight } from 'lucide-react'
+import { useT } from '../../../i18n'
+import {
+  itemIdFromToolId,
+  parsePartialUnifiedDiff,
+  resolveLiveChange,
+  type NormalizedPatchChange,
+  type PartialDiffView,
+} from '../fileChangePatch'
+import { liveFilePatchStore } from '../liveFilePatchStore'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -226,12 +235,113 @@ function DiffPanel({ label, text, variant }: DiffPanelProps) {
   )
 }
 
+// ── Live patch preview ────────────────────────────────────────────────────────
+
+interface LiveDiffPreviewProps {
+  view: PartialDiffView
+  truncated: boolean
+}
+
+/**
+ * Compact unified-diff view of the snapshot Codex is still writing.
+ * Deliberately shows no success/failure state: a partial hunk is not a result.
+ */
+function LiveDiffPreview({ view, truncated }: LiveDiffPreviewProps) {
+  const t = useT()
+  return (
+    <div>
+      <div style={{
+        border: '1px solid var(--border)',
+        borderRadius: 6,
+        overflow: 'hidden',
+        background: 'rgba(13,13,20,0.35)',
+      }}>
+        <div style={{
+          maxHeight: 220,
+          overflowY: 'auto',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'var(--border) transparent',
+          fontFamily: "Consolas, 'Cascadia Code', 'Fira Code', monospace",
+          fontSize: 11,
+          lineHeight: 1.5,
+        }}>
+          {view.lines.map((line, idx) => {
+            const isAdd = line.type === 'add'
+            const isDel = line.type === 'del'
+            return (
+              <div key={idx} style={{
+                display: 'flex',
+                gap: 6,
+                padding: '0 8px',
+                background: isAdd
+                  ? 'rgba(34,197,94,0.10)'
+                  : isDel
+                    ? 'rgba(239,68,68,0.08)'
+                    : 'transparent',
+                color: isAdd
+                  ? 'rgba(74,222,128,0.85)'
+                  : isDel
+                    ? 'rgba(248,113,113,0.85)'
+                    : 'var(--text-muted)',
+              }}>
+                <span style={{ flexShrink: 0, opacity: 0.7, userSelect: 'none' }}>
+                  {isAdd ? '+' : isDel ? '-' : ' '}
+                </span>
+                <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', minWidth: 0 }}>
+                  {line.content || ' '}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+      {(view.hiddenLines > 0 || truncated) && (
+        <div style={{
+          marginTop: 4,
+          fontSize: 10,
+          color: 'var(--text-faint)',
+          display: 'flex',
+          gap: 10,
+          flexWrap: 'wrap',
+        }}>
+          {view.hiddenLines > 0 && (
+            <span>{t('chat.fileEdit.hiddenLines', { count: String(view.hiddenLines) })}</span>
+          )}
+          {truncated && <span>{t('chat.fileEdit.partialTruncated')}</span>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Subscribe to the live snapshot for this card. The store is keyed by the
+ * Codex item id; a multi-file patch opens one card per change (`itemId:idx`).
+ * `getVersion` is the reactive value — entries themselves are read after the
+ * re-render, which keeps the subscription cheap and stable.
+ */
+function useLiveChange(toolId: string, filePath: string): NormalizedPatchChange | null {
+  const version = useSyncExternalStore(
+    liveFilePatchStore.subscribe,
+    liveFilePatchStore.getVersion,
+  )
+  // `version` is intentionally read only to tie the render to store changes.
+  void version
+  return resolveLiveChange(
+    liveFilePatchStore.getEntry(itemIdFromToolId(toolId)),
+    toolId,
+    filePath,
+  )
+}
+
 // ── FileEditCard ──────────────────────────────────────────────────────────────
 
 export interface FileEditCardProps {
   input: Record<string, unknown>
   result?: string | null
   isStreaming?: boolean
+  /** Tool card id (`itemId` or `itemId:index`) used to find live snapshots. */
+  toolId?: string
 }
 
 /**
@@ -239,7 +349,8 @@ export interface FileEditCardProps {
  * Shows file path with orange icon, before/after diff panels,
  * replace_all badge, and "Edit applied" confirmation on result.
  */
-export function FileEditCard({ input, result, isStreaming }: FileEditCardProps) {
+export function FileEditCard({ input, result, isStreaming, toolId = '' }: FileEditCardProps) {
+  const t = useT()
   // Accept both old_string/new_string and old_str/new_str (CLI variants)
   const filePath =
     typeof input.file_path === 'string' ? input.file_path :
@@ -258,6 +369,16 @@ export function FileEditCard({ input, result, isStreaming }: FileEditCardProps) 
   const { dir, basename } = splitPath(filePath)
   const hasResult = typeof result === 'string' && result.length > 0
   const hasDiff = oldString.length > 0 || newString.length > 0
+
+  // A live snapshot is only a progress view. Once the item resolves — or the
+  // store has already cleared it — the card's own input/result is the
+  // authoritative diff, and a stale partial patch must never win.
+  const liveChange = useLiveChange(toolId, filePath)
+  const liveView = useMemo(
+    () => (liveChange ? parsePartialUnifiedDiff(liveChange.diff) : null),
+    [liveChange],
+  )
+  const showLive = Boolean(isStreaming) && !hasResult && liveView !== null
 
   return (
     <div style={{
@@ -386,8 +507,10 @@ export function FileEditCard({ input, result, isStreaming }: FileEditCardProps) 
         )}
       </div>
 
-      {/* Diff panels section */}
-      {hasDiff && (
+      {/* Diff section: live snapshot while writing, authoritative before/after
+          once the item resolves. Never both — a partial patch must not look
+          like the final edit. */}
+      {(hasDiff || showLive) && (
         <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
           <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
             {/* Section label */}
@@ -398,15 +521,34 @@ export function FileEditCard({ input, result, isStreaming }: FileEditCardProps) 
               textTransform: 'uppercase',
               color: 'var(--text-muted)',
               marginBottom: 6,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
             }}>
-              Changes
+              <span>{showLive ? t('chat.fileEdit.liveDiff') : 'Changes'}</span>
+              {showLive && (
+                <span style={{
+                  fontSize: 9,
+                  fontWeight: 400,
+                  letterSpacing: 'normal',
+                  textTransform: 'none',
+                  color: 'rgba(251,146,60,0.60)',
+                  fontStyle: 'italic',
+                }}>
+                  {t('chat.fileEdit.liveHint')}
+                </span>
+              )}
             </div>
 
-            {/* Before / After panels stacked vertically for readability */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <DiffPanel label="Before" text={oldString} variant="old" />
-              <DiffPanel label="After" text={newString} variant="new" />
-            </div>
+            {showLive && liveView && liveChange ? (
+              <LiveDiffPreview view={liveView} truncated={liveChange.truncated} />
+            ) : (
+              /* Before / After panels stacked vertically for readability */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <DiffPanel label="Before" text={oldString} variant="old" />
+                <DiffPanel label="After" text={newString} variant="new" />
+              </div>
+            )}
           </div>
         </div>
       )}
