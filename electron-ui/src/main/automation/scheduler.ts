@@ -20,7 +20,7 @@ import { raiseAttention } from '../clawd-attention'
 import { nextFireTime, parseCron } from '../utils/cron'
 import { createLogger } from '../utils/logger'
 import { getAllowedFsRoots, safePath } from '../utils/validate'
-import { readAutomationJobs, writeAutomationJobs } from './job-store'
+import { readAutomationStore, writeAutomationStore } from './job-store'
 import { AUTOMATION_RETRY_POLICY, isPendingRetryExpired, nextRetryAfterFailure } from './retry-policy'
 import { appendRunRecord, countFailureStreak, createSkipRecord, MAX_RUN_ERROR_CHARS } from './run-history'
 import { addToLifetimeTotals } from './run-usage'
@@ -57,7 +57,11 @@ const MAX_NAME_CHARS = 80
 const MAX_PROMPT_CHARS = 4000
 const MAX_REPORTED_RUNS = 24
 
-export const AUTOMATION_LIMITS: AutomationLimits = {
+/**
+ * The static rails. The global pause is dynamic state, added alongside these
+ * in `listAutomationJobs` rather than stored on the constant.
+ */
+export const AUTOMATION_LIMITS: Omit<AutomationLimits, 'pausedAll'> = {
   /** Anything faster turns the assistant into a runaway loop. */
   minIntervalMinutes: 5,
   maxRunsPerHour: 12,
@@ -87,6 +91,8 @@ let ctx: SchedulerContext | null = null
 let jobs: AutomationJob[] = []
 const running = new Map<string, { startedAt: number }>()
 let timer: NodeJS.Timeout | null = null
+/** Global pause: scheduled runs are suspended; per-job `enabled` is untouched. */
+let pausedAll = false
 
 // ── Validation ───────────────────────────────────────
 
@@ -281,7 +287,7 @@ function resolveCwd(action: AutomationAction): string {
 // ── Persistence / broadcast ──────────────────────────
 
 function persist(): void {
-  writeAutomationJobs(jobs)
+  writeAutomationStore({ jobs, pausedAll })
 }
 
 function broadcastChanged(): void {
@@ -298,6 +304,9 @@ function toView(job: AutomationJob): AutomationJobView {
     ...job,
     actionMissing: job.action.kind === 'workflow' && !findWorkflow(job.action.workflowId),
     running: running.has(job.id),
+    // Derived, so a surface reading the list alone can tell that this enabled
+    // job is waiting on the global pause rather than on its own schedule.
+    pausedAll,
     // Derived rather than persisted: the history is the authority, so the
     // streak can never drift from the runs the row is about to list.
     failureStreak: countFailureStreak(job.history),
@@ -600,6 +609,12 @@ function clip(text: string, max: number): string {
 
 function tick(): void {
   if (!ctx) return
+  // Global pause: return before touching any job. Scheduled work (occurrences
+  // and pending retries) is suspended, but each job keeps its own `enabled`
+  // flag and its frozen `nextRunAt`, so resuming is a schedule recalculation
+  // rather than a restore. Manual runs do not come through this ticker, and a
+  // run already in flight is never aborted by pausing.
+  if (pausedAll) return
   const now = Date.now()
   let dirty = false
 
@@ -709,7 +724,9 @@ export function startAutomationScheduler(
   if (ctx) return
   ctx = { getWindow, notifyChanged: () => send('automation:changed'), run }
 
-  jobs = readAutomationJobs()
+  const store = readAutomationStore()
+  jobs = store.jobs
+  pausedAll = store.pausedAll
   const now = Date.now()
   let repaired = false
   for (const job of jobs) {
@@ -761,7 +778,12 @@ export function startAutomationScheduler(
 }
 
 export function listAutomationJobs(): { jobs: AutomationJobView[]; limits: AutomationLimits } {
-  return { jobs: jobs.map(toView), limits: AUTOMATION_LIMITS }
+  return {
+    jobs: jobs.map(toView),
+    // The pause is dynamic state, not a rail, so it is merged in here rather
+    // than added to the constant.
+    limits: { ...AUTOMATION_LIMITS, pausedAll },
+  }
 }
 
 export type AutomationMutationResult =
@@ -885,10 +907,74 @@ export function setAutomationEnabled(id: string, enabled: boolean): AutomationMu
   return { ok: true, job: toView(job) }
 }
 
+export type AutomationPauseResult =
+  | { ok: true; pausedAll: boolean }
+  | { ok: false; error: string }
+
 /**
- * "Run now" is an explicit user gesture: it ignores `enabled`, the hourly cap,
- * and the spend limit, but not the concurrency rail — an in-flight run still
- * owns the job, and hidden background work must never queue up behind a click.
+ * Suspend or resume every scheduled run.
+ *
+ * This is deliberately not "disable every job": each job keeps its own
+ * `enabled` flag and schedule state, so resuming restores exactly what was on.
+ * While paused, `tick` returns before doing anything; manual runs still start
+ * (the user is present and asking), and a run already in flight finishes
+ * rather than being aborted mid-way.
+ *
+ * Schedule semantics. `nextRunAt` is frozen while paused — it is not rewritten
+ * on every tick, because a pause may last days and moving it continuously
+ * would make the row promise a run that cannot happen. On resume, an
+ * occurrence that fell inside the pause is recomputed from "now": a long pause
+ * therefore skips its missed occurrences instead of running them late, so
+ * there is no catch-up burst and nothing is flagged "ran late" (the existing
+ * late-run rule only sees a due job on a tick, and the tick never sees one for
+ * this gap). An occurrence still in the future is kept as-is, so a short pause
+ * does not push the cadence back. Pending retries are dropped on pause: they
+ * are scheduled work, and resuming must not replay an old failure.
+ */
+export function setAutomationPausedAll(paused: boolean): AutomationPauseResult {
+  const next = paused === true
+  if (next === pausedAll) return { ok: true, pausedAll }
+  pausedAll = next
+  const now = Date.now()
+
+  if (pausedAll) {
+    // A retry belongs to a failed occurrence and waits on this same ticker.
+    // Holding it across the pause would either expire silently or fire right
+    // after resume, which is exactly the burst the schedule recalculation
+    // below exists to avoid.
+    for (const job of jobs) {
+      if (job.pendingRetry) job.pendingRetry = undefined
+    }
+  } else {
+    for (const job of jobs) {
+      if (!job.enabled) continue
+      // Keep an occurrence that is still ahead; only what the pause swallowed
+      // needs a new time.
+      if (job.nextRunAt !== null && job.nextRunAt > now) continue
+      const nextRun = nextRunAfter(job.trigger, now)
+      if (nextRun === null) {
+        // Same dead-cron outcome the tick applies: an enabled job that can
+        // never fire must not stay silently enabled.
+        job.enabled = false
+        job.nextRunAt = null
+        job.lastStatus = 'error'
+        job.lastError = 'cron_invalid'
+      } else {
+        job.nextRunAt = nextRun
+      }
+    }
+  }
+
+  persistAndBroadcast()
+  log.info(`Automation scheduler ${pausedAll ? 'paused' : 'resumed'} (${jobs.length} job(s))`)
+  return { ok: true, pausedAll }
+}
+
+/**
+ * "Run now" is an explicit user gesture: it ignores `enabled`, the global
+ * pause, the hourly cap, and the spend limit, but not the concurrency rail —
+ * an in-flight run still owns the job, and hidden background work must never
+ * queue up behind a click.
  */
 export function runAutomationNow(id: string): AutomationMutationResult {
   const job = jobs.find(j => j.id === id)

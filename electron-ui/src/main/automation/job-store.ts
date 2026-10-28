@@ -117,31 +117,81 @@ function normalizeJob(raw: unknown): AutomationJob | null {
   }
 }
 
-export function readAutomationJobs(): AutomationJob[] {
+/**
+ * The whole durable automation state: the jobs plus the global pause.
+ *
+ * The pause lives beside `jobs` in this file rather than in renderer prefs
+ * because the scheduler owns it: it is timing state read and written by the
+ * same main-process loop as `nextRunAt`, and the renderer's pref save loop
+ * writes every key it loaded, which would race a pause toggled from elsewhere.
+ * A sibling key also keeps the per-job whitelist free of a flag that is not a
+ * property of any one job.
+ */
+export interface AutomationStore {
+  jobs: AutomationJob[]
+  /** Global pause; false whenever the stored value is absent or malformed. */
+  pausedAll: boolean
+}
+
+export function readAutomationStore(): AutomationStore {
   const file = getStorePath()
-  if (!fs.existsSync(file)) return []
+  if (!fs.existsSync(file)) return { jobs: [], pausedAll: false }
   try {
     const parsed = JSON.parse(fs.readFileSync(file, 'utf-8')) as Record<string, unknown>
     const list = Array.isArray(parsed.jobs) ? parsed.jobs : []
-    return list
-      .map(normalizeJob)
-      .filter((job): job is AutomationJob => job !== null)
+    return {
+      jobs: list
+        .map(normalizeJob)
+        .filter((job): job is AutomationJob => job !== null),
+      // Only a literal `true` pauses. An older file has no key at all, and a
+      // hand-edited or half-written value must fail open: silently suspending
+      // every job because of a malformed flag would be the worse outcome, and
+      // the user would have no visible cause for the silence.
+      pausedAll: parsed.pausedAll === true,
+    }
   } catch (err) {
     // A corrupt file must not stop the app; keep it on disk for inspection and
-    // start from an empty list (the next save rewrites it).
+    // start from an empty, unpaused state (the next save rewrites it).
     log.warn('Could not read automations.json:', err)
-    return []
+    return { jobs: [], pausedAll: false }
   }
 }
 
-export function writeAutomationJobs(jobs: AutomationJob[]): void {
+export function writeAutomationStore(store: AutomationStore): void {
   const file = getStorePath()
   try {
     fs.mkdirSync(path.dirname(file), { recursive: true })
     const tmp = `${file}.tmp`
-    fs.writeFileSync(tmp, JSON.stringify({ version: STORE_VERSION, jobs }, null, 2), 'utf-8')
+    fs.writeFileSync(
+      tmp,
+      JSON.stringify({
+        version: STORE_VERSION,
+        pausedAll: store.pausedAll === true,
+        jobs: store.jobs,
+      }, null, 2),
+      'utf-8',
+    )
     fs.renameSync(tmp, file)
   } catch (err) {
     log.warn('Could not write automations.json:', err)
   }
+}
+
+/**
+ * Read only the jobs, for consumers that have no opinion on the pause (the
+ * session-origin resolver). Callers that render or change automation state
+ * should read the whole store so the pause travels with the jobs.
+ */
+export function readAutomationJobs(): AutomationJob[] {
+  return readAutomationStore().jobs
+}
+
+/**
+ * Write only the jobs, preserving the global pause it did not set.
+ *
+ * Kept for older harnesses and simple callers; the scheduler uses
+ * `writeAutomationStore` so one atomic write carries both halves of the state.
+ */
+export function writeAutomationJobs(jobs: AutomationJob[]): void {
+  writeAutomationStore({ jobs, pausedAll: readAutomationStore().pausedAll })
 }

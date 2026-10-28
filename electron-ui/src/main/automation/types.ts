@@ -234,6 +234,13 @@ export interface AutomationJobView extends AutomationJob {
   /** A run is in flight right now (not persisted). */
   running: boolean
   /**
+   * The global pause is on: scheduled runs are suspended even though this
+   * job's own `enabled` switch may still be on. Carried per row so a surface
+   * that only reads the job list (the menu/tray) can tell a global pause apart
+   * from an individually paused job without a second call.
+   */
+  pausedAll: boolean
+  /**
    * Consecutive failed attempts, newest first, with skips ignored. Derived from
    * `history` on every read so it can never disagree with the records shown.
    */
@@ -247,6 +254,14 @@ export interface AutomationLimits {
   maxRunsPerHour: number
   maxConcurrentRuns: number
   maxJobs: number
+  /**
+   * Global pause: while true, no scheduled run starts on any job. It does not
+   * touch each job's own `enabled` flag, so resuming restores exactly the jobs
+   * that were on. Manual runs are unaffected. Surfaced here because every
+   * automation surface already reads limits; `AutomationJobView.pausedAll`
+   * carries the same fact for callers that only list jobs.
+   */
+  pausedAll: boolean
   /**
    * The opt-in retry policy, exposed so the dialog and pending row can name
    * the actual numbers instead of repeating them in translation copy.

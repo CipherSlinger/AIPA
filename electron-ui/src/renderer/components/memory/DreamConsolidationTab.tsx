@@ -6,11 +6,13 @@
  * which is the only way the user can tell "nothing to remember" from "never
  * ran". Deleting a written pass removes exactly the file that pass created.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Moon, Play, RefreshCw, Trash2 } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore } from '../../store'
 import type { DreamPassData, DreamStatusData } from '../../../preload/index'
+import { HighlightedText, scrollToFirstHighlight } from './MemoryHighlight'
+import { findHighlightRanges, type MemoryOpenFocus } from './memorySearch'
 
 const STATUS_COLORS: Record<DreamPassData['status'], string> = {
   written: '#4ade80',
@@ -34,7 +36,11 @@ function fileNameOf(filePath: string): string {
   return parts[parts.length - 1] || filePath
 }
 
-export default function DreamConsolidationTab() {
+export default function DreamConsolidationTab({
+  focus,
+}: {
+  focus?: Pick<MemoryOpenFocus, 'documentId' | 'query' | 'nonce'>
+}) {
   const t = useT()
   const prefs = usePrefsStore(s => s.prefs)
   const setPrefs = usePrefsStore(s => s.setPrefs)
@@ -47,6 +53,7 @@ export default function DreamConsolidationTab() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -65,6 +72,23 @@ export default function DreamConsolidationTab() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  // A search hit names a pass; open its statements so the match is visible.
+  useEffect(() => {
+    if (!focus?.documentId) return
+    setExpanded(focus.documentId)
+  }, [focus?.documentId, focus?.nonce])
+
+  useEffect(() => {
+    if (!focus?.query || expanded !== focus.documentId) return
+    const frame = requestAnimationFrame(() => {
+      const selector = `[data-dream-pass="${encodeURIComponent(focus.documentId)}"]`
+      const element = listRef.current?.querySelector<HTMLElement>(selector) ?? null
+      element?.scrollIntoView({ block: 'center' })
+      scrollToFirstHighlight(element)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [focus?.nonce, focus?.query, focus?.documentId, expanded, passes.length])
 
   // A scheduled pass can complete while the console is open. Prepending the
   // record here keeps the list live without polling the store file.
@@ -270,7 +294,7 @@ export default function DreamConsolidationTab() {
         {t('dream.recent')}
       </div>
 
-      <div style={{
+      <div ref={listRef} style={{
         flex: 1,
         overflowY: 'auto',
         padding: '4px 8px 8px',
@@ -296,7 +320,7 @@ export default function DreamConsolidationTab() {
           const isOpen = expanded === record.id
           const file = fileNameOf(record.filePath)
           return (
-            <div key={record.id} style={{
+            <div key={record.id} data-dream-pass={encodeURIComponent(record.id)} style={{
               background: 'var(--bg-primary)',
               border: '1px solid var(--border)',
               borderLeft: `3px solid ${color}`,
@@ -344,7 +368,13 @@ export default function DreamConsolidationTab() {
                   {t('dream.session', { id: record.sessionId.slice(0, 8) })}
                 </span>
                 {file && <span title={record.filePath}>{file}</span>}
-                {record.note && <span>{record.note}</span>}
+                {record.note && (
+                  <span>
+                    {focus?.query
+                      ? <HighlightedText text={record.note} ranges={findHighlightRanges(record.note, focus.query)} />
+                      : record.note}
+                  </span>
+                )}
               </div>
 
               {isOpen && record.statements.length > 0 && (
@@ -363,7 +393,9 @@ export default function DreamConsolidationTab() {
                       paddingLeft: 8,
                       borderLeft: '2px solid var(--border)',
                     }}>
-                      {statement}
+                      {focus?.query
+                        ? <HighlightedText text={statement} ranges={findHighlightRanges(statement, focus.query)} />
+                        : statement}
                     </div>
                   ))}
                 </div>

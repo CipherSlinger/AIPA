@@ -7,7 +7,7 @@
 // `automation:changed` instead of guessing what the scheduler did.
 
 import { useCallback, useEffect, useState } from 'react'
-import { AlarmClock, AlertTriangle, Clock, History, Pencil, Play, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { AlarmClock, AlertTriangle, Clock, History, Pause, Pencil, Play, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { usePrefsStore } from '../../store'
 import SettingsGroup from './SettingsGroup'
@@ -66,7 +66,15 @@ export default function SettingsAutomations() {
   const [dialog, setDialog] = useState<AutomationJobData | null | 'new'>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [pauseBusy, setPauseBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // The pause travels in the scheduler's limits payload; a null payload (the
+  // list call failed) reads as not paused rather than inventing a banner.
+  const pausedAll = limits?.pausedAll === true
+  // Only enabled jobs are affected by a pause: a job already switched off is
+  // not suspended a second time, and counting it would overstate the damage.
+  const enabledCount = jobs.filter(job => job.enabled).length
 
   const refresh = useCallback(async () => {
     try {
@@ -188,6 +196,24 @@ export default function SettingsAutomations() {
     // session's persona and working directory, and closes Settings — the same
     // path the archive and command palette take.
     window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: sessionId }))
+  }
+
+  /**
+   * The one mutation for the global switch. The scheduler owns every timing
+   * decision; this call only says "suspend" or "resume", and the pushed
+   * `automation:changed` event brings back the recalculated schedule.
+   */
+  const togglePausedAll = async () => {
+    setError(null)
+    setPauseBusy(true)
+    try {
+      const result = await window.electronAPI.automationSetPausedAll(!pausedAll)
+      if (!result.ok) setError(t('automation.pauseAll.failed', { error: errorText(result.error) }))
+    } catch (err) {
+      setError(t('automation.pauseAll.failed', { error: String(err) }))
+    } finally {
+      setPauseBusy(false)
+    }
   }
 
   const toggleJob = async (job: AutomationJobData, enabled: boolean) => {
@@ -363,6 +389,46 @@ export default function SettingsAutomations() {
           </button>
         </div>
 
+        {/* One switch for every schedule. Quiet by design: it sits below the
+            page description, not above the job list, and its copy says how
+            many jobs it touches so the consequence is explicit. */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          marginBottom: 10, padding: '7px 9px', borderRadius: 6,
+          border: '1px solid var(--border)',
+          background: pausedAll ? 'var(--bg-hover)' : 'transparent',
+        }}>
+          <Pause size={13} style={{ flexShrink: 0, color: pausedAll ? 'var(--accent-text)' : SECONDARY }} />
+          <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: SECONDARY, lineHeight: 1.45 }}>
+            {pausedAll
+              ? t('automation.pauseAll.activeHint', { count: enabledCount })
+              : t('automation.pauseAll.idleHint', { count: enabledCount })}
+          </div>
+          <button
+            style={{ ...(pausedAll ? primaryButtonStyle : smallButtonStyle), opacity: pauseBusy ? 0.5 : 1 }}
+            disabled={pauseBusy}
+            onClick={togglePausedAll}
+          >
+            {pausedAll ? <Play size={11} /> : <Pause size={11} />}
+            {pausedAll ? t('automation.pauseAll.resume') : t('automation.pauseAll.pause')}
+          </button>
+        </div>
+
+        {pausedAll && (
+          // The banner answers "why did nothing run?" without requiring the
+          // user to notice a switch. It also states the two exceptions the
+          // scheduler guarantees: manual runs work and in-flight runs finish.
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 7,
+            marginBottom: 10, padding: '7px 10px', borderRadius: 6,
+            background: 'var(--bg-hover)', border: '1px solid var(--border)',
+            fontSize: 11.5, color: SECONDARY, lineHeight: 1.5,
+          }}>
+            <Pause size={13} style={{ flexShrink: 0, marginTop: 1, color: 'var(--accent-text)' }} />
+            <span>{t('automation.pauseAll.banner')}</span>
+          </div>
+        )}
+
         {error && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6,
@@ -421,6 +487,22 @@ export default function SettingsAutomations() {
                         <Clock size={11} />
                         {scheduleText(t, job.trigger)}
                       </span>
+                      {pausedAll && job.enabled && (
+                        // An enabled job under the global pause must not look
+                        // like one that is about to fire. The switch stays on;
+                        // this chip is what distinguishes the global state from
+                        // every job being individually paused.
+                        <span
+                          title={t('automation.pauseAll.banner')}
+                          style={{
+                            fontSize: 11, padding: '0 6px', borderRadius: 8,
+                            color: SECONDARY, background: 'var(--bg-hover)',
+                            border: '1px solid var(--border)',
+                          }}
+                        >
+                          {t('automation.pauseAll.row')}
+                        </span>
+                      )}
                       {job.quietOnSuccess === true && (
                         // A quiet clause beside the schedule, not another badge:
                         // it says why a success will not call the user.
@@ -533,7 +615,10 @@ export default function SettingsAutomations() {
                       </div>
                     )}
 
-                    {job.enabled && job.nextRunAt !== null && (
+                    {/* While paused the stored nextRunAt is frozen; showing it
+                        would promise a run that cannot happen. The banner says
+                        when scheduling returns. */}
+                    {!pausedAll && job.enabled && job.nextRunAt !== null && (
                       <div style={{ fontSize: 11, color: SECONDARY, marginTop: 2 }}>
                         {t('automation.nextRun', { time: timeText(job.nextRunAt) })}
                       </div>
@@ -702,6 +787,7 @@ export default function SettingsAutomations() {
         <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11.5, color: SECONDARY, lineHeight: 1.6 }}>
           <li>{t('automation.appMustRun')}</li>
           <li>{t('automation.missedRunRule')}</li>
+          <li>{t('automation.pauseAll.help')}</li>
           <li>
             {t('automation.limitsNote', {
               count: limits?.maxRunsPerHour ?? 12,

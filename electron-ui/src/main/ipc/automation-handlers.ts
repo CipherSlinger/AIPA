@@ -12,6 +12,7 @@ import {
   listAutomationJobs,
   runAutomationNow,
   setAutomationEnabled,
+  setAutomationPausedAll,
   updateAutomationJob,
 } from '../automation/scheduler'
 import type { AutomationInput } from '../automation/types'
@@ -37,4 +38,9 @@ export function registerAutomationHandlers(): void {
     setAutomationEnabled(String(id), !!enabled))
 
   ipcMain.handle('automation:runNow', (_event, id: string) => runAutomationNow(String(id)))
+
+  // One switch for every job's scheduled runs. It does not replace the
+  // per-job setEnabled channel: individual switches keep working while paused.
+  ipcMain.handle('automation:setPausedAll', (_event, paused: boolean) =>
+    setAutomationPausedAll(paused === true))
 }

@@ -1776,7 +1776,15 @@
     "instructionBannerTitle": "指令文件",
     "instructionBannerDesc": "CLAUDE.md 会自动加载，并应用于每次会话。",
     "memdirBannerTitle": "结构化记忆",
-    "memdirBannerDesc": "AI 生成的结构化记忆存放在 ~/.claude/memory/。"
+    "memdirBannerDesc": "AI 生成的结构化记忆存放在 ~/.claude/memory/。",
+    "searchAllPlaceholder": "搜索全部记忆…",
+    "searchClear": "清除搜索",
+    "searchLoadingTier": "正在搜索{{tier}}…",
+    "searchTierUnavailable": "{{tier}}无法搜索",
+    "searchTierUnavailableHint": "读取失败，这一层可能有未显示的匹配。",
+    "searchEmpty": "记忆中没有匹配“{{query}}”的内容",
+    "searchEmptyHint": "试试更短的词——上方五个层级都已搜索。",
+    "searchKeyboard": "回车打开第一条 · ↑↓ 移动 · Esc 清除"
   },
   "workflow": {
     "title": "工作流",
@@ -3123,6 +3131,16 @@
         "project-structured": "项目文件",
         "personal": "个人"
       }
+    },
+    "pauseAll": {
+      "pause": "全部暂停",
+      "resume": "全部恢复",
+      "idleHint": "暂停所有定时运行，不改变每个任务自己的开关 —— 影响 {{count}} 个已启用任务。手动运行仍然可用。",
+      "activeHint": "所有定时运行已暂停 —— 影响 {{count}} 个已启用任务。",
+      "banner": "在你恢复之前，不会有任何任务按计划启动。每个任务保留自己的开关；手动运行仍可执行，已在进行的运行会继续跑完。",
+      "row": "定时运行已暂停",
+      "help": "全部暂停会暂停所有定时运行，但不改变每个任务自己的开关。手动运行仍然可用。恢复时会重新计算暂停期间错过的运行时间，而不会一次性补跑。",
+      "failed": "无法更改暂停状态：{{error}}"
     }
   },
   "speculation": {

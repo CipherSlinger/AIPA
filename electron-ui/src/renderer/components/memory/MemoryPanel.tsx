@@ -10,7 +10,7 @@
  * - Instruction Files tab: global ~/.claude/CLAUDE.md, project CLAUDE.md, local CLAUDE.local.md
  * - Structured Memory tab: reads ~/.claude/memory/ memdir files (AI-generated, YAML frontmatter)
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   Brain,
   Moon,
@@ -22,21 +22,37 @@ import {
   FileText,
   RefreshCw,
   Save,
-  Settings,
+  X,
 } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore } from '../../store'
+import { pushEscapeHandler } from '../ui/escapeStack'
 import { CATEGORY_CONFIG, CATEGORIES, MAX_MEMORIES, MEMORY_TYPES, MEMORY_TYPE_CONFIG } from './memoryConstants'
 import { useMemoryCrud } from './useMemoryCrud'
+import { useMemorySearchIndex } from './useMemorySearchIndex'
 import MemoryAddForm from './MemoryAddForm'
 import MemoryItemCard from './MemoryItemCard'
+import MemorySearchResults from './MemorySearchResults'
 import DreamConsolidationTab from './DreamConsolidationTab'
+import { HighlightedText, scrollToFirstHighlight } from './MemoryHighlight'
+import {
+  findHighlightRanges,
+  flattenMemorySearchGroups,
+  groupMemorySearchResults,
+  memoryHitCounts,
+  type MemoryOpenFocus,
+  type MemorySearchHit,
+  type MemoryTierState,
+} from './memorySearch'
 
 type MemoryTab = 'personal' | 'project' | 'memdir' | 'dream' | 'config'
 
+/** Per-tab focus handed down after a search result row is opened. */
+type TabFocus = Pick<MemoryOpenFocus, 'documentId' | 'query' | 'nonce'>
+
 // ─── Project Memory (MEMORY.md) viewer/editor ────────────────────────────────
 
-function ProjectMemoryTab() {
+function ProjectMemoryTab({ focus }: { focus?: TabFocus }) {
   const t = useT()
   const prefs = usePrefsStore(s => s.prefs)
   const [content, setContent] = useState<string>('')
@@ -47,6 +63,20 @@ function ProjectMemoryTab() {
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const contentRef = useRef<HTMLPreElement>(null)
+
+  const focusRanges = useMemo(
+    () => focus?.query ? findHighlightRanges(content, focus.query) : [],
+    [content, focus?.query],
+  )
+
+  // Opening a search hit on this tab should show the matching line, not just
+  // the top of a possibly long file.
+  useEffect(() => {
+    if (!focus?.query || loading || editing) return
+    const frame = requestAnimationFrame(() => scrollToFirstHighlight(contentRef.current))
+    return () => cancelAnimationFrame(frame)
+  }, [focus?.nonce, focus?.query, loading, editing, content])
 
   const getMemoryPath = useCallback(async (): Promise<string> => {
     const workingDir = prefs.workingDir || await window.electronAPI.fsGetHome()
@@ -220,7 +250,7 @@ function ProjectMemoryTab() {
             }}
           />
         ) : content ? (
-          <pre style={{
+          <pre ref={contentRef} style={{
             margin: 0,
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
@@ -229,7 +259,7 @@ function ProjectMemoryTab() {
             color: 'var(--text-primary)',
             fontFamily: 'monospace',
           }}>
-            {content}
+            <HighlightedText text={content} ranges={focusRanges} />
           </pre>
         ) : (
           <div style={{
@@ -300,12 +330,13 @@ const MEMDIR_TYPE_I18N_KEYS: Record<string, string> = {
 
 type MemdirTypeFilter = 'all' | 'user' | 'feedback' | 'project' | 'reference'
 
-function MemdirTab() {
+function MemdirTab({ focus }: { focus?: TabFocus }) {
   const t = useT()
   const [files, setFiles] = useState<MemdirFile[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [typeFilter, setTypeFilter] = useState<MemdirTypeFilter>('all')
+  const listRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -319,6 +350,25 @@ function MemdirTab() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  // A search hit names a file, so open exactly that file. Clearing the type
+  // filter matters: the previous filter could hide the row we are opening.
+  useEffect(() => {
+    if (!focus?.documentId) return
+    setTypeFilter('all')
+    setExpanded(focus.documentId)
+  }, [focus?.documentId, focus?.nonce])
+
+  useEffect(() => {
+    if (!focus?.query || expanded !== focus.documentId) return
+    const frame = requestAnimationFrame(() => {
+      const selector = `[data-memdir-file="${encodeURIComponent(focus.documentId)}"]`
+      const element = listRef.current?.querySelector<HTMLElement>(selector) ?? null
+      element?.scrollIntoView({ block: 'center' })
+      scrollToFirstHighlight(element)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [focus?.nonce, focus?.query, focus?.documentId, expanded, files.length])
 
   // Derive filtered files and type counts
   const filteredFiles = typeFilter === 'all' ? files : files.filter(f => f.type === typeFilter)
@@ -426,7 +476,7 @@ function MemdirTab() {
       </div>
 
       {/* File list */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px', scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
+      <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '6px 8px', scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
         {filteredFiles.length === 0 && files.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60%', color: 'var(--text-muted)', gap: 8, textAlign: 'center' }}>
             <Brain size={24} style={{ opacity: 0.3 }} />
@@ -449,7 +499,7 @@ function MemdirTab() {
             ? (ageDaysRounded < 1 ? t('memory.justNow') : `${ageDaysRounded}d ago`)
             : ''
           return (
-            <div key={f.filePath} style={{
+            <div key={f.filePath} data-memdir-file={encodeURIComponent(f.filePath)} style={{
               background: 'var(--bg-primary)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
               border: '1px solid var(--border)', borderLeft: `3px solid ${typeColor}`, borderRadius: 10, marginBottom: 6,
               overflow: 'hidden', transition: 'all 0.15s ease',
@@ -503,7 +553,9 @@ function MemdirTab() {
                     background: 'var(--bg-hover)', borderRadius: 6, padding: '8px 10px',
                     border: '1px solid var(--border)',
                   }}>
-                    {f.content || <span style={{ color: 'var(--text-muted)' }}>(empty)</span>}
+                    {focus?.query && f.content
+                      ? <HighlightedText text={f.content} ranges={findHighlightRanges(f.content, focus.query)} />
+                      : (f.content || <span style={{ color: 'var(--text-muted)' }}>(empty)</span>)}
                   </pre>
                   <div style={{ marginTop: 6, fontSize: 9, color: 'var(--text-muted)', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                     {f.filePath}
@@ -778,7 +830,7 @@ const SCOPE_LABEL_KEYS: Record<InstructionScope, string> = {
   local: 'memory.instructionLocal',
 }
 
-function InstructionFilesTab() {
+function InstructionFilesTab({ focus }: { focus?: TabFocus }) {
   const t = useT()
   const prefs = usePrefsStore(s => s.prefs)
   const [activeScope, setActiveScope] = useState<InstructionScope>('project')
@@ -792,8 +844,28 @@ function InstructionFilesTab() {
   const [pathCopied, setPathCopied] = useState(false)
   const [homeDir, setHomeDir] = useState<string>('~')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const contentRef = useRef<HTMLPreElement>(null)
 
   const currentFile = INSTRUCTION_FILES.find(f => f.scope === activeScope)!
+
+  const focusRanges = useMemo(
+    () => focus?.query ? findHighlightRanges(content, focus.query) : [],
+    [content, focus?.query],
+  )
+
+  // A result row carries the instruction file's scope in `documentId`.
+  useEffect(() => {
+    const scope = focus?.documentId
+    if (scope === 'global' || scope === 'project' || scope === 'local') {
+      setActiveScope(scope)
+    }
+  }, [focus?.documentId, focus?.nonce])
+
+  useEffect(() => {
+    if (!focus?.query || loading || editing) return
+    const frame = requestAnimationFrame(() => scrollToFirstHighlight(contentRef.current))
+    return () => cancelAnimationFrame(frame)
+  }, [focus?.nonce, focus?.query, loading, editing, content])
 
   useEffect(() => {
     window.electronAPI.fsGetHome().then((h: string) => setHomeDir(h)).catch(() => {})
@@ -1120,7 +1192,7 @@ function InstructionFilesTab() {
             </div>
           </>
         ) : content ? (
-          <pre style={{
+          <pre ref={contentRef} style={{
             margin: 0,
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
@@ -1129,7 +1201,7 @@ function InstructionFilesTab() {
             color: 'var(--text-primary)',
             fontFamily: 'monospace',
           }}>
-            {content}
+            <HighlightedText text={content} ranges={focusRanges} />
           </pre>
         ) : (
           <div style={{
@@ -1190,6 +1262,123 @@ export default function MemoryPanel() {
   const t = useT()
   const crud = useMemoryCrud()
   const [activeTab, setActiveTab] = useState<MemoryTab>('personal')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedHit, setSelectedHit] = useState(0)
+  const [focusTarget, setFocusTarget] = useState<MemoryOpenFocus | null>(null)
+  const [flashMemoryId, setFlashMemoryId] = useState<string | null>(null)
+
+  const trimmedQuery = searchQuery.trim()
+  const searchActive = trimmedQuery.length > 0
+  // Personal facts are already in the store. The hook loads the other four
+  // tiers once, on the first non-empty query, then filters them locally.
+  const searchTiers = useMemorySearchIndex(searchActive, crud.memories)
+  const searchGroups = useMemo(
+    () => groupMemorySearchResults(searchTiers, trimmedQuery),
+    [searchTiers, trimmedQuery],
+  )
+  const searchHits = useMemo(() => flattenMemorySearchGroups(searchGroups), [searchGroups])
+  const hitCounts = useMemo(() => memoryHitCounts(searchGroups), [searchGroups])
+  const tierStates = useMemo(() => {
+    const states: Record<MemoryTab, MemoryTierState> = {
+      personal: 'ready',
+      project: 'loading',
+      memdir: 'loading',
+      dream: 'loading',
+      config: 'loading',
+    }
+    for (const group of searchGroups) states[group.tier] = group.state
+    return states
+  }, [searchGroups])
+
+  // A new query starts from its first result; typing moves the target.
+  useEffect(() => { setSelectedHit(0) }, [trimmedQuery])
+  useEffect(() => {
+    setSelectedHit(current => {
+      if (searchHits.length === 0) return 0
+      return Math.min(current, searchHits.length - 1)
+    })
+  }, [searchHits.length])
+
+  // Escape peels the query off first. AppShell handles Escape in the capture
+  // phase, so the handler has to be on its stack to run before "close Settings";
+  // once the query is empty this handler is gone and the console closes.
+  useEffect(() => {
+    if (!searchActive) return
+    return pushEscapeHandler(() => setSearchQuery(''))
+  }, [searchActive])
+
+  // Pull the personal tab's setters out so the callback below depends on
+  // stable functions rather than the whole hook object.
+  const setCrudFilterCategory = crud.setFilterCategory
+  const setCrudFilterMemoryType = crud.setFilterMemoryType
+  const setCrudSearchQuery = crud.setSearchQuery
+
+  const openSearchHit = useCallback((hit: MemorySearchHit) => {
+    setSearchQuery('')
+    setActiveTab(hit.tier)
+    if (hit.tier === 'personal') {
+      // The tab's local filters may have hidden this fact. Clearing them is
+      // what makes the scroll target exist on the next render.
+      setCrudFilterCategory('all')
+      setCrudFilterMemoryType('all')
+      setCrudSearchQuery('')
+    }
+    setFocusTarget({
+      tier: hit.tier,
+      documentId: hit.documentId,
+      query: trimmedQuery,
+      nonce: Date.now(),
+    })
+  }, [trimmedQuery, setCrudFilterCategory, setCrudFilterMemoryType, setCrudSearchQuery])
+
+  // Personal facts open in place; flash the card so the landing spot is clear.
+  useEffect(() => {
+    if (!focusTarget || focusTarget.tier !== 'personal') return
+    setFlashMemoryId(focusTarget.documentId)
+    const frame = requestAnimationFrame(() => {
+      const element = document.getElementById(`memory-item-${focusTarget.documentId}`)
+      element?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    })
+    const timer = window.setTimeout(() => setFlashMemoryId(null), 1800)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.clearTimeout(timer)
+    }
+  }, [focusTarget])
+
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
+      // The escape-stack handler clears the query; this only keeps the key
+      // from also reaching other input behaviours.
+      if (searchActive) event.preventDefault()
+      return
+    }
+    if (!searchActive) return
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      if (searchHits.length === 0) return
+      event.preventDefault()
+      const step = event.key === 'ArrowDown' ? 1 : -1
+      setSelectedHit(current => (current + step + searchHits.length) % searchHits.length)
+      return
+    }
+    if (event.key === 'Enter') {
+      // The selection defaults to the first hit, and hover/arrows move it.
+      const hit = searchHits[selectedHit] ?? searchHits[0]
+      if (hit) {
+        event.preventDefault()
+        openSearchHit(hit)
+      }
+    }
+  }
+
+  const selectTab = (tab: MemoryTab) => {
+    setActiveTab(tab)
+    // A manual tab choice ends the previous search's landing highlight.
+    setFocusTarget(null)
+    // While results replace the body, a tab is a way to leave the results and
+    // land on that tier; keeping the query would contradict the tab you chose.
+    if (searchActive) setSearchQuery('')
+  }
 
   const tabStyle = (active: boolean) => ({
     flex: 1,
@@ -1208,6 +1397,33 @@ export default function MemoryPanel() {
     gap: 4,
     transition: 'all 0.15s ease',
   } as React.CSSProperties)
+
+  // While results replace the body, the tabs keep reporting which tier holds
+  // what. A tier still loading or failing says so instead of showing "0".
+  const tabCountBadge = (tab: MemoryTab) => {
+    if (!searchActive) return null
+    const state = tierStates[tab]
+    return (
+      <span
+        title={state === 'ready' ? t('memory.searchResults', { count: String(hitCounts[tab]) }) : undefined}
+        style={{
+          fontSize: 9,
+          fontWeight: 700,
+          padding: '0 5px',
+          borderRadius: 8,
+          fontVariantNumeric: 'tabular-nums',
+          color: state === 'error'
+            ? 'var(--danger-text)'
+            : state === 'loading' ? 'var(--text-muted)' : 'var(--accent-text)',
+          background: state === 'error'
+            ? 'rgba(239,68,68,0.12)'
+            : state === 'loading' ? 'var(--border)' : 'rgba(99,102,241,0.14)',
+        }}
+      >
+        {state === 'loading' ? '…' : state === 'error' ? '!' : hitCounts[tab]}
+      </span>
+    )
+  }
 
   return (
     <div style={{
@@ -1262,10 +1478,86 @@ export default function MemoryPanel() {
               </span>
             )}
           </div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            flex: '0 1 auto',
+            minWidth: 0,
+          }}>
+            {/* Cross-tier search. Compact enough to sit beside the add/clear
+                actions without taking a row away from them. */}
+            <div style={{ position: 'relative', flex: '1 1 150px', minWidth: 110, maxWidth: 240 }}>
+              <Search size={11} style={{
+                position: 'absolute',
+                left: 8,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--text-muted)',
+                pointerEvents: 'none',
+              }} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                placeholder={t('memory.searchAllPlaceholder')}
+                aria-label={t('memory.searchAllPlaceholder')}
+                style={{
+                  width: '100%',
+                  height: 24,
+                  paddingLeft: 23,
+                  paddingRight: searchQuery ? 22 : 7,
+                  background: 'var(--bg-hover)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 6,
+                  fontSize: 11,
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  transition: 'all 0.15s ease',
+                }}
+                onFocus={e => {
+                  e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'
+                }}
+                onBlur={e => {
+                  e.currentTarget.style.borderColor = 'var(--border)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  aria-label={t('memory.searchClear')}
+                  title={t('memory.searchClear')}
+                  style={{
+                    position: 'absolute',
+                    right: 4,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    padding: 2,
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <X size={11} />
+                </button>
+              )}
+            </div>
           {activeTab === 'personal' && (
-            <div style={{ display: 'flex', gap: 4 }}>
+            <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
               <button
-                onClick={() => crud.setShowAddForm(!crud.showAddForm)}
+                onClick={() => {
+                  // The add form lives in the personal body, which results are
+                  // currently replacing; leave search so the form is visible.
+                  if (searchActive) setSearchQuery('')
+                  crud.setShowAddForm(!crud.showAddForm)
+                }}
                 aria-label={t('memory.addNew')}
                 title={t('memory.addNew')}
                 style={{
@@ -1314,6 +1606,7 @@ export default function MemoryPanel() {
               )}
             </div>
           )}
+          </div>
         </div>
 
         {/* Tab switcher */}
@@ -1324,30 +1617,35 @@ export default function MemoryPanel() {
           marginBottom: activeTab === 'personal' ? 8 : 0,
           marginTop: 4,
         }}>
-          <button style={tabStyle(activeTab === 'personal')} onClick={() => setActiveTab('personal')}>
+          <button style={tabStyle(activeTab === 'personal')} onClick={() => selectTab('personal')}>
             <User size={11} />
             {t('memory.globalMemory')}
+            {tabCountBadge('personal')}
           </button>
-          <button style={tabStyle(activeTab === 'project')} onClick={() => setActiveTab('project')}>
+          <button style={tabStyle(activeTab === 'project')} onClick={() => selectTab('project')}>
             <FolderOpen size={11} />
             {t('memory.projectMemory')}
+            {tabCountBadge('project')}
           </button>
-          <button style={tabStyle(activeTab === 'memdir')} onClick={() => setActiveTab('memdir')}>
+          <button style={tabStyle(activeTab === 'memdir')} onClick={() => selectTab('memdir')}>
             <Brain size={11} />
             {t('memory.memdirTab')}
+            {tabCountBadge('memdir')}
           </button>
-          <button style={tabStyle(activeTab === 'dream')} onClick={() => setActiveTab('dream')}>
+          <button style={tabStyle(activeTab === 'dream')} onClick={() => selectTab('dream')}>
             <Moon size={11} />
             {t('dream.tabLabel')}
+            {tabCountBadge('dream')}
           </button>
-          <button style={tabStyle(activeTab === 'config')} onClick={() => setActiveTab('config')}>
+          <button style={tabStyle(activeTab === 'config')} onClick={() => selectTab('config')}>
             <FileText size={11} />
             {t('memory.instructionTab')}
+            {tabCountBadge('config')}
           </button>
         </div>
 
         {/* Section concept banner — P1-5: clearly distinguish CLAUDE.md vs memdir */}
-        {(activeTab === 'memdir' || activeTab === 'config') && (
+        {!searchActive && (activeTab === 'memdir' || activeTab === 'config') && (
           <div style={{
             padding: '5px 12px 4px',
             display: 'flex',
@@ -1379,7 +1677,7 @@ export default function MemoryPanel() {
         )}
 
         {/* Personal tab: search + category filter */}
-        {activeTab === 'personal' && (
+        {!searchActive && activeTab === 'personal' && (
           <>
             {/* Search */}
             <div style={{ position: 'relative', marginBottom: 6 }}>
@@ -1582,8 +1880,22 @@ export default function MemoryPanel() {
         )}
       </div>
 
+      {/* Cross-tier results replace the tab bodies; the tab strip stays. */}
+      {searchActive && (
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <MemorySearchResults
+            query={trimmedQuery}
+            groups={searchGroups}
+            selectedIndex={selectedHit}
+            onSelect={setSelectedHit}
+            onOpen={openSearchHit}
+            t={t}
+          />
+        </div>
+      )}
+
       {/* Personal tab body */}
-      {activeTab === 'personal' && (
+      {!searchActive && activeTab === 'personal' && (
         <>
           {/* Add form */}
           {crud.showAddForm && (
@@ -1643,24 +1955,35 @@ export default function MemoryPanel() {
               </div>
             ) : (
               crud.filteredMemories.map(mem => (
-                <MemoryItemCard
+                <div
                   key={mem.id}
-                  mem={mem}
-                  t={t}
-                  searchQuery={crud.searchQuery}
-                  isEditing={crud.editingId === mem.id}
-                  editContent={crud.editContent}
-                  editCategory={crud.editCategory}
-                  editMemoryType={crud.editMemoryType}
-                  onEditContentChange={crud.setEditContent}
-                  onEditCategoryChange={crud.setEditCategory}
-                  onEditMemoryTypeChange={crud.setEditMemoryType}
-                  onStartEdit={() => crud.startEdit(mem)}
-                  onSaveEdit={() => crud.saveEdit(t)}
-                  onCancelEdit={crud.cancelEdit}
-                  onTogglePin={() => crud.togglePin(mem.id)}
-                  onDelete={() => crud.deleteMemory(mem.id, t)}
-                />
+                  id={`memory-item-${mem.id}`}
+                  style={flashMemoryId === mem.id
+                    ? {
+                        outline: '2px solid rgba(99,102,241,0.7)',
+                        outlineOffset: 2,
+                        borderRadius: 12,
+                      }
+                    : undefined}
+                >
+                  <MemoryItemCard
+                    mem={mem}
+                    t={t}
+                    searchQuery={crud.searchQuery}
+                    isEditing={crud.editingId === mem.id}
+                    editContent={crud.editContent}
+                    editCategory={crud.editCategory}
+                    editMemoryType={crud.editMemoryType}
+                    onEditContentChange={crud.setEditContent}
+                    onEditCategoryChange={crud.setEditCategory}
+                    onEditMemoryTypeChange={crud.setEditMemoryType}
+                    onStartEdit={() => crud.startEdit(mem)}
+                    onSaveEdit={() => crud.saveEdit(t)}
+                    onCancelEdit={crud.cancelEdit}
+                    onTogglePin={() => crud.togglePin(mem.id)}
+                    onDelete={() => crud.deleteMemory(mem.id, t)}
+                  />
+                </div>
               ))
             )}
           </div>
@@ -1685,30 +2008,30 @@ export default function MemoryPanel() {
       )}
 
       {/* Project tab body */}
-      {activeTab === 'project' && (
+      {!searchActive && activeTab === 'project' && (
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <ProjectMemoryTab />
+          <ProjectMemoryTab focus={focusTarget?.tier === 'project' ? focusTarget : undefined} />
         </div>
       )}
 
       {/* Structured Memory tab body */}
-      {activeTab === 'memdir' && (
+      {!searchActive && activeTab === 'memdir' && (
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <MemdirTab />
+          <MemdirTab focus={focusTarget?.tier === 'memdir' ? focusTarget : undefined} />
         </div>
       )}
 
       {/* Dream consolidation tab body */}
-      {activeTab === 'dream' && (
+      {!searchActive && activeTab === 'dream' && (
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <DreamConsolidationTab />
+          <DreamConsolidationTab focus={focusTarget?.tier === 'dream' ? focusTarget : undefined} />
         </div>
       )}
 
       {/* Instruction Files tab body — multi-scope CLAUDE.md editor */}
-      {activeTab === 'config' && (
+      {!searchActive && activeTab === 'config' && (
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <InstructionFilesTab />
+          <InstructionFilesTab focus={focusTarget?.tier === 'config' ? focusTarget : undefined} />
         </div>
       )}
 

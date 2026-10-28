@@ -483,6 +483,12 @@ export interface AutomationJobData {
   actionMissing: boolean
   /** A run is in flight right now. */
   running: boolean
+  /**
+   * The global pause is on, so this job's scheduled runs are suspended even
+   * when its own `enabled` switch is still on. Lets a job-only surface tell a
+   * global pause apart from an individually paused job.
+   */
+  pausedAll: boolean
 }
 
 export interface AutomationLimitsData {
@@ -490,6 +496,12 @@ export interface AutomationLimitsData {
   maxRunsPerHour: number
   maxConcurrentRuns: number
   maxJobs: number
+  /**
+   * Global pause: no scheduled run starts while true. Per-job `enabled` flags
+   * are untouched and manual runs still work, so this is not a substitute for
+   * reading each row's own switch.
+   */
+  pausedAll: boolean
   /** Retry policy exposed for the dialog/row copy; mirrors main's constants. */
   retry: {
     maxRetries: number
@@ -514,6 +526,10 @@ export interface AutomationInputData {
 
 export type AutomationMutationData =
   | { ok: true; job: AutomationJobData }
+  | { ok: false; error: string }
+
+export type AutomationPauseData =
+  | { ok: true; pausedAll: boolean }
   | { ok: false; error: string }
 
 /**
@@ -669,6 +685,8 @@ const electronAPI = {
     ipcRenderer.invoke('automation:setEnabled', id, enabled) as Promise<AutomationMutationData>,
   automationRunNow: (id: string) =>
     ipcRenderer.invoke('automation:runNow', id) as Promise<AutomationMutationData>,
+  automationSetPausedAll: (paused: boolean) =>
+    ipcRenderer.invoke('automation:setPausedAll', paused) as Promise<AutomationPauseData>,
   onAutomationChanged: (cb: () => void): Unsubscribe => {
     const handler = () => cb()
     ipcRenderer.on('automation:changed', handler)

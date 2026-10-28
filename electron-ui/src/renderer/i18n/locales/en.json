@@ -1776,7 +1776,15 @@
     "instructionBannerTitle": "Instruction files",
     "instructionBannerDesc": "CLAUDE.md files are loaded automatically and apply to every session.",
     "memdirBannerTitle": "Structured memory",
-    "memdirBannerDesc": "AI-generated memories stored under ~/.claude/memory/."
+    "memdirBannerDesc": "AI-generated memories stored under ~/.claude/memory/.",
+    "searchAllPlaceholder": "Search all memory…",
+    "searchClear": "Clear search",
+    "searchLoadingTier": "Searching {{tier}}…",
+    "searchTierUnavailable": "{{tier}} could not be searched",
+    "searchTierUnavailableHint": "The read failed, so matches there may be missing.",
+    "searchEmpty": "Nothing in memory matches “{{query}}”",
+    "searchEmptyHint": "Try a shorter word — all five tiers above were searched.",
+    "searchKeyboard": "Enter opens the first match · ↑↓ moves · Esc clears"
   },
   "workflow": {
     "title": "Workflows",
@@ -3123,6 +3131,16 @@
         "project-structured": "project files",
         "personal": "personal"
       }
+    },
+    "pauseAll": {
+      "pause": "Pause all",
+      "resume": "Resume all",
+      "idleHint": "Pause every scheduled run without changing each job's own switch — {{count}} enabled job(s) affected. Manual runs stay available.",
+      "activeHint": "All scheduled runs are paused — {{count}} enabled job(s) affected.",
+      "banner": "Nothing starts on schedule until you resume. Each job keeps its own switch; manual runs still work, and a run already in progress is allowed to finish.",
+      "row": "scheduled runs paused",
+      "help": "Pause all suspends every scheduled run while leaving each job's own switch as it is. Manual runs still work. Resuming recalculates occurrences missed during the pause instead of firing them all at once.",
+      "failed": "Could not change the pause: {{error}}"
     }
   },
   "speculation": {
