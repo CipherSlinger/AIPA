@@ -40,6 +40,8 @@ interface CommandBuilderArgs {
   sessions: SessionListItem[]
   /** Text currently typed into the palette; seeds the global search overlay. */
   query?: string
+  /** `null` = the one-time probe has not answered; `false` hides the ask entry. */
+  askHistoryAvailable?: boolean | null
 }
 
 export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] {
@@ -47,6 +49,11 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
     t, onClose, onExport, onNewConversation, onSendSlashCommand,
     toggleSidebar, setSidebarTab, setSidebarOpen, setActiveNavItem, addToast,
   } = args
+
+  // `null` means the one-time probe has not answered yet: keep the command.
+  // `false` means the overlay would hide its ask row, so the command must not
+  // promise a feature that is not there.
+  const { askHistoryAvailable = null } = args
 
   return [
     {
@@ -146,7 +153,7 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
       action: () => { setActiveNavItem('archive'); onClose() },
       category: 'action',
     },
-    {
+    ...(askHistoryAvailable !== false ? [{
       id: 'ask-history',
       name: t('command.askHistory'),
       description: t('command.askHistoryDesc'),
@@ -160,8 +167,8 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
         ui.setGlobalSearchOpen(true)
         onClose()
       },
-      category: 'action',
-    },
+      category: 'action' as const,
+    }] : []),
     {
       id: 'change-working-dir',
       name: t('command.changeWorkingDir'),

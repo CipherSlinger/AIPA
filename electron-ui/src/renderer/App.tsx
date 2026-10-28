@@ -151,6 +151,24 @@ export default function App() {
     init()
   }, [])
 
+  // Probe once whether "Ask AIPA about your history" can run here, so the
+  // command palette never offers a command whose overlay row is hidden for
+  // lack of an authenticated engine. A failed probe leaves `null`, which the
+  // palette treats as available — a slow or broken probe must not hide a
+  // working command.
+  useEffect(() => {
+    if (!window.electronAPI?.sessionAskHistoryStatus) return
+    let cancelled = false
+    Promise.resolve(window.electronAPI.sessionAskHistoryStatus())
+      .then(result => {
+        if (!cancelled) {
+          useUiStore.getState().setAskHistoryAvailable(Boolean(result?.available))
+        }
+      })
+      .catch(() => { /* leave null; the command stays visible */ })
+    return () => { cancelled = true }
+  }, [])
+
   // Listen for CLI notification events and surface them as info toasts
   useEffect(() => {
     if (!window.electronAPI?.onNotification) return

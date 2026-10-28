@@ -2777,7 +2777,10 @@
     "failed": "AIPA 没能回答这个问题",
     "busy": "AIPA 正在回答另一个问题",
     "timeout": "回答超时了——试着问得更具体一些",
-    "empty": "AIPA 返回了空答案"
+    "empty": "AIPA 返回了空答案",
+    "followUp": "继续追问",
+    "followUpOn": "接着问“{{question}}”",
+    "followUpDismiss": "取消追问"
   },
   "automation": {
     "title": "自动化",

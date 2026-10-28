@@ -83,6 +83,13 @@ interface UiState {
   globalSearchSeed: string
   setGlobalSearchSeed: (seed: string) => void
 
+  // Whether "Ask AIPA about your history" can actually run. `null` means the
+  // one-time probe has not answered yet; the palette treats that as available
+  // so a slow probe can never hide a working command. `false` removes the
+  // command, matching the overlay, which hides its ask row in that case.
+  askHistoryAvailable: boolean | null
+  setAskHistoryAvailable: (available: boolean | null) => void
+
   // Evidence hand-off from the search overlay to ChatPanel. The overlay knows
   // the matched message only as a timestamp; ChatPanel owns the parsed message
   // array that turns it into an index. The nonce makes two clicks on the same
@@ -270,6 +277,8 @@ export const useUiStore = create<UiState>((set) => ({
   setGlobalSearchOpen: (open) => set({ globalSearchOpen: open }),
   globalSearchSeed: '',
   setGlobalSearchSeed: (seed) => set({ globalSearchSeed: seed }),
+  askHistoryAvailable: null,
+  setAskHistoryAvailable: (available) => set({ askHistoryAvailable: available }),
   pendingReveal: null,
   requestReveal: (reveal) => set({
     pendingReveal: { ...reveal, nonce: Date.now() },

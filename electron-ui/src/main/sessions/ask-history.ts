@@ -58,6 +58,15 @@ export interface AskSource {
   matchedTerm: string
 }
 
+/**
+ * One earlier question/answer exchange carried into the next ask. It exists
+ * only so the model can resolve "that / it / 上一句" — it is never evidence.
+ */
+export interface AskHistoryTurn {
+  question: string
+  answer: string
+}
+
 export interface HistoryDigest {
   sources: AskSource[]
   /** Numbered evidence blocks, ready to paste into the ask prompt. */
@@ -96,6 +105,38 @@ const DEFAULT_PER_SOURCE_CHARS = 1_400
 const DEFAULT_TOTAL_CHARS = 8_000
 const MAX_EXCERPT_LINE = 400
 const TRUNCATION_MARK = '…[truncated]'
+
+// Follow-up context is deliberately tiny: the model needs enough to resolve a
+// pronoun, not a transcript. Two turns is the last exchange and the one before
+// it; 600 characters per answer keeps a long answer from crowding out evidence.
+const MAX_HISTORY_TURNS = 2
+const MAX_HISTORY_QUESTION_CHARS = 500
+const MAX_HISTORY_ANSWER_CHARS = 2_000
+export const HISTORY_ANSWER_PROMPT_CHARS = 600
+
+/**
+ * Defensive validation for the renderer-supplied history. A stale renderer, a
+ * corrupted value or a hand-written invoke must never make the ask fail: every
+ * malformed entry is simply dropped, and at most the last two valid turns
+ * survive. The answer is validated at its full length here and capped only when
+ * the prompt is rendered, so a 1,500-character answer is still usable context.
+ */
+export function sanitizeAskHistory(raw: unknown): AskHistoryTurn[] {
+  if (!Array.isArray(raw)) return []
+  const turns: AskHistoryTurn[] = []
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue
+    const question = (entry as { question?: unknown }).question
+    const answer = (entry as { answer?: unknown }).answer
+    if (typeof question !== 'string' || typeof answer !== 'string') continue
+    if (question.length < 1 || question.length > MAX_HISTORY_QUESTION_CHARS) continue
+    if (answer.length < 1 || answer.length > MAX_HISTORY_ANSWER_CHARS) continue
+    const trimmed = question.trim()
+    if (!trimmed) continue
+    turns.push({ question: trimmed, answer })
+  }
+  return turns.slice(-MAX_HISTORY_TURNS)
+}
 
 // ── Term extraction ──────────────────────────────────
 
@@ -543,9 +584,11 @@ export function buildAskPrompt(
   digest: string,
   sources: AskSource[],
   locale: string,
+  history: AskHistoryTurn[] = [],
 ): string {
   const chinese = /^zh/i.test(locale)
   const today = formatLocalDate(Date.now())
+  const historySection = renderAskHistorySection(history, chinese)
 
   if (chinese) {
     return [
@@ -558,6 +601,7 @@ export function buildAskPrompt(
       '',
       digest || '（没有检索到相关片段）',
       '',
+      ...(historySection ? [historySection, ''] : []),
       '回答规则：',
       '- 使用简体中文回答。',
       '- 只使用上面的片段，不要补充片段以外的知识或猜测。',
@@ -565,6 +609,10 @@ export function buildAskPrompt(
       '- 如果片段中没有答案，直接说明“记录里没有找到相关内容”，不要编造。',
       '- 不超过 300 个汉字。',
       '- 不要开场白、不要标题、不要分点罗列，直接给答案。',
+      ...(historySection ? [
+        '- 前面的对话只用于理解指代（“那个”“它”“上一句”）并保持连贯；每一个事实性陈述仍然必须来自上面的编号片段。',
+        '- 不要把前面的回答当作来源引用，也不要默默地与它矛盾。',
+      ] : []),
     ].join('\n')
   }
 
@@ -578,6 +626,7 @@ export function buildAskPrompt(
     '',
     digest || '(No relevant excerpts were found.)',
     '',
+    ...(historySection ? [historySection, ''] : []),
     'Rules:',
     '- Answer in English.',
     '- Use ONLY the excerpts above. Do not add outside knowledge and do not guess.',
@@ -585,5 +634,30 @@ export function buildAskPrompt(
     '- If the excerpts do not contain the answer, say so plainly ("the history does not show that") instead of inventing one.',
     '- Keep it under 200 words.',
     '- No preamble, no headings, no bullet lists — just the answer.',
+    ...(historySection ? [
+      '- The earlier exchange exists only to resolve references ("that", "it") and keep the conversation continuous. Every factual claim must still come from the numbered excerpts above.',
+      '- Do not cite the earlier answer as a source, and do not silently contradict it.',
+    ] : []),
+  ].join('\n')
+}
+
+/**
+ * Render the previous exchange as its own delimited block. The answers are
+ * capped with the same helper the excerpts use, so a long earlier answer ends
+ * in a visible ellipsis instead of quietly dropping its tail.
+ */
+function renderAskHistorySection(history: AskHistoryTurn[], chinese: boolean): string {
+  const turns = history.slice(-MAX_HISTORY_TURNS)
+  if (turns.length === 0) return ''
+  const blocks = turns.map(turn => {
+    const answer = capLine(turn.answer, HISTORY_ANSWER_PROMPT_CHARS)
+    return chinese
+      ? `前面的问题：${turn.question}\n前面的回答：${answer}`
+      : `Earlier question: ${turn.question}\nEarlier answer: ${answer}`
+  })
+  return [
+    chinese ? '## 本次对话前面的内容' : '## Earlier in this conversation',
+    '',
+    blocks.join('\n\n'),
   ].join('\n')
 }

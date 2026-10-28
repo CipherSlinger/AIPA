@@ -15,6 +15,7 @@ import {
   historyIndexBuilding,
   collectHistoryDigest,
   buildAskPrompt,
+  sanitizeAskHistory,
 } from '../sessions/ask-history'
 import { addMcpServer, getMcpConfigInfo, readMcpServers, removeMcpServer, setMcpServerEnabledRouted } from '../config/mcp-config'
 import { getSessionStats } from '../sessions/session-stats'
@@ -1429,7 +1430,13 @@ function registerSessionHandlers(): void {
 
   ipcMain.handle('session:askHistory', async (
     event: Electron.IpcMainInvokeEvent,
-    { question, locale, requestId }: { question: string; locale?: string; requestId?: string },
+    { question, locale, requestId, history }: {
+      question: string
+      locale?: string
+      requestId?: string
+      /** Last exchange(s) from the overlay; validated below, never trusted. */
+      history?: unknown
+    },
   ): Promise<{
     ok: boolean
     answer?: string
@@ -1519,8 +1526,11 @@ function registerSessionHandlers(): void {
         progressTimer.unref?.()
       }
 
+      // A stale renderer may still send the old shape; sanitize rather than
+      // reject, so a follow-up never fails because of its own context.
+      const safeHistory = sanitizeAskHistory(history)
       const result = await runInternalTurn({
-        prompt: buildAskPrompt(trimmed, digest, sources, normalizedLocale),
+        prompt: buildAskPrompt(trimmed, digest, sources, normalizedLocale, safeHistory),
         timeoutMs: 90_000,
         internalTag: 'ask-history',
         // Answer from the excerpts alone; a read-only turn must not reach for

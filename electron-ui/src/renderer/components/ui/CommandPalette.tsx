@@ -70,6 +70,10 @@ export default function CommandPalette({
   const setSidebarOpen = useUiStore(s => s.setSidebarOpen)
   const setActiveNavItem = useUiStore(s => s.setActiveNavItem)
   const addToast = useUiStore(s => s.addToast)
+  // Subscribed rather than read through getState(): the one-time probe in App
+  // can resolve while the palette is already open, and only a subscription
+  // rebuilds the command list when the ask entry must appear or disappear.
+  const askHistoryAvailable = useUiStore(s => s.askHistoryAvailable)
 
   const sessions = useSessionStore(s => s.sessions)
   const addToQueue = useChatStore(s => s.addToQueue)
@@ -79,7 +83,7 @@ export default function CommandPalette({
     const args = {
       t, onClose, onExport, onNewConversation, onSendSlashCommand,
       toggleSidebar, setSidebarTab, setSidebarOpen, setActiveNavItem,
-      addToQueue, addToast, sessions, query,
+      addToQueue, addToast, sessions, query, askHistoryAvailable,
     }
     return [
       ...buildSessionCommands(args),
@@ -92,7 +96,7 @@ export default function CommandPalette({
   }, [
     onClose, onExport, onNewConversation, onSendSlashCommand,
     toggleSidebar, setSidebarTab, setSidebarOpen, setActiveNavItem,
-    addToQueue, addToast, sessions, query, t,
+    addToQueue, addToast, sessions, query, askHistoryAvailable, t,
   ])
 
   // Filter by query

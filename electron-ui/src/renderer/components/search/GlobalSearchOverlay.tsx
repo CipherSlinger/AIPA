@@ -72,6 +72,29 @@ const GHOST_BUTTON_STYLE: React.CSSProperties = {
   fontFamily: 'inherit',
 }
 
+const FOLLOW_UP_ROW_STYLE: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 4,
+  padding: '5px 16px',
+  borderBottom: '1px solid var(--border)',
+  flexShrink: 0,
+}
+
+const FOLLOW_UP_CHIP_STYLE: React.CSSProperties = {
+  background: 'none',
+  border: 'none',
+  padding: 0,
+  color: 'var(--text-muted)',
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  fontSize: 11,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  minWidth: 0,
+}
+
 const CHIP_STYLE: React.CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
@@ -168,6 +191,10 @@ export default function GlobalSearchOverlay() {
   // The question the visible answer belongs to. The input stays editable, so
   // the citation click must reopen evidence for the query that produced it.
   const [askedQuestion, setAskedQuestion] = useState('')
+  // The last successful exchange, sent with the next ask so "who decided
+  // that?" resolves. It survives Stop (a re-ask keeps its context) and is
+  // cleared only by the chip's × or by unmounting the overlay.
+  const [lastExchange, setLastExchange] = useState<{ question: string; answer: string } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const openingRef = useRef(false)
   // Set on the way out, whether through `close()` or a direct unmount. An
@@ -199,6 +226,21 @@ export default function GlobalSearchOverlay() {
     dismissedRef.current = true
     setOpen(false)
   }, [setOpen])
+
+  // Put the caret at the end of the question, selecting nothing. Used by both
+  // the follow-up chip and the answer card's "Follow up" action, so the user
+  // can extend the question instead of retyping it.
+  const focusComposer = useCallback(() => {
+    const el = inputRef.current
+    if (!el) return
+    el.focus()
+    const end = el.value.length
+    try {
+      el.setSelectionRange(end, end)
+    } catch {
+      // Some input types refuse selection ranges; focus alone is enough.
+    }
+  }, [])
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -331,7 +373,14 @@ export default function GlobalSearchOverlay() {
     try {
       const api = window.electronAPI
       if (!api?.sessionAskHistory) throw new Error('sessionAskHistory unavailable')
-      const result = await api.sessionAskHistory({ question, locale: resolvedLocale, requestId })
+      const result = await api.sessionAskHistory({
+        question,
+        locale: resolvedLocale,
+        requestId,
+        // The first ask sends nothing; every later one carries only the last
+        // exchange, which is all the model needs to resolve a reference.
+        history: lastExchange ? [lastExchange] : undefined,
+      })
       if (run !== askRunRef.current || dismissedRef.current) return
       if (queryRef.current.trim() !== question) {
         // The input no longer holds the question this turn was asked for.
@@ -349,11 +398,14 @@ export default function GlobalSearchOverlay() {
         else addToast('error', t('askHistory.failed'))
         return
       }
-      setAskAnswer(result.answer || '')
+      const answer = result.answer || ''
+      setAskAnswer(answer)
       setAskDraft('')
       setAskSources(result.sources || [])
       setAskIndexing(Boolean(result.indexing))
       setAskState('answer')
+      // Remember the exchange only when there is an answer to continue from.
+      if (answer) setLastExchange({ question, answer })
     } catch {
       if (run !== askRunRef.current || dismissedRef.current) return
       // Stay in the overlay with the query intact so the user can retry.
@@ -361,7 +413,7 @@ export default function GlobalSearchOverlay() {
       setAskDraft('')
       addToast('error', t('askHistory.failed'))
     }
-  }, [addToast, askAvailable, askState, query, resolvedLocale, t])
+  }, [addToast, askAvailable, askState, lastExchange, query, resolvedLocale, t])
 
   // Stop is a user decision, not an abort of the overlay: bump the run token
   // so the late invoke result is ignored, clear the partial text, and free the
@@ -575,6 +627,38 @@ export default function GlobalSearchOverlay() {
           </button>
         </div>
 
+        {/* Follow-up context. Hidden while a turn runs so it cannot look like
+            the answer being streamed belongs to the older question. */}
+        {askState !== 'running' && lastExchange && (
+          <div style={FOLLOW_UP_ROW_STYLE}>
+            <button
+              type="button"
+              onClick={focusComposer}
+              title={t('askHistory.followUpOn', { question: lastExchange.question })}
+              style={FOLLOW_UP_CHIP_STYLE}
+            >
+              {t('askHistory.followUpOn', { question: lastExchange.question })}
+            </button>
+            <button
+              type="button"
+              onClick={() => setLastExchange(null)}
+              title={t('askHistory.followUpDismiss')}
+              aria-label={t('askHistory.followUpDismiss')}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '0 2px',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                flexShrink: 0,
+              }}
+            >
+              <X size={11} />
+            </button>
+          </div>
+        )}
+
         {/* Results / ask states */}
         <div
           style={{
@@ -665,7 +749,7 @@ export default function GlobalSearchOverlay() {
                 <>
                   {/* The row keeps its height in both states: growing it on
                       "Copied" would shift the answer under the cursor. */}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 2, minHeight: 22 }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginBottom: 2, minHeight: 22 }}>
                     <button
                       type="button"
                       onClick={copyAnswer}
@@ -682,6 +766,15 @@ export default function GlobalSearchOverlay() {
                     >
                       {copied ? <Check size={12} /> : <Copy size={12} />}
                       <span>{t(copied ? 'askHistory.copied' : 'askHistory.copy')}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={focusComposer}
+                      title={t('askHistory.followUp')}
+                      aria-label={t('askHistory.followUp')}
+                      style={{ ...GHOST_BUTTON_STYLE, padding: '3px 8px' }}
+                    >
+                      {t('askHistory.followUp')}
                     </button>
                   </div>
                   <AnswerBody

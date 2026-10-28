@@ -97,6 +97,15 @@ export interface AskHistorySourceData extends SessionSearchResultData {
   matchedTerm: string
 }
 
+/**
+ * One earlier ask exchange, carried into the next question so pronouns like
+ * "that" or "上一句" resolve. It is continuity context, never a source.
+ */
+export interface AskHistoryTurnData {
+  question: string
+  answer: string
+}
+
 /** Result of `session:askHistory`. `error` is a code, never engine detail. */
 export interface AskHistoryResultData {
   ok: boolean
@@ -322,8 +331,14 @@ const electronAPI = {
   /** Whether this profile can run an ask turn; the overlay hides the row when not. */
   sessionAskHistoryStatus: () =>
     ipcRenderer.invoke('session:askHistoryStatus') as Promise<{ available: boolean; reason?: string }>,
-  sessionAskHistory: ({ question, locale, requestId }: { question: string; locale?: string; requestId: string }) =>
-    ipcRenderer.invoke('session:askHistory', { question, locale, requestId }) as Promise<AskHistoryResultData>,
+  sessionAskHistory: ({ question, locale, requestId, history }: {
+    question: string
+    locale?: string
+    requestId: string
+    /** Previous exchange(s); the main process validates and caps them. */
+    history?: AskHistoryTurnData[]
+  }) =>
+    ipcRenderer.invoke('session:askHistory', { question, locale, requestId, history }) as Promise<AskHistoryResultData>,
   /** Abort the in-flight ask (the overlay closes mid-run) and free the slot. */
   sessionAskHistoryCancel: () => ipcRenderer.invoke('session:askHistoryCancel') as Promise<void>,
   /**

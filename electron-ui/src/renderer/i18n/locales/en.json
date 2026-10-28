@@ -2777,7 +2777,10 @@
     "failed": "AIPA could not answer that question",
     "busy": "AIPA is already answering another question",
     "timeout": "That took too long — try a narrower question",
-    "empty": "AIPA returned an empty answer"
+    "empty": "AIPA returned an empty answer",
+    "followUp": "Follow up",
+    "followUpOn": "Following up on “{{question}}”",
+    "followUpDismiss": "Stop following up"
   },
   "automation": {
     "title": "Automations",
