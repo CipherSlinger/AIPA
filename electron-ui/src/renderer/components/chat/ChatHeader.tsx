@@ -16,6 +16,7 @@ import type { ConversationStats, BookmarkedMessage } from '../../hooks/useConver
 import type { SessionChanges } from '../../hooks/useSessionChanges'
 import SaveTemplateDialog from './SaveTemplateDialog'
 import SessionReuseMenu from './SessionReuseMenu'
+import RelatedConversationsButton from './RelatedConversationsButton'
 import ScheduleConversationButton from './ScheduleConversationButton'
 import CompactButton from './CompactButton'
 import WorktreeDialog from './WorktreeDialog'
@@ -626,6 +627,14 @@ export default function ChatHeader({
       <SessionReuseMenu
         messageCount={messageCount}
         sessionTitle={sessionTitle}
+        headerBtnStyle={headerBtnStyle}
+        hoverIn={hoverIn}
+        hoverOut={hoverOut}
+      />
+
+      {/* Other local conversations that share words with this one — placed
+          beside the reuse menu because both act on the current conversation */}
+      <RelatedConversationsButton
         headerBtnStyle={headerBtnStyle}
         hoverIn={hoverIn}
         hoverOut={hoverOut}

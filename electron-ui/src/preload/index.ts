@@ -268,6 +268,32 @@ export interface SessionSearchResultData {
 }
 
 /**
+ * One row of `session:related`. `termsHit` counts the distinct words the
+ * conversation and this transcript share; `matchedTerms` shows up to three of
+ * them. The relation is lexical — same words, not same meaning.
+ */
+export interface RelatedSessionRowData {
+  sessionId: string
+  title: string
+  project: string
+  engine: 'claude' | 'codex'
+  timestamp: number
+  matchType: 'title' | 'content'
+  termsHit: number
+  matchedTerms: string[]
+}
+
+/** Result of `session:related`. `reason` is a code, never engine detail. */
+export interface RelatedSessionsReplyData {
+  rows: RelatedSessionRowData[]
+  /** True when a zero-row answer was produced while an index was still building. */
+  indexing: boolean
+  /** `'noTerms'` — too little prose to search; `'failed'` — retrieval failed. */
+  reason?: 'noTerms' | 'failed'
+  error?: string
+}
+
+/**
  * One session cited by an "Ask AIPA about your history" answer. It is the
  * search-row shape plus the excerpt that surfaced it, which is exactly what
  * `revealSessionEvidence` needs to reopen the matched message.
@@ -1308,6 +1334,13 @@ const electronAPI = {
   sessionRewind: (sessionId: string, beforeTimestamp: string) => ipcRenderer.invoke('session:rewind', { sessionId, beforeTimestamp }),
   sessionSearch: (query: string, limit?: number) =>
     ipcRenderer.invoke('session:search', { query, limit }) as Promise<SessionSearchResultData[]>,
+  /**
+   * Other local conversations that share words with the given prose. The
+   * caller passes the open session id so it is never listed as its own
+   * relation.
+   */
+  sessionRelated: (input: { text: string; excludeSessionId?: string; limit?: number }) =>
+    ipcRenderer.invoke('session:related', input) as Promise<RelatedSessionsReplyData>,
   /** Whether this profile can run an ask turn; the overlay hides the row when not. */
   sessionAskHistoryStatus: () =>
     ipcRenderer.invoke('session:askHistoryStatus') as Promise<{ available: boolean; reason?: string }>,

@@ -280,6 +280,60 @@
       "failedBody": "The model ran without this hook's output. This is the hook's own error, not the model's words.",
       "hookLine": "{{event}} · {{source}}",
       "truncated": "The hook output was shortened here."
+    },
+    "handoff": {
+      "menuLabel": "Hand off to a department…",
+      "menuHint": "Open a fresh conversation in another department's folder with excerpts from this one",
+      "title": "Hand off this conversation",
+      "subtitle": "Start a new conversation in the chosen department's folder. Review the note before it opens.",
+      "targetLabel": "Department",
+      "targetPlaceholder": "Choose a department…",
+      "noDepartments": "No departments yet",
+      "noDepartmentsHint": "Create a department in the Org view first. Its folder becomes the new conversation's working folder.",
+      "noteLabel": "Handoff note",
+      "noteHint": "Built from exact excerpts of this conversation. You can edit it; nothing is sent until you press send in the new conversation.",
+      "noContext": "You do not have the source conversation's context. The excerpts above are all you are given — do not assume anything they do not say.",
+      "footerNoContext": "The new conversation does not inherit this conversation's context.",
+      "cutNote": "Some excerpts were shortened to fit the note; “…” marks where text was cut.",
+      "nothingSent": "Nothing is sent until you press send in the new conversation.",
+      "runAs": "New messages will run as {{name}}.",
+      "cancel": "Cancel",
+      "confirm": "Hand off",
+      "opened": "Handoff ready — review the note in the new conversation.",
+      "emptyConversation": "This conversation has no messages to hand off.",
+      "streaming": "Wait for the current reply to finish before handing off.",
+      "heading": "Handoff to {{target}}",
+      "targetFolder": "Target folder: {{path}}",
+      "sourceTitle": "Source conversation: {{title}}",
+      "untitled": "Untitled conversation",
+      "sourceSession": "Conversation ID: {{id}}",
+      "sourceDept": "Source department: {{path}}",
+      "unfiled": "The source conversation is not filed under any department.",
+      "sourceFolder": "Source working folder: {{path}}",
+      "folderUnknown": "not recorded",
+      "date": "Date: {{date}}",
+      "firstRequest": "First request",
+      "latestRequest": "Latest request",
+      "latestReply": "Latest reply",
+      "closing": "Please continue this work in {{target}}."
+    },
+    "related": {
+      "label": "Related conversations",
+      "hint": "Find past conversations that share words with this one",
+      "title": "Related conversations",
+      "lexicalNotice": "Matched on shared words, not meaning. Only transcripts on this machine are searched, this conversation is excluded, and at most 4 are shown.",
+      "building": "The transcript index is still building, so this list may be incomplete.",
+      "empty": "No other conversation shares these words.",
+      "noTerms": "This conversation has too little prose to compare.",
+      "error": "Could not search your past conversations.",
+      "retry": "Retry",
+      "terms": "Shared words: {{count}}",
+      "untitled": "Untitled conversation",
+      "unlisted": "This conversation is not in this machine's session list, so it cannot be opened.",
+      "streaming": "Unavailable while a reply is streaming.",
+      "failedToast": "Could not open that conversation.",
+      "disabledNoSession": "Open a conversation first.",
+      "disabledEmpty": "This conversation has no messages to compare yet."
     }
   },
   "sessionReuse": {
@@ -3879,4 +3933,3 @@
     }
   }
 }
-

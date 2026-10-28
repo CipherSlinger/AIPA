@@ -280,6 +280,60 @@
       "failedBody": "模型在没有这个钩子输出的情况下继续运行了。以下是钩子自己的错误，不是模型的话。",
       "hookLine": "{{event}} · {{source}}",
       "truncated": "钩子输出在此处已截断。"
+    },
+    "handoff": {
+      "menuLabel": "交给其他部门…",
+      "menuHint": "在另一个部门的目录里新开一段对话，并带上这段对话的原文摘录",
+      "title": "交接这段对话",
+      "subtitle": "在所选部门的工作目录里开一段新对话。打开前请先看一下交接说明。",
+      "targetLabel": "部门",
+      "targetPlaceholder": "选择部门…",
+      "noDepartments": "还没有部门",
+      "noDepartmentsHint": "请先在组织视图里创建部门，它的目录会成为新对话的工作目录。",
+      "noteLabel": "交接说明",
+      "noteHint": "内容摘自这段对话的原文，可以修改；在新对话里按下发送之前，不会发出任何内容。",
+      "noContext": "你没有原始对话的上下文。上面这些摘录就是你能看到的全部内容——摘录没说的，不要自行假设。",
+      "footerNoContext": "新对话不会继承这段对话的上下文。",
+      "cutNote": "为控制篇幅，部分摘录被截短了；“…”表示文字被截断的位置。",
+      "nothingSent": "在新对话里按下发送之前，不会发出任何内容。",
+      "runAs": "新对话将以「{{name}}」的身份继续。",
+      "cancel": "取消",
+      "confirm": "交接",
+      "opened": "交接已就绪，请在新对话里检查说明。",
+      "emptyConversation": "这段对话还没有消息可以交接。",
+      "streaming": "请等当前回复结束后再交接。",
+      "heading": "交接给 {{target}}",
+      "targetFolder": "目标目录：{{path}}",
+      "sourceTitle": "来源对话：{{title}}",
+      "untitled": "未命名对话",
+      "sourceSession": "对话 ID：{{id}}",
+      "sourceDept": "来源部门：{{path}}",
+      "unfiled": "这段对话没有归档到任何部门。",
+      "sourceFolder": "来源工作目录：{{path}}",
+      "folderUnknown": "未记录",
+      "date": "日期：{{date}}",
+      "firstRequest": "最初的请求",
+      "latestRequest": "最近的请求",
+      "latestReply": "最近的回复",
+      "closing": "请接着在 {{target}} 继续这项工作。"
+    },
+    "related": {
+      "label": "相关对话",
+      "hint": "找出与这段对话用词相同的过往会话",
+      "title": "相关对话",
+      "lexicalNotice": "按共同出现的词匹配，不是按语义。只搜索这台机器上的对话记录，当前对话已排除，最多显示 4 条。",
+      "building": "对话索引还在建立中，这份列表可能不完整。",
+      "empty": "没有其他对话与这段对话用词相同。",
+      "noTerms": "这段对话的文字太少，无法比较。",
+      "error": "无法检索过往对话。",
+      "retry": "重试",
+      "terms": "共同词：{{count}}",
+      "untitled": "未命名对话",
+      "unlisted": "这段对话不在这台机器的会话列表中，无法打开。",
+      "streaming": "回复正在生成，暂时不可用。",
+      "failedToast": "无法打开那段对话。",
+      "disabledNoSession": "请先打开一段对话。",
+      "disabledEmpty": "这段对话还没有消息可以比较。"
     }
   },
   "sessionReuse": {
@@ -3879,4 +3933,3 @@
     }
   }
 }
-

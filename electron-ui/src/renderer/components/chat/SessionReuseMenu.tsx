@@ -1,13 +1,15 @@
 // The chat header's conversation-actions menu: one place to turn a finished
-// session into a workflow or a skill. Kept out of ChatHeader so that component
-// stays focused on session chrome.
+// session into a workflow or a skill, or hand it to another department. Kept
+// out of ChatHeader so that component stays focused on session chrome.
 
 import React, { useCallback, useRef, useState } from 'react'
-import { GitBranch, MoreHorizontal, Puzzle } from 'lucide-react'
+import { Building2, GitBranch, MoreHorizontal, Puzzle } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useClickOutside } from '../../hooks/useClickOutside'
+import { useChatStore } from '../../store'
 import SaveConversationWorkflowDialog from './SaveConversationWorkflowDialog'
 import SaveConversationSkillDialog from './SaveConversationSkillDialog'
+import HandoffDialog from './HandoffDialog'
 
 interface Props {
   messageCount: number
@@ -17,7 +19,16 @@ interface Props {
   hoverOut: (e: React.MouseEvent<HTMLButtonElement>, active?: boolean, defaultColor?: string) => void
 }
 
-type DialogKind = 'workflow' | 'skill' | null
+type DialogKind = 'workflow' | 'skill' | 'handoff' | null
+
+interface MenuItem {
+  kind: Exclude<DialogKind, null>
+  icon: React.ReactNode
+  label: string
+  hint: string
+  disabled?: boolean
+  disabledTitle?: string
+}
 
 export default function SessionReuseMenu({
   messageCount,
@@ -27,6 +38,9 @@ export default function SessionReuseMenu({
   hoverOut,
 }: Props) {
   const t = useT()
+  // Boolean selector: the header re-renders once when streaming starts/ends,
+  // not on every chunk. A partial reply must never become the handoff note.
+  const isStreaming = useChatStore(s => s.isStreaming)
   const [open, setOpen] = useState(false)
   const [dialog, setDialog] = useState<DialogKind>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -39,6 +53,12 @@ export default function SessionReuseMenu({
   }, [])
 
   const disabled = messageCount === 0
+  const handoffDisabled = disabled || isStreaming
+  const handoffDisabledTitle = disabled
+    ? t('chat.handoff.emptyConversation')
+    : isStreaming
+      ? t('chat.handoff.streaming')
+      : undefined
 
   return (
     <div ref={menuRef} style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
@@ -96,11 +116,21 @@ export default function SessionReuseMenu({
               label: t('sessionReuse.menu.saveSkill'),
               hint: t('sessionReuse.menu.saveSkillHint'),
             },
-          ]).map(item => (
+            {
+              kind: 'handoff' as const,
+              icon: <Building2 size={14} />,
+              label: t('chat.handoff.menuLabel'),
+              hint: t('chat.handoff.menuHint'),
+              disabled: handoffDisabled,
+              disabledTitle: handoffDisabledTitle,
+            },
+          ] as MenuItem[]).map(item => (
             <button
               key={item.kind}
               role="menuitem"
-              onClick={() => choose(item.kind)}
+              onClick={() => { if (!item.disabled) choose(item.kind) }}
+              disabled={item.disabled}
+              title={item.disabledTitle}
               data-reuse-menu-item={item.kind}
               style={{
                 width: '100%',
@@ -111,16 +141,19 @@ export default function SessionReuseMenu({
                 background: 'transparent',
                 border: 'none',
                 borderRadius: 7,
-                cursor: 'pointer',
+                cursor: item.disabled ? 'not-allowed' : 'pointer',
+                opacity: item.disabled ? 0.45 : 1,
                 textAlign: 'left',
                 color: 'var(--text-secondary)',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => {
+                if (item.disabled) return
                 e.currentTarget.style.background = 'var(--bg-hover)'
                 e.currentTarget.style.color = 'var(--text-primary)'
               }}
               onMouseLeave={e => {
+                if (item.disabled) return
                 e.currentTarget.style.background = 'transparent'
                 e.currentTarget.style.color = 'var(--text-secondary)'
               }}
@@ -150,6 +183,12 @@ export default function SessionReuseMenu({
       )}
       {dialog === 'skill' && (
         <SaveConversationSkillDialog
+          sessionTitle={sessionTitle}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'handoff' && (
+        <HandoffDialog
           sessionTitle={sessionTitle}
           onClose={() => setDialog(null)}
         />

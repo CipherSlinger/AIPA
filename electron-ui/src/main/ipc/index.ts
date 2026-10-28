@@ -31,6 +31,7 @@ import {
   buildAskPrompt,
   sanitizeAskHistory,
 } from '../sessions/ask-history'
+import { collectRelatedSessions } from '../sessions/related-sessions'
 import { addMcpServer, getMcpConfigInfo, readMcpServers, removeMcpServer, setMcpServerEnabledRouted } from '../config/mcp-config'
 import { getSessionStats } from '../sessions/session-stats'
 import {
@@ -2048,6 +2049,29 @@ function registerSessionHandlers(): void {
     } catch (err) {
       log.warn('session:search error:', String(err))
       return []
+    }
+  })
+
+  // Other local conversations that share words with the open one. Lexical
+  // retrieval, not semantic similarity: the caller sends its own prose, the
+  // handler extracts terms and searches both transcript indexes. Every value
+  // is validated here because an older or hand-written renderer must never be
+  // able to make the handler throw across IPC.
+  ipcMain.handle('session:related', async (_e: Electron.IpcMainInvokeEvent, input: unknown) => {
+    try {
+      const raw = input && typeof input === 'object' && !Array.isArray(input)
+        ? input as { text?: unknown; excludeSessionId?: unknown; limit?: unknown }
+        : {}
+      const text = typeof raw.text === 'string' ? raw.text : ''
+      const excludeSessionId = typeof raw.excludeSessionId === 'string'
+        ? raw.excludeSessionId
+        : undefined
+      const requested = typeof raw.limit === 'number' ? Math.floor(raw.limit) : NaN
+      const limit = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), 10) : 4
+      return await collectRelatedSessions({ text, excludeSessionId, limit })
+    } catch (err) {
+      log.warn('session:related error:', String(err))
+      return { rows: [], indexing: false, reason: 'failed', error: String(err) }
     }
   })
 
