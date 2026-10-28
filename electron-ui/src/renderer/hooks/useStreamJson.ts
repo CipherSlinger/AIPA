@@ -10,6 +10,13 @@ import { assembleMemoryContextForTurn } from './promptMemory'
 import { composeSystemPromptParts, resolvePersonaTurnSettings } from './promptAssembly'
 import { listSessionsShared } from '../utils/sessionListShared'
 import { describeThreadStatus } from '../components/chat/threadStatusText'
+import { describeEngineItem, TOOL_CARD_KINDS } from '../components/chat/engineStepText'
+import {
+  adoptEngineStepBucket,
+  beginEngineTurn,
+  clearEngineSteps,
+  recordEngineStep,
+} from '../components/chat/engineStepLog'
 import {
   describeCodexError,
   looksLikeQuotaText,
@@ -121,6 +128,20 @@ function isResultForActiveConversation(data: unknown, activeBridgeId: string | n
   const current = store.currentSessionId
   if (!current || current.startsWith('pending-')) return true
   return engineSessionId === current || bridgeSessionId === current
+}
+
+/**
+ * Some Codex item kinds are normally translated by the main process into rich
+ * tool cards. If a future bridge stops translating one but still forwards its
+ * lifecycle events, the quiet row must not duplicate the card that is already
+ * on screen. The item id is the same id the card carries.
+ */
+function hasToolCardForItem(itemId: string): boolean {
+  if (!itemId) return false
+  return useChatStore.getState().messages.some(message => {
+    const toolUses = (message as StandardChatMessage).toolUses
+    return Array.isArray(toolUses) && toolUses.some(tool => tool.id === itemId)
+  })
 }
 
 /**
@@ -543,6 +564,10 @@ export function useStreamJson() {
       activeBridgeIdRef.current = null
     }
     useChatStore.getState().denyPendingPermissions()
+    // Quiet engine-step rows belong to the transcript being cleared, including
+    // the pending bucket of a draft conversation.
+    clearEngineSteps(useChatStore.getState().viewSessionId)
+    clearEngineSteps(null)
     useChatStore.getState().clearMessages()
     contextWarningShownRef.current = false
     // A new conversation inherits the currently selected persona. It is stored
@@ -862,6 +887,11 @@ export function useStreamJson() {
           const msgCountBefore = useChatStore.getState().messages.length
           const claudeSessionId = data.claudeSessionId as string | undefined
           if (claudeSessionId) {
+            // A brand-new conversation's quiet rows were bucketed under `null`
+            // while the engine id was unknown. Move them before the view starts
+            // selecting the new bucket, so a turn's evidence never disappears
+            // at the moment its thread id is announced.
+            adoptEngineStepBucket(useChatStore.getState().viewSessionId, claudeSessionId)
             useChatStore.getState().setSessionId(claudeSessionId)
             // Refresh session list so the pending placeholder is replaced with the real session
             listSessionsShared().then((list: any) => {
@@ -1272,7 +1302,29 @@ export function useStreamJson() {
           const sid = typeof data.sessionId === 'string' ? data.sessionId : ''
           if (sid && useChatStore.getState().isOwnedStreamEvent(sid)) {
             useChatStore.getState().clearTurnDiff()
+            // A protocol turn boundary also ends a grouping window: two turns
+            // that each produced one unhandled item must not merge into one
+            // "2 engine steps" row just because no visible message sat between.
+            beginEngineTurn(useChatStore.getState().viewSessionId)
           }
+          break
+        }
+        case 'cli:itemStarted':
+        case 'cli:itemCompleted': {
+          // `codex-bridge` translates the item kinds the rich cards understand
+          // and forwards the rest verbatim on these channels. Before this case
+          // existed, those items vanished and a stretch of the turn looked like
+          // it did nothing. The ownership rule is the same as for deltas: a
+          // background or other-tab turn must not paint this transcript.
+          const sid = typeof data.sessionId === 'string' ? data.sessionId : ''
+          if (!sid || !useChatStore.getState().isOwnedStreamEvent(sid)) break
+          const phase = event === 'cli:itemStarted' ? 'started' as const : 'completed' as const
+          const step = describeEngineItem(phase, data)
+          if (!step) break
+          // A quiet row is only for steps without a visible card; if the same
+          // item already has one, adding a row would show the step twice.
+          if (TOOL_CARD_KINDS.has(step.kind) && hasToolCardForItem(step.id)) break
+          recordEngineStep(useChatStore.getState().viewSessionId, step)
           break
         }
         case 'cli:turnDiffUpdated': {

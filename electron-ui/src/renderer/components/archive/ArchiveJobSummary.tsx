@@ -9,13 +9,13 @@
 import { useEffect, useState } from 'react'
 import type { AutomationJobData } from '../../../preload'
 import { useI18n } from '../../i18n'
-import { formatDateTimeShort } from '../../utils/formatDate'
 import {
   deriveJobRunStats,
   deriveJobSpend,
   failureStreakText,
   findJob,
   jobLastOutcomeText,
+  jobNextRunText,
   runDurationText,
 } from './archiveJobFilter'
 
@@ -58,16 +58,12 @@ export default function ArchiveJobSummary({ jobId }: { jobId: string }) {
   const spend = deriveJobSpend(job, t)
   const stats = deriveJobRunStats(job.history)
 
-  const stateText = job.enabled
-    ? [
-        t('automation.enabled'),
-        // Only an enabled job has a meaningful next run; a paused one would be
-        // advertising a time it will not keep.
-        job.nextRunAt !== null
-          ? t('automation.nextRun', { time: formatDateTimeShort(resolvedLocale, job.nextRunAt) })
-          : null,
-      ].filter((part): part is string => part !== null).join(' · ')
-    : t('archive.jobSummary.paused')
+  // The next-run clause carries its own state: a switched-off job says so, a
+  // watch job says it waits on a path, and a past occurrence reads as due or
+  // overdue. Only an enabled job gets the extra "Enabled" label — for an off
+  // job that would be restating the first fact twice.
+  const nextRun = jobNextRunText(job, t, resolvedLocale)
+  const stateText = job.enabled ? `${t('automation.enabled')} · ${nextRun}` : nextRun
 
   const runText = stats.total > 0
     ? [

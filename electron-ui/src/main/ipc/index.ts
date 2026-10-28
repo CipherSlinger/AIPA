@@ -790,6 +790,9 @@ function wireCodexBridge(
   bridge.on('threadSettingsUpdated', (d) => sink('cli:threadSettingsUpdated', d))
   bridge.on('serverRequestResolved', (d) => sink('cli:serverRequestResolved', d))
   bridge.on('serverRequestTimedOut', (d) => sink('cli:serverRequestTimedOut', d))
+  // Account rate limits (`account/rateLimits/updated` / prime read). The raw
+  // snapshot is forwarded; the composer's rateLimitView owns the sparse merge.
+  bridge.on('rateLimitsUpdated', (d) => sink('cli:rateLimitsUpdated', d))
 
   // A background turn must not drive the desktop pet — it has no session id
   // the pet can attribute, and it would flip the state while the user reads.

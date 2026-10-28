@@ -741,6 +741,24 @@ export interface CliTurnErrorEventData {
   [key: string]: unknown
 }
 
+/**
+ * `cli:rateLimitsUpdated` payload. `rateLimits` is the raw `RateLimitSnapshot`
+ * exactly as Codex sent it, from either `account/rateLimits/updated` (sparse
+ * rolling update) or the post-`initialize` `account/rateLimits/read` (full
+ * snapshot). It stays `unknown` on purpose: the renderer's pure
+ * `rateLimitView` module is the one place that validates it, so no type here
+ * can quietly promise a field the server did not send.
+ */
+export interface CliRateLimitsUpdatedEventData {
+  sessionId?: string
+  /** Which protocol call produced the snapshot; a sparse update must merge. */
+  source?: 'notification' | 'read'
+  rateLimits?: unknown
+  /** Only present on the `read` response (the multi-bucket view). */
+  rateLimitsByLimitId?: Record<string, unknown> | null
+  [key: string]: unknown
+}
+
 const electronAPI = {
   // ── IPC readiness check ────────────────────
   ipcPing: () => ipcRenderer.invoke('ipc:ping') as Promise<{ ok: boolean; timestamp: number }>,
@@ -976,6 +994,8 @@ const electronAPI = {
       // Server-question + observability events (renderer adoption is a later wave)
       'cli:turnDiffUpdated', 'cli:threadSettingsUpdated',
       'cli:serverRequestResolved', 'cli:serverRequestTimedOut',
+      // Codex account rate limits (composer chip; payload stays raw)
+      'cli:rateLimitsUpdated',
     ]
     const handlers = channels.map((ch) => {
       const h = (_: unknown, d: Record<string, unknown>) => {

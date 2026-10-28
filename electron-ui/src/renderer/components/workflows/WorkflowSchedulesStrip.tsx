@@ -159,7 +159,7 @@ export default function WorkflowSchedulesStrip({
             {job.enabled ? (
               job.nextRunAt !== null && (
                 <span style={{ whiteSpace: 'nowrap' }}>
-                  {t('automation.nextRun', { time: nextRunText(job.nextRunAt) })}
+                  {t('automation.nextRun.scheduled', { time: nextRunText(job.nextRunAt) })}
                 </span>
               )
             ) : (

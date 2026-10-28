@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
 import { ChatMessage } from '../../types/app.types'
 import { turnEndNoticeKey } from './codexErrorText'
+import type { EngineStep } from './engineStepText'
+import { groupEngineSteps, placeEngineStepGroups } from './engineStepText'
 
 // ── Date separator logic ──
 export function formatDateLabel(ts: number, t: (key: string) => string): string {
@@ -43,55 +45,97 @@ export type ListItem =
   | { type: 'responseTime'; label: string }
   | { type: 'compactSep'; label: string }
   | { type: 'turnEnded'; label: string }
+  /** Collapsed quiet rows for Codex item kinds without a rich card. */
+  | { type: 'engineSteps'; key: string; steps: EngineStep[] }
 
 // Store scroll positions per session (as percentage 0-1)
 export const scrollPositionMap = new Map<string, number>()
 
+// Stable empty input for the hook so a transcript with no engine steps does
+// not rebuild its item list on every render.
+const NO_ENGINE_STEPS: readonly EngineStep[] = Object.freeze([])
+
 /**
  * Build the flat list of items including date separators, time gap markers,
- * response time badges, and messages.
+ * response time badges, messages, and grouped unhandled-item rows.
+ *
+ * Pure (no hooks) so the grouping/placement contract can be exercised outside
+ * React; `useBuildItems` below only wraps it in a memo.
+ */
+export function buildListItems(
+  messages: ChatMessage[],
+  t: (key: string, p?: Record<string, string | number>) => string,
+  turnOutcome: 'interrupted' | 'unknown' | null = null,
+  engineSteps: readonly EngineStep[] = NO_ENGINE_STEPS,
+): ListItem[] {
+  const result: ListItem[] = []
+  const messageTimestamps = messages.map(msg => msg.timestamp || 0)
+  const groups = groupEngineSteps(engineSteps, messageTimestamps)
+  const placements = placeEngineStepGroups(groups, messageTimestamps)
+  // Place rows after the date/time separators for the message they precede,
+  // never before a date header.
+  const flushAt = (idx: number) => {
+    const atIdx = placements.get(idx)
+    if (!atIdx) return
+    for (const group of atIdx) {
+      result.push({ type: 'engineSteps', key: group.key, steps: group.steps })
+    }
+  }
+
+  let lastDateLabel = ''
+  let lastTimestamp = 0
+  messages.forEach((msg, idx) => {
+    if (msg.timestamp) {
+      const label = formatDateLabel(msg.timestamp, t)
+      if (label !== lastDateLabel) {
+        result.push({ type: 'dateSep', label })
+        lastDateLabel = label
+        lastTimestamp = msg.timestamp
+      } else if (lastTimestamp > 0 && msg.timestamp - lastTimestamp > TIME_GAP_THRESHOLD_MS) {
+        result.push({ type: 'timeGap', label: formatTimeGap(msg.timestamp) })
+      }
+      // Response time badge
+      if (idx > 0 && msg.role === 'assistant' && messages[idx - 1].role === 'user' && messages[idx - 1].timestamp) {
+        const elapsed = msg.timestamp - messages[idx - 1].timestamp!
+        if (elapsed >= 1000) {
+          const rtLabel = formatResponseTime(elapsed, t)
+          if (rtLabel) result.push({ type: 'responseTime', label: rtLabel })
+        }
+      }
+      lastTimestamp = msg.timestamp
+    }
+    flushAt(idx)
+    result.push({ type: 'message', msg, msgIdx: idx })
+    // Insert compaction separator after system messages that are compaction summaries
+    if (msg.id?.startsWith('compact-')) {
+      result.push({ type: 'compactSep', label: t('compact.complete') })
+    }
+  })
+  // Steps that happened after the last message started (including while the
+  // final answer was still streaming) belong at the tail of the transcript.
+  flushAt(messages.length)
+  // A Codex turn that stopped or did not report an outcome gets a muted line
+  // after its transcript, not a red error and not a success badge.
+  const noticeKey = turnOutcome ? turnEndNoticeKey(turnOutcome) : null
+  if (noticeKey) result.push({ type: 'turnEnded', label: t(noticeKey) })
+  return result
+}
+
+/**
+ * Hook wrapper around `buildListItems`. The engine-step slice is a frozen
+ * empty array when a conversation has no such rows, so the existing message
+ * memo key stays stable for the common path.
  */
 export function useBuildItems(
   messages: ChatMessage[],
-  t: (key: string, p?: Record<string, string>) => string,
+  t: (key: string, p?: Record<string, string | number>) => string,
   turnOutcome: 'interrupted' | 'unknown' | null = null,
+  engineSteps: readonly EngineStep[] = NO_ENGINE_STEPS,
 ): ListItem[] {
-  return useMemo(() => {
-    const result: ListItem[] = []
-    let lastDateLabel = ''
-    let lastTimestamp = 0
-    messages.forEach((msg, idx) => {
-      if (msg.timestamp) {
-        const label = formatDateLabel(msg.timestamp, t)
-        if (label !== lastDateLabel) {
-          result.push({ type: 'dateSep', label })
-          lastDateLabel = label
-          lastTimestamp = msg.timestamp
-        } else if (lastTimestamp > 0 && msg.timestamp - lastTimestamp > TIME_GAP_THRESHOLD_MS) {
-          result.push({ type: 'timeGap', label: formatTimeGap(msg.timestamp) })
-        }
-        // Response time badge
-        if (idx > 0 && msg.role === 'assistant' && messages[idx - 1].role === 'user' && messages[idx - 1].timestamp) {
-          const elapsed = msg.timestamp - messages[idx - 1].timestamp!
-          if (elapsed >= 1000) {
-            const rtLabel = formatResponseTime(elapsed, t)
-            if (rtLabel) result.push({ type: 'responseTime', label: rtLabel })
-          }
-        }
-        lastTimestamp = msg.timestamp
-      }
-      result.push({ type: 'message', msg, msgIdx: idx })
-      // Insert compaction separator after system messages that are compaction summaries
-      if (msg.id?.startsWith('compact-')) {
-        result.push({ type: 'compactSep', label: t('compact.complete') })
-      }
-    })
-    // A Codex turn that stopped or did not report an outcome gets a muted line
-    // after its transcript, not a red error and not a success badge.
-    const noticeKey = turnOutcome ? turnEndNoticeKey(turnOutcome) : null
-    if (noticeKey) result.push({ type: 'turnEnded', label: t(noticeKey) })
-    return result
-  }, [messages, t, turnOutcome])
+  return useMemo(
+    () => buildListItems(messages, t, turnOutcome, engineSteps),
+    [messages, t, turnOutcome, engineSteps],
+  )
 }
 
 /** Compute showAvatar for each message index (consecutive same-role -> hide avatar) */

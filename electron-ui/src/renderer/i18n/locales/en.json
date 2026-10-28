@@ -203,6 +203,41 @@
       "waitingInputHint": "Codex is blocked until you answer the question it asked.",
       "error": "Engine error",
       "errorHint": "Codex reported a system error. The status carries no further detail, so none is shown."
+    },
+    "engineStep": {
+      "summary": "{{count}} engine steps",
+      "expand": "Show engine steps",
+      "collapse": "Hide engine steps",
+      "generic": "Engine step",
+      "genericHint": "A step the engine reported that AIPA cannot show in detail yet.",
+      "hookPrompt": "A hook added a prompt",
+      "hookPromptHint": "A configured hook injected text into this turn.",
+      "command": "Ran a command",
+      "fileChangePlain": "Changed files",
+      "fileChangeOne": "Changed 1 file",
+      "fileChangeOther": "Changed {{count}} files",
+      "mcpTool": "MCP tool `{{tool}}`",
+      "mcpToolPlain": "MCP tool call",
+      "mcpToolHint": "A tool provided by an MCP server ran.",
+      "dynamicTool": "Tool `{{tool}}`",
+      "dynamicToolPlain": "Tool call",
+      "webSearch": "Web search",
+      "webSearchResults": "Web search — {{count}} results",
+      "plan": "Plan updated",
+      "imageView": "Viewed an image",
+      "collabAgent": "Sub-agent call `{{tool}}`",
+      "collabAgentPlain": "Sub-agent call",
+      "collabAgentHint": "The engine coordinated another agent.",
+      "subAgentStarted": "Sub-agent started",
+      "subAgentInteracted": "Sub-agent interacted",
+      "subAgentInterrupted": "Sub-agent interrupted",
+      "subAgentPlain": "Sub-agent activity",
+      "sleep": "Waited {{duration}}",
+      "sleepPlain": "Waited",
+      "imageGeneration": "Image generation",
+      "enteredReview": "Entered review",
+      "exitedReview": "Left review",
+      "contextCompaction": "Compacted conversation context"
     }
   },
   "sessionReuse": {
@@ -3024,7 +3059,21 @@
     "runNow": "Run now",
     "edit": "Edit",
     "delete": "Delete",
-    "nextRun": "Next run: {{time}}",
+    "nextRun": {
+      "off": "Turned off",
+      "watching": "No next run — waits for the watched path to change",
+      "none": "No next run scheduled",
+      "due": "Due now",
+      "overdue": "Overdue — was due {{time}}",
+      "withRelative": "Next run: {{time}} ({{relative}})",
+      "relative": {
+        "soon": "in a moment",
+        "minutes": "in {{count}} min",
+        "hours": "in {{count}} h",
+        "tomorrowAt": "tomorrow at {{time}}"
+      },
+      "scheduled": "Next run: {{time}}"
+    },
     "lastRun": "last run {{time}}",
     "neverRun": "Not run yet",
     "ranLate": "ran late",
@@ -3472,5 +3521,27 @@
     "manage": "Manage",
     "dismiss": "Dismiss",
     "dismissAria": "Hide what ran while you were away"
+  },
+  "rateLimit": {
+    "window": {
+      "primary": "Primary window",
+      "secondary": "Secondary window"
+    },
+    "windowLength": {
+      "minutes": "{{count}} min window",
+      "hours": "{{count}} h window",
+      "days": "{{count}} d window"
+    },
+    "used": "{{percent}}% used",
+    "resetsIn": {
+      "minutes": "resets in {{count}} min",
+      "hours": "resets in {{count}} h",
+      "days": "resets in {{count}} d"
+    },
+    "noReset": "reset time unknown",
+    "nearLimit": "near limit",
+    "reached": "limit reached",
+    "spendControlReached": "spend limit reached",
+    "hint": "Account limits as reported by Codex. AIPA shows the numbers without estimates."
   }
 }

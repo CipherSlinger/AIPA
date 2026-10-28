@@ -18,6 +18,7 @@ import Toggle from '../ui/Toggle'
 import { formatTokens } from '../../utils/formatUtils'
 import AutomationDialog, { ASSISTANT_PERSONA_ID, type WorkflowOption } from '../automation/AutomationDialog'
 import { scheduleText, watchWarningText } from '../automation/scheduleText'
+import { nextRunText } from '../automation/nextRunText'
 import { buildInvestigatePrompt } from '../automation/investigatePrompt'
 import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from '../automation/automationStyles'
 import { RUN_HISTORY_CAP, viewRunHistory } from './runHistoryView'
@@ -735,6 +736,11 @@ export default function SettingsAutomations() {
               // path instead of a time, and a lost path is the row's warning.
               const watch = job.trigger.kind === 'watch'
               const watchWarning = watchWarningText(job, t)
+              // What the row says about the next occurrence: off, waiting on a
+              // path, no occurrence, due/overdue, or a real future time. The
+              // helper owns every one of those distinctions so this row does
+              // not print a stale timestamp as if it were upcoming.
+              const nextRun = nextRunText(job, t, resolvedLocale)
               // The pure view selects which records are visible (five, every
               // one, or every failure); it returns them in stored order, so the
               // disclosure's long-standing newest-first presentation is made
@@ -799,6 +805,17 @@ export default function SettingsAutomations() {
                             a time that does not exist. */}
                         {watch ? <RefreshCw size={11} /> : <Clock size={11} />}
                         {scheduleText(t, job.trigger)}
+                        {/* One quiet clause on the schedule line instead of a
+                            second line: the row already carries the action,
+                            expert, last outcome, spend and history. Under the
+                            global pause an enabled job's timestamp is frozen,
+                            so it is omitted; a disabled job still says it is
+                            off, because that is a fact about the job itself. */}
+                        {(!pausedAll || !job.enabled) && (
+                          <span style={{ color: nextRun.overdue ? WARNING : SECONDARY }}>
+                            {` · ${nextRun.text}`}
+                          </span>
+                        )}
                       </span>
                       {pausedAll && job.enabled && (
                         // An enabled job under the global pause must not look
@@ -946,17 +963,6 @@ export default function SettingsAutomations() {
                       }}>
                         <AlertTriangle size={11} style={{ flexShrink: 0, marginTop: 2 }} />
                         <span>{t('automation.workflowMissing')}</span>
-                      </div>
-                    )}
-
-                    {/* While paused the stored nextRunAt is frozen; showing it
-                        would promise a run that cannot happen. The banner says
-                        when scheduling returns. A watch job's nextRunAt is null
-                        by design, so nothing here pretends it has a countdown;
-                        the schedule line above already names its event. */}
-                    {!pausedAll && job.enabled && job.nextRunAt !== null && (
-                      <div style={{ fontSize: 11, color: SECONDARY, marginTop: 2 }}>
-                        {t('automation.nextRun', { time: timeText(job.nextRunAt) })}
                       </div>
                     )}
 

@@ -10,10 +10,14 @@ import type {
 } from '../../../preload'
 import type { SessionListItem } from '../../types/app.types'
 import { formatTokens } from '../../utils/formatUtils'
+import type { AppLocale } from '../../utils/formatDate'
 // The archive and the workflow schedules describe the same spend in the same
 // words; importing keeps the two surfaces from drifting apart on precision or
 // relative-age phrasing.
 import { costText, errorCodeText, relativeTimeText } from '../workflows/scheduleSummary'
+// The next-occurrence sentence is shared with Settings, so the two surfaces
+// cannot disagree about whether a job is off, watching, or overdue.
+import { nextRunText } from '../automation/nextRunText'
 
 /** Origin pills in the archive: a kind, or every kind. */
 export type ArchiveOriginKind = 'all' | 'user' | 'automation' | 'plugin'
@@ -246,6 +250,24 @@ export function jobLastOutcomeText(
     text: `${t('automation.status.error')}${detail ? `: ${detail}` : ''} · ${when}`,
     color: 'var(--danger-text)',
   }
+}
+
+/**
+ * When the selected job fires next, in the strip's own vocabulary.
+ *
+ * Delegates to the shared Settings helper so both surfaces distinguish the
+ * four states the same way: switched off (never a stale countdown), a watch
+ * job (no clock by design), a schedule with no occurrence, and a past run
+ * (due now or overdue rather than a timestamp printed as upcoming). A running
+ * job keeps its next occurrence here; "running" already has its own segment.
+ */
+export function jobNextRunText(
+  job: AutomationJobData,
+  t: Translate,
+  locale: AppLocale,
+  now: number = Date.now(),
+): string {
+  return nextRunText(job, t, locale, now).text
 }
 
 export interface JobSpendText {

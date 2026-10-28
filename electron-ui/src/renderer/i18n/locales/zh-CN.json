@@ -203,6 +203,41 @@
       "waitingInputHint": "Codex 正停在这里，等你回答它提出的问题。",
       "error": "引擎错误",
       "errorHint": "Codex 报告了系统错误。该状态没有附带更多细节，这里也不做猜测。"
+    },
+    "engineStep": {
+      "summary": "{{count}} 个引擎步骤",
+      "expand": "展开引擎步骤",
+      "collapse": "收起引擎步骤",
+      "generic": "引擎步骤",
+      "genericHint": "引擎报告了一个 AIPA 暂时无法详细展示的步骤。",
+      "hookPrompt": "钩子添加了一条提示",
+      "hookPromptHint": "已配置的钩子在本次回合中注入了文本。",
+      "command": "执行了一条命令",
+      "fileChangePlain": "改动了文件",
+      "fileChangeOne": "改动了 1 个文件",
+      "fileChangeOther": "改动了 {{count}} 个文件",
+      "mcpTool": "MCP 工具 `{{tool}}`",
+      "mcpToolPlain": "MCP 工具调用",
+      "mcpToolHint": "一个由 MCP 服务器提供的工具运行了。",
+      "dynamicTool": "工具 `{{tool}}`",
+      "dynamicToolPlain": "工具调用",
+      "webSearch": "网页搜索",
+      "webSearchResults": "网页搜索 — {{count}} 条结果",
+      "plan": "计划已更新",
+      "imageView": "查看了一张图片",
+      "collabAgent": "子代理调用 `{{tool}}`",
+      "collabAgentPlain": "子代理调用",
+      "collabAgentHint": "引擎协调了另一个代理。",
+      "subAgentStarted": "子代理已启动",
+      "subAgentInteracted": "子代理已交互",
+      "subAgentInterrupted": "子代理已中断",
+      "subAgentPlain": "子代理活动",
+      "sleep": "等待了 {{duration}}",
+      "sleepPlain": "等待",
+      "imageGeneration": "图片生成",
+      "enteredReview": "进入审阅模式",
+      "exitedReview": "退出审阅模式",
+      "contextCompaction": "压缩了对话上下文"
     }
   },
   "sessionReuse": {
@@ -3024,7 +3059,21 @@
     "runNow": "立即运行",
     "edit": "编辑",
     "delete": "删除",
-    "nextRun": "下次运行：{{time}}",
+    "nextRun": {
+      "off": "已关闭",
+      "watching": "没有下次运行——等待监视的路径发生变化",
+      "none": "没有安排下次运行",
+      "due": "现在到期",
+      "overdue": "已逾期——原定于 {{time}}",
+      "withRelative": "下次运行：{{time}}（{{relative}}）",
+      "relative": {
+        "soon": "马上",
+        "minutes": "{{count}} 分钟后",
+        "hours": "{{count}} 小时后",
+        "tomorrowAt": "明天 {{time}}"
+      },
+      "scheduled": "下次运行：{{time}}"
+    },
     "lastRun": "上次运行 {{time}}",
     "neverRun": "尚未运行",
     "ranLate": "延迟运行",
@@ -3472,5 +3521,27 @@
     "manage": "管理",
     "dismiss": "关闭",
     "dismissAria": "隐藏离开期间运行的内容"
+  },
+  "rateLimit": {
+    "window": {
+      "primary": "主窗口",
+      "secondary": "次窗口"
+    },
+    "windowLength": {
+      "minutes": "{{count}} 分钟窗口",
+      "hours": "{{count}} 小时窗口",
+      "days": "{{count}} 天窗口"
+    },
+    "used": "已用 {{percent}}%",
+    "resetsIn": {
+      "minutes": "{{count}} 分钟后重置",
+      "hours": "{{count}} 小时后重置",
+      "days": "{{count}} 天后重置"
+    },
+    "noReset": "重置时间未知",
+    "nearLimit": "接近上限",
+    "reached": "已达上限",
+    "spendControlReached": "已达支出上限",
+    "hint": "Codex 报告的账户额度。AIPA 只显示原始数字，不做估计。"
   }
 }

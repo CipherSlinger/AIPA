@@ -56,7 +56,9 @@ export function automationDescription(
   const schedule = scheduleText(t, job.trigger)
   let timing = ''
   if (!job.enabled) timing = t('automation.palette.paused')
-  else if (job.nextRunAt !== null) timing = t('automation.nextRun', { time: nextRunText(job.nextRunAt) })
+  // `automation.nextRun` is a namespace since the next-run helper landed; the
+  // plain "Next run: <time>" sentence is its `scheduled` leaf.
+  else if (job.nextRunAt !== null) timing = t('automation.nextRun.scheduled', { time: nextRunText(job.nextRunAt) })
 
   return [schedule, timing, outcomeText(job, t, now).text].filter(Boolean).join(' · ')
 }

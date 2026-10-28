@@ -19,7 +19,8 @@
  *     `PermissionsRequestApprovalResponse.json`
  *   - `ServerNotification.json` — every server→client notification
  *   - `v2/ModelListResponse.json`, `v2/GetAccountTokenUsageResponse.json`,
- *     `v2/GetAccountRateLimitsResponse.json`, `v2/SkillsListResponse.json`
+ *     `v2/GetAccountRateLimitsResponse.json`,
+ *     `v2/AccountRateLimitsUpdatedNotification.json`, `v2/SkillsListResponse.json`
  *
  * `.scratch/` is gitignored; regenerate the schema before changing field names.
  */
@@ -560,6 +561,13 @@ const MODEL_LIST_TIMEOUT_MS = 15_000
 const MODEL_LIST_CACHE_TTL_MS = 5 * 60_000
 const USAGE_CACHE_TTL_MS = 60_000
 const RATE_LIMITS_CACHE_TTL_MS = 30_000
+/**
+ * The first `account/rateLimits/read` after a thread starts only warms the
+ * composer's limit chip. A signed-out or slow account must never hold the
+ * user's turn, so the read is fire-and-forget with a short deadline; on
+ * failure the chip waits for the next `account/rateLimits/updated`.
+ */
+const RATE_LIMITS_PRIME_TIMEOUT_MS = 4_000
 const SKILLS_CACHE_TTL_MS = 60_000
 /** Chatty delta streams: coalesce/drop and hard-cap what crosses IPC. */
 const TOOL_PROGRESS_MIN_INTERVAL_MS = 100
@@ -607,6 +615,9 @@ export class CodexBridge extends EventEmitter {
   private loggedDroppedEfforts = new Set<string>()
   private usageCache: { usage: CodexAccountUsage; fetchedAt: number } | null = null
   private rateLimitsCache: { rateLimits: CodexRateLimits; fetchedAt: number } | null = null
+  // One priming read per bridge lifetime; retrying every sendMessage would
+  // stampede the account endpoint for data that only changes on push.
+  private rateLimitsPrimed = false
   private skillsCache: { cwd: string; skills: CodexSkillInfo[]; fetchedAt: number } | null = null
   // Bounded bookkeeping for streaming notifications.
   private toolProgressLastAt = new Map<string, number>()
@@ -660,7 +671,9 @@ export class CodexBridge extends EventEmitter {
       await this._startThread(args)
     }
 
-    // Step 3: Send the first user turn
+    // Step 3: warm the account-limit chip in the background, then send the
+    // first user turn. The read is not awaited on purpose.
+    this._primeRateLimits()
     await this._startTurn(args.input ?? toUserInput(args.prompt), { model: args.model, effort: args.effort })
   }
 
@@ -1207,6 +1220,32 @@ export class CodexBridge extends EventEmitter {
     const result = await this._sendRequest('thread/resume', params) as { thread?: { id: string } }
     this.currentThreadId = result?.thread?.id ?? threadId
     log.info(`Thread resumed: ${this.currentThreadId}`)
+  }
+
+  /**
+   * Read the account's limits once, right after a thread is started or
+   * resumed, so the composer chip has a full baseline before the first sparse
+   * `account/rateLimits/updated` notification. The raw snapshot is forwarded
+   * untouched; the renderer owns the merge rule. Failures are invisible to the
+   * user and logged at debug only — this read must never fail a turn.
+   */
+  private _primeRateLimits(): void {
+    if (this.rateLimitsPrimed || !this.proc?.stdin) return
+    this.rateLimitsPrimed = true
+    this._sendRequest('account/rateLimits/read', {}, RATE_LIMITS_PRIME_TIMEOUT_MS)
+      .then((result) => {
+        const response = asRecord(result)
+        if (!response || !asRecord(response.rateLimits)) return
+        this.emit('rateLimitsUpdated', {
+          sessionId: this.bridgeSessionId,
+          source: 'read',
+          rateLimits: response.rateLimits,
+          rateLimitsByLimitId: asRecord(response.rateLimitsByLimitId),
+        })
+      })
+      .catch((err) => {
+        log.debug('account/rateLimits/read (prime) failed:', String(err))
+      })
   }
 
   private async _startTurn(
@@ -2032,6 +2071,20 @@ export class CodexBridge extends EventEmitter {
         break
       }
 
+      // ── Account rate limits ────────────────────
+      // The schema documents this as a *sparse* rolling update: nullable
+      // metadata may be unavailable and does not clear a previously observed
+      // value. Forward the raw snapshot unchanged and let the renderer's
+      // rateLimitView module merge it into the last read.
+      case 'account/rateLimits/updated': {
+        this.emit('rateLimitsUpdated', {
+          sessionId: sid,
+          source: 'notification',
+          rateLimits: params.rateLimits ?? null,
+        })
+        break
+      }
+
       // ── Status changes ─────────────────────────
       case 'thread/status/changed': {
         this.emit('threadStatusChanged', {
@@ -2385,6 +2438,7 @@ export class CodexBridge extends EventEmitter {
     this.loggedDroppedEfforts.clear()
     this.usageCache = null
     this.rateLimitsCache = null
+    this.rateLimitsPrimed = false
     this.skillsCache = null
   }
 }

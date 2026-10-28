@@ -18,6 +18,7 @@ import { ArrowUp, Lock, Unlock } from 'lucide-react'
 import { useBuildItems, useMessageListMaps } from './messageListUtils'
 import { useMessageListScroll } from './useMessageListScroll'
 import { useMessageNavigation } from './useMessageNavigation'
+import { useEngineSteps } from './useEngineSteps'
 
 // PERF: module-level handlers so every <Message> receives identical callback
 // identities across renders (store actions are read via getState()).
@@ -64,7 +65,21 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   const rewindToMessage = useChatStore(s => s.rewindToMessage)
   const t = useT()
   const lastTurnOutcome = useChatStore(s => s.lastTurnOutcome)
+  // Engine-step rows are bucketed by the conversation the user is looking at,
+  // not by the transient bridge id: `viewSessionId` stays stable for the whole
+  // turn, including a brand-new chat whose engine id is still unknown.
+  const viewSessionId = useChatStore(s => s.viewSessionId)
+  const engineSteps = useEngineSteps(viewSessionId)
+  const [expandedStepGroups, setExpandedStepGroups] = useState<Set<string>>(() => new Set())
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const toggleStepGroup = useCallback((rowKey: string) => {
+    setExpandedStepGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(rowKey)) next.delete(rowKey)
+      else next.add(rowKey)
+      return next
+    })
+  }, [])
 
   // Keep the reading column centred on the same axis as the composer. The
   // scroll container reserves a symmetric scrollbar gutter, so its content
@@ -93,7 +108,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   // Pinned messages strip (extracted to PinnedMessagesStrip — Iteration 403)
 
   // Pre-computed data (single combined pass, Iteration perf)
-  const items = useBuildItems(messages, t, lastTurnOutcome)
+  const items = useBuildItems(messages, t, lastTurnOutcome, engineSteps)
   const { showAvatarMap, showTimestampMap, lastUserMsgId, assistantReplyMap } = useMessageListMaps(messages)
 
   // PERF: keep the latest messages reachable from stable callbacks without
@@ -122,6 +137,9 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       if (item.type === 'responseTime') return 22
       if (item.type === 'compactSep') return 36
       if (item.type === 'turnEnded') return 24
+      // Collapsed quiet rows are a single line; `measureElement` corrects this
+      // when a "N engine steps" group is expanded.
+      if (item.type === 'engineSteps') return 22
       return 80
     },
     overscan: 5,
@@ -329,6 +347,20 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       >
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const item = items[virtualRow.index]
+          if (item.type === 'engineSteps') {
+            return (
+              <VirtualSeparatorRow
+                key={`engine-${item.key}`}
+                type="engineSteps"
+                steps={item.steps}
+                rowKey={item.key}
+                expanded={expandedStepGroups.has(item.key)}
+                onToggle={toggleStepGroup}
+                virtualRow={virtualRow}
+                measureElement={virtualizer.measureElement}
+              />
+            )
+          }
           if (item.type === 'dateSep' || item.type === 'timeGap' || item.type === 'responseTime' || item.type === 'compactSep' || item.type === 'turnEnded') {
             return (
               <VirtualSeparatorRow

@@ -12,6 +12,7 @@ import SlashCommandPopup from './SlashCommandPopup'
 import QuickReplyChips from './QuickReplyChips'
 import InputToolbar from './InputToolbar'
 import PlanModeBanner from './PlanModeBanner'
+import RateLimitChip from './RateLimitChip'
 import ChatInputAttachments from './ChatInputAttachments'
 import ChatInputPasteChips from './ChatInputPasteChips'
 import ChatInputComposeStatus from './ChatInputComposeStatus'
@@ -423,6 +424,7 @@ export default function ChatInput({
         isStreaming={isStreaming}
       />
       </div>
+      <RateLimitChip sessionId={sessionId} />
       {/* Context usage meter with compact button */}
       {lastContextUsage && lastContextUsage.total > 0 && (
         <ContextUsageMeter
