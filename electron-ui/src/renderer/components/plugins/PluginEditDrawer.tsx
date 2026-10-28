@@ -390,7 +390,7 @@ export default function PluginEditDrawer({ plugin, onClose, onChanged }: {
               style={{
                 ...HEADER_BTN,
                 borderColor: input.trim() ? 'rgba(99,102,241,0.45)' : 'var(--border)',
-                color: input.trim() ? '#818cf8' : 'var(--text-faint)',
+                color: input.trim() ? 'var(--accent-text)' : 'var(--text-faint)',
                 cursor: input.trim() ? 'pointer' : 'not-allowed',
               }}
             >

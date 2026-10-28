@@ -96,7 +96,7 @@ export default function NotesHeader({
         {noteCount > 0 && (
           <span style={{
             background: 'rgba(99,102,241,0.15)',
-            color: '#818cf8',
+            color: 'var(--accent-text)',
             borderRadius: 10,
             padding: '1px 7px',
             fontSize: 11,

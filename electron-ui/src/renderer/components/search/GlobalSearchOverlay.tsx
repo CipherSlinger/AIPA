@@ -592,11 +592,27 @@ export default function GlobalSearchOverlay() {
             aria-activedescendant={
               askState === 'idle' && flat.length > 0 ? `global-search-row-${active}` : undefined
             }
+            spellCheck={false}
+            autoCorrect="off"
+            autoCapitalize="off"
+            onFocus={e => {
+              const bar = e.currentTarget.parentElement
+              if (bar) {
+                bar.style.boxShadow = 'inset 0 0 0 2px var(--accent-border)'
+                bar.style.background = 'var(--accent-bg)'
+              }
+            }}
+            onBlur={e => {
+              const bar = e.currentTarget.parentElement
+              if (bar) {
+                bar.style.boxShadow = 'none'
+                bar.style.background = 'transparent'
+              }
+            }}
             style={{
               flex: 1,
               background: 'transparent',
               border: 'none',
-              outline: 'none',
               fontSize: 15,
               color: 'var(--text-primary)',
               fontFamily: 'inherit',
@@ -626,6 +642,34 @@ export default function GlobalSearchOverlay() {
             <X size={14} />
           </button>
         </div>
+
+        {/* Ask becomes possible at four characters. Between two and three,
+            say so instead of leaving the floor invisible. */}
+        {askState === 'idle' && askAvailable && trimmed.length >= 2 && trimmed.length < ASK_MIN_QUERY && (
+          <div
+            role="status"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '5px 16px',
+              borderBottom: '1px solid var(--border)',
+              fontSize: 11,
+              color: 'var(--text-muted)',
+              flexShrink: 0,
+            }}
+          >
+            <Sparkles size={11} style={{ flexShrink: 0, color: 'var(--accent-text)' }} aria-hidden="true" />
+            <span>
+              {t(
+                ASK_MIN_QUERY - trimmed.length === 1
+                  ? 'globalSearch.askMoreCharOne'
+                  : 'globalSearch.askMoreChars',
+                { count: ASK_MIN_QUERY - trimmed.length },
+              )}
+            </span>
+          </div>
+        )}
 
         {/* Follow-up context. Hidden while a turn runs so it cannot look like
             the answer being streamed belongs to the older question. */}
@@ -1003,10 +1047,10 @@ export default function GlobalSearchOverlay() {
           {askState === 'idle' ? (
             <>
               <span>{t('globalSearch.navHint')}</span>
-              {showAskEntry && <span>{t('askHistory.ctrlEnterHint')}</span>}
+              {askAvailable && <span>{t('askHistory.ctrlEnterHint')}</span>}
               {results.length > 0 && (
                 <span style={{ marginLeft: 'auto' }}>
-                  {t('globalSearch.resultsCount', { count: results.length })}
+                  {t(results.length === 1 ? 'globalSearch.resultOne' : 'globalSearch.resultsCount', { count: results.length })}
                 </span>
               )}
             </>

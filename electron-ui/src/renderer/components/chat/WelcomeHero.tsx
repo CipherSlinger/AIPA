@@ -1,6 +1,7 @@
 import React from 'react'
 import { Bot } from 'lucide-react'
-import { useT } from '../../i18n'
+import { useI18n } from '../../i18n'
+import { formatDateMedium } from '../../utils/formatDate'
 
 interface Persona {
   emoji: string
@@ -21,7 +22,7 @@ interface WelcomeHeroProps {
  * Extracted from WelcomeScreen.tsx (Iteration 454).
  */
 export default function WelcomeHero({ greeting, displayName, activePersona, accentTint }: WelcomeHeroProps) {
-  const t = useT()
+  const { t, resolvedLocale } = useI18n()
 
   return (
     <>
@@ -54,7 +55,7 @@ export default function WelcomeHero({ greeting, displayName, activePersona, acce
           </div>
         )}
         <div style={{ fontSize: 13, color: 'var(--text-subtle)', marginTop: 4 }}>
-          {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+          {formatDateMedium(resolvedLocale, Date.now())}
         </div>
         <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 6, maxWidth: 360, lineHeight: 1.6 }}>
           {t('welcome.subtitle')}

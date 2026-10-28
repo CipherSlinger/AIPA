@@ -215,7 +215,7 @@ export default function DreamConsolidationTab() {
               background: enabled ? 'rgba(99,102,241,0.15)' : 'var(--bg-hover)',
               border: `1px solid ${enabled ? 'rgba(99,102,241,0.35)' : 'var(--border)'}`,
               borderRadius: 6,
-              color: enabled ? '#a5b4fc' : 'var(--text-muted)',
+              color: enabled ? 'var(--accent-text)' : 'var(--text-muted)',
               fontSize: 10,
               fontWeight: 600,
               cursor: enabled && !running ? 'pointer' : 'not-allowed',
@@ -258,7 +258,7 @@ export default function DreamConsolidationTab() {
       )}
       {notice && !error && (
         <div style={{
-          padding: '5px 12px', fontSize: 10, color: '#a5b4fc',
+          padding: '5px 12px', fontSize: 10, color: 'var(--accent-text)',
           background: 'rgba(99,102,241,0.08)', flexShrink: 0,
         }}>
           {notice}

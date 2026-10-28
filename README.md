@@ -112,6 +112,8 @@ AIPA adopts a modern **two-column layout** eliminating redundant intermediate li
 
 - **Two themes, one readable system**: every colour that carries text is a semantic token — `--accent-text`, `--accent-text-strong`, `--text-subtle`, `--success-text`, the `--code-*` family and `--dialog-shadow` — with its own light value. A screenshot harness reads the rendered foreground/background pairs and checks them against WCAG AA (4.5:1 body, 3:1 large) in both themes, which is how the light theme's selected search/palette rows went from **1.55:1 to 5.20:1** and the citation chips from **1.47:1 to 4.94:1**. Code blocks stay deliberately dark in both themes, rather than a light frame wrapped around a `github-dark` body
 
+- **One column, one vocabulary**: the transcript and the composer share a single centred `800px` reading column, with avatars living in the gutter rather than narrowing the text; the department header grows to fit its three rows and collapses Select / Export / Files / Handbook to labelled icons below 1100px, and the roster lays employees out on a `minmax(150px, 1fr)` grid instead of a fixed 108px tile. The palette ranks a name prefix above a word match and a description substring, so typing `ask` reaches **Ask AIPA about your history** rather than `Open Archive` via "t**ask**". Counts pluralize at the call site ("1 org", not "1 orgs"), every session date goes through one locale formatter, and no input suppresses its focus ring any more
+
 ---
 
 ## 🌟 Core Capabilities

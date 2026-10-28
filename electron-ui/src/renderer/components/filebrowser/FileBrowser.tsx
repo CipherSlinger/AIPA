@@ -68,8 +68,8 @@ function TreeNode({ entry, depth, onSetCwd, t, filter }: TreeNodeProps) {
 
         {entry.isDirectory
           ? (expanded
-            ? <FolderOpen size={13} style={{ color: '#818cf8', flexShrink: 0 }} />
-            : <Folder size={13} style={{ color: '#818cf8', flexShrink: 0 }} />)
+            ? <FolderOpen size={13} style={{ color: 'var(--accent-text)', flexShrink: 0 }} />
+            : <Folder size={13} style={{ color: 'var(--accent-text)', flexShrink: 0 }} />)
           : (() => {
               const { Icon, color } = getFileIcon(entry.name)
               return <Icon size={13} style={{ color, flexShrink: 0 }} />
@@ -341,7 +341,7 @@ export default function FileBrowser() {
         {rootEntries.length === 0 && (
           <div style={{ padding: '24px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, textAlign: 'center' }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.20)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FolderPlus size={18} style={{ color: '#818cf8' }} />
+              <FolderPlus size={18} style={{ color: 'var(--accent-text)' }} />
             </div>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('fileBrowser.chooseHint')}</span>
           </div>

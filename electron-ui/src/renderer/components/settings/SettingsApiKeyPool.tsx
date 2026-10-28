@@ -19,9 +19,28 @@ const glassInputStyle: React.CSSProperties = {
   padding: '5px 10px',
   fontSize: 12,
   color: 'var(--text-primary)',
-  outline: 'none',
   width: '100%',
   boxSizing: 'border-box' as const,
+}
+
+const POOL_LABEL_STYLE: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 3,
+  minWidth: 0,
+}
+
+const POOL_LABEL_TEXT_STYLE: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 600,
+  letterSpacing: '0.02em',
+  color: 'var(--text-muted)',
+}
+
+const POOL_HELPER_STYLE: React.CSSProperties = {
+  fontSize: 10,
+  color: 'var(--text-subtle)',
+  lineHeight: 1.35,
 }
 
 export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
@@ -182,27 +201,51 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
               ))}
             </div>
           )}
-          {/* Add key form */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 6 }}>
-            <input
-              value={newKeyLabel}
-              onChange={(e) => setNewKeyLabel(e.target.value)}
-              placeholder={t('settings.keyLabel')}
-              style={{ ...glassInputStyle, fontSize: 11 }}
-            />
-            <input
-              value={newKeyValue}
-              onChange={(e) => setNewKeyValue(e.target.value)}
-              placeholder={t('settings.keyValue')}
-              type="password"
-              style={{ ...glassInputStyle, fontSize: 11 }}
-            />
-            <input
-              value={newKeyBaseUrl}
-              onChange={(e) => setNewKeyBaseUrl(e.target.value)}
-              placeholder={t('settings.keyBaseUrl')}
-              style={{ ...glassInputStyle, fontSize: 11 }}
-            />
+          {/* Add key form. Each field carries a persistent label: once the key
+              is masked there is no other way to tell the three apart. */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 6 }}>
+            <label style={POOL_LABEL_STYLE}>
+              <span style={POOL_LABEL_TEXT_STYLE}>{t('settings.keyLabel')}</span>
+              <input
+                value={newKeyLabel}
+                onChange={(e) => setNewKeyLabel(e.target.value)}
+                placeholder={t('settings.keyLabelPlaceholder')}
+                aria-label={t('settings.keyLabel')}
+                spellCheck={false}
+                autoCorrect="off"
+                autoCapitalize="off"
+                style={{ ...glassInputStyle, fontSize: 11 }}
+              />
+            </label>
+            <label style={POOL_LABEL_STYLE}>
+              <span style={POOL_LABEL_TEXT_STYLE}>{t('settings.keyValue')}</span>
+              <input
+                value={newKeyValue}
+                onChange={(e) => setNewKeyValue(e.target.value)}
+                placeholder={t('settings.keyValuePlaceholder')}
+                aria-label={t('settings.keyValue')}
+                type="password"
+                spellCheck={false}
+                autoCorrect="off"
+                autoCapitalize="off"
+                style={{ ...glassInputStyle, fontSize: 11 }}
+              />
+            </label>
+            <label style={POOL_LABEL_STYLE}>
+              <span style={POOL_LABEL_TEXT_STYLE}>{t('settings.keyBaseUrl')}</span>
+              <input
+                value={newKeyBaseUrl}
+                onChange={(e) => setNewKeyBaseUrl(e.target.value)}
+                placeholder="https://api.example.com/v1"
+                aria-label={t('settings.keyBaseUrl')}
+                aria-describedby="key-base-url-hint"
+                spellCheck={false}
+                autoCorrect="off"
+                autoCapitalize="off"
+                style={{ ...glassInputStyle, fontSize: 11 }}
+              />
+              <span id="key-base-url-hint" style={POOL_HELPER_STYLE}>{t('settings.keyBaseUrlHint')}</span>
+            </label>
             <button
               onClick={handleAddKey}
               disabled={!newKeyValue.trim()}

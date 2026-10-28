@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useCallback, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { ChatMessage, StandardChatMessage, HookCallbackMessage, ElicitationMessage } from '../../types/app.types'
 import Message from './Message'
@@ -64,6 +64,23 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   const rewindToMessage = useChatStore(s => s.rewindToMessage)
   const t = useT()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // Keep the reading column centred on the same axis as the composer. The
+  // scroll container reserves a symmetric scrollbar gutter, so its content
+  // box is narrower than the conversation pane; compensating by exactly that
+  // amount makes the message text and the composer share a left edge at every
+  // width, without hard-coding a platform scrollbar size.
+  useLayoutEffect(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    const update = () => {
+      el.style.setProperty('--chat-gutter-comp', `${el.offsetWidth - el.clientWidth}px`)
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   // Rewind confirmation state
   const [rewindTarget, setRewindTarget] = useState<{ msgId: string; ts: number; count: number } | null>(null)
@@ -260,12 +277,15 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
 
   return (
     <div style={{ height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>
-      {/* Scroll progress bar */}
+      {/* Scroll progress bar. The track is transparent so a 1% fill is not
+          accompanied by a visible hairline, and the fill is driven by
+          transform so a scroll frame never triggers layout. */}
       {messages.length > 0 && (
         <div
+          aria-hidden="true"
           style={{
             height: 2,
-            background: 'var(--border)',
+            background: 'transparent',
             flexShrink: 0,
             position: 'relative',
             overflow: 'hidden',
@@ -277,10 +297,13 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
               left: 0,
               top: 0,
               height: '100%',
-              width: `${scrollState.scrollProgress * 100}%`,
+              width: '100%',
               background: 'var(--accent)',
-              opacity: 0.7,
-              transition: 'all 0.15s ease',
+              opacity: scrollState.scrollProgress >= 1 || scrollState.scrollProgress <= 0 ? 0 : 0.7,
+              transform: `scaleX(${scrollState.scrollProgress})`,
+              transformOrigin: 'left center',
+              transition: 'transform 0.15s ease, opacity 0.15s ease',
+              willChange: 'transform',
             }}
           />
         </div>
@@ -293,7 +316,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       role="log"
       aria-label={t('a11y.conversationMessages')}
       aria-live="polite"
-      style={{ flex: 1, overflowY: 'auto', padding: '16px 0', position: 'relative', background: 'transparent', scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}
+      style={{ flex: 1, overflowY: 'auto', padding: '16px 0', position: 'relative', background: 'transparent', scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent', scrollbarGutter: 'stable both-edges' }}
     >
       <div
         style={{
@@ -337,13 +360,21 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
                 transform: `translateY(${virtualRow.start}px)`,
               }}
             >
-              <div style={{
-                outline: isHighlighted ? '2px solid var(--accent)' : 'none',
-                borderLeft: isFocused ? '3px solid var(--accent)' : '3px solid transparent',
-                borderRadius: isHighlighted ? 4 : 0,
-                transition: 'all 0.15s ease',
-                background: isFocused ? 'var(--accent-bg)' : 'transparent',
-              }}>
+              <div
+                data-chat-column
+                className="chat-column"
+                style={{
+                  outline: isHighlighted ? '2px solid var(--accent)' : 'none',
+                  // Inset rather than border: a border would shift the
+                  // message text 3px away from the composer edge when the
+                  // row is focused.
+                  boxShadow: isFocused ? 'inset 3px 0 0 var(--accent)' : 'none',
+                  borderRadius: isHighlighted ? 4 : 0,
+                  transition: 'all 0.15s ease',
+                  background: isFocused ? 'var(--accent-bg)' : 'transparent',
+                  boxSizing: 'border-box',
+                }}
+              >
                 {renderMessage(msg, isHighlighted, item.msgIdx, isLastMessage)}
               </div>
             </div>

@@ -272,7 +272,7 @@ export default function PluginSourcePreview({
                   width: '100%', border: 'none', textAlign: 'left',
                   padding: `3px 10px 3px ${10 + entry.depth * 12}px`,
                   background: isSelected ? 'rgba(99,102,241,0.14)' : 'transparent',
-                  color: isSelected ? '#818cf8' : 'var(--text-secondary)',
+                  color: isSelected ? 'var(--accent-text)' : 'var(--text-secondary)',
                   fontSize: 11.5,
                   cursor: 'pointer',
                 }}

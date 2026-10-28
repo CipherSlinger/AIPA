@@ -233,12 +233,15 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
       onMouseLeave={() => setHovered(false)}
       onContextMenu={handleContextMenu}
       onDoubleClick={handleDoubleClick}
+      className="chat-message-row"
+      data-user={isUser ? 'true' : 'false'}
       style={{
         display: 'flex',
         flexDirection: isUser ? 'row-reverse' : 'row',
         alignItems: 'flex-start',
         gap: 12,
-        padding: compact ? `6px 20px` : `8px 20px`,
+        paddingTop: compact ? 6 : 8,
+        paddingBottom: compact ? 6 : 8,
         maxWidth: '100%',
         position: 'relative',
         background: hovered ? 'var(--glass-shimmer)' : undefined,
@@ -248,6 +251,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
       {/* Avatar or spacer */}
       {showAvatar ? (
         <div
+          className="chat-message-avatar"
           style={{
             width: avatarSize, height: avatarSize,
             borderRadius: '50%',
@@ -264,7 +268,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           }
         </div>
       ) : (
-        <div style={{ width: avatarSize, flexShrink: 0 }} />
+        <div className="chat-message-avatar" style={{ width: avatarSize, flexShrink: 0 }} />
       )}
 
       {/* Bubble wrapper + hover actions */}
@@ -297,9 +301,14 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           style={{
             background: isUser ? 'rgba(99,102,241,0.12)' : 'transparent',
             borderRadius: isUser ? '12px 12px 4px 12px' : '4px 12px 12px 12px',
-            padding: compact ? '8px 12px' : '10px 14px',
+            // Assistant text starts flush with the column edge (the 1px
+            // transparent border below is the only offset); user bubbles keep
+            // their own inset so the bubble shape reads correctly.
+            padding: compact ? (isUser ? '8px 12px' : '8px 0') : (isUser ? '10px 14px' : '10px 0'),
             color: 'var(--text-primary)',
             lineHeight: isUser ? 1.5 : 1.6,
+            // A transparent 1px border stays present on assistant rows so the
+            // copy-flash border does not shift the text by a pixel.
             border: copyFlash
               ? '1px solid rgba(34,197,94,0.4)'
               : isUser ? '1px solid rgba(99,102,241,0.20)' : '1px solid transparent',

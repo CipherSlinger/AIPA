@@ -97,7 +97,7 @@ export default function StatusBarTokenPopup({
               <ArrowUp size={9} />
               {t('token.inputTokens')}
             </span>
-            <span style={{ color: '#818cf8', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ color: 'var(--accent-text)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
               {lastUsage.inputTokens.toLocaleString()}
             </span>
           </div>
@@ -106,7 +106,7 @@ export default function StatusBarTokenPopup({
               <ArrowDown size={9} />
               {t('token.outputTokens')}
             </span>
-            <span style={{ color: '#818cf8', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ color: 'var(--accent-text)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
               {lastUsage.outputTokens.toLocaleString()}
             </span>
           </div>
@@ -115,7 +115,7 @@ export default function StatusBarTokenPopup({
               <Recycle size={9} />
               {t('token.cacheTokens')}
             </span>
-            <span style={{ color: lastUsage.cacheTokens > 0 ? '#818cf8' : 'var(--text-muted)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ color: lastUsage.cacheTokens > 0 ? 'var(--accent-text)' : 'var(--text-muted)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
               {lastUsage.cacheTokens > 0 ? lastUsage.cacheTokens.toLocaleString() : 'N/A'}
             </span>
           </div>
@@ -158,7 +158,7 @@ export default function StatusBarTokenPopup({
             background: 'rgba(99,102,241,0.15)',
             border: '1px solid rgba(99,102,241,0.3)',
             borderRadius: 6,
-            color: '#818cf8',
+            color: 'var(--accent-text)',
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}

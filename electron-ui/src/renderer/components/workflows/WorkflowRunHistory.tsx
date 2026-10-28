@@ -49,7 +49,7 @@ function StatusBadge({ success }: { success?: boolean }) {
     return (
       <span style={{
         fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const,
-        color: '#818cf8', background: 'rgba(99,102,241,0.15)',
+        color: 'var(--accent-text)', background: 'rgba(99,102,241,0.15)',
         border: '1px solid rgba(99,102,241,0.35)',
         borderRadius: 20, padding: '1px 8px',
         display: 'inline-flex', alignItems: 'center', gap: 4,

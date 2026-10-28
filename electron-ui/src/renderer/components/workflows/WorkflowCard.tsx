@@ -144,7 +144,7 @@ export default function WorkflowCard({ wf, onDuplicate, onDelete }: WorkflowCard
       {/* Footer: meta + run */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, fontSize: 10.5, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
-          <span style={{ color: '#a5b4fc', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.22)', borderRadius: 10, padding: '1px 7px', fontWeight: 600, flexShrink: 0 }}>
+          <span style={{ color: 'var(--accent-text)', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.22)', borderRadius: 10, padding: '1px 7px', fontWeight: 600, flexShrink: 0 }}>
             {t('employees.steps', { count: wf.steps.length })}
           </span>
           {wf.teamwork && <Users2 size={11} style={{ flexShrink: 0 }} />}

@@ -48,7 +48,7 @@ function ClickableFilePath({ path }: { path: string }) {
         padding: '1px 5px',
         fontSize: '0.9em',
         fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-        color: '#818cf8',
+        color: 'var(--accent-text)',
         cursor: 'pointer',
         textDecoration: 'underline',
         textDecorationStyle: 'dotted' as const,
@@ -199,10 +199,10 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                     window.electronAPI.shellOpenExternal(href)
                   }
                 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = '#a5b4fc' }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = '#818cf8' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--accent-text-strong)' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--accent-text)' }}
                 style={{
-                  color: '#818cf8',
+                  color: 'var(--accent-text)',
                   textDecoration: 'underline',
                   textUnderlineOffset: '3px',
                   cursor: 'pointer',
@@ -244,8 +244,13 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                     height: 14,
                     borderRadius: 3,
                     border: checked ? 'none' : '1.5px solid var(--text-muted)',
-                    background: checked ? '#6366f1' : 'transparent',
-                    color: 'var(--text-bright)',
+                    // Solid indigo dark enough for the 10px white check to
+                    // clear AA in both themes (white on #6366f1 is 4.47:1;
+                    // on #4f46e5 it is 6.29:1). The glyph must stay white —
+                    // --text-bright is black in the light theme and drops to
+                    // 3.34:1 here.
+                    background: checked ? '#4f46e5' : 'transparent',
+                    color: '#ffffff',
                     fontSize: 10,
                     flexShrink: 0,
                     marginTop: 3,

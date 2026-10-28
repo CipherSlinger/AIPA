@@ -590,8 +590,9 @@ export default function SettingsGeneral({
                           onClick={() => updatePetPref('size', s === 'S' ? 'P:8' : s === 'M' ? 'P:10' : 'P:15')}
                           style={{
                             padding: '2px 10px', fontSize: 11, borderRadius: 4, border: '1px solid',
-                            borderColor: sizeLabel === s ? 'var(--accent, #6366f1)' : 'var(--border)',
-                            background: sizeLabel === s ? 'var(--accent, #6366f1)' : 'transparent',
+                            // 11px white on #6366f1 is 4.47:1; this fill clears AA.
+                            borderColor: sizeLabel === s ? '#4f46e5' : 'var(--border)',
+                            background: sizeLabel === s ? '#4f46e5' : 'transparent',
                             color: sizeLabel === s ? '#fff' : 'var(--text-primary)',
                             cursor: 'pointer', fontWeight: sizeLabel === s ? 600 : 400,
                           }}

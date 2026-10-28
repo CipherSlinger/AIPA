@@ -33,6 +33,7 @@ import {
 } from '../departments/deptUtils'
 import { openSessionCore } from '../departments/openSessionCore'
 import { displayTitle } from '../../lib/sessionTitle'
+import { formatDateTimeShort } from '../../utils/formatDate'
 import { CommandOnlyNotice, EmptyState, Pill } from './ArchiveChrome'
 
 const ELLIPSIS: React.CSSProperties = {
@@ -350,6 +351,15 @@ export default function ArchivePanel() {
   const filtersActive = deptFilter !== 'all' || timeRange !== 'all' || showArchived || query.trim().length > 0
   const clearFilters = () => { setDeptFilter('all'); setTimeRange('all'); setShowArchived(false); setQuery('') }
 
+  // The i18n helper only substitutes {{params}} — no ICU plural machinery — so
+  // each count picks its own singular/plural key. "N updated this week" gives
+  // the week number a noun instead of trailing bare.
+  const summaryText = [
+    t(summary.total === 1 ? 'archive.summaryTaskOne' : 'archive.summaryTask', { count: summary.total }),
+    t(summary.roots === 1 ? 'archive.summaryOrgOne' : 'archive.summaryOrg', { count: summary.roots }),
+    t('archive.summaryWeek', { count: summary.week }),
+  ].join(' · ')
+
   const timeOptions: TimeRange[] = ['all', 'today', 'week', 'month']
 
   return (
@@ -371,12 +381,8 @@ export default function ArchivePanel() {
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
           {t('nav.archive')}
         </span>
-        <span style={{ flex: 1, fontSize: 11, color: 'var(--text-muted)', ...ELLIPSIS }}>
-          {t('archive.summary', {
-            total: String(summary.total),
-            groups: String(summary.roots),
-            week: String(summary.week),
-          })}
+        <span style={{ flex: 1, fontSize: 11, color: 'var(--text-muted)', ...ELLIPSIS }} title={summaryText}>
+          {summaryText}
         </span>
         <button
           onClick={exportLedger}
@@ -401,10 +407,19 @@ export default function ArchivePanel() {
         <select
           value={deptFilter}
           onChange={e => setDeptFilter(e.target.value)}
+          onFocus={e => {
+            e.currentTarget.style.boxShadow = '0 0 0 2px var(--accent-border)'
+            e.currentTarget.style.borderColor = 'var(--accent-border)'
+          }}
+          onBlur={e => {
+            e.currentTarget.style.boxShadow = 'none'
+            e.currentTarget.style.borderColor = 'var(--border)'
+          }}
           style={{
             padding: '4px 8px', borderRadius: 8, fontSize: 11, maxWidth: 180,
             border: '1px solid var(--border)', background: 'var(--bg-hover)',
-            color: 'var(--text-secondary)', outline: 'none', cursor: 'pointer',
+            color: 'var(--text-secondary)', cursor: 'pointer',
+            transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
           }}
         >
           <option value="all">{t('archive.allDepartments')}</option>
@@ -434,8 +449,25 @@ export default function ArchivePanel() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder={t('archive.searchPlaceholder')}
+            spellCheck={false}
+            autoCorrect="off"
+            autoCapitalize="off"
+            onFocus={e => {
+              const bar = e.currentTarget.parentElement
+              if (bar) {
+                bar.style.boxShadow = '0 0 0 2px var(--accent-bg)'
+                bar.style.borderColor = 'var(--accent-border)'
+              }
+            }}
+            onBlur={e => {
+              const bar = e.currentTarget.parentElement
+              if (bar) {
+                bar.style.boxShadow = 'none'
+                bar.style.borderColor = 'var(--border)'
+              }
+            }}
             style={{
-              flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none',
+              flex: 1, minWidth: 0, background: 'none', border: 'none',
               color: 'var(--text-primary)', fontSize: 11,
             }}
           />
@@ -599,7 +631,7 @@ function ArchiveRow({
   const [hovered, setHovered] = useState(false)
   const { session } = record
   const title = recordTitle(session, t('session.untitled'))
-  const when = new Date(session.timestamp).toLocaleString(locale)
+  const when = formatDateTimeShort(locale, session.timestamp)
 
   return (
     <div

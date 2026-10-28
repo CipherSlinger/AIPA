@@ -14,6 +14,7 @@ import type { SidebarTab, NavItem } from '../../store'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
 import type { SessionListItem } from '../../types/app.types'
 import { getWorkflowQueuePlan } from '../workflows/workflowConstants'
+import { formatDateMedium, type AppLocale } from '../../utils/formatDate'
 
 export interface PaletteCommand {
   id: string
@@ -42,6 +43,8 @@ interface CommandBuilderArgs {
   query?: string
   /** `null` = the one-time probe has not answered; `false` hides the ask entry. */
   askHistoryAvailable?: boolean | null
+  /** App locale, so session dates match the welcome hero and the archive. */
+  resolvedLocale: AppLocale
 }
 
 export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] {
@@ -561,15 +564,15 @@ export function buildPersonaCommands(args: Pick<CommandBuilderArgs, 't' | 'onClo
   return cmds
 }
 
-export function buildSessionCommands(args: Pick<CommandBuilderArgs, 't' | 'onClose' | 'sessions'>): PaletteCommand[] {
-  const { t, onClose, sessions } = args
+export function buildSessionCommands(args: Pick<CommandBuilderArgs, 't' | 'onClose' | 'sessions' | 'resolvedLocale'>): PaletteCommand[] {
+  const { t, onClose, sessions, resolvedLocale } = args
   const recentSessions = [...sessions]
     .sort((a, b) => b.timestamp - a.timestamp)
     .slice(0, 20)
 
   return recentSessions.map(session => {
     const title = session.title || `Session ${session.sessionId.slice(0, 8)}...`
-    const dateStr = new Date(session.timestamp).toLocaleDateString()
+    const dateStr = formatDateMedium(resolvedLocale, session.timestamp)
     return {
       id: `session-${session.sessionId}`,
       name: title,

@@ -266,7 +266,7 @@ export default function StatusBar() {
               padding: '1px 6px', borderRadius: 6,
               background: hoverPlan ? 'rgba(167, 139, 250, 0.4)' : 'rgba(167, 139, 250, 0.25)',
               border: 'none',
-              color: '#a5b4fc', cursor: 'pointer',
+              color: 'var(--accent-text)', cursor: 'pointer',
               fontSize: 9, fontWeight: 600, letterSpacing: 0.5,
               transition: 'all 0.15s ease',
             }}

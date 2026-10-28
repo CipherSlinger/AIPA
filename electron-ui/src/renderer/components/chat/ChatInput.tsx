@@ -361,7 +361,7 @@ export default function ChatInput({
   }, [input, isStreaming])
 
   return (
-    <div style={{ margin: '0 16px 12px', background: 'var(--popup-bg)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: 'var(--popup-shadow)', flexShrink: 0 }}>
+    <div className="chat-composer chat-column" style={{ margin: '0 auto 12px', background: 'var(--popup-bg)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: 'var(--popup-shadow)', flexShrink: 0, transition: 'border-color 0.15s ease, box-shadow 0.15s ease' }}>
       {/* Toolbar row */}
       <div style={{ borderBottom: '1px solid var(--border)', padding: '6px 10px' }}>
       <InputToolbar
@@ -540,6 +540,9 @@ export default function ChatInput({
               onBlur={() => { setTextDragOver(false); if (inputWrapRef.current) inputWrapRef.current.style.borderColor = isPlanMode ? 'var(--color-violet)' : 'var(--border)' }}
               placeholder={t(PLACEHOLDER_KEYS[placeholderIdx])}
               aria-label={t('chat.placeholder')}
+              spellCheck={false}
+              autoCorrect="off"
+              autoCapitalize="off"
               rows={1}
               style={{ flex: 1, width: '100%', background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', resize: 'none', fontFamily: 'inherit', fontSize: 13, lineHeight: 1.6, minHeight: 20, maxHeight: 160, overflow: 'auto', padding: '8px 14px 0' }}
             />

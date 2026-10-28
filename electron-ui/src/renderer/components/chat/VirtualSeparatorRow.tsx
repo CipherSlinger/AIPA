@@ -30,7 +30,7 @@ export default function VirtualSeparatorRow({ type, label, virtualRow, measureEl
         ref={measureElement}
         style={baseStyle}
       >
-        <div style={{
+        <div className="chat-column" style={{
           display: 'flex',
           alignItems: 'center',
           gap: 10,
@@ -63,7 +63,7 @@ export default function VirtualSeparatorRow({ type, label, virtualRow, measureEl
         ref={measureElement}
         style={baseStyle}
       >
-        <div style={{
+        <div className="chat-column" style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -91,7 +91,7 @@ export default function VirtualSeparatorRow({ type, label, virtualRow, measureEl
         ref={measureElement}
         style={baseStyle}
       >
-        <div style={{
+        <div className="chat-column" style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -117,7 +117,7 @@ export default function VirtualSeparatorRow({ type, label, virtualRow, measureEl
       ref={measureElement}
       style={baseStyle}
     >
-      <div style={{
+      <div className="chat-column" style={{
         display: 'flex',
         alignItems: 'center',
         gap: 10,

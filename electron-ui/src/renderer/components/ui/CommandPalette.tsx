@@ -16,7 +16,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Search } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore } from '../../store'
-import { useT } from '../../i18n'
+import { useI18n } from '../../i18n'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import {
   buildActionCommands,
@@ -61,7 +61,7 @@ export default function CommandPalette({
   const listRef = useRef<HTMLDivElement>(null)
   const backdropRef = useRef<HTMLDivElement>(null)
   const focusTrapRef = useFocusTrap(true)
-  const t = useT()
+  const { t, resolvedLocale } = useI18n()
 
   // PERF: per-field selectors — a bare useUiStore()/useSessionStore() subscribes
   // to the whole slice and re-renders the palette on every unrelated state change.
@@ -83,7 +83,7 @@ export default function CommandPalette({
     const args = {
       t, onClose, onExport, onNewConversation, onSendSlashCommand,
       toggleSidebar, setSidebarTab, setSidebarOpen, setActiveNavItem,
-      addToQueue, addToast, sessions, query, askHistoryAvailable,
+      addToQueue, addToast, sessions, query, askHistoryAvailable, resolvedLocale,
     }
     return [
       ...buildSessionCommands(args),
@@ -96,17 +96,32 @@ export default function CommandPalette({
   }, [
     onClose, onExport, onNewConversation, onSendSlashCommand,
     toggleSidebar, setSidebarTab, setSidebarOpen, setActiveNavItem,
-    addToQueue, addToast, sessions, query, askHistoryAvailable, t,
+    addToQueue, addToast, sessions, query, askHistoryAvailable, t, resolvedLocale,
   ])
 
-  // Filter by query
+  // Filter and rank by query. A raw `includes` made "ask" surface "Open
+  // Archive" first because "ask" lives inside "task"; a name prefix must beat
+  // a description substring, and description-only hits are dropped entirely
+  // when any name matched.
   const filtered = useMemo(() => {
     if (!query.trim()) return commands
     const q = query.toLowerCase()
-    return commands.filter(c =>
-      c.name.toLowerCase().includes(q) ||
-      c.description.toLowerCase().includes(q)
-    )
+    const scored = commands.map((c, index) => {
+      const name = c.name.toLowerCase()
+      let score = 0
+      if (name.startsWith(q)) score = 4
+      else if (name.split(/[\s\-_/·:]+/).some(word => word.startsWith(q))) score = 3
+      else if (name.includes(q)) score = 2
+      else if (c.description.toLowerCase().includes(q)) score = 1
+      return { c, score, index }
+    }).filter(entry => entry.score > 0)
+    const best = scored.reduce((max, entry) => Math.max(max, entry.score), 0)
+    // Only name matches survive once a name match exists; `index` keeps the
+    // original builder order stable inside a score band.
+    return scored
+      .filter(entry => best < 2 || entry.score >= 2)
+      .sort((a, b) => b.score - a.score || a.index - b.index)
+      .map(entry => entry.c)
   }, [commands, query])
 
   // Group filtered results by category (preserving order)
@@ -339,11 +354,27 @@ export default function CommandPalette({
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder={t('command.searchPlaceholder')}
+            spellCheck={false}
+            autoCorrect="off"
+            autoCapitalize="off"
+            onFocus={e => {
+              const bar = e.currentTarget.parentElement
+              if (bar) {
+                bar.style.boxShadow = 'inset 0 0 0 2px var(--accent-border)'
+                bar.style.background = 'var(--accent-bg)'
+              }
+            }}
+            onBlur={e => {
+              const bar = e.currentTarget.parentElement
+              if (bar) {
+                bar.style.boxShadow = 'none'
+                bar.style.background = 'transparent'
+              }
+            }}
             style={{
               flex: 1,
               background: 'transparent',
               border: 'none',
-              outline: 'none',
               fontSize: 15,
               color: 'var(--text-primary)',
               fontFamily: 'inherit',
@@ -371,7 +402,11 @@ export default function CommandPalette({
         <div
           ref={listRef}
           style={{
-            maxHeight: 380,
+            // Seven whole 56px rows. The grouped (empty-query) view adds a
+            // 28px group header, so it needs 28px more than the filtered
+            // view; otherwise the seventh row is sliced at the fold, which is
+            // exactly what 380px did before.
+            maxHeight: query.trim() ? 392 : 420,
             overflowY: 'auto',
             scrollbarWidth: 'thin',
             scrollbarColor: 'var(--border) transparent',

@@ -112,7 +112,7 @@ export default function EmployeeFigure({
       role="button"
       tabIndex={0}
       aria-label={`${title} — ${status.label}`}
-      title={session.lastPrompt?.slice(0, 200) || title}
+      title={session.title || title}
       onClick={handleClick}
       onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ' ') {

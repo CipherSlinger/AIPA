@@ -141,7 +141,7 @@ function ProjectMemoryTab() {
               onClick={startEdit}
               style={{
                 background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 4,
-                color: '#a5b4fc', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
+                color: 'var(--accent-text)', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
                 display: 'flex', alignItems: 'center', gap: 3, fontWeight: 600,
               }}
             >
@@ -688,7 +688,7 @@ function LoadedPathsPanel({ homeDir, workingDir, onSwitchScope, onCreateFile }: 
                     background: 'rgba(99,102,241,0.12)',
                     border: '1px solid rgba(99,102,241,0.25)',
                     borderRadius: 4,
-                    color: '#a5b4fc',
+                    color: 'var(--accent-text)',
                     fontSize: 9,
                     cursor: 'pointer',
                     padding: '2px 6px',
@@ -909,7 +909,7 @@ function InstructionFilesTab() {
         alignItems: 'center',
         gap: 6,
       }}>
-        <FileText size={10} style={{ color: '#a5b4fc', flexShrink: 0 }} />
+        <FileText size={10} style={{ color: 'var(--accent-text)', flexShrink: 0 }} />
         <span style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>
           {t('memory.instructionHint')}
         </span>
@@ -1025,7 +1025,7 @@ function InstructionFilesTab() {
               onClick={() => startEdit()}
               style={{
                 background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 4,
-                color: '#a5b4fc', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
+                color: 'var(--accent-text)', fontSize: 10, cursor: 'pointer', padding: '2px 8px',
                 display: 'flex', alignItems: 'center', gap: 3, fontWeight: 600,
               }}
             >
@@ -1156,7 +1156,7 @@ function InstructionFilesTab() {
                   title="\u4f7f\u7528\u6a21\u677f\u521b\u5efa"
                   style={{
                     background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.30)', borderRadius: 6,
-                    color: '#a5b4fc', fontSize: 11, cursor: 'pointer', padding: '5px 14px', fontWeight: 600,
+                    color: 'var(--accent-text)', fontSize: 11, cursor: 'pointer', padding: '5px 14px', fontWeight: 600,
                     display: 'flex', alignItems: 'center', gap: 4,
                   }}
                   onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.2)' }}
@@ -1359,9 +1359,9 @@ export default function MemoryPanel() {
           }}>
             {activeTab === 'config' ? (
               <>
-                <FileText size={10} style={{ color: '#a5b4fc', flexShrink: 0, marginTop: 1 }} />
+                <FileText size={10} style={{ color: 'var(--accent-text)', flexShrink: 0, marginTop: 1 }} />
                 <span style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                  <span style={{ color: '#a5b4fc', fontWeight: 600 }}>指令文件 (CLAUDE.md)</span>
+                  <span style={{ color: 'var(--accent-text)', fontWeight: 600 }}>指令文件 (CLAUDE.md)</span>
                   {' '}— 每次对话时自动注入给 Claude，用于设置行为规则和项目背景
                 </span>
               </>

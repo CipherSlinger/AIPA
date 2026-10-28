@@ -321,7 +321,7 @@ export default function PluginHostView() {
               ...TOOLBAR_BTN,
               background: showSource ? 'rgba(99,102,241,0.14)' : 'transparent',
               border: `1px solid ${showSource ? 'rgba(99,102,241,0.45)' : 'var(--border)'}`,
-              color: showSource ? '#818cf8' : 'var(--text-secondary)',
+              color: showSource ? 'var(--accent-text)' : 'var(--text-secondary)',
             }}
           >
             <FileCode size={12} />
@@ -336,7 +336,7 @@ export default function PluginHostView() {
               ...TOOLBAR_BTN,
               background: showEdit ? 'rgba(99,102,241,0.14)' : 'transparent',
               border: `1px solid ${showEdit ? 'rgba(99,102,241,0.45)' : 'var(--border)'}`,
-              color: showEdit ? '#818cf8' : 'var(--text-secondary)',
+              color: showEdit ? 'var(--accent-text)' : 'var(--text-secondary)',
             }}
           >
             <Sparkles size={12} />

@@ -1,7 +1,7 @@
 // The department view's top bar: identity, breadcrumb, and the handful of
 // actions that act on the whole department rather than on one employee.
 
-import { ArrowLeft, BookOpen, ChevronRight, FolderOpen, MessageSquarePlus } from 'lucide-react'
+import { ArrowLeft, BookOpen, ChevronRight, Download, FolderOpen, ListChecks, MessageSquarePlus } from 'lucide-react'
 import type { Department } from '../../store'
 import { useI18n } from '../../i18n'
 import type { SortOrder } from './DepartmentDashboard.data'
@@ -59,10 +59,15 @@ export default function DeptHeader({
   onNewSession,
 }: DeptHeaderProps) {
   const { t, resolvedLocale } = useI18n()
+  const deptName = deptDisplayName(dept, resolvedLocale)
 
   return (
     <div style={{
-      height: 56,
+      // Three content rows (breadcrumb, title, directory) need ~44px. The old
+      // fixed 56px box with 28px of padding left only 28px for them, so the
+      // directory line fell out of the band. Let the band grow instead.
+      minHeight: 56,
+      height: 'auto',
       flexShrink: 0,
       background: 'var(--popup-bg)',
       backdropFilter: 'blur(12px)',
@@ -70,7 +75,7 @@ export default function DeptHeader({
       borderBottom: '1px solid var(--border)',
       display: 'flex',
       alignItems: 'center',
-      padding: '14px 20px',
+      padding: '6px 20px',
       gap: 10,
       position: 'relative',
       boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
@@ -124,18 +129,21 @@ export default function DeptHeader({
         boxShadow: `0 0 0 2px var(--border)`,
       }} />
 
-      {/* Dept name + dir */}
-      <div style={{ flex: 1, overflow: 'hidden' }}>
+      {/* Dept name + dir. `minWidth: 0` is what lets the flex child actually
+          shrink: without it the title refuses to go below its content width and
+          the action buttons win the space contest at 900px. */}
+      <div className="dept-name-block" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
         {/* Breadcrumb — every nested node (department or team) is a desk of its
             own, so its page says which node it sits under and offers the way
-            back up. The trailing label is the current node's kind. */}
+            back up. The trailing label is the current node's kind. It truncates
+            rather than wraps once the header gets tight. */}
         {parentDept && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: 'var(--text-subtle)', marginBottom: 2 }}>
+          <div className="dept-breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: 'var(--text-subtle)', marginBottom: 2, minWidth: 0, whiteSpace: 'nowrap' }}>
             <button
               onClick={() => onSelectDept(parentDept.id)}
               title={t('dept.backToParent')}
               style={{
-                display: 'flex', alignItems: 'center', gap: 2,
+                display: 'flex', alignItems: 'center', gap: 2, minWidth: 0,
                 background: 'none', border: 'none', padding: 0, cursor: 'pointer',
                 color: 'var(--text-subtle)', fontSize: 10, maxWidth: 160,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -143,11 +151,13 @@ export default function DeptHeader({
               onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent-text)' }}
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-subtle)' }}
             >
-              <ArrowLeft size={9} />
-              {deptDisplayName(parentDept, resolvedLocale)}
+              <ArrowLeft size={9} style={{ flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {deptDisplayName(parentDept, resolvedLocale)}
+              </span>
             </button>
             <ChevronRight size={9} style={{ opacity: 0.5, flexShrink: 0 }} />
-            <span style={{ opacity: 0.7 }}>{t(KIND_LABEL_KEY[kindOf(dept)])}</span>
+            <span style={{ opacity: 0.7, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{t(KIND_LABEL_KEY[kindOf(dept)])}</span>
           </div>
         )}
         <div style={{
@@ -158,8 +168,14 @@ export default function DeptHeader({
           display: 'flex',
           alignItems: 'center',
           gap: 6,
+          minWidth: 0,
         }}>
-          {deptDisplayName(dept, resolvedLocale)}
+          <span
+            title={deptName}
+            style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          >
+            {deptName}
+          </span>
           {active && (
             <div style={{
               width: 7, height: 7,
@@ -182,14 +198,18 @@ export default function DeptHeader({
           alignItems: 'center',
           gap: 4,
           marginTop: 1,
+          minWidth: 0,
         }}>
           <FolderOpen size={10} style={{ opacity: 0.7, flexShrink: 0 }} />
-          {dept.directory}
+          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dept.directory}</span>
         </div>
       </div>
 
       <button
         onClick={onToggleSelect}
+        className="dept-action-btn"
+        aria-label={selectMode ? t('session.exitSelect') : t('session.selectMode')}
+        title={selectMode ? t('session.exitSelect') : t('session.selectMode')}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -198,7 +218,7 @@ export default function DeptHeader({
           borderRadius: 6,
           border: `1px solid ${selectMode ? 'rgba(99,102,241,0.7)' : 'var(--border)'}`,
           background: selectMode ? 'rgba(99,102,241,0.1)' : 'transparent',
-          color: selectMode ? '#818cf8' : 'var(--text-secondary)',
+          color: selectMode ? 'var(--accent-text)' : 'var(--text-secondary)',
           fontSize: 11,
           cursor: 'pointer',
           flexShrink: 0,
@@ -217,11 +237,14 @@ export default function DeptHeader({
           }
         }}
       >
-        {selectMode ? t('session.exitSelect') : t('session.selectMode')}
+        <ListChecks size={13} style={{ flexShrink: 0 }} />
+        <span className="dept-action-label">{selectMode ? t('session.exitSelect') : t('session.selectMode')}</span>
       </button>
 
       <button
         onClick={onExport}
+        className="dept-action-btn"
+        aria-label={t('dept.export')}
         title={t('dept.exportSessionsTitle')}
         style={{
           display: 'flex',
@@ -248,11 +271,14 @@ export default function DeptHeader({
           e.currentTarget.style.background = 'transparent'
         }}
       >
-        {t('dept.export')}
+        <Download size={13} style={{ flexShrink: 0 }} />
+        <span className="dept-action-label">{t('dept.export')}</span>
       </button>
 
       <button
         onClick={onOpenFiles}
+        className="dept-action-btn"
+        aria-label={t('dept.files')}
         title={t('dept.files')}
         style={{
           display: 'flex',
@@ -280,13 +306,15 @@ export default function DeptHeader({
         }}
       >
         <FolderOpen size={13} />
-        {t('dept.files')}
+        <span className="dept-action-label">{t('dept.files')}</span>
       </button>
 
       {/* The handbook is the desk's standing rules. The dot says "there is one",
           so an empty handbook is distinguishable without opening the dialog. */}
       <button
         onClick={onOpenHandbook}
+        className="dept-action-btn"
+        aria-label={t('dept.handbook')}
         title={t('dept.handbook')}
         style={{
           display: 'flex', alignItems: 'center', gap: 5,
@@ -306,7 +334,7 @@ export default function DeptHeader({
         }}
       >
         <BookOpen size={12} />
-        {t('dept.handbook')}
+        <span className="dept-action-label">{t('dept.handbook')}</span>
         {dept.handbook?.trim() && (
           <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#818cf8' }} />
         )}
@@ -363,8 +391,8 @@ export default function DeptHeader({
         }}
       >
         <MessageSquarePlus size={13} />
-        {t('dept.newSession')}
-        <kbd style={{
+        <span className="dept-new-label">{t('dept.newSession')}</span>
+        <kbd className="dept-new-label" style={{
           fontSize: 9,
           background: 'rgba(0,0,0,0.22)',
           color: '#ffffff',
