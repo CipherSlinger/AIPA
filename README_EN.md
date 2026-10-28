@@ -555,6 +555,8 @@ npm run build:main && npm run build:preload && npm run dev:renderer
 NODE_ENV=development node_modules/.bin/electron dist/main/index.js
 ```
 
+Rebuilding `dist/renderer` while a non-dev instance is running replaces every lazy chunk with a new content hash, so panels opened afterwards ask for files that no longer exist. The app now heals itself: a failed lazy import triggers **one** window reload (with a 15s cooldown so a genuinely broken build cannot reload-loop), which re-reads `index.html` and picks up the new asset map. Until that lands, the failure is at least contained — every tab owns its own error boundary, so one broken panel no longer takes the others down with it.
+
 ---
 
 ## 🛡️ Security

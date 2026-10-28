@@ -35,6 +35,17 @@ const getRetryDelay = (attempt: number) => 500 * Math.pow(3, attempt)
  * for errors that are clearly caused by code bugs.
  */
 function isPermanentError(error: Error): boolean {
+  // A lazy chunk that is missing from disk (renderer rebuilt while the app was
+  // running) can never be fetched by re-rendering — React.lazy also caches the
+  // rejected import. Reloading the window is the only recovery.
+  const moduleMsg = error?.message || ''
+  if (
+    moduleMsg.includes('Failed to fetch dynamically imported module') ||
+    moduleMsg.includes('Importing a module script failed') ||
+    moduleMsg.includes('error loading dynamically imported module')
+  ) {
+    return true
+  }
   // ReferenceError: X is not defined — code bug, retry won't help
   if (error instanceof ReferenceError) return true
   // SyntaxError — code corruption, retry won't help

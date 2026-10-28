@@ -5,6 +5,26 @@ import App from './App'
 
 console.log('[AIPA] index.tsx module loaded — mounting React')
 
+// Lazy panels are imported by content-hashed file name. When the renderer is
+// rebuilt while the app is running (npm run build:renderer), the running page's
+// in-memory import map still points at the previous hashes, so every panel the
+// user opens fails with "Failed to fetch dynamically imported module" and the
+// ErrorBoundary retries forever. Reloading re-reads index.html and picks up the
+// new asset map. Guarded so a genuinely broken build cannot reload-loop.
+const PRELOAD_RELOAD_KEY = 'aipa:preload-error-reload-at'
+const PRELOAD_RELOAD_COOLDOWN_MS = 15000
+
+window.addEventListener('vite:preloadError', () => {
+  let lastReload = 0
+  try {
+    lastReload = Number(sessionStorage.getItem(PRELOAD_RELOAD_KEY) || 0)
+  } catch { /* sessionStorage unavailable — cooldown unknown */ }
+  if (Date.now() - lastReload < PRELOAD_RELOAD_COOLDOWN_MS) return
+  try { sessionStorage.setItem(PRELOAD_RELOAD_KEY, String(Date.now())) } catch { }
+  console.warn('[AIPA] Lazy chunk failed to load (app files changed on disk) — reloading to pick up the new build')
+  window.location.reload()
+})
+
 try {
   const root = createRoot(document.getElementById('root')!)
   root.render(

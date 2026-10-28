@@ -175,43 +175,43 @@ export default function AppShell() {
           }}
         >
           {mainView === 'department' ? (
-            <ErrorBoundary fallbackLabel="department dashboard">
+            <ErrorBoundary key={mainView} fallbackLabel="department dashboard">
               <React.Suspense fallback={<PanelSkeleton />}>
                 <DepartmentDashboard />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'archive' ? (
-            <ErrorBoundary fallbackLabel="archive panel">
+            <ErrorBoundary key={mainView} fallbackLabel="archive panel">
               <React.Suspense fallback={<PanelSkeleton />}>
                 <ArchivePanel />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'workflows' ? (
-            <ErrorBoundary fallbackLabel="workflows panel">
+            <ErrorBoundary key={mainView} fallbackLabel="workflows panel">
               <React.Suspense fallback={<PanelSkeleton />}>
                 <WorkflowPanel />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'changes' ? (
-            <ErrorBoundary fallbackLabel="changes panel">
+            <ErrorBoundary key={mainView} fallbackLabel="changes panel">
               <React.Suspense fallback={<PanelSkeleton />}>
                 <ChangesPanel />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'files' ? (
-            <ErrorBoundary fallbackLabel="files browser">
+            <ErrorBoundary key={mainView} fallbackLabel="files browser">
               <React.Suspense fallback={<PanelSkeleton />}>
                 <FileBrowser />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'notes' ? (
-            <ErrorBoundary fallbackLabel="notes panel">
+            <ErrorBoundary key={mainView} fallbackLabel="notes panel">
               <React.Suspense fallback={<PanelSkeleton />}>
                 <NotesPanel />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'settings' ? (
-            <ErrorBoundary fallbackLabel="settings page">
+            <ErrorBoundary key={mainView} fallbackLabel="settings page">
               {/* Settings page header */}
               <div style={{
                 height: 44,
@@ -257,43 +257,43 @@ export default function AppShell() {
               </div>
             </ErrorBoundary>
           ) : mainView === 'persona-editor' ? (
-            <ErrorBoundary fallbackLabel="persona editor">
+            <ErrorBoundary key={mainView} fallbackLabel="persona editor">
               <React.Suspense fallback={<PanelSkeleton />}>
                 <PersonaEditorPage />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'workflow-editor' ? (
-            <ErrorBoundary fallbackLabel="workflow editor">
+            <ErrorBoundary key={mainView} fallbackLabel="workflow editor">
               <React.Suspense fallback={<PanelSkeleton />}>
                 <WorkflowEditorPage />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'workflow-detail' ? (
-            <ErrorBoundary fallbackLabel="workflow detail">
+            <ErrorBoundary key={mainView} fallbackLabel="workflow detail">
               <React.Suspense fallback={<PanelSkeleton />}>
                 <WorkflowDetailPage />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'skill-creator' ? (
-            <ErrorBoundary fallbackLabel="skill creator">
+            <ErrorBoundary key={mainView} fallbackLabel="skill creator">
               <React.Suspense fallback={<PanelSkeleton />}>
                 <SkillCreatorPage />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'skill-marketplace' ? (
-            <ErrorBoundary fallbackLabel="skill marketplace">
+            <ErrorBoundary key={mainView} fallbackLabel="skill marketplace">
               <React.Suspense fallback={<PanelSkeleton />}>
                 <SkillMarketplacePage />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'plugin' ? (
-            <ErrorBoundary fallbackLabel="plugin view">
+            <ErrorBoundary key={mainView} fallbackLabel="plugin view">
               <React.Suspense fallback={<PanelSkeleton />}>
                 <PluginHostView />
               </React.Suspense>
             </ErrorBoundary>
           ) : (
-            <ErrorBoundary fallbackLabel="chat panel">
+            <ErrorBoundary key={mainView} fallbackLabel="chat panel">
               <ChatPanel />
             </ErrorBoundary>
           )}
