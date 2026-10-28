@@ -889,7 +889,7 @@ export interface CliPatchUpdatedEventData {
  */
 export interface CliEngineWarningEventData {
   sessionId?: string
-  kind?: 'warning' | 'deprecationNotice' | 'configWarning'
+  kind?: 'warning' | 'deprecationNotice' | 'configWarning' | 'worldWritable'
   /** The engine's own sentence, never re-worded by AIPA. */
   message?: string
   details?: string | null
@@ -902,6 +902,44 @@ export interface CliEngineWarningEventData {
   } | null
   /** `warning` only: the thread the warning applies to, when named. */
   threadId?: string | null
+}
+
+/**
+ * `cli:sandboxSetupCompleted` payload (`windowsSandbox/setupCompleted`).
+ * Verified wire shape: `{ mode: 'elevated' | 'unelevated', success: boolean,
+ * error: string | null }`. `error` is the engine's own failure text; the mode
+ * is the only step/target the payload names.
+ */
+export interface CliSandboxSetupCompletedEventData {
+  sessionId?: string
+  mode?: 'elevated' | 'unelevated' | null
+  success?: boolean
+  error?: string | null
+}
+
+/**
+ * `cli:autoApprovalReview` payload (`item/autoApprovalReview/started` and
+ * `/completed`). Verified fields: `reviewId`, `targetItemId` (`string | null`),
+ * `review.status`, `review.rationale`, `review.riskLevel`,
+ * `review.userAuthorization`, `threadId`, `turnId`, `startedAtMs`,
+ * `completedAtMs`. `status` is `inProgress | approved | denied | timedOut |
+ * aborted`; a completed event with `inProgress` is dropped in main. The bridge
+ * adds `phase`. Every field is optional here because the renderer re-validates
+ * push payloads before annotating any card.
+ */
+export interface CliAutoApprovalReviewEventData {
+  sessionId?: string
+  phase?: 'started' | 'completed'
+  reviewId?: string
+  targetItemId?: string
+  status?: 'inProgress' | 'approved' | 'denied' | 'timedOut' | 'aborted'
+  rationale?: string | null
+  riskLevel?: string | null
+  userAuthorization?: string | null
+  threadId?: string
+  turnId?: string
+  startedAtMs?: number | null
+  completedAtMs?: number | null
 }
 
 /**
@@ -1207,6 +1245,10 @@ const electronAPI = {
       // Thread goal (standing objective shown in the composer strip) and the
       // inverse of archive — the row belongs back in the sidebar.
       'cli:threadGoalUpdated', 'cli:threadGoalCleared', 'cli:threadUnarchived',
+      // Windows sandbox lifecycle + the automatic reviewer's verdict on an
+      // existing item. The sandbox warning itself rides `cli:engineWarning`
+      // with `kind: 'worldWritable'`.
+      'cli:sandboxSetupCompleted', 'cli:autoApprovalReview',
     ]
     const handlers = channels.map((ch) => {
       const h = (_: unknown, d: Record<string, unknown>) => {

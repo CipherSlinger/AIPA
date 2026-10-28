@@ -3443,7 +3443,9 @@
         "longestTurn": "最长回合"
       },
       "sparklineAria": "最近 14 天每日 Token 用量",
-      "staleNote": "刷新失败 — 显示上次获取的数据。"
+      "staleNote": "刷新失败 — 显示上次获取的数据。",
+      "checkedAgo": "已确认 {{time}}",
+      "checkedNever": "尚未确认"
     },
     "models": {
       "title": "Codex 模型",
@@ -3541,7 +3543,9 @@
     "engineNotice": {
       "aria": "来自引擎的提示",
       "dismiss": "关闭这条提示",
-      "more": "另有 {{count}} 条"
+      "more": "另有 {{count}} 条",
+      "sandboxSetupFailed": "Windows 沙箱设置失败（{{mode}}）。",
+      "sandboxSetupFailedNoMode": "Windows 沙箱设置失败。"
     },
     "reroute": {
       "moved": "本回合已从 {{from}} 切换到 {{to}}。",
@@ -3559,6 +3563,16 @@
         "complete": "已完成"
       },
       "tokens": "{{used}} / {{budget}} 个 token"
+    },
+    "autoApprovalReview": {
+      "aria": "自动审批复核",
+      "inProgress": "自动复核进行中…",
+      "line": "自动复核：{{verdict}}",
+      "withReason": "自动复核：{{verdict}} — {{reason}}",
+      "approved": "已批准",
+      "denied": "已拒绝",
+      "timedOut": "已超时",
+      "aborted": "已中止"
     }
   },
   "plugin": {

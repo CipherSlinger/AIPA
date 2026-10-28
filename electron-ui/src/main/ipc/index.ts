@@ -832,6 +832,15 @@ function wireCodexBridge(
   bridge.on('modelRerouted', (d) => sink('cli:modelRerouted', d))
   bridge.on('accountUpdated', (d) => sink('cli:accountUpdated', d))
   bridge.on('skillsChanged', (d) => sink('cli:skillsChanged', d))
+  // Windows sandbox lifecycle. Success is intentionally low-key (diagnostics
+  // may consume it); failure is shown from `error` by the notice stack. The
+  // sandbox setup is app-wide, but an internal bridge still owns no UI and
+  // returned above.
+  bridge.on('sandboxSetupCompleted', (d) => sink('cli:sandboxSetupCompleted', d))
+  // Automatic approval reviews annotate the item they name. The renderer
+  // validates the item id against an existing card; this channel never creates
+  // one.
+  bridge.on('autoApprovalReview', (d) => sink('cli:autoApprovalReview', d))
 
   // Background memory consolidation observes finished user turns only —
   // internal bridges returned above, and automation runs never pass through

@@ -166,7 +166,11 @@ export interface CodexTextRange {
   end: { line: number; column: number }
 }
 
-export type CodexEngineWarningKind = 'warning' | 'deprecationNotice' | 'configWarning'
+export type CodexEngineWarningKind =
+  | 'warning'
+  | 'deprecationNotice'
+  | 'configWarning'
+  | 'worldWritable'
 
 /**
  * One engine-side warning the user should see. Verified against the generated
@@ -189,6 +193,66 @@ export interface CodexEngineWarning {
   path: string | null
   range: CodexTextRange | null
   threadId: string | null
+}
+
+/**
+ * `windows/worldWritableWarning`
+ * (`v2/WindowsWorldWritableWarningNotification.json`, verified against the
+ * 0.145 binary):
+ *
+ *   { samplePaths: string[], extraCount: number, failedScan: boolean }
+ *
+ * The payload has **no message field**. The only literal sentences the engine
+ * ships for this warning live in the binary; the constants below are copied
+ * from it verbatim, including the "Everyone" capitalisation. AIPA may not
+ * soften or re-word them. `samplePaths` are the directories the engine flagged;
+ * `extraCount` is how many further folders it did not sample.
+ *
+ * `failedScan` means the engine could not verify protections at all — that is
+ * the security statement, not a footnote, so it replaces the path sentence
+ * when no paths were collected and is appended when some were.
+ */
+export const WINDOWS_WORLD_WRITABLE_HEADING =
+  'The Windows sandbox cannot protect writes to folders that are writable by Everyone. Consider removing write access for Everyone from the following folders:'
+// Verbatim prefix of HEADING (the engine ships no separate no-path sentence);
+// used only when the payload names no directory, so nothing points at a list.
+export const WINDOWS_WORLD_WRITABLE_NO_PATHS =
+  'The Windows sandbox cannot protect writes to folders that are writable by Everyone.'
+export const WINDOWS_WORLD_WRITABLE_SCAN_FAILED =
+  "We couldn't complete the world-writable scan, so protections cannot be verified."
+
+/** One review status, verbatim from `GuardianApprovalReviewStatus`. */
+export type CodexAutoApprovalReviewStatus =
+  | 'inProgress'
+  | 'approved'
+  | 'denied'
+  | 'timedOut'
+  | 'aborted'
+
+/** `item/autoApprovalReview/*`, normalized for the tool-card annotation. */
+export interface CodexAutoApprovalReview {
+  phase: 'started' | 'completed'
+  reviewId: string
+  /** The item id whose existing card may be annotated. Never invented. */
+  targetItemId: string
+  status: CodexAutoApprovalReviewStatus
+  /** The engine's own reason; null when it sent none. */
+  rationale: string | null
+  /** Engine-assigned labels, forwarded only when the engine named them. */
+  riskLevel: string | null
+  userAuthorization: string | null
+  threadId: string
+  turnId: string
+  startedAtMs: number | null
+  completedAtMs: number | null
+}
+
+/** `windowsSandbox/setupCompleted`, verified shape. */
+export interface CodexSandboxSetupCompleted {
+  mode: 'elevated' | 'unelevated' | null
+  success: boolean
+  /** The engine's own failure text; null on success or when it sent none. */
+  error: string | null
 }
 
 /**
@@ -820,6 +884,147 @@ export function normalizeEngineWarning(
     default:
       return null
   }
+}
+
+/**
+ * Normalize `windows/worldWritableWarning` into the same `CodexEngineWarning`
+ * shape the composer notice stack already renders. The notification is itself
+ * the security statement: even a payload with no sampled paths is forwarded,
+ * because "the scan found nothing it could name" is still a warning. The
+ * message is one of the engine's binary strings, used verbatim; only the
+ * path list is assembled, and each path is printed exactly as received.
+ *
+ * Returns null only when the payload is not an object (the caller already
+ * guarantees that) — never because a field is missing.
+ */
+export function normalizeWorldWritableWarning(
+  params: Record<string, unknown>,
+): CodexEngineWarning | null {
+  const rawPaths = Array.isArray(params.samplePaths) ? params.samplePaths : []
+  const paths = rawPaths.filter(
+    (path): path is string => typeof path === 'string' && path.trim().length > 0,
+  )
+  const extraCount = typeof params.extraCount === 'number'
+    && Number.isFinite(params.extraCount)
+    && params.extraCount > 0
+    ? Math.floor(params.extraCount)
+    : 0
+  const failedScan = params.failedScan === true
+
+  let message: string
+  if (paths.length > 0) message = WINDOWS_WORLD_WRITABLE_HEADING
+  else if (failedScan) message = WINDOWS_WORLD_WRITABLE_SCAN_FAILED
+  // No directory was named: show the engine's first sentence — a verbatim
+  // prefix of the heading, no word changed — and drop the "following folders"
+  // clause rather than point at a list that does not exist.
+  else message = WINDOWS_WORLD_WRITABLE_NO_PATHS
+
+  const lines = paths.map(path => `  - ${path}`)
+  if (extraCount > 0) lines.push(`and ${extraCount} more`)
+  // With paths present the scan failure qualifies an incomplete list rather
+  // than replacing it: both statements are the engine's own.
+  if (failedScan && paths.length > 0) lines.push(WINDOWS_WORLD_WRITABLE_SCAN_FAILED)
+
+  return {
+    kind: 'worldWritable',
+    message,
+    details: lines.length > 0 ? lines.join('\n') : null,
+    path: null,
+    range: null,
+    threadId: null,
+  }
+}
+
+const AUTO_APPROVAL_REVIEW_STATUSES: ReadonlySet<string> = new Set([
+  'inProgress',
+  'approved',
+  'denied',
+  'timedOut',
+  'aborted',
+])
+
+/** Completed reviews only; `inProgress` on a completion event is not a verdict. */
+const AUTO_APPROVAL_REVIEW_TERMINAL: ReadonlySet<string> = new Set([
+  'approved',
+  'denied',
+  'timedOut',
+  'aborted',
+])
+
+/**
+ * Normalize `item/autoApprovalReview/started` / `.../completed`
+ * (`v2/ItemGuardianApprovalReview{Started,Completed}Notification.json`, method
+ * names verified in the binary):
+ *
+ *   {
+ *     action, review: { status, riskLevel, userAuthorization, rationale },
+ *     reviewId, targetItemId: string | null, threadId, turnId,
+ *     startedAtMs, completedAtMs?
+ *   }
+ *
+ * Only the fields a card can honestly display are forwarded. `targetItemId`
+ * is required: network-policy reviews carry null by design, and a review with
+ * no item cannot annotate a card. A completed event whose status is still
+ * `inProgress` is dropped — it carries no verdict. `rationale` is the engine's
+ * own sentence and stays verbatim; an absent/empty one becomes null.
+ */
+export function normalizeAutoApprovalReview(
+  phase: 'started' | 'completed',
+  params: Record<string, unknown>,
+): CodexAutoApprovalReview | null {
+  const reviewId = stringOr(params.reviewId)
+  const targetItemId = stringOr(params.targetItemId)
+  const review = asRecord(params.review)
+  if (!reviewId || !targetItemId || !review) return null
+
+  const status = stringOr(review.status)
+  if (!AUTO_APPROVAL_REVIEW_STATUSES.has(status)) return null
+  if (phase === 'completed' && !AUTO_APPROVAL_REVIEW_TERMINAL.has(status)) return null
+
+  const rationale = stringOr(review.rationale).trim() ? stringOr(review.rationale) : null
+  const riskLevel = stringOr(review.riskLevel)
+  const userAuthorization = stringOr(review.userAuthorization)
+  const startedAtMs = numberOrNull(params.startedAtMs)
+  const completedAtMs = numberOrNull(params.completedAtMs)
+
+  return {
+    phase,
+    reviewId,
+    targetItemId,
+    status: status as CodexAutoApprovalReviewStatus,
+    rationale,
+    riskLevel: riskLevel || null,
+    userAuthorization: userAuthorization || null,
+    threadId: stringOr(params.threadId),
+    turnId: stringOr(params.turnId),
+    startedAtMs,
+    completedAtMs,
+  }
+}
+
+/**
+ * Normalize `windowsSandbox/setupCompleted`
+ * (`v2/WindowsSandboxSetupCompletedNotification.json`; mode enum
+ * `elevated | unelevated`):
+ *
+ *   { mode: 'elevated' | 'unelevated', success: boolean, error: string | null }
+ *
+ * The payload carries no step name beyond the mode; a failure is therefore
+ * reported as "mode + the engine's error text", never with a step invented
+ * here. `success` is the only required discriminant: without it the event is
+ * dropped rather than guessed.
+ */
+export function normalizeSandboxSetupCompleted(
+  params: Record<string, unknown>,
+): CodexSandboxSetupCompleted | null {
+  if (typeof params.success !== 'boolean') return null
+  const mode = params.mode === 'elevated' || params.mode === 'unelevated'
+    ? params.mode
+    : null
+  const error = typeof params.error === 'string' && params.error.trim()
+    ? params.error
+    : null
+  return { mode, success: params.success, error }
 }
 
 /**
@@ -2534,6 +2739,42 @@ export class CodexBridge extends EventEmitter {
       case 'configWarning': {
         const warning = normalizeEngineWarning(method, params)
         if (warning) this.emit('engineWarning', { sessionId: sid, ...warning })
+        else log.debug(`Malformed ${method} notification dropped`)
+        break
+      }
+
+      // The sandbox itself is the engine's own statement about what it can
+      // protect. On Windows (where AIPA actually runs) a world-writable folder
+      // weakens the sandbox's guarantee, so this is not a generic warning: it
+      // must reach the same verbatim notice stack. The payload has no message
+      // text; the engine's binary sentences are used unchanged.
+      case 'windows/worldWritableWarning': {
+        const warning = normalizeWorldWritableWarning(params)
+        if (warning) this.emit('engineWarning', { sessionId: sid, ...warning })
+        break
+      }
+
+      // Setup completion is lifecycle telemetry, not a conversation turn.
+      // Success is forwarded as a low-key event so a diagnostics surface can
+      // record it; failure is rendered from the engine's own error text by the
+      // composer notice stack. No setup request is sent from here.
+      case 'windowsSandbox/setupCompleted': {
+        const setup = normalizeSandboxSetupCompleted(params)
+        if (setup) this.emit('sandboxSetupCompleted', { sessionId: sid, ...setup })
+        else log.debug('Malformed windowsSandbox/setupCompleted notification dropped')
+        break
+      }
+
+      // An automatic reviewer deciding whether a command may run without the
+      // user. These are notifications about an existing item, never requests:
+      // the approval flow below is untouched. The bridge forwards only the
+      // verdict/rationale; the renderer refuses to draw a card that does not
+      // already exist.
+      case 'item/autoApprovalReview/started':
+      case 'item/autoApprovalReview/completed': {
+        const phase = method.endsWith('/started') ? 'started' as const : 'completed' as const
+        const review = normalizeAutoApprovalReview(phase, params)
+        if (review) this.emit('autoApprovalReview', { sessionId: sid, ...review })
         else log.debug(`Malformed ${method} notification dropped`)
         break
       }

@@ -28,6 +28,7 @@ import {
   type PartialDiffView,
 } from '../fileChangePatch'
 import { liveFilePatchStore } from '../liveFilePatchStore'
+import AutoApprovalReviewLine from './AutoApprovalReviewLine'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -507,6 +508,10 @@ export function FileEditCard({ input, result, isStreaming, toolId = '' }: FileEd
           </span>
         )}
       </div>
+
+      {/* Reviewer verdict for the item this card was opened for (`itemId`, or
+          `itemId:N` for later files of a multi-file patch). */}
+      <AutoApprovalReviewLine itemId={toolId} />
 
       {/* Diff section: live snapshot while writing, authoritative before/after
           once the item resolves. Never both — a partial patch must not look

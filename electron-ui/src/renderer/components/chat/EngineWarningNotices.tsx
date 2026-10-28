@@ -34,7 +34,17 @@ export default function EngineWarningNotices() {
         lineHeight: 1.5,
       }}
     >
-      {warnings.map(warning => (
+      {warnings.map(warning => {
+        // `sandboxSetupFailed` has no engine sentence (the payload only carries
+        // mode + error), so its one line is AIPA's localized label; the engine's
+        // error stays verbatim in `details` below. Every other kind renders the
+        // engine's own message untouched.
+        const label = warning.kind === 'sandboxSetupFailed'
+          ? warning.mode
+            ? t('codex.engineNotice.sandboxSetupFailed', { mode: warning.mode })
+            : t('codex.engineNotice.sandboxSetupFailedNoMode')
+          : warning.message
+        return (
         <div key={warning.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
           <AlertTriangle
             size={11}
@@ -48,7 +58,7 @@ export default function EngineWarningNotices() {
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
             }}>
-              {warning.message}
+              {label}
             </div>
             {warning.details && (
               <div style={{
@@ -76,7 +86,8 @@ export default function EngineWarningNotices() {
             <X size={11} />
           </button>
         </div>
-      ))}
+        )
+      })}
       {hiddenCount > 0 && (
         <span style={{ fontSize: 10, color: 'var(--text-muted)', paddingLeft: 17 }}>
           {t('codex.engineNotice.more', { count: String(hiddenCount) })}

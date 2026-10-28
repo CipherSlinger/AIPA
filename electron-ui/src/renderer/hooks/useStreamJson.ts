@@ -17,6 +17,7 @@ import { itemIdFromToolId } from '../components/chat/fileChangePatch'
 import { buildCodexImageInput, canSendCodexImages } from '../components/chat/imageAttachmentRules'
 import { liveFilePatchStore } from '../components/chat/liveFilePatchStore'
 import { engineNoticeStore } from '../components/chat/engineNoticeStore'
+import { autoApprovalReviewStore } from '../components/chat/autoApprovalReviewStore'
 import {
   adoptEngineStepBucket,
   beginEngineTurn,
@@ -636,6 +637,8 @@ export function useStreamJson() {
     clearEngineSteps(null)
     // Composer notices belong to the conversation that was just cleared.
     engineNoticeStore.reset()
+    // Review annotations are attached to cards that are about to disappear.
+    autoApprovalReviewStore.clear()
     useChatStore.getState().clearMessages()
     contextWarningShownRef.current = false
     // A new conversation inherits the currently selected persona. It is stored
@@ -654,6 +657,7 @@ export function useStreamJson() {
       if (state.viewSessionId === lastView) return
       lastView = state.viewSessionId
       engineNoticeStore.reset()
+      autoApprovalReviewStore.clear()
     })
   }, [])
 
@@ -905,6 +909,9 @@ export function useStreamJson() {
               })
             } else {
               chatState.addToolUse(lastMsg.id, toolId, toolName, toolInput)
+              // A new card reused this id; a previous review's verdict is not
+              // about it. (A re-sent completed item keeps its annotation.)
+              autoApprovalReviewStore.beginItem(toolId)
             }
             // Track file changes for the Changes panel (Iteration 521: code
             // changes view). Only on first sight: Codex re-sends a file-change
@@ -977,6 +984,9 @@ export function useStreamJson() {
           // made dismissals stick) are spent. A reroute line may stay until the
           // next turn starts, since it still describes the turn just finished.
           engineNoticeStore.endTurn()
+          // A review that has not completed by the end of the turn can no
+          // longer be true; drop its in-progress line instead of spinning.
+          autoApprovalReviewStore.clearInProgress()
           const resultData = data as CliResultEventData
           // The protocol's terminal statement (Codex) — null for the legacy
           // Claude bridge, which has only `subtype`.
@@ -1445,6 +1455,13 @@ export function useStreamJson() {
           const sid = typeof data.sessionId === 'string' ? data.sessionId : ''
           if (!sid || !useChatStore.getState().isOwnedStreamEvent(sid)) break
           const phase = event === 'cli:itemStarted' ? 'started' as const : 'completed' as const
+          // An item that finished before its review did has no card left for
+          // an in-progress line; a completed verdict stays.
+          if (phase === 'completed') {
+            const item = (data as { item?: { id?: unknown } }).item
+            const completedId = typeof item?.id === 'string' ? item.id : ''
+            if (completedId) autoApprovalReviewStore.completeItem(completedId)
+          }
           const step = describeEngineItem(phase, data)
           if (!step) break
           // A quiet row is only for steps without a visible card; if the same
@@ -1595,8 +1612,30 @@ export function useStreamJson() {
           // `turn/started`. The store dedupes identical text, caps the stack
           // and keeps a dismissal until the turn ends; the text itself is
           // rendered verbatim, with no severity or cause invented here.
+          // `kind: 'worldWritable'` rides this same channel and keeps the
+          // engine's path list verbatim.
           if (!isNoticeForActiveConversation(data, activeBridgeIdRef.current)) break
           engineNoticeStore.pushWarning(data)
+          break
+        }
+        case 'cli:sandboxSetupCompleted': {
+          // App-level lifecycle. Success is deliberately silent (the channel
+          // itself is the low-key record); a failure is specific: the setup
+          // mode the engine named and its own error text. Never a generic
+          // "sandbox unavailable" claim.
+          if (!isNoticeForActiveConversation(data, activeBridgeIdRef.current)) break
+          engineNoticeStore.pushSandboxSetupFailure(data)
+          break
+        }
+        case 'cli:autoApprovalReview': {
+          // A reviewer's verdict is only meaningful when the item it names is
+          // already on screen. Checking the card first is what prevents a
+          // phantom row; the store itself never renders anything.
+          const sid = typeof data.sessionId === 'string' ? data.sessionId : ''
+          if (!sid || !useChatStore.getState().isOwnedStreamEvent(sid)) break
+          const targetItemId = typeof data.targetItemId === 'string' ? data.targetItemId : ''
+          if (!targetItemId || !hasToolCardForItemFamily(targetItemId)) break
+          autoApprovalReviewStore.ingest(data)
           break
         }
         case 'cli:modelRerouted': {

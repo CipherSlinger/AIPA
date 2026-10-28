@@ -3443,7 +3443,9 @@
         "longestTurn": "Longest turn"
       },
       "sparklineAria": "Daily token usage over the last 14 days",
-      "staleNote": "Couldn't refresh — showing the last known data."
+      "staleNote": "Couldn't refresh — showing the last known data.",
+      "checkedAgo": "checked {{time}}",
+      "checkedNever": "not checked yet"
     },
     "models": {
       "title": "Codex models",
@@ -3541,7 +3543,9 @@
     "engineNotice": {
       "aria": "Notices from the engine",
       "dismiss": "Dismiss this notice",
-      "more": "+{{count}} more"
+      "more": "+{{count}} more",
+      "sandboxSetupFailed": "Windows sandbox setup failed ({{mode}}).",
+      "sandboxSetupFailedNoMode": "Windows sandbox setup failed."
     },
     "reroute": {
       "moved": "This turn was moved from {{from}} to {{to}}.",
@@ -3559,6 +3563,16 @@
         "complete": "complete"
       },
       "tokens": "{{used}} / {{budget}} tokens"
+    },
+    "autoApprovalReview": {
+      "aria": "Automatic approval review",
+      "inProgress": "Automatic review in progress…",
+      "line": "Automatic review: {{verdict}}",
+      "withReason": "Automatic review: {{verdict}} — {{reason}}",
+      "approved": "approved",
+      "denied": "denied",
+      "timedOut": "timed out",
+      "aborted": "aborted"
     }
   },
   "plugin": {

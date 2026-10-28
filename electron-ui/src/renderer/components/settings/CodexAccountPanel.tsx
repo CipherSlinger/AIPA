@@ -1,27 +1,29 @@
 // CodexAccountPanel — real Codex account state in Settings › Stats.
 //
 // Backed by two read-only app-server probes (`codex:rateLimits` and
-// `codex:accountUsage`). Both are optional: Claude users get `success: false`
-// from both, and this component renders nothing at all so the Stats page keeps
-// working for them. Any individual field may be null (Codex returns sparse
-// snapshots) — nulls are dropped or shown as an em dash, never printed.
+// `codex:accountUsage`, owned by `useCodexAccount`). Both are optional: Claude
+// users get `success: false` from both, and this component renders nothing at
+// all so the Stats page keeps working for them. Any individual field may be
+// null (Codex returns sparse snapshots) — nulls are dropped or shown as an em
+// dash, never printed.
+//
+// The numbers describe the account, not the page: the hook re-reads them when
+// Codex reports a plan change or a limit reset on any user-facing bridge, so
+// the card no longer freezes at whatever it saw on mount. The header says
+// when the data was last confirmed; that label is advanced by a local clock
+// tick, never by another probe.
 
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { useI18n } from '../../i18n'
+import { useCodexAccount } from '../../hooks/useCodexAccount'
+import { formatCheckedLabel } from './codexAccountRefresh'
 import type {
   CodexAccountUsageData,
   CodexRateLimitSnapshotData,
   CodexRateLimitWindowData,
   CodexRateLimitsData,
 } from '../../../preload/index'
-
-interface AccountState {
-  limits: CodexRateLimitsData | null
-  usage: CodexAccountUsageData | null
-}
-
-const EMPTY_STATE: AccountState = { limits: null, usage: null }
 
 const cardStyle: React.CSSProperties = {
   background: 'var(--glass-bg-low)',
@@ -319,59 +321,23 @@ function CreditValue({ snapshot, t }: {
 
 export default function CodexAccountPanel() {
   const { t, resolvedLocale } = useI18n()
-  const [state, setState] = useState<AccountState>(EMPTY_STATE)
-  const [resolvedOnce, setResolvedOnce] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
-  const [refreshFailed, setRefreshFailed] = useState(false)
+  const { numbers, resolvedOnce, refreshing, refreshFailed, lastConfirmedAt, refresh } = useCodexAccount()
   const [now, setNow] = useState(() => Date.now())
 
-  // Refresh reset countdowns without re-fetching; cleared on unmount.
+  // Refresh reset countdowns and the "checked … ago" label without
+  // re-fetching; cleared on unmount. A 30s tick keeps both the countdown and
+  // the minute-granularity label honest while the user sits on the page — the
+  // probes themselves only run on mount, on an account event, or on click.
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 30_000)
     return () => window.clearInterval(id)
   }, [])
 
-  const load = useCallback(async (force: boolean) => {
-    if (!window.electronAPI?.codexRateLimits || !window.electronAPI?.codexAccountUsage) {
-      setResolvedOnce(true)
-      return
-    }
-    setRefreshing(true)
-    try {
-      const [limitsResult, usageResult] = await Promise.allSettled([
-        window.electronAPI.codexRateLimits({ force }),
-        window.electronAPI.codexAccountUsage({ force }),
-      ] as const)
+  const checkedLabel = formatCheckedLabel(t, lastConfirmedAt, now)
 
-      const limits = limitsResult.status === 'fulfilled' && limitsResult.value.success
-        ? limitsResult.value.rateLimits ?? null
-        : null
-      const usage = usageResult.status === 'fulfilled' && usageResult.value.success
-        ? usageResult.value.usage ?? null
-        : null
-
-      // Keep whichever half we already had: a failed probe should not blank
-      // data that is still the best information the user has.
-      setState(prev => ({
-        limits: limits ?? prev.limits,
-        usage: usage ?? prev.usage,
-      }))
-      setRefreshFailed(limits === null && usage === null)
-    } catch {
-      setRefreshFailed(true)
-    } finally {
-      setRefreshing(false)
-      setResolvedOnce(true)
-    }
-  }, [])
-
-  useEffect(() => {
-    void load(false)
-  }, [load])
-
-  const mainSnapshot = pickSnapshot(state.limits)
+  const mainSnapshot = pickSnapshot(numbers.limits)
   const limitsContent = hasLimitsContent(mainSnapshot)
-  const usageContent = hasUsageContent(state.usage)
+  const usageContent = hasUsageContent(numbers.usage)
 
   // Still probing for the first time: render nothing to avoid a flash.
   if (!resolvedOnce) return null
@@ -383,7 +349,7 @@ export default function CodexAccountPanel() {
   const windows: Array<{ position: 'primary' | 'secondary'; window: CodexRateLimitWindowData }> = []
   if (mainSnapshot?.primary) windows.push({ position: 'primary', window: mainSnapshot.primary })
   if (mainSnapshot?.secondary) windows.push({ position: 'secondary', window: mainSnapshot.secondary })
-  const resetCredits = state.limits?.rateLimitResetCredits
+  const resetCredits = numbers.limits?.rateLimitResetCredits
 
   return (
     <div>
@@ -428,56 +394,76 @@ export default function CodexAccountPanel() {
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => { void load(true) }}
-            disabled={refreshing}
-            aria-label={t('codex.account.refresh')}
-            aria-busy={refreshing}
-            title={t('codex.account.refresh')}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(99,102,241,0.55)'
-              e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.18)'
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = 'var(--glass-border)'
-              e.currentTarget.style.boxShadow = 'none'
-            }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              flexShrink: 0,
-              background: 'transparent',
-              border: '1px solid var(--glass-border)',
-              borderRadius: 6,
-              padding: '4px 8px',
-              color: 'var(--text-muted)',
-              fontSize: 11,
-              cursor: refreshing ? 'default' : 'pointer',
-              opacity: refreshing ? 0.7 : 1,
-              outline: 'none',
-              transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
-            }}
-          >
-            {refreshing ? (
-              <span
-                aria-hidden="true"
-                style={{
-                  display: 'inline-block',
-                  width: 11,
-                  height: 11,
-                  borderRadius: '50%',
-                  border: '1.5px solid var(--text-faint)',
-                  borderTopColor: 'transparent',
-                  animation: 'spin 0.8s linear infinite',
-                }}
-              />
-            ) : (
-              <RefreshCw size={13} />
-            )}
-          </button>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            flexWrap: 'wrap',
+            columnGap: 10,
+            rowGap: 4,
+            flexShrink: 0,
+          }}>
+            {/* When the numbers were last confirmed. Advanced by the local
+                tick above, not by a probe; a card that has never confirmed
+                anything says so instead of borrowing "checked". */}
+            <span style={{
+              fontSize: 10.5,
+              color: 'var(--text-faint)',
+              whiteSpace: 'nowrap',
+            }}>
+              {checkedLabel}
+            </span>
+            <button
+              type="button"
+              onClick={refresh}
+              disabled={refreshing}
+              aria-label={t('codex.account.refresh')}
+              aria-busy={refreshing}
+              title={t('codex.account.refresh')}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.55)'
+                e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.18)'
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'var(--glass-border)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                flexShrink: 0,
+                background: 'transparent',
+                border: '1px solid var(--glass-border)',
+                borderRadius: 6,
+                padding: '4px 8px',
+                color: 'var(--text-muted)',
+                fontSize: 11,
+                cursor: refreshing ? 'default' : 'pointer',
+                opacity: refreshing ? 0.7 : 1,
+                outline: 'none',
+                transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+              }}
+            >
+              {refreshing ? (
+                <span
+                  aria-hidden="true"
+                  style={{
+                    display: 'inline-block',
+                    width: 11,
+                    height: 11,
+                    borderRadius: '50%',
+                    border: '1.5px solid var(--text-faint)',
+                    borderTopColor: 'transparent',
+                    animation: 'spin 0.8s linear infinite',
+                  }}
+                />
+              ) : (
+                <RefreshCw size={13} />
+              )}
+            </button>
+          </div>
         </div>
 
         {reached && (
@@ -525,8 +511,8 @@ export default function CodexAccountPanel() {
           </div>
         )}
 
-        {state.usage && usageContent && (
-          <UsageSummary usage={state.usage} locale={resolvedLocale} />
+        {numbers.usage && usageContent && (
+          <UsageSummary usage={numbers.usage} locale={resolvedLocale} />
         )}
 
         {refreshFailed && (

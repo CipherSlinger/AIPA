@@ -25,6 +25,7 @@ import { SkillToolCard } from './tool-cards/SkillToolCard'
 import { ToolSearchToolCard } from './tool-cards/ToolSearchToolCard'
 import { ImageThumbnail } from './tool-cards/ImageThumbnail'
 import { ToolCardHeader } from './tool-cards/ToolCardHeader'
+import AutoApprovalReviewLine from './tool-cards/AutoApprovalReviewLine'
 import { StructuredOutputCard } from './tool-cards/StructuredOutputCard'
 import { FileReadCard } from './tool-cards/FileReadCard'
 import { FileWriteCard } from './tool-cards/FileWriteCard'
@@ -644,6 +645,9 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
         t={t}
         FilePathHighlightComponent={FilePathHighlight}
       />
+
+      {/* Automatic approval review: only ever appears on this existing card. */}
+      <AutoApprovalReviewLine itemId={tool.id} />
 
       {/* Expanded detail with animated height */}
       <div className={`tool-output-wrapper${expanded ? ' expanded' : ''}`}>

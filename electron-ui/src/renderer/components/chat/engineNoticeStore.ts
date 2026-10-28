@@ -15,15 +15,22 @@
 
 export const MAX_VISIBLE_ENGINE_WARNINGS = 3
 
-export type EngineWarningKind = 'warning' | 'deprecationNotice' | 'configWarning'
+export type EngineWarningKind =
+  | 'warning'
+  | 'deprecationNotice'
+  | 'configWarning'
+  | 'worldWritable'
+  | 'sandboxSetupFailed'
 
 /** One row of the quiet notice above the composer. `message` is verbatim. */
 export interface EngineWarningNotice {
   id: string
   kind: EngineWarningKind
   message: string
-  /** `deprecationNotice` / `configWarning` only; already-verbatim extra text. */
+  /** `deprecationNotice` / `configWarning` / sandbox failure: verbatim extra text. */
   details: string | null
+  /** `sandboxSetupFailed` only: the setup mode the engine reported. */
+  mode?: 'elevated' | 'unelevated' | null
 }
 
 /**
@@ -52,6 +59,11 @@ export interface EngineNoticeStore {
    * cap only bump the hidden count — the UI never shows an unbounded stack.
    */
   pushWarning: (payload: unknown) => boolean
+  /**
+   * Ingest `cli:sandboxSetupCompleted`. Only a failure becomes a notice; a
+   * successful setup is deliberately silent. Returns true when a row appeared.
+   */
+  pushSandboxSetupFailure: (payload: unknown) => boolean
   /** Dismiss one row by id. Dedupe keeps the same text from returning. */
   dismissWarning: (id: string) => void
   /** Ingest `cli:modelRerouted`. Returns false for malformed/no-op payloads. */
@@ -72,6 +84,7 @@ const WARNING_KINDS: ReadonlySet<string> = new Set([
   'warning',
   'deprecationNotice',
   'configWarning',
+  'worldWritable',
 ])
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -96,6 +109,32 @@ function parseWarning(payload: unknown): Omit<EngineWarningNotice, 'id'> | null 
     // Details are optional on the wire and may be null. Keep them only when
     // they add text; the UI renders them verbatim, never reworded.
     details: nonEmptyString(record.details),
+  }
+}
+
+/**
+ * `cli:sandboxSetupCompleted` is only a notice when it failed. The payload
+ * carries no message field; `error` is the engine's own text and `mode` is the
+ * only target it names. A failure without error text is still shown: the mode
+ * alone is specific enough to tell the user setup did not work.
+ */
+function parseSandboxSetupFailure(
+  payload: unknown,
+): Omit<EngineWarningNotice, 'id'> | null {
+  const record = asRecord(payload)
+  if (!record) return null
+  if (record.success !== false) return null
+  const mode = record.mode === 'elevated' || record.mode === 'unelevated'
+    ? record.mode
+    : null
+  const error = nonEmptyString(record.error)
+  return {
+    kind: 'sandboxSetupFailed',
+    // Rendered by the component from `mode` + the localized label; the engine
+    // never sent a sentence here, so nothing is put in `message`.
+    message: '',
+    details: error,
+    mode,
   }
 }
 
@@ -131,21 +170,37 @@ export function createEngineNoticeStore(): EngineNoticeStore {
     for (const listener of listeners) listener()
   }
 
+  const addNotice = (
+    notice: Omit<EngineWarningNotice, 'id'>,
+    dedupeKey: string,
+  ): boolean => {
+    if (seenMessages.has(dedupeKey)) return false
+    seenMessages.add(dedupeKey)
+    if (warnings.length >= MAX_VISIBLE_ENGINE_WARNINGS) {
+      hiddenCount += 1
+      bump()
+      return false
+    }
+    nextId += 1
+    warnings = [...warnings, { id: `engine-warning-${nextId}`, ...notice }]
+    bump()
+    return true
+  }
+
   return {
     pushWarning: (payload) => {
       const warning = parseWarning(payload)
       if (!warning) return false
-      if (seenMessages.has(warning.message)) return false
-      seenMessages.add(warning.message)
-      if (warnings.length >= MAX_VISIBLE_ENGINE_WARNINGS) {
-        hiddenCount += 1
-        bump()
-        return false
-      }
-      nextId += 1
-      warnings = [...warnings, { id: `engine-warning-${nextId}`, ...warning }]
-      bump()
-      return true
+      return addNotice(warning, warning.message)
+    },
+
+    pushSandboxSetupFailure: (payload) => {
+      const failure = parseSandboxSetupFailure(payload)
+      if (!failure) return false
+      // Two distinct failures can both have no error text (or the same text in
+      // different modes), so the dedupe key includes both fields, not just the
+      // empty message.
+      return addNotice(failure, `sandbox-setup:${failure.mode ?? 'unknown'}:${failure.details ?? ''}`)
     },
 
     dismissWarning: (id) => {
