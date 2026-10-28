@@ -4,6 +4,21 @@ import { ToastAction, ToastItem, ToastType } from '../components/ui/Toast'
 import type { SettingsTab } from '../components/settings/settingsConstants'
 import { usePluginStore } from './pluginStore'
 
+/**
+ * The exact rows the archive handed the search overlay, in listing order.
+ *
+ * It is a snapshot taken when the user pressed the archive's ask button: the
+ * archive knows which sessions it is showing, but the overlay cannot re-derive
+ * that list (its filters, the filing map and the ledger's own grouping all
+ * change independently). `total` is what the archive was showing before the
+ * cap, so the overlay can say how many rows the cap left out.
+ */
+export interface ArchiveAskScopeSeed {
+  sessionIds: string[]
+  total: number
+  truncated: boolean
+}
+
 export type SidebarTab = 'history' | 'files' | 'notes' | 'workflows' | 'changes'
 // 'skills' is kept as an alias: the Skills panel is now a section of the Employees
 // page, so entry points (Ctrl+4, /skills, command palette) resolve to 'workflows'.
@@ -101,6 +116,14 @@ interface UiState {
   // silently stay scoped to a department the user only visited once.
   globalSearchSeedDeptId: string | null
   setGlobalSearchSeedDeptId: (id: string | null) => void
+
+  // A list of sessions the archive asked the next overlay mount to search and
+  // ask within. Unlike the department seed this cannot be derived from the org
+  // tree — it is an exact snapshot of the rows the archive was showing, capped.
+  // The overlay reads it once and clears it, so a later search is never
+  // silently limited to a list the user picked in another view.
+  globalSearchSeedScope: ArchiveAskScopeSeed | null
+  setGlobalSearchSeedScope: (scope: ArchiveAskScopeSeed | null) => void
 
   // Whether "Ask AIPA about your history" can actually run. `null` means the
   // one-time probe has not answered yet; the palette treats that as available
@@ -301,6 +324,8 @@ export const useUiStore = create<UiState>((set) => ({
   setGlobalSearchSeed: (seed) => set({ globalSearchSeed: seed }),
   globalSearchSeedDeptId: null,
   setGlobalSearchSeedDeptId: (id) => set({ globalSearchSeedDeptId: id }),
+  globalSearchSeedScope: null,
+  setGlobalSearchSeedScope: (scope) => set({ globalSearchSeedScope: scope }),
   askHistoryAvailable: null,
   setAskHistoryAvailable: (available) => set({ askHistoryAvailable: available }),
   pendingReveal: null,

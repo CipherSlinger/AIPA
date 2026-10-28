@@ -42,6 +42,13 @@ import {
   searchRowKeys,
   sessionIdsInDeptTree,
 } from './searchDeptAttribution'
+import {
+  buildListScope,
+  filterByListScope,
+  listScopeOmitted,
+  resolveListAskIds,
+  type ListScope,
+} from './searchAskScope'
 
 /**
  * Every ask source records the term it matched on, so a citation click can mark
@@ -79,6 +86,39 @@ function projectLabel(project: string, fallback: string): string {
 }
 
 type AskState = 'idle' | 'running' | 'answer'
+
+/**
+ * The corpus the visible answer was actually asked with. The two kinds are
+ * kept apart because their receipts must say different things: a department
+ * scope names a subtree and a total derived from folders and filings, while a
+ * list scope names an exact snapshot the user picked in the archive, which may
+ * have been capped and may have been narrowed further by a department.
+ */
+type AskedScope =
+  | {
+      kind: 'dept'
+      deptId: string
+      label: string
+      /** Sessions handed to the ask after the cap. */
+      count: number
+      /** Distinct sessions in the subtree before the cap. */
+      total: number
+      truncated: boolean
+    }
+  | {
+      kind: 'list'
+      /** Sessions handed to the ask: the snapshot, intersected with any
+       *  department filter. Zero is a real empty scope, not a fallback. */
+      count: number
+      /** Rows the archive listed for this snapshot, after its cap. */
+      listed: number
+      /** Rows the archive was showing before its cap. */
+      total: number
+      /** Rows the archive's cap left out of the snapshot. */
+      omitted: number
+      /** The department filter the snapshot was also intersected with. */
+      dept?: { label: string }
+    }
 
 /** Minimum query length worth an LLM turn — same threshold as the pinned row. */
 const ASK_MIN_QUERY = 4
@@ -277,21 +317,21 @@ export default function GlobalSearchOverlay() {
   // department; a department chosen manually from a normal search is not
   // pinned and keeps the reset-on-query behaviour.
   const [deptPinned, setDeptPinned] = useState(() => deptFilter !== null)
-  // Whether the ask reads only this node's subtree. Follows the department
-  // filter by default; the user may turn it off and still keep the row filter.
-  const [askScopeOn, setAskScopeOn] = useState(() => deptFilter !== null)
+  // The exact rows the archive asked this overlay to search and ask within.
+  // Like the department seed it is read once, in a state initializer, so the
+  // first result set is already narrowed; a later archive filter change must
+  // not retarget an overlay that is already open. `null` is the ordinary
+  // global search, and everything below behaves exactly as before.
+  const [listScope, setListScope] = useState<ListScope | null>(() =>
+    buildListScope(useUiStore.getState().globalSearchSeedScope))
+  // Whether the ask reads only this node's subtree (or the archive snapshot).
+  // Follows the row scope by default; the user may turn it off and still keep
+  // the row filter.
+  const [askScopeOn, setAskScopeOn] = useState(() => deptFilter !== null || listScope !== null)
   // The scope the visible answer was actually asked with, captured when the
   // turn starts. The input stays editable and the toggle disappears with the
   // list, so the receipt and the empty-answer copy must not read live state.
-  const [askedScope, setAskedScope] = useState<{
-    deptId: string
-    label: string
-    /** Sessions handed to the ask after the cap. */
-    count: number
-    /** Distinct sessions in the subtree before the cap. */
-    total: number
-    truncated: boolean
-  } | null>(null)
+  const [askedScope, setAskedScope] = useState<AskedScope | null>(null)
   const [askAvailable, setAskAvailable] = useState(false)
   const [askState, setAskState] = useState<AskState>('idle')
   const [askAnswer, setAskAnswer] = useState('')
@@ -377,6 +417,13 @@ export default function GlobalSearchOverlay() {
     () => deptOptions.find(option => option.id === deptFilter)?.label ?? '',
     [deptOptions, deptFilter],
   )
+  // The archive's snapshot is applied last, after every existing narrowing, so
+  // "these rows" means these rows. `listScope.ids` is null when no snapshot was
+  // seeded, in which case the rows pass through untouched.
+  const listFiltered = useMemo(
+    () => filterByListScope(deptFiltered.visible, listScope?.ids ?? null),
+    [deptFiltered, listScope],
+  )
   // The corpus a scoped ask may read: sessions whose resolved owner (manual
   // filing first, then the folder join) is this node or a descendant, in
   // listing order. `null` when no department is selected, so the ask is
@@ -386,6 +433,17 @@ export default function GlobalSearchOverlay() {
       ? sessionIdsInDeptTree(sessions, departments, deptFilter, homeDir, filings)
       : null),
     [sessions, departments, deptFilter, homeDir, filings],
+  )
+  // What a list-scoped ask would send: the archive's exact ids, narrowed by the
+  // department subtree when one is also selected. Preserving the list order
+  // keeps the receipt's count and the rows the user sees describing the same
+  // snapshot. An empty result here is a real empty scope; it is never treated
+  // as "no list" and widened back to global.
+  const listAskIds = useMemo(
+    () => (listScope
+      ? resolveListAskIds(listScope.sessionIds, deptScope ? deptScope.ids : null)
+      : null),
+    [listScope, deptScope],
   )
 
   const close = useCallback(() => {
@@ -424,6 +482,7 @@ export default function GlobalSearchOverlay() {
     const store = useUiStore.getState()
     if (store.globalSearchSeed) store.setGlobalSearchSeed('')
     if (store.globalSearchSeedDeptId) store.setGlobalSearchSeedDeptId(null)
+    if (store.globalSearchSeedScope) store.setGlobalSearchSeedScope(null)
   }, [])
 
   // Live answer text for the running ask. The optional call keeps an older
@@ -489,14 +548,14 @@ export default function GlobalSearchOverlay() {
 
   const groups = useMemo(() => {
     const map = new Map<string, SessionSearchResultData[]>()
-    for (const hit of deptFiltered.visible) {
+    for (const hit of listFiltered.visible) {
       const key = hit.project || ''
       const bucket = map.get(key)
       if (bucket) bucket.push(hit)
       else map.set(key, [hit])
     }
     return [...map.entries()].map(([project, items]) => ({ project, items }))
-  }, [deptFiltered])
+  }, [listFiltered])
 
   const flat = useMemo(() => groups.flatMap(group => group.items), [groups])
   // Two hits can share a session and match type; a suffixed key keeps React
@@ -513,14 +572,17 @@ export default function GlobalSearchOverlay() {
     }
   }, [deptFilter, deptOptions])
 
-  // A department filter turns the ask scope on by default (seeded and manual
-  // alike), and clearing the filter turns it off. The effect only follows the
-  // filter, so unchecking the scope while keeping the filter stays unchecked.
-  useEffect(() => { setAskScopeOn(deptFilter !== null) }, [deptFilter])
+  // A department filter or an archive snapshot turns the ask scope on by
+  // default (seeded and manual alike), and clearing both turns it off. The
+  // effect only follows those scopes, so unchecking the ask scope while either
+  // stays active stays unchecked.
+  useEffect(() => {
+    setAskScopeOn(deptFilter !== null || listScope !== null)
+  }, [deptFilter, listScope])
 
   // A new result set — or a different narrowing — starts at the best visible
   // hit. A session-list refresh alone must not move the selection.
-  useEffect(() => { setActive(0) }, [results, originFilter, deptFilter])
+  useEffect(() => { setActive(0) }, [results, originFilter, deptFilter, listScope])
   useEffect(() => {
     if (active >= flat.length) setActive(Math.max(0, flat.length - 1))
   }, [flat.length, active])
@@ -548,16 +610,35 @@ export default function GlobalSearchOverlay() {
     // Freeze the scope of this turn before the network call: the result's
     // receipt and empty-answer copy must describe what was asked, not the
     // toggle's state after the user edited the query.
-    const scopeForRun = askScopeOn && deptFilter && deptScope
-      ? {
+    let scopeForRun: AskedScope | null = null
+    // Omitted means the whole history; an empty array is a deliberately empty
+    // scope. The list path therefore always sends an array when the toggle is
+    // on, even when the snapshot and the department share nothing.
+    let scopeIds: string[] | undefined
+    if (askScopeOn) {
+      if (listScope) {
+        const ids = listAskIds ?? []
+        scopeIds = ids
+        scopeForRun = {
+          kind: 'list',
+          count: ids.length,
+          listed: listScope.sessionIds.length,
+          total: listScope.total,
+          omitted: listScopeOmitted(listScope.total, listScope.sessionIds.length),
+          dept: deptFilter && deptScope ? { label: deptFilterLabel } : undefined,
+        }
+      } else if (deptFilter && deptScope) {
+        scopeIds = deptScope.ids
+        scopeForRun = {
+          kind: 'dept',
           deptId: deptFilter,
           label: deptFilterLabel,
           count: deptScope.ids.length,
           total: deptScope.total,
           truncated: deptScope.truncated,
         }
-      : null
-    const scopeIds = askScopeOn && deptScope ? deptScope.ids : undefined
+      }
+    }
     // Fresh id per ask: the main process echoes it on every progress event,
     // and anything carrying an older id is ignored by the listener.
     const requestId = `ask-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
@@ -582,7 +663,8 @@ export default function GlobalSearchOverlay() {
         // exchange, which is all the model needs to resolve a reference.
         history: lastExchange ? [lastExchange] : undefined,
         // Omitted means the whole history; an empty array is a deliberately
-        // empty scope, which a department with no filed sessions really is.
+        // empty scope, which a department with no filed sessions — or a list
+        // snapshot that the department filter leaves nothing of — really is.
         scopeSessionIds: scopeIds,
       })
       if (run !== askRunRef.current || dismissedRef.current) return
@@ -626,6 +708,8 @@ export default function GlobalSearchOverlay() {
     deptFilterLabel,
     deptScope,
     lastExchange,
+    listAskIds,
+    listScope,
     query,
     resolvedLocale,
     t,
@@ -729,9 +813,17 @@ export default function GlobalSearchOverlay() {
   }
 
   const trimmed = query.trim()
+  // Rows the archive's cap left out of the snapshot. Used by the band and by
+  // the receipt, so the two cannot disagree about how short the snapshot is.
+  const listOmitted = listScope
+    ? listScopeOmitted(listScope.total, listScope.sessionIds.length)
+    : 0
   const showIdle = trimmed.length < 2
   const showLoading = status === 'loading' && trimmed.length >= 2
-  const showEmpty = status === 'ready' && results.length === 0 && searchedQuery.length >= 2
+  const showEmpty = status === 'ready'
+    && results.length === 0
+    && searchedQuery.length >= 2
+    && !listScope
   // The search found matches but a filter is hiding all of them. The copy must
   // name the filter, not pretend the query had no results. The origin filter
   // runs first, so it is the one to blame when it leaves nothing behind; the
@@ -741,6 +833,17 @@ export default function GlobalSearchOverlay() {
   const showDeptFilterEmpty = status === 'ready'
     && !showFilterEmpty
     && isDeptFilterEmpty(filtered.visible.length, deptFiltered.visible.length, deptFilter)
+  // The archive's snapshot is a client-side narrowing applied last. When it
+  // hides every remaining row, blame the snapshot and offer a one-click clear.
+  // The generic empty copy would say the history has nothing, when in fact the
+  // user's own list is what kept the rows out.
+  const showScopeEmpty = status === 'ready'
+    && trimmed.length >= 2
+    && searchedQuery.length >= 2
+    && listScope !== null
+    && !showFilterEmpty
+    && !showDeptFilterEmpty
+    && listFiltered.visible.length === 0
   const showAskEntry = askState === 'idle' && askAvailable && trimmed.length >= ASK_MIN_QUERY
 
   return (
@@ -1144,17 +1247,38 @@ export default function GlobalSearchOverlay() {
               style={{ padding: '16px 16px 14px' }}
             >
               {/* After the fact, say which corpus answered: the department the
-                  turn was scoped to and how many sessions it offered. A scope
-                  with zero sessions is not "answered from 0 conversations" —
-                  the empty-answer copy below already names the department. */}
+                  turn was scoped to and how many sessions it offered, or the
+                  archive snapshot you picked and any rows its cap left out. A
+                  scope with zero sessions is not "answered from 0
+                  conversations" — the empty-answer copy below already names the
+                  corpus. */}
               {askedScope && askedScope.count > 0 && (
                 <div style={{ fontSize: 10, lineHeight: 1.5, color: 'var(--text-muted)', marginBottom: 8 }}>
-                  {t('search.deptScope.answerScope', {
-                    dept: askedScope.label,
-                    count: askedScope.count,
-                  })}
-                  {askedScope.truncated && (
-                    <> {t('search.deptScope.capped', { count: askedScope.count })}</>
+                  {askedScope.kind === 'dept' ? (
+                    <>
+                      {t('search.deptScope.answerScope', {
+                        dept: askedScope.label,
+                        count: askedScope.count,
+                      })}
+                      {askedScope.truncated && (
+                        <> {t('search.deptScope.capped', { count: askedScope.count })}</>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {askedScope.dept
+                        ? t('search.listScope.answerScopeDept', {
+                            dept: askedScope.dept.label,
+                            count: askedScope.count,
+                          })
+                        : t('search.listScope.answerScope', { count: askedScope.count })}
+                      {askedScope.omitted > 0 && (
+                        <> {t('search.listScope.answerCapped', {
+                          listed: askedScope.listed,
+                          total: askedScope.total,
+                        })}</>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -1199,14 +1323,25 @@ export default function GlobalSearchOverlay() {
               ) : (
                 <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                   {/* A scoped empty answer only says no in-scope transcript
-                      matched; it does not claim the department never discussed
-                      the topic. The generic copy would erase that difference. */}
+                      matched; it does not claim the corpus never discussed the
+                      topic. An empty list scope has no transcript to name, so
+                      it says the scope itself held nothing rather than reusing
+                      the "no match" wording. The generic copy would erase that
+                      difference. */}
                   {askedScope
-                    ? t('search.deptScope.noMatch', { dept: askedScope.label })
+                    ? askedScope.kind === 'dept'
+                      ? t('search.deptScope.noMatch', { dept: askedScope.label })
+                      : askedScope.count > 0
+                        ? t('search.listScope.noMatch', { count: askedScope.count })
+                        : askedScope.dept
+                          ? t('search.listScope.emptyAfterDept', { dept: askedScope.dept.label })
+                          : t('search.listScope.emptyList')
                     : t(askIndexing ? 'askHistory.stillIndexing' : 'askHistory.noSources')}
                   {askedScope && askIndexing && (
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-                      {t('search.deptScope.searching')}
+                      {askedScope.kind === 'dept'
+                        ? t('search.deptScope.searching')
+                        : t('search.listScope.searching')}
                     </div>
                   )}
                 </div>
@@ -1306,12 +1441,71 @@ export default function GlobalSearchOverlay() {
 
           {askState === 'idle' && (
             <>
-              {/* With a department filter active the ask can be narrowed to
-                  the same subtree. The scope is independent of the row filter:
-                  turning it off asks the whole history while the list stays
-                  filtered, so the helper line says exactly which corpus will
-                  answer before the user commits. */}
-              {askAvailable && deptFilter && deptScope && (
+              {/* The archive handed this overlay an exact list of rows. Say so
+                  instead of letting a narrowed result set look like a global
+                  search: the count is a snapshot, the cap may have left rows
+                  out, and one control drops the whole thing. */}
+              {listScope && (
+                <div
+                  role="status"
+                  style={{
+                    padding: '7px 16px 8px',
+                    borderBottom: '1px solid var(--border)',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                    flexShrink: 0,
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: 11,
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      <Lock
+                        size={11}
+                        aria-hidden="true"
+                        style={{ flexShrink: 0, color: 'var(--accent-text)' }}
+                      />
+                      <span>{t('search.listScope.label', { count: listScope.sessionIds.length })}</span>
+                    </div>
+                    <div style={{ fontSize: 10, lineHeight: 1.5, color: 'var(--text-muted)' }}>
+                      {t('search.listScope.snapshot')}
+                      {listScope.truncated && listOmitted > 0 && (
+                        <> {t('search.listScope.capped', { count: listOmitted })}</>
+                      )}
+                      {listFiltered.hidden > 0 && (
+                        <> {t(
+                          listFiltered.hidden === 1
+                            ? 'search.listScope.rowsHiddenOne'
+                            : 'search.listScope.rowsHidden',
+                          { count: listFiltered.hidden },
+                        )}</>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setListScope(null)}
+                    onKeyDown={stopPillActivation}
+                    style={{ ...GHOST_BUTTON_STYLE, flexShrink: 0 }}
+                  >
+                    {t('search.listScope.clear')}
+                  </button>
+                </div>
+              )}
+
+              {/* With a department filter or an archive snapshot active the ask
+                  can be narrowed to the same corpus. The scope is independent
+                  of the row filter: turning it off asks the whole history while
+                  the list stays filtered, so the helper line says exactly which
+                  corpus will answer before the user commits. */}
+              {askAvailable && ((deptFilter && deptScope) || listScope) && (
                 <div
                   style={{
                     padding: '7px 16px 8px',
@@ -1339,21 +1533,39 @@ export default function GlobalSearchOverlay() {
                       onKeyDown={stopPillActivation}
                       style={{ margin: 0, accentColor: 'var(--accent-text)', flexShrink: 0 }}
                     />
-                    <span>{t('search.deptScope.askOnly', { dept: deptFilterLabel })}</span>
+                    <span>
+                      {listScope
+                        ? t('search.listScope.askOnly', { count: listScope.sessionIds.length })
+                        : t('search.deptScope.askOnly', { dept: deptFilterLabel })}
+                    </span>
                   </label>
                   <div style={{ fontSize: 10, lineHeight: 1.5, color: 'var(--text-muted)' }}>
                     {askScopeOn ? (
-                      <>
-                        {t('search.deptScope.limits', {
-                          dept: deptFilterLabel,
-                          cap: MAX_SCOPE_SESSIONS,
-                        })}
-                        {deptScope.truncated && (
-                          <> {t('search.deptScope.capped', { count: deptScope.ids.length })}</>
-                        )}
-                      </>
+                      listScope ? (
+                        <>
+                          {t('search.listScope.limits', { count: listScope.sessionIds.length })}
+                          {deptFilter && deptScope && (
+                            <> {t('search.listScope.deptNarrowed', {
+                              dept: deptFilterLabel,
+                              count: listAskIds ? listAskIds.length : 0,
+                            })}</>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {t('search.deptScope.limits', {
+                            dept: deptFilterLabel,
+                            cap: MAX_SCOPE_SESSIONS,
+                          })}
+                          {deptScope && deptScope.truncated && (
+                            <> {t('search.deptScope.capped', { count: deptScope.ids.length })}</>
+                          )}
+                        </>
+                      )
                     ) : (
-                      t('search.deptScope.scopeOff', { dept: deptFilterLabel })
+                      listScope
+                        ? t('search.listScope.askOff')
+                        : t('search.deptScope.scopeOff', { dept: deptFilterLabel })
                     )}
                   </div>
                 </div>
@@ -1474,6 +1686,27 @@ export default function GlobalSearchOverlay() {
                   </div>
                 )}
 
+                {showScopeEmpty && !showLoading && (
+                  <div style={EMPTY_STYLE}>
+                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                      {t('search.listScope.emptyTitle', {
+                        count: listScope?.sessionIds.length ?? 0,
+                      })}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                      {t('search.listScope.emptyHint')}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setListScope(null)}
+                      onKeyDown={stopPillActivation}
+                      style={{ ...GHOST_BUTTON_STYLE, marginTop: 12 }}
+                    >
+                      {t('search.listScope.clear')}
+                    </button>
+                  </div>
+                )}
+
                 {groups.map(group => {
                   const groupStart = flat.indexOf(group.items[0])
                   return (
@@ -1538,10 +1771,10 @@ export default function GlobalSearchOverlay() {
               {results.length > 0 && (
                 <span style={{ marginLeft: 'auto' }}>
                   {t(
-                    deptFiltered.visible.length === 1
+                    listFiltered.visible.length === 1
                       ? 'globalSearch.resultOne'
                       : 'globalSearch.resultsCount',
-                    { count: deptFiltered.visible.length },
+                    { count: listFiltered.visible.length },
                   )}
                 </span>
               )}

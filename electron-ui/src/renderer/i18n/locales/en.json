@@ -3095,7 +3095,15 @@
     "onlyFiledHidden": "Hand-filed only hides {{count}} rows",
     "onlyFiledEmpty": "No conversations in this view were filed by hand. Clear this filter to see the rest of the archive.",
     "fileAction": "File under a department",
-    "fileActionTip": "File this conversation under a department by hand. This overrides its working folder; nothing moves on disk."
+    "fileActionTip": "File this conversation under a department by hand. This overrides its working folder; nothing moves on disk.",
+    "askScope": {
+      "button": "Ask about these {{count}}",
+      "buttonOne": "Ask about this {{count}} conversation",
+      "buttonTip": "Ask AIPA about exactly the conversations listed right now. Only these rows are sent, and the list is frozen when you click — changing a filter afterwards does not change the question's scope.",
+      "buttonTipCapped": "This view lists {{total}} conversations, but only the first {{count}} are sent; {{omitted}} are left out.",
+      "buttonDisabled": "No conversations are listed, so there is nothing to ask about.",
+      "cappedNote": "AIPA reads at most {{cap}} conversations per question."
+    }
   },
   "canvas": {
     "copyPrompt": "Copy Prompt",
@@ -3983,6 +3991,27 @@
       "filedByYouTip": "{{path}}\nFiled here by you. The conversation's working folder is {{directory}}; this chip is the label you chose, not where the work ran. The session list is local to this machine, and each search returns a capped slice.",
       "removed": "{{name}} — department no longer exists",
       "removedTip": "You filed this conversation under {{name}}, but that department no longer exists. It belongs to no live department, and its working folder is deliberately not used instead."
+    },
+    "listScope": {
+      "label": "Searching {{count}} conversations picked in the archive",
+      "snapshot": "This is a snapshot of the archive's rows from when you asked; later archive changes do not retarget this search.",
+      "capped": "The archive's row cap left {{count}} rows out of this snapshot.",
+      "rowsHiddenOne": "{{count}} result from this search is outside the snapshot",
+      "rowsHidden": "{{count}} results from this search are outside the snapshot",
+      "clear": "Clear",
+      "noMatch": "No transcript among the {{count}} conversations you picked in the archive matched this question.",
+      "emptyList": "The archive snapshot contains no conversations, so this question had nothing to search.",
+      "emptyAfterDept": "None of the conversations in the archive snapshot falls under {{dept}}, so this question had nothing to search.",
+      "searching": "The transcript index is still building, so an in-scope match may not be visible yet.",
+      "askOnly": "Ask only about these {{count}} conversations",
+      "askOff": "This ask searches your whole history, not only the conversations you picked in the archive.",
+      "limits": "This ask reads only the {{count}} conversations in the archive snapshot.",
+      "deptNarrowed": "Within that snapshot, only {{count}} fall under {{dept}}, so the answer is limited to those.",
+      "answerScope": "Answered from the {{count}} conversations you picked in the archive.",
+      "answerScopeDept": "Answered from {{count}} of those conversations, limited to {{dept}}.",
+      "answerCapped": "The archive listed {{listed}} of {{total}} rows for this snapshot.",
+      "emptyTitle": "No result among the {{count}} conversations picked in the archive",
+      "emptyHint": "The search ran over all history; this list is limited to the archive snapshot. Clear it to search everywhere."
     }
   }
 }

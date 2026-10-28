@@ -26,9 +26,10 @@ import {
   Inbox,
   PenLine,
   Search,
+  Sparkles,
   X,
 } from 'lucide-react'
-import { useDepartmentStore, usePrefsStore, useSessionStore, type Department } from '../../store'
+import { useDepartmentStore, usePrefsStore, useSessionStore, useUiStore, type Department } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
 import { useT, useI18n } from '../../i18n'
 import {
@@ -43,6 +44,10 @@ import { formatDateTimeShort } from '../../utils/formatDate'
 import { CommandOnlyNotice, EmptyState, Pill } from './ArchiveChrome'
 import ArchiveJobSummary from './ArchiveJobSummary'
 import { filterByHandFiling, hasHandFiling } from './archiveFiling'
+import {
+  askScopeLabelKey, askScopeOmitted, collectAskScope,
+  MAX_ARCHIVE_ASK_SCOPE,
+} from './archiveAskScope'
 import {
   deriveJobOptions, isFilteredEmpty, jobAfterOriginChange, resolveJobSelection,
   visibleJobOptions, type ArchiveOriginKind,
@@ -169,6 +174,10 @@ export default function ArchivePanel() {
   // a fresh `[]` would invalidate every memo that depends on it.
   const archivedSessions = storedArchived ?? EMPTY_ARCHIVED
   const setPrefs = usePrefsStore(s => s.setPrefs)
+  // `null` means the one-time probe has not answered yet; the palette keeps its
+  // ask command in that case, and this button follows the same rule so a slow
+  // probe never hides a capability that may well be working.
+  const askAvailable = useUiStore(s => s.askHistoryAvailable)
 
   const [deptFilter, setDeptFilter] = useState<string>('all')
   const [timeRange, setTimeRange] = useState<TimeRange>('all')
@@ -296,6 +305,13 @@ export default function ArchivePanel() {
   )
   const visibleRecords = handFiltered.visible
   const handHiddenCount = handFiltered.hidden
+
+  // What "ask about these" would send, previewed on every listing change so the
+  // number on the button is the count that will actually leave: distinct session
+  // ids, capped. The click recollects from `visibleRecords` rather than trusting
+  // this memo, so a filter changed in the same tick can never leak a stale scope.
+  const askScopePreview = useMemo(() => collectAskScope(visibleRecords), [visibleRecords])
+  const askCount = askScopePreview.sessionIds.length
 
   // Group by the top of each branch, newest-worked group first, 未分派 last.
   const groups: ArchiveGroup[] = useMemo(() => {
@@ -464,6 +480,27 @@ export default function ArchivePanel() {
     URL.revokeObjectURL(url)
   }, [groups, t])
 
+  /**
+   * Hand the visible rows to the global ask overlay.
+   *
+   * The scope comes from `visibleRecords` — the fully filtered list, including
+   * the hand-filed toggle applied last. Reading `records` or `allRecords` here
+   * would quietly ask about rows the user cannot see. The archive's own filters
+   * are deliberately left untouched: the overlay is a separate surface, and
+   * clearing the ledger behind it would lose the user's place when they close it.
+   */
+  const askAboutVisible = useCallback(() => {
+    const seed = collectAskScope(visibleRecords)
+    const ui = useUiStore.getState()
+    // One batch on the shared store: clear the text and department seeds, then
+    // install the snapshot. Setting these one at a time across renders would let
+    // the overlay mount with a stale seed from an earlier ask.
+    ui.setGlobalSearchSeed('')
+    ui.setGlobalSearchSeedDeptId(null)
+    ui.setGlobalSearchSeedScope(seed)
+    ui.setGlobalSearchOpen(true)
+  }, [visibleRecords])
+
   const filtersActive = deptFilter !== 'all' || timeRange !== 'all' || originFilter !== 'all'
     || jobFilter !== null || showArchived || onlyHandFiled || query.trim().length > 0
   const clearFilters = () => {
@@ -501,6 +538,28 @@ export default function ArchivePanel() {
     t(summary.roots === 1 ? 'archive.summaryOrgOne' : 'archive.summaryOrg', { count: summary.roots }),
     t('archive.summaryWeek', { count: summary.week }),
   ].join(' · ')
+
+  // The tooltip has to say the three things the label cannot: the scope is
+  // exactly the rows on screen, it freezes at click time, and the cap may leave
+  // some of them out. The omitted count and the cap itself are both named, so
+  // the label never promises conversations the question will not read.
+  let askTitle: string
+  if (visibleRecords.length === 0) {
+    askTitle = t('archive.askScope.buttonDisabled')
+  } else {
+    // The cap sentence is always present: even an untruncated list is one filter
+    // change away from the cap, and the limit should not feel like a surprise.
+    const parts = [t('archive.askScope.buttonTip')]
+    if (askScopePreview.truncated) {
+      parts.push(t('archive.askScope.buttonTipCapped', {
+        count: askCount,
+        total: askScopePreview.total,
+        omitted: askScopeOmitted(askScopePreview),
+      }))
+    }
+    parts.push(t('archive.askScope.cappedNote', { cap: MAX_ARCHIVE_ASK_SCOPE }))
+    askTitle = parts.join(' ')
+  }
 
   const timeOptions: TimeRange[] = ['all', 'today', 'week', 'month']
 
@@ -544,6 +603,32 @@ export default function ArchivePanel() {
         >
           <ArrowUpDown size={11} />{t('archive.export')}
         </button>
+        {/* Ask about the ledger as it stands. Same quiet header idiom as Export:
+            neutral surface, one border, no fill. The label carries the number of
+            rows that will actually be sent, not the number listed — those differ
+            once the cap bites, and that difference belongs on the button. Hidden
+            only when the overlay has answered that asking is impossible
+            (`false`); an unanswered probe (`null`) keeps it. */}
+        {askAvailable !== false && (
+          <button
+            onClick={askAboutVisible}
+            disabled={visibleRecords.length === 0}
+            className="archive-hover-btn"
+            title={askTitle}
+            aria-label={askTitle}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
+              height: 26, padding: '0 11px', borderRadius: 8, fontSize: 11, fontWeight: 600,
+              border: '1px solid var(--border)', background: 'transparent',
+              color: visibleRecords.length === 0 ? 'var(--text-faint)' : 'var(--text-secondary)',
+              cursor: visibleRecords.length === 0 ? 'not-allowed' : 'pointer',
+              transition: 'background 0.15s ease',
+            }}
+          >
+            <Sparkles size={11} />
+            {t(askScopeLabelKey(askCount), { count: askCount })}
+          </button>
+        )}
       </div>
 
       {/* Filters */}
