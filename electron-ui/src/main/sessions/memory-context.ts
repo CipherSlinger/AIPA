@@ -62,7 +62,13 @@ const FRAMING_ALLOWANCE = 800
 /** A single structured memory file may not monopolise its tier. */
 const PER_FILE_CHARS = 600
 
+/** Most recent unpinned personal notes that may enter the block. */
+const PERSONAL_MAX_ITEMS = 20
+
 type TierKey = keyof typeof MEMORY_TIER_BUDGETS
+
+/** The assembler's internal tier key; exported for the digest's label mapping. */
+export type MemoryTierKey = TierKey
 
 const TIER_ORDER: TierKey[] = [
   'globalDoc',
@@ -108,6 +114,13 @@ export interface MemoryContextResult {
   omitted: TierKey[]
   /** Characters of content that survived per tier (labels excluded). */
   used: Partial<Record<TierKey, number>>
+  /**
+   * Tiers whose content was shortened by a budget — a per-file cap, the tier's
+   * own cap, or the total. Exposed separately from `used` so a caller can
+   * report truncation instead of inferring it from a count that happens to
+   * equal a budget.
+   */
+  truncated: TierKey[]
 }
 
 /**
@@ -145,32 +158,47 @@ function collapseWhitespace(text: string): string {
   return text.replace(/\s+/g, ' ').trim()
 }
 
-function formatStructured(files: MemoryFile[]): string {
-  return files
+/**
+ * Format one tier's content, reporting whether a per-tier budget clipped it.
+ * The formatted text is exactly what it was before this signal existed; only
+ * the digest consumes `capped`.
+ */
+interface FormattedTier {
+  text: string
+  capped: boolean
+}
+
+function formatStructured(files: MemoryFile[]): FormattedTier {
+  let capped = false
+  const text = files
     .slice()
     .sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name))
     .map((f) => {
-      const body = collapseWhitespace(f.content).slice(0, PER_FILE_CHARS)
+      const flat = collapseWhitespace(f.content)
+      if (flat.length > PER_FILE_CHARS) capped = true
+      const body = flat.slice(0, PER_FILE_CHARS)
       const head = `- [${f.type || 'unknown'}] ${f.name || '(unnamed)'}`
       const description = f.description ? ` — ${collapseWhitespace(f.description)}` : ''
       return `${head}${description}: ${body}`
     })
     .join('\n')
+  return { text, capped }
 }
 
-function formatPersonal(memories: PersonalMemoryLike[]): string {
-  if (memories.length === 0) return ''
+function formatPersonal(memories: PersonalMemoryLike[]): FormattedTier {
+  if (memories.length === 0) return { text: '', capped: false }
   const pinned = memories.filter((m) => m.pinned)
-  const recent = memories
+  const unpinned = memories
     .filter((m) => !m.pinned)
     .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, 20)
-  return [...pinned, ...recent]
+  const recent = unpinned.slice(0, PERSONAL_MAX_ITEMS)
+  const text = [...pinned, ...recent]
     .map((m) => {
       const kind = m.memoryType || m.category || 'context'
       return `- [${kind}]${m.pinned ? ' (pinned)' : ''} ${collapseWhitespace(m.content)}`
     })
     .join('\n')
+  return { text, capped: unpinned.length > recent.length }
 }
 
 function readDoc(filePath: string): string {
@@ -226,20 +254,31 @@ export async function assembleMemoryContext(input: {
     structured = []
   }
 
+  const globalStructured = formatStructured(structured.filter((f) => f.scope === 'global'))
+  const projectStructured = formatStructured(
+    structured.filter((f) => f.scope === 'project' && f.projectHash === projectSlug),
+  )
+  const personal = formatPersonal(personalMemories)
+
   const raw: Record<TierKey, string> = {
     globalDoc: home ? readDoc(joinPath(home, '.claude', 'MEMORY.md')) : '',
     projectDoc: cwd ? readDoc(joinPath(cwd, '.claude', 'MEMORY.md')) : '',
-    globalStructured: formatStructured(structured.filter((f) => f.scope === 'global')),
-    projectStructured: formatStructured(
-      structured.filter((f) => f.scope === 'project' && f.projectHash === projectSlug),
-    ),
-    personal: formatPersonal(personalMemories),
+    globalStructured: globalStructured.text,
+    projectStructured: projectStructured.text,
+    personal: personal.text,
   }
+
+  // Caps applied while formatting a tier, before the block budget runs.
+  const capped = new Set<TierKey>()
+  if (globalStructured.capped) capped.add('globalStructured')
+  if (projectStructured.capped) capped.add('projectStructured')
+  if (personal.capped) capped.add('personal')
 
   // Allocate the total budget in priority order: a large global file loses to
   // the project's own memory. Then emit in the order the README promises.
   const allocated = new Map<TierKey, string>()
   const omitted: TierKey[] = []
+  const truncated: TierKey[] = []
   let remaining = budgetChars - FRAMING_ALLOWANCE
 
   for (const key of ALLOCATION_PRIORITY) {
@@ -251,13 +290,14 @@ export async function assembleMemoryContext(input: {
       omitted.push(key)
       continue
     }
+    if (fitted.truncated || capped.has(key)) truncated.push(key)
     allocated.set(key, fitted.text)
     remaining -= fitted.text.length
   }
 
   const applied = TIER_ORDER.filter((key) => allocated.has(key))
   if (applied.length === 0) {
-    return { text: '', applied, omitted, used: {} }
+    return { text: '', applied, omitted, used: {}, truncated }
   }
 
   const blocks = applied.map((key) => {
@@ -281,6 +321,7 @@ export async function assembleMemoryContext(input: {
     applied,
     omitted,
     used,
+    truncated,
   }
 }
 
@@ -297,17 +338,45 @@ export function prefixWithMemoryContext(prompt: string, memoryText: string | und
 }
 
 /**
- * Assemble the memory block for a headless turn. Best-effort by construction: a
- * failed read yields '', and the caller still sends the user's prompt unchanged.
+ * One read of the memory tiers for a headless turn, with the structured result
+ * kept so a caller can describe what the run saw.
+ *
+ * `failed` is the signal an empty `text` cannot carry: today a read that throws
+ * and a user with no memory both produce ''. A scheduled run must be able to
+ * tell those apart after the fact.
  */
-export async function buildMemoryBlockForTurn(cwd: string): Promise<string> {
+export interface MemorySnapshot {
+  /** The block to prefix; '' when no tier had content or the read failed. */
+  text: string
+  /** Structured assembler output; null exactly when the read failed. */
+  context: MemoryContextResult | null
+  /** True when assembly threw, as opposed to legitimately finding no memory. */
+  failed: boolean
+}
+
+/**
+ * Assemble the memory block for a headless turn. Best-effort by construction: a
+ * failed read yields an empty block and a `failed` snapshot, so the caller still
+ * sends the user's prompt unchanged while reporting the failure.
+ */
+export async function buildMemorySnapshotForTurn(cwd: string): Promise<MemorySnapshot> {
   try {
-    const result = await assembleMemoryContext({
+    const context = await assembleMemoryContext({
       cwd,
       personalMemories: readPersonalMemories(),
     })
-    return result.text
+    return { text: context.text, context, failed: false }
   } catch {
-    return ''
+    return { text: '', context: null, failed: true }
   }
+}
+
+/**
+ * Assemble the memory block for a headless turn, text only.
+ *
+ * Callers that only prefix a prompt use this; a caller that must report the
+ * snapshot's shape uses `buildMemorySnapshotForTurn` instead.
+ */
+export async function buildMemoryBlockForTurn(cwd: string): Promise<string> {
+  return (await buildMemorySnapshotForTurn(cwd)).text
 }

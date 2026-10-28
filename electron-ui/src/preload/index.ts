@@ -365,6 +365,26 @@ export interface AutomationRunUsageData {
   costUsd?: number
 }
 
+/** Mirrors main's `AutomationMemoryTier`; labels only, never memory content. */
+export type AutomationMemoryTierData =
+  | 'global'
+  | 'project'
+  | 'global-structured'
+  | 'project-structured'
+  | 'personal'
+
+/**
+ * Mirrors main's `AutomationMemoryDigest`: the shape of the one memory snapshot
+ * a run saw. `state: 'failed'` means the read failed, which `chars: 0` alone
+ * cannot express (that is simply "no memory").
+ */
+export interface AutomationMemoryDigestData {
+  state: 'ok' | 'failed'
+  tiers: AutomationMemoryTierData[]
+  chars: number
+  truncated: boolean
+}
+
 /** Mirrors main's `AutomationRunRecord`; `running` never appears in history. */
 export interface AutomationRunRecordData {
   /** Epoch ms when the run started (or the occurrence a skip replaced). */
@@ -385,6 +405,10 @@ export interface AutomationRunRecordData {
   retry?: number
   /** What this run spent, when its engine reported usage; absent otherwise. */
   usage?: AutomationRunUsageData
+  /**
+   * The memory snapshot this run saw; absent on legacy records and on skips.
+   */
+  memory?: AutomationMemoryDigestData
 }
 
 /** A retry of a failed occurrence, waiting for its due time. Mirrors main. */

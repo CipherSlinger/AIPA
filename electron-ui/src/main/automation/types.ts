@@ -25,6 +25,44 @@ export type AutomationRunStatus = 'success' | 'error' | 'skipped' | 'running'
 export type AutomationRunRecordStatus = Exclude<AutomationRunStatus, 'running'>
 
 /**
+ * Tier labels a run's memory snapshot can name, in prompt order.
+ *
+ * These are the public labels, not the assembler's internal keys, because they
+ * are persisted and rendered; renaming one is a display change, not a store
+ * migration, so `run-history` validates against exactly this list.
+ */
+export type AutomationMemoryTier =
+  | 'global'
+  | 'project'
+  | 'global-structured'
+  | 'project-structured'
+  | 'personal'
+
+/**
+ * What the one memory snapshot of a run looked like — never its content.
+ *
+ * A scheduled run reads memory once and prefixes every step with it, so a run
+ * that behaved oddly at 03:00 needs to be explainable after the fact: was there
+ * no memory, did the budget clip it, or did the read simply fail? Character
+ * counts and tier names are enough to answer that without copying a single
+ * line of the user's memory into `automations.json`.
+ *
+ * `state` distinguishes the two cases a bare character count cannot: `ok` with
+ * zero chars means the user had no memory; `failed` means the snapshot was not
+ * readable at all and the run ran without it.
+ */
+export interface AutomationMemoryDigest {
+  /** `ok` when the assembler produced a snapshot (even an empty one). */
+  state: 'ok' | 'failed'
+  /** Tiers that made it into the block, in prompt order; empty when none did. */
+  tiers: AutomationMemoryTier[]
+  /** Length of the whole assembled block in characters; 0 when nothing was added. */
+  chars: number
+  /** A tier was shortened or dropped to fit the memory budget. */
+  truncated: boolean
+}
+
+/**
  * One finished run, kept on the job so the last few remain inspectable.
  *
  * The same record serves two readers: the settings row (time, outcome, spend,
@@ -56,6 +94,12 @@ export interface AutomationRunRecord {
   retry?: number
   /** What this run spent, when its engine reported usage; absent otherwise. */
   usage?: RunUsage
+  /**
+   * The memory snapshot this run saw. Absent on a record written before this
+   * field existed and, deliberately, on a skip: a rail refusal never fetched
+   * memory, so inventing an empty digest would say it saw "no memory".
+   */
+  memory?: AutomationMemoryDigest
 }
 
 /**
@@ -276,4 +320,11 @@ export interface AutomationRunOutcome {
    * turns still carries their usage, so a failure does not hide the spend.
    */
   usage?: RunUsage
+  /**
+   * The memory snapshot the run actually used. Carried on failures too — a run
+   * that failed after fetching memory still saw that snapshot — and absent only
+   * when the runner returned before it could take one (already running, no
+   * prompts, no usable engine).
+   */
+  memory?: AutomationMemoryDigest
 }

@@ -2902,7 +2902,20 @@
     "openFailed": "Could not open that session",
     "close": "Close search",
     "engineClaude": "Claude",
-    "engineCodex": "Codex"
+    "engineCodex": "Codex",
+    "origin": {
+      "all": "All",
+      "user": "Mine",
+      "automation": "Scheduled",
+      "plugin": "Plugins"
+    },
+    "originFilterLabel": "Filter results by who started them",
+    "originHiddenOne": "{{count}} result hidden by this filter",
+    "originHidden": "{{count}} results hidden by this filter",
+    "originClear": "Show all",
+    "originFilterEmptyOne": "The filter is hiding the only match",
+    "originFilterEmpty": "The filter is hiding all {{count}} matches",
+    "originFilterEmptyHint": "The search did find matches — clear the filter to see them."
   },
   "askHistory": {
     "entry": "Ask AIPA…",
@@ -3092,6 +3105,24 @@
     "retry": {
       "pending": "Retry {{attempt}} of {{count}} pending · at {{time}}",
       "badge": "retry {{attempt}}"
+    },
+    "memory": {
+      "title": "Memory snapshot this run saw",
+      "summary": "{{tiers}} · {{chars}}",
+      "chars": "{{count}} chars",
+      "truncated": "truncated",
+      "truncatedHint": "At least one memory tier was shortened or dropped to fit the memory budget.",
+      "empty": "no memory",
+      "emptyHint": "No memory tier had anything to add to this run.",
+      "unavailable": "memory unavailable",
+      "unavailableHint": "The memory read failed, so this run ran without memory.",
+      "tier": {
+        "global": "global",
+        "project": "project",
+        "global-structured": "global files",
+        "project-structured": "project files",
+        "personal": "personal"
+      }
     }
   },
   "speculation": {

@@ -15,11 +15,20 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, Copy, Loader2, Search, Sparkles, X } from 'lucide-react'
 import type { AskHistorySourceData, SessionSearchResultData } from '../../../preload/index'
 import { useI18n, useT } from '../../i18n'
-import { useUiStore } from '../../store'
+import { useSessionStore, useUiStore } from '../../store'
 import { pushEscapeHandler } from '../ui/escapeStack'
 import { useGlobalSessionSearch } from './useGlobalSessionSearch'
 import { SearchResultRow, relativeTime } from './SearchResultRow'
 import { revealSessionEvidence } from './revealSessionEvidence'
+import {
+  SEARCH_ORIGIN_FILTERS,
+  buildSessionOriginMap,
+  filterResultsByOrigin,
+  isOriginFilterEmpty,
+  originFilterForQuery,
+  searchResultOrigin,
+  type SearchOriginFilter,
+} from './searchOriginFilter'
 
 /**
  * Every ask source records the term it matched on, so a citation click can mark
@@ -70,6 +79,46 @@ const GHOST_BUTTON_STYLE: React.CSSProperties = {
   fontSize: 11,
   padding: '3px 10px',
   fontFamily: 'inherit',
+}
+
+/**
+ * Compact origin pills. The overlay is narrow and already has a query bar, a
+ * hint row and a footer, so this row wraps at most once and never shrinks the
+ * input or the result list.
+ */
+const ORIGIN_ROW_STYLE: React.CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  gap: 6,
+  padding: '6px 16px',
+  borderBottom: '1px solid var(--border)',
+  flexShrink: 0,
+}
+
+const ORIGIN_PILL_STYLE: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '2px 9px',
+  borderRadius: 999,
+  fontSize: 11,
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  whiteSpace: 'nowrap',
+  flexShrink: 0,
+  border: '1px solid var(--border)',
+  background: 'transparent',
+  color: 'var(--text-muted)',
+  transition: 'all 0.15s ease',
+}
+
+/**
+ * A plain Enter on a focused pill activates the pill; without this it also
+ * bubbles to the dialog and opens the highlighted hit. Ctrl/Cmd+Enter still
+ * reaches the dialog's ask shortcut.
+ */
+function stopPillActivation(e: React.KeyboardEvent) {
+  if ((e.key === 'Enter' && !e.ctrlKey && !e.metaKey) || e.key === ' ') e.stopPropagation()
 }
 
 const FOLLOW_UP_ROW_STYLE: React.CSSProperties = {
@@ -177,6 +226,9 @@ export default function GlobalSearchOverlay() {
   // remains fully controlled afterwards.
   const [query, setQuery] = useState(() => useUiStore.getState().globalSearchSeed || '')
   const [active, setActive] = useState(0)
+  // Which origin kind the current result set is narrowed to. It is a client
+  // view over the rows already returned — never a new search.
+  const [originFilter, setOriginFilter] = useState<SearchOriginFilter>('all')
   const [askAvailable, setAskAvailable] = useState(false)
   const [askState, setAskState] = useState<AskState>('idle')
   const [askAnswer, setAskAnswer] = useState('')
@@ -221,6 +273,15 @@ export default function GlobalSearchOverlay() {
   // searches: editing the query (which stops a running turn or drops a stale
   // answer) or a later open resumes it.
   const { results, status, searchedQuery } = useGlobalSessionSearch(query, askState === 'idle')
+
+  // Search hits carry no origin of their own; the session listing does. A hit
+  // that is not listed stays unknown and shows no badge.
+  const sessions = useSessionStore(s => s.sessions)
+  const originMap = useMemo(() => buildSessionOriginMap(sessions), [sessions])
+  const filtered = useMemo(
+    () => filterResultsByOrigin(results, originMap, originFilter),
+    [results, originMap, originFilter],
+  )
 
   const close = useCallback(() => {
     dismissedRef.current = true
@@ -321,19 +382,20 @@ export default function GlobalSearchOverlay() {
 
   const groups = useMemo(() => {
     const map = new Map<string, SessionSearchResultData[]>()
-    for (const hit of results) {
+    for (const hit of filtered.visible) {
       const key = hit.project || ''
       const bucket = map.get(key)
       if (bucket) bucket.push(hit)
       else map.set(key, [hit])
     }
     return [...map.entries()].map(([project, items]) => ({ project, items }))
-  }, [results])
+  }, [filtered])
 
   const flat = useMemo(() => groups.flatMap(group => group.items), [groups])
 
-  // A new result set always starts at the best hit.
-  useEffect(() => { setActive(0) }, [results])
+  // A new result set — or a different origin narrowing — starts at the best
+  // visible hit. A session-list refresh alone must not move the selection.
+  useEffect(() => { setActive(0) }, [results, originFilter])
   useEffect(() => {
     if (active >= flat.length) setActive(Math.max(0, flat.length - 1))
   }, [flat.length, active])
@@ -516,6 +578,10 @@ export default function GlobalSearchOverlay() {
   const showIdle = trimmed.length < 2
   const showLoading = status === 'loading' && trimmed.length >= 2
   const showEmpty = status === 'ready' && results.length === 0 && searchedQuery.length >= 2
+  // The search found matches but the origin filter is hiding all of them. The
+  // copy must name the filter, not pretend the query had no results.
+  const showFilterEmpty = status === 'ready'
+    && isOriginFilterEmpty(results.length, filtered.visible.length, originFilter)
   const showAskEntry = askState === 'idle' && askAvailable && trimmed.length >= ASK_MIN_QUERY
 
   return (
@@ -575,6 +641,11 @@ export default function GlobalSearchOverlay() {
             value={query}
             onChange={e => {
               setQuery(e.target.value)
+              // A changed query has a different result set, so an origin
+              // choice made over the old rows no longer describes it. Reset
+              // synchronously — an effect would let a stale filter hide the
+              // new query's rows for a frame.
+              setOriginFilter(current => originFilterForQuery(query, e.target.value, current))
               // Editing invalidates whatever the previous text produced. An
               // answer is simply stale, so return to the list; a running turn
               // must stop, because it streams for a question the input no
@@ -700,6 +771,62 @@ export default function GlobalSearchOverlay() {
             >
               <X size={11} />
             </button>
+          </div>
+        )}
+
+        {/* Origin narrowing. It filters the rows already on screen, so changing
+            it never starts a scan and never races the search sequencing. */}
+        {askState === 'idle' && results.length > 0 && (
+          <div role="group" aria-label={t('globalSearch.originFilterLabel')} style={ORIGIN_ROW_STYLE}>
+            {SEARCH_ORIGIN_FILTERS.map(kind => {
+              const active = originFilter === kind
+              return (
+                <button
+                  key={kind}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setOriginFilter(kind)}
+                  onKeyDown={stopPillActivation}
+                  style={{
+                    ...ORIGIN_PILL_STYLE,
+                    borderColor: active ? 'rgba(99,102,241,0.5)' : 'var(--border)',
+                    background: active ? 'rgba(99,102,241,0.14)' : 'transparent',
+                    color: active ? 'var(--accent-text)' : 'var(--text-muted)',
+                    fontWeight: active ? 600 : 400,
+                  }}
+                >
+                  {t(`globalSearch.origin.${kind}`)}
+                </button>
+              )
+            })}
+            {originFilter !== 'all' && (
+              <>
+                {filtered.hidden > 0 && (
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)', minWidth: 0 }}>
+                    {t(
+                      filtered.hidden === 1
+                        ? 'globalSearch.originHiddenOne'
+                        : 'globalSearch.originHidden',
+                      { count: filtered.hidden },
+                    )}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setOriginFilter('all')}
+                  onKeyDown={stopPillActivation}
+                  style={{
+                    ...ORIGIN_PILL_STYLE,
+                    color: 'var(--accent-text)',
+                    borderColor: 'rgba(99,102,241,0.35)',
+                    background: 'transparent',
+                    marginLeft: 'auto',
+                  }}
+                >
+                  {t('globalSearch.originClear')}
+                </button>
+              </>
+            )}
           </div>
         )}
 
@@ -991,6 +1118,30 @@ export default function GlobalSearchOverlay() {
                   </div>
                 )}
 
+                {showFilterEmpty && !showLoading && (
+                  <div style={EMPTY_STYLE}>
+                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                      {t(
+                        results.length === 1
+                          ? 'globalSearch.originFilterEmptyOne'
+                          : 'globalSearch.originFilterEmpty',
+                        { count: results.length },
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                      {t('globalSearch.originFilterEmptyHint')}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setOriginFilter('all')}
+                      onKeyDown={stopPillActivation}
+                      style={{ ...GHOST_BUTTON_STYLE, marginTop: 12 }}
+                    >
+                      {t('globalSearch.originClear')}
+                    </button>
+                  </div>
+                )}
+
                 {groups.map(group => {
                   const groupStart = flat.indexOf(group.items[0])
                   return (
@@ -1022,6 +1173,7 @@ export default function GlobalSearchOverlay() {
                             selected={index === active}
                             onHover={() => setActive(index)}
                             onOpen={() => void openHit(hit)}
+                            origin={searchResultOrigin(hit.sessionId, originMap)}
                           />
                         )
                       })}
@@ -1052,7 +1204,12 @@ export default function GlobalSearchOverlay() {
               {askAvailable && <span>{t('askHistory.ctrlEnterHint')}</span>}
               {results.length > 0 && (
                 <span style={{ marginLeft: 'auto' }}>
-                  {t(results.length === 1 ? 'globalSearch.resultOne' : 'globalSearch.resultsCount', { count: results.length })}
+                  {t(
+                    filtered.visible.length === 1
+                      ? 'globalSearch.resultOne'
+                      : 'globalSearch.resultsCount',
+                    { count: filtered.visible.length },
+                  )}
                 </span>
               )}
             </>

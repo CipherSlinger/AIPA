@@ -511,6 +511,9 @@ async function startRun(
     late: opts.late,
     ...(opts.retryAttempt !== undefined ? { retry: opts.retryAttempt } : {}),
     ...(outcome.usage ? { usage: outcome.usage } : {}),
+    // A failed run still saw the snapshot it fetched, so the digest is carried
+    // on either outcome. A runner that returned before fetching one has none.
+    ...(outcome.memory ? { memory: outcome.memory } : {}),
   })
   // Success ends the occurrence; a failure under the policy schedules the next
   // bounded attempt. `nextRetryAfterFailure` returns nothing for a default-off

@@ -22,6 +22,7 @@
  * Pure and Electron-free so `.scratch/wave15-run-history-harness` can exercise
  * append, eviction, restore and streak rules without a store or a window.
  */
+import { normalizeMemoryDigest } from './memory-digest'
 import { AUTOMATION_RETRY_POLICY } from './retry-policy'
 import { normalizeRunUsage } from './run-usage'
 import type { AutomationRunRecord, AutomationRunRecordStatus } from './types'
@@ -72,12 +73,17 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
     record.retry <= AUTOMATION_RETRY_POLICY.maxRetries
     ? record.retry
     : undefined
+  // A malformed descriptor is dropped, not the record: the run still happened,
+  // and a record written before this field existed has no descriptor at all.
+  const memory = normalizeMemoryDigest(record.memory)
 
   // Invariants the scheduler relies on, enforced again on restore so a corrupt
   // row cannot claim spend or a transcript for a run that never happened:
   //  - a skip is not an attempt: no duration, no session, no spend, not late;
   //  - a success has no error.
   if (status === 'skipped') {
+    // No memory descriptor: a skipped occurrence never fetched a snapshot, and
+    // recording an empty one would claim it saw "no memory".
     return {
       startedAt,
       status,
@@ -99,6 +105,7 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
       late: record.late === true,
       ...(retry !== undefined ? { retry } : {}),
       ...(usage ? { usage } : {}),
+      ...(memory ? { memory } : {}),
     }
   }
   const usage = normalizeRunUsage(record.usage)
@@ -111,6 +118,9 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
     late: record.late === true,
     ...(retry !== undefined ? { retry } : {}),
     ...(usage ? { usage } : {}),
+    // A failed run saw a snapshot too; keeping it here is what makes the
+    // history explain a failure that happened after the memory read.
+    ...(memory ? { memory } : {}),
   }
 }
 

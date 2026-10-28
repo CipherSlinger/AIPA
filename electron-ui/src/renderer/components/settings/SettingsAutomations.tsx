@@ -16,7 +16,12 @@ import { formatTokens } from '../../utils/formatUtils'
 import AutomationDialog, { ASSISTANT_PERSONA_ID, type WorkflowOption } from '../automation/AutomationDialog'
 import { scheduleText } from '../automation/scheduleText'
 import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from '../automation/automationStyles'
-import type { AutomationJobData, AutomationLimitsData, AutomationRunRecordData } from '../../../preload'
+import type {
+  AutomationJobData,
+  AutomationLimitsData,
+  AutomationMemoryDigestData,
+  AutomationRunRecordData,
+} from '../../../preload'
 import type { Persona } from '../../types/app.types'
 
 /** How many of the remembered runs a row lists once expanded. */
@@ -145,6 +150,37 @@ export default function SettingsAutomations() {
       })
     }
     return t('automation.history.minutes', { minutes: Math.round(ms / 60_000) })
+  }, [t])
+
+  /**
+   * The memory snapshot a run saw, as one compact fact: which tiers, how many
+   * characters, whether a budget clipped it. A failed read gets its own words
+   * because "no memory" and "memory unavailable" are different answers to the
+   * same post-mortem question. Returns null for legacy records and skips, which
+   * have no digest — the row must say nothing rather than invent one.
+   */
+  const memoryLine = useCallback((memory: AutomationMemoryDigestData | undefined): {
+    text: string
+    title: string
+    color?: string
+  } | null => {
+    if (!memory) return null
+    if (memory.state === 'failed') {
+      return {
+        text: t('automation.memory.unavailable'),
+        title: t('automation.memory.unavailableHint'),
+        color: WARNING,
+      }
+    }
+    if (memory.tiers.length === 0 && memory.chars === 0) {
+      return { text: t('automation.memory.empty'), title: t('automation.memory.emptyHint') }
+    }
+    const tiers = memory.tiers.map(tier => t(`automation.memory.tier.${tier}`)).join(' · ')
+    const chars = t('automation.memory.chars', { count: formatTokens(memory.chars) })
+    return {
+      text: tiers ? t('automation.memory.summary', { tiers, chars }) : chars,
+      title: t('automation.memory.title'),
+    }
   }, [t])
 
   const openRun = (sessionId: string) => {
@@ -537,6 +573,10 @@ export default function SettingsAutomations() {
                             // A skip's status already says why it did not run;
                             // only a failure carries an extra explanation.
                             const detail = record.status === 'error' && record.error ? errorText(record.error) : ''
+                            const memory = memoryLine(record.memory)
+                            // Only a real snapshot can be truncated; a failed
+                            // read has nothing to clip and must not imply one.
+                            const memoryTruncated = record.memory?.state === 'ok' && record.memory.truncated
                             const sessionId = record.sessionId
                             return (
                               <li
@@ -555,6 +595,22 @@ export default function SettingsAutomations() {
                                   // like three separate scheduled runs.
                                   <span style={{ color: 'var(--accent-text)' }}>
                                     {t('automation.retry.badge', { attempt: record.retry })}
+                                  </span>
+                                )}
+                                {memory && (
+                                  // Shape only — tiers and size. A failed read is
+                                  // the case the user most needs to see, so it
+                                  // gets its own words and warning colour.
+                                  <span
+                                    style={memory.color ? { color: memory.color } : undefined}
+                                    title={memory.title}
+                                  >
+                                    {memory.text}
+                                  </span>
+                                )}
+                                {memoryTruncated && (
+                                  <span title={t('automation.memory.truncatedHint')}>
+                                    {t('automation.memory.truncated')}
                                   </span>
                                 )}
                                 {duration && <span>{duration}</span>}

@@ -1,7 +1,9 @@
 import React from 'react'
 import { MessageSquareText, Search } from 'lucide-react'
 import type { SessionSearchResultData } from '../../../preload/index'
+import type { SessionOrigin } from '../../types/app.types'
 import { useT } from '../../i18n'
+import SessionOriginBadge from '../shared/SessionOriginBadge'
 
 interface Props {
   hit: SessionSearchResultData
@@ -10,6 +12,11 @@ interface Props {
   selected: boolean
   onHover: () => void
   onOpen: () => void
+  /**
+   * Absent for both user-started and unknown sessions. The shared badge draws
+   * nothing in that case; the filter, not the row, knows the difference.
+   */
+  origin?: SessionOrigin
 }
 
 /** Split the snippet around every case-insensitive occurrence of the query. */
@@ -55,7 +62,7 @@ export function relativeTime(timestamp: number, t: ReturnType<typeof useT>): str
   return new Date(timestamp).toLocaleDateString()
 }
 
-export function SearchResultRow({ hit, query, index, selected, onHover, onOpen }: Props) {
+export function SearchResultRow({ hit, query, index, selected, onHover, onOpen, origin }: Props) {
   const t = useT()
   return (
     <div
@@ -103,6 +110,9 @@ export function SearchResultRow({ hit, query, index, selected, onHover, onOpen }
           >
             {hit.title || t('globalSearch.untitled')}
           </span>
+          {/* Who started the conversation, quiet enough that the title still
+              reads first. Nothing renders for user-started or unknown hits. */}
+          <SessionOriginBadge origin={origin} />
           <span
             style={{
               fontSize: 11,

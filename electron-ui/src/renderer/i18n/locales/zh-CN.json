@@ -2902,7 +2902,20 @@
     "openFailed": "无法打开该会话",
     "close": "关闭搜索",
     "engineClaude": "Claude",
-    "engineCodex": "Codex"
+    "engineCodex": "Codex",
+    "origin": {
+      "all": "全部",
+      "user": "我的",
+      "automation": "定时",
+      "plugin": "插件"
+    },
+    "originFilterLabel": "按会话发起方筛选结果",
+    "originHiddenOne": "此筛选隐藏了 {{count}} 条结果",
+    "originHidden": "此筛选隐藏了 {{count}} 条结果",
+    "originClear": "显示全部",
+    "originFilterEmptyOne": "筛选隐藏了唯一的一条匹配",
+    "originFilterEmpty": "筛选隐藏了全部 {{count}} 条匹配",
+    "originFilterEmptyHint": "搜索确实找到了结果——清除筛选即可看到。"
   },
   "askHistory": {
     "entry": "问 AIPA…",
@@ -3092,6 +3105,24 @@
     "retry": {
       "pending": "待重试 {{attempt}} / {{count}} · {{time}}",
       "badge": "重试 {{attempt}}"
+    },
+    "memory": {
+      "title": "本次运行看到的记忆快照",
+      "summary": "{{tiers}} · {{chars}}",
+      "chars": "{{count}} 字符",
+      "truncated": "已截断",
+      "truncatedHint": "至少有一个记忆层级为适配记忆预算被截短或丢弃。",
+      "empty": "无记忆",
+      "emptyHint": "本次运行没有任何记忆层级提供内容。",
+      "unavailable": "记忆不可用",
+      "unavailableHint": "读取记忆失败，本次运行未使用记忆。",
+      "tier": {
+        "global": "全局",
+        "project": "项目",
+        "global-structured": "全局文件",
+        "project-structured": "项目文件",
+        "personal": "个人"
+      }
     }
   },
   "speculation": {

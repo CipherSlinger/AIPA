@@ -33,8 +33,9 @@ import { buildCodexTurnArgs } from '../codex/codex-turn-args'
 import { resolveAuxiliaryEngine } from '../llm/auxiliary-engine'
 import type { AuxiliaryEngine } from '../llm/auxiliary-engine'
 import { streamBridgeManager } from '../pty/stream-bridge'
-import { buildMemoryBlockForTurn, prefixWithMemoryContext } from '../sessions/memory-context'
+import { buildMemorySnapshotForTurn, prefixWithMemoryContext } from '../sessions/memory-context'
 import { createLogger } from '../utils/logger'
+import { buildMemoryDigest, failedMemoryDigest } from './memory-digest'
 import { buildPersonaPromptPrefix, filterModelForEngine } from './persona-plan'
 import { RunUsageAccumulator, readTurnUsage } from './run-usage'
 import type { TurnUsage } from './run-usage'
@@ -372,8 +373,12 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
   // Memory for a run nobody is watching. One snapshot per run: every prompt in
   // the job belongs to the same conversation, so re-reading the tiers between
   // steps could hand one session two different views of the user. Best-effort —
-  // a failed read sends the raw prompt rather than failing the job.
-  const memoryText = await buildMemoryBlockForTurn(req.cwd)
+  // a failed read sends the raw prompt rather than failing the job, but the
+  // outcome still carries a digest saying the read failed, so a 03:00 run that
+  // misbehaved is never silently indistinguishable from a user with no memory.
+  const memory = await buildMemorySnapshotForTurn(req.cwd)
+  const memoryText = memory.text
+  const memoryDigest = memory.context ? buildMemoryDigest(memory.context) : failedMemoryDigest()
 
   // PERSONA RULE: a scheduled run adopts the persona its workflow binds, so a
   // job that fires at 3 a.m. behaves as the expert the user chose when they built
@@ -397,6 +402,7 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
           error: 'Run exceeded its time budget',
           sessionId: run.sessionId(),
           usage: usage.total(),
+          memory: memoryDigest,
         }
       }
       // Memory stays outermost; inside it the order matches a chat turn:
@@ -416,6 +422,7 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
           error: turn.error,
           sessionId: run.sessionId(),
           usage: usage.total(),
+          memory: memoryDigest,
         }
       }
     }
@@ -427,10 +434,22 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
     if (!sessionId) {
       log.warn(`Automation ${jobId} finished without a reported session id; the run will not be openable`)
     }
-    return { ok: true, sessionId, summary: summarize(run.lastText()), usage: usage.total() }
+    return {
+      ok: true,
+      sessionId,
+      summary: summarize(run.lastText()),
+      usage: usage.total(),
+      memory: memoryDigest,
+    }
   } catch (err) {
     log.warn(`Automation ${jobId} failed:`, err)
-    return { ok: false, error: String(err), sessionId: run.sessionId(), usage: usage.total() }
+    return {
+      ok: false,
+      error: String(err),
+      sessionId: run.sessionId(),
+      usage: usage.total(),
+      memory: memoryDigest,
+    }
   } finally {
     activeRuns.delete(jobId)
     run.dispose()
