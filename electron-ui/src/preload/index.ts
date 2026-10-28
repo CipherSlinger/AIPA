@@ -407,6 +407,12 @@ export interface AutomationJobData {
    * `__assistant__` is the reserved explicit plain-assistant choice.
    */
   personaId?: string
+  /**
+   * Stay quiet when a run succeeds: no bubble, no OS notification, no attention
+   * record. Absent/false announces success as before; failures are always
+   * announced and cannot be silenced by this flag.
+   */
+  quietOnSuccess?: boolean
   /** Scheduled-run spend limit in USD over a rolling 24 h; absent means none. */
   dailyCostLimitUsd?: number
   createdAt: number
@@ -452,6 +458,8 @@ export interface AutomationInputData {
   action: AutomationActionData
   /** Empty/omitted follows the workflow; absent is not a persona id ''. */
   personaId?: string
+  /** Omitting this is the default (announce success); failures stay loud. */
+  quietOnSuccess?: boolean
   /** Omitted clears the scheduled-run spend limit; 0 is not a limit. */
   dailyCostLimitUsd?: number
 }

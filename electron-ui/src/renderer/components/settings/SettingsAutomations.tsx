@@ -385,6 +385,13 @@ export default function SettingsAutomations() {
                         <Clock size={11} />
                         {scheduleText(t, job.trigger)}
                       </span>
+                      {job.quietOnSuccess === true && (
+                        // A quiet clause beside the schedule, not another badge:
+                        // it says why a success will not call the user.
+                        <span style={{ fontSize: 11, color: SECONDARY }}>
+                          {`· ${t('automation.quietOnSuccess.row')}`}
+                        </span>
+                      )}
                     </div>
 
                     <div style={{

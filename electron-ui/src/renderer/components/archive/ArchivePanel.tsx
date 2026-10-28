@@ -35,6 +35,7 @@ import { openSessionCore } from '../departments/openSessionCore'
 import { displayTitle } from '../../lib/sessionTitle'
 import { formatDateTimeShort } from '../../utils/formatDate'
 import { CommandOnlyNotice, EmptyState, Pill } from './ArchiveChrome'
+import ArchiveJobSummary from './ArchiveJobSummary'
 import {
   deriveJobOptions, isFilteredEmpty, jobAfterOriginChange, resolveJobSelection,
   visibleJobOptions, type ArchiveOriginKind,
@@ -618,6 +619,11 @@ export default function ArchivePanel() {
           </button>
         )}
       </div>
+
+      {/* Job health sits between the filters and the ledger. It stays outside
+          the scroller so its presence can never shift the analytic row offsets
+          the windowed ledger relies on. */}
+      {jobFilter !== null && <ArchiveJobSummary jobId={jobFilter} />}
 
       {/* Ledger */}
       <div ref={ledgerRef} style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 24px' }}>

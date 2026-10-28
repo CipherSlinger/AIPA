@@ -2743,7 +2743,15 @@
     "jobFilterGroup": "按任务",
     "jobSessionCount": "{{count}} 个会话",
     "jobSessionCountOne": "{{count}} 个会话",
-    "noMatchFilteredHint": "没有记录符合 {{filter}}，清除筛选即可查看全部档案。"
+    "noMatchFilteredHint": "没有记录符合 {{filter}}，清除筛选即可查看全部档案。",
+    "jobSummary": {
+      "label": "所选任务概况",
+      "paused": "已暂停",
+      "runStats": "最近记录的 {{total}} 次运行：成功 {{success}} · 失败 {{failed}} · 跳过 {{skipped}}",
+      "average": "平均 {{duration}}",
+      "spendLifetime": "累计 {{spend}}",
+      "spendLastRun": "上次运行 {{spend}}"
+    }
   },
   "canvas": {
     "copyPrompt": "复制提示词",
@@ -2978,7 +2986,8 @@
       "enabled": "启用",
       "expert": "专家",
       "spendLimit": "花费上限（美元）",
-      "spendLimitPlaceholder": "不限"
+      "spendLimitPlaceholder": "不限",
+      "quietOnSuccess": "成功时静默"
     },
     "action": {
       "workflow": "运行工作流",
@@ -3071,6 +3080,10 @@
       "unmeasured": "近 24 小时：无花费报告 —— 无法校验 {{limit}} 的上限",
       "limitOnly": "上限 {{limit}} / 24 小时",
       "noRuns": "近 24 小时：无运行 · 上限 {{limit}}"
+    },
+    "quietOnSuccess": {
+      "hint": "运行成功时不会通知你。失败一定会通知——这个开关无法让失败静音。",
+      "row": "成功时静默"
     }
   },
   "speculation": {

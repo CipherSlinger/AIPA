@@ -2743,7 +2743,15 @@
     "jobFilterGroup": "By job",
     "jobSessionCount": "{{count}} sessions",
     "jobSessionCountOne": "{{count}} session",
-    "noMatchFilteredHint": "No record matches {{filter}}. Clear the filters to see the whole archive."
+    "noMatchFilteredHint": "No record matches {{filter}}. Clear the filters to see the whole archive.",
+    "jobSummary": {
+      "label": "Selected job summary",
+      "paused": "Paused",
+      "runStats": "{{success}} succeeded · {{failed}} failed · {{skipped}} skipped, of the last {{total}} remembered runs",
+      "average": "avg {{duration}}",
+      "spendLifetime": "All runs {{spend}}",
+      "spendLastRun": "Last run {{spend}}"
+    }
   },
   "canvas": {
     "copyPrompt": "Copy Prompt",
@@ -2978,7 +2986,8 @@
       "enabled": "Enabled",
       "expert": "Expert",
       "spendLimit": "Spend limit (USD)",
-      "spendLimitPlaceholder": "No limit"
+      "spendLimitPlaceholder": "No limit",
+      "quietOnSuccess": "Quiet on success"
     },
     "action": {
       "workflow": "Run a workflow",
@@ -3071,6 +3080,10 @@
       "unmeasured": "Last 24 h: no cost reported — the {{limit}} limit cannot be checked",
       "limitOnly": "Spend limit {{limit}} per 24 h",
       "noRuns": "Last 24 h: no runs · limit {{limit}}"
+    },
+    "quietOnSuccess": {
+      "hint": "A successful run won't notify you. Failures are always announced — this switch can't silence them.",
+      "row": "quiet on success"
     }
   },
   "speculation": {

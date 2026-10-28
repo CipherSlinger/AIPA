@@ -106,6 +106,8 @@ export default function AutomationDialog({
   const [spendLimitText, setSpendLimitText] = useState(
     job?.dailyCostLimitUsd !== undefined ? String(job.dailyCostLimitUsd) : '',
   )
+  // Off unless the job opted in: existing jobs keep announcing their successes.
+  const [quietOnSuccess, setQuietOnSuccess] = useState(job?.quietOnSuccess === true)
   const [scheduleKind, setScheduleKind] = useState<ScheduleKind>(() => {
     if (!job) return 'daily'
     if (job.trigger.kind === 'interval') return 'interval'
@@ -166,6 +168,9 @@ export default function AutomationDialog({
     const input: AutomationInputData = {
       name: name.trim(), enabled, trigger, action,
       ...(personaId ? { personaId } : {}),
+      // Omitting quiet mode when it is off is what turns it off on an edit;
+      // absence is the default (announce success), never `false`.
+      ...(quietOnSuccess ? { quietOnSuccess: true } : {}),
       // Omitting a cleared limit is what removes it; sending 0 would block
       // every scheduled run.
       ...(spendLimitValue !== undefined ? { dailyCostLimitUsd: spendLimitValue } : {}),
@@ -429,6 +434,26 @@ export default function AutomationDialog({
               </div>
             </div>
           )}
+
+          {/* Lives with the schedule because it is about when the app calls
+              the user, not about what the job does. */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10 }}>
+            <div style={{ paddingTop: 1 }}>
+              <Toggle
+                value={quietOnSuccess}
+                onChange={setQuietOnSuccess}
+                aria-label={t('automation.field.quietOnSuccess')}
+              />
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                {t('automation.field.quietOnSuccess')}
+              </div>
+              <div style={{ fontSize: 11, color: SECONDARY, marginTop: 2, lineHeight: 1.5 }}>
+                {t('automation.quietOnSuccess.hint')}
+              </div>
+            </div>
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>

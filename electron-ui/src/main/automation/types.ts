@@ -64,6 +64,14 @@ export interface AutomationJob {
    * `ASSISTANT_PERSONA_ID` means an explicit plain-assistant override.
    */
   personaId?: string
+  /**
+   * Stay quiet when a scheduled run succeeds: no pet bubble, no OS
+   * notification, no attention record at all. Absent/false keeps the original
+   * behaviour of announcing every finished run. Failures are deliberately not
+   * covered — an unattended job must never be able to fail silently. The run
+   * itself is unaffected: its record, history and usage are still persisted.
+   */
+  quietOnSuccess?: boolean
   createdAt: number
   updatedAt: number
   /** Epoch ms of the next scheduled occurrence; null only for a dead cron. */
@@ -175,6 +183,11 @@ export interface AutomationInput {
    * never a persona whose id is ''), so the scheduler stores it as absent.
    */
   personaId?: string
+  /**
+   * Opt-in quiet mode for successful runs. Omitted/false is the default
+   * (announce success); the scheduler stores it only when true.
+   */
+  quietOnSuccess?: boolean
   /**
    * Optional scheduled-run spend limit in USD. Omitted/null clears it; the
    * scheduler stores an absent value rather than `0`.

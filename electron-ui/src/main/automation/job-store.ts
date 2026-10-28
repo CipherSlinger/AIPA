@@ -74,6 +74,10 @@ function normalizeJob(raw: unknown): AutomationJob | null {
     personaId: typeof job.personaId === 'string' && job.personaId.trim()
       ? job.personaId.trim()
       : undefined,
+    // Restored only when it was genuinely turned on. Absent is the default
+    // (announce success), so a job saved before this field existed keeps
+    // behaving exactly as it did.
+    quietOnSuccess: job.quietOnSuccess === true ? true : undefined,
     createdAt: numberOrNull(job.createdAt) ?? Date.now(),
     updatedAt: numberOrNull(job.updatedAt) ?? Date.now(),
     nextRunAt: numberOrNull(job.nextRunAt),

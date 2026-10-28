@@ -150,6 +150,15 @@ function validatePersonaId(value: unknown): string | undefined {
 }
 
 /**
+ * A job's opt-in quiet mode. Only a real boolean true is kept; anything else is
+ * "announce", which is the behaviour every existing job already had, so a
+ * malformed value can never accidentally silence a failure or a success.
+ */
+function validateQuietOnSuccess(value: unknown): boolean | undefined {
+  return value === true ? true : undefined
+}
+
+/**
  * A job's optional daily spend limit. An empty input clears it; a value that is
  * present but unusable is an error rather than a silent "no limit", because a
  * typo must not quietly remove the rail the user asked for.
@@ -477,6 +486,11 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
  * raises deduped and the click only brings the app forward.
  */
 function raiseAutomationAttention(job: AutomationJob, outcome: AutomationRunOutcome): void {
+  // Quiet mode is a decision not to raise at all — no bubble, no OS notice and
+  // no dedupe entry — not a muted attention kind. The run's record, history and
+  // usage were already persisted above, so only the announcement is skipped.
+  // Checked for success only: a failure must stay loud, whatever this flag says.
+  if (outcome.ok && job.quietOnSuccess) return
   const sessionId = outcome.sessionId ?? null
   if (outcome.ok) {
     raiseAttention({
@@ -650,6 +664,7 @@ export function createAutomationJob(input: AutomationInput): AutomationMutationR
     const trigger = validateTrigger(input?.trigger)
     const action = validateAction(input?.action)
     const personaId = validatePersonaId(input?.personaId)
+    const quietOnSuccess = validateQuietOnSuccess(input?.quietOnSuccess)
     const dailyCostLimitUsd = validateDailyCostLimit(input?.dailyCostLimitUsd)
     const enabled = input?.enabled !== false
     const job: AutomationJob = {
@@ -659,6 +674,7 @@ export function createAutomationJob(input: AutomationInput): AutomationMutationR
       trigger,
       action,
       ...(personaId ? { personaId } : {}),
+      ...(quietOnSuccess ? { quietOnSuccess } : {}),
       ...(dailyCostLimitUsd !== undefined ? { dailyCostLimitUsd } : {}),
       createdAt: now,
       updatedAt: now,
@@ -690,6 +706,7 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     const trigger = validateTrigger(input?.trigger)
     const action = validateAction(input?.action)
     const personaId = validatePersonaId(input?.personaId)
+    const quietOnSuccess = validateQuietOnSuccess(input?.quietOnSuccess)
     const dailyCostLimitUsd = validateDailyCostLimit(input?.dailyCostLimitUsd)
     const enabled = input?.enabled !== false
 
@@ -701,6 +718,10 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     // Assignment (not omission) is deliberate: clearing the field must remove a
     // previous override, falling back to the workflow binding.
     job.personaId = personaId
+    // Turning quiet mode off removes the field instead of storing `false`: the
+    // default is "announce", and an absent flag keeps a legacy job reading
+    // exactly as it did before this setting existed.
+    job.quietOnSuccess = quietOnSuccess
     // Same rule for the spend rail: an empty field removes the limit rather than
     // storing 0, which would block every scheduled run forever.
     job.dailyCostLimitUsd = dailyCostLimitUsd
