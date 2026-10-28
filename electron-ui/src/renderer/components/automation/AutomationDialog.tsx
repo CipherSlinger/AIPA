@@ -9,6 +9,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, File, FolderOpen, Info } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { usePrefsStore, useUiStore } from '../../store'
+import { usePluginStore } from '../../store/pluginStore'
+import { getPluginDisplayName } from '../plugins/pluginIcons'
 import type { Persona } from '../../types/app.types'
 import Toggle from '../ui/Toggle'
 import { INPUT_STYLE } from '../settings/settingsConstants'
@@ -110,10 +112,24 @@ export default function AutomationDialog({
   initialPromptClipped,
   onClose,
 }: AutomationDialogProps) {
-  const { t } = useI18n()
+  const { t, resolvedLocale } = useI18n()
   const addToast = useUiStore(s => s.addToast)
   const editing = job !== null
   const personas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
+  const plugins = usePluginStore(s => s.plugins)
+
+  // A plugin-owned schedule is still the user's to change; the note only warns
+  // that the plugin can delete or recreate it, which would overwrite an edit.
+  // An uninstalled plugin falls back to the raw id so the note can still name
+  // what left the job behind.
+  const originPluginId = job?.originPluginId
+  const originPluginName = useMemo(() => {
+    if (!originPluginId) return ''
+    const plugin = plugins.find(p => p.manifest.id === originPluginId)
+    return plugin
+      ? getPluginDisplayName(plugin.manifest, resolvedLocale)
+      : originPluginId
+  }, [originPluginId, plugins, resolvedLocale])
 
   // Only honour the preset when the workflow is actually in the list, so the
   // select and the saved id cannot disagree.
@@ -362,6 +378,21 @@ export default function AutomationDialog({
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>
           {editing ? t('automation.dialog.editTitle') : t('automation.dialog.createTitle')}
         </div>
+
+        {originPluginId && (
+          // Informational only: every field below stays enabled because the
+          // user owns the job. The warning exists so an edit that the plugin
+          // later overwrites is not a surprise.
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 6,
+            marginBottom: 12, padding: '6px 9px', borderRadius: 6,
+            background: 'var(--bg-hover)', border: '1px solid var(--border)',
+            fontSize: 11, color: SECONDARY, lineHeight: 1.5,
+          }}>
+            <Info size={12} style={{ flexShrink: 0, marginTop: 1 }} />
+            <span>{t('automation.pluginOrigin.dialogNote', { plugin: originPluginName })}</span>
+          </div>
+        )}
 
         <div style={{ marginBottom: 12 }}>
           <label style={labelStyle}>{t('automation.field.name')}</label>

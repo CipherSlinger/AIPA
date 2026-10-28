@@ -52,6 +52,11 @@ import { migrateLegacyTasks, startWorkCalendarReminders } from '../plugins/work-
 import { readPluginData, writePluginData, fetchGithubCommits, scanFolderChanges, startPluginAi, abortPluginAi, resolvePluginTurnTarget, type GithubCommitsArgs, type ScanFolderArgs } from '../plugins/plugin-services'
 import { startPluginEdit, sendPluginEdit, abortPluginEdit, endPluginEdit } from '../plugins/plugin-edit-session'
 import { askPluginChat } from '../plugins/plugin-chat'
+import {
+  createPluginAutomation,
+  deletePluginAutomation,
+  listPluginAutomations,
+} from '../plugins/plugin-automation'
 import { shouldAnnouncePluginConversation } from '../plugins/plugin-chat-continuation'
 import { getCliPath } from '../utils/cli-path'
 import { resolveAuxiliaryEngine, noteAuxiliaryEngineUnavailable, deriveSessionTitle } from '../llm/auxiliary-engine'
@@ -2363,6 +2368,25 @@ function registerNavPluginHandlers(win: BrowserWindow, send: (ch: string, ...a: 
     }
     return answer
   })
+
+  // `schedule` — a plugin creates, lists and deletes its own automations.
+  //
+  // The manifest gate lives in `plugin-automation.ts` rather than here, for the
+  // same reason `chat.ask`'s does: the capability module re-checks it on every
+  // call, so one check cannot drift from the other and a rejected invoke still
+  // carries a `[code]` the plugin can branch on (the local `requirePermission`
+  // throws plain prose, which the other capabilities use for their
+  // `{ success, error }` shape). Ownership is stamped by the scheduler through
+  // the `…ForPlugin` entry points and never read from this payload, so nothing
+  // a renderer sends can choose whose job it becomes.
+  safeHandle('plugin:automation:create', (_e, { pluginId, input }: {
+    pluginId: string
+    input?: import('../plugins/plugin-automation').PluginAutomationInput
+  }) => createPluginAutomation(pluginId, input))
+  safeHandle('plugin:automation:list', (_e, { pluginId }: { pluginId: string }) =>
+    listPluginAutomations(pluginId))
+  safeHandle('plugin:automation:delete', (_e, { pluginId, id }: { pluginId: string; id: string }) =>
+    deletePluginAutomation(pluginId, id))
 
   // ── Edit drawer: a chat whose cwd IS the plugin folder, so the AI rewrites
   // the plugin's own files. Not permission-gated — this is the *host* editing

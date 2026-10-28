@@ -3200,6 +3200,12 @@
       "quietHint": "Wait at least this long between runs, so a folder being written does not start a run per file.",
       "eventHint": "Runs whenever the path changes. A watch job has no next run time; the hourly cap and the daily budget still apply.",
       "createdToast": "“{{name}}” will run whenever {{path}} changes"
+    },
+    "pluginOrigin": {
+      "badge": "From {{plugin}}",
+      "hint": "Created by the {{plugin}} plugin, not by you. It is editable and deletable like any other automation.",
+      "missing": "The plugin that created this automation is no longer installed. The schedule is kept so you can edit or delete it.",
+      "dialogNote": "This schedule was created by {{plugin}}, which may delete or recreate it. Changes you make here can be overwritten."
     }
   },
   "speculation": {

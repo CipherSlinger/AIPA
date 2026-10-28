@@ -982,6 +982,31 @@ export type AutomationMutationResult =
   | { ok: false; error: string }
 
 export function createAutomationJob(input: AutomationInput): AutomationMutationResult {
+  return createJob(input)
+}
+
+/**
+ * Create a job owned by a plugin.
+ *
+ * The renderer-facing `createAutomationJob` above never sets `originPluginId`,
+ * and this is the only function that does: ownership has to be recorded by the
+ * layer that verified the plugin's `schedule` permission, never read off the
+ * input. A job's fields are otherwise identical to a user-made one — there is
+ * deliberately no "plugin job" mode in the scheduler, so every rail (hourly
+ * cap, spend limits, global pause, retries, history, memory digest) applies to
+ * it exactly as it would to a job the user typed in Settings.
+ */
+export function createAutomationJobForPlugin(
+  pluginId: string,
+  input: AutomationInput,
+): AutomationMutationResult {
+  if (typeof pluginId !== 'string' || !pluginId.trim()) {
+    return { ok: false, error: 'plugin_unknown' }
+  }
+  return createJob(input, pluginId.trim())
+}
+
+function createJob(input: AutomationInput, originPluginId?: string): AutomationMutationResult {
   try {
     if (jobs.length >= AUTOMATION_LIMITS.maxJobs) throw new AutomationInputError('too_many_jobs')
     const now = Date.now()
@@ -1003,6 +1028,7 @@ export function createAutomationJob(input: AutomationInput): AutomationMutationR
       ...(quietOnSuccess ? { quietOnSuccess } : {}),
       ...(retryOnFailure ? { retryOnFailure } : {}),
       ...(dailyCostLimitUsd !== undefined ? { dailyCostLimitUsd } : {}),
+      ...(originPluginId ? { originPluginId } : {}),
       createdAt: now,
       updatedAt: now,
       nextRunAt: enabled ? nextRunAfter(trigger, now) : null,
@@ -1091,6 +1117,38 @@ export function deleteAutomationJob(id: string): { ok: boolean; error?: string }
   syncWatchers()
   persistAndBroadcast()
   return { ok: true }
+}
+
+/**
+ * Every job a plugin created, and only those.
+ *
+ * Filtered on the recorded `originPluginId` rather than on anything the caller
+ * supplies or on the job's shape. A job the user made — even one that looks
+ * exactly like a plugin's — is never returned here, and a plugin's job stays
+ * visible to it after the user edits it, because the user editing the schedule
+ * does not change who created it.
+ */
+export function listAutomationJobsForPlugin(pluginId: string): AutomationJobView[] {
+  return jobs.filter(job => job.originPluginId === pluginId).map(toView)
+}
+
+/**
+ * Delete a job a plugin created.
+ *
+ * The ownership check and the removal happen in the same synchronous step, so a
+ * rename, a second plugin, or a user action cannot slip in between them. A
+ * job that exists but belongs to the user or to another plugin is `not_owned`
+ * rather than `not_found`: the plugin is not told whether someone else's job
+ * with that id exists.
+ */
+export function deleteAutomationJobForPlugin(
+  pluginId: string,
+  id: string,
+): { ok: boolean; error?: string } {
+  const job = jobs.find(j => j.id === id)
+  if (!job) return { ok: false, error: 'not_found' }
+  if (job.originPluginId !== pluginId) return { ok: false, error: 'not_owned' }
+  return deleteAutomationJob(id)
 }
 
 export function setAutomationEnabled(id: string, enabled: boolean): AutomationMutationResult {

@@ -475,6 +475,13 @@ export interface AutomationJobData {
   trigger: AutomationTriggerData
   action: AutomationActionData
   /**
+   * The plugin that created this job through the `schedule` capability; absent
+   * for every user-made job. Recorded by the main process, never set by a
+   * renderer request, and it survives a user editing the job — the badge says
+   * "a plugin created this", not "a plugin still controls it".
+   */
+  originPluginId?: string
+  /**
    * This job's own expert override; absent means "follow the workflow".
    * `__assistant__` is the reserved explicit plain-assistant choice.
    */
@@ -575,6 +582,48 @@ export interface AutomationInputData {
   retryOnFailure?: boolean
   /** Omitted clears the scheduled-run spend limit; 0 is not a limit. */
   dailyCostLimitUsd?: number
+}
+
+// ── Plugin `schedule` capability ────────────────────────────────────────────
+// Mirrors src/main/plugins/plugin-automation.ts. A plugin may only create,
+// list and delete jobs it created itself; these calls are refused with a
+// `[code] message` error the host view lifts into `aipa:response.code`.
+
+/**
+ * What a plugin may ask for. `trigger` is `cron` or `interval` only — a `watch`
+ * trigger is refused with `plugin_trigger_unsupported` — and `cwd` is not part
+ * of the shape at all, so a request cannot aim the run at a folder of its own.
+ */
+export interface PluginAutomationInputData {
+  /** Defaulted in main from the plugin's name and the opening of the prompt. */
+  name?: string
+  /** Required, non-empty, at most 4000 characters. */
+  prompt: string
+  trigger: AutomationTriggerData
+  /** Default true. */
+  enabled?: boolean
+  /** Default false (announce a successful run). */
+  quietOnSuccess?: boolean
+  /** Default false (never retry a failed scheduled run). */
+  retryOnFailure?: boolean
+  /** Optional rolling-24 h spend limit for this job's scheduled runs. */
+  dailyCostLimitUsd?: number
+}
+
+/** `originPluginId` on the returned job is the calling plugin's own id. */
+export interface PluginAutomationCreateResultData {
+  ok: true
+  job: AutomationJobData
+}
+
+/** Only the jobs the calling plugin created; a user's job never appears here. */
+export interface PluginAutomationListResultData {
+  ok: true
+  jobs: AutomationJobData[]
+}
+
+export interface PluginAutomationDeleteResultData {
+  ok: true
 }
 
 export type AutomationMutationData =
@@ -1101,6 +1150,14 @@ const electronAPI = {
     ipcRenderer.invoke('plugin:ai:abort', { pluginId, requestId }) as Promise<void>,
   pluginChatAsk: (pluginId: string, args: PluginChatAskArgs) =>
     ipcRenderer.invoke('plugin:chat:ask', { pluginId, args }) as Promise<PluginChatAnswer>,
+  // `schedule` capability: a plugin manages only the automations it created.
+  // Every refusal rejects with a `[code] message` error, like `chat.ask`.
+  pluginAutomationCreate: (pluginId: string, input: PluginAutomationInputData) =>
+    ipcRenderer.invoke('plugin:automation:create', { pluginId, input }) as Promise<PluginAutomationCreateResultData>,
+  pluginAutomationList: (pluginId: string) =>
+    ipcRenderer.invoke('plugin:automation:list', { pluginId }) as Promise<PluginAutomationListResultData>,
+  pluginAutomationDelete: (pluginId: string, id: string) =>
+    ipcRenderer.invoke('plugin:automation:delete', { pluginId, id }) as Promise<PluginAutomationDeleteResultData>,
   onPluginAiEvent: (callback: (event: PluginAiEvent) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, data: PluginAiEvent) => callback(data)
     ipcRenderer.on('plugin:ai:event', handler)

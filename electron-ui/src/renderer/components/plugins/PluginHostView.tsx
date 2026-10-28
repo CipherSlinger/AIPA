@@ -55,6 +55,37 @@ const INVOKE_METHODS: Record<string, {
       timeoutMs: typeof p?.timeoutMs === 'number' ? p.timeoutMs : undefined,
     }),
   },
+  // A plugin's own schedules. Main stamps `originPluginId` from the calling
+  // plugin, and `action` is never accepted here: a plugin may schedule a prompt
+  // of its own, not point the scheduler at one of the user's workflows. Every
+  // other field is copied literally; main validates cadence, name and limits
+  // and refuses with a coded error the response path lifts into `code`.
+  'automation.create': {
+    permission: 'schedule',
+    call: (api, id, p) => api.pluginAutomationCreate(id, {
+      name: String(p?.name || ''),
+      prompt: String(p?.prompt || ''),
+      trigger: p?.trigger,
+      enabled: typeof p?.enabled === 'boolean' ? p.enabled : undefined,
+      quietOnSuccess: typeof p?.quietOnSuccess === 'boolean' ? p.quietOnSuccess : undefined,
+      retryOnFailure: typeof p?.retryOnFailure === 'boolean' ? p.retryOnFailure : undefined,
+      dailyCostLimitUsd: typeof p?.dailyCostLimitUsd === 'number' && Number.isFinite(p.dailyCostLimitUsd)
+        ? p.dailyCostLimitUsd
+        : undefined,
+    }),
+  },
+  // Neither call accepts a plugin id from the payload: main scopes both to the
+  // calling plugin, so a plugin can never see or remove a job that is not its
+  // own. Delete takes only the job id, as a string so a number or object cannot
+  // reach the store lookup by accident.
+  'automation.list': {
+    permission: 'schedule',
+    call: (api, id) => api.pluginAutomationList(id),
+  },
+  'automation.delete': {
+    permission: 'schedule',
+    call: (api, id, p) => api.pluginAutomationDelete(id, String(p?.id ?? '')),
+  },
 }
 
 function errorMessage(err: unknown): string {

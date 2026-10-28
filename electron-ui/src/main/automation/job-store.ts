@@ -120,6 +120,14 @@ function normalizeJob(raw: unknown): AutomationJob | null {
     pendingRetry: enabled && retryOnFailure
       ? normalizePendingRetry(job.pendingRetry)
       : undefined,
+    // Plugin ownership is persisted state, not something to recompute from the
+    // job's shape: the plugin list/delete paths trust exactly this value. Kept
+    // only as a non-empty string, so a hand-edited file cannot leave a job
+    // claiming an owner it never had (and an absent value stays absent, which
+    // is what a user-made job is).
+    originPluginId: typeof job.originPluginId === 'string' && job.originPluginId.trim()
+      ? job.originPluginId.trim()
+      : undefined,
     createdAt: numberOrNull(job.createdAt) ?? Date.now(),
     updatedAt: numberOrNull(job.updatedAt) ?? Date.now(),
     // A watch job has no calendar at all. A stale or hand-edited `nextRunAt`

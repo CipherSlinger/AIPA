@@ -7,9 +7,11 @@
 // `automation:changed` instead of guessing what the scheduler did.
 
 import { useCallback, useEffect, useState } from 'react'
-import { AlarmClock, AlertTriangle, Clock, History, Pause, Pencil, Play, Plus, RefreshCw, RotateCcw, Trash2, Wallet } from 'lucide-react'
+import { AlarmClock, AlertTriangle, Clock, History, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Trash2, Wallet } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { usePrefsStore } from '../../store'
+import { usePluginStore } from '../../store/pluginStore'
+import { getPluginDisplayName } from '../plugins/pluginIcons'
 import SettingsGroup from './SettingsGroup'
 import { INPUT_STYLE } from './settingsConstants'
 import Toggle from '../ui/Toggle'
@@ -60,6 +62,7 @@ export default function SettingsAutomations() {
   const { t, resolvedLocale } = useI18n()
   const workflows = usePrefsStore(s => s.prefs.workflows) as WorkflowOption[] | undefined
   const personas = usePrefsStore(s => s.prefs.personas) as Persona[] | undefined
+  const plugins = usePluginStore(s => s.plugins)
 
   const [jobs, setJobs] = useState<AutomationJobData[]>([])
   const [limits, setLimits] = useState<AutomationLimitsData | null>(null)
@@ -110,6 +113,19 @@ export default function SettingsAutomations() {
   const workflowName = useCallback((id: string) => {
     return (workflows || []).find(w => w.id === id)?.name
   }, [workflows])
+
+  /**
+   * A job's origin plugin, as a badge label. An uninstalled plugin is not an
+   * error: the job outlives it, so the raw id stands in and the tooltip says
+   * the name is gone. The lookup never affects the row's controls — a
+   * plugin-made job is edited and deleted like any other.
+   */
+  const pluginOrigin = useCallback((id: string): { name: string; installed: boolean } => {
+    const plugin = plugins.find(p => p.manifest.id === id)
+    return plugin
+      ? { name: getPluginDisplayName(plugin.manifest, resolvedLocale), installed: true }
+      : { name: id, installed: false }
+  }, [plugins, resolvedLocale])
 
   /**
    * The expert that will actually run this job: its own override first, then
@@ -607,6 +623,11 @@ export default function SettingsAutomations() {
               const usage = usageLine(job)
               const spendLimit = spendLimitLine(job)
               const expert = jobExpert(job)
+              // A plugin-made job keeps its origin across restarts, so the badge
+              // is read from the job itself, not from a session-local guess. A
+              // plugin that has since been uninstalled leaves the id behind,
+              // which is still enough to keep the row honest and working.
+              const origin = job.originPluginId ? pluginOrigin(job.originPluginId) : null
               const busy = busyId === job.id || job.running
               // A watch job runs on an event, so its schedule line names the
               // path instead of a time, and a lost path is the row's warning.
@@ -640,6 +661,26 @@ export default function SettingsAutomations() {
                       <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>
                         {job.name}
                       </span>
+                      {origin && (
+                        // Named on the row, not only in the editor: the point is
+                        // to tell at a glance that this schedule was not created
+                        // by the user. It stays a chip, so Edit and Delete beside
+                        // it look no different from any other job's.
+                        <span
+                          title={origin.installed
+                            ? t('automation.pluginOrigin.hint', { plugin: origin.name })
+                            : t('automation.pluginOrigin.missing')}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            fontSize: 11, padding: '0 6px', borderRadius: 8,
+                            color: 'var(--accent-text)', background: 'rgba(99,102,241,0.12)',
+                            border: '1px solid rgba(99,102,241,0.35)',
+                          }}
+                        >
+                          <Puzzle size={10} style={{ flexShrink: 0 }} />
+                          {t('automation.pluginOrigin.badge', { plugin: origin.name })}
+                        </span>
+                      )}
                       <span style={{
                         display: 'inline-flex', alignItems: 'center', gap: 4, flexWrap: 'wrap',
                         maxWidth: '100%', overflowWrap: 'anywhere',

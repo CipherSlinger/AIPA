@@ -36,6 +36,9 @@ schedule from the main process. Decisions that are not obvious from the code:
   `nextRetryAfterFailure` needs a non-null `nextRunAt` — the next file change is the retry.
   Menu states `watch-missing` (disabled) and `watching <basename>` (clickable).
 - **Errors crossing IPC are codes**, translated by `automation.errors.*` in both locales — never prose.
+- **Plugin ownership is a persisted field (`originPluginId`, 2026-10-29).** `createAutomationJobForPlugin`
+  is the only writer; `listAutomationJobsForPlugin` / `deleteAutomationJobForPlugin` are the only
+  readers. The renderer `automation:*` handlers must never set it. See [[plugin-schedule-capability]].
 - **Turn args come from `buildCodexTurnArgs` (`src/main/codex/codex-turn-args.ts`)**, never a hand-built
   `env: {}`. That builder injects the Settings key and picks sandbox/approval; automations add
   `requireAuth` so a credential-less run fails fast instead of retrying. Chat and internal turns call it too.

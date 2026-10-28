@@ -177,6 +177,21 @@ export interface AutomationJob {
    * cleared by a success, a manual run, a schedule change, or a rail refusal.
    */
   pendingRetry?: AutomationPendingRetry
+  /**
+   * The plugin that created this job through the `schedule` capability.
+   *
+   * Recorded rather than inferred: a job's shape (a prompt action, no cwd, a
+   * cron trigger) is exactly what a user-made job looks like too, so ownership
+   * has to be a fact on the record. Only `createAutomationJobForPlugin` writes
+   * it — the renderer-facing `createAutomationJob` builds its job field by
+   * field, so a renderer bug cannot stamp a plugin's id onto a job, and the
+   * plugin list/delete paths filter on this value and nothing else.
+   *
+   * Absent on every user-made job and on every job that existed before this
+   * field did. A user may still edit, disable or delete the job: this is an
+   * attribution, not a lock.
+   */
+  originPluginId?: string
   createdAt: number
   updatedAt: number
   /** Epoch ms of the next scheduled occurrence; null only for a dead cron. */
