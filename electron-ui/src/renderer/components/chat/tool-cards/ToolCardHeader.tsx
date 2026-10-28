@@ -85,31 +85,40 @@ export function ToolCardHeader({
   const isRunning = status === 'running'
 
   const statusIcon = isRunning
-    ? <Loader2 size={11} className="animate-spin" style={{ color: '#818cf8' }} />
+    ? <Loader2 size={11} className="animate-spin" style={{ color: 'var(--accent-muted)' }} />
     : status === 'done'
-    ? <Check size={11} style={{ color: '#4ade80' }} />
-    : <X size={11} style={{ color: '#f87171' }} />
+    ? <Check size={11} style={{ color: 'var(--success-text)' }} />
+    : <X size={11} style={{ color: 'var(--danger-text)' }} />
 
   return (
     <button
       onClick={onToggle}
+      // The card clips its contents (`overflow: hidden`), so the ring has to
+      // be drawn just inside the header or the corners swallow it.
+      className="row-focus-inset"
       style={{
         width: '100%',
         display: 'flex',
         alignItems: 'center',
         gap: 6,
-        padding: '6px 10px',
-        background: 'var(--bg-hover)',
+        // 7px matches every other card header (Read/Write/Edit/Skill/…); 6px
+        // made the standard card a pixel shorter than the cards beside it.
+        padding: '7px 10px',
+        // Same header tone as the structured cards. The old --bg-hover fill is
+        // a hover step, so the collapsed header always looked pressed.
+        background: 'var(--section-bg)',
         border: 'none',
-        borderBottom: expanded ? '1px solid var(--bg-hover)' : 'none',
-        borderRadius: expanded ? '8px 8px 0 0' : 8,
+        borderBottom: expanded ? '1px solid var(--border)' : 'none',
+        // 9px = the card's 10px outer radius minus its 1px border, same as
+        // the code-block header.
+        borderRadius: expanded ? '9px 9px 0 0' : 9,
         cursor: 'pointer',
         textAlign: 'left',
         color: 'var(--text-primary)',
         transition: 'all 0.15s ease',
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-active)' }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--section-bg)' }}
     >
       <ChevronDown
         size={11}
@@ -120,7 +129,7 @@ export function ToolCardHeader({
           flexShrink: 0,
         }}
       />
-      <Icon size={13} style={{ color: 'rgba(165,180,252,0.8)', flexShrink: 0 }} />
+      <Icon size={13} style={{ color: 'var(--accent-muted)', flexShrink: 0 }} />
       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, display: 'flex', alignItems: 'center', gap: 5 }}>
         {/* For file path tools, show path-highlighted summary; otherwise show normal summary */}
         {isFilePath && filePath ? (
@@ -141,7 +150,7 @@ export function ToolCardHeader({
               fontSize: 9,
               fontWeight: 700,
               background: 'rgba(99,102,241,0.15)',
-              color: '#6366f1',
+              color: 'var(--accent-muted)',
               borderRadius: 6,
               padding: '1px 4px',
               flexShrink: 0,
@@ -175,10 +184,10 @@ export function ToolCardHeader({
           fontSize: 10,
           fontWeight: 600,
           ...(isRunning
-            ? { background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#818cf8' }
+            ? { background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: 'var(--accent-muted)' }
             : status === 'done'
-            ? { background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)', color: '#4ade80' }
-            : { background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }
+            ? { background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)', color: 'var(--success-text)' }
+            : { background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--danger-text)' }
           ),
         }}>
           {statusIcon}
@@ -208,7 +217,7 @@ export function ToolCardHeader({
             background: 'rgba(239,68,68,0.15)',
             border: '1px solid rgba(239,68,68,0.3)',
             borderRadius: 10,
-            color: '#fca5a5',
+            color: 'var(--danger-text)',
             cursor: 'pointer',
             fontSize: 10,
             fontWeight: 600,

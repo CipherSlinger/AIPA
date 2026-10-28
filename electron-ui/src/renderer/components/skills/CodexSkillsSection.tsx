@@ -250,6 +250,18 @@ export default function CodexSkillsSection() {
   // is intentional: the repo group is per-project.
   const workingDir = usePrefsStore(s => s.prefs.workingDir)
   const [skills, setSkills] = useState<CodexSkillInfoData[] | null>(null)
+  // `skills/changed` is the engine's invalidation signal: skill files on disk
+  // changed. Refetch on it while this section is on screen — one probe per
+  // event, no polling loop. Mount still fetches once, so a change that happened
+  // while Settings was closed is picked up when it opens.
+  const [refreshToken, setRefreshToken] = useState(0)
+  useEffect(() => {
+    const api = window.electronAPI
+    if (!api?.onCliEvent) return
+    return api.onCliEvent(null, (event) => {
+      if (event === 'cli:skillsChanged') setRefreshToken(token => token + 1)
+    })
+  }, [])
 
   useEffect(() => {
     const api = window.electronAPI
@@ -264,7 +276,7 @@ export default function CodexSkillsSection() {
         if (!cancelled) setSkills([])
       })
     return () => { cancelled = true }
-  }, [workingDir])
+  }, [workingDir, refreshToken])
 
   const sorted = useMemo(() => {
     if (!skills) return []

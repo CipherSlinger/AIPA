@@ -14,6 +14,7 @@ import { describeThreadStatus } from '../components/chat/threadStatusText'
 import { describeEngineItem, TOOL_CARD_KINDS } from '../components/chat/engineStepText'
 import { itemIdFromToolId } from '../components/chat/fileChangePatch'
 import { liveFilePatchStore } from '../components/chat/liveFilePatchStore'
+import { engineNoticeStore } from '../components/chat/engineNoticeStore'
 import {
   adoptEngineStepBucket,
   beginEngineTurn,
@@ -171,6 +172,21 @@ function hasToolCardForItemFamily(itemId: string): boolean {
  * the bridge this composer started, or — when no bridge is live — an event that
  * names the conversation already on screen.
  */
+/**
+ * Engine notices (warnings / reroutes) are thread-level like the settings
+ * report, but they can also arrive during `initialize`, before the send reply
+ * has told this hook the bridge id. Accept a thread report, or a bridge the
+ * store already considers the owner of the in-flight turn (which covers the
+ * brand-new-conversation window). A notice from a turn the user walked away
+ * from stays out.
+ */
+function isNoticeForActiveConversation(data: unknown, activeBridgeId: string | null): boolean {
+  if (isThreadReportForActiveConversation(data, activeBridgeId)) return true
+  const d = data as { sessionId?: unknown } | null
+  const sid = typeof d?.sessionId === 'string' ? d.sessionId : ''
+  return !!sid && useChatStore.getState().isOwnedStreamEvent(sid)
+}
+
 function isThreadReportForActiveConversation(data: unknown, activeBridgeId: string | null): boolean {
   const d = data as { sessionId?: unknown } | null
   const sid = typeof d?.sessionId === 'string' ? d.sessionId : ''
@@ -587,12 +603,27 @@ export function useStreamJson() {
     // the pending bucket of a draft conversation.
     clearEngineSteps(useChatStore.getState().viewSessionId)
     clearEngineSteps(null)
+    // Composer notices belong to the conversation that was just cleared.
+    engineNoticeStore.reset()
     useChatStore.getState().clearMessages()
     contextWarningShownRef.current = false
     // A new conversation inherits the currently selected persona. It is stored
     // on the session only: copying it into global prefs is what used to make one
     // conversation's expert leak into every other conversation.
     useChatStore.getState().setSessionPersonaId(usePrefsStore.getState().prefs.activePersonaId)
+  }, [])
+
+  // Switching conversations swaps the view without going through
+  // `newConversation`. Engine warnings/reroutes describe the turn that was on
+  // screen, so they must not follow the user into another conversation. This
+  // only observes the view id; no store writes happen here.
+  useEffect(() => {
+    let lastView = useChatStore.getState().viewSessionId
+    return useChatStore.subscribe((state) => {
+      if (state.viewSessionId === lastView) return
+      lastView = state.viewSessionId
+      engineNoticeStore.reset()
+    })
   }, [])
 
   // PERF: this effect is registered once and every store action is read through
@@ -608,7 +639,7 @@ export function useStreamJson() {
       Notification.requestPermission()
     }
 
-    const unsub = window.electronAPI.onCliEvent(null as unknown as string, (event, data: any) => {
+    const unsub = window.electronAPI.onCliEvent(null, (event, data: any) => {
       // Internal turns own no conversation. Drop their events before any
       // handler can touch the store.
       if (isInternalCliEvent(data)) return
@@ -911,6 +942,10 @@ export function useStreamJson() {
             console.debug('[cli:result] ignored result from another conversation:', data.sessionId)
             break
           }
+          // The turn is over: its warning rows (and the dedupe memory that
+          // made dismissals stick) are spent. A reroute line may stay until the
+          // next turn starts, since it still describes the turn just finished.
+          engineNoticeStore.endTurn()
           const resultData = data as CliResultEventData
           // The protocol's terminal statement (Codex) — null for the legacy
           // Claude bridge, which has only `subtype`.
@@ -1357,6 +1392,10 @@ export function useStreamJson() {
           // the previous turn's aggregate diff must not sit under its answer.
           const sid = typeof data.sessionId === 'string' ? data.sessionId : ''
           if (sid && useChatStore.getState().isOwnedStreamEvent(sid)) {
+            // A new turn is no longer covered by the previous turn's reroute
+            // report. Warnings stay until `cli:result` (they can arrive before
+            // `turn/started` during initialize).
+            engineNoticeStore.beginTurn()
             useChatStore.getState().clearTurnDiff()
             // A protocol turn boundary also ends a grouping window: two turns
             // that each produced one unhandled item must not merge into one
@@ -1473,6 +1512,24 @@ export function useStreamJson() {
             effort: compactString(settings.effort),
             sandboxPolicy: compactSandboxPolicy(settings.sandboxPolicy),
           })
+          break
+        }
+        case 'cli:engineWarning': {
+          // The engine's own sentence. Warnings are thread-level, not turn
+          // deltas: `configWarning` can arrive during initialize, before
+          // `turn/started`. The store dedupes identical text, caps the stack
+          // and keeps a dismissal until the turn ends; the text itself is
+          // rendered verbatim, with no severity or cause invented here.
+          if (!isNoticeForActiveConversation(data, activeBridgeIdRef.current)) break
+          engineNoticeStore.pushWarning(data)
+          break
+        }
+        case 'cli:modelRerouted': {
+          // The picker named one model and the engine ran another. Keep both
+          // ids in the strip until the next turn starts, so the mismatch is
+          // visible rather than quietly hidden.
+          if (!isNoticeForActiveConversation(data, activeBridgeIdRef.current)) break
+          engineNoticeStore.setReroute(data)
           break
         }
         case 'cli:apiError': {

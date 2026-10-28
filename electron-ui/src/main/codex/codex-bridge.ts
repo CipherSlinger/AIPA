@@ -21,6 +21,9 @@
  *   - `v2/ModelListResponse.json`, `v2/GetAccountTokenUsageResponse.json`,
  *     `v2/GetAccountRateLimitsResponse.json`,
  *     `v2/AccountRateLimitsUpdatedNotification.json`, `v2/SkillsListResponse.json`
+ *   - `v2/WarningNotification.json`, `v2/DeprecationNoticeNotification.json`,
+ *     `v2/ConfigWarningNotification.json`, `v2/ModelReroutedNotification.json`,
+ *     `v2/AccountUpdatedNotification.json`, `v2/SkillsChangedNotification.json`
  *
  * `.scratch/` is gitignored; regenerate the schema before changing field names.
  */
@@ -155,6 +158,60 @@ export interface CodexSkillInfo {
   scope: 'user' | 'repo' | 'system' | 'admin' | string
   enabled: boolean
   shortDescription?: string | null
+}
+
+/** `TextRange` of `configWarning` (`v2/ConfigWarningNotification.json`). */
+export interface CodexTextRange {
+  start: { line: number; column: number }
+  end: { line: number; column: number }
+}
+
+export type CodexEngineWarningKind = 'warning' | 'deprecationNotice' | 'configWarning'
+
+/**
+ * One engine-side warning the user should see. Verified against the generated
+ * 0.145 schema (`.scratch/codex-schema/v2/`) and the binary's literal method
+ * strings (`warning`, `deprecationNotice`, `configWarning`):
+ *
+ *   warning            `{ message: string, threadId?: string | null }`
+ *   deprecationNotice  `{ summary: string, details?: string | null }`
+ *   configWarning      `{ summary: string, details?: string | null,
+ *                         path?: string | null, range?: TextRange | null }`
+ *
+ * `message` is the one user-facing sentence, kept verbatim: the bridge never
+ * re-words it or assigns a severity. Optional fields are normalized to `null`
+ * so the renderer can tell "the engine said nothing" from "empty string".
+ */
+export interface CodexEngineWarning {
+  kind: CodexEngineWarningKind
+  message: string
+  details: string | null
+  path: string | null
+  range: CodexTextRange | null
+  threadId: string | null
+}
+
+/**
+ * `model/rerouted` (`v2/ModelReroutedNotification.json`). Every field is
+ * required on the wire; `reason` is the `ModelRerouteReason` enum, currently
+ * only `highRiskCyberActivity`, forwarded verbatim rather than mapped.
+ */
+export interface CodexModelReroute {
+  fromModel: string
+  toModel: string
+  threadId: string
+  turnId: string
+  reason: string
+}
+
+/**
+ * `account/updated` (`v2/AccountUpdatedNotification.json`). Both fields are
+ * optional and nullable; `{}` is a valid payload — the account changed, but
+ * the notification did not say what is new.
+ */
+export interface CodexAccountUpdate {
+  authMode: string | null
+  planType: string | null
 }
 
 interface PendingRequest {
@@ -656,6 +713,106 @@ export function normalizePatchUpdatedNotification(
   }
 }
 
+/** `TextRange` is optional on the wire; a malformed one becomes `null`. */
+function parseTextRange(raw: unknown): CodexTextRange | null {
+  const range = asRecord(raw)
+  if (!range) return null
+  const start = asRecord(range.start)
+  const end = asRecord(range.end)
+  if (!start || !end) return null
+  const position = (value: unknown): { line: number; column: number } | null => {
+    const pos = asRecord(value)
+    if (!pos) return null
+    const line = numberOrNull(pos.line)
+    const column = numberOrNull(pos.column)
+    if (line === null || column === null || line < 0 || column < 0) return null
+    if (!Number.isInteger(line) || !Number.isInteger(column)) return null
+    return { line, column }
+  }
+  const from = position(start)
+  const to = position(end)
+  return from && to ? { start: from, end: to } : null
+}
+
+/**
+ * Normalize a `warning` / `deprecationNotice` / `configWarning` payload into
+ * the one shape the renderer shows. Returns null when the engine sent no
+ * usable sentence — the renderer never fabricates one.
+ */
+export function normalizeEngineWarning(
+  method: string,
+  params: Record<string, unknown>,
+): CodexEngineWarning | null {
+  switch (method) {
+    case 'warning': {
+      const message = stringOr(params.message)
+      if (!message.trim()) return null
+      return {
+        kind: 'warning',
+        message,
+        details: null,
+        path: null,
+        range: null,
+        threadId: stringOr(params.threadId) || null,
+      }
+    }
+    case 'deprecationNotice': {
+      const message = stringOr(params.summary)
+      if (!message.trim()) return null
+      return {
+        kind: 'deprecationNotice',
+        message,
+        details: stringOr(params.details) || null,
+        path: null,
+        range: null,
+        threadId: null,
+      }
+    }
+    case 'configWarning': {
+      const message = stringOr(params.summary)
+      if (!message.trim()) return null
+      return {
+        kind: 'configWarning',
+        message,
+        details: stringOr(params.details) || null,
+        path: stringOr(params.path) || null,
+        range: parseTextRange(params.range),
+        threadId: null,
+      }
+    }
+    default:
+      return null
+  }
+}
+
+/**
+ * `model/rerouted`: the engine moved a turn to a different model than the one
+ * requested. Returns null unless both model ids and the turn identity are
+ * present, so the strip can always name both models honestly.
+ */
+export function normalizeModelRerouted(params: Record<string, unknown>): CodexModelReroute | null {
+  const fromModel = stringOr(params.fromModel)
+  const toModel = stringOr(params.toModel)
+  const threadId = stringOr(params.threadId)
+  const turnId = stringOr(params.turnId)
+  const reason = stringOr(params.reason)
+  if (!fromModel.trim() || !toModel.trim() || !threadId.trim() || !turnId.trim() || !reason.trim()) {
+    return null
+  }
+  // "Moved to the same model" is not a reroute; forwarding it would make the
+  // strip claim a change that did not happen.
+  if (fromModel === toModel) return null
+  return { fromModel, toModel, threadId, turnId, reason }
+}
+
+/** Normalize `account/updated`; an empty payload is valid and yields nulls. */
+export function normalizeAccountUpdated(params: Record<string, unknown>): CodexAccountUpdate {
+  return {
+    authMode: stringOr(params.authMode) || null,
+    planType: stringOr(params.planType) || null,
+  }
+}
+
 // ── CodexBridge ──────────────────────────────────────
 
 export class CodexBridge extends EventEmitter {
@@ -712,6 +869,10 @@ export class CodexBridge extends EventEmitter {
   // stampede the account endpoint for data that only changes on push.
   private rateLimitsPrimed = false
   private skillsCache: { cwd: string; skills: CodexSkillInfo[]; fetchedAt: number } | null = null
+  // `skills/changed` means the files on disk changed. Dropping the app cache is
+  // not enough: Codex has its own cache, so the next `skills/list` also asks
+  // for `forceReload` once. The flag clears only after a successful read.
+  private skillsCacheDirty = false
   // Bounded bookkeeping for streaming notifications.
   private toolProgressLastAt = new Map<string, number>()
   private planDeltaBuffers = new Map<string, string>()
@@ -1022,18 +1183,22 @@ export class CodexBridge extends EventEmitter {
   async listSkills(options: { cwd?: string; force?: boolean; timeoutMs?: number } = {}): Promise<CodexSkillInfo[]> {
     this._requireProcess('skills/list')
     const cwd = options.cwd ?? this.currentCwd ?? process.cwd()
-    if (!options.force && this.skillsCache
+    const forceReload = options.force === true || this.skillsCacheDirty
+    if (!forceReload && this.skillsCache
       && this.skillsCache.cwd === cwd
       && Date.now() - this.skillsCache.fetchedAt < SKILLS_CACHE_TTL_MS) {
       return this.skillsCache.skills
     }
     const result = await this._sendRequest(
       'skills/list',
-      { cwds: [cwd], ...(options.force ? { forceReload: true } : {}) },
+      { cwds: [cwd], ...(forceReload ? { forceReload: true } : {}) },
       options.timeoutMs ?? PROBE_TIMEOUT_MS,
     )
     const skills = normalizeSkills(result)
     this.skillsCache = { cwd, skills, fetchedAt: Date.now() }
+    // Only a successful read proves Codex re-scanned; a failed request leaves
+    // the dirty flag set so the next caller retries with `forceReload`.
+    this.skillsCacheDirty = false
     return skills
   }
 
@@ -2233,6 +2398,55 @@ export class CodexBridge extends EventEmitter {
         break
       }
 
+      // ── Engine warnings ────────────────────────
+      // `warning`, `deprecationNotice` and `configWarning` are the engine's own
+      // words to the user. They used to fall into the `default` branch and die
+      // in main. Forward the verified sentence verbatim; the renderer only
+      // dedupes and caps, it never invents severity or a cause.
+      case 'warning':
+      case 'deprecationNotice':
+      case 'configWarning': {
+        const warning = normalizeEngineWarning(method, params)
+        if (warning) this.emit('engineWarning', { sessionId: sid, ...warning })
+        else log.debug(`Malformed ${method} notification dropped`)
+        break
+      }
+
+      // ── Model reroute ──────────────────────────
+      // The engine moved this turn to a different model than the one the
+      // request named. Both ids and the reason are required by the schema.
+      case 'model/rerouted': {
+        const reroute = normalizeModelRerouted(params)
+        if (reroute) this.emit('modelRerouted', { sessionId: sid, ...reroute })
+        else log.debug('Malformed model/rerouted notification dropped')
+        break
+      }
+
+      // ── Account changes ────────────────────────
+      // Plan/credits changed. Any cached usage snapshot now describes the old
+      // account state, so drop it. Then refresh the composer chip through the
+      // existing read path — fire-and-forget with `force` (the 30 s cache would
+      // otherwise mask the very change this notification announced). A dead or
+      // slow account can never hold a turn.
+      case 'account/updated': {
+        this.emit('accountUpdated', { sessionId: sid, ...normalizeAccountUpdated(params) })
+        this.usageCache = null
+        void this.readRateLimits({ force: true })
+          .then((rateLimits) => {
+            if (this.cleaningUp) return
+            this.emit('rateLimitsUpdated', {
+              sessionId: sid,
+              source: 'read',
+              rateLimits: rateLimits.rateLimits,
+              rateLimitsByLimitId: rateLimits.rateLimitsByLimitId,
+            })
+          })
+          .catch((err) => {
+            log.debug('account/updated rateLimits refresh failed:', String(err))
+          })
+        break
+      }
+
       // ── Account rate limits ────────────────────
       // The schema documents this as a *sparse* rolling update: nullable
       // metadata may be unavailable and does not clear a previously observed
@@ -2304,8 +2518,11 @@ export class CodexBridge extends EventEmitter {
 
       // ── Skill/plugin notifications ─────────────
       case 'skills/changed': {
-        // The next systemInit / skills probe must see the new list.
+        // The next systemInit / skills probe must see the new list. `dirty`
+        // also forces `forceReload` once, because Codex has its own cache that
+        // would otherwise answer with the pre-change catalogue.
         this.skillsCache = null
+        this.skillsCacheDirty = true
         this.emit('skillsChanged', { sessionId: sid })
         break
       }

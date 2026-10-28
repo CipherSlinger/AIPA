@@ -43,7 +43,7 @@ export function BashCommandBlock({ command }: BashCommandBlockProps) {
       transition: 'all 0.15s ease',
     }}>
       <span style={{
-        color: 'rgba(99,102,241,0.80)',
+        color: 'var(--accent-muted)',
         fontWeight: 700,
         marginRight: 8,
         flexShrink: 0,
@@ -79,7 +79,7 @@ export function BashOutputBlock({ output }: BashOutputBlockProps) {
     ? lines.slice(0, BASH_OUTPUT_MAX_LINES)
     : lines
 
-  const textColor = hasError ? 'rgba(239,68,68,0.75)' : 'var(--text-secondary)'
+  const textColor = hasError ? 'var(--danger-text)' : 'var(--text-secondary)'
 
   return (
     <div style={{
@@ -111,14 +111,14 @@ export function BashOutputBlock({ output }: BashOutputBlockProps) {
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            color: 'rgba(165,180,252,0.70)',
+            color: 'var(--accent-muted)',
             fontSize: 11,
             fontFamily: 'monospace',
             padding: '2px 0',
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,1)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,0.70)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent-text)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--accent-muted)' }}
         >
           展开全部 {totalLines} 行
         </button>

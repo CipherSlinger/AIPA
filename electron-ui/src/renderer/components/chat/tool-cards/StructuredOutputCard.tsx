@@ -14,10 +14,10 @@ interface Props {
 }
 
 function JsonValue({ value, depth = 0 }: { value: unknown; depth?: number }): React.ReactElement {
-  if (value === null) return <span style={{ color: 'rgba(239,68,68,0.85)' }}>null</span>
-  if (typeof value === 'boolean') return <span style={{ color: 'rgba(251,146,60,0.9)' }}>{String(value)}</span>
-  if (typeof value === 'number') return <span style={{ color: 'rgba(99,102,241,0.9)' }}>{String(value)}</span>
-  if (typeof value === 'string') return <span style={{ color: 'rgba(52,211,153,0.9)' }}>"{value}"</span>
+  if (value === null) return <span style={{ color: 'var(--danger-text)' }}>null</span>
+  if (typeof value === 'boolean') return <span style={{ color: 'var(--warning-text)' }}>{String(value)}</span>
+  if (typeof value === 'number') return <span style={{ color: 'var(--accent-text)' }}>{String(value)}</span>
+  if (typeof value === 'string') return <span style={{ color: 'var(--success-text)' }}>"{value}"</span>
   if (Array.isArray(value)) {
     if (value.length === 0) return <span style={{ color: 'var(--text-faint)' }}>[]</span>
     return (
@@ -44,7 +44,7 @@ function JsonValue({ value, depth = 0 }: { value: unknown; depth?: number }): Re
         <div style={{ paddingLeft: 14 * (depth + 1) }}>
           {entries.map(([k, v], i) => (
             <div key={k}>
-              <span style={{ color: 'rgba(167,139,250,0.85)' }}>"{k}"</span>
+              <span style={{ color: 'var(--violet-text)' }}>"{k}"</span>
               <span style={{ color: 'var(--text-faint)' }}>: </span>
               <JsonValue value={v} depth={depth + 1} />
               {i < entries.length - 1 && <span style={{ color: 'var(--text-faint)' }}>,</span>}
@@ -115,7 +115,7 @@ export function StructuredOutputCard({ tool }: Props) {
         borderRadius: 10,
         marginBottom: 6,
         overflow: 'hidden',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        boxShadow: 'var(--code-shadow)',
       }}
     >
       {/* Header */}
@@ -124,11 +124,15 @@ export function StructuredOutputCard({ tool }: Props) {
           display: 'flex',
           alignItems: 'center',
           gap: 8,
-          padding: '8px 12px',
+          // The rest of the card family uses a 10px inset header with a tint;
+          // 12px/transparent made this the one card whose title sat wider and
+          // brighter than every neighbour.
+          padding: '7px 10px',
+          background: 'var(--section-bg)',
           borderBottom: '1px solid var(--border)',
         }}
       >
-        <Database size={13} color="rgba(167,139,250,0.85)" style={{ flexShrink: 0 }} />
+        <Database size={13} style={{ color: 'var(--violet-text)', flexShrink: 0 }} />
         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}>
           Structured Output
         </span>
@@ -138,8 +142,8 @@ export function StructuredOutputCard({ tool }: Props) {
               fontSize: 10,
               padding: '1px 6px',
               borderRadius: 8,
-              background: 'rgba(167,139,250,0.12)',
-              color: 'rgba(167,139,250,0.85)',
+              background: 'var(--accent-bg)',
+              color: 'var(--violet-text)',
               fontWeight: 500,
             }}
           >
@@ -153,7 +157,7 @@ export function StructuredOutputCard({ tool }: Props) {
               fontWeight: 700,
               letterSpacing: '0.06em',
               textTransform: 'uppercase',
-              color: 'rgba(99,102,241,0.85)',
+              color: 'var(--accent-text)',
               marginLeft: 'auto',
             }}
           >
@@ -164,22 +168,22 @@ export function StructuredOutputCard({ tool }: Props) {
           <button
             onClick={handleCopy}
             title="Copy JSON"
+            className={`card-action${copied ? ' is-copied' : ''}`}
             style={{
               marginLeft: 'auto',
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              padding: '2px 4px',
+              // 2px/6px is the shared copy-button box across the card family.
+              padding: '2px 6px',
               borderRadius: 6,
-              color: copied ? 'rgba(34,197,94,0.85)' : 'var(--text-faint)',
+              color: copied ? 'var(--success-text)' : 'var(--text-faint)',
               display: 'flex',
               alignItems: 'center',
               gap: 4,
               fontSize: 10,
               transition: 'color 0.15s ease',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = copied ? 'rgba(34,197,94,0.85)' : 'var(--text-faint)' }}
           >
             {copied ? <Check size={11} /> : <Copy size={11} />}
             {copied ? 'copied' : 'copy'}

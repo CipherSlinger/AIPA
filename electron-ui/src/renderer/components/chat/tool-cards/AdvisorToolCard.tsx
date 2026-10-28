@@ -91,7 +91,7 @@ export function AdvisorToolCard({ input, result, isLoading, error }: AdvisorTool
       borderRadius: 10,
       marginBottom: 6,
       overflow: 'hidden',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+      boxShadow: 'var(--code-shadow)',
       transition: 'border-color 0.2s ease',
     }}>
       {/* Header row */}
@@ -102,13 +102,13 @@ export function AdvisorToolCard({ input, result, isLoading, error }: AdvisorTool
         padding: '7px 10px',
         background: 'var(--section-bg)',
       }}>
-        <Eye size={13} style={{ color: 'rgba(139,92,246,0.85)', flexShrink: 0 }} />
+        <Eye size={13} style={{ color: 'var(--violet-text)', flexShrink: 0 }} />
 
         <span style={{
           flex: 1,
           fontSize: 12,
           fontFamily: 'monospace',
-          color: 'rgba(139,92,246,0.90)',
+          color: 'var(--violet-text)',
           fontWeight: 600,
         }}>
           Advisor Review
@@ -121,7 +121,7 @@ export function AdvisorToolCard({ input, result, isLoading, error }: AdvisorTool
             gap: 4,
             fontSize: 10,
             fontWeight: 500,
-            color: 'rgba(139,92,246,0.80)',
+            color: 'var(--violet-text)',
             fontStyle: 'italic',
             animation: 'pulse 1.5s ease-in-out infinite',
             flexShrink: 0,
@@ -139,7 +139,7 @@ export function AdvisorToolCard({ input, result, isLoading, error }: AdvisorTool
             borderRadius: 8,
             background: 'rgba(34,197,94,0.12)',
             border: '1px solid rgba(34,197,94,0.28)',
-            color: '#4ade80',
+            color: 'var(--success-text)',
             fontSize: 10,
             fontWeight: 500,
             flexShrink: 0,
@@ -158,7 +158,7 @@ export function AdvisorToolCard({ input, result, isLoading, error }: AdvisorTool
             borderRadius: 8,
             background: 'rgba(239,68,68,0.12)',
             border: '1px solid rgba(239,68,68,0.28)',
-            color: '#f87171',
+            color: 'var(--danger-text)',
             fontSize: 10,
             fontWeight: 500,
             flexShrink: 0,
@@ -171,7 +171,7 @@ export function AdvisorToolCard({ input, result, isLoading, error }: AdvisorTool
 
       {/* Result preview */}
       {isDone && !hasError && resultText && (
-        <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
+        <div style={{ borderTop: '1px solid var(--border)' }}>
           <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
             <span style={{
               fontSize: 10,
@@ -189,8 +189,8 @@ export function AdvisorToolCard({ input, result, isLoading, error }: AdvisorTool
               margin: 0,
               fontFamily: 'monospace',
               background: 'var(--code-bg)',
-              border: '1px solid var(--bg-hover)',
-              borderRadius: 4,
+              border: '1px solid var(--border)',
+              borderRadius: 6,
               padding: '6px 8px',
               overflow: 'auto',
               maxHeight: expanded ? 400 : 120,
@@ -209,13 +209,13 @@ export function AdvisorToolCard({ input, result, isLoading, error }: AdvisorTool
                   border: 'none',
                   cursor: 'pointer',
                   fontSize: 10,
-                  color: 'rgba(139,92,246,0.70)',
+                  color: 'var(--violet-text)',
                   padding: '2px 0',
                   marginTop: 2,
                   transition: 'color 0.15s ease',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(139,92,246,1)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(139,92,246,0.70)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--violet-text)' }}
               >
                 {expanded ? 'Show less' : 'Show more'}
               </button>

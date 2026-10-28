@@ -39,6 +39,7 @@ function CopyBtn({ text }: CopyBtnProps) {
     <button
       onClick={handleCopy}
       title={copied ? 'Copied!' : 'Copy result'}
+      className={`card-action${copied ? ' is-copied' : ''}`}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -48,13 +49,11 @@ function CopyBtn({ text }: CopyBtnProps) {
         cursor: 'pointer',
         padding: '2px 6px',
         borderRadius: 6,
-        color: copied ? '#4ade80' : 'var(--text-muted)',
+        color: copied ? 'var(--success-text)' : 'var(--text-muted)',
         fontSize: 10,
         transition: 'color 0.15s ease',
         flexShrink: 0,
       }}
-      onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = '#fb7185' }}
-      onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = 'var(--text-muted)' }}
     >
       {copied ? <Check size={11} /> : <Clipboard size={11} />}
       {copied ? 'Copied' : 'Copy'}
@@ -124,7 +123,7 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
       borderRadius: 10,
       marginBottom: 6,
       overflow: 'hidden',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+      boxShadow: 'var(--code-shadow)',
       transition: 'border-color 0.2s ease',
     }}>
       {/* Header row */}
@@ -137,7 +136,7 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
       }}>
         <Users
           size={13}
-          style={{ color: 'rgba(244,63,94,0.85)', flexShrink: 0 }}
+          style={{ color: 'var(--danger-text)', flexShrink: 0 }}
         />
 
         {/* Badge */}
@@ -148,7 +147,7 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
           borderRadius: 5,
           background: 'rgba(244,63,94,0.15)',
           border: '1px solid rgba(244,63,94,0.30)',
-          color: '#fda4af',
+          color: 'var(--danger-text)',
           fontSize: 10,
           fontWeight: 700,
           letterSpacing: '0.05em',
@@ -162,7 +161,7 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
           flex: 1,
           fontSize: 12,
           fontFamily: 'monospace',
-          color: 'rgba(253,164,175,0.90)',
+          color: 'var(--danger-text)',
           fontWeight: 600,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -175,7 +174,7 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
         {isLoading && !hasResult && (
           <span style={{
             fontSize: 10,
-            color: 'rgba(244,63,94,0.75)',
+            color: 'var(--danger-text)',
             fontStyle: 'italic',
             animation: 'pulse 1.5s ease-in-out infinite',
             flexShrink: 0,
@@ -194,7 +193,7 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
             borderRadius: 8,
             background: 'rgba(34,197,94,0.12)',
             border: '1px solid rgba(34,197,94,0.28)',
-            color: '#4ade80',
+            color: 'var(--success-text)',
             fontSize: 10,
             fontWeight: 500,
             flexShrink: 0,
@@ -207,7 +206,7 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
 
       {/* Input details: description + members + team_id */}
       {(description || members.length > 0 || (isDone && teamId)) && (
-        <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
+        <div style={{ borderTop: '1px solid var(--border)' }}>
           <div style={{ padding: '6px 10px', background: 'var(--section-bg)' }}>
             {description && (
               <div style={{
@@ -232,7 +231,7 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
                       borderRadius: 5,
                       background: 'rgba(244,63,94,0.10)',
                       border: '1px solid rgba(244,63,94,0.25)',
-                      color: 'rgba(253,164,175,0.85)',
+                      color: 'var(--danger-text)',
                       fontSize: 11,
                       fontFamily: 'monospace',
                       fontWeight: 500,
@@ -258,7 +257,7 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
                 <span style={{
                   fontSize: 11,
                   fontFamily: 'monospace',
-                  color: 'rgba(253,164,175,0.85)',
+                  color: 'var(--danger-text)',
                 }}>
                   {teamId}
                 </span>
@@ -270,7 +269,7 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
 
       {/* Result section — collapsible JSON preview */}
       {hasResult && (
-        <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
+        <div style={{ borderTop: '1px solid var(--border)' }}>
           <div style={{ padding: '6px 10px', background: 'var(--section-bg)' }}>
             <div style={{
               display: 'flex',
@@ -298,13 +297,15 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    padding: '2px 4px',
+                    // Same box as the copy button beside it, so the pair reads
+                    // as one control group instead of a labelled button next to
+                    // a bare glyph.
+                    padding: '2px 6px',
                     color: 'var(--text-muted)',
-                    borderRadius: 4,
+                    borderRadius: 6,
                     transition: 'color 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = '#fb7185' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
+                  className="card-action"
                 >
                   {resultExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                 </button>
@@ -317,8 +318,8 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
                 fontSize: 11,
                 fontFamily: "Consolas, 'Cascadia Code', 'Fira Code', monospace",
                 background: 'var(--code-bg)',
-                border: '1px solid var(--bg-hover)',
-                borderRadius: 4,
+                border: '1px solid var(--border)',
+                borderRadius: 6,
                 padding: '8px 10px',
                 overflow: 'auto',
                 maxHeight: 240,

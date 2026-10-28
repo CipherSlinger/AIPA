@@ -33,11 +33,11 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
   const allDone = tools.every(t => t.status === 'done')
 
   const statusIcon = hasRunning
-    ? <Loader2 size={11} className="animate-spin" style={{ color: '#818cf8' }} />
+    ? <Loader2 size={11} className="animate-spin" style={{ color: 'var(--accent-muted)' }} />
     : allDone
-    ? <Check size={11} style={{ color: '#4ade80' }} />
+    ? <Check size={11} style={{ color: 'var(--success-text)' }} />
     : hasError
-    ? <span style={{ fontSize: 10, color: '#fca5a5' }}>!</span>
+    ? <span style={{ fontSize: 10, color: 'var(--danger-text)' }}>!</span>
     : null
 
   // Get category icon
@@ -63,7 +63,7 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
         borderRadius: 10,
         marginBottom: 8,
         overflow: 'hidden',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        boxShadow: 'var(--code-shadow)',
       }}
     >
       {/* Batch Header */}
@@ -71,28 +71,32 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
         aria-label={`Expand tool batch: ${summary}`}
+        className="row-focus-inset"
         style={{
           width: '100%',
           display: 'flex',
           alignItems: 'center',
           gap: 6,
-          padding: '6px 10px',
-          background: 'var(--glass-bg-low)',
+          // Match the standard tool card header (7px) and its tone; a batch
+          // sits directly above the cards it groups and used to be a step
+          // lighter/darker than them.
+          padding: '7px 10px',
+          background: 'var(--section-bg)',
           border: 'none',
-          borderBottom: expanded ? '1px solid var(--bg-hover)' : 'none',
+          borderBottom: expanded ? '1px solid var(--border)' : 'none',
           cursor: 'pointer',
           textAlign: 'left',
-          color: '#818cf8',
+          color: 'var(--accent-muted)',
           transition: 'all 0.15s ease',
         }}
         onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--glass-bg-low)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--section-bg)' }}
       >
         {expanded
           ? <ChevronDown size={11} style={{ color: 'var(--text-muted)', transition: 'all 0.15s ease', fontSize: 11 }} />
           : <ChevronRight size={11} style={{ color: 'var(--text-muted)', transition: 'all 0.15s ease', fontSize: 11 }} />
         }
-        <Icon size={12} style={{ color: '#818cf8', flexShrink: 0 }} />
+        <Icon size={12} style={{ color: 'var(--accent-muted)', flexShrink: 0 }} />
         <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
           {summary}
         </span>
@@ -101,7 +105,7 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
           background: 'rgba(99,102,241,0.15)',
           border: '1px solid rgba(99,102,241,0.30)',
           borderRadius: 10,
-          color: '#a5b4fc',
+          color: 'var(--accent-text)',
           fontSize: 10,
           fontWeight: 700,
           letterSpacing: '0.04em',
@@ -124,10 +128,10 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
             fontWeight: 600,
             flexShrink: 0,
             ...(hasRunning
-              ? { background: 'rgba(99,102,241,0.15)', color: '#818cf8' }
+              ? { background: 'rgba(99,102,241,0.15)', color: 'var(--accent-muted)' }
               : allDone
-              ? { background: 'rgba(34,197,94,0.12)', color: '#4ade80' }
-              : { background: 'rgba(239,68,68,0.12)', color: '#fca5a5' }
+              ? { background: 'rgba(34,197,94,0.12)', color: 'var(--success-text)' }
+              : { background: 'rgba(239,68,68,0.12)', color: 'var(--danger-text)' }
             ),
           }}>
             {statusIcon}
@@ -137,7 +141,7 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
 
       {/* Expanded: show individual tools with tree lines */}
       {expanded && (
-        <div style={{ borderTop: '1px solid var(--bg-hover)', padding: '4px 0 4px 8px' }}>
+        <div style={{ borderTop: '1px solid var(--border)', padding: '4px 0 4px 8px' }}>
           {tools.map((tool, idx) => {
             const isLast = idx === tools.length - 1
             const treeLine = isLast ? '\u2514\u2500\u2500' : '\u251C\u2500\u2500'
@@ -150,7 +154,7 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
                   flex: 1,
                   minWidth: 0,
                   padding: '5px 10px',
-                  borderBottom: '1px solid var(--bg-hover)',
+                  borderBottom: '1px solid var(--border)',
                 }}>
                   <ToolUseBlock tool={tool} onAbort={onAbort} />
                 </div>

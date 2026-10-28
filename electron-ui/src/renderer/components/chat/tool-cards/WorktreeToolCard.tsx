@@ -33,7 +33,7 @@ export function WorktreeToolCard({ action, input, isLoading }: WorktreeToolCardP
       borderRadius: 10,
       marginBottom: 6,
       overflow: 'hidden',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+      boxShadow: 'var(--code-shadow)',
       transition: 'border-color 0.2s ease',
     }}>
       {/* Header row */}
@@ -44,13 +44,13 @@ export function WorktreeToolCard({ action, input, isLoading }: WorktreeToolCardP
         padding: '7px 10px',
         background: 'var(--section-bg)',
       }}>
-        <GitBranch size={13} style={{ color: 'rgba(59,130,246,0.85)', flexShrink: 0 }} />
+        <GitBranch size={13} style={{ color: 'var(--info-text)', flexShrink: 0 }} />
 
         <span style={{
           flex: 1,
           fontSize: 12,
           fontFamily: 'monospace',
-          color: 'rgba(59,130,246,0.90)',
+          color: 'var(--info-text)',
           fontWeight: 600,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -68,7 +68,7 @@ export function WorktreeToolCard({ action, input, isLoading }: WorktreeToolCardP
             gap: 4,
             fontSize: 10,
             fontWeight: 500,
-            color: 'rgba(59,130,246,0.80)',
+            color: 'var(--info-text)',
             fontStyle: 'italic',
             animation: 'pulse 1.5s ease-in-out infinite',
             flexShrink: 0,
@@ -84,7 +84,7 @@ export function WorktreeToolCard({ action, input, isLoading }: WorktreeToolCardP
             borderRadius: 8,
             background: 'rgba(59,130,246,0.12)',
             border: '1px solid rgba(59,130,246,0.28)',
-            color: 'rgba(96,165,250,1)',
+            color: 'var(--info-text)',
             fontSize: 10,
             fontWeight: 500,
             flexShrink: 0,
@@ -97,7 +97,7 @@ export function WorktreeToolCard({ action, input, isLoading }: WorktreeToolCardP
 
       {/* Detail row: path and/or exit action */}
       {(worktreePath || exitAction) && (
-        <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
+        <div style={{ borderTop: '1px solid var(--border)' }}>
           <div style={{
             padding: '6px 10px',
             background: 'var(--section-bg)',
@@ -128,8 +128,8 @@ export function WorktreeToolCard({ action, input, isLoading }: WorktreeToolCardP
                   : 'rgba(34,197,94,0.10)',
                 border: `1px solid ${exitAction === 'remove' ? 'rgba(239,68,68,0.25)' : 'rgba(34,197,94,0.25)'}`,
                 color: exitAction === 'remove'
-                  ? 'rgba(248,113,113,0.90)'
-                  : 'rgba(74,222,128,0.90)',
+                  ? 'var(--danger-text)'
+                  : 'var(--success-text)',
                 flexShrink: 0,
               }}>
                 {exitAction}

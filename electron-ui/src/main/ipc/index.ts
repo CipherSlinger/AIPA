@@ -810,6 +810,18 @@ function wireCodexBridge(
     return
   }
 
+  // The engine's own notices. These are user-facing by definition (warnings
+  // meant to be read, a reroute the picker would otherwise hide, an account
+  // change, a changed skills catalogue), so they are wired only after the
+  // `internal` early return: a background turn keeps bypassing this path even
+  // though its private sink would drop the channels anyway. `skills/changed`
+  // still invalidates the bridge's cache for every bridge — that happens in
+  // the bridge before this point.
+  bridge.on('engineWarning', (d) => sink('cli:engineWarning', d))
+  bridge.on('modelRerouted', (d) => sink('cli:modelRerouted', d))
+  bridge.on('accountUpdated', (d) => sink('cli:accountUpdated', d))
+  bridge.on('skillsChanged', (d) => sink('cli:skillsChanged', d))
+
   // Background memory consolidation observes finished user turns only —
   // internal bridges returned above, and automation runs never pass through
   // this wiring. The result is where the durable thread id is known; an exit

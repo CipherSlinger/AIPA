@@ -3499,6 +3499,15 @@
     "turn": {
       "stopped": "本轮已被停止，尚未完成。",
       "unknown": "本轮已结束，但引擎没有报告状态。"
+    },
+    "engineNotice": {
+      "aria": "来自引擎的提示",
+      "dismiss": "关闭这条提示",
+      "more": "另有 {{count}} 条"
+    },
+    "reroute": {
+      "moved": "本回合已从 {{from}} 切换到 {{to}}。",
+      "reason": "引擎给出的原因：{{reason}}"
     }
   },
   "plugin": {

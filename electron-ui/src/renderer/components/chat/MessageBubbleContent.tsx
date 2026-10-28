@@ -78,7 +78,7 @@ export default React.memo(function MessageBubbleContent({
             onClick={(e) => { e.stopPropagation(); onCollapse(message.id) }}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
-              color: isUser ? 'var(--text-muted)' : 'var(--text-muted)',
+              color: 'var(--text-muted)',
               display: 'flex', alignItems: 'center', padding: 0,
             }}
             title={isCollapsed ? t('message.expand') : t('message.collapse')}
@@ -91,7 +91,7 @@ export default React.memo(function MessageBubbleContent({
             </span>
           )}
           {message.isStreaming && (
-            <span style={{ color: '#4ade80', fontSize: 11 }}>{t('message.processing')}</span>
+            <span style={{ color: 'var(--success-text)', fontSize: 11 }}>{t('message.processing')}</span>
           )}
         </div>
       )}
@@ -106,7 +106,7 @@ export default React.memo(function MessageBubbleContent({
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   background: 'none', border: 'none', cursor: 'pointer',
-                  color: isUser ? 'var(--text-muted)' : 'var(--text-muted)',
+                  color: 'var(--text-muted)',
                   fontSize: 11, padding: 0, marginBottom: 4,
                 }}
               >
@@ -115,8 +115,8 @@ export default React.memo(function MessageBubbleContent({
               </button>
               {thinkingExpanded && (
                 <div style={{
-                  background: 'rgba(99,102,241,0.08)',
-                  border: '1px solid rgba(99,102,241,0.20)',
+                  background: 'var(--accent-bg)',
+                  border: '1px solid var(--accent-border)',
                   borderRadius: 8, padding: '8px 12px',
                   fontSize: 12, color: 'var(--text-muted)',
                   fontStyle: 'italic', lineHeight: 1.6,
@@ -179,8 +179,8 @@ export default React.memo(function MessageBubbleContent({
                 style={{
                   width: '100%', minHeight: 60, padding: '8px 10px',
                   background: 'var(--bg-hover)',
-                  border: '1px solid rgba(99,102,241,0.45)',
-                  boxShadow: '0 0 0 2px rgba(99,102,241,0.15)',
+                  border: '1px solid var(--accent-border)',
+                  boxShadow: 'var(--input-focus-shadow)',
                   borderRadius: 8, color: 'inherit', fontSize: 14,
                   lineHeight: 1.6, fontFamily: 'inherit', resize: 'vertical', outline: 'none',
                 }}
@@ -204,7 +204,7 @@ export default React.memo(function MessageBubbleContent({
                   onClick={onEditSubmit}
                   disabled={!editContent.trim()}
                   style={{
-                    background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
+                    background: 'var(--cta-gradient)',
                     border: 'none',
                     borderRadius: 8, padding: '4px 12px',
                     color: 'rgba(255,255,255,0.95)', fontSize: 12, fontWeight: 600,
@@ -226,7 +226,10 @@ export default React.memo(function MessageBubbleContent({
                   color: 'var(--text-primary)',
                   background: 'var(--action-btn-bg)',
                   border: '1px solid var(--border)',
-                  borderRadius: 4, padding: '8px 12px', margin: 0,
+                  // 8px matches the thinking panel and the tool cards' inner
+                  // panels; 4px was the only square-cornered content panel in
+                  // the transcript.
+                  borderRadius: 8, padding: '8px 12px', margin: 0,
                   fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
                 }}>
                   {message.content}
@@ -250,9 +253,10 @@ export default React.memo(function MessageBubbleContent({
                     left: 0,
                     right: 0,
                     height: 40,
-                    background: isUser
-                      ? 'linear-gradient(transparent, rgba(60,51,200,0.85))'
-                      : 'linear-gradient(transparent, var(--popup-bg))',
+                    // Both roles now fade into the theme-aware popup surface.
+                    // The user-side literal was a dark violet that turned the
+                    // light theme's pale bubble into a dark smear.
+                    background: 'linear-gradient(transparent, var(--popup-bg))',
                     pointerEvents: 'none',
                   }} />
                   <button
@@ -368,13 +372,13 @@ export default React.memo(function MessageBubbleContent({
                   key={i}
                   style={{
                     width: 6, height: 6, borderRadius: '50%',
-                    background: 'rgba(165,180,252,0.8)',
+                    background: 'var(--accent-muted)',
                     animation: 'pulse 1.4s ease-in-out infinite',
                     animationDelay: `${i * 0.2}s`,
                   }}
                 />
               ))}
-              <span style={{ fontSize: 11, color: 'rgba(165,180,252,0.8)', marginLeft: 4 }}>{t('message.processing')}</span>
+              <span style={{ fontSize: 11, color: 'var(--accent-muted)', marginLeft: 4 }}>{t('message.processing')}</span>
             </div>
           )}
         </>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Check, User, Link2 } from 'lucide-react'
+import { Check, User, Link2, ClipboardList } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -382,14 +382,11 @@ function KanbanColumn({
 
 export default function TaskDashboardCard({ tasks, singleTask }: Props) {
   if (tasks.length === 0) {
+    // Same empty-state shape as the other tool cards (dim icon + muted
+    // sentence) instead of an italic sentence floating on its own surface.
     return (
-      <div
-        style={{
-          background: 'var(--bg-secondary)',
-          color: 'var(--text-muted)',
-          fontStyle: 'italic',
-        }}
-      >
+      <div className="empty-hint">
+        <ClipboardList size={11} />
         No tasks found.
       </div>
     )

@@ -37,8 +37,8 @@ export function McpResourceListCard({ items, t: _t }: { items: McpResourceItem[]
         <span style={{
           display: 'inline-flex', alignItems: 'center',
           padding: '2px 7px', borderRadius: 6,
-          background: 'rgba(99,102,241,0.14)', color: 'rgba(165,180,252,0.85)',
-          fontSize: 10, fontWeight: 700, border: '1px solid rgba(99,102,241,0.28)',
+          background: 'var(--accent-bg)', color: 'var(--accent-text)',
+          fontSize: 10, fontWeight: 700, border: '1px solid var(--accent-border)',
           letterSpacing: '0.03em',
         }}>
           {items.length} {items.length === 1 ? 'resource' : 'resources'}
@@ -52,9 +52,9 @@ export function McpResourceListCard({ items, t: _t }: { items: McpResourceItem[]
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 4,
               padding: '3px 8px', borderRadius: 8,
-              background: 'rgba(99,102,241,0.10)',
-              border: '1px solid rgba(99,102,241,0.22)',
-              color: 'rgba(165,180,252,0.88)',
+              background: 'var(--accent-bg)',
+              border: '1px solid var(--accent-border)',
+              color: 'var(--accent-text)',
               fontSize: 11, fontFamily: 'monospace',
               maxWidth: 260, overflow: 'hidden',
               textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -94,9 +94,9 @@ export function McpResourceReadCard({ uri, content, t }: { uri: string; content:
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {/* URI header chip */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <FileInput size={11} style={{ color: 'rgba(165,180,252,0.7)', flexShrink: 0 }} />
+        <FileInput size={11} style={{ color: 'var(--accent-muted)', flexShrink: 0 }} />
         <span style={{
-          fontSize: 11, fontFamily: 'monospace', color: 'rgba(165,180,252,0.85)',
+          fontSize: 11, fontFamily: 'monospace', color: 'var(--accent-text)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
         }}>
           {uri}
@@ -104,15 +104,16 @@ export function McpResourceReadCard({ uri, content, t }: { uri: string; content:
         <button
           onClick={handleCopy}
           title={t('message.copyCode')}
+          className={`card-action${copied ? ' is-copied' : ''}`}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            padding: '1px 4px', borderRadius: 6,
-            color: copied ? '#4ade80' : 'var(--text-muted)',
+            // 2px/6px matches every other card copy button; 1px/4px made this
+            // one visibly smaller than the Read/Skill cards next to it.
+            padding: '2px 6px', borderRadius: 6,
+            color: copied ? 'var(--success-text)' : 'var(--text-muted)',
             display: 'flex', alignItems: 'center', gap: 3,
-            fontSize: 9, transition: 'all 0.15s ease', flexShrink: 0,
+            fontSize: 10, transition: 'all 0.15s ease', flexShrink: 0,
           }}
-          onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = '#6366f1' }}
-          onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = 'var(--text-muted)' }}
         >
           {copied ? <Check size={10} /> : <ClipboardCopy size={10} />}
           {copied ? t('message.codeCopied') : t('message.copyCode')}
@@ -133,11 +134,11 @@ export function McpResourceReadCard({ uri, content, t }: { uri: string; content:
             onClick={() => setExpanded(!expanded)}
             style={{
               marginTop: 4, background: 'none', border: 'none', cursor: 'pointer',
-              color: 'rgba(165,180,252,0.70)', fontSize: 11, fontFamily: 'monospace',
+              color: 'var(--accent-muted)', fontSize: 11, fontFamily: 'monospace',
               padding: '2px 0', transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,1)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,0.70)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent-text-strong)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--accent-muted)' }}
           >
             {expanded ? 'Show less' : `Show all ${content.length} chars`}
           </button>

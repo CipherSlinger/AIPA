@@ -80,6 +80,7 @@ function CopyBtn({ text }: CopyBtnProps) {
     <button
       onClick={handleCopy}
       title={copied ? 'Copied!' : 'Copy'}
+      className={`card-action${copied ? ' is-copied' : ''}`}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -89,13 +90,11 @@ function CopyBtn({ text }: CopyBtnProps) {
         cursor: 'pointer',
         padding: '2px 6px',
         borderRadius: 6,
-        color: copied ? '#4ade80' : 'var(--text-muted)',
+        color: copied ? 'var(--success-text)' : 'var(--text-muted)',
         fontSize: 10,
         transition: 'color 0.15s ease',
         flexShrink: 0,
       }}
-      onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = '#fb923c' }}
-      onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = 'var(--text-muted)' }}
     >
       {copied ? <Check size={11} /> : <Clipboard size={11} />}
       {copied ? 'Copied' : 'Copy'}
@@ -117,10 +116,12 @@ function DiffPanel({ label, text, variant }: DiffPanelProps) {
   const displayText = expanded ? text : visible
 
   const isOld = variant === 'old'
-  const accentColor = isOld ? 'rgba(248,113,113,0.85)' : 'rgba(74,222,128,0.85)'
+  // Diff ink is 11px text on a tinted row, so it needs the readable semantic
+  // tokens rather than a 0.85-alpha pastel (≈2:1 on the light theme).
+  const accentColor = isOld ? 'var(--danger-text)' : 'var(--success-text)'
   const bgColor = isOld ? 'rgba(239,68,68,0.07)' : 'rgba(34,197,94,0.07)'
   const borderColor = isOld ? 'rgba(239,68,68,0.20)' : 'rgba(34,197,94,0.20)'
-  const labelColor = isOld ? 'rgba(248,113,113,0.70)' : 'rgba(74,222,128,0.70)'
+  const labelColor = accentColor
 
   if (!text) {
     return (
@@ -279,9 +280,9 @@ function LiveDiffPreview({ view, truncated }: LiveDiffPreviewProps) {
                     ? 'rgba(239,68,68,0.08)'
                     : 'transparent',
                 color: isAdd
-                  ? 'rgba(74,222,128,0.85)'
+                  ? 'var(--success-text)'
                   : isDel
-                    ? 'rgba(248,113,113,0.85)'
+                    ? 'var(--danger-text)'
                     : 'var(--text-muted)',
               }}>
                 <span style={{ flexShrink: 0, opacity: 0.7, userSelect: 'none' }}>
@@ -382,15 +383,15 @@ export function FileEditCard({ input, result, isStreaming, toolId = '' }: FileEd
 
   return (
     <div style={{
-      background: 'var(--glass-bg-low)',
+      background: 'var(--bg-primary)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
       border: '1px solid var(--border)',
-      borderLeft: '4px solid rgba(251,146,60,0.35)',
+      borderLeft: '2px solid rgba(251,146,60,0.35)',
       borderRadius: 10,
       marginBottom: 6,
       overflow: 'hidden',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+      boxShadow: 'var(--code-shadow)',
     }}>
       {/* Header row */}
       <div style={{
@@ -402,7 +403,7 @@ export function FileEditCard({ input, result, isStreaming, toolId = '' }: FileEd
       }}>
         <FilePen
           size={13}
-          style={{ color: 'rgba(251,146,60,0.90)', flexShrink: 0 }}
+          style={{ color: 'var(--warning-text)', flexShrink: 0 }}
         />
 
         {/* "Edit" action badge */}
@@ -415,7 +416,7 @@ export function FileEditCard({ input, result, isStreaming, toolId = '' }: FileEd
           borderRadius: 8,
           background: 'rgba(251,146,60,0.15)',
           border: '1px solid rgba(251,146,60,0.30)',
-          color: 'rgba(251,146,60,0.90)',
+          color: 'var(--warning-text)',
           whiteSpace: 'nowrap',
           flexShrink: 0,
         }}>
@@ -447,7 +448,7 @@ export function FileEditCard({ input, result, isStreaming, toolId = '' }: FileEd
             </span>
           )}
           <span style={{
-            color: 'rgba(251,146,60,0.92)',
+            color: 'var(--warning-text)',
             fontWeight: 700,
             whiteSpace: 'nowrap',
             flexShrink: 0,
@@ -465,7 +466,7 @@ export function FileEditCard({ input, result, isStreaming, toolId = '' }: FileEd
             borderRadius: 8,
             background: 'rgba(251,146,60,0.12)',
             border: '1px solid rgba(251,146,60,0.28)',
-            color: 'rgba(251,146,60,0.80)',
+            color: 'var(--warning-text)',
             whiteSpace: 'nowrap',
             flexShrink: 0,
           }}>
@@ -485,7 +486,7 @@ export function FileEditCard({ input, result, isStreaming, toolId = '' }: FileEd
             borderRadius: 8,
             background: 'rgba(34,197,94,0.12)',
             border: '1px solid rgba(34,197,94,0.28)',
-            color: '#4ade80',
+            color: 'var(--success-text)',
             whiteSpace: 'nowrap',
             flexShrink: 0,
           }}>
@@ -498,7 +499,7 @@ export function FileEditCard({ input, result, isStreaming, toolId = '' }: FileEd
         {isStreaming && !hasResult && (
           <span style={{
             fontSize: 10,
-            color: 'rgba(251,146,60,0.60)',
+            color: 'var(--warning-text)',
             fontStyle: 'italic',
             flexShrink: 0,
           }}>
@@ -511,7 +512,7 @@ export function FileEditCard({ input, result, isStreaming, toolId = '' }: FileEd
           once the item resolves. Never both — a partial patch must not look
           like the final edit. */}
       {(hasDiff || showLive) && (
-        <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
+        <div style={{ borderTop: '1px solid var(--border)' }}>
           <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
             {/* Section label */}
             <div style={{
@@ -532,7 +533,7 @@ export function FileEditCard({ input, result, isStreaming, toolId = '' }: FileEd
                   fontWeight: 400,
                   letterSpacing: 'normal',
                   textTransform: 'none',
-                  color: 'rgba(251,146,60,0.60)',
+                  color: 'var(--warning-text)',
                   fontStyle: 'italic',
                 }}>
                   {t('chat.fileEdit.liveHint')}

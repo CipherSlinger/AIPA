@@ -35,7 +35,7 @@ export function GlobPathRow({ line }: GlobPathRowProps) {
       lineHeight: 1.6,
     }}>
       {dir && <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>{dir}</span>}
-      <span style={{ color: 'rgba(165,180,252,0.90)', fontWeight: 600 }}>{fileName}</span>
+      <span style={{ color: 'var(--accent-text)', fontWeight: 600 }}>{fileName}</span>
     </div>
   )
 }
@@ -63,7 +63,7 @@ export function GrepMatchRow({ line }: GrepMatchRowProps) {
         overflow: 'hidden',
         textOverflow: 'ellipsis',
       }}>
-        <span style={{ color: 'rgba(165,180,252,0.70)', flexShrink: 0 }}>{filePath}</span>
+        <span style={{ color: 'var(--accent-muted)', flexShrink: 0 }}>{filePath}</span>
         <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>:{lineNum}:</span>
         <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{content}</span>
       </div>
@@ -117,7 +117,7 @@ export function SearchResultSummary({ resultText, toolName }: SearchResultSummar
           padding: '2px 7px',
           borderRadius: 6,
           background: 'rgba(34,197,94,0.15)',
-          color: 'rgba(34,197,94,0.80)',
+          color: 'var(--success-text)',
           fontSize: 10,
           fontWeight: 700,
           border: '1px solid rgba(34,197,94,0.25)',
@@ -140,15 +140,15 @@ export function SearchResultSummary({ resultText, toolName }: SearchResultSummar
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: 'rgba(165,180,252,0.70)',
+              color: 'var(--accent-muted)',
               fontSize: 11,
               fontFamily: 'monospace',
               padding: '2px 0',
               textAlign: 'left',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,1)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,0.70)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent-text)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--accent-muted)' }}
           >
             + {total - PREVIEW_LIMIT} more...
           </button>
@@ -218,7 +218,7 @@ export function WebResultBlock({ resultText, toolName }: WebResultBlockProps) {
                     borderRadius: 8,
                     background: 'rgba(99,102,241,0.12)',
                     border: '1px solid rgba(99,102,241,0.25)',
-                    color: 'rgba(165,180,252,0.90)',
+                    color: 'var(--accent-text)',
                     fontSize: 10,
                     fontFamily: 'monospace',
                     textDecoration: 'none',
@@ -278,14 +278,14 @@ export function WebResultBlock({ resultText, toolName }: WebResultBlockProps) {
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: 'rgba(165,180,252,0.70)',
+              color: 'var(--accent-muted)',
               fontSize: 11,
               fontFamily: 'monospace',
               padding: '2px 0',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,1)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,0.70)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent-text)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--accent-muted)' }}
           >
             {expanded ? 'Show less' : `Show all ${resultText.length} chars`}
           </button>

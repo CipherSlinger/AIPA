@@ -20,11 +20,11 @@ const REMOTE_TRIGGER_ACTION_CONFIG: Record<RemoteTriggerAction, {
   border: string
   color: string
 }> = {
-  list:   { label: 'List',   icon: ClipboardList, bg: 'rgba(100,116,139,0.14)', border: 'rgba(100,116,139,0.30)', color: '#94a3b8' },
-  get:    { label: 'Get',    icon: FileText,       bg: 'rgba(59,130,246,0.14)',  border: 'rgba(59,130,246,0.30)',  color: '#93c5fd' },
-  create: { label: 'Create', icon: Check,          bg: 'rgba(34,197,94,0.14)',   border: 'rgba(34,197,94,0.30)',   color: '#4ade80' },
-  update: { label: 'Update', icon: FileEdit,       bg: 'rgba(234,179,8,0.14)',   border: 'rgba(234,179,8,0.30)',   color: '#fde047' },
-  run:    { label: 'Run',    icon: Send,            bg: 'rgba(99,102,241,0.14)',  border: 'rgba(99,102,241,0.30)',  color: '#a5b4fc' },
+  list:   { label: 'List',   icon: ClipboardList, bg: 'rgba(100,116,139,0.14)', border: 'rgba(100,116,139,0.30)', color: 'var(--text-secondary)' },
+  get:    { label: 'Get',    icon: FileText,       bg: 'rgba(59,130,246,0.14)',  border: 'rgba(59,130,246,0.30)',  color: 'var(--info-text)' },
+  create: { label: 'Create', icon: Check,          bg: 'rgba(34,197,94,0.14)',   border: 'rgba(34,197,94,0.30)',   color: 'var(--success-text)' },
+  update: { label: 'Update', icon: FileEdit,       bg: 'rgba(234,179,8,0.14)',   border: 'rgba(234,179,8,0.30)',   color: 'var(--warning-text)' },
+  run:    { label: 'Run',    icon: Send,            bg: 'rgba(99,102,241,0.14)',  border: 'rgba(99,102,241,0.30)',  color: 'var(--accent-text)' },
 }
 
 // ── Components ─────────────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ export function RemoteTriggerInputCard({ input }: { input: Record<string, unknow
             display: 'inline-flex', alignItems: 'center', gap: 3,
             padding: '2px 7px', borderRadius: 6,
             background: 'rgba(8,8,16,0.6)', border: '1px solid rgba(99,102,241,0.22)',
-            color: '#a5b4fc', fontSize: 10, fontFamily: 'monospace',
+            color: 'var(--accent-text)', fontSize: 10, fontFamily: 'monospace',
           }}>
             {triggerId}
           </span>
@@ -85,7 +85,7 @@ export function RemoteTriggerResultCard({ action, resultText }: { action: Remote
         padding: '3px 9px', borderRadius: 8,
         background: success ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
         border: `1px solid ${success ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.28)'}`,
-        color: success ? '#4ade80' : '#fca5a5', fontSize: 11, fontWeight: 500,
+        color: success ? 'var(--success-text)' : 'var(--danger-text)', fontSize: 11, fontWeight: 500,
       }}>
         {success
           ? <Check size={11} style={{ flexShrink: 0 }} />
@@ -107,14 +107,14 @@ export function RemoteTriggerResultCard({ action, resultText }: { action: Remote
           display: 'inline-flex', alignItems: 'center',
           padding: '2px 7px', borderRadius: 6,
           background: 'rgba(100,116,139,0.14)', border: '1px solid rgba(100,116,139,0.28)',
-          color: '#94a3b8', fontSize: 10, fontWeight: 700,
+          color: 'var(--text-secondary)', fontSize: 10, fontWeight: 700,
         }}>
           {items.length} trigger{items.length !== 1 ? 's' : ''}
         </span>
         {items.slice(0, 5).map((item, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-            <ClipboardList size={10} style={{ color: '#94a3b8', flexShrink: 0 }} />
-            <span style={{ fontFamily: 'monospace', color: '#a5b4fc', fontSize: 10 }}>{item.id ?? '\u2014'}</span>
+            <ClipboardList size={10} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+            <span style={{ fontFamily: 'monospace', color: 'var(--accent-text)', fontSize: 10 }}>{item.id ?? '\u2014'}</span>
             {item.cron && <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{item.cron}</span>}
             {item.name && (
               <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
@@ -141,13 +141,13 @@ export function RemoteTriggerResultCard({ action, resultText }: { action: Remote
         {trigger.id && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ color: 'var(--text-muted)', minWidth: 44, fontSize: 10 }}>id</span>
-            <span style={{ fontFamily: 'monospace', color: '#a5b4fc', fontSize: 10 }}>{trigger.id}</span>
+            <span style={{ fontFamily: 'monospace', color: 'var(--accent-text)', fontSize: 10 }}>{trigger.id}</span>
           </div>
         )}
         {trigger.cron && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ color: 'var(--text-muted)', minWidth: 44, fontSize: 10 }}>cron</span>
-            <span style={{ fontFamily: 'monospace', color: '#fde047', fontSize: 10 }}>{trigger.cron}</span>
+            <span style={{ fontFamily: 'monospace', color: 'var(--warning-text)', fontSize: 10 }}>{trigger.cron}</span>
           </div>
         )}
         {trigger.prompt && (
@@ -163,7 +163,7 @@ export function RemoteTriggerResultCard({ action, resultText }: { action: Remote
   }
 
   return (
-    <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'rgba(8,8,16,1)', border: '1px solid var(--bg-hover)', borderRadius: 4, padding: '6px 8px', overflow: 'auto', maxHeight: 120, color: '#a5b4fc', lineHeight: 1.5 }}>
+    <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'rgba(8,8,16,1)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 8px', overflow: 'auto', maxHeight: 120, color: 'var(--accent-text)', lineHeight: 1.5 }}>
       {resultText}
     </pre>
   )

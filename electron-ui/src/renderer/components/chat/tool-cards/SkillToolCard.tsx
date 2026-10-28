@@ -20,6 +20,7 @@ function CopyBtn({ text }: CopyBtnProps) {
     <button
       onClick={handleCopy}
       title={copied ? 'Copied!' : 'Copy result'}
+      className={`card-action${copied ? ' is-copied' : ''}`}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -29,13 +30,11 @@ function CopyBtn({ text }: CopyBtnProps) {
         cursor: 'pointer',
         padding: '2px 6px',
         borderRadius: 6,
-        color: copied ? '#4ade80' : 'var(--text-muted)',
+        color: copied ? 'var(--success-text)' : 'var(--text-muted)',
         fontSize: 10,
         transition: 'color 0.15s ease',
         flexShrink: 0,
       }}
-      onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = '#22c55e' }}
-      onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = 'var(--text-muted)' }}
     >
       {copied ? <Check size={11} /> : <Clipboard size={11} />}
       {copied ? 'Copied' : 'Copy'}
@@ -83,7 +82,7 @@ export function SkillToolCard({ input, result, isLoading }: SkillToolCardProps) 
       borderRadius: 10,
       marginBottom: 6,
       overflow: 'hidden',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+      boxShadow: 'var(--code-shadow)',
       transition: 'border-color 0.2s ease',
     }}>
       <div style={{
@@ -93,13 +92,15 @@ export function SkillToolCard({ input, result, isLoading }: SkillToolCardProps) 
         padding: '7px 10px',
         background: 'var(--section-bg)',
       }}>
-        <Zap size={13} style={{ color: 'rgba(34,197,94,0.85)', flexShrink: 0 }} />
+        {/* The green identity stays, but through the theme-aware success
+            token: the hardcoded pastel measured ~2.2:1 on the light theme. */}
+        <Zap size={13} style={{ color: 'var(--success-text)', flexShrink: 0 }} />
 
         <span style={{
           flex: 1,
           fontSize: 12,
           fontFamily: 'monospace',
-          color: 'rgba(34,197,94,0.90)',
+          color: 'var(--success-text)',
           fontWeight: 600,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -115,7 +116,7 @@ export function SkillToolCard({ input, result, isLoading }: SkillToolCardProps) 
             gap: 4,
             fontSize: 10,
             fontWeight: 500,
-            color: 'rgba(34,197,94,0.80)',
+            color: 'var(--success-text)',
             fontStyle: 'italic',
             animation: 'pulse 1.5s ease-in-out infinite',
             flexShrink: 0,
@@ -133,7 +134,7 @@ export function SkillToolCard({ input, result, isLoading }: SkillToolCardProps) 
             borderRadius: 8,
             background: 'rgba(34,197,94,0.12)',
             border: '1px solid rgba(34,197,94,0.28)',
-            color: '#4ade80',
+            color: 'var(--success-text)',
             fontSize: 10,
             fontWeight: 500,
             flexShrink: 0,
@@ -145,7 +146,7 @@ export function SkillToolCard({ input, result, isLoading }: SkillToolCardProps) 
       </div>
 
       {args !== null && (
-        <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
+        <div style={{ borderTop: '1px solid var(--border)' }}>
           <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
             <div style={{
               fontSize: 10,
@@ -162,12 +163,12 @@ export function SkillToolCard({ input, result, isLoading }: SkillToolCardProps) 
               margin: 0,
               fontFamily: 'monospace',
               background: 'var(--code-bg)',
-              border: '1px solid var(--bg-hover)',
-              borderRadius: 4,
+              border: '1px solid var(--border)',
+              borderRadius: 6,
               padding: '6px 8px',
               overflow: 'auto',
               maxHeight: 120,
-              color: 'rgba(34,197,94,0.80)',
+              color: 'var(--success-text)',
               lineHeight: 1.5,
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
@@ -179,7 +180,7 @@ export function SkillToolCard({ input, result, isLoading }: SkillToolCardProps) 
       )}
 
       {isDone && (
-        <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
+        <div style={{ borderTop: '1px solid var(--border)' }}>
           <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
             <div style={{
               display: 'flex',
@@ -203,8 +204,8 @@ export function SkillToolCard({ input, result, isLoading }: SkillToolCardProps) 
               margin: 0,
               fontFamily: 'monospace',
               background: 'var(--code-bg)',
-              border: '1px solid var(--bg-hover)',
-              borderRadius: 4,
+              border: '1px solid var(--border)',
+              borderRadius: 6,
               padding: '6px 8px',
               overflow: 'auto',
               maxHeight: 200,
@@ -223,13 +224,13 @@ export function SkillToolCard({ input, result, isLoading }: SkillToolCardProps) 
                   border: 'none',
                   cursor: 'pointer',
                   fontSize: 10,
-                  color: 'rgba(34,197,94,0.70)',
+                  color: 'var(--success-text)',
                   padding: '2px 0',
                   marginTop: 2,
                   transition: 'color 0.15s ease',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(34,197,94,1)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(34,197,94,0.70)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--success-text)' }}
               >
                 {showFullResult ? 'Show less' : 'Show more'}
               </button>

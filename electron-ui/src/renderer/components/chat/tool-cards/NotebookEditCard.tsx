@@ -16,19 +16,19 @@ const NOTEBOOK_EDIT_MODE_STYLES: Record<string, { label: string; bg: string; bor
     label: 'replace',
     bg: 'rgba(99,102,241,0.15)',
     border: 'rgba(99,102,241,0.30)',
-    color: '#818cf8',
+    color: 'var(--accent-muted)',
   },
   insert: {
     label: 'insert',
     bg: 'rgba(34,197,94,0.15)',
     border: 'rgba(34,197,94,0.30)',
-    color: '#4ade80',
+    color: 'var(--success-text)',
   },
   delete: {
     label: 'delete',
     bg: 'rgba(239,68,68,0.15)',
     border: 'rgba(239,68,68,0.30)',
-    color: '#f87171',
+    color: 'var(--danger-text)',
   },
 }
 
@@ -36,12 +36,12 @@ const NOTEBOOK_CELL_TYPE_STYLES: Record<string, { bg: string; border: string; co
   code: {
     bg: 'rgba(59,130,246,0.15)',
     border: 'rgba(59,130,246,0.30)',
-    color: '#60a5fa',
+    color: 'var(--memory-fact)',
   },
   markdown: {
     bg: 'rgba(139,92,246,0.15)',
     border: 'rgba(139,92,246,0.30)',
-    color: '#a78bfa',
+    color: 'var(--violet-text)',
   },
 }
 
@@ -84,12 +84,12 @@ export function NotebookEditCard({ input }: NotebookEditCardProps) {
       {/* Filename header */}
       {notebookBasename && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-          <BookOpen size={13} style={{ color: 'rgba(165,180,252,0.75)', flexShrink: 0 }} />
+          <BookOpen size={13} style={{ color: 'var(--accent-muted)', flexShrink: 0 }} />
           <span style={{
             fontSize: 12,
             fontFamily: 'monospace',
             fontWeight: 600,
-            color: 'rgba(165,180,252,0.90)',
+            color: 'var(--accent-text)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -128,7 +128,7 @@ export function NotebookEditCard({ input }: NotebookEditCardProps) {
             borderRadius: 6,
             background: 'rgba(165,180,252,0.10)',
             border: '1px solid rgba(165,180,252,0.22)',
-            color: '#a5b4fc',
+            color: 'var(--accent-text)',
             flexShrink: 0,
           }}>
             Cell #{cellNumber}
@@ -185,15 +185,15 @@ export function NotebookEditCard({ input }: NotebookEditCardProps) {
                 borderTop: 'none',
                 borderRadius: '0 0 6px 6px',
                 cursor: 'pointer',
-                color: 'rgba(165,180,252,0.70)',
+                color: 'var(--accent-muted)',
                 fontSize: 10,
                 fontFamily: 'monospace',
                 padding: '3px 10px',
                 textAlign: 'left',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,1)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,0.70)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent-text)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--accent-muted)' }}
             >
               {sourceExpanded
                 ? 'Show less'
@@ -207,7 +207,7 @@ export function NotebookEditCard({ input }: NotebookEditCardProps) {
       {editMode === 'delete' && (
         <div style={{
           fontSize: 11,
-          color: '#fca5a5',
+          color: 'var(--danger-text)',
           fontStyle: 'italic',
           opacity: 0.7,
         }}>

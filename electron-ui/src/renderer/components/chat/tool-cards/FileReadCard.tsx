@@ -52,6 +52,7 @@ function CopyBtn({ text }: CopyBtnProps) {
     <button
       onClick={handleCopy}
       title={copied ? 'Copied!' : 'Copy content'}
+      className={`card-action${copied ? ' is-copied' : ''}`}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -61,13 +62,11 @@ function CopyBtn({ text }: CopyBtnProps) {
         cursor: 'pointer',
         padding: '2px 6px',
         borderRadius: 6,
-        color: copied ? '#4ade80' : 'var(--text-muted)',
+        color: copied ? 'var(--success-text)' : 'var(--text-muted)',
         fontSize: 10,
         transition: 'color 0.15s ease',
         flexShrink: 0,
       }}
-      onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = '#a5b4fc' }}
-      onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = 'var(--text-muted)' }}
     >
       {copied ? <Check size={11} /> : <Clipboard size={11} />}
       {copied ? 'Copied' : 'Copy'}
@@ -129,7 +128,7 @@ export function FileReadCard({ input, result, isStreaming }: FileReadCardProps) 
       borderRadius: 10,
       marginBottom: 6,
       overflow: 'hidden',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+      boxShadow: 'var(--code-shadow)',
     }}>
       {/* Header row */}
       <div style={{
@@ -141,7 +140,9 @@ export function FileReadCard({ input, result, isStreaming }: FileReadCardProps) 
       }}>
         <File
           size={13}
-          style={{ color: 'rgba(165,180,252,0.80)', flexShrink: 0 }}
+          // Hardcoded pale indigo measured ~1.9:1 on the light theme's tinted
+          // header; --accent-muted is the theme-aware equivalent.
+          style={{ color: 'var(--accent-muted)', flexShrink: 0 }}
         />
 
         {/* File path: directory muted, basename bold */}
@@ -169,7 +170,7 @@ export function FileReadCard({ input, result, isStreaming }: FileReadCardProps) 
             </span>
           )}
           <span style={{
-            color: 'rgba(165,180,252,0.92)',
+            color: 'var(--accent-text)',
             fontWeight: 700,
             whiteSpace: 'nowrap',
             flexShrink: 0,
@@ -186,9 +187,9 @@ export function FileReadCard({ input, result, isStreaming }: FileReadCardProps) 
             fontFamily: 'monospace',
             padding: '2px 7px',
             borderRadius: 8,
-            background: 'rgba(99,102,241,0.12)',
-            border: '1px solid rgba(99,102,241,0.28)',
-            color: '#a5b4fc',
+            background: 'var(--accent-bg)',
+            border: '1px solid var(--accent-border)',
+            color: 'var(--accent-text)',
             whiteSpace: 'nowrap',
             flexShrink: 0,
           }}>
@@ -200,7 +201,7 @@ export function FileReadCard({ input, result, isStreaming }: FileReadCardProps) 
         {isStreaming && !hasResult && (
           <span style={{
             fontSize: 10,
-            color: 'rgba(165,180,252,0.60)',
+            color: 'var(--accent-muted)',
             fontStyle: 'italic',
             flexShrink: 0,
           }}>
@@ -211,7 +212,7 @@ export function FileReadCard({ input, result, isStreaming }: FileReadCardProps) 
 
       {/* Content section — shown when result is available */}
       {hasResult && (
-        <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
+        <div style={{ borderTop: '1px solid var(--border)' }}>
           <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
             {/* Output label row */}
             <div style={{
@@ -253,7 +254,7 @@ export function FileReadCard({ input, result, isStreaming }: FileReadCardProps) 
                 fontSize: 11,
                 fontFamily: "Consolas, 'Cascadia Code', 'Fira Code', monospace",
                 background: 'var(--code-bg)',
-                border: '1px solid var(--bg-hover)',
+                border: '1px solid var(--border)',
                 borderRadius: needsExpand && !showMore ? '6px 6px 0 0' : 6,
                 padding: '8px 10px',
                 overflow: 'auto',
@@ -274,19 +275,19 @@ export function FileReadCard({ input, result, isStreaming }: FileReadCardProps) 
                   onClick={() => setShowMore(!showMore)}
                   style={{
                     background: 'var(--code-bg)',
-                    border: '1px solid var(--bg-hover)',
+                    border: '1px solid var(--border)',
                     borderTop: 'none',
                     borderRadius: '0 0 6px 6px',
                     cursor: 'pointer',
-                    color: 'rgba(165,180,252,0.70)',
+                    color: 'var(--accent-text)',
                     fontSize: 10,
                     fontFamily: 'monospace',
                     padding: '3px 10px',
                     textAlign: 'left',
                     transition: 'color 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,1)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,0.70)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent-text-strong)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--accent-text)' }}
                 >
                   {showMore
                     ? 'Show less'

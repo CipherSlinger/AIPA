@@ -42,9 +42,11 @@ function ClickableFilePath({ path }: { path: string }) {
       onClick={handleClick}
       title={t('codeAction.openInFileManager')}
       style={{
-        background: 'var(--glass-border)',
-        border: '1px solid var(--glass-border)',
-        borderRadius: 3,
+        // Same chip treatment as inline code below; --glass-border used to be
+        // both fill and stroke, so the chip had no visible edge in either theme.
+        background: 'var(--code-bg)',
+        border: '1px solid var(--border)',
+        borderRadius: 4,
         padding: '1px 5px',
         fontSize: '0.9em',
         fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
@@ -143,8 +145,11 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                 <code
                   className={className as string}
                   style={{
-                    background: 'var(--glass-border)',
-                    border: '1px solid var(--glass-border)',
+                    // Filled and stroked with two theme-aware tokens: the old
+                    // --glass-border fill was near-invisible on the light
+                    // transcript, and using it as the border erased the edge.
+                    background: 'var(--code-bg)',
+                    border: '1px solid var(--border)',
                     borderRadius: 4,
                     padding: '1px 4px',
                     fontSize: '0.85em',
@@ -299,10 +304,12 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
             return (
               <blockquote
                 style={{
-                  borderLeft: '3px solid rgba(99,102,241,0.40)',
-                  background: 'rgba(99,102,241,0.06)',
+                  // Matches the callout above (3px rule, 6px right corners)
+                  // and uses the accent tokens so the rule survives both themes.
+                  borderLeft: '3px solid var(--accent-border)',
+                  background: 'var(--accent-bg)',
                   padding: '6px 12px',
-                  borderRadius: '0 4px 4px 0',
+                  borderRadius: '0 6px 6px 0',
                   color: 'var(--text-secondary)',
                   marginBottom: 10,
                   fontStyle: 'italic',
@@ -338,7 +345,7 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
           th({ children }) {
             return (
               <th style={{
-                borderBottom: '2px solid #6366f1',
+                borderBottom: '2px solid var(--accent)',
                 padding: '8px 12px',
                 textAlign: 'left',
                 fontWeight: 600,

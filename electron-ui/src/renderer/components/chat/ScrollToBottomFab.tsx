@@ -18,8 +18,11 @@ export default function ScrollToBottomFab({ show, unreadCount, onClick }: Props)
     <div
       style={{
         position: 'absolute',
-        bottom: 16,
-        right: 16,
+        // 20px keeps the FAB clear of the composer's 12px bottom margin plus
+        // its own focus ring; at 16px an armed button visually touched the
+        // input bar when a toast or status row was not present.
+        bottom: 20,
+        right: 20,
         zIndex: 20,
         pointerEvents: show ? 'auto' : 'none',
         opacity: show ? 1 : 0,
@@ -44,31 +47,32 @@ export default function ScrollToBottomFab({ show, unreadCount, onClick }: Props)
           height: 36,
           borderRadius: '50%',
           padding: 0,
+          // Same surface, blur and elevation as the composer below it:
+          // --popup-bg / blur(16px) / --popup-shadow. The old 12px blur and
+          // pair of black drop shadows were a second, heavier elevation model.
           background: 'var(--popup-bg)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
           border: '1px solid var(--border)',
           color: 'var(--text-primary)',
           cursor: 'pointer',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+          boxShadow: 'var(--popup-shadow)',
           fontSize: 12,
           fontWeight: 600,
           transition: 'all 0.15s ease',
         }}
         onMouseEnter={(e) => {
           const el = e.currentTarget as HTMLButtonElement
-          el.style.background = 'var(--popup-bg)'
-          el.style.borderColor = 'rgba(99,102,241,0.40)'
-          el.style.color = 'rgba(255,255,255,0.95)'
-          el.style.boxShadow = '0 8px 32px rgba(0,0,0,0.5)'
-          el.style.transform = 'scale(1.08)'
+          el.style.borderColor = 'var(--accent-border)'
+          el.style.color = 'var(--text-primary)'
+          el.style.boxShadow = 'var(--glass-shadow)'
+          el.style.transform = 'scale(1.04)'
         }}
         onMouseLeave={(e) => {
           const el = e.currentTarget as HTMLButtonElement
-          el.style.background = 'var(--popup-bg)'
-          el.style.borderColor = 'var(--bg-active)'
+          el.style.borderColor = 'var(--border)'
           el.style.color = 'var(--text-primary)'
-          el.style.boxShadow = '0 4px 16px rgba(0,0,0,0.4)'
+          el.style.boxShadow = 'var(--popup-shadow)'
           el.style.transform = 'scale(1)'
         }}
       >
@@ -81,7 +85,10 @@ export default function ScrollToBottomFab({ show, unreadCount, onClick }: Props)
               position: 'absolute',
               top: -6,
               right: -6,
-              background: '#6366f1',
+              background: 'var(--accent)',
+              // White on indigo is the one place a literal is required:
+              // --text-bright is black in the light theme, which would drop
+              // to 3.3:1 on the badge fill.
               color: 'rgba(255,255,255,0.95)',
               borderRadius: 10,
               minWidth: 16,
@@ -89,7 +96,7 @@ export default function ScrollToBottomFab({ show, unreadCount, onClick }: Props)
               padding: '0 4px',
               fontSize: 10,
               fontWeight: 700,
-              boxShadow: '0 2px 8px rgba(99,102,241,0.5)',
+              boxShadow: '0 2px 8px var(--accent-border)',
               lineHeight: '16px',
               whiteSpace: 'nowrap',
               textAlign: 'center',

@@ -27,23 +27,25 @@ export function SendMessageCard({ tool }: { tool: ToolUseInfo }) {
       borderRadius: 10,
       marginBottom: 6,
       overflow: 'hidden',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+      boxShadow: 'var(--code-shadow)',
     }}>
       {/* Header row */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
-        padding: '7px 10px', background: 'var(--bg-hover)',
+        // Same header tone as the other cards; --bg-hover read as a pressed
+        // state next to a card that happened to be hovered.
+        padding: '7px 10px', background: 'var(--section-bg)',
         borderBottom: '1px solid var(--border)',
       }}>
-        <Send size={12} style={{ color: 'rgba(165,180,252,0.8)', flexShrink: 0 }} />
+        <Send size={12} style={{ color: 'var(--accent-muted)', flexShrink: 0 }} />
         <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>SendMessage</span>
-        {isRunning && <Loader2 size={11} className="animate-spin" style={{ color: 'rgba(165,180,252,0.7)', flexShrink: 0 }} />}
+        {isRunning && <Loader2 size={11} className="animate-spin" style={{ color: 'var(--accent-muted)', flexShrink: 0 }} />}
         {isSuccess && (
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
             padding: '2px 7px', borderRadius: 8,
             background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.28)',
-            color: '#4ade80', fontSize: 10, fontWeight: 600,
+            color: 'var(--success-text)', fontSize: 10, fontWeight: 600,
           }}>
             <Check size={9} style={{ flexShrink: 0 }} />
             Delivered
@@ -54,7 +56,7 @@ export function SendMessageCard({ tool }: { tool: ToolUseInfo }) {
             display: 'inline-flex', alignItems: 'center', gap: 4,
             padding: '2px 7px', borderRadius: 8,
             background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.28)',
-            color: '#fca5a5', fontSize: 10, fontWeight: 600,
+            color: 'var(--danger-text)', fontSize: 10, fontWeight: 600,
           }}>
             <X size={9} style={{ flexShrink: 0 }} />
             Failed
@@ -65,10 +67,10 @@ export function SendMessageCard({ tool }: { tool: ToolUseInfo }) {
       <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
         {to && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Users size={11} style={{ color: 'rgba(165,180,252,0.6)', flexShrink: 0 }} />
+            <Users size={11} style={{ color: 'var(--accent-muted)', flexShrink: 0 }} />
             <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>To:</span>
             <span style={{
-              fontSize: 11, fontWeight: 600, color: 'rgba(165,180,252,0.9)',
+              fontSize: 11, fontWeight: 600, color: 'var(--accent-text)',
               fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {to}
@@ -89,11 +91,11 @@ export function SendMessageCard({ tool }: { tool: ToolUseInfo }) {
                 onClick={() => setMsgExpanded(!msgExpanded)}
                 style={{
                   marginTop: 3, background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'rgba(165,180,252,0.65)', fontSize: 10, padding: '0',
+                  color: 'var(--accent-muted)', fontSize: 10, padding: '0',
                   transition: 'color 0.15s ease',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,1)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(165,180,252,0.65)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent-text)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--accent-muted)' }}
               >
                 {msgExpanded ? 'Show less' : `+ ${message.length - MSG_LIMIT} more chars`}
               </button>
@@ -103,7 +105,7 @@ export function SendMessageCard({ tool }: { tool: ToolUseInfo }) {
         {tool.result !== undefined && !isSuccess && resultText && (
           <div style={{
             fontSize: 11,
-            color: isError ? '#fca5a5' : 'var(--text-secondary)',
+            color: isError ? 'var(--danger-text)' : 'var(--text-secondary)',
             fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
             maxHeight: 100, overflow: 'auto',
           }}>

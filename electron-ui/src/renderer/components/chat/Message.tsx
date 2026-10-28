@@ -59,6 +59,18 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
     : null
 
   const [hovered, setHovered] = useState(false)
+  // Keyboard counterpart of `hovered`: the action toolbar used to exist only
+  // while the pointer was over the row, so a keyboard user could never reach
+  // Copy/Bookmark/Edit. Focus anywhere inside the row keeps it mounted; the
+  // relatedTarget check keeps it from flickering as focus moves between the
+  // row's own controls.
+  const [focusedWithin, setFocusedWithin] = useState(false)
+  const handleRowFocus = useCallback((e: React.FocusEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocusedWithin(true)
+  }, [])
+  const handleRowBlur = useCallback((e: React.FocusEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocusedWithin(false)
+  }, [])
   const [showRawMarkdown, setShowRawMarkdown] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [, setTick] = useState(0)
@@ -185,11 +197,11 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             display: 'flex',
             gap: 8,
             alignItems: 'flex-start',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            boxShadow: 'var(--code-shadow)',
           }}>
             <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>🌙</span>
             <div>
-              <div style={{ fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3, color: '#a78bfa', lineHeight: 1.3 }}>
+              <div style={{ fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3, color: 'var(--violet-text)', lineHeight: 1.3 }}>
                 {t('awaySummary.title')}
               </div>
               <div style={{ lineHeight: 1.5 }}>{summaryText}</div>
@@ -231,6 +243,8 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onFocus={handleRowFocus}
+      onBlur={handleRowBlur}
       onContextMenu={handleContextMenu}
       onDoubleClick={handleDoubleClick}
       className="chat-message-row"
@@ -255,13 +269,13 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           style={{
             width: avatarSize, height: avatarSize,
             borderRadius: '50%',
-            background: isUser ? 'rgba(99,102,241,0.25)' : (isAssistant && activePersona ? `${activePersona.color}30` : 'var(--bg-input)'),
+            background: isUser ? 'var(--accent-bg)' : (isAssistant && activePersona ? `${activePersona.color}30` : 'var(--bg-input)'),
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0, marginTop: 2,
           }}
         >
           {isUser
-            ? <User size={iconSize} color="#818cf8" />
+            ? <User size={iconSize} color="var(--accent-text)" />
             : isAssistant && activePersona
             ? <span style={{ fontSize: avatarSize * 0.55, lineHeight: 1 }}>{activePersona.emoji}</span>
             : <Bot size={iconSize} color="var(--text-secondary)" />
@@ -299,7 +313,9 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
         <div
           ref={bubbleRef}
           style={{
-            background: isUser ? 'rgba(99,102,241,0.12)' : 'transparent',
+            // Tinted through tokens so the light theme gets its blue and the
+            // dark theme its indigo instead of a dark-only literal.
+            background: isUser ? 'var(--accent-bg)' : 'transparent',
             borderRadius: isUser ? '12px 12px 4px 12px' : '4px 12px 12px 12px',
             // Assistant text starts flush with the column edge (the 1px
             // transparent border below is the only offset); user bubbles keep
@@ -311,11 +327,14 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             // copy-flash border does not shift the text by a pixel.
             border: copyFlash
               ? '1px solid rgba(34,197,94,0.4)'
-              : isUser ? '1px solid rgba(99,102,241,0.20)' : '1px solid transparent',
+              : isUser ? '1px solid var(--accent-border)' : '1px solid transparent',
             wordBreak: 'break-word',
             position: 'relative',
+            // Resting lift now follows the theme (the light theme gets the
+            // soft 0.10 shadow instead of the dark 0.30 halo); hover steps up
+            // to the same elevation the sidebar's raised rows use.
             boxShadow: isUser
-              ? (hovered ? 'var(--glass-shadow)' : '0 2px 8px rgba(0,0,0,0.3)')
+              ? (hovered ? 'var(--glass-shadow)' : 'var(--code-shadow)')
               : 'none',
             transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
           }}
@@ -328,7 +347,7 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
               right: isUser ? undefined : -6,
               left: isUser ? -6 : undefined,
             }}>
-              <Bookmark size={14} style={{ color: '#818cf8', fill: '#818cf8' }} />
+              <Bookmark size={14} style={{ color: 'var(--accent-muted)', fill: 'var(--accent-muted)' }} />
             </div>
           )}
 
@@ -377,8 +396,9 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
           />
         )}
 
-        {/* Floating action toolbar */}
-        {hovered && !isCollapsed && (
+        {/* Floating action toolbar — pointer hover or keyboard focus inside
+            the row, so the actions are reachable without a mouse. */}
+        {(hovered || focusedWithin) && !isCollapsed && (
           <MessageActionToolbar
             isUser={isUser}
             isAssistant={isAssistant}

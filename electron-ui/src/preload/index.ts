@@ -811,6 +811,75 @@ export interface CliPatchUpdatedEventData {
   [key: string]: unknown
 }
 
+/**
+ * `cli:engineWarning` payload (`warning`, `deprecationNotice`, `configWarning`;
+ * verified against `.scratch/codex-schema/v2/` and the 0.145 binary).
+ *
+ * Wire shapes:
+ *   warning            `{ message, threadId? }`
+ *   deprecationNotice  `{ summary, details? }`
+ *   configWarning      `{ summary, details?, path?, range? }`
+ *
+ * The bridge folds each into `{ kind, message, details, path, range, threadId }`
+ * and keeps `message` verbatim. Every field is optional here because a push
+ * payload is untrusted until the renderer validates it; `kind` is one of the
+ * three literal method names.
+ */
+export interface CliEngineWarningEventData {
+  sessionId?: string
+  kind?: 'warning' | 'deprecationNotice' | 'configWarning'
+  /** The engine's own sentence, never re-worded by AIPA. */
+  message?: string
+  details?: string | null
+  /** `configWarning` only: the config file that raised the warning. */
+  path?: string | null
+  /** `configWarning` only; malformed ranges are forwarded as null. */
+  range?: {
+    start: { line: number; column: number }
+    end: { line: number; column: number }
+  } | null
+  /** `warning` only: the thread the warning applies to, when named. */
+  threadId?: string | null
+}
+
+/**
+ * `cli:modelRerouted` payload (`model/rerouted`, ModelReroutedNotification).
+ * Every field is required on the wire; they stay optional here because the
+ * renderer re-validates before showing anything. `reason` is the
+ * `ModelRerouteReason` enum verbatim (currently only `highRiskCyberActivity`).
+ */
+export interface CliModelReroutedEventData {
+  sessionId?: string
+  threadId?: string
+  turnId?: string
+  /** The model the request named. */
+  fromModel?: string
+  /** The model the turn actually ran on. */
+  toModel?: string
+  reason?: string
+}
+
+/**
+ * `cli:accountUpdated` payload (`account/updated`, AccountUpdatedNotification).
+ * Both fields are optional and nullable on the wire; `{}` means the account
+ * changed but the notification named no new values. The composer chip is
+ * refreshed separately by a `cli:rateLimitsUpdated` read.
+ */
+export interface CliAccountUpdatedEventData {
+  sessionId?: string
+  authMode?: string | null
+  planType?: string | null
+}
+
+/**
+ * `cli:skillsChanged` payload (`skills/changed`). The notification carries no
+ * fields of its own — it is an invalidation signal; only the bridge id is added
+ * so the renderer can attribute it to a conversation.
+ */
+export interface CliSkillsChangedEventData {
+  sessionId?: string
+}
+
 const electronAPI = {
   // ── IPC readiness check ────────────────────
   ipcPing: () => ipcRenderer.invoke('ipc:ping') as Promise<{ ok: boolean; timestamp: number }>,
@@ -1024,8 +1093,11 @@ const electronAPI = {
     return () => ipcRenderer.removeListener('pty:exit', handler)
   },
 
+  // `null` subscribes to every conversation's events — the shape the renderer's
+  // global stream hook uses. It was always accepted at runtime (`!sessionId`
+  // short-circuits the filter); the type now says so instead of forcing casts.
   onCliEvent: (
-    sessionId: string,
+    sessionId: string | null,
     cb: (event: string, data: unknown) => void
   ): Unsubscribe => {
     const channels = [
@@ -1049,6 +1121,11 @@ const electronAPI = {
       'cli:serverRequestResolved', 'cli:serverRequestTimedOut',
       // Codex account rate limits (composer chip; payload stays raw)
       'cli:rateLimitsUpdated',
+      // Engine-side notices: verbatim warnings, a model reroute the picker
+      // would otherwise hide, an account change, and a changed skills
+      // catalogue (Settings refetches on it).
+      'cli:engineWarning', 'cli:modelRerouted',
+      'cli:accountUpdated', 'cli:skillsChanged',
       // Codex thread life-cycle changes made by any client (CLI rename/archive/
       // delete). The renderer edits the session list in place from these.
       'cli:threadNameUpdated', 'cli:threadArchived', 'cli:threadDeleted',

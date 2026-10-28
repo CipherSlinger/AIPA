@@ -83,7 +83,7 @@ export function TaskOutputCard({ input, result, isLoading }: TaskOutputCardProps
       borderRadius: 10,
       marginBottom: 6,
       overflow: 'hidden',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+      boxShadow: 'var(--code-shadow)',
       transition: 'border-color 0.2s ease',
     }}>
       {/* Header row */}
@@ -96,7 +96,7 @@ export function TaskOutputCard({ input, result, isLoading }: TaskOutputCardProps
       }}>
         <ClipboardList
           size={13}
-          style={{ color: 'rgba(99,102,241,0.85)', flexShrink: 0 }}
+          style={{ color: 'var(--accent-muted)', flexShrink: 0 }}
         />
 
         {/* Task ID */}
@@ -104,7 +104,7 @@ export function TaskOutputCard({ input, result, isLoading }: TaskOutputCardProps
           flex: 1,
           fontSize: 12,
           fontFamily: 'monospace',
-          color: 'rgba(165,180,252,0.90)',
+          color: 'var(--accent-text)',
           fontWeight: 600,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -123,7 +123,7 @@ export function TaskOutputCard({ input, result, isLoading }: TaskOutputCardProps
             padding: '1px 6px',
             borderRadius: 8,
             background: 'rgba(99,102,241,0.15)',
-            color: 'rgba(165,180,252,0.80)',
+            color: 'var(--accent-muted)',
             border: '1px solid rgba(99,102,241,0.30)',
             flexShrink: 0,
           }}>
@@ -135,7 +135,7 @@ export function TaskOutputCard({ input, result, isLoading }: TaskOutputCardProps
         {isLoading && !hasResult && (
           <span style={{
             fontSize: 10,
-            color: 'rgba(99,102,241,0.65)',
+            color: 'var(--accent-muted)',
             fontStyle: 'italic',
             flexShrink: 0,
           }}>
@@ -146,7 +146,7 @@ export function TaskOutputCard({ input, result, isLoading }: TaskOutputCardProps
 
       {/* Result section */}
       {hasResult && (
-        <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
+        <div style={{ borderTop: '1px solid var(--border)' }}>
           {taskItems ? (
             /* JSON task data → TaskDashboardCard */
             <TaskDashboardCard tasks={taskItems} singleTask={taskItems.length === 1} />
@@ -164,7 +164,7 @@ export function TaskOutputCard({ input, result, isLoading }: TaskOutputCardProps
                 fontSize: 11,
                 fontFamily: "Consolas, 'Cascadia Code', 'Fira Code', monospace",
                 background: 'var(--code-bg)',
-                border: '1px solid var(--bg-hover)',
+                border: '1px solid var(--border)',
                 borderRadius: needsExpand && !showMore ? '6px 6px 0 0' : 6,
                 padding: '8px 10px',
                 overflow: 'auto',
@@ -186,11 +186,11 @@ export function TaskOutputCard({ input, result, isLoading }: TaskOutputCardProps
                   onClick={() => setShowMore(!showMore)}
                   style={{
                     background: 'var(--code-bg)',
-                    border: '1px solid var(--bg-hover)',
+                    border: '1px solid var(--border)',
                     borderTop: 'none',
                     borderRadius: '0 0 6px 6px',
                     cursor: 'pointer',
-                    color: 'rgba(99,102,241,0.70)',
+                    color: 'var(--accent-muted)',
                     fontSize: 10,
                     fontFamily: 'monospace',
                     padding: '3px 10px',

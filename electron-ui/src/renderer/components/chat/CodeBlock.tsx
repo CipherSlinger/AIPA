@@ -50,10 +50,13 @@ function PreviewButton({ active, onToggle }: { active: boolean; onToggle: () => 
     <button
       onClick={onToggle}
       title={active ? t('message.closePreview') : t('message.preview')}
+      className="code-action"
       style={{
         background: active ? 'rgba(99,102,241,0.3)' : 'var(--code-btn-bg)',
         border: `1px solid ${active ? 'rgba(99,102,241,0.5)' : 'var(--code-border)'}`,
-        borderRadius: 8,
+        // One 6px radius for every control in the code header. They were
+        // 6 and 8, so the row of buttons was visibly ragged.
+        borderRadius: 6,
         padding: '2px 6px',
         color: active ? '#a5b4fc' : 'var(--code-text-muted)',
         cursor: 'pointer',
@@ -78,7 +81,9 @@ function PreviewPane({ code, lang }: { code: string; lang: string }) {
       style={{
         border: '1px solid rgba(99,102,241,0.3)',
         borderTop: 'none',
-        borderRadius: '0 0 8px 8px',
+        // 9px = the code block's 10px outer radius minus its 1px border; the
+        // preview pane sits inside the same frame as the pre above it.
+        borderRadius: '0 0 9px 9px',
         overflow: 'hidden',
         background: '#080810',
       }}
@@ -127,11 +132,15 @@ export function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={copy}
+      // The always-visible copy affordance: same geometry as the other header
+      // buttons, with a light focus ring that stays legible on the dark header
+      // in both app themes (see .code-action in globals.css).
+      className="code-action"
       style={{
         background: copied ? 'rgba(74,222,128,0.15)' : 'var(--code-btn-bg)',
         border: `1px solid ${copied ? 'rgba(34,197,94,0.4)' : 'var(--code-border)'}`,
         borderRadius: 6,
-        padding: '3px 8px',
+        padding: '2px 6px',
         color: copied ? '#4ade80' : 'var(--code-text-muted)',
         cursor: 'pointer',
         fontSize: 11,
@@ -154,10 +163,11 @@ function RunButton({ code, onRun }: { code: string; onRun: () => void }) {
       onClick={onRun}
       aria-label={t('codeAction.runInTerminal')}
       title={t('codeAction.runInTerminal')}
+      className="code-action"
       style={{
         background: 'rgba(63,185,80,0.15)',
         border: '1px solid rgba(63,185,80,0.3)',
-        borderRadius: 8,
+        borderRadius: 6,
         padding: '2px 6px',
         color: '#4ade80',
         cursor: 'pointer',
@@ -205,10 +215,11 @@ function SaveButton({ code, langName }: { code: string; langName: string }) {
       onClick={handleSave}
       aria-label={t('codeAction.saveToFile')}
       title={t('codeAction.saveToFile')}
+      className="code-action"
       style={{
         background: 'var(--code-btn-bg)',
         border: '1px solid var(--code-border)',
-        borderRadius: 8,
+        borderRadius: 6,
         padding: '2px 6px',
         color: 'var(--code-text-muted)',
         cursor: 'pointer',
@@ -231,11 +242,12 @@ function WrapToggleButton({ wrapped, onToggle }: { wrapped: boolean; onToggle: (
     <button
       onClick={onToggle}
       title={wrapped ? t('message.disableWordWrap') : t('message.enableWordWrap')}
+      className="code-action"
       style={{
         background: wrapped ? 'rgba(255,255,255,0.16)' : 'var(--code-btn-bg)',
         border: '1px solid var(--code-border)',
-        borderRadius: 8,
-        padding: '2px 5px',
+        borderRadius: 6,
+        padding: '2px 6px',
         color: wrapped ? '#ffffff' : 'var(--code-text-muted)',
         cursor: 'pointer',
         fontSize: 11,
@@ -284,6 +296,7 @@ function CollapsiblePre({ children, className }: { children: React.ReactNode; cl
       {isOverflow && (
         <button
           onClick={() => setCollapsed(!collapsed)}
+          className="code-action"
           style={{
             width: '100%',
             display: 'flex',
@@ -366,7 +379,7 @@ export default function CodeBlockWithHeader({
   }, [codeText, workingDir, addToast, t])
 
   return (
-    <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--glass-border)', margin: '4px 0', boxShadow: 'var(--code-shadow)' }}>
+    <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--code-border)', margin: '4px 0', boxShadow: 'var(--code-shadow)' }}>
       <div
         style={{
           display: 'flex',

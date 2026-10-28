@@ -1187,3 +1187,48 @@ mark.search-current-match {
     animation-iteration-count: infinite !important;
   }
 }
+
+/* ── Chat reading surface (wave 39-B) ─────────────────────────────────────────
+   Tool cards, the code-block header and the message action row all live inside
+   an `overflow: hidden` shell, so a focus ring drawn outside their bounds is
+   clipped. Their controls reuse the sidebar's inset-ring mechanism
+   (`.row-focus-inset`) instead of a per-component one. */
+
+/* Quiet card affordances — copy, save, "show more". Same hover surface as the
+   sidebar/archive rows (one neutral step, no per-component accent colour).
+   The resting colour and background are inline, hence `!important`; the
+   sidebar's `.archive-hover-btn` uses the same mechanism. A copied button
+   keeps its success colour because `.is-copied` opts out. */
+.card-action:focus-visible {
+  outline-offset: -2px;
+}
+.card-action:hover:not(:disabled):not(.is-copied) {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Code-block chrome is always dark: the bundled highlight theme is
+   github-dark in both app themes, so `--accent` would put the light theme's
+   dark blue ring on a #2a2d2e header (about 2:1). `--code-text-muted` is
+   theme-invariant and keeps the ring legible on either theme. */
+.code-action:focus-visible {
+  outline-color: var(--code-text-muted);
+  outline-offset: -2px;
+}
+
+/* A one-line "nothing here" state: a dim small icon followed by a muted
+   sentence — the same shape the sidebar and archive use, instead of a bare
+   italic line that only appears inside a few tool cards. */
+.empty-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.empty-hint > svg {
+  opacity: 0.5;
+  flex-shrink: 0;
+}

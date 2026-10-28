@@ -3499,6 +3499,15 @@
     "turn": {
       "stopped": "Turn stopped before completion.",
       "unknown": "Turn ended without a reported status."
+    },
+    "engineNotice": {
+      "aria": "Notices from the engine",
+      "dismiss": "Dismiss this notice",
+      "more": "+{{count}} more"
+    },
+    "reroute": {
+      "moved": "This turn was moved from {{from}} to {{to}}.",
+      "reason": "Engine reason: {{reason}}"
     }
   },
   "plugin": {

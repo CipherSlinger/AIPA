@@ -1,11 +1,13 @@
 // ChatInput compose status bar — extracted from ChatInput.tsx (Iteration 314)
 // Displays word/char/token counts, WPM, calculator result, and input history hint.
 
-import React from 'react'
+import React, { useSyncExternalStore } from 'react'
 import { AlertTriangle, Calculator, Clock, MessageCircleQuestion } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useChatStore, usePrefsStore } from '../../store'
 import { personaModelOf, resolveEffectiveModel } from '../../lib/sessionModel'
+import EngineWarningNotices from './EngineWarningNotices'
+import { engineNoticeStore } from './engineNoticeStore'
 
 interface ChatInputComposeStatusProps {
   input: string
@@ -63,6 +65,27 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
   // A settings report whose fields were all null has nothing to say; do not
   // render an empty strip for it.
   const hasThreadLine = !!(reportedModel || approvalLabel || effortLabel)
+  // `model/rerouted` is the engine's own statement that this turn ran on a
+  // model other than the requested one. It lives here, next to the reported
+  // settings, because both answer the same question: what actually ran?
+  const reroute = useSyncExternalStore(
+    engineNoticeStore.subscribe,
+    engineNoticeStore.getSnapshot,
+    engineNoticeStore.getSnapshot,
+  ).reroute
+  const rerouteText = reroute
+    ? t('codex.reroute.moved', { from: reroute.fromModel, to: reroute.toModel })
+    : null
+  // The engine's `reason` is a raw enum (`highRiskCyberActivity`) with no
+  // sentence in either locale. It stays verbatim in the tooltip rather than on
+  // the line: the line states what happened, the tooltip adds why, and AIPA
+  // never translates an enum into an explanation it cannot verify.
+  const rerouteDetail = rerouteText
+    ? t('codex.reroute.reason', { reason: reroute?.reason ?? '' })
+    : null
+  const rerouteTitle = rerouteText && rerouteDetail
+    ? `${rerouteText} ${rerouteDetail}`
+    : rerouteText
 
   const isOverLimit = input.length > 10000
   const isNearLimit = input.length > 5000
@@ -104,9 +127,14 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
 
   return (
     <>
+      {/* The engine's own warnings. Rendered verbatim, above the composer,
+          never in the transcript. Dismissals last until the turn ends. */}
+      <EngineWarningNotices />
       {/* Settings the Codex thread actually runs with. Nothing here is
-          interactive: the picker above stays the only way to change a model. */}
-      {threadSettings && hasThreadLine && (
+          interactive: the picker above stays the only way to change a model.
+          The reroute line also lives here so the strip names both models even
+          when the thread's settings report has not arrived yet. */}
+      {((threadSettings && hasThreadLine) || rerouteText) && (
         <div
           role="status"
           aria-label={t('codex.thread.settingsAria')}
@@ -118,6 +146,20 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
             lineHeight: 1.5,
           }}
         >
+          {rerouteText && reroute && (
+            <span
+              aria-label={rerouteTitle ?? rerouteText}
+              title={rerouteTitle ?? rerouteText}
+              style={{
+                fontSize: 10, color: 'var(--warning-text)', fontWeight: 500,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                minWidth: 0,
+              }}
+            >
+              {rerouteText}
+            </span>
+          )}
+          {rerouteText && hasThreadLine && SEP}
           {reportedModel && (
             <span
               title={reportedModel}

@@ -244,21 +244,23 @@ function CopyOutputBtn({ text, t }: { text: string; t: (key: string) => string }
     <button
       onClick={handleCopy}
       title={t('message.copyCode')}
+      // Same quiet-button mechanism as the sidebar rows: one neutral hover
+      // step and an inset ring, instead of this button turning indigo while
+      // the neighbouring card's copy button turned green.
+      className={`card-action${copied ? ' is-copied' : ''}`}
       style={{
         background: 'none',
         border: 'none',
         cursor: 'pointer',
-        padding: '1px 4px',
+        padding: '2px 6px',
         borderRadius: 6,
-        color: copied ? '#4ade80' : 'var(--text-muted)',
+        color: copied ? 'var(--success-text)' : 'var(--text-muted)',
         display: 'flex',
         alignItems: 'center',
         gap: 3,
-        fontSize: 9,
+        fontSize: 10,
         transition: 'all 0.15s ease',
       }}
-      onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = '#6366f1' }}
-      onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = 'var(--text-muted)' }}
     >
       {copied ? <Check size={10} /> : <ClipboardCopy size={10} />}
       {copied ? t('message.codeCopied') : t('message.copyCode')}
@@ -277,7 +279,9 @@ function FilePathHighlight({ filePath }: { filePath: string }) {
     <span style={{
       fontFamily: 'monospace',
       fontSize: 12,
-      color: 'rgba(165,180,252,0.82)',
+      // Theme-aware indigo: the literal pastel fell below AA on the light
+      // theme's header tint.
+      color: 'var(--accent-text)',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
@@ -617,7 +621,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
         borderRadius: 10,
         marginBottom: 6,
         overflow: 'hidden',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        boxShadow: 'var(--code-shadow)',
         transition: 'all 0.15s ease',
       }}
     >
@@ -645,14 +649,14 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
       <div className={`tool-output-wrapper${expanded ? ' expanded' : ''}`}>
         <div>
         {expanded && (
-        <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
+        <div style={{ borderTop: '1px solid var(--border)' }}>
           {/* Input section */}
           <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
             <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
               {t('tool.input')}
               {/* File path for non-file-path-highlight tools (legacy display) */}
               {!isFilePath && extractFilePath(tool.input || {}) && (
-                <span style={{ color: '#a5b4fc', fontSize: 11, fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260, fontWeight: 400, letterSpacing: 'normal', textTransform: 'none' }}>
+                <span style={{ color: 'var(--accent-text)', fontSize: 11, fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260, fontWeight: 400, letterSpacing: 'normal', textTransform: 'none' }}>
                   {extractFilePath(tool.input || {})}
                 </span>
               )}
@@ -696,7 +700,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
               <TodoListView todos={Array.isArray(tool.input.todos) ? (tool.input.todos as import('./TodoListView').TodoItem[]) : []} />
             ) : TASK_LIST_TOOLS.has(tool.name) || TASK_GET_TOOLS.has(tool.name) ? (
               /* TaskList/TaskGet: show compact task cards in input section (query params) */
-              <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'var(--code-bg)', border: '1px solid var(--bg-hover)', borderRadius: 4, padding: '6px 8px', overflow: 'auto', maxHeight: 100, color: '#a5b4fc', lineHeight: 1.5 }}>
+              <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'var(--code-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 8px', overflow: 'auto', maxHeight: 100, color: 'var(--accent-text)', lineHeight: 1.5 }}>
                 {JSON.stringify(tool.input, null, 2)}
               </pre>
             ) : tool.name === 'CronCreate' ? (
@@ -706,7 +710,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
             ) : BROWSER_TOOLS.has(tool.name) ? (
               <WebBrowserInputCard input={tool.input} />
             ) : (
-              <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'var(--code-bg)', border: '1px solid var(--bg-hover)', borderRadius: 4, padding: '6px 8px', overflow: 'auto', maxHeight: 200, color: '#a5b4fc', lineHeight: 1.5 }}>
+              <pre style={{ fontSize: 11, margin: 0, fontFamily: 'monospace', background: 'var(--code-bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 8px', overflow: 'auto', maxHeight: 200, color: 'var(--accent-text)', lineHeight: 1.5 }}>
                 {JSON.stringify(tool.input, null, 2)}
               </pre>
             )}
@@ -719,7 +723,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
               const isError = tool.status === 'error'
               return (
                 <div>
-                  <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+                  <div style={{ height: 1, background: 'var(--border)' }} />
                   <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>
                       {t('tool.output')}
@@ -729,7 +733,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
                         display: 'inline-flex', alignItems: 'center', gap: 5,
                         padding: '3px 9px', borderRadius: 8,
                         background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.28)',
-                        color: '#fca5a5', fontSize: 11, fontWeight: 500,
+                        color: 'var(--danger-text)', fontSize: 11, fontWeight: 500,
                       }}>
                         <X size={11} style={{ flexShrink: 0 }} />
                         {resultText || 'Error editing cell'}
@@ -739,7 +743,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
                         display: 'inline-flex', alignItems: 'center', gap: 5,
                         padding: '3px 9px', borderRadius: 8,
                         background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.28)',
-                        color: '#4ade80', fontSize: 11, fontWeight: 500,
+                        color: 'var(--success-text)', fontSize: 11, fontWeight: 500,
                       }}>
                         <Check size={11} style={{ flexShrink: 0 }} />
                         Cell updated
@@ -755,7 +759,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
               const lspData = parseLSPOutput(resultText)
               if (lspData) {
                 return (
-                  <div style={{ borderTop: '1px solid var(--bg-hover)', padding: '8px 10px', background: 'var(--section-bg)' }}>
+                  <div style={{ borderTop: '1px solid var(--border)', padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{t('tool.output')}</span>
                       <CopyOutputBtn text={resultText} t={t} />
@@ -770,7 +774,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
             if (BROWSER_TOOLS.has(tool.name) && resultText) {
               return (
                 <div>
-                  <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+                  <div style={{ height: 1, background: 'var(--border)' }} />
                   <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{t('tool.output')}</span>
@@ -788,7 +792,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
               if (items) {
                 return (
                   <div>
-                    <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+                    <div style={{ height: 1, background: 'var(--border)' }} />
                     <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                       <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span>{t('tool.output')}</span>
@@ -806,7 +810,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
               const uri = typeof tool.input?.uri === 'string' ? tool.input.uri : ''
               return (
                 <div>
-                  <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+                  <div style={{ height: 1, background: 'var(--border)' }} />
                   <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{t('tool.output')}</span>
@@ -823,7 +827,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
               if (taskItems) {
                 return (
                   <div>
-                    <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+                    <div style={{ height: 1, background: 'var(--border)' }} />
                     <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                       <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span>{t('tool.output')}</span>
@@ -841,7 +845,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
               const rtAction = (typeof tool.input?.action === 'string' ? tool.input.action : 'list') as RemoteTriggerAction
               return (
                 <div>
-                  <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+                  <div style={{ height: 1, background: 'var(--border)' }} />
                   <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{t('tool.output')}</span>
@@ -857,7 +861,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
             if (tool.name === 'CronCreate' && resultText) {
               return (
                 <div>
-                  <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+                  <div style={{ height: 1, background: 'var(--border)' }} />
                   <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>
                       {t('tool.output')}
@@ -873,7 +877,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
               const isError = tool.status === 'error'
               return (
                 <div>
-                  <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+                  <div style={{ height: 1, background: 'var(--border)' }} />
                   <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>
                       {t('tool.output')}
@@ -883,7 +887,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
                         display: 'inline-flex', alignItems: 'center', gap: 5,
                         padding: '3px 9px', borderRadius: 8,
                         background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.28)',
-                        color: '#fca5a5', fontSize: 11, fontWeight: 500,
+                        color: 'var(--danger-text)', fontSize: 11, fontWeight: 500,
                       }}>
                         <X size={11} style={{ flexShrink: 0 }} />
                         {resultText || 'Delete failed'}
@@ -893,7 +897,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
                         display: 'inline-flex', alignItems: 'center', gap: 5,
                         padding: '3px 9px', borderRadius: 8,
                         background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.28)',
-                        color: '#4ade80', fontSize: 11, fontWeight: 500,
+                        color: 'var(--success-text)', fontSize: 11, fontWeight: 500,
                       }}>
                         <Check size={11} style={{ flexShrink: 0 }} />
                         Job deleted
@@ -908,7 +912,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
             if (tool.name === 'CronList' && resultText) {
               return (
                 <div>
-                  <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+                  <div style={{ height: 1, background: 'var(--border)' }} />
                   <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{t('tool.output')}</span>
@@ -924,7 +928,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
             if (isSearchResult && resultText) {
               return (
                 <div>
-                  <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+                  <div style={{ height: 1, background: 'var(--border)' }} />
                   <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{t('tool.output')}</span>
@@ -940,7 +944,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
             if (isWebResult && resultText) {
               return (
                 <div>
-                  <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+                  <div style={{ height: 1, background: 'var(--border)' }} />
                   <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{t('tool.output')}</span>
@@ -956,7 +960,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
             if (isBash) {
               return (
                 <div>
-                  <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+                  <div style={{ height: 1, background: 'var(--border)' }} />
                   <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -980,7 +984,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
             return (
             <div>
               {/* Divider */}
-              <div style={{ height: 1, background: 'var(--bg-hover)' }} />
+              <div style={{ height: 1, background: 'var(--border)' }} />
               <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -999,9 +1003,9 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
                   fontSize: 11, margin: 0, padding: '6px 8px',
                   fontFamily: 'monospace',
                   background: 'var(--code-bg)',
-                  border: '1px solid var(--bg-hover)',
-                  borderRadius: 4,
-                  color: tool.status === 'error' ? '#fca5a5' : 'var(--text-secondary)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 6,
+                  color: tool.status === 'error' ? 'var(--danger-text)' : 'var(--text-secondary)',
                   overflow: 'auto', maxHeight: 200,
                   whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                   lineHeight: 1.5,
@@ -1015,7 +1019,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
 
           {/* Image preview thumbnails (Iteration 462) */}
           {imagePaths.length > 0 && (
-            <div style={{ borderTop: '1px solid var(--bg-hover)', padding: '6px 10px', display: 'flex', gap: 6, flexWrap: 'wrap', background: 'var(--section-bg)' }}>
+            <div style={{ borderTop: '1px solid var(--border)', padding: '6px 10px', display: 'flex', gap: 6, flexWrap: 'wrap', background: 'var(--section-bg)' }}>
               {imagePaths.map((imgPath, i) => (
                 <ImageThumbnail key={i} filePath={imgPath} onClick={() => setLightboxSrc(`file://${imgPath}`)} t={t} />
               ))}

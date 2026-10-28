@@ -53,7 +53,7 @@ export function CronCard({
           display: 'inline-flex', alignItems: 'center', gap: 5,
           padding: '3px 9px', borderRadius: 8,
           background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.28)',
-          color: '#4ade80', fontSize: 11, fontWeight: 600,
+          color: 'var(--success-text)', fontSize: 11, fontWeight: 600,
         }}>
           <Clock size={11} style={{ flexShrink: 0 }} />
           Scheduled
@@ -63,7 +63,7 @@ export function CronCard({
             fontSize: 11, fontFamily: 'monospace',
             padding: '2px 7px', borderRadius: 6,
             background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)',
-            color: '#a5b4fc',
+            color: 'var(--accent-text)',
           }}>
             {jobId}
           </span>
@@ -87,12 +87,12 @@ export function CronCard({
         {/* Cron expression chip */}
         {cron && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Clock size={11} style={{ color: 'rgba(165,180,252,0.7)', flexShrink: 0 }} />
+            <Clock size={11} style={{ color: 'var(--accent-muted)', flexShrink: 0 }} />
             <span style={{
               fontSize: 12, fontFamily: 'monospace', fontWeight: 600,
               padding: '2px 8px', borderRadius: 6,
               background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)',
-              color: '#a5b4fc',
+              color: 'var(--accent-text)',
             }}>
               {cron}
             </span>
@@ -108,7 +108,7 @@ export function CronCard({
                 onClick={() => setPromptExpanded(v => !v)}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
-                  color: '#a5b4fc', fontSize: 10, padding: '0 4px', marginLeft: 2,
+                  color: 'var(--accent-text)', fontSize: 10, padding: '0 4px', marginLeft: 2,
                 }}
               >
                 {promptExpanded ? 'less' : 'more'}
@@ -124,7 +124,7 @@ export function CronCard({
             padding: '2px 7px', borderRadius: 8,
             background: recurring ? 'rgba(34,197,94,0.12)' : 'rgba(59,130,246,0.12)',
             border: recurring ? '1px solid rgba(34,197,94,0.28)' : '1px solid rgba(59,130,246,0.28)',
-            color: recurring ? '#4ade80' : '#93c5fd',
+            color: recurring ? 'var(--success-text)' : 'var(--info-text)',
           }}>
             {recurring ? 'recurring' : 'one-shot'}
           </span>
@@ -133,7 +133,7 @@ export function CronCard({
               fontSize: 9, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
               padding: '2px 7px', borderRadius: 8,
               background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.28)',
-              color: '#c084fc',
+              color: 'var(--violet-text)',
             }}>
               persistent
             </span>
@@ -154,7 +154,7 @@ export function CronCard({
           fontSize: 9, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
           padding: '2px 7px', borderRadius: 8,
           background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.28)',
-          color: '#fca5a5',
+          color: 'var(--danger-text)',
           display: 'inline-flex', alignItems: 'center', gap: 4,
         }}>
           <X size={9} style={{ flexShrink: 0 }} />
@@ -165,7 +165,7 @@ export function CronCard({
             fontSize: 11, fontFamily: 'monospace',
             padding: '2px 7px', borderRadius: 6,
             background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.20)',
-            color: '#fca5a5',
+            color: 'var(--danger-text)',
           }}>
             {jobId}
           </span>
@@ -199,7 +199,7 @@ export function CronCard({
                     fontSize: 10, fontFamily: 'monospace',
                     padding: '1px 5px', borderRadius: 4,
                     background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.28)',
-                    color: '#a5b4fc', flexShrink: 0,
+                    color: 'var(--accent-text)', flexShrink: 0,
                   }}>
                     {cronExpr}
                   </span>
@@ -218,7 +218,7 @@ export function CronCard({
                 )}
                 {jobId && !promptText && (
                   <span style={{
-                    fontSize: 10, fontFamily: 'monospace', color: 'rgba(165,180,252,0.6)',
+                    fontSize: 10, fontFamily: 'monospace', color: 'var(--accent-muted)',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     maxWidth: 180,
                   }}>
@@ -230,7 +230,7 @@ export function CronCard({
                   padding: '1px 5px', borderRadius: 5,
                   background: status === 'active' ? 'rgba(34,197,94,0.12)' : 'rgba(100,116,139,0.15)',
                   border: status === 'active' ? '1px solid rgba(34,197,94,0.25)' : '1px solid rgba(100,116,139,0.25)',
-                  color: status === 'active' ? '#4ade80' : '#94a3b8',
+                  color: status === 'active' ? 'var(--success-text)' : 'var(--text-secondary)',
                   flexShrink: 0,
                 }}>
                   {status}
@@ -248,11 +248,10 @@ export function CronCard({
     }
     // Empty list
     return (
-      <div style={{
-        fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic',
-        display: 'flex', alignItems: 'center', gap: 6,
-      }}>
-        <Clock size={11} style={{ opacity: 0.5 }} />
+      // Shared empty-state shape (.empty-hint): dim icon + muted sentence,
+      // identical to the tool-search and task-list cards beside it.
+      <div className="empty-hint">
+        <Clock size={11} />
         No scheduled jobs
       </div>
     )

@@ -43,13 +43,13 @@ export function AskUserQuestionCard({ question, options, isAnswered, answer }: A
       }}>
         <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <HelpCircle size={14} style={{ color: '#818cf8', flexShrink: 0 }} />
+            <HelpCircle size={14} style={{ color: 'var(--accent-muted)', flexShrink: 0 }} />
             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
               {question}
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-            <Check size={11} style={{ color: '#4ade80', flexShrink: 0 }} />
+            <Check size={11} style={{ color: 'var(--success-text)', flexShrink: 0 }} />
             <span style={{ color: 'var(--text-secondary)' }}>{answer}</span>
           </div>
         </div>
@@ -71,7 +71,7 @@ export function AskUserQuestionCard({ question, options, isAnswered, answer }: A
       <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {/* Question label + text */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-          <HelpCircle size={15} style={{ color: '#818cf8', flexShrink: 0, marginTop: 1 }} />
+          <HelpCircle size={15} style={{ color: 'var(--accent-muted)', flexShrink: 0, marginTop: 1 }} />
           <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.5 }}>
             {question}
           </span>
@@ -91,7 +91,7 @@ export function AskUserQuestionCard({ question, options, isAnswered, answer }: A
                   borderRadius: 8,
                   border: `1px solid ${selected === opt ? 'rgba(99,102,241,0.60)' : 'rgba(99,102,241,0.30)'}`,
                   background: selected === opt ? 'rgba(99,102,241,0.25)' : 'rgba(99,102,241,0.10)',
-                  color: 'rgba(165,180,252,0.90)',
+                  color: 'var(--accent-text)',
                   cursor: 'pointer',
                   fontWeight: 500,
                   transition: 'all 0.15s ease',
@@ -157,7 +157,7 @@ export function AskUserQuestionCard({ question, options, isAnswered, answer }: A
 
         {/* Sent indicator */}
         {sent && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#4ade80', paddingLeft: 23 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--success-text)', paddingLeft: 23 }}>
             <Check size={11} />
             {t('askUser.sent')}
           </div>

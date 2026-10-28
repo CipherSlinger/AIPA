@@ -51,6 +51,7 @@ function CopyBtn({ text }: CopyBtnProps) {
     <button
       onClick={handleCopy}
       title={copied ? 'Copied!' : 'Copy content'}
+      className={`card-action${copied ? ' is-copied' : ''}`}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -60,13 +61,11 @@ function CopyBtn({ text }: CopyBtnProps) {
         cursor: 'pointer',
         padding: '2px 6px',
         borderRadius: 6,
-        color: copied ? '#4ade80' : 'var(--text-muted)',
+        color: copied ? 'var(--success-text)' : 'var(--text-muted)',
         fontSize: 10,
         transition: 'color 0.15s ease',
         flexShrink: 0,
       }}
-      onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = '#4ade80' }}
-      onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = 'var(--text-muted)' }}
     >
       {copied ? <Check size={11} /> : <Clipboard size={11} />}
       {copied ? 'Copied' : 'Copy'}
@@ -107,15 +106,15 @@ export function FileWriteCard({ input, result, isStreaming }: FileWriteCardProps
 
   return (
     <div style={{
-      background: 'var(--glass-bg-low)',
+      background: 'var(--bg-primary)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
       border: '1px solid var(--border)',
-      borderLeft: '4px solid rgba(74,222,128,0.35)',
+      borderLeft: '2px solid rgba(74,222,128,0.35)',
       borderRadius: 10,
       marginBottom: 6,
       overflow: 'hidden',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+      boxShadow: 'var(--code-shadow)',
     }}>
       {/* Header row */}
       <div style={{
@@ -127,7 +126,7 @@ export function FileWriteCard({ input, result, isStreaming }: FileWriteCardProps
       }}>
         <FileText
           size={13}
-          style={{ color: 'rgba(74,222,128,0.85)', flexShrink: 0 }}
+          style={{ color: 'var(--success-text)', flexShrink: 0 }}
         />
 
         {/* "Write" action badge */}
@@ -140,7 +139,7 @@ export function FileWriteCard({ input, result, isStreaming }: FileWriteCardProps
           borderRadius: 8,
           background: 'rgba(74,222,128,0.15)',
           border: '1px solid rgba(74,222,128,0.30)',
-          color: 'rgba(74,222,128,0.90)',
+          color: 'var(--success-text)',
           whiteSpace: 'nowrap',
           flexShrink: 0,
         }}>
@@ -172,7 +171,7 @@ export function FileWriteCard({ input, result, isStreaming }: FileWriteCardProps
             </span>
           )}
           <span style={{
-            color: 'rgba(74,222,128,0.92)',
+            color: 'var(--success-text)',
             fontWeight: 700,
             whiteSpace: 'nowrap',
             flexShrink: 0,
@@ -193,7 +192,7 @@ export function FileWriteCard({ input, result, isStreaming }: FileWriteCardProps
             borderRadius: 8,
             background: 'rgba(74,222,128,0.12)',
             border: '1px solid rgba(74,222,128,0.28)',
-            color: '#4ade80',
+            color: 'var(--success-text)',
             whiteSpace: 'nowrap',
             flexShrink: 0,
           }}>
@@ -206,7 +205,7 @@ export function FileWriteCard({ input, result, isStreaming }: FileWriteCardProps
         {isStreaming && !hasResult && (
           <span style={{
             fontSize: 10,
-            color: 'rgba(74,222,128,0.60)',
+            color: 'var(--success-text)',
             fontStyle: 'italic',
             flexShrink: 0,
           }}>
@@ -217,7 +216,7 @@ export function FileWriteCard({ input, result, isStreaming }: FileWriteCardProps
 
       {/* Content preview section — shown when content field is non-empty */}
       {content.length > 0 && (
-        <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
+        <div style={{ borderTop: '1px solid var(--border)' }}>
           <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
             {/* Label row */}
             <div style={{
@@ -259,7 +258,7 @@ export function FileWriteCard({ input, result, isStreaming }: FileWriteCardProps
                 fontSize: 11,
                 fontFamily: "Consolas, 'Cascadia Code', 'Fira Code', monospace",
                 background: 'var(--code-bg)',
-                border: '1px solid var(--bg-hover)',
+                border: '1px solid var(--border)',
                 borderRadius: needsExpand && !showMore ? '6px 6px 0 0' : 6,
                 padding: '8px 10px',
                 overflow: 'auto',
@@ -280,19 +279,19 @@ export function FileWriteCard({ input, result, isStreaming }: FileWriteCardProps
                   onClick={() => setShowMore(!showMore)}
                   style={{
                     background: 'var(--code-bg)',
-                    border: '1px solid var(--bg-hover)',
+                    border: '1px solid var(--border)',
                     borderTop: 'none',
                     borderRadius: '0 0 6px 6px',
                     cursor: 'pointer',
-                    color: 'rgba(74,222,128,0.70)',
+                    color: 'var(--success-text)',
                     fontSize: 10,
                     fontFamily: 'monospace',
                     padding: '3px 10px',
                     textAlign: 'left',
                     transition: 'color 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(74,222,128,1)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(74,222,128,0.70)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--success-text)' }}
                 >
                   {showMore
                     ? 'Show less'

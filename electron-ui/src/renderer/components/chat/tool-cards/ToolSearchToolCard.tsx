@@ -50,6 +50,7 @@ function CopyBtn({ text }: CopyBtnProps) {
     <button
       onClick={handleCopy}
       title={copied ? 'Copied!' : 'Copy result'}
+      className={`card-action${copied ? ' is-copied' : ''}`}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -59,13 +60,11 @@ function CopyBtn({ text }: CopyBtnProps) {
         cursor: 'pointer',
         padding: '2px 6px',
         borderRadius: 6,
-        color: copied ? '#4ade80' : 'var(--text-muted)',
+        color: copied ? 'var(--success-text)' : 'var(--text-muted)',
         fontSize: 10,
         transition: 'color 0.15s ease',
         flexShrink: 0,
       }}
-      onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = '#22d3ee' }}
-      onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = 'var(--text-muted)' }}
     >
       {copied ? <Check size={11} /> : <Clipboard size={11} />}
       {copied ? 'Copied' : 'Copy'}
@@ -111,7 +110,7 @@ export function ToolSearchToolCard({ input, result, isLoading }: ToolSearchToolC
       borderRadius: 10,
       marginBottom: 6,
       overflow: 'hidden',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+      boxShadow: 'var(--code-shadow)',
       transition: 'border-color 0.2s ease',
     }}>
       <div style={{
@@ -121,13 +120,13 @@ export function ToolSearchToolCard({ input, result, isLoading }: ToolSearchToolC
         padding: '7px 10px',
         background: 'var(--section-bg)',
       }}>
-        <Search size={13} style={{ color: 'rgba(6,182,212,0.85)', flexShrink: 0 }} />
+        <Search size={13} style={{ color: 'var(--info-text)', flexShrink: 0 }} />
 
         <span style={{
           flex: 1,
           fontSize: 12,
           fontFamily: 'monospace',
-          color: 'rgba(6,182,212,0.90)',
+          color: 'var(--info-text)',
           fontWeight: 600,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -154,7 +153,7 @@ export function ToolSearchToolCard({ input, result, isLoading }: ToolSearchToolC
             gap: 4,
             fontSize: 10,
             fontWeight: 500,
-            color: 'rgba(6,182,212,0.80)',
+            color: 'var(--info-text)',
             fontStyle: 'italic',
             animation: 'pulse 1.5s ease-in-out infinite',
             flexShrink: 0,
@@ -172,7 +171,7 @@ export function ToolSearchToolCard({ input, result, isLoading }: ToolSearchToolC
             borderRadius: 8,
             background: 'rgba(34,197,94,0.12)',
             border: '1px solid rgba(34,197,94,0.28)',
-            color: '#4ade80',
+            color: 'var(--success-text)',
             fontSize: 10,
             fontWeight: 500,
             flexShrink: 0,
@@ -189,8 +188,8 @@ export function ToolSearchToolCard({ input, result, isLoading }: ToolSearchToolC
             gap: 4,
             padding: '2px 8px',
             borderRadius: 8,
-            background: 'rgba(148,163,184,0.10)',
-            border: '1px solid rgba(148,163,184,0.25)',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border)',
             color: 'var(--text-muted)',
             fontSize: 10,
             fontWeight: 500,
@@ -209,7 +208,7 @@ export function ToolSearchToolCard({ input, result, isLoading }: ToolSearchToolC
             borderRadius: 8,
             background: 'rgba(34,197,94,0.12)',
             border: '1px solid rgba(34,197,94,0.28)',
-            color: '#4ade80',
+            color: 'var(--success-text)',
             fontSize: 10,
             fontWeight: 500,
             flexShrink: 0,
@@ -221,7 +220,7 @@ export function ToolSearchToolCard({ input, result, isLoading }: ToolSearchToolC
       </div>
 
       {isDone && toolList !== null && toolList.length > 0 && (
-        <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
+        <div style={{ borderTop: '1px solid var(--border)' }}>
           <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
             <div style={{
               fontSize: 10,
@@ -250,7 +249,7 @@ export function ToolSearchToolCard({ input, result, isLoading }: ToolSearchToolC
                     fontSize: 11,
                     fontFamily: 'monospace',
                     fontWeight: 500,
-                    color: 'rgba(6,182,212,0.90)',
+                    color: 'var(--info-text)',
                     whiteSpace: 'nowrap',
                     maxWidth: 220,
                     overflow: 'hidden',
@@ -271,15 +270,15 @@ export function ToolSearchToolCard({ input, result, isLoading }: ToolSearchToolC
                     padding: '2px 8px',
                     borderRadius: 6,
                     background: 'none',
-                    border: '1px solid rgba(6,182,212,0.20)',
+                    border: '1px solid var(--border)',
                     cursor: 'pointer',
                     fontSize: 11,
                     fontFamily: 'monospace',
-                    color: 'rgba(6,182,212,0.65)',
+                    color: 'var(--info-text)',
                     transition: 'color 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(6,182,212,1)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(6,182,212,0.65)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--info-text)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
                 >
                   {expanded ? 'Show less' : `+${toolList.length - 12} more`}
                 </button>
@@ -290,13 +289,13 @@ export function ToolSearchToolCard({ input, result, isLoading }: ToolSearchToolC
       )}
 
       {isDone && toolList !== null && toolList.length === 0 && (
-        <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
+        <div style={{ borderTop: '1px solid var(--border)' }}>
           <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
-            <span style={{
-              fontSize: 11,
-              color: 'var(--text-faint)',
-              fontStyle: 'italic',
-            }}>
+            {/* Small icon + muted sentence, the pattern the sidebar and
+                archive empty states use; a bare faint line read as an error
+                rather than "this search returned nothing". */}
+            <span className="empty-hint">
+              <Wrench size={11} />
               No tools matched{query ? ` "${query}"` : ''}
             </span>
           </div>
@@ -304,7 +303,7 @@ export function ToolSearchToolCard({ input, result, isLoading }: ToolSearchToolC
       )}
 
       {isDone && rawResult && (
-        <div style={{ borderTop: '1px solid var(--bg-hover)' }}>
+        <div style={{ borderTop: '1px solid var(--border)' }}>
           <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>
             <div style={{
               display: 'flex',
@@ -328,8 +327,8 @@ export function ToolSearchToolCard({ input, result, isLoading }: ToolSearchToolC
               margin: 0,
               fontFamily: 'monospace',
               background: 'var(--code-bg)',
-              border: '1px solid var(--bg-hover)',
-              borderRadius: 4,
+              border: '1px solid var(--border)',
+              borderRadius: 6,
               padding: '6px 8px',
               overflow: 'auto',
               maxHeight: 180,
@@ -350,13 +349,13 @@ export function ToolSearchToolCard({ input, result, isLoading }: ToolSearchToolC
                   border: 'none',
                   cursor: 'pointer',
                   fontSize: 10,
-                  color: 'rgba(6,182,212,0.70)',
+                  color: 'var(--info-text)',
                   padding: '2px 0',
                   marginTop: 2,
                   transition: 'color 0.15s ease',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(6,182,212,1)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(6,182,212,0.70)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--info-text)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)' }}
               >
                 {expanded ? 'Show less' : 'Show more'}
               </button>
