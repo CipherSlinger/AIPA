@@ -759,6 +759,32 @@ export interface CliRateLimitsUpdatedEventData {
   [key: string]: unknown
 }
 
+/**
+ * `cli:threadNameUpdated` payload (`thread/name/updated`, ThreadNameUpdatedNotification).
+ *
+ * `threadId` is a Codex thread id, which is the same id the session list uses
+ * as `sessionId` (see `src/main/codex/codex-session-reader.ts` and the
+ * `session:rename` handler). `name` is `string | null` on the wire: a null
+ * name is not a rename to an empty title and must be ignored, not applied.
+ * Ids are optional here because a push payload from the engine is untrusted
+ * until the renderer validates it; the schema marks `threadId` required.
+ */
+export interface CliThreadNameUpdatedEventData {
+  sessionId?: string
+  threadId?: string
+  name?: string | null
+}
+
+/**
+ * `cli:threadArchived` / `cli:threadDeleted` payload
+ * (`thread/archived`, `thread/deleted`; each notification carries only a
+ * required `threadId`). No status, cwd or archive flag is sent.
+ */
+export interface CliThreadLifecycleEventData {
+  sessionId?: string
+  threadId?: string
+}
+
 const electronAPI = {
   // ── IPC readiness check ────────────────────
   ipcPing: () => ipcRenderer.invoke('ipc:ping') as Promise<{ ok: boolean; timestamp: number }>,
@@ -996,6 +1022,9 @@ const electronAPI = {
       'cli:serverRequestResolved', 'cli:serverRequestTimedOut',
       // Codex account rate limits (composer chip; payload stays raw)
       'cli:rateLimitsUpdated',
+      // Codex thread life-cycle changes made by any client (CLI rename/archive/
+      // delete). The renderer edits the session list in place from these.
+      'cli:threadNameUpdated', 'cli:threadArchived', 'cli:threadDeleted',
     ]
     const handlers = channels.map((ch) => {
       const h = (_: unknown, d: Record<string, unknown>) => {

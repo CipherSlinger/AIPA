@@ -3226,7 +3226,8 @@
     },
     "palette": {
       "paused": "Paused",
-      "manage": "Manage"
+      "manage": "Manage",
+      "failing": "Failing — {{streak}}"
     },
     "spend": {
       "limitHint": "Applies to runs the schedule starts in a rolling 24 hours; Run now is never blocked. Only reported costs count — engines that report no money (Codex, some Claude routes) are not covered, so with no reported cost the limit cannot be checked.",

@@ -4,6 +4,7 @@
 
 import { create } from 'zustand'
 import { AppPrefs, PermissionMode, SessionListItem } from '../types/app.types'
+import { applyThreadLifecycle, type ThreadLifecycleEvent } from '../utils/threadLifecycle'
 
 // ── Re-exports from sub-modules ──────────────────
 export { useChatStore } from './chatStore'
@@ -25,17 +26,30 @@ interface SessionState {
   searchQuery: string
   homeDir: string
   setSessions: (sessions: SessionListItem[]) => void
+  /**
+   * Apply a Codex thread life-cycle event (`thread/name/updated`,
+   * `thread/archived`, `thread/deleted`) in place — no `session:list` reload.
+   * A no-op event leaves the array (and therefore every subscriber) untouched;
+   * see `utils/threadLifecycle.ts` for the id mapping and idempotency rules.
+   */
+  applyThreadLifecycle: (event: ThreadLifecycleEvent) => void
   setLoading: (v: boolean) => void
   setSearchQuery: (query: string) => void
   setHomeDir: (dir: string) => void
 }
 
-export const useSessionStore = create<SessionState>((set) => ({
+export const useSessionStore = create<SessionState>((set, get) => ({
   sessions: [],
   loading: false,
   searchQuery: '',
   homeDir: '',
   setSessions: (sessions) => set({ sessions }),
+  applyThreadLifecycle: (event) => {
+    const next = applyThreadLifecycle(get().sessions, event)
+    // `set` with an empty patch still notifies subscribers; only write when the
+    // list really changed, so an event for another window/project costs nothing.
+    if (next) set({ sessions: next })
+  },
   setLoading: (v) => set({ loading: v }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setHomeDir: (dir) => set({ homeDir: dir }),

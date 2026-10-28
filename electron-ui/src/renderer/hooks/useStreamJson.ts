@@ -9,6 +9,7 @@ import { useAutoMemory } from './useAutoMemory'
 import { assembleMemoryContextForTurn } from './promptMemory'
 import { composeSystemPromptParts, resolvePersonaTurnSettings } from './promptAssembly'
 import { listSessionsShared } from '../utils/sessionListShared'
+import { readThreadLifecycleEvent } from '../utils/threadLifecycle'
 import { describeThreadStatus } from '../components/chat/threadStatusText'
 import { describeEngineItem, TOOL_CARD_KINDS } from '../components/chat/engineStepText'
 import {
@@ -1343,6 +1344,33 @@ export function useStreamJson() {
             diff,
             truncated: data.truncated === true,
           })
+          break
+        }
+        case 'cli:threadNameUpdated': {
+          // `thread/name/updated` fires for a rename made by any client — the
+          // Codex CLI included — so the sidebar can follow it without waiting
+          // for the next list reload. The bridge's `sessionId` is a bridge id;
+          // the payload's `threadId` is the list row id (see threadLifecycle).
+          const lifecycle = readThreadLifecycleEvent('rename', data)
+          if (!lifecycle || lifecycle.kind !== 'rename') break
+          useSessionStore.getState().applyThreadLifecycle(lifecycle)
+          // The open header follows its own conversation even if the list has
+          // not seen this thread yet (a brand-new thread is not listed until
+          // its first result). `setSessionTitleFor` only paints the matching
+          // view/tab, so a rename elsewhere leaves this transcript alone.
+          useChatStore.getState().setSessionTitleFor(lifecycle.threadId, lifecycle.name)
+          break
+        }
+        case 'cli:threadArchived':
+        case 'cli:threadDeleted': {
+          // A thread archived/deleted anywhere leaves the sidebar: both remove
+          // the row. Deliberately do NOT clear the transcript the user is
+          // reading — the honest minimum is to drop the stale row and leave
+          // what is on screen intact. Continuing that conversation later fails
+          // through the bridge's existing error path, not a fabricated one.
+          const kind = event === 'cli:threadArchived' ? 'archive' as const : 'delete' as const
+          const lifecycle = readThreadLifecycleEvent(kind, data)
+          if (lifecycle) useSessionStore.getState().applyThreadLifecycle(lifecycle)
           break
         }
         case 'cli:threadStatusChanged': {

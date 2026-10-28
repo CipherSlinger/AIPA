@@ -1956,22 +1956,25 @@ export class CodexBridge extends EventEmitter {
 
       // Fired for a rename from any client, including this one, so a sidebar
       // can update in place instead of waiting for the next list load.
+      // `threadName` is `string | null` on the wire (ThreadNameUpdatedNotification);
+      // normalize it here so consumers get a stable `string | null` instead of
+      // an absent key that reads like "" in a JS object spread.
       case 'thread/name/updated': {
         this.emit('threadNameUpdated', {
           sessionId: sid,
-          threadId: params.threadId,
-          name: params.threadName,
+          threadId: stringOr(params.threadId),
+          name: typeof params.threadName === 'string' ? params.threadName : null,
         })
         break
       }
 
       case 'thread/archived': {
-        this.emit('threadArchived', { sessionId: sid, threadId: params.threadId })
+        this.emit('threadArchived', { sessionId: sid, threadId: stringOr(params.threadId) })
         break
       }
 
       case 'thread/deleted': {
-        this.emit('threadDeleted', { sessionId: sid, threadId: params.threadId })
+        this.emit('threadDeleted', { sessionId: sid, threadId: stringOr(params.threadId) })
         break
       }
 

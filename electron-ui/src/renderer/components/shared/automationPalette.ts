@@ -2,11 +2,15 @@
 //
 // The palette's filter only reads `name` and `description`, so everything the
 // user might search a scheduled job by — its name, its schedule, whether it is
-// paused, running or failed — has to reach one of those two strings. Keeping
-// that derivation out of the React file also lets the harness pin the clock
-// and exercise every state without a DOM or a translation provider.
+// turned off, waiting on a path, overdue, running or failed — has to reach one
+// of those two strings. Keeping that derivation out of the React file also lets
+// the harness pin the clock and exercise every state without a DOM or a
+// translation provider.
 
 import type { AutomationJobData } from '../../../preload'
+import type { AppLocale } from '../../utils/formatDate'
+import { failureStreakText } from '../archive/archiveJobFilter'
+import { nextRunText } from '../automation/nextRunText'
 import { scheduleText, type Translate } from '../automation/scheduleText'
 import { outcomeText } from '../workflows/scheduleSummary'
 
@@ -39,28 +43,52 @@ export function canRunAutomation(job: AutomationJobData): boolean {
 }
 
 /**
- * `Every day at 09:00 · Next run: Oct 30, 2026, 9:00 AM · Succeeded · 2h ago`
+ * `Every day at 09:00 · Next run: Oct 30, 2026, 9:00 AM · Failed: hourly_limit ·
+ * 2h ago · Failing — 2 failures in a row`
  *
- * The timing segment follows the job's own state: enabled jobs name the next
- * occurrence, paused ones say so, and a job with no scheduled next run shows
- * only its schedule. The outcome segment is the same wording the workflow
- * strip and Settings use, including the raw error code when the locale has no
- * sentence for it.
+ * The timing segment is the same clause Settings → Automations and the archive
+ * print, verbatim: turned off (never a stale timestamp), waiting on the watched
+ * path, no scheduled occurrence, due now / overdue, or a real future time. The
+ * palette is the one surface a user can search a job by its state, so it must
+ * not keep its own private reading of the scheduler — a past occurrence printed
+ * under "Next run:" is exactly the lie this helper exists to prevent.
+ *
+ * The outcome segment is the same wording the workflow strip and Settings use,
+ * including the raw error code when the locale has no sentence for it. The
+ * streak segment appears only from the second consecutive failure, so "failing"
+ * finds a job even when its schedule and outcome alone would not say so.
  */
 export function automationDescription(
   job: AutomationJobData,
   t: Translate,
+  locale: AppLocale,
   now: number,
-  nextRunText: (ts: number) => string,
 ): string {
   const schedule = scheduleText(t, job.trigger)
-  let timing = ''
-  if (!job.enabled) timing = t('automation.palette.paused')
-  // `automation.nextRun` is a namespace since the next-run helper landed; the
-  // plain "Next run: <time>" sentence is its `scheduled` leaf.
-  else if (job.nextRunAt !== null) timing = t('automation.nextRun.scheduled', { time: nextRunText(job.nextRunAt) })
+  // `locale` is the resolved app locale, not React context: the helper formats
+  // the absolute time itself, so the builder stays a pure function of its args.
+  const timing = nextRunText(job, t, locale, now).text
+  // `automation.palette.paused` is deliberately no longer used here: "Paused"
+  // was this surface's private word for `enabled === false`, and it read as a
+  // temporary state beside Settings' "Turned off".
+  //
+  // From the second consecutive failure the row owes the user a state word:
+  // the outcome segment only reports the last run, so "Failed" alone cannot
+  // tell a one-off from a job that keeps failing, and a user searching
+  // "failing" would find nothing. The archive's sentence supplies the count
+  // and the ≥2 threshold; an enabled job gets the present-tense word in front
+  // because it will run again, while a turned-off job's streak is history and
+  // must not be described as still happening.
+  const streak = failureStreakText(job, t)
+  const streakText = streak
+    ? job.enabled
+      ? t('automation.palette.failing', { streak })
+      : streak
+    : null
 
-  return [schedule, timing, outcomeText(job, t, now).text].filter(Boolean).join(' · ')
+  return [schedule, timing, outcomeText(job, t, now).text, streakText]
+    .filter((part): part is string => Boolean(part))
+    .join(' · ')
 }
 
 /**
@@ -76,14 +104,14 @@ export function automationDescription(
 export function buildAutomationDescriptors(
   jobs: readonly AutomationJobData[] | null,
   t: Translate,
+  locale: AppLocale,
   now: number,
-  nextRunText: (ts: number) => string,
 ): AutomationCommandDescriptor[] {
   if (!jobs || jobs.length === 0) return []
 
   const descriptors: AutomationCommandDescriptor[] = []
   for (const job of jobs) {
-    const description = automationDescription(job, t, now, nextRunText)
+    const description = automationDescription(job, t, locale, now)
     const canOpen = Boolean(job.lastSessionId)
 
     descriptors.push({

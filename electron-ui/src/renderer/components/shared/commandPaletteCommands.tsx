@@ -15,7 +15,7 @@ import { MODEL_OPTIONS } from '../settings/settingsConstants'
 import type { SessionListItem } from '../../types/app.types'
 import { getWorkflowQueuePlan } from '../workflows/workflowConstants'
 import { errorCodeText } from '../workflows/scheduleSummary'
-import { formatDateMedium, formatDateTimeShort, type AppLocale } from '../../utils/formatDate'
+import { formatDateMedium, type AppLocale } from '../../utils/formatDate'
 import { buildAutomationDescriptors, canRunAutomation } from './automationPalette'
 import type { Translate } from '../automation/scheduleText'
 import type { AutomationJobData } from '../../../preload'
@@ -636,7 +636,11 @@ export function buildAutomationCommands(args: AutomationCommandBuilderArgs): Pal
   // A failed probe must not leave an empty "Automations" header behind.
   if (!jobs || jobs.length === 0) return []
 
-  const nextRunText = (ts: number) => formatDateTimeShort(resolvedLocale, ts)
+  // The descriptor builder owns the next-occurrence wording now; it needs the
+  // resolved locale (so the timestamp matches Settings) and one clock reading
+  // for the whole list — not React context, which would make the builder
+  // untestable. Only those two plain values cross the boundary.
+  const built = buildAutomationDescriptors(jobs, t, resolvedLocale, Date.now())
 
   const runNow = async (job: AutomationJobData) => {
     // The row is only built for an idle job, but the list behind an open
@@ -655,7 +659,7 @@ export function buildAutomationCommands(args: AutomationCommandBuilderArgs): Pal
     }
   }
 
-  return buildAutomationDescriptors(jobs, t, Date.now(), nextRunText).map(descriptor => {
+  return built.map(descriptor => {
     const job = descriptor.job
     const icon = descriptor.kind === 'run'
       ? <Play size={14} />

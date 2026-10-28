@@ -11,6 +11,8 @@ import { useCallback, useState, type CSSProperties } from 'react'
 import { CalendarClock, ExternalLink, Pause, Play, RefreshCw, Zap } from 'lucide-react'
 import type { AutomationJobData } from '../../../preload'
 import { useUiStore } from '../../store'
+import type { AppLocale } from '../../utils/formatDate'
+import { nextRunText } from '../automation/nextRunText'
 import { scheduleText, watchWarningText, type Translate } from '../automation/scheduleText'
 import { smallButtonStyle } from '../automation/automationStyles'
 import { errorCodeText, outcomeText, spendText } from './scheduleSummary'
@@ -18,11 +20,18 @@ import { errorCodeText, outcomeText, spendText } from './scheduleSummary'
 interface WorkflowSchedulesStripProps {
   jobs: AutomationJobData[]
   t: Translate
-  resolvedLocale: string
+  /** Resolved app locale, so the absolute time matches Settings and the archive. */
+  resolvedLocale: AppLocale
   /** Re-fetches the list after an action; the scheduler's event is the primary path. */
   onRefresh: () => void
 }
 
+// The chip stays for a disabled job: on a workflow page the schedules are what
+// bring the workflow back to life, so "this row will not fire" deserves a
+// marker, not another muted clause. Its wording is now the shared "Turned off"
+// (see `nextRunText`), not the old `workflow.schedules.paused`: the job's switch
+// is off, and calling that "Paused" beside Settings' "Turned off" was a second
+// name for the same fact.
 const pausedChipStyle: CSSProperties = {
   padding: '0 6px',
   borderRadius: 8,
@@ -36,6 +45,39 @@ const pausedChipStyle: CSSProperties = {
 }
 
 const actionStyle: CSSProperties = { ...smallButtonStyle, padding: '2px 7px', fontSize: 10.5 }
+
+export interface StripNextRun {
+  /**
+   * `chip` keeps the at-a-glance marker for a turned-off job, `text` is the
+   * shared clause, and `none` means another segment already owns the state.
+   */
+  kind: 'chip' | 'text' | 'none'
+  text: string
+  overdue: boolean
+}
+
+/**
+ * What the row says about the next occurrence — the strip's one decision about
+ * state, kept pure so it can be exercised without a DOM.
+ *
+ * A disabled job keeps the chip (the row must still look not-live) but the chip
+ * carries the shared "Turned off" wording: `workflow.schedules.paused` used to
+ * name the same switch differently from Settings, and "Paused" implied a state
+ * the user had not chosen. A job whose watched path is gone prints no clause at
+ * all: "waits for the watched path to change" would contradict the warning that
+ * the watcher never attached, and two claims about one state is one too many.
+ */
+export function workflowSchedulesNextRun(
+  job: AutomationJobData,
+  t: Translate,
+  locale: AppLocale,
+  now: number = Date.now(),
+): StripNextRun {
+  const nextRun = nextRunText(job, t, locale, now)
+  if (!job.enabled) return { kind: 'chip', text: nextRun.text, overdue: false }
+  if (watchWarningText(job, t) !== null) return { kind: 'none', text: '', overdue: false }
+  return { kind: 'text', text: nextRun.text, overdue: nextRun.overdue }
+}
 
 export default function WorkflowSchedulesStrip({
   jobs,
@@ -93,15 +135,6 @@ export default function WorkflowSchedulesStrip({
     window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: job.lastSessionId }))
   }
 
-  // Absolute, compact, and local: "Next run: 10月30日 03:00". Relative wording
-  // alone cannot say which day an interval or weekly job lands on.
-  const nextRunText = (ts: number): string => new Date(ts).toLocaleString(resolvedLocale, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: '1 1 auto', minWidth: 0 }}>
       {jobs.map(job => {
@@ -111,6 +144,12 @@ export default function WorkflowSchedulesStrip({
         // job never reads here as a calendar schedule with a missing time.
         const watch = job.trigger.kind === 'watch'
         const watchWarning = watchWarningText(job, t)
+        // The same next-occurrence clause Settings → Automations and the
+        // archive print: off, waiting on a path, no occurrence, due/overdue, or
+        // a real future time. This row used to format the timestamp itself and
+        // silently drop the segment for watch jobs, so a missed occurrence read
+        // as an upcoming one and a watcher as a schedule with no timing at all.
+        const nextRun = workflowSchedulesNextRun(job, t, resolvedLocale)
         const running = job.running || job.lastStatus === 'running'
         // Pausing stays available during a run: it stops future runs, not the
         // current one. Only a request this strip is still awaiting locks the row.
@@ -154,16 +193,19 @@ export default function WorkflowSchedulesStrip({
               </span>
             )}
 
-            {/* A watch job's nextRunAt is always null, so this branch renders
-                nothing for it and the row never implies a countdown. */}
-            {job.enabled ? (
-              job.nextRunAt !== null && (
-                <span style={{ whiteSpace: 'nowrap' }}>
-                  {t('automation.nextRun.scheduled', { time: nextRunText(job.nextRunAt) })}
-                </span>
-              )
-            ) : (
-              <span style={pausedChipStyle}>{t('workflow.schedules.paused')}</span>
+            {/* One claim about the state, decided in `workflowSchedulesNextRun`.
+                A watch sentence carries words, not a timestamp, so it may wrap
+                like the schedule above it. Overdue is also tinted here — the
+                strip can use colour — but the text says so on its own. */}
+            {nextRun.kind === 'chip' ? (
+              <span style={pausedChipStyle}>{nextRun.text}</span>
+            ) : nextRun.kind === 'text' && (
+              <span style={{
+                whiteSpace: watch ? 'normal' : 'nowrap',
+                color: nextRun.overdue ? 'var(--warning-text)' : undefined,
+              }}>
+                {nextRun.text}
+              </span>
             )}
 
             <span style={{ color: outcome.color, overflowWrap: 'anywhere', minWidth: 0 }}>

@@ -783,6 +783,12 @@ function wireCodexBridge(
     sink('cli:threadStarted', d)
   })
   bridge.on('threadClosed', (d) => sink('cli:threadClosed', d))
+  // Thread life-cycle changes made by any client (including the Codex CLI).
+  // The renderer edits its session list in place from these; the bridge already
+  // normalizes `threadName` into `name` (nullable on the wire).
+  bridge.on('threadNameUpdated', (d) => sink('cli:threadNameUpdated', d))
+  bridge.on('threadArchived', (d) => sink('cli:threadArchived', d))
+  bridge.on('threadDeleted', (d) => sink('cli:threadDeleted', d))
   // Read-only/observability notifications. The renderer ignores channels it
   // does not know, but forwarding them keeps the renderer wave able to adopt
   // them without another main-process change.
