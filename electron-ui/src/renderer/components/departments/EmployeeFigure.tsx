@@ -14,6 +14,7 @@ import { formatRelativeTime, readSessionPersonaId } from './deptUtils'
 import { useT } from '../../i18n'
 import { useChatStore, usePrefsStore } from '../../store'
 import { Figure, GhostSilhouette, lookFor } from './employeeFigureArt'
+import { displayTitle } from '../../lib/sessionTitle'
 
 // Stable fallback — avoids a new {} on every Zustand selector call
 const EMPTY_COLOR_LABELS: Record<string, string> = {}
@@ -69,7 +70,7 @@ export default function EmployeeFigure({
 
   const labelColor = colorLabels[session.sessionId] ?? null
   const working = !!isStreaming && !isLoading
-  const title = session.title || session.lastPrompt?.slice(0, 60) || t('session.untitled')
+  const title = displayTitle(session, t('session.untitled'), 60)
 
   const status = isLoading
     ? { label: t('dept.empLoading'), color: '#818cf8' }

@@ -9,6 +9,7 @@ import {
   pruneCachedSummaries,
   setCachedSummary,
 } from './session-index-cache'
+import { cleanPrompt, deriveTitle, isSyntheticPrompt } from './prompt-text'
 
 const CLAUDE_DIR = path.join(os.homedir(), '.claude')
 const SETTINGS_PATH = path.join(CLAUDE_DIR, 'settings.json')
@@ -114,6 +115,9 @@ function summarizeSessionFile(filePath: string, sessionId: string, projectSlug: 
   }
 
   let lastPrompt = ''
+  // The first message a human actually wrote — the fallback title when the
+  // transcript carries no explicit session-title entry.
+  let firstMeaningfulPrompt = ''
   let timestamp = 0
   let firstTimestamp = Infinity
   let title: string | undefined
@@ -137,14 +141,25 @@ function summarizeSessionFile(filePath: string, sessionId: string, projectSlug: 
         if (t < firstTimestamp) firstTimestamp = t
       }
       if (entry.type === 'last-prompt' && entry.prompt) {
-        lastPrompt = String(entry.prompt).slice(0, 120)
+        const cleaned = cleanPrompt(String(entry.prompt))
+        if (cleaned && !isSyntheticPrompt(String(entry.prompt))) lastPrompt = cleaned.slice(0, 120)
       }
       if (entry.type === 'user' && (entry.message as { content?: unknown } | undefined)?.content) {
         const content = (entry.message as { content: unknown }).content
-        if (typeof content === 'string') lastPrompt = content.slice(0, 120)
+        let raw = ''
+        if (typeof content === 'string') raw = content
         else if (Array.isArray(content)) {
           const textPart = content.find((c: Record<string, unknown>) => c.type === 'text') as { text?: unknown } | undefined
-          if (textPart?.text) lastPrompt = String(textPart.text).slice(0, 120)
+          if (textPart?.text) raw = String(textPart.text)
+        }
+        // Slash commands, shell echoes and image placeholders are user entries
+        // too, but they are not something the user said in their own words.
+        if (raw && !isSyntheticPrompt(raw)) {
+          const cleaned = cleanPrompt(raw)
+          if (cleaned) {
+            lastPrompt = cleaned.slice(0, 120)
+            if (!firstMeaningfulPrompt) firstMeaningfulPrompt = cleaned
+          }
         }
       }
       if (entry.type === 'session-title' && entry.title) {
@@ -159,6 +174,11 @@ function summarizeSessionFile(filePath: string, sessionId: string, projectSlug: 
   }
 
   if (timestamp <= 0) return null
+
+  // An explicit title always wins; otherwise the first human message names the
+  // session. Using the *first* message keeps a passing `/clear` in the middle
+  // of a conversation from renaming the whole session.
+  if (!title && firstMeaningfulPrompt) title = deriveTitle(firstMeaningfulPrompt)
 
   const item: SessionListItem = {
     sessionId,

@@ -15,6 +15,7 @@ import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import { isPathInside, isValidSessionId } from '../utils/validate'
+import { cleanPrompt, deriveTitle, isSyntheticPrompt } from '../sessions/prompt-text'
 
 // ── Constants ────────────────────────────────────────
 
@@ -150,6 +151,15 @@ function readSessionIndex(): SessionIndexEntry[] {
 // ── Session Listing ──────────────────────────────────
 
 /**
+ * The index preview is written by the CLI and can be a slash command or an
+ * attachment marker. Keep it only when a human wrote it.
+ */
+function meaningfulPreview(raw: string | undefined): string {
+  if (!raw || isSyntheticPrompt(raw)) return ''
+  return cleanPrompt(raw)
+}
+
+/**
  * List all sessions from the index and session directories.
  */
 export function listSessions(): CodexSessionListItem[] {
@@ -182,21 +192,24 @@ export function listSessions(): CodexSessionListItem[] {
     const name = entry.thread_name || entry.name
     if (existing) {
       existing.title = name || existing.title
-      existing.lastPrompt = entry.preview || existing.lastPrompt
+      existing.lastPrompt = meaningfulPreview(entry.preview) || existing.lastPrompt
       existing.timestamp = Math.max(existing.timestamp, updated)
       existing.cwd = cwd || undefined
       existing.project = cwd || extractProjectName(cwd)
       existing.projectSlug = cwd ? pathToSlug(cwd) : slugify(extractProjectName(cwd))
       existing.messageCount = existing.messageCount ?? entry.messageCount
     } else {
+      const preview = meaningfulPreview(entry.preview)
       byId.set(threadId, {
         sessionId: threadId,
-        lastPrompt: entry.preview || name || '',
+        lastPrompt: preview || meaningfulPreview(name),
         timestamp: updated || Date.now(),
         project: cwd || extractProjectName(cwd),
         projectSlug: cwd ? pathToSlug(cwd) : slugify(extractProjectName(cwd)),
         cwd: cwd || undefined,
-        title: name || undefined,
+        // An index name is a user-set title and always wins; otherwise the
+        // first preview line names the session.
+        title: name || deriveTitle(preview) || undefined,
         messageCount: entry.messageCount,
       })
     }
@@ -429,6 +442,12 @@ function isoTime(value: unknown): string | undefined {
   return undefined
 }
 
+/** The human part of a user message, or '' when the entry is harness noise. */
+function meaningfulUserText(raw: string): string {
+  if (!raw || isSyntheticUserText(raw) || isSyntheticPrompt(raw)) return ''
+  return cleanPrompt(raw)
+}
+
 function parseSessionFile(filePath: string): CodexSessionListItem | null {
   let stat: fs.Stats
   try {
@@ -469,25 +488,23 @@ function parseSessionFile(filePath: string): CodexSessionListItem | null {
           if (role !== 'user' && role !== 'assistant') continue
           responseMessages++
           if (role !== 'user') continue
-          const text = extractContentText(payload.content)
-          if (!text || isSyntheticUserText(text)) continue
-          if (!firstPrompt) firstPrompt = text
+          const text = meaningfulUserText(extractContentText(payload.content))
+          if (text && !firstPrompt) firstPrompt = text
         } else if (line.type === 'event_msg') {
           const type = payload.type
           if (type !== 'user_message' && type !== 'agent_message') continue
           eventMessages++
           if (type !== 'user_message') continue
-          const text = String(payload.message ?? '')
-          if (!text || isSyntheticUserText(text)) continue
-          if (!firstPrompt) firstPrompt = text
+          const text = meaningfulUserText(String(payload.message ?? ''))
+          if (text && !firstPrompt) firstPrompt = text
         } else if (line.type === 'user' || line.type === 'assistant') {
           // forkSession output (already Claude-shaped)
           const message = line.message as Record<string, unknown> | undefined
           if (!message) continue
           responseMessages++
           if (line.type !== 'user') continue
-          const text = extractContentText(message.content)
-          if (!text || isSyntheticUserText(text) || text === userText) continue
+          const text = meaningfulUserText(extractContentText(message.content))
+          if (!text || text === userText) continue
           userText = text
           if (!firstPrompt) firstPrompt = text
         }
@@ -497,6 +514,7 @@ function parseSessionFile(filePath: string): CodexSessionListItem | null {
       item = {
         sessionId,
         lastPrompt: firstPrompt.slice(0, 100),
+        title: firstPrompt ? deriveTitle(firstPrompt) : undefined,
         timestamp: firstTimestamp,
         // The rollout's session_meta carries the real cwd; keep it whole so the
         // renderer can join it against a department directory.

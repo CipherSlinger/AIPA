@@ -87,6 +87,12 @@ function scanSkillsDir(dir: string, source: 'personal' | 'project'): SkillInfo[]
   return skills
 }
 
+/** Path identity: resolved, and case-folded on Windows where paths are case-insensitive. */
+function canonicalPath(p: string): string {
+  const resolved = path.resolve(p)
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved
+}
+
 /**
  * The only directories skills may be read from / deleted out of.
  * A per-tab cwd may not be persisted yet, so the renderer-supplied workingDir
@@ -99,10 +105,15 @@ function getSkillsRoots(workingDir?: string): string[] {
     if (!dir || !dir.trim()) continue
     try {
       safePath(dir, getAllowedFsRoots(getPref('workingDir') as string))
-      roots.push(path.join(dir, '.claude', 'skills'))
     } catch (err) {
       log.warn('skills: rejected unsafe workingDir:', String(err))
+      continue
     }
+    const root = path.join(dir, '.claude', 'skills')
+    // The persisted pref and the renderer's cwd are usually the same directory,
+    // so without this the same project root would be scanned twice.
+    if (roots.some(r => canonicalPath(r) === canonicalPath(root))) continue
+    roots.push(root)
   }
   return roots
 }
@@ -111,11 +122,19 @@ export function registerSkillsHandlers(): void {
   ipcMain.handle('skills:list', (_e, workingDir?: string) => {
     // getSkillsRoots drops any workingDir outside the allowed FS roots.
     const roots = getSkillsRoots(workingDir)
-    const skills: SkillInfo[] = [
+    const scanned: SkillInfo[] = [
       ...scanSkillsDir(roots[0], 'personal'),
       ...roots.slice(1).flatMap(d => scanSkillsDir(d, 'project')),
     ]
-    return skills
+    // A project root nested inside another can still surface the same skill
+    // directory twice; keep the first hit so the personal label wins.
+    const seen = new Set<string>()
+    return scanned.filter(s => {
+      const key = canonicalPath(s.dirPath)
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
   })
 
   ipcMain.handle('skills:read', (_e, dirPath: string) => {

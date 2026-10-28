@@ -29,7 +29,10 @@ export interface CachedSessionSummary {
   projectSlug: string
 }
 
-const CACHE_VERSION = 1
+// Bump whenever the meaning of a cached field changes. v2 stores cleaned
+// prompts and a derived title; v1 rows would keep showing slash commands even
+// though their transcripts never changed again.
+const CACHE_VERSION = 2
 const CACHE_DIR = path.join(os.homedir(), '.aipa', 'cache')
 const CACHE_PATH = path.join(CACHE_DIR, 'claude-sessions.json')
 

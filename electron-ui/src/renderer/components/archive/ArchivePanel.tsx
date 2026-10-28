@@ -29,6 +29,7 @@ import type { SessionListItem } from '../../types/app.types'
 import { useT, useI18n } from '../../i18n'
 import { deptByNormDir, deptBySlug, deptEmoji, findDeptForSession, kindOf, rootOf } from '../departments/deptUtils'
 import { openSessionCore } from '../departments/openSessionCore'
+import { displayTitle } from '../../lib/sessionTitle'
 
 const ELLIPSIS: React.CSSProperties = {
   overflow: 'hidden',
@@ -87,7 +88,7 @@ function employeeTag(sessionId: string): string {
 }
 
 function recordTitle(session: SessionListItem, untitled: string): string {
-  return session.title?.trim() || session.lastPrompt?.split('\n')[0].trim() || untitled
+  return displayTitle(session, untitled)
 }
 
 function Pill({

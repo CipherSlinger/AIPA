@@ -9,6 +9,7 @@ import DailySummaryCard from './DailySummaryCard'
 import WelcomeHero from './WelcomeHero'
 import WelcomeRecentPrompts from './WelcomeRecentPrompts'
 import WelcomeQuickActions from './WelcomeQuickActions'
+import { displayTitle } from '../../lib/sessionTitle'
 
 const EMPTY_PERSONAS: never[] = []
 const EMPTY_HISTORY: never[] = []
@@ -240,7 +241,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
               {t('welcome.continueLastChat')}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {lastSession.title || lastSession.lastPrompt || t('session.untitled')}
+              {displayTitle(lastSession, t('session.untitled'))}
             </div>
           </div>
           <ArrowRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
