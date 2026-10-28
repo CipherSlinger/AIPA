@@ -2931,7 +2931,29 @@
       "noteMissingFirst": "有 {{count}} 个对话没有首次出现时间，因此“首次出现”统计无法包含它们。",
       "noteMessages": "会话列表只提供整段对话的累计消息数，没有按时间窗口拆分的数据，所以这里不显示消息数。",
       "noteLocal": "对话列表只覆盖这台电脑。不在任何节点文件夹里的对话不会被计入。",
-      "noteJobs": "定时任务不在其中：任务没有部门字段，无法归到某个节点。"
+      "jobsScope": "此范围共 {{total}} 个任务 · 已启用 {{enabled}} 个 · 已暂停 {{disabled}} 个",
+      "jobsRunsNone": "这个时间窗口里没有这些任务的运行记录。",
+      "jobsRuns": "本窗口内运行 {{runs}} 次 · 成功 {{succeeded}} 次 · 失败 {{failed}} 次",
+      "jobsSkips": "另有 {{count}} 次跳过（跳过并未实际运行）",
+      "jobsRowRuns": "窗口内 {{count}} 次",
+      "jobsRowSkips": "跳过 {{count}} 次",
+      "jobsNoDepartment": "只统计记录了部门的任务。这个字段出现之前保存的任务，或部门后来被删除的任务，也都不计入。",
+      "jobsHistoryBounded": "每个任务只保留最近 20 次运行记录，因此本窗口内更早的一次运行可能已不在记录里。",
+      "jobsHistoryAtCap": "有 {{count}} 个任务已经存满 20 条记录，更早的记录已被丢弃。",
+      "jobsNotProof": "任务归在某个部门名下，并不代表是那个部门完成的工作。部门字段是唯一的归属依据，任务的运行目录从不用来推断归属。"
+    },
+    "jobs": {
+      "title": "定时任务",
+      "loading": "正在读取定时任务…",
+      "unreadable": "定时任务列表读取失败。",
+      "none": "此范围内没有归档任何定时任务。",
+      "paused": "已暂停",
+      "enabledAllPaused": "已启用 · 全部暂停",
+      "pausedAll": "所有定时运行都已暂停",
+      "statusSkipped": "已跳过",
+      "count": "{{count}} 个任务",
+      "openInSettings": "在设置 → 自动化中管理",
+      "more": "另有 {{count}} 个"
     }
   },
   "archive": {
@@ -3530,6 +3552,16 @@
       "aria": "查看 {{time}} 这次运行触及的文件",
       "editCalls": "观察到 {{count}} 次工具驱动的文件编辑",
       "listLabel": "这次运行触及的文件"
+    },
+    "department": {
+      "field": "部门",
+      "none": "不归属任何部门",
+      "hint": "记录这份任务归哪个部门。它不决定任务在哪里运行，也不代表工作是谁做的。",
+      "missingOption": "部门已不在组织架构中",
+      "missingHint": "这份任务原先归档的部门已不在组织架构里。在你改选其他部门或“不归属任何部门”之前，归档会保留，不会被悄悄清空，也不会自动改到别的部门。",
+      "missingTitle": "这份任务归档在部门 id“{{id}}”下，该部门已不在组织架构中。保持选中即可保留归档；改选其他部门会重新归档。",
+      "rowTitle": "{{path}}\n归属这个部门。这不改变任务在哪里运行，也不代表工作是谁做的。",
+      "rowMissingTitle": "归档在部门 id“{{id}}”下，该部门已不在组织架构中。在你编辑任务并改选部门之前，归档会保留。"
     }
   },
   "speculation": {
@@ -3847,3 +3879,4 @@
     }
   }
 }
+

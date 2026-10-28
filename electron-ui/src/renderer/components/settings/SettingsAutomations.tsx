@@ -7,9 +7,9 @@
 // `automation:changed` instead of guessing what the scheduler did.
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
-import { AlarmClock, AlertTriangle, Clock, Copy, History, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Search, Sparkles, Trash2, Wallet, X } from 'lucide-react'
+import { AlarmClock, AlertTriangle, Building2, Clock, Copy, History, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Search, Sparkles, Trash2, Wallet, X } from 'lucide-react'
 import { useI18n } from '../../i18n'
-import { useChatStore, usePrefsStore, useUiStore } from '../../store'
+import { useChatStore, useDepartmentStore, usePrefsStore, useUiStore } from '../../store'
 import { usePluginStore } from '../../store/pluginStore'
 import { getPluginDisplayName } from '../plugins/pluginIcons'
 import SettingsGroup from './SettingsGroup'
@@ -33,6 +33,7 @@ import {
   type JobSortMode,
 } from '../automation/jobSort'
 import { buildInvestigatePrompt } from '../automation/investigatePrompt'
+import { buildJobDepartmentOptions, resolveJobDepartment } from '../automation/jobDepartment'
 import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from '../automation/automationStyles'
 import { RUN_HISTORY_CAP, viewRunHistory } from './runHistoryView'
 import { fileKindMarker, viewRunFiles } from './runFilesView'
@@ -109,6 +110,7 @@ export default function SettingsAutomations() {
   const workflows = usePrefsStore(s => s.prefs.workflows) as WorkflowOption[] | undefined
   const personas = usePrefsStore(s => s.prefs.personas) as Persona[] | undefined
   const plugins = usePluginStore(s => s.plugins)
+  const departments = useDepartmentStore(s => s.departments)
   const addToast = useUiStore(s => s.addToast)
 
   const [jobs, setJobs] = useState<AutomationJobData[]>([])
@@ -218,6 +220,13 @@ export default function SettingsAutomations() {
       ? { kind: 'persona', persona, override: false }
       : { kind: 'missing', override: false }
   }, [workflows, personas])
+
+  // The org tree is renderer state. One ordered list per tree change keeps each
+  // row's id → node lookup cheap, and every row resolves against the same tree.
+  const departmentOptions = useMemo(
+    () => buildJobDepartmentOptions(departments, resolvedLocale),
+    [departments, resolvedLocale],
+  )
 
   /**
    * The job facts the pure predicate cannot derive on its own.
@@ -1005,6 +1014,10 @@ export default function SettingsAutomations() {
               // plugin that has since been uninstalled leaves the id behind,
               // which is still enough to keep the row honest and working.
               const origin = job.originPluginId ? pluginOrigin(job.originPluginId) : null
+              // `none` (no id) is the documented legacy state and shows no chip.
+              // `stale` (an id whose node is gone) is a distinct visible state —
+              // it must not look like "no department", and must never be moved.
+              const department = resolveJobDepartment(job.departmentId, departmentOptions)
               const busy = busyId === job.id || job.running
               // A watch job runs on an event, so its schedule line names the
               // path instead of a time, and a lost path is the row's warning.
@@ -1068,6 +1081,41 @@ export default function SettingsAutomations() {
                         >
                           <Puzzle size={10} style={{ flexShrink: 0 }} />
                           {t('automation.pluginOrigin.badge', { plugin: origin.name })}
+                        </span>
+                      )}
+                      {department.state === 'found' && (
+                        // A compact chip, like the plugin origin: the department
+                        // is a filing, and the tooltip carries the full path plus
+                        // the reminder that it is not where the job runs.
+                        <span
+                          title={t('automation.department.rowTitle', { path: department.path })}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            fontSize: 11, padding: '0 6px', borderRadius: 8,
+                            color: SECONDARY, background: 'var(--bg-hover)',
+                            border: '1px solid var(--border)',
+                          }}
+                        >
+                          <Building2 size={10} style={{ flexShrink: 0 }} />
+                          {department.label}
+                        </span>
+                      )}
+                      {department.state === 'stale' && (
+                        // Not "no department": the job still carries an id, but
+                        // the node is gone. The warning colour and the sentence
+                        // are the only honest way to show a filing that cannot
+                        // resolve yet must not be cleared behind the user's back.
+                        <span
+                          title={t('automation.department.rowMissingTitle', { id: department.id })}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            fontSize: 11, padding: '0 6px', borderRadius: 8,
+                            color: WARNING, background: 'var(--bg-hover)',
+                            border: '1px solid var(--border)',
+                          }}
+                        >
+                          <AlertTriangle size={10} style={{ flexShrink: 0 }} />
+                          {t('automation.department.missingOption')}
                         </span>
                       )}
                       <span style={{

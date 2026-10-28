@@ -613,6 +613,13 @@ export interface AutomationJobData {
    */
   personaId?: string
   /**
+   * The org node this job is filed under, as an id only. The org tree lives in
+   * this renderer, so main checks only the shape; whether the id still resolves
+   * is a renderer question, and an unresolvable one must stay visible. This is
+   * attribution, never the run's working directory or the person who did it.
+   */
+  departmentId?: string
+  /**
    * Stay quiet when a run succeeds: no bubble, no OS notification, no attention
    * record. Absent/false announces success as before; failures are always
    * announced and cannot be silenced by this flag.
@@ -709,6 +716,11 @@ export interface AutomationInputData {
   action: AutomationActionData
   /** Empty/omitted follows the workflow; absent is not a persona id ''. */
   personaId?: string
+  /**
+   * Org node the job is filed under, as an id. Omitted/empty clears the filing;
+   * the renderer never infers it from the working directory. Attribution only.
+   */
+  departmentId?: string
   /** Omitting this is the default (announce success); failures stay loud. */
   quietOnSuccess?: boolean
   /** Omitted/false never retries; a retry spends again and is opt-in only. */
@@ -731,6 +743,8 @@ export interface AutomationInputData {
  * What a plugin may ask for. `trigger` is `cron` or `interval` only — a `watch`
  * trigger is refused with `plugin_trigger_unsupported` — and `cwd` is not part
  * of the shape at all, so a request cannot aim the run at a folder of its own.
+ * There is deliberately no `departmentId` either: a plugin's job cannot be
+ * filed under a department.
  */
 export interface PluginAutomationInputData {
   /** Defaulted in main from the plugin's name and the opening of the prompt. */

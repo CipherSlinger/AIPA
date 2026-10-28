@@ -237,6 +237,16 @@ export interface AutomationJob {
    */
   personaId?: string
   /**
+   * The org node this job is filed under, stored as an id only.
+   *
+   * The org tree lives in the renderer's localStorage, so main can validate the
+   * shape of this value (a trimmed, non-empty, bounded string) but never that
+   * the node exists. A stale id is kept, not cleared or re-filed: only the user
+   * may change the filing. Attribution only — it never decides where the job
+   * runs or who did the work.
+   */
+  departmentId?: string
+  /**
    * Stay quiet when a scheduled run succeeds: no pet bubble, no OS
    * notification, no attention record at all. Absent/false keeps the original
    * behaviour of announcing every finished run. Failures are deliberately not
@@ -462,6 +472,12 @@ export interface AutomationInput {
    * never a persona whose id is ''), so the scheduler stores it as absent.
    */
   personaId?: string
+  /**
+   * The org node the job is filed under, as an id. Omitted/empty clears it;
+   * main can only check the shape because the tree lives in the renderer.
+   * This is attribution, never the run's working directory.
+   */
+  departmentId?: string
   /**
    * Opt-in quiet mode for successful runs. Omitted/false is the default
    * (announce success); the scheduler stores it only when true.

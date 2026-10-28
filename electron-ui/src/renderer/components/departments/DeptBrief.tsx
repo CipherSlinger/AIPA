@@ -5,7 +5,7 @@
 // The panel deliberately reads as a record, not an analysis: no quality, no
 // progress, no utilization. The footnotes say what the numbers cannot prove.
 
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ScrollText, X } from 'lucide-react'
 import type { Department } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
@@ -20,6 +20,14 @@ import {
   type BriefSession,
   type BriefWindow,
 } from './deptBrief.data'
+import {
+  buildDeptJobs,
+  deptJobStateText,
+  deptJobStatusText,
+  type DeptJobsResult,
+} from './deptJobs.data'
+import { nextRunText } from '../automation/nextRunText'
+import type { AppLocale } from '../../utils/formatDate'
 
 interface DeptBriefProps {
   dept: Department
@@ -51,6 +59,26 @@ export default function DeptBrief({
   // stay put while the user reads. Nothing is written to preferences.
   const [now, setNow] = useState(() => Date.now())
 
+  // Jobs are read once when the panel mounts. `null` is not an empty list:
+  // the source states below keep the loading/error cases distinguishable from
+  // a real zero, so the panel never counts a failure as "no jobs".
+  const [jobsSource, setJobsSource] = useState<
+    { status: 'loading' | 'error'; jobs: null } | { status: 'ready'; jobs: unknown }
+  >({ status: 'loading', jobs: null })
+
+  useEffect(() => {
+    let alive = true
+    window.electronAPI.automationList()
+      .then(result => {
+        if (!alive) return
+        setJobsSource({ status: 'ready', jobs: result?.jobs })
+      })
+      .catch(() => {
+        if (alive) setJobsSource({ status: 'error', jobs: null })
+      })
+    return () => { alive = false }
+  }, [])
+
   const selectWindow = (next: BriefWindow) => {
     setBriefWindow(next)
     setNow(Date.now())
@@ -75,6 +103,17 @@ export default function DeptBrief({
 
   const nodeDirectory = (nodeId: string): string | undefined =>
     brief.nodes.find(n => n.id === nodeId)?.directory
+
+  const jobs = useMemo(
+    () => buildDeptJobs({
+      jobs: jobsSource.jobs,
+      nodeIds: departments.map(node => node.id),
+      scopeIds: brief.nodes.map(node => node.id),
+      window: brief.window,
+      load: jobsSource.status,
+    }),
+    [jobsSource, departments, brief],
+  )
 
   const windowLabel = briefWindow === 'today' ? t('dept.brief.today') : t('dept.brief.week')
 
@@ -262,6 +301,9 @@ export default function DeptBrief({
         </div>
       )}
 
+      {/* Scheduled jobs -------------------------------------------------- */}
+      <BriefJobs summary={jobs} t={t} locale={resolvedLocale} now={now} />
+
       {/* Seats ----------------------------------------------------------- */}
       {brief.seats.length > 0 && (
         <div style={{ marginTop: 9 }}>
@@ -309,7 +351,12 @@ export default function DeptBrief({
         )}
         <BriefNote>{t('dept.brief.noteMessages')}</BriefNote>
         <BriefNote>{t('dept.brief.noteLocal')}</BriefNote>
-        <BriefNote>{t('dept.brief.noteJobs')}</BriefNote>
+        <BriefNote>{t('dept.brief.jobsNoDepartment')}</BriefNote>
+        <BriefNote>{t('dept.brief.jobsHistoryBounded')}</BriefNote>
+        {(jobs.counts?.jobsAtHistoryCap ?? 0) > 0 && (
+          <BriefNote>{t('dept.brief.jobsHistoryAtCap', { count: jobs.counts?.jobsAtHistoryCap ?? 0 })}</BriefNote>
+        )}
+        <BriefNote>{t('dept.brief.jobsNotProof')}</BriefNote>
       </div>
 
       {/* The window is stated once, in words, next to the limits. */}
@@ -319,6 +366,157 @@ export default function DeptBrief({
         {new Date(brief.window.end).toLocaleString(resolvedLocale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
       </div>
     </section>
+  )
+}
+
+// ── Scheduled jobs ───────────────────────────────────────────────────────────
+
+function BriefJobs({
+  summary,
+  t,
+  locale,
+  now,
+}: {
+  summary: DeptJobsResult
+  t: (key: string, params?: Record<string, string | number>) => string
+  locale: AppLocale
+  now: number
+}) {
+  const counts = summary.counts
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>
+        {t('dept.jobs.title')}
+      </div>
+
+      {summary.state === 'loading' && (
+        <BriefJobsHint>{t('dept.jobs.loading')}</BriefJobsHint>
+      )}
+      {(summary.state === 'error' || summary.state === 'unreadable') && (
+        <BriefJobsHint>{t('dept.jobs.unreadable')}</BriefJobsHint>
+      )}
+
+      {summary.state === 'ready' && counts && (
+        <>
+          <div style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            {t('dept.brief.jobsScope', {
+              total: counts.total,
+              enabled: counts.enabled,
+              disabled: counts.disabled,
+            })}
+          </div>
+
+          {counts.total === 0 ? (
+            <BriefJobsHint>{t('dept.jobs.none')}</BriefJobsHint>
+          ) : (
+            <>
+              {counts.runsInWindow === 0 && counts.skippedInWindow === 0 ? (
+                <BriefJobsHint>{t('dept.brief.jobsRunsNone')}</BriefJobsHint>
+              ) : (
+                <div style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  {counts.runsInWindow > 0 && t('dept.brief.jobsRuns', {
+                    runs: counts.runsInWindow,
+                    succeeded: counts.succeededInWindow,
+                    failed: counts.failedInWindow,
+                  })}
+                  {counts.runsInWindow > 0 && counts.skippedInWindow > 0 && ' · '}
+                  {counts.skippedInWindow > 0 && t('dept.brief.jobsSkips', {
+                    count: counts.skippedInWindow,
+                  })}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginTop: 3 }}>
+                {summary.rows.map(job => (
+                  <BriefJobRow key={job.id} job={job} t={t} locale={locale} now={now} />
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function BriefJobRow({
+  job,
+  t,
+  locale,
+  now,
+}: {
+  job: DeptJobsResult['rows'][number]
+  t: (key: string, params?: Record<string, string | number>) => string
+  locale: AppLocale
+  now: number
+}) {
+  const runParts: string[] = []
+  if (job.runsInWindow > 0) {
+    runParts.push(t('dept.brief.jobsRowRuns', { count: job.runsInWindow }))
+  }
+  if (job.skippedInWindow > 0) {
+    runParts.push(t('dept.brief.jobsRowSkips', { count: job.skippedInWindow }))
+  }
+  const statusColor = job.running || job.lastStatus === 'running'
+    ? 'var(--accent-text)'
+    : job.lastStatus === 'error'
+      ? 'var(--danger-text)'
+      : job.lastStatus === 'success'
+        ? 'var(--success-text)'
+        : 'var(--text-faint)'
+  // A globally paused job keeps an enabled switch but will not fire; its stored
+  // next occurrence is not a promise, so the sentence is replaced rather than
+  // printed as if scheduling were live.
+  const nextText = job.enabled && job.pausedAll
+    ? t('dept.jobs.pausedAll')
+    : nextRunText(job, t, locale, now).text
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap',
+      padding: '2px 0', minWidth: 0,
+    }}>
+      <span
+        title={job.name}
+        style={{
+          flex: '1 1 110px', minWidth: 0, fontSize: 11, color: 'var(--text-secondary)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}
+      >
+        {job.name}
+      </span>
+      <span style={{
+        flexShrink: 0, fontSize: 9, lineHeight: '15px', padding: '0 5px',
+        borderRadius: 999, background: 'var(--bg-hover)', color: 'var(--text-muted)',
+      }}>
+        {deptJobStateText(job, t)}
+      </span>
+      <span style={{ flexShrink: 0, fontSize: 10, color: statusColor }}>
+        {deptJobStatusText(job, t)}
+      </span>
+      <span
+        title={nextText}
+        style={{
+          flexShrink: 0, fontSize: 9.5, color: 'var(--text-faint)',
+          maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}
+      >
+        {nextText}
+      </span>
+      {runParts.length > 0 && (
+        <span style={{ flexShrink: 0, fontSize: 9.5, color: 'var(--text-faint)', fontVariantNumeric: 'tabular-nums' }}>
+          {runParts.join(' · ')}
+        </span>
+      )}
+    </div>
+  )
+}
+
+function BriefJobsHint({ children }: { children: ReactNode }) {
+  return (
+    <div style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+      {children}
+    </div>
   )
 }
 

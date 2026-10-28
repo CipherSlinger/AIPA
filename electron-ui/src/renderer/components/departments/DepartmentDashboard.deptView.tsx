@@ -24,6 +24,7 @@ import {
 import { useI18n } from '../../i18n'
 import DeptHeader from './DepartmentDashboard.header'
 import DeptStats from './DepartmentDashboard.stats'
+import DeptJobsBlock from './DepartmentDashboard.jobs'
 import DeptTeamStrip from './DepartmentDashboard.teams'
 import { DeptSearchBox, DeptSelectionBar } from './DepartmentDashboard.controls'
 import DeptRoster from './DepartmentDashboard.roster'
@@ -355,6 +356,8 @@ export default function DeptView({
         {(deptSessions.length > 0 || openPositions.length > 0) && (
           <DeptStats sessions={deptSessions} positions={openPositions} teams={childTeams} />
         )}
+
+        <DeptJobsBlock deptId={dept.id} departments={departments} />
 
         {childTeams.length > 0 && (
           <DeptTeamStrip

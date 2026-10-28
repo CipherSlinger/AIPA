@@ -11,6 +11,7 @@ import { app } from 'electron'
 import * as fs from 'fs'
 import * as path from 'path'
 import { createLogger } from '../utils/logger'
+import { normalizeDepartmentId } from './job-department'
 import { normalizeMissedRunPolicy } from './missed-policy'
 import { normalizePendingRetry } from './retry-policy'
 import { normalizeRunHistory } from './run-history'
@@ -108,6 +109,11 @@ function normalizeJob(raw: unknown): AutomationJob | null {
     personaId: typeof job.personaId === 'string' && job.personaId.trim()
       ? job.personaId.trim()
       : undefined,
+    // An id only: the org tree is a renderer-side record, so a hand-edited or
+    // synced file can only be checked for shape here. A malformed value is
+    // dropped without discarding the job; a well-formed but unknown id is kept,
+    // because only the renderer can tell whether it still resolves.
+    departmentId: normalizeDepartmentId(job.departmentId),
     // Restored only when it was genuinely turned on. Absent is the default
     // (announce success), so a job saved before this field existed keeps
     // behaving exactly as it did.

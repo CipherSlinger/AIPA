@@ -114,6 +114,89 @@ export function joinPath(base: string, child: string): string {
   return `${trimmed}${sep}${child}`
 }
 
+// ── Tree-ordered node lists ──────────────────────────────────────────────────
+// Two surfaces need "every node, parents before children": the search overlay's
+// department filter and the automation dialog's department picker. They live
+// here so both see exactly the same tree, ordering and display names.
+
+/** One node in tree order, ready for a compact `<select>`. */
+export interface DeptTreeOption {
+  id: string
+  /** The node's own name, resolved for the interface language. */
+  label: string
+  /** Root → node, for tooltips. */
+  path: string
+  depth: number
+}
+
+/** Root → node, guarding against a malformed parent chain. */
+export function deptTreePath(
+  node: Department,
+  byId: ReadonlyMap<string, Department>,
+  locale: UiLocale,
+): string {
+  const names: string[] = []
+  const seen = new Set<string>()
+  let cursor: Department | undefined = node
+  while (cursor && !seen.has(cursor.id)) {
+    seen.add(cursor.id)
+    names.unshift(deptDisplayName(cursor, locale))
+    cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined
+  }
+  return names.join(' › ')
+}
+
+/**
+ * Every node in tree order (parents before children), so a select can indent
+ * descendants without rebuilding the tree. Creation order is kept among
+ * siblings. A dangling parent is treated as a root, and a cycle can never hide
+ * a node.
+ */
+export function deptTreeOptions(
+  departments: ReadonlyArray<Department>,
+  locale: UiLocale,
+): DeptTreeOption[] {
+  const ids = new Set(departments.map(d => d.id))
+  const children = new Map<string, Department[]>()
+  const roots: Department[] = []
+  for (const node of departments) {
+    if (node.parentId && node.parentId !== node.id && ids.has(node.parentId)) {
+      const bucket = children.get(node.parentId)
+      if (bucket) bucket.push(node)
+      else children.set(node.parentId, [node])
+    } else {
+      roots.push(node)
+    }
+  }
+
+  const byId = new Map(departments.map(d => [d.id, d]))
+  const options: DeptTreeOption[] = []
+  const seen = new Set<string>()
+  const walk = (node: Department, depth: number) => {
+    if (seen.has(node.id)) return
+    seen.add(node.id)
+    options.push({
+      id: node.id,
+      label: deptDisplayName(node, locale),
+      path: deptTreePath(node, byId, locale),
+      depth,
+    })
+    for (const child of children.get(node.id) ?? []) walk(child, depth + 1)
+  }
+  for (const root of roots) walk(root, 0)
+  // A pure cycle has no root; list its nodes at depth 0 rather than dropping
+  // them from the picker entirely.
+  for (const node of departments) walk(node, 0)
+  return options
+}
+
+/** The option text: indentation that survives an HTML `<option>`'s spacing. */
+export function deptTreeOptionText(option: Pick<DeptTreeOption, 'label' | 'depth'>): string {
+  // Non-breaking spaces: an <option> collapses ordinary leading whitespace,
+  // which would make every node look like a root.
+  return `${'\u00A0\u00A0'.repeat(Math.max(0, option.depth))}${option.label}`
+}
+
 /** Rotation palette for auto-assigned department colors. */
 export const DEPT_COLORS = ['#6366f1', '#fbbf24', '#4ade80', '#f87171', '#818cf8', '#a78bfa', '#ec4899', '#14b8a6']
 

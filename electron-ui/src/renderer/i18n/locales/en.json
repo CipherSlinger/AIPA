@@ -2931,7 +2931,29 @@
       "noteMissingFirst": "{{count}} conversation(s) have no first-seen date, so the first-seen count cannot include them.",
       "noteMessages": "The session list only carries a lifetime message total, never a per-window count, so no message figure is shown.",
       "noteLocal": "The conversation list covers this machine only. Conversations in folders outside any node are not counted.",
-      "noteJobs": "Scheduled jobs are not included: a job has no department field, so it cannot be attributed to a node."
+      "jobsScope": "{{total}} job(s) in scope · {{enabled}} enabled · {{disabled}} paused",
+      "jobsRunsNone": "No run of these jobs starts in this window.",
+      "jobsRuns": "{{runs}} run(s) in this window · {{succeeded}} succeeded · {{failed}} failed",
+      "jobsSkips": "{{count}} skipped occurrence(s) — a skip did not run",
+      "jobsRowRuns": "{{count}} in window",
+      "jobsRowSkips": "{{count}} skipped",
+      "jobsNoDepartment": "Only jobs that record a department are counted. A job saved before this field existed, or whose department was later deleted, is not included.",
+      "jobsHistoryBounded": "Each job remembers only its most recent 20 recorded runs, so an older occurrence in this window may not appear here.",
+      "jobsHistoryAtCap": "{{count}} job(s) already hold the full 20-run record; anything older is gone.",
+      "jobsNotProof": "A job filed under a department is not proof that department did the work. The department field is the only attribution; a job's working folder is never used to infer one."
+    },
+    "jobs": {
+      "title": "Scheduled jobs",
+      "loading": "Reading scheduled jobs…",
+      "unreadable": "Scheduled jobs could not be read.",
+      "none": "No scheduled jobs are filed under this scope.",
+      "paused": "Paused",
+      "enabledAllPaused": "Enabled · all paused",
+      "pausedAll": "Scheduled runs are paused for every job",
+      "statusSkipped": "Skipped",
+      "count": "{{count}} job(s)",
+      "openInSettings": "Open Settings → Automations",
+      "more": "+{{count}} more"
     }
   },
   "archive": {
@@ -3530,6 +3552,16 @@
       "aria": "Show the files this run touched at {{time}}",
       "editCalls": "{{count}} tool-driven file edits observed",
       "listLabel": "Files touched by this run"
+    },
+    "department": {
+      "field": "Department",
+      "none": "No department",
+      "hint": "Records whose department this job is filed under. It does not decide where the job runs or who did the work.",
+      "missingOption": "Department no longer in the org",
+      "missingHint": "The department this job was filed under is gone from the org. It stays filed there until you pick another department or “No department” — it is never silently cleared or moved.",
+      "missingTitle": "This job is filed under department id “{{id}}”, which is no longer in the org. Leave it selected to keep the filing, or pick another department to re-file it.",
+      "rowTitle": "{{path}}\nFiled under this department. It does not change where the job runs or who did the work.",
+      "rowMissingTitle": "Filed under department id “{{id}}”, which is no longer in the org. The filing is kept until you edit the job and choose a department."
     }
   },
   "speculation": {
@@ -3847,3 +3879,4 @@
     }
   }
 }
+

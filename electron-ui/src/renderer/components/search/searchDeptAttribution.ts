@@ -23,8 +23,12 @@ import {
   deptByNormDir,
   deptBySlug,
   deptDisplayName,
+  deptTreeOptionText,
+  deptTreeOptions,
+  deptTreePath,
   findDeptForSession,
   kindOf,
+  type DeptTreeOption,
   type UiLocale,
 } from '../departments/deptUtils'
 
@@ -59,23 +63,6 @@ export interface DeptAttributionInput {
   homeDir?: string
 }
 
-/** Root → node, guarding against a malformed parent chain. */
-function nodePath(
-  node: Department,
-  byId: ReadonlyMap<string, Department>,
-  locale: UiLocale,
-): string {
-  const names: string[] = []
-  const seen = new Set<string>()
-  let cursor: Department | undefined = node
-  while (cursor && !seen.has(cursor.id)) {
-    seen.add(cursor.id)
-    names.unshift(deptDisplayName(cursor, locale))
-    cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined
-  }
-  return names.join(' › ')
-}
-
 /**
  * sessionId -> attribution for every distinct session in `results`.
  *
@@ -107,7 +94,7 @@ export function buildDeptAttributionMap(
     if (cached) return cached
     const meta = {
       label: deptDisplayName(node, input.locale),
-      path: nodePath(node, byId, input.locale),
+      path: deptTreePath(node, byId, input.locale),
       kind: kindOf(node),
       directory: node.directory,
     }
@@ -145,61 +132,16 @@ export function deptAttributionFor(
   return attributions.get(sessionId) ?? { state: 'unlisted' }
 }
 
-export interface DeptFilterOption {
-  id: string
-  label: string
-  path: string
-  depth: number
-}
+export type DeptFilterOption = DeptTreeOption
 
 /**
- * Every node in tree order (parents before children), so the compact select
- * can indent descendants without the UI rebuilding the tree. Creation order is
- * kept among siblings. A dangling parent is treated as a root, and a cycle can
- * never hide a node.
+ * The tree walk itself lives in `deptUtils`, so this overlay's filter and the
+ * automation dialog's department picker cannot disagree about ordering, names
+ * or malformed-parent handling. These aliases keep the overlay's vocabulary
+ * stable.
  */
-export function buildDeptFilterOptions(
-  departments: ReadonlyArray<Department>,
-  locale: UiLocale,
-): DeptFilterOption[] {
-  const ids = new Set(departments.map(d => d.id))
-  const children = new Map<string, Department[]>()
-  const roots: Department[] = []
-  for (const node of departments) {
-    if (node.parentId && node.parentId !== node.id && ids.has(node.parentId)) {
-      const bucket = children.get(node.parentId)
-      if (bucket) bucket.push(node)
-      else children.set(node.parentId, [node])
-    } else {
-      roots.push(node)
-    }
-  }
-
-  const byId = new Map(departments.map(d => [d.id, d]))
-  const options: DeptFilterOption[] = []
-  const seen = new Set<string>()
-  const walk = (node: Department, depth: number) => {
-    if (seen.has(node.id)) return
-    seen.add(node.id)
-    options.push({
-      id: node.id,
-      label: deptDisplayName(node, locale),
-      path: nodePath(node, byId, locale),
-      depth,
-    })
-    for (const child of children.get(node.id) ?? []) walk(child, depth + 1)
-  }
-  for (const root of roots) walk(root, 0)
-  // A pure cycle has no root; list its nodes at depth 0 rather than dropping
-  // them from the filter entirely.
-  for (const node of departments) walk(node, 0)
-  return options
-}
-
-/** The option text: indentation that survives an HTML `<option>`'s spacing. */
-export function deptFilterOptionText(option: Pick<DeptFilterOption, 'label' | 'depth'>): string {
-  return `${'  '.repeat(Math.max(0, option.depth))}${option.label}`
-}
+export const buildDeptFilterOptions = deptTreeOptions
+export const deptFilterOptionText = deptTreeOptionText
 
 /** `rootId` plus every node reachable from it through `parentId`. */
 export function subtreeNodeIds(

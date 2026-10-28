@@ -24,6 +24,7 @@ import { raiseAttention } from '../clawd-attention'
 import { nextFireTime, parseCron } from '../utils/cron'
 import { createLogger } from '../utils/logger'
 import { getAllowedFsRoots, safePath } from '../utils/validate'
+import { departmentIdForCreate, normalizeDepartmentId } from './job-department'
 import { readAutomationStore, writeAutomationStore } from './job-store'
 import { MISSED_RUN_GRACE_MS, normalizeMissedRunPolicy, shouldSkipMissedRun } from './missed-policy'
 import { AUTOMATION_RETRY_POLICY, isPendingRetryExpired, nextRetryAfterFailure } from './retry-policy'
@@ -1116,10 +1117,16 @@ export function createAutomationJob(input: AutomationInput): AutomationMutationR
  * deliberately no "plugin job" mode in the scheduler, so every rail (hourly
  * cap, spend limits, global pause, retries, history, memory digest) applies to
  * it exactly as it would to a job the user typed in Settings.
+ *
+ * One field is deliberately unavailable: `departmentId`. A plugin request has
+ * no department in its shape, and `createJob` drops one if it still reaches
+ * here, so a plugin can never file its job under a department it does not own.
  */
 export function createAutomationJobForPlugin(
   pluginId: string,
-  input: AutomationInput,
+  // The type says it too: this door takes no department field at all. The
+  // runtime policy in `createJob` drops one even if a caller bypasses the type.
+  input: Omit<AutomationInput, 'departmentId'>,
 ): AutomationMutationResult {
   if (typeof pluginId !== 'string' || !pluginId.trim()) {
     return { ok: false, error: 'plugin_unknown' }
@@ -1140,6 +1147,9 @@ function createJob(input: AutomationInput, originPluginId?: string): AutomationM
     const trigger = validateTrigger(input?.trigger)
     const action = validateAction(input?.action)
     const personaId = validatePersonaId(input?.personaId)
+    // A plugin-owned job can never carry a department: `originPluginId` is the
+    // marker of that door, and the create policy drops any value smuggled in.
+    const departmentId = departmentIdForCreate(input?.departmentId, !!originPluginId)
     const quietOnSuccess = validateQuietOnSuccess(input?.quietOnSuccess)
     const retryOnFailure = validateRetryOnFailure(input?.retryOnFailure)
     const missedRunPolicy = validateMissedRunPolicy(input?.missedRunPolicy)
@@ -1152,6 +1162,7 @@ function createJob(input: AutomationInput, originPluginId?: string): AutomationM
       trigger,
       action,
       ...(personaId ? { personaId } : {}),
+      ...(departmentId ? { departmentId } : {}),
       ...(quietOnSuccess ? { quietOnSuccess } : {}),
       ...(retryOnFailure ? { retryOnFailure } : {}),
       ...(missedRunPolicy ? { missedRunPolicy } : {}),
@@ -1239,6 +1250,9 @@ export function cloneAutomationJob(id: string, name?: string): AutomationMutatio
       // Assignment is conditional so a field the original never set stays
       // absent rather than becoming an explicit false/empty override.
       ...(source.personaId ? { personaId: source.personaId } : {}),
+      // The filing is configuration, not history: a copy belongs to the same
+      // department until the user says otherwise.
+      ...(source.departmentId ? { departmentId: source.departmentId } : {}),
       ...(source.quietOnSuccess === true ? { quietOnSuccess: true } : {}),
       ...(source.retryOnFailure === true ? { retryOnFailure: true } : {}),
       ...(source.missedRunPolicy === 'skip' ? { missedRunPolicy: 'skip' } : {}),
@@ -1280,6 +1294,7 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     const trigger = validateTrigger(input?.trigger)
     const action = validateAction(input?.action)
     const personaId = validatePersonaId(input?.personaId)
+    const departmentId = normalizeDepartmentId(input?.departmentId)
     const quietOnSuccess = validateQuietOnSuccess(input?.quietOnSuccess)
     const retryOnFailure = validateRetryOnFailure(input?.retryOnFailure)
     const missedRunPolicy = validateMissedRunPolicy(input?.missedRunPolicy)
@@ -1295,6 +1310,10 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     // Assignment (not omission) is deliberate: clearing the field must remove a
     // previous override, falling back to the workflow binding.
     job.personaId = personaId
+    // Same rule: a provided id re-files the job, an omitted or empty one clears
+    // the filing. A stale id the dialog sends back unchanged is still an id, so
+    // saving an unrelated edit never silently un-files the job.
+    job.departmentId = departmentId
     // Turning quiet mode off removes the field instead of storing `false`: the
     // default is "announce", and an absent flag keeps a legacy job reading
     // exactly as it did before this setting existed.

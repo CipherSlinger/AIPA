@@ -10,7 +10,9 @@
 //     creation time, so the two engines do not answer the same question;
 //   * `messageCount` is a lifetime total for the session, not a window count, and
 //     is deliberately not returned at all;
-//   * scheduled jobs carry no department field and cannot be attributed.
+//   * scheduled jobs are not folded into these conversation figures. They are
+//     derived separately in `deptJobs.data.ts`, where `departmentId` — and only
+//     `departmentId` — decides which node a job belongs to.
 //
 // Total over malformed input: rows and nodes are normalised, cycles in the tree
 // are walked once, and nothing here throws on a null, a NaN timestamp or a
@@ -77,7 +79,6 @@ export interface BriefDisclosures {
   messageCountIsLifetime: true
   localMachineOnly: true
   outsideOrgExcluded: true
-  jobsExcluded: true
 }
 
 export interface DeptBriefResult {
@@ -371,7 +372,6 @@ export function buildDeptBrief(input: BuildDeptBriefInput): DeptBriefResult {
       messageCountIsLifetime: true,
       localMachineOnly: true,
       outsideOrgExcluded: true,
-      jobsExcluded: true,
     },
     skipped: { nodes: skippedNodes, sessions: skippedSessions },
   }

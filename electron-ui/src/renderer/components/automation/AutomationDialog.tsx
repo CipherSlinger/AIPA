@@ -8,7 +8,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, File, FolderOpen, Info } from 'lucide-react'
 import { useI18n } from '../../i18n'
-import { usePrefsStore, useUiStore } from '../../store'
+import { useDepartmentStore, usePrefsStore, useUiStore } from '../../store'
 import { usePluginStore } from '../../store/pluginStore'
 import { getPluginDisplayName } from '../plugins/pluginIcons'
 import type { Persona } from '../../types/app.types'
@@ -24,6 +24,12 @@ import {
   watchWarningText,
 } from './scheduleText'
 import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from './automationStyles'
+import {
+  buildJobDepartmentOptions,
+  jobDepartmentChoice,
+  jobDepartmentOptionText,
+  resolveJobDepartment,
+} from './jobDepartment'
 import type {
   AutomationInputData,
   AutomationJobData,
@@ -137,6 +143,7 @@ export default function AutomationDialog({
   const editing = job !== null
   const personas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
   const plugins = usePluginStore(s => s.plugins)
+  const departments = useDepartmentStore(s => s.departments)
 
   // A plugin-owned schedule is still the user's to change; the note only warns
   // that the plugin can delete or recreate it, which would overwrite an edit.
@@ -201,6 +208,12 @@ export default function AutomationDialog({
   const [missedRunPolicy, setMissedRunPolicy] = useState<'run' | 'skip'>(
     job?.missedRunPolicy === 'skip' ? 'skip' : 'run',
   )
+  // '' means "no department". A stored id is kept verbatim, including one that
+  // no longer resolves: the picker shows it as a stale option and Save leaves it
+  // untouched unless the user chooses another node or "No department".
+  const [departmentChoice, setDepartmentChoice] = useState(
+    () => jobDepartmentChoice(job?.departmentId),
+  )
   const [scheduleKind, setScheduleKind] = useState<ScheduleKind>(() => {
     if (!job) return 'daily'
     if (job.trigger.kind === 'watch') return 'watch'
@@ -243,6 +256,14 @@ export default function AutomationDialog({
   // Monotonic request id. Only the answer to the newest request may be shown, so
   // a slow reply for an earlier trigger can never overwrite a newer one.
   const previewSeq = useRef(0)
+
+  const departmentOptions = useMemo(
+    () => buildJobDepartmentOptions(departments, resolvedLocale),
+    [departments, resolvedLocale],
+  )
+  // A stale id resolves to nothing in the tree but must stay selectable and
+  // saveable; the warning below the field explains that it is kept, not moved.
+  const departmentResolution = resolveJobDepartment(departmentChoice, departmentOptions)
 
   useEffect(() => pushEscapeHandler(onClose), [onClose])
 
@@ -365,6 +386,10 @@ export default function AutomationDialog({
     const input: AutomationInputData = {
       name: name.trim(), enabled, trigger, action,
       ...(personaId ? { personaId } : {}),
+      // A stale id is sent back unchanged unless the user picked another node
+      // or "No department". Omitting the field is how an edit clears it, so
+      // this must never be filled from a guess or from `action.cwd`.
+      ...(departmentChoice ? { departmentId: departmentChoice } : {}),
       // Omitting quiet mode when it is off is what turns it off on an edit;
       // absence is the default (announce success), never `false`.
       ...(quietOnSuccess ? { quietOnSuccess: true } : {}),
@@ -610,6 +635,49 @@ export default function AutomationDialog({
             // quietly change who runs this job.
             <div style={{ fontSize: 11, color: SECONDARY, marginTop: 4, lineHeight: 1.5 }}>
               {t('automation.expert.overrideHint')}
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={labelStyle}>{t('automation.department.field')}</label>
+          <select
+            value={departmentChoice}
+            onChange={e => setDepartmentChoice(e.target.value)}
+            style={INPUT_STYLE}
+            title={t('automation.department.hint')}
+          >
+            <option value="">{t('automation.department.none')}</option>
+            {departmentOptions.map(option => (
+              // The label is the node's own name, indented by depth; the title
+              // carries the whole root → node path so two similarly named teams
+              // can still be told apart.
+              <option key={option.id} value={option.id} title={option.path}>
+                {jobDepartmentOptionText(option)}
+              </option>
+            ))}
+            {departmentResolution.state === 'stale' && (
+              // Kept selectable and selected-by-label: the job really is filed
+              // under this id, even though the node is gone. Save sends it back
+              // unless the user deliberately picks something else.
+              <option
+                value={departmentResolution.id}
+                title={t('automation.department.missingTitle', { id: departmentResolution.id })}
+              >
+                {t('automation.department.missingOption')}
+              </option>
+            )}
+          </select>
+          <div style={{ fontSize: 11, color: SECONDARY, marginTop: 4, lineHeight: 1.5 }}>
+            {t('automation.department.hint')}
+          </div>
+          {departmentResolution.state === 'stale' && (
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 5,
+              fontSize: 11, color: WARNING, marginTop: 4, lineHeight: 1.5,
+            }}>
+              <AlertTriangle size={11} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>{t('automation.department.missingHint')}</span>
             </div>
           )}
         </div>
