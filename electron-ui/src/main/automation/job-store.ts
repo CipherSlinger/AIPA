@@ -11,6 +11,7 @@ import { app } from 'electron'
 import * as fs from 'fs'
 import * as path from 'path'
 import { createLogger } from '../utils/logger'
+import { normalizeMissedRunPolicy } from './missed-policy'
 import { normalizePendingRetry } from './retry-policy'
 import { normalizeRunHistory } from './run-history'
 import { normalizeCost, normalizeRunUsage, normalizeTokenCount } from './run-usage'
@@ -114,6 +115,10 @@ function normalizeJob(raw: unknown): AutomationJob | null {
     // Default off: only a genuine opt-in is restored, so a job saved before
     // this setting existed can never start spending on retries after an update.
     retryOnFailure: retryOnFailure ? true : undefined,
+    // Only a deliberate 'skip' is restored; absent, 'run' and a corrupt value
+    // all read as the default catch-up behaviour, so a hand-edited file can
+    // never silently drop a scheduled occurrence.
+    missedRunPolicy: normalizeMissedRunPolicy(job.missedRunPolicy),
     // A disabled job or a job that no longer opted in must not carry a retry
     // into the next launch. A valid one is restored even when its due time has
     // passed (the first tick either runs it or expires it).

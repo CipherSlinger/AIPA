@@ -169,12 +169,15 @@ export default function SettingsAutomations() {
     if (record.status === 'skipped') {
       // The generic skip label names the hourly cap; a spend-stop must say so
       // instead, or the row would blame the wrong rail. The global budget gets
-      // its own words: the job's own limit may not even be set.
+      // its own words: the job's own limit may not even be set. A miss the job
+      // chose to skip says so too, or it would read as the hourly cap firing.
       const text = record.error === 'global_budget_exceeded'
         ? t('automation.status.globalBudgetSkipped')
         : record.error === 'budget_exceeded'
           ? t('automation.status.budgetSkipped')
-          : t('automation.status.skipped')
+          : record.error === 'missed_while_closed'
+            ? t('automation.status.missedSkipped')
+            : t('automation.status.skipped')
       return { text, color: WARNING }
     }
     return { text: t('automation.status.error'), color: 'var(--danger-text)' }
@@ -423,12 +426,15 @@ export default function SettingsAutomations() {
     if (job.lastStatus === 'skipped') {
       // A spend stop is still a skip, not a failure of the work; name the rail
       // that stopped it so it is not mistaken for the hourly cap. The global
-      // daily budget is a different rail from the job's own limit.
+      // daily budget is a different rail from the job's own limit, and a miss
+      // the user chose to skip is not a rail at all.
       const text = job.lastError === 'global_budget_exceeded'
         ? t('automation.status.globalBudgetSkipped')
         : job.lastError === 'budget_exceeded'
           ? t('automation.status.budgetSkipped')
-          : t('automation.status.skipped')
+          : job.lastError === 'missed_while_closed'
+            ? t('automation.status.missedSkipped')
+            : t('automation.status.skipped')
       return { text: `${text} · ${when}`, color: WARNING }
     }
     const detail = errorText(job.lastError)
@@ -763,6 +769,14 @@ export default function SettingsAutomations() {
                           {`· ${t('automation.quietOnSuccess.row')}`}
                         </span>
                       )}
+                      {!watch && job.missedRunPolicy === 'skip' && (
+                        // A short clause, like quiet mode: the row otherwise
+                        // gives no sign that a time missed while closed will
+                        // not be caught up.
+                        <span style={{ fontSize: 11, color: SECONDARY }}>
+                          {`· ${t('automation.missedPolicy.row')}`}
+                        </span>
+                      )}
                     </div>
 
                     <div style={{
@@ -1083,7 +1097,7 @@ export default function SettingsAutomations() {
       <SettingsGroup title={t('automation.howItWorks')} icon={<Clock size={13} />} groupKey="automations-help">
         <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11.5, color: SECONDARY, lineHeight: 1.6 }}>
           <li>{t('automation.appMustRun')}</li>
-          <li>{t('automation.missedRunRule')}</li>
+          <li>{t('automation.missedRunRuleChoice')}</li>
           <li>{t('automation.pauseAll.help')}</li>
           <li>{t('automation.budget.help')}</li>
           <li>

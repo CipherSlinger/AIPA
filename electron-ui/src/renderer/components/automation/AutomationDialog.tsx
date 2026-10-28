@@ -196,6 +196,11 @@ export default function AutomationDialog({
   const [quietOnSuccess, setQuietOnSuccess] = useState(job?.quietOnSuccess === true)
   // Off by default: a retry spends again, so it must be a deliberate choice.
   const [retryOnFailure, setRetryOnFailure] = useState(job?.retryOnFailure === true)
+  // Catch up by default: every job saved before this choice existed runs once
+  // on the first tick after launch, and an unread field must keep doing that.
+  const [missedRunPolicy, setMissedRunPolicy] = useState<'run' | 'skip'>(
+    job?.missedRunPolicy === 'skip' ? 'skip' : 'run',
+  )
   const [scheduleKind, setScheduleKind] = useState<ScheduleKind>(() => {
     if (!job) return 'daily'
     if (job.trigger.kind === 'watch') return 'watch'
@@ -366,6 +371,9 @@ export default function AutomationDialog({
       // Same for retries: omitting the flag on an edit clears it, and absent
       // means "never retry" for every job that did not opt in.
       ...(retryOnFailure ? { retryOnFailure: true } : {}),
+      // Only the opt-out is stored; omitting it on an edit restores the default
+      // catch-up behaviour every existing job already has.
+      ...(missedRunPolicy === 'skip' ? { missedRunPolicy: 'skip' } : {}),
       // Omitting a cleared limit is what removes it; sending 0 would block
       // every scheduled run.
       ...(spendLimitValue !== undefined ? { dailyCostLimitUsd: spendLimitValue } : {}),
@@ -908,6 +916,25 @@ export default function AutomationDialog({
               title={t('automation.preview.unavailable')}
               style={{ minHeight: 14, marginTop: 6 }}
             />
+          )}
+
+          {/* Only a calendar can be missed while the app is closed; a watch job
+              fires from a live event, so the question does not apply. */}
+          {scheduleKind !== 'watch' && (
+            <div style={{ marginTop: 10 }}>
+              <label style={labelStyle}>{t('automation.field.missedRunPolicy')}</label>
+              <select
+                value={missedRunPolicy}
+                onChange={e => setMissedRunPolicy(e.target.value === 'skip' ? 'skip' : 'run')}
+                style={INPUT_STYLE}
+              >
+                <option value="run">{t('automation.missedPolicy.run')}</option>
+                <option value="skip">{t('automation.missedPolicy.skip')}</option>
+              </select>
+              <div style={{ fontSize: 11, color: SECONDARY, marginTop: 4, lineHeight: 1.5 }}>
+                {t('automation.missedPolicy.hint')}
+              </div>
+            </div>
           )}
 
           {/* Lives with the schedule because it is about when the app calls

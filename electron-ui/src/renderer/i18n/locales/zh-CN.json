@@ -3048,7 +3048,8 @@
       "skipped": "已跳过（超出每小时上限）",
       "running": "正在运行…",
       "budgetSkipped": "已跳过（花费上限）",
-      "globalBudgetSkipped": "已跳过（达到每日预算）"
+      "globalBudgetSkipped": "已跳过（达到每日预算）",
+      "missedSkipped": "已跳过（关闭期间错过）"
     },
     "field": {
       "name": "名称",
@@ -3065,7 +3066,8 @@
       "spendLimitPlaceholder": "不限",
       "quietOnSuccess": "成功时静默",
       "retryOnFailure": "失败时自动重试",
-      "dayOfMonth": "每月几号"
+      "dayOfMonth": "每月几号",
+      "missedRunPolicy": "AIPA 关闭期间错过的运行"
     },
     "action": {
       "workflow": "运行工作流",
@@ -3117,7 +3119,8 @@
       "cost_limit_invalid": "花费上限必须是大于 0 的金额。",
       "cost_limit_too_high": "花费上限每天不能超过 $1000。",
       "watch_path_invalid": "请填写绝对路径，例如 /Users/me/Notes 或 C:\\Notes。",
-      "name_invalid": "请给副本起一个有效的名称。"
+      "name_invalid": "请给副本起一个有效的名称。",
+      "missed_while_closed": "该次运行在 AIPA 关闭期间到期。"
     },
     "personaHint": "该工作流的定时运行使用此专家；工作流页面上的“运行”按钮仍使用当前对话的专家。",
     "personaMissing": "专家已删除",
@@ -3265,7 +3268,14 @@
       "dayRequired": "请输入 1–31 之间的日期。",
       "dayRange": "日期范围为 1–31；将按每月 {{day}} 日运行。",
       "shortMonth": "并非每个月都有 {{day}} 日。没有这一天的月份会被直接跳过——那些月份不会运行，也不会改到最近的日期运行。"
-    }
+    },
+    "missedPolicy": {
+      "run": "重新打开 AIPA 时补跑这次运行",
+      "skip": "跳过这次，等待下一次",
+      "hint": "仅适用于在 AIPA 关闭超过一分钟后才到期的运行。被跳过的这次运行会记入运行历史，且永远不会计为失败。如果到期时 AIPA 正在运行，只是运行名额已满，它仍会在稍后补跑。",
+      "row": "关闭期间错过的不补跑"
+    },
+    "missedRunRuleChoice": "AIPA 关闭期间到期的运行，由任务自己的设置决定：要么在下次启动时补跑一次并标记为延迟运行，要么直接跳过、等待下一次运行。无论哪种，错过的运行都不会成批补跑。"
   },
   "speculation": {
     "title": "投机预览",

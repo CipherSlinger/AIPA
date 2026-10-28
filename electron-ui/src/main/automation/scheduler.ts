@@ -10,7 +10,10 @@
  * Missed runs: when the app was not running, a due job runs once on the next
  * tick and is marked late (the UI shows "ran late"). It is never replayed N
  * times, and the following occurrence is computed from "now" so a long outage
- * cannot leave a burst of catch-up runs queued.
+ * cannot leave a burst of catch-up runs queued. A job may opt out of that
+ * catch-up (`missedRunPolicy: 'skip'`): its closed-app occurrence is recorded
+ * as a skip and the schedule moves on, while a run that came due with the app
+ * open still waits for a slot and runs late.
  */
 import { app, BrowserWindow } from 'electron'
 import * as fs from 'fs'
@@ -22,6 +25,7 @@ import { nextFireTime, parseCron } from '../utils/cron'
 import { createLogger } from '../utils/logger'
 import { getAllowedFsRoots, safePath } from '../utils/validate'
 import { readAutomationStore, writeAutomationStore } from './job-store'
+import { MISSED_RUN_GRACE_MS, normalizeMissedRunPolicy, shouldSkipMissedRun } from './missed-policy'
 import { AUTOMATION_RETRY_POLICY, isPendingRetryExpired, nextRetryAfterFailure } from './retry-policy'
 import { appendRunRecord, countFailureStreak, createSkipRecord, MAX_RUN_ERROR_CHARS } from './run-history'
 import { addToLifetimeTotals } from './run-usage'
@@ -46,6 +50,7 @@ import type {
   AutomationJob,
   AutomationJobView,
   AutomationLimits,
+  AutomationMissedRunPolicy,
   AutomationRunOutcome,
   AutomationRunRequest,
   AutomationRunSource,
@@ -55,8 +60,14 @@ import type {
 const log = createLogger('automation-scheduler')
 
 const CHECK_INTERVAL_MS = 15_000
-/** A run this far past its scheduled minute is reported as late. */
-const LATE_THRESHOLD_MS = 60_000
+/**
+ * A run this far past its scheduled minute is reported as late.
+ *
+ * Assigned from the missed-run grace so "late" and "missed while closed" can
+ * never disagree: the same minute that makes a run late is the minute a
+ * `'skip'` job needs before its occurrence is treated as a closed-app miss.
+ */
+const LATE_THRESHOLD_MS = MISSED_RUN_GRACE_MS
 /** A single run (all prompts of a job) may not exceed this. */
 const RUN_DEADLINE_MS = 30 * 60_000
 const MAX_NAME_CHARS = 80
@@ -91,6 +102,12 @@ interface SchedulerContext {
   getWindow: () => BrowserWindow | null
   notifyChanged: () => void
   run: (req: AutomationRunRequest) => Promise<AutomationRunOutcome>
+  /**
+   * When this process started the scheduler. Recorded once so the tick can tell
+   * an occurrence that predates the process (closed-app miss) from one that
+   * came due while it was open and is merely waiting for a run slot.
+   */
+  startedAt: number
 }
 
 let ctx: SchedulerContext | null = null
@@ -211,6 +228,16 @@ function validateQuietOnSuccess(value: unknown): boolean | undefined {
  */
 function validateRetryOnFailure(value: unknown): boolean | undefined {
   return value === true ? true : undefined
+}
+
+/**
+ * The missed-while-closed choice. Only a deliberate `'skip'` is stored;
+ * `'run'`, absent and any unknown value all mean the default catch-up
+ * behaviour, so a malformed value can never silently drop an occurrence. The
+ * rule itself lives in `missed-policy.ts` beside the tick's predicate.
+ */
+function validateMissedRunPolicy(value: unknown): AutomationMissedRunPolicy | undefined {
+  return normalizeMissedRunPolicy(value)
 }
 
 /**
@@ -789,6 +816,7 @@ function tick(): void {
   // rather than a restore. Manual runs do not come through this ticker, and a
   // run already in flight is never aborted by pausing.
   if (pausedAll) return
+  const appStartedAt = ctx.startedAt
   const now = Date.now()
   let dirty = false
 
@@ -863,6 +891,40 @@ function tick(): void {
     }
     if (job.nextRunAt > now) continue
 
+    // A closed-app miss the job asked to skip. Checked before the slot rail
+    // because a skip needs no run slot, and after the retry branch above because
+    // a pending retry is a separate occurrence. The predicate requires the
+    // occurrence to predate this process, so a job that came due while AIPA was
+    // open but could not start (all slots busy) is not skipped — it still runs
+    // late once a slot frees, exactly as before.
+    if (shouldSkipMissedRun({
+      policy: job.missedRunPolicy,
+      nextRunAt: job.nextRunAt,
+      appStartedAt,
+      now,
+      graceMs: MISSED_RUN_GRACE_MS,
+    })) {
+      const missedAt = job.nextRunAt
+      job.lastRunAt = missedAt
+      job.lastStatus = 'skipped'
+      job.lastError = 'missed_while_closed'
+      // Nothing ran, so this is not a late run; the error code carries the
+      // truth and `createSkipRecord` keeps the record spendless and sessionless.
+      job.lastRunLate = false
+      job.lastUsage = undefined
+      job.history = appendRunRecord(
+        job.history,
+        createSkipRecord(missedAt, 'missed_while_closed'),
+      )
+      job.nextRunAt = nextRunAfter(job.trigger, now)
+      dirty = true
+      log.warn(
+        `Automation "${job.name}" skipped its ${new Date(missedAt).toISOString()} occurrence — `
+        + 'it came due while AIPA was closed',
+      )
+      continue
+    }
+
     // Global slot limit: leave the job due rather than skipping it, so it runs
     // as soon as a slot frees instead of waiting a whole interval.
     if (running.size >= AUTOMATION_LIMITS.maxConcurrentRuns) break
@@ -900,13 +962,17 @@ export function startAutomationScheduler(
   run: (req: AutomationRunRequest) => Promise<AutomationRunOutcome>,
 ): void {
   if (ctx) return
-  ctx = { getWindow, notifyChanged: () => send('automation:changed'), run }
+  // One launch stamp for the whole process lifetime. The tick compares a due
+  // occurrence against it to tell "missed while AIPA was closed" from "due
+  // while it was open but waiting".
+  const startedAt = Date.now()
+  ctx = { getWindow, notifyChanged: () => send('automation:changed'), run, startedAt }
 
   const store = readAutomationStore()
   jobs = store.jobs
   pausedAll = store.pausedAll
   globalDailyCostLimitUsd = store.globalDailyCostLimitUsd
-  const now = Date.now()
+  const now = startedAt
   let repaired = false
   for (const job of jobs) {
     // A persisted `running` belongs to a process that no longer exists.
@@ -1072,6 +1138,7 @@ function createJob(input: AutomationInput, originPluginId?: string): AutomationM
     const personaId = validatePersonaId(input?.personaId)
     const quietOnSuccess = validateQuietOnSuccess(input?.quietOnSuccess)
     const retryOnFailure = validateRetryOnFailure(input?.retryOnFailure)
+    const missedRunPolicy = validateMissedRunPolicy(input?.missedRunPolicy)
     const dailyCostLimitUsd = validateDailyCostLimit(input?.dailyCostLimitUsd)
     const enabled = input?.enabled !== false
     const job: AutomationJob = {
@@ -1083,6 +1150,7 @@ function createJob(input: AutomationInput, originPluginId?: string): AutomationM
       ...(personaId ? { personaId } : {}),
       ...(quietOnSuccess ? { quietOnSuccess } : {}),
       ...(retryOnFailure ? { retryOnFailure } : {}),
+      ...(missedRunPolicy ? { missedRunPolicy } : {}),
       ...(dailyCostLimitUsd !== undefined ? { dailyCostLimitUsd } : {}),
       ...(originPluginId ? { originPluginId } : {}),
       createdAt: now,
@@ -1169,6 +1237,7 @@ export function cloneAutomationJob(id: string, name?: string): AutomationMutatio
       ...(source.personaId ? { personaId: source.personaId } : {}),
       ...(source.quietOnSuccess === true ? { quietOnSuccess: true } : {}),
       ...(source.retryOnFailure === true ? { retryOnFailure: true } : {}),
+      ...(source.missedRunPolicy === 'skip' ? { missedRunPolicy: 'skip' } : {}),
       ...(source.dailyCostLimitUsd !== undefined
         ? { dailyCostLimitUsd: source.dailyCostLimitUsd }
         : {}),
@@ -1209,6 +1278,7 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     const personaId = validatePersonaId(input?.personaId)
     const quietOnSuccess = validateQuietOnSuccess(input?.quietOnSuccess)
     const retryOnFailure = validateRetryOnFailure(input?.retryOnFailure)
+    const missedRunPolicy = validateMissedRunPolicy(input?.missedRunPolicy)
     const dailyCostLimitUsd = validateDailyCostLimit(input?.dailyCostLimitUsd)
     const enabled = input?.enabled !== false
 
@@ -1227,6 +1297,9 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     job.quietOnSuccess = quietOnSuccess
     // Same rule for retries: absent means "never retry", which spends nothing.
     job.retryOnFailure = retryOnFailure
+    // Same opt-in shape: switching back to "run" removes the field, so the job
+    // reads exactly like one that never made the choice.
+    job.missedRunPolicy = missedRunPolicy
     // Same rule for the spend rail: an empty field removes the limit rather than
     // storing 0, which would block every scheduled run forever.
     job.dailyCostLimitUsd = dailyCostLimitUsd

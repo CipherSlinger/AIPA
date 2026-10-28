@@ -3048,7 +3048,8 @@
       "skipped": "Skipped (hourly limit)",
       "running": "Running…",
       "budgetSkipped": "Skipped (spend limit)",
-      "globalBudgetSkipped": "Skipped (daily budget reached)"
+      "globalBudgetSkipped": "Skipped (daily budget reached)",
+      "missedSkipped": "Skipped (missed while closed)"
     },
     "field": {
       "name": "Name",
@@ -3065,7 +3066,8 @@
       "spendLimitPlaceholder": "No limit",
       "quietOnSuccess": "Quiet on success",
       "retryOnFailure": "Retry failed runs",
-      "dayOfMonth": "Day of month"
+      "dayOfMonth": "Day of month",
+      "missedRunPolicy": "If a time was missed while AIPA was closed"
     },
     "action": {
       "workflow": "Run a workflow",
@@ -3117,7 +3119,8 @@
       "cost_limit_invalid": "The spend limit must be an amount greater than 0.",
       "cost_limit_too_high": "The spend limit cannot exceed $1000 per day.",
       "watch_path_invalid": "Watch an absolute path — a full path like /Users/me/Notes or C:\\Notes.",
-      "name_invalid": "Give the copy a valid name."
+      "name_invalid": "Give the copy a valid name.",
+      "missed_while_closed": "It came due while AIPA was closed."
     },
     "personaHint": "Scheduled runs of this workflow use this expert. The workflow's own Run button still uses the current conversation's expert.",
     "personaMissing": "Expert deleted",
@@ -3265,7 +3268,14 @@
       "dayRequired": "Enter a day from 1 to 31.",
       "dayRange": "Days run from 1 to 31; this schedule will use the {{day}}.",
       "shortMonth": "Not every month has a {{day}}. Months without it are skipped entirely — the job does not run in those months, and it does not move to the nearest day either."
-    }
+    },
+    "missedPolicy": {
+      "run": "Run the missed occurrence when AIPA reopens",
+      "skip": "Skip it and wait for the next one",
+      "hint": "Only applies when a time came due while AIPA was closed for more than a minute. A skipped occurrence is listed in the run history and never counts as a failure. A run that came due while AIPA was open still happens late if the run slots were busy.",
+      "row": "skips times missed while closed"
+    },
+    "missedRunRuleChoice": "A run that came due while AIPA was closed follows the job's own choice: it either happens once at the next launch and is marked late, or it is skipped and the job waits for the next occurrence. Either way, missed runs are never replayed in a burst."
   },
   "speculation": {
     "title": "Speculative Preview",

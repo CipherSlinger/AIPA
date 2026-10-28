@@ -41,6 +41,17 @@ export type AutomationTrigger =
  */
 export type AutomationRunSource = 'manual' | 'scheduled' | 'watch'
 
+/**
+ * What a job does with an occurrence that came due while AIPA was not running.
+ *
+ * Absent means `'run'`: the occurrence starts once on the first tick after
+ * launch, flagged late, which is what every job did before this choice existed.
+ * `'skip'` drops that one occurrence and waits for the next regular one — the
+ * choice a user makes for a 07:00 briefing they do not want at 18:00. A skipped
+ * occurrence is recorded in history, never counted as a failure.
+ */
+export type AutomationMissedRunPolicy = 'run' | 'skip'
+
 export type AutomationAction =
   | { kind: 'workflow'; workflowId: string }
   | { kind: 'prompt'; prompt: string; cwd?: string }
@@ -172,6 +183,14 @@ export interface AutomationJob {
    * repeats the job's side effects, so it must be a deliberate choice.
    */
   retryOnFailure?: boolean
+  /**
+   * What to do about an occurrence that came due while AIPA was closed. Absent
+   * means `'run'` (the original catch-up-on-launch behaviour), so every job
+   * saved before this field existed keeps running exactly as it did. Only a
+   * deliberate `'skip'` is stored; a corrupt value reads as `'run'` for the
+   * same reason — a bad byte must never silently drop a scheduled run.
+   */
+  missedRunPolicy?: AutomationMissedRunPolicy
   /**
    * The retry currently waiting for its due time. Absent when none is pending;
    * cleared by a success, a manual run, a schedule change, or a rail refusal.
@@ -386,6 +405,12 @@ export interface AutomationInput {
    * stores no flag; manual runs are never retried regardless.
    */
   retryOnFailure?: boolean
+  /**
+   * What to do about a scheduled time that came due while AIPA was closed.
+   * Omitted (or `'run'`) is the default catch-up behaviour; only `'skip'` is
+   * stored, matching the opt-in shape of `retryOnFailure`.
+   */
+  missedRunPolicy?: AutomationMissedRunPolicy
   /**
    * Optional scheduled-run spend limit in USD. Omitted/null clears it; the
    * scheduler stores an absent value rather than `0`.

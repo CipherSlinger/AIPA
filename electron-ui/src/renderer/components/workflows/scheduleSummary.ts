@@ -72,7 +72,12 @@ export function outcomeText(
     return { text: `${t('automation.status.success')} · ${when}`, color: 'var(--success-text)' }
   }
   if (job.lastStatus === 'skipped') {
-    return { text: `${t('automation.status.skipped')} · ${when}`, color: 'var(--warning-text)' }
+    // A miss the job itself chose to skip is a different silence from a rail
+    // refusal; naming it keeps "Skipped" from reading as the hourly cap.
+    const label = job.lastError === 'missed_while_closed'
+      ? t('automation.status.missedSkipped')
+      : t('automation.status.skipped')
+    return { text: `${label} · ${when}`, color: 'var(--warning-text)' }
   }
   const detail = errorCodeText(job.lastError, t)
   return {

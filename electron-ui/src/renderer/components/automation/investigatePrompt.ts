@@ -69,6 +69,7 @@ const ENGLISH: Record<string, string> = {
   'automation.status.skipped': 'Skipped (hourly limit)',
   'automation.status.budgetSkipped': 'Skipped (spend limit)',
   'automation.status.globalBudgetSkipped': 'Skipped (daily budget reached)',
+  'automation.status.missedSkipped': 'Skipped (missed while closed)',
   // Failure codes that can reach a run record. Validation codes (name_too_long,
   // cron_invalid, …) never appear on a run, so they are not listed here.
   'automation.errors.run_failed': 'The run failed.',
@@ -128,6 +129,9 @@ function outcomeFor(record: AutomationRunRecordData): string {
       return englishT('automation.status.globalBudgetSkipped')
     }
     if (record.error === 'budget_exceeded') return englishT('automation.status.budgetSkipped')
+    if (record.error === 'missed_while_closed') {
+      return englishT('automation.status.missedSkipped')
+    }
     return englishT('automation.status.skipped')
   }
   const wording = record.error ? errorCodeText(record.error, englishT) : ''

@@ -373,6 +373,9 @@ export type AutomationActionData =
 
 export type AutomationRunStatusData = 'success' | 'error' | 'skipped' | 'running'
 
+/** Mirrors main's `AutomationMissedRunPolicy`; absent means `'run'`. */
+export type AutomationMissedRunPolicyData = 'run' | 'skip'
+
 /** Mirrors main's `RunUsage`; cost stays absent when the engine reported none. */
 export interface AutomationRunUsageData {
   inputTokens: number
@@ -494,6 +497,13 @@ export interface AutomationJobData {
   quietOnSuccess?: boolean
   /** Opt-in retry of failed scheduled runs; absent/false never retries. */
   retryOnFailure?: boolean
+  /**
+   * What to do with a time that came due while AIPA was closed: absent/`'run'`
+   * catches up once on launch (the original behaviour), `'skip'` drops that
+   * occurrence and waits for the next. A skipped occurrence is recorded in the
+   * run history and is never a failure.
+   */
+  missedRunPolicy?: AutomationMissedRunPolicyData
   /** The retry currently waiting for its due time, if any. */
   pendingRetry?: AutomationPendingRetryData
   /** Scheduled-run spend limit in USD over a rolling 24 h; absent means none. */
@@ -580,6 +590,11 @@ export interface AutomationInputData {
   quietOnSuccess?: boolean
   /** Omitted/false never retries; a retry spends again and is opt-in only. */
   retryOnFailure?: boolean
+  /**
+   * Omitted/`'run'` is the default catch-up behaviour; only `'skip'` is stored.
+   * The choice only covers a time that came due while AIPA was closed.
+   */
+  missedRunPolicy?: AutomationMissedRunPolicyData
   /** Omitted clears the scheduled-run spend limit; 0 is not a limit. */
   dailyCostLimitUsd?: number
 }
