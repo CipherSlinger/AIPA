@@ -10,6 +10,13 @@ import { assembleMemoryContextForTurn } from './promptMemory'
 import { composeSystemPromptParts, resolvePersonaTurnSettings } from './promptAssembly'
 import { listSessionsShared } from '../utils/sessionListShared'
 import { describeThreadStatus } from '../components/chat/threadStatusText'
+import {
+  describeCodexError,
+  looksLikeQuotaText,
+  resolveTurnOutcome,
+  type CodexErrorAction,
+} from '../components/chat/codexErrorText'
+import type { CliResultEventData, CliTurnErrorEventData } from '../../preload/index'
 // parseTokenBudget used by token display utilities
 // import { parseTokenBudget } from '../utils/tokenUtils'
 
@@ -33,6 +40,37 @@ function trackPromptHistory(prompt: string) {
   }
   usePrefsStore.getState().setPrefs({ promptHistory: updated })
   window.electronAPI?.prefsSet('promptHistory', updated)
+}
+
+/**
+ * Run the existing app action that a typed Codex error points at. Kept
+ * module-level so the event listener can call it without stale closures.
+ */
+function runCodexErrorAction(action: CodexErrorAction): void {
+  if (action === 'compact') {
+    const sessionId = useChatStore.getState().currentSessionId
+    if (!sessionId) return
+    const chatState = useChatStore.getState()
+    if (chatState.lastContextUsage) {
+      chatState.setContextBeforeCompact({
+        used: chatState.lastContextUsage.used,
+        total: chatState.lastContextUsage.total,
+      })
+    }
+    chatState.setCompacting(true)
+    window.electronAPI.cliSendMessage({ prompt: '/compact', sessionId }).catch(() => {
+      const failed = useChatStore.getState()
+      failed.setCompacting(false)
+      failed.setContextBeforeCompact(null)
+      useUiStore.getState().addToast('error', getT()('compact.failed'))
+    })
+    return
+  }
+  if (action === 'account') {
+    useUiStore.getState().openSettingsAt('ai-engine')
+    return
+  }
+  useUiStore.getState().openSettingsAt('permissions')
 }
 
 // Build a CLI permission rule string from tool name + input
@@ -574,11 +612,25 @@ export function useStreamJson() {
         case 'cli:turnError': {
           // A retrying error is informational — Codex reconnects on its own.
           if (data.willRetry) break
-          const message = (data.message as string) || t('error.unknownError')
+          const errData = data as CliTurnErrorEventData
+          // The typed protocol code decides the explanation and action. Prose
+          // regexes are used only when the engine sent no recognisable code.
+          const view = describeCodexError({
+            codexErrorInfo: errData.codexErrorInfo,
+            message: errData.message,
+            details: errData.details,
+          })
+          const explanation = view.explanationKey ? t(view.explanationKey, view.params) : ''
+          const raw = view.detail || t('error.unknownError')
+          const content = explanation
+            ? (view.detail && view.detail !== explanation
+              ? `⚠️ ${explanation}\n\n${view.detail}`
+              : `⚠️ ${explanation}`)
+            : `⚠️ ${raw}`
           useChatStore.getState().addMessage({
             id: `err-${Date.now()}`,
             role: 'assistant',
-            content: `⚠️ ${message}`,
+            content,
             timestamp: Date.now(),
           } as StandardChatMessage)
           const chatState = useChatStore.getState()
@@ -586,6 +638,20 @@ export function useStreamJson() {
             chatState.setCompacting(false)
             chatState.setContextBeforeCompact(null)
             useUiStore.getState().addToast('error', t('compact.failed'))
+          }
+          if (view.action) {
+            const action = view.action
+            const labelKey = action === 'compact'
+              ? 'codex.error.action.compact'
+              : action === 'account'
+                ? 'codex.error.action.account'
+                : 'codex.error.action.permissions'
+            useUiStore.getState().addToast(
+              'error',
+              explanation || raw,
+              10000,
+              { label: t(labelKey), onClick: () => runCodexErrorAction(action) },
+            )
           }
           stopStreamingAndReleaseSleep()
           break
@@ -764,6 +830,21 @@ export function useStreamJson() {
             console.debug('[cli:result] ignored result from another conversation:', data.sessionId)
             break
           }
+          const resultData = data as CliResultEventData
+          // The protocol's terminal statement (Codex) — null for the legacy
+          // Claude bridge, which has only `subtype`.
+          const protocolOutcome = typeof resultData.outcome === 'string' ? resultData.outcome : null
+          const turnOutcome = resolveTurnOutcome(resultData)
+          const isCompletedTurn = turnOutcome === 'completed'
+          // A stopped or unreported turn gets a quiet tail marker. A completed
+          // or failed turn clears it (a failure has its own error treatment).
+          useChatStore.getState().setLastTurnOutcome(
+            protocolOutcome === 'interrupted'
+              ? 'interrupted'
+              : protocolOutcome === 'unknown'
+                ? 'unknown'
+                : null,
+          )
           // Handle error subtypes before normal result processing
           const resultSubtype = (data.subtype as string | undefined) ?? 'success'
           if (resultSubtype === 'error_max_structured_output_retries') {
@@ -901,6 +982,17 @@ export function useStreamJson() {
                 timestamp: Date.now(),
               } as StandardChatMessage)
             }
+          }
+          if (!isCompletedTurn) {
+            // A stopped, failed, or unreported turn is not a success: no
+            // completion chime/notification, no title generation, no memory
+            // extraction, and no task-queue advance. A genuine failure already
+            // arrived as cli:turnError; a stopped/unknown turn has its quiet
+            // tail marker set above and must not be shown as an error.
+            const doneState = useChatStore.getState()
+            const runningItem = doneState.taskQueue.find(item => item.status === 'running')
+            if (runningItem) doneState.markQueueItemDone(runningItem.id)
+            break
           }
           // Completion notification
           sendCompletionNotification(
@@ -1055,8 +1147,9 @@ export function useStreamJson() {
         }
         case 'cli:error': {
           const errText = (data.error as string) || 'CLI encountered an unknown error'
-          // Detect quota/billing exhaustion and auto-rotate API key
-          const isQuotaError = /402|billing|credit|quota|rate.limit|overloaded/i.test(errText)
+          // Legacy stderr carries no typed code; the shared text heuristic is
+          // the only fallback, and it is never presented as a stated cause.
+          const isQuotaError = looksLikeQuotaText(errText)
           if (isQuotaError && (usePrefsStore.getState().prefs.apiKeyPool || []).length > 0) {
             const switched = rotateApiKey()
             if (switched) {

@@ -815,7 +815,10 @@ function wireCodexBridge(
   bridge.on('textDelta', () => notifyClawdState('thinking', bridgeId))
   bridge.on('thinkingDelta', () => notifyClawdState('thinking', bridgeId))
   bridge.on('toolUse', () => notifyClawdState('working', bridgeId))
-  bridge.on('result', () => notifyClawdState('happy', bridgeId))
+  // "happy" is a completed-turn signal; a stopped or unknown turn is not one.
+  bridge.on('result', (d) => {
+    if (d.subtype === 'success') notifyClawdState('happy', bridgeId)
+  })
   bridge.on('processExit', () => notifyClawdState('idle', bridgeId))
 
   // Codex's user-facing questions (requestUserInput and MCP elicitation) use
@@ -855,7 +858,9 @@ function wireCodexBridge(
     // A finished turn answers whatever it was waiting on.
     resolveAttention({ kind: 'approval', bridgeId })
     resolveAttention({ kind: 'clarification', bridgeId })
-    if (d.subtype && d.subtype !== 'success') {
+    // Only a genuine failure raises a failure. An interrupted turn is the user
+    // stopping, and an unknown outcome is not evidence of failure.
+    if (d.subtype === 'error') {
       raiseAttention({
         kind: 'failed',
         bridgeId,

@@ -6,7 +6,7 @@
 // page only reflects state and sends CRUD requests, then waits for
 // `automation:changed` instead of guessing what the scheduler did.
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { AlarmClock, AlertTriangle, Clock, Copy, History, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Sparkles, Trash2, Wallet } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
@@ -20,6 +20,7 @@ import AutomationDialog, { ASSISTANT_PERSONA_ID, type WorkflowOption } from '../
 import { scheduleText, watchWarningText } from '../automation/scheduleText'
 import { buildInvestigatePrompt } from '../automation/investigatePrompt'
 import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from '../automation/automationStyles'
+import { RUN_HISTORY_CAP, viewRunHistory } from './runHistoryView'
 import type {
   AutomationJobData,
   AutomationLimitsData,
@@ -28,8 +29,16 @@ import type {
 } from '../../../preload'
 import type { Persona } from '../../types/app.types'
 
-/** How many of the remembered runs a row lists once expanded. */
-const HISTORY_VISIBLE = 5
+/** Which runs a job's history disclosure is currently showing, and how. */
+type RunHistoryUi = { expanded: boolean; failuresOnly: boolean }
+
+const RUN_HISTORY_UI_DEFAULT: RunHistoryUi = { expanded: false, failuresOnly: false }
+
+/** The quiet text control under a run list ("Show all" / "Show fewer"). */
+const QUIET_LINK: CSSProperties = {
+  background: 'none', border: 'none', padding: 0, margin: '4px 0 0',
+  font: 'inherit', fontSize: 11, color: 'var(--accent-text)', cursor: 'pointer',
+}
 
 /** The expert a row should name: a person, the plain assistant, or a broken binding. */
 type JobExpert =
@@ -79,6 +88,11 @@ export default function SettingsAutomations() {
   const [budgetBusy, setBudgetBusy] = useState(false)
   const [budgetError, setBudgetError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Run-history disclosure state, keyed by job id: one job showing every run
+  // must never reopen another job expanded, and a job that disappears takes
+  // its entry with it on the next interaction rather than leaking into a new
+  // job that happens to reuse the slot.
+  const [runHistoryUi, setRunHistoryUi] = useState<Record<string, RunHistoryUi>>({})
 
   // The pause travels in the scheduler's limits payload; a null payload (the
   // list call failed) reads as not paused rather than inventing a banner.
@@ -236,6 +250,28 @@ export default function SettingsAutomations() {
       unreadable,
     }
   }, [t])
+
+  /**
+   * Change one job's history view. The map is per job id rather than a single
+   * open/closed flag so expansion cannot travel to a different row, and a
+   * disclosure that is closed drops its entry entirely — reopening starts
+   * from the default (five runs, no filter) rather than from a stale state.
+   */
+  const patchRunHistoryUi = (jobId: string, patch: Partial<RunHistoryUi>) => {
+    setRunHistoryUi(prev => ({
+      ...prev,
+      [jobId]: { ...(prev[jobId] ?? RUN_HISTORY_UI_DEFAULT), ...patch },
+    }))
+  }
+
+  const resetRunHistoryUi = (jobId: string) => {
+    setRunHistoryUi(prev => {
+      if (!(jobId in prev)) return prev
+      const next = { ...prev }
+      delete next[jobId]
+      return next
+    })
+  }
 
   const openRun = (sessionId: string) => {
     // The app-level bridge owns opening: it loads the transcript, restores the
@@ -699,10 +735,17 @@ export default function SettingsAutomations() {
               // path instead of a time, and a lost path is the row's warning.
               const watch = job.trigger.kind === 'watch'
               const watchWarning = watchWarningText(job, t)
-              // Newest first, and only the few the disclosure lists. A job that
-              // has never run has an empty array, so the disclosure is not
-              // mounted at all rather than opening onto an empty table.
-              const recentRuns = job.history.slice(-HISTORY_VISIBLE).reverse()
+              // The pure view selects which records are visible (five, every
+              // one, or every failure); it returns them in stored order, so the
+              // disclosure's long-standing newest-first presentation is made
+              // here, once. A job that has never run keeps the disclosure
+              // unmounted rather than opening onto an empty table.
+              const historyUi = runHistoryUi[job.id] ?? RUN_HISTORY_UI_DEFAULT
+              const historyView = viewRunHistory(job.history, {
+                failuresOnly: historyUi.failuresOnly,
+                expanded: historyUi.expanded,
+              })
+              const runRows = historyView.rows.slice().reverse()
               return (
                 <div
                   key={job.id}
@@ -917,11 +960,17 @@ export default function SettingsAutomations() {
                       </div>
                     )}
 
-                    {recentRuns.length > 0 && (
+                    {job.history.length > 0 && (
                       // Native <details> gives a collapsed-by-default, keyboard
                       // operable disclosure without local state; the row grows
-                      // only when the user asks it to.
-                      <details style={{ marginTop: 3 }}>
+                      // only when the user asks it to. Closing it forgets the
+                      // per-job view, so reopening starts from five rows again.
+                      <details
+                        style={{ marginTop: 3 }}
+                        onToggle={event => {
+                          if (!event.currentTarget.open) resetRunHistoryUi(job.id)
+                        }}
+                      >
                         <summary style={{
                           width: 'fit-content', cursor: 'pointer',
                           fontSize: 11, color: SECONDARY, lineHeight: 1.45,
@@ -930,9 +979,48 @@ export default function SettingsAutomations() {
                               affordance that says "this expands" without CSS. */}
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                             <History size={11} />
-                            {t('automation.history.summary', { count: recentRuns.length })}
+                            {t('automation.history.summary', {
+                              count: Math.min(job.history.length, RUN_HISTORY_CAP),
+                            })}
                           </span>
                         </summary>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                          {/* A chip, not a second disclosure: it narrows the
+                              list already on screen. The count stays visible
+                              at zero so the empty state below is reachable and
+                              the user can see there is nothing to find. */}
+                          <button
+                            type="button"
+                            aria-pressed={historyUi.failuresOnly}
+                            onClick={() => patchRunHistoryUi(job.id, {
+                              failuresOnly: !historyUi.failuresOnly,
+                            })}
+                            title={t('automation.history.failuresHint')}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 4,
+                              fontSize: 11, padding: '0 6px', borderRadius: 8, cursor: 'pointer',
+                              color: historyUi.failuresOnly ? 'var(--accent-text)' : SECONDARY,
+                              background: historyUi.failuresOnly
+                                ? 'rgba(99,102,241,0.12)'
+                                : 'var(--bg-hover)',
+                              border: `1px solid ${historyUi.failuresOnly
+                                ? 'rgba(99,102,241,0.35)'
+                                : 'var(--border)'}`,
+                            }}
+                          >
+                            <AlertTriangle size={10} style={{ flexShrink: 0 }} />
+                            {t('automation.history.failures', { count: historyView.failureCount })}
+                          </button>
+                        </div>
+                        {historyView.isEmpty && (
+                          // An explicit line, never a gap under the filter:
+                          // "nothing failed" is an answer, not a missing list.
+                          <div style={{
+                            fontSize: 11, color: SECONDARY, marginTop: 3, lineHeight: 1.45,
+                          }}>
+                            {t('automation.history.failuresEmpty')}
+                          </div>
+                        )}
                         <ol
                           aria-label={t('automation.history.listLabel')}
                           style={{
@@ -940,7 +1028,7 @@ export default function SettingsAutomations() {
                             display: 'flex', flexDirection: 'column', gap: 2,
                           }}
                         >
-                          {recentRuns.map((record, runIndex) => {
+                          {runRows.map((record, runIndex) => {
                             const state = runStatus(record)
                             const duration = durationText(record.durationMs)
                             const runUsage = record.usage
@@ -1020,6 +1108,28 @@ export default function SettingsAutomations() {
                             )
                           })}
                         </ol>
+                        {historyView.canShowAll && (
+                          // Only the newest five were listed; this reveals
+                          // every remembered run below them, still newest
+                          // first. The filter never needs it: it lists every
+                          // failure already.
+                          <button
+                            type="button"
+                            onClick={() => patchRunHistoryUi(job.id, { expanded: true })}
+                            style={QUIET_LINK}
+                          >
+                            {t('automation.history.showAll', { count: historyView.totalCount })}
+                          </button>
+                        )}
+                        {historyView.canShowFewer && (
+                          <button
+                            type="button"
+                            onClick={() => patchRunHistoryUi(job.id, { expanded: false })}
+                            style={QUIET_LINK}
+                          >
+                            {t('automation.history.showFewer')}
+                          </button>
+                        )}
                       </details>
                     )}
                   </div>

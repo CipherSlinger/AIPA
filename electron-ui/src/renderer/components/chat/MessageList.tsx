@@ -63,6 +63,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   const addToast = useUiStore(s => s.addToast)
   const rewindToMessage = useChatStore(s => s.rewindToMessage)
   const t = useT()
+  const lastTurnOutcome = useChatStore(s => s.lastTurnOutcome)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   // Keep the reading column centred on the same axis as the composer. The
@@ -92,7 +93,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   // Pinned messages strip (extracted to PinnedMessagesStrip — Iteration 403)
 
   // Pre-computed data (single combined pass, Iteration perf)
-  const items = useBuildItems(messages, t)
+  const items = useBuildItems(messages, t, lastTurnOutcome)
   const { showAvatarMap, showTimestampMap, lastUserMsgId, assistantReplyMap } = useMessageListMaps(messages)
 
   // PERF: keep the latest messages reachable from stable callbacks without
@@ -120,6 +121,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       if (item.type === 'timeGap') return 28
       if (item.type === 'responseTime') return 22
       if (item.type === 'compactSep') return 36
+      if (item.type === 'turnEnded') return 24
       return 80
     },
     overscan: 5,
@@ -327,7 +329,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       >
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const item = items[virtualRow.index]
-          if (item.type === 'dateSep' || item.type === 'timeGap' || item.type === 'responseTime' || item.type === 'compactSep') {
+          if (item.type === 'dateSep' || item.type === 'timeGap' || item.type === 'responseTime' || item.type === 'compactSep' || item.type === 'turnEnded') {
             return (
               <VirtualSeparatorRow
                 key={item.type === 'dateSep' ? `sep-${item.label}` : `${item.type}-${virtualRow.index}`}

@@ -3160,7 +3160,12 @@
       "seconds": "{{seconds}}s",
       "minutes": "{{minutes}}m",
       "open": "Open",
-      "openAria": "Open the conversation from {{time}}"
+      "openAria": "Open the conversation from {{time}}",
+      "failures": "Failures {{count}}",
+      "failuresHint": "Show only the runs that failed. Successes and skips are not failures.",
+      "failuresEmpty": "No failed runs in the remembered history.",
+      "showAll": "Show all {{count}} runs",
+      "showFewer": "Show fewer"
     },
     "expert": {
       "followWorkflow": "Workflow default ({{name}})",
@@ -3410,6 +3415,34 @@
     },
     "effort": {
       "unsupported": "Not supported by {{model}}"
+    },
+    "error": {
+      "contextWindowExceeded": "This conversation no longer fits in the model's context window.",
+      "sessionBudgetExceeded": "This session has reached the spending budget configured for it.",
+      "usageLimitExceeded": "Your account has reached its usage limit for the current window.",
+      "serverOverloaded": "The model service is overloaded right now.",
+      "cyberPolicy": "The engine blocked this request under its cyber or safety policy.",
+      "internalServerError": "The model service hit an internal error.",
+      "unauthorized": "The engine is not authorized with the credentials it is using.",
+      "badRequest": "The engine rejected the request as invalid.",
+      "threadRollbackFailed": "The conversation could not be rolled back to the requested point.",
+      "sandboxError": "The command could not run inside the current sandbox permissions.",
+      "other": "The engine reported an error it did not classify further.",
+      "httpConnectionFailed": "The engine could not reach the model service{{status}}.",
+      "responseStreamConnectionFailed": "The engine could not open the response stream{{status}}.",
+      "responseStreamDisconnected": "The response stream disconnected before the turn finished{{status}}.",
+      "responseTooManyFailedAttempts": "The engine gave up after too many failed attempts to reach the service{{status}}.",
+      "activeTurnNotSteerable": "The running turn cannot accept new input right now{{turnKind}}.",
+      "unrecognized": "The engine reported an error with a code this version does not recognise ({{code}}).",
+      "action": {
+        "compact": "Compact conversation",
+        "account": "Open account settings",
+        "permissions": "Open permission settings"
+      }
+    },
+    "turn": {
+      "stopped": "Turn stopped before completion.",
+      "unknown": "Turn ended without a reported status."
     }
   },
   "plugin": {

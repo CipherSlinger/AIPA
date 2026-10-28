@@ -705,6 +705,42 @@ export interface CliSendMessageArgsData {
   permissionMode?: string
 }
 
+/**
+ * `TurnStatus` normalized for the renderer. `unknown` means the notification
+ * carried no status (or one this build cannot name) — it is never success.
+ */
+export type CodexTurnOutcomeData = 'completed' | 'interrupted' | 'failed' | 'unknown'
+
+/**
+ * `cli:result` payload. Codex turns always carry `outcome`; the legacy Claude
+ * bridge has no outcome and reports only `subtype`.
+ */
+export interface CliResultEventData {
+  sessionId?: string
+  subtype?: string
+  /** Raw `Turn.status` from `turn/completed`, or null when absent. */
+  status?: string | null
+  /** Normalized terminal outcome emitted by the Codex bridge. */
+  outcome?: CodexTurnOutcomeData
+  durationMs?: number | null
+  codexThreadId?: string
+  claudeSessionId?: string
+  [key: string]: unknown
+}
+
+/**
+ * `cli:turnError` payload. `codexErrorInfo` is `TurnError.codexErrorInfo`
+ * verbatim — the string enum or a tagged object (see the generated schema).
+ */
+export interface CliTurnErrorEventData {
+  sessionId?: string
+  message: string
+  details?: string
+  willRetry?: boolean
+  codexErrorInfo?: unknown
+  [key: string]: unknown
+}
+
 const electronAPI = {
   // ── IPC readiness check ────────────────────
   ipcPing: () => ipcRenderer.invoke('ipc:ping') as Promise<{ ok: boolean; timestamp: number }>,

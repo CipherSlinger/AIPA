@@ -28,6 +28,7 @@ import { createInterface } from 'readline'
 import { EventEmitter } from 'events'
 import { getCodexPath } from './codex-resolver'
 import { sanitizeCodexEnv } from './codex-env'
+import { normalizeTurnCompleted } from './turn-outcome'
 import { readCodexMcpServers } from '../config/codex-config-manager'
 import { createLogger } from '../utils/logger'
 
@@ -1765,18 +1766,22 @@ export class CodexBridge extends EventEmitter {
       case 'turn/completed': {
         const turn = params.turn as Record<string, unknown> | undefined
         const turnId = (turn?.id as string) ?? undefined
-        const status = (turn?.status as string) ?? 'completed'
-        const error = turn?.error as { message?: string; additionalDetails?: string } | undefined
+        // The protocol's own status is the authority. Missing or unrecognised
+        // is `unknown`, never `completed`: a stopped turn must not be dressed
+        // up as a successful one.
+        const view = normalizeTurnCompleted(turn)
         this.currentTurnId = null
 
         // A failed turn also arrives as a failed turn/completed. Emit an error
         // only if the standalone `error` notification did not already do so.
-        if (status === 'failed' && error?.message && turnId !== this.errorTurnId) {
+        // `codexErrorInfo` (the typed enum) rides along verbatim.
+        if (view.outcome === 'failed' && view.error?.message && turnId !== this.errorTurnId) {
           this.emit('turnError', {
             sessionId: sid,
-            message: error.message,
-            details: error.additionalDetails,
+            message: view.error.message,
+            details: view.error.details,
             willRetry: false,
+            codexErrorInfo: view.error.codexErrorInfo,
           })
         }
 
@@ -1790,16 +1795,21 @@ export class CodexBridge extends EventEmitter {
           cache_creation_input_tokens: turnUsage.cacheCreationInputTokens ?? 0,
         } : undefined)
 
-        // Map to the same 'result' event format that StreamBridge emits
+        // Map to the same 'result' event format that StreamBridge emits.
+        // `status` stays exactly what the wire said (null when absent), while
+        // `outcome` is the renderer-facing normalized statement. `subtype`
+        // keeps its legacy success/error vocabulary and adds honest values for
+        // stopped/unknown turns instead of pretending they succeeded.
         this.emit('result', {
           sessionId: sid,
-          subtype: status === 'failed' ? 'error' : 'success',
+          subtype: view.subtype,
+          outcome: view.outcome,
           codexThreadId: (params.threadId as string) ?? this.currentThreadId,
           turnId,
           totalCostUsd: (turn?.totalCostUsd as number) ?? undefined,
           usage,
-          status,
-          durationMs: (turn?.durationMs as number) ?? undefined,
+          status: view.statusOnWire,
+          durationMs: view.durationMs ?? undefined,
           numTurns: 1,
           event: params,
         })
@@ -1991,6 +2001,9 @@ export class CodexBridge extends EventEmitter {
           sessionId: sid,
           message: (error?.message as string) ?? 'Unknown error',
           details: (error?.additionalDetails as string) ?? undefined,
+          // Typed protocol enum (string or tagged object); forwarded verbatim
+          // so the renderer can explain the cause the engine actually named.
+          codexErrorInfo: error?.codexErrorInfo ?? undefined,
           willRetry,
         })
         break

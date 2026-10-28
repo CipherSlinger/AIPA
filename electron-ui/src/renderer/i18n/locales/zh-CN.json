@@ -3160,7 +3160,12 @@
       "seconds": "{{seconds}} 秒",
       "minutes": "{{minutes}} 分钟",
       "open": "打开",
-      "openAria": "打开 {{time}} 的对话"
+      "openAria": "打开 {{time}} 的对话",
+      "failures": "失败 {{count}} 次",
+      "failuresHint": "只显示失败的运行。成功和跳过的运行不算失败。",
+      "failuresEmpty": "记住的运行记录中没有失败的运行。",
+      "showAll": "显示全部 {{count}} 次运行",
+      "showFewer": "收起"
     },
     "expert": {
       "followWorkflow": "跟随工作流（{{name}}）",
@@ -3410,6 +3415,34 @@
     },
     "effort": {
       "unsupported": "{{model}} 不支持该档位"
+    },
+    "error": {
+      "contextWindowExceeded": "这段对话已经超出模型的上下文窗口。",
+      "sessionBudgetExceeded": "本次会话已达到为它设置的支出预算上限。",
+      "usageLimitExceeded": "你的账户在当前周期内的用量已达上限。",
+      "serverOverloaded": "模型服务当前过载。",
+      "cyberPolicy": "引擎依据网络安全或安全策略拦截了这次请求。",
+      "internalServerError": "模型服务发生了内部错误。",
+      "unauthorized": "引擎当前使用的凭据未通过授权。",
+      "badRequest": "引擎认为这次请求无效并拒绝了它。",
+      "threadRollbackFailed": "无法把对话回退到请求的位置。",
+      "sandboxError": "该命令无法在当前沙箱权限下运行。",
+      "other": "引擎报告了一个它没有进一步归类的错误。",
+      "httpConnectionFailed": "引擎无法连接到模型服务{{status}}。",
+      "responseStreamConnectionFailed": "引擎无法建立响应流{{status}}。",
+      "responseStreamDisconnected": "响应流在本轮完成前断开了{{status}}。",
+      "responseTooManyFailedAttempts": "引擎多次尝试连接服务失败后放弃了{{status}}。",
+      "activeTurnNotSteerable": "当前正在进行的一轮暂时无法接受新的输入{{turnKind}}。",
+      "unrecognized": "引擎报告了一个此版本无法识别的错误代码（{{code}}）。",
+      "action": {
+        "compact": "压缩对话",
+        "account": "打开账户设置",
+        "permissions": "打开权限设置"
+      }
+    },
+    "turn": {
+      "stopped": "本轮已被停止，尚未完成。",
+      "unknown": "本轮已结束，但引擎没有报告状态。"
     }
   },
   "plugin": {

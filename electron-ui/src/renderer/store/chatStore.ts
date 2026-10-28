@@ -430,6 +430,14 @@ interface ChatState {
   }) => void
   clearDreamEvents: () => void
 
+  /**
+   * Quiet tail marker for a Codex turn the protocol did not report as
+   * completed. `interrupted` and `unknown` are shown as muted inline lines —
+   * never as an error, never as a successful finish.
+   */
+  lastTurnOutcome: 'interrupted' | 'unknown' | null
+  setLastTurnOutcome: (outcome: 'interrupted' | 'unknown' | null) => void
+
   // Result event stats (P0-5): permission denials, turns, duration from CLI result
   permissionDenials: Array<{ tool_name: string; reason?: string }>
   lastNumTurns: number | null
@@ -504,6 +512,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   tempSystemPrompt: null,
   hookEvents: [],
   dreamEvents: [],
+  lastTurnOutcome: null,
   permissionDenials: [],
   lastNumTurns: null,
   lastDurationMs: null,
@@ -541,6 +550,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     streamPending: true,
     streamConversationId: s.viewSessionId,
     orphanedStream: null,
+    // A new turn owns the tail; the previous turn's stopped marker retires.
+    lastTurnOutcome: null,
   })),
 
   setStreamSession: (id) => set((s) => {
@@ -714,6 +725,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       tempSystemPrompt: null,
       hookEvents: [],
       dreamEvents: [],
+      lastTurnOutcome: null,
       permissionDenials: [],
       lastNumTurns: null,
       lastDurationMs: null,
@@ -723,7 +735,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
   loadHistory: (messages) => {
     recountUserMessages(messages)
-    set({ messages, isStreaming: false })
+    set({ messages, isStreaming: false, lastTurnOutcome: null })
   },
 
   appendThinkingDelta: (sessionId, text) => {
@@ -1110,6 +1122,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // DreamTask events (memory consolidation detection)
   addDreamEvent: (event) => set((s) => ({ dreamEvents: [...s.dreamEvents.slice(-9), event] })),
   clearDreamEvents: () => set({ dreamEvents: [] }),
+
+  // Quiet marker for a stopped/unknown turn at the transcript tail.
+  setLastTurnOutcome: (lastTurnOutcome) => set({ lastTurnOutcome }),
 
   // Result stats setters (P0-5)
   setResultStats: (denials, numTurns, durationMs) => set({ permissionDenials: denials, lastNumTurns: numTurns, lastDurationMs: durationMs }),

@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { ChatMessage } from '../../types/app.types'
+import { turnEndNoticeKey } from './codexErrorText'
 
 // ── Date separator logic ──
 export function formatDateLabel(ts: number, t: (key: string) => string): string {
@@ -41,6 +42,7 @@ export type ListItem =
   | { type: 'timeGap'; label: string }
   | { type: 'responseTime'; label: string }
   | { type: 'compactSep'; label: string }
+  | { type: 'turnEnded'; label: string }
 
 // Store scroll positions per session (as percentage 0-1)
 export const scrollPositionMap = new Map<string, number>()
@@ -52,6 +54,7 @@ export const scrollPositionMap = new Map<string, number>()
 export function useBuildItems(
   messages: ChatMessage[],
   t: (key: string, p?: Record<string, string>) => string,
+  turnOutcome: 'interrupted' | 'unknown' | null = null,
 ): ListItem[] {
   return useMemo(() => {
     const result: ListItem[] = []
@@ -83,8 +86,12 @@ export function useBuildItems(
         result.push({ type: 'compactSep', label: t('compact.complete') })
       }
     })
+    // A Codex turn that stopped or did not report an outcome gets a muted line
+    // after its transcript, not a red error and not a success badge.
+    const noticeKey = turnOutcome ? turnEndNoticeKey(turnOutcome) : null
+    if (noticeKey) result.push({ type: 'turnEnded', label: t(noticeKey) })
     return result
-  }, [messages, t])
+  }, [messages, t, turnOutcome])
 }
 
 /** Compute showAvatar for each message index (consecutive same-role -> hide avatar) */

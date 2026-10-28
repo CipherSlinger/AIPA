@@ -4,7 +4,7 @@ import React from 'react'
 import { Virtualizer } from '@tanstack/react-virtual'
 
 interface VirtualSeparatorRowProps {
-  type: 'dateSep' | 'timeGap' | 'responseTime' | 'compactSep'
+  type: 'dateSep' | 'timeGap' | 'responseTime' | 'compactSep' | 'turnEnded'
   label: string
   virtualRow: {
     index: number
@@ -96,6 +96,34 @@ export default function VirtualSeparatorRow({ type, label, virtualRow, measureEl
           alignItems: 'center',
           justifyContent: 'center',
           padding: '2px 20px',
+        }}>
+          <span style={{
+            fontSize: 11,
+            color: 'var(--text-muted)',
+            fontStyle: 'italic',
+          }}>
+            {label}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  if (type === 'turnEnded') {
+    // Deliberately the quietest row in the list: a stopped or unreported turn
+    // is information, not an error and not a completion.
+    return (
+      <div
+        key={`tend-${virtualRow.index}`}
+        data-index={virtualRow.index}
+        ref={measureElement}
+        style={baseStyle}
+      >
+        <div className="chat-column" style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '4px 20px',
         }}>
           <span style={{
             fontSize: 11,

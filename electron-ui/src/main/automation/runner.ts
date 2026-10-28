@@ -123,8 +123,13 @@ function runCodexTurn(bridge: CodexBridge, start: () => Promise<void>, timeoutMs
     }
 
     const onResult = (data: { subtype?: string }) => {
-      const ok = data?.subtype === 'success'
-      finish(ok ? { ok: true } : { ok: false, error: turnError || `Turn ended with ${data?.subtype ?? 'error'}` })
+      // A scheduled run is only ever stopped by AIPA going away, so a stopped
+      // turn maps to the named `interrupted` reason (which has its own wording
+      // in Settings) rather than surfacing engine vocabulary to the user.
+      const error = data?.subtype === 'interrupted'
+        ? 'interrupted'
+        : `Turn ended with ${data?.subtype ?? 'error'}`
+      finish(data?.subtype === 'success' ? { ok: true } : { ok: false, error: turnError || error })
     }
     const onTurnError = (data: { message?: string }) => {
       if (data?.message) turnError = String(data.message)
