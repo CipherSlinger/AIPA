@@ -1997,11 +1997,13 @@
     "personaMissing": "该专家已被删除——定时运行将使用默认助手。",
     "scheduleAction": "定时运行",
     "scheduleActionHint": "按设定的时间自动运行此工作流",
-    "scheduleLine": "已排程：{{schedule}}",
-    "schedulePausedLine": "已暂停 · {{schedule}}",
-    "scheduleAllPaused": "{{count}} 个定时任务 · 全部已暂停",
-    "scheduleCount": "{{count}} 个定时任务",
-    "scheduleMultipleLine": "{{count}} 个定时任务 · 下次：{{time}}"
+    "schedules": {
+      "paused": "已暂停",
+      "open": "打开",
+      "openHint": "打开上次定时运行产生的对话",
+      "pause": "暂停",
+      "resume": "恢复"
+    }
   },
   "snippet": {
     "title": "文本片段",
@@ -3000,7 +3002,10 @@
       "unexpected_error": "出了点问题，请重试。",
       "toggleFailed": "无法更新自动化：{{error}}",
       "runFailed": "无法启动运行：{{error}}",
-      "deleteFailed": "无法删除自动化：{{error}}"
+      "deleteFailed": "无法删除自动化：{{error}}",
+      "interrupted": "AIPA 关闭时这次运行被中断。",
+      "run_failed": "这次运行失败了。",
+      "nothing_to_run": "工作流没有可运行的内容。"
     },
     "personaHint": "该工作流的定时运行使用此专家；工作流页面上的“运行”按钮仍使用当前对话的专家。",
     "personaMissing": "专家已删除",
@@ -3014,6 +3019,15 @@
         "totalTokens": "累计 {{count}} Token",
         "totalCost": "累计费用 {{cost}}"
       }
+    },
+    "failureStreak": "连续 {{count}} 次失败",
+    "history": {
+      "summary": "最近的运行（{{count}} 次）",
+      "listLabel": "运行历史",
+      "seconds": "{{seconds}} 秒",
+      "minutes": "{{minutes}} 分钟",
+      "open": "打开",
+      "openAria": "打开 {{time}} 的对话"
     }
   },
   "speculation": {

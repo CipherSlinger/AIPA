@@ -8,11 +8,12 @@
  *
  * Two very different sources feed it:
  *
- *  - Automation origins are derived, not stored. `readAutomationJobs()` keeps
- *    only each job's *most recent* `lastSessionId`, so this can name the latest
- *    run of every job and no earlier one. That is an honest limit of the job
- *    store, not a gap this module can fill: an older run of the same job is
- *    reported as user-started.
+ *  - Automation origins are derived, not stored separately. Each job now keeps
+ *    a bounded run history (`automation/run-history.ts`), so every remembered
+ *    run's `sessionId` is labelled with the job that produced it, not just the
+ *    latest `lastSessionId`. The honest limit is the cap: a run older than the
+ *    history (or one whose job was deleted) has no record left, and is reported
+ *    as user-started rather than guessed.
  *  - Plugin origins cannot be derived at all. A visible turn leaves no marker
  *    in the transcript and no job record, so the IPC layer records the openable
  *    session id when it hands that id back. The record is metadata about who
@@ -50,6 +51,12 @@ export interface AutomationOriginJob {
   id: string
   name: string
   lastSessionId: string | null
+  /**
+   * Openable session ids of the runs the job still remembers, oldest first.
+   * Optional so a caller can pass a job persisted before history existed; its
+   * `lastSessionId` is then the only run we know about.
+   */
+  history?: readonly { sessionId: string | null }[]
 }
 
 export interface PluginSessionOrigin {
@@ -173,10 +180,18 @@ export function resolveSessionOrigins(
   const origins: Record<string, SessionOrigin> = {}
 
   for (const job of jobs) {
-    const sessionId = job.lastSessionId
-    if (!sessionId || !job.id || !job.name || !wanted.has(sessionId)) continue
-    if (origins[sessionId]) continue
-    origins[sessionId] = { kind: 'automation', jobId: job.id, jobName: job.name }
+    if (!job.id || !job.name) continue
+    // The latest id stays first for a job restored from before history existed;
+    // the set removes the usual duplicate when it also appears in `history`.
+    const sessionIds = new Set<string>()
+    if (job.lastSessionId) sessionIds.add(job.lastSessionId)
+    for (const run of job.history ?? []) {
+      if (run.sessionId) sessionIds.add(run.sessionId)
+    }
+    for (const sessionId of sessionIds) {
+      if (!wanted.has(sessionId) || origins[sessionId]) continue
+      origins[sessionId] = { kind: 'automation', jobId: job.id, jobName: job.name }
+    }
   }
 
   for (const record of collapse(pluginRecords)) {

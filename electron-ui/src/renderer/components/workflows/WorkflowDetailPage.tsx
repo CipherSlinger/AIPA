@@ -3,15 +3,15 @@
 // Iteration 513: Separate view/edit modes, unsaved changes modal dialog.
 
 import React, { useMemo, useEffect, useState, useCallback, useRef, lazy, Suspense } from 'react'
-import { ArrowLeft, CalendarClock } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { usePrefsStore, useUiStore, useChatStore } from '../../store'
 import { useI18n } from '../../i18n'
 import type { Persona, WorkflowStep, Workflow } from '../../types/app.types'
 import { useWorkflowExecution } from './useWorkflowExecution'
 import { useWorkflowHistory } from './useWorkflowHistory'
 import WorkflowDetailHeader from './WorkflowDetailHeader'
+import WorkflowSchedulesStrip from './WorkflowSchedulesStrip'
 import AutomationDialog from '../automation/AutomationDialog'
-import { scheduleText } from '../automation/scheduleText'
 import { getStepQueueEntries, getWorkflowQueuePlan, stepHasContent } from './workflowConstants'
 import type { AutomationJobData, AutomationLimitsData } from '../../../preload'
 
@@ -131,7 +131,7 @@ export default function WorkflowDetailPage() {
   const execution = useWorkflowExecution(workflow)
 
   // Schedules bound to this workflow. `null` means "not known yet" (loading or
-  // the probe failed): the page simply shows no schedule line in that case.
+  // the probe failed): the page simply shows no schedule rows in that case.
   const [automationJobs, setAutomationJobs] = useState<AutomationJobData[] | null>(null)
   const [automationLimits, setAutomationLimits] = useState<AutomationLimitsData | null>(null)
   const [showScheduleDialog, setShowScheduleDialog] = useState(false)
@@ -143,7 +143,7 @@ export default function WorkflowDetailPage() {
       setAutomationLimits(result?.limits ?? null)
     } catch {
       // Automations are optional on this page; a failed probe leaves the
-      // workflow fully usable and just drops the line.
+      // workflow fully usable and just drops the schedule rows.
       setAutomationJobs(null)
     }
   }, [])
@@ -161,32 +161,6 @@ export default function WorkflowDetailPage() {
     ),
     [automationJobs, workflow?.id],
   )
-
-  const scheduleLine = useMemo(() => {
-    if (workflowSchedules.length === 0) return null
-    if (workflowSchedules.length === 1) {
-      const job = workflowSchedules[0]
-      const schedule = scheduleText(t, job.trigger)
-      return job.enabled
-        ? t('workflow.scheduleLine', { schedule })
-        : t('workflow.schedulePausedLine', { schedule })
-    }
-    const enabledJobs = workflowSchedules.filter(job => job.enabled)
-    if (enabledJobs.length === 0) {
-      return t('workflow.scheduleAllPaused', { count: workflowSchedules.length })
-    }
-    // Several jobs share one line: count them and show the nearest run rather
-    // than listing every trigger.
-    const nextRunAt = enabledJobs.reduce<number | null>((nearest, job) => {
-      if (job.nextRunAt === null) return nearest
-      return nearest === null || job.nextRunAt < nearest ? job.nextRunAt : nearest
-    }, null)
-    if (nextRunAt === null) return t('workflow.scheduleCount', { count: workflowSchedules.length })
-    return t('workflow.scheduleMultipleLine', {
-      count: workflowSchedules.length,
-      time: new Date(nextRunAt).toLocaleString(resolvedLocale),
-    })
-  }, [workflowSchedules, t, resolvedLocale])
 
   // View/Edit mode: default is 'view' (read-only)
   const [isEditMode, setIsEditMode] = useState(false)
@@ -337,7 +311,10 @@ export default function WorkflowDetailPage() {
           navigateBack()
         }
       } else if ((e.key === 'e' || e.key === 'E') && !e.ctrlKey && !e.metaKey && !isEditMode) {
-        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+        // Keys aimed at a control belong to that control. Without this, typing
+        // in the persona select or pressing E while a schedule action has focus
+        // would toggle edit mode behind the user's back.
+        if (e.target instanceof HTMLElement && e.target.closest('input, textarea, select, button, a, [contenteditable="true"]')) return
         e.preventDefault()
         setIsEditMode(true)
       }
@@ -589,9 +566,12 @@ export default function WorkflowDetailPage() {
         t={t}
       />
 
-      {/* Persona binding and schedule — scheduled runs adopt the bound expert,
-          so the two share one quiet strip. "Run" here keeps the open
-          conversation's expert. A default binding shows no badge at all. */}
+      {/* Persona binding and schedules — scheduled runs adopt the bound expert,
+          so the two share one quiet strip. "Run" in the header keeps the open
+          conversation's expert. A default binding shows no badge at all, and a
+          workflow with no schedules adds no rows here: Schedule stays the only
+          affordance. The strip wraps rather than widening the page when the
+          panel is narrow. */}
       {isEditMode ? (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
@@ -629,13 +609,14 @@ export default function WorkflowDetailPage() {
             {t('workflow.personaHint')}
           </span>
         </div>
-      ) : (workflow.personaId || scheduleLine) ? (
+      ) : (workflow.personaId || workflowSchedules.length > 0) ? (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
           padding: '6px 20px',
           borderBottom: '1px solid var(--glass-border)',
           background: 'var(--bg-primary)',
           flexShrink: 0,
+          minWidth: 0,
         }}>
           {workflow.personaId && (boundPersona ? (
             <span style={personaBadgeStyle} title={t('workflow.personaHint')}>
@@ -647,17 +628,13 @@ export default function WorkflowDetailPage() {
               {t('workflow.personaMissing')}
             </span>
           ))}
-          {workflow.personaId && scheduleLine && (
-            <span aria-hidden="true" style={{ color: 'var(--border)' }}>·</span>
-          )}
-          {scheduleLine && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              fontSize: 11, color: 'var(--text-muted)',
-            }}>
-              <CalendarClock size={11} />
-              {scheduleLine}
-            </span>
+          {workflowSchedules.length > 0 && (
+            <WorkflowSchedulesStrip
+              jobs={workflowSchedules}
+              t={t}
+              resolvedLocale={resolvedLocale}
+              onRefresh={refreshAutomations}
+            />
           )}
         </div>
       ) : null}

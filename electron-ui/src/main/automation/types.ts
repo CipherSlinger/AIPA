@@ -22,6 +22,35 @@ export type AutomationAction =
  * rewrites it to `error` (the process that owned the run is gone).
  */
 export type AutomationRunStatus = 'success' | 'error' | 'skipped' | 'running'
+export type AutomationRunRecordStatus = Exclude<AutomationRunStatus, 'running'>
+
+/**
+ * One finished run, kept on the job so the last few remain inspectable.
+ *
+ * The same record serves two readers: the settings row (time, outcome, spend,
+ * openable session) and the archive's origin resolver, which uses `sessionId`
+ * to label runs older than `lastSessionId`. `running` never appears here — a
+ * record is written only once a run has an outcome.
+ */
+export interface AutomationRunRecord {
+  /** Epoch ms when the run started (or the occurrence a skip replaced). */
+  startedAt: number
+  status: AutomationRunRecordStatus
+  /** Wall-clock duration; null when nothing executed (skip / missing workflow). */
+  durationMs: number | null
+  /**
+   * Openable transcript id this run produced (Codex thread id or Claude JSONL
+   * session id), never a fabricated/internal id. Null when the engine reported
+   * none or no run happened.
+   */
+  sessionId: string | null
+  /** Failure code or message, clipped; null when the run succeeded or skipped. */
+  error: string | null
+  /** True when this run fired after its scheduled minute (app was closed). */
+  late: boolean
+  /** What this run spent, when its engine reported usage; absent otherwise. */
+  usage?: RunUsage
+}
 
 export interface AutomationJob {
   id: string
@@ -59,6 +88,19 @@ export interface AutomationJob {
   runCount: number
   /** Start timestamps inside the rolling hour, for the runaway guard. */
   recentRuns: number[]
+  /**
+   * The most recent runs, oldest first.
+   *
+   * Stored on the job rather than in a separate session-keyed ledger: every
+   * fact a ledger would key by session id is already owned here (`lastSessionId`,
+   * `lastUsage`, the lifetime totals), so a second store would be a copy that
+   * can disagree with the job after a crash. One atomic write and one
+   * validation path (`normalizeJob`) keep the two views of a run consistent.
+   * Capped by `AUTOMATION_HISTORY_CAP`, so `automations.json` stays bounded even
+   * at the 50-job limit; a deleted job's runs disappear with it, which is what
+   * "this job's runs" means.
+   */
+  history: AutomationRunRecord[]
 }
 
 export interface AutomationJobView extends AutomationJob {
@@ -66,6 +108,11 @@ export interface AutomationJobView extends AutomationJob {
   actionMissing: boolean
   /** A run is in flight right now (not persisted). */
   running: boolean
+  /**
+   * Consecutive failed attempts, newest first, with skips ignored. Derived from
+   * `history` on every read so it can never disagree with the records shown.
+   */
+  failureStreak: number
 }
 
 export interface AutomationLimits {

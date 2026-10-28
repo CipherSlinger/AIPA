@@ -1997,11 +1997,13 @@
     "personaMissing": "This expert was deleted — scheduled runs use the default assistant.",
     "scheduleAction": "Schedule",
     "scheduleActionHint": "Run this workflow automatically on a schedule",
-    "scheduleLine": "Scheduled: {{schedule}}",
-    "schedulePausedLine": "Paused · {{schedule}}",
-    "scheduleAllPaused": "{{count}} schedules · all paused",
-    "scheduleCount": "{{count}} schedules",
-    "scheduleMultipleLine": "{{count}} schedules · Next: {{time}}"
+    "schedules": {
+      "paused": "Paused",
+      "open": "Open",
+      "openHint": "Open the conversation from the last scheduled run",
+      "pause": "Pause",
+      "resume": "Resume"
+    }
   },
   "snippet": {
     "title": "Text Snippets",
@@ -3000,7 +3002,10 @@
       "unexpected_error": "Something went wrong. Try again.",
       "toggleFailed": "Could not update the automation: {{error}}",
       "runFailed": "Could not start the run: {{error}}",
-      "deleteFailed": "Could not delete the automation: {{error}}"
+      "deleteFailed": "Could not delete the automation: {{error}}",
+      "interrupted": "The run was interrupted when AIPA closed.",
+      "run_failed": "The run failed.",
+      "nothing_to_run": "The workflow produced nothing to run."
     },
     "personaHint": "Scheduled runs of this workflow use this expert. The workflow's own Run button still uses the current conversation's expert.",
     "personaMissing": "Expert deleted",
@@ -3014,6 +3019,15 @@
         "totalTokens": "All runs {{count}} tok",
         "totalCost": "All runs cost {{cost}}"
       }
+    },
+    "failureStreak": "{{count}} failures in a row",
+    "history": {
+      "summary": "Recent runs ({{count}})",
+      "listLabel": "Run history",
+      "seconds": "{{seconds}}s",
+      "minutes": "{{minutes}}m",
+      "open": "Open",
+      "openAria": "Open the conversation from {{time}}"
     }
   },
   "speculation": {

@@ -21,6 +21,7 @@ import { nextFireTime, parseCron } from '../utils/cron'
 import { createLogger } from '../utils/logger'
 import { getAllowedFsRoots, safePath } from '../utils/validate'
 import { readAutomationJobs, writeAutomationJobs } from './job-store'
+import { appendRunRecord, countFailureStreak, MAX_RUN_ERROR_CHARS } from './run-history'
 import { addToLifetimeTotals } from './run-usage'
 import { pickRunModel, resolveWorkflowPersona } from './persona-plan'
 import type { StoredPersona, WorkflowPersonaBinding } from './persona-plan'
@@ -228,6 +229,9 @@ function toView(job: AutomationJob): AutomationJobView {
     ...job,
     actionMissing: job.action.kind === 'workflow' && !findWorkflow(job.action.workflowId),
     running: running.has(job.id),
+    // Derived rather than persisted: the history is the authority, so the
+    // streak can never drift from the runs the row is about to list.
+    failureStreak: countFailureStreak(job.history),
   }
 }
 
@@ -267,6 +271,17 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
     job.lastDurationMs = null
     // Nothing ran, so the previous run's spend must not masquerade as this one's.
     job.lastUsage = undefined
+    // The failure still belongs in the history: a job that keeps naming a
+    // deleted workflow has failed again, and the row should say so after a
+    // restart instead of only until the next persistence.
+    job.history = appendRunRecord(job.history, {
+      startedAt: now,
+      status: 'error',
+      durationMs: null,
+      sessionId: null,
+      error: 'workflow_missing',
+      late: false,
+    })
     log.warn(`Automation "${job.name}" disabled — its workflow no longer exists`)
     persistAndBroadcast()
     return
@@ -276,6 +291,14 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
     job.lastStatus = 'error'
     job.lastError = 'nothing_to_run'
     job.lastUsage = undefined
+    job.history = appendRunRecord(job.history, {
+      startedAt: now,
+      status: 'error',
+      durationMs: null,
+      sessionId: null,
+      error: 'nothing_to_run',
+      late: false,
+    })
     if (!opts.manual) job.nextRunAt = nextRunAfter(job.trigger, now)
     persistAndBroadcast()
     return
@@ -328,16 +351,28 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
   }
 
   running.delete(job.id)
+  const durationMs = Date.now() - startedAt
+  const sessionId = outcome.sessionId ?? null
+  const error = outcome.ok ? null : clip(outcome.error || 'run_failed', MAX_RUN_ERROR_CHARS)
   job.lastRunAt = startedAt
-  job.lastDurationMs = Date.now() - startedAt
+  job.lastDurationMs = durationMs
   job.lastStatus = outcome.ok ? 'success' : 'error'
-  job.lastError = outcome.ok ? null : (outcome.error || 'run_failed')
-  job.lastSessionId = outcome.sessionId ?? null
+  job.lastError = error
+  job.lastSessionId = sessionId
   job.lastRunLate = opts.late
   // A failed run still reports what its completed turns spent, so usage lives on
   // the outcome, not only on success. `undefined` here clears a stale figure
   // from an earlier run when this engine reported nothing.
   job.lastUsage = outcome.usage
+  job.history = appendRunRecord(job.history, {
+    startedAt,
+    status: outcome.ok ? 'success' : 'error',
+    durationMs,
+    sessionId,
+    error,
+    late: opts.late,
+    ...(outcome.usage ? { usage: outcome.usage } : {}),
+  })
   const totals = addToLifetimeTotals(job, outcome.usage)
   job.totalTokens = totals.totalTokens
   job.totalCostUsd = totals.totalCostUsd
@@ -434,11 +469,22 @@ function tick(): void {
     if (!hasHourlyCapacity(job, now)) {
       // Runaway guard. Advance the schedule so the job does not re-check every
       // tick, and record the skip without counting it as a run.
-      job.lastRunAt = job.nextRunAt
+      const skippedAt = job.nextRunAt
+      job.lastRunAt = skippedAt
       job.lastStatus = 'skipped'
       job.lastError = 'hourly_limit'
       job.lastRunLate = false
       job.lastUsage = undefined
+      // Kept in history so the gap is explainable, but it is not an attempt:
+      // the streak ignores it and the record carries no spend or session.
+      job.history = appendRunRecord(job.history, {
+        startedAt: skippedAt,
+        status: 'skipped',
+        durationMs: null,
+        sessionId: null,
+        error: 'hourly_limit',
+        late: false,
+      })
       job.nextRunAt = nextRunAfter(job.trigger, now)
       dirty = true
       log.warn(`Automation "${job.name}" skipped — more than ${AUTOMATION_LIMITS.maxRunsPerHour} runs this hour`)
@@ -473,6 +519,21 @@ export function startAutomationScheduler(
       // The interrupted run never wrote a usage figure; an older run's would be
       // read as this failed run's spend.
       job.lastUsage = undefined
+      // Recover the attempt from the last recorded start so it stays in history
+      // (and in the failure streak) instead of vanishing. `lastRunAt` still
+      // names the previous completed run, so it must not be reused here.
+      const interruptedAt = job.recentRuns[job.recentRuns.length - 1]
+      const newest = job.history[job.history.length - 1]
+      if (interruptedAt !== undefined && interruptedAt !== newest?.startedAt) {
+        job.history = appendRunRecord(job.history, {
+          startedAt: interruptedAt,
+          status: 'error',
+          durationMs: null,
+          sessionId: null,
+          error: 'interrupted',
+          late: false,
+        })
+      }
       repaired = true
     }
     // Due-while-closed jobs keep their past nextRunAt: the first tick runs them
@@ -531,6 +592,7 @@ export function createAutomationJob(input: AutomationInput): AutomationMutationR
       lastDurationMs: null,
       runCount: 0,
       recentRuns: [],
+      history: [],
     }
     jobs.push(job)
     persistAndBroadcast()

@@ -351,6 +351,23 @@ export interface AutomationRunUsageData {
   costUsd?: number
 }
 
+/** Mirrors main's `AutomationRunRecord`; `running` never appears in history. */
+export interface AutomationRunRecordData {
+  /** Epoch ms when the run started (or the occurrence a skip replaced). */
+  startedAt: number
+  status: Exclude<AutomationRunStatusData, 'running'>
+  /** Wall-clock duration; null when nothing executed (skip / missing workflow). */
+  durationMs: number | null
+  /** Openable transcript id this run produced, or null. */
+  sessionId: string | null
+  /** Failure code or message, clipped; null when the run succeeded or skipped. */
+  error: string | null
+  /** True when this run fired after its scheduled minute (app was closed). */
+  late: boolean
+  /** What this run spent, when its engine reported usage; absent otherwise. */
+  usage?: AutomationRunUsageData
+}
+
 export interface AutomationJobData {
   id: string
   name: string
@@ -374,6 +391,10 @@ export interface AutomationJobData {
   totalCostUsd?: number
   runCount: number
   recentRuns: number[]
+  /** The most recent runs, oldest first; empty until the job has run. */
+  history: AutomationRunRecordData[]
+  /** Consecutive failed attempts, ignoring skips. 0 when the last one won. */
+  failureStreak: number
   /** The workflow this job targets no longer exists. */
   actionMissing: boolean
   /** A run is in flight right now. */

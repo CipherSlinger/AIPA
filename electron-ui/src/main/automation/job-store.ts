@@ -11,6 +11,7 @@ import { app } from 'electron'
 import * as fs from 'fs'
 import * as path from 'path'
 import { createLogger } from '../utils/logger'
+import { normalizeRunHistory } from './run-history'
 import { normalizeCost, normalizeRunUsage, normalizeTokenCount } from './run-usage'
 import type { AutomationAction, AutomationJob, AutomationRunStatus, AutomationTrigger } from './types'
 
@@ -84,6 +85,10 @@ function normalizeJob(raw: unknown): AutomationJob | null {
     totalCostUsd: normalizeCost(job.totalCostUsd),
     runCount: typeof job.runCount === 'number' && job.runCount >= 0 ? Math.floor(job.runCount) : 0,
     recentRuns,
+    // This whitelist is why every new field needs a line here: a job saved with
+    // history but read back without it would lose its older-run origins and
+    // its failure streak on the next launch.
+    history: normalizeRunHistory(job.history),
   }
 }
 

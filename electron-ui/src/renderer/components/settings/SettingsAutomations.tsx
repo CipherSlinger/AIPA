@@ -7,7 +7,7 @@
 // `automation:changed` instead of guessing what the scheduler did.
 
 import { useCallback, useEffect, useState } from 'react'
-import { AlarmClock, AlertTriangle, Clock, Pencil, Play, Plus, Trash2 } from 'lucide-react'
+import { AlarmClock, AlertTriangle, Clock, History, Pencil, Play, Plus, Trash2 } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { usePrefsStore } from '../../store'
 import SettingsGroup from './SettingsGroup'
@@ -16,8 +16,11 @@ import { formatTokens } from '../../utils/formatUtils'
 import AutomationDialog, { type WorkflowOption } from '../automation/AutomationDialog'
 import { scheduleText } from '../automation/scheduleText'
 import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from '../automation/automationStyles'
-import type { AutomationJobData, AutomationLimitsData } from '../../../preload'
+import type { AutomationJobData, AutomationLimitsData, AutomationRunRecordData } from '../../../preload'
 import type { Persona } from '../../types/app.types'
+
+/** How many of the remembered runs a row lists once expanded. */
+const HISTORY_VISIBLE = 5
 
 /**
  * Money as the engine reported it. Costs stay compact: a settings row has room
@@ -28,6 +31,14 @@ function costText(usd: number): string {
   if (usd < 0.001) return '<$0.001'
   if (usd < 0.01) return `$${usd.toFixed(3)}`
   return `$${usd.toFixed(2)}`
+}
+
+/**
+ * One history row keeps the error beside its outcome, but a raw engine message
+ * can be arbitrarily long; the full text stays on the row's title.
+ */
+function clipText(text: string): string {
+  return text.length > 80 ? `${text.slice(0, 79)}…` : text
 }
 
 export default function SettingsAutomations() {
@@ -87,6 +98,32 @@ export default function SettingsAutomations() {
     const translated = t(key)
     return translated === key ? code : translated
   }, [t])
+
+  /** One past run's outcome, in the same words the status line uses. */
+  const runStatus = useCallback((record: AutomationRunRecordData): { text: string; color: string } => {
+    if (record.status === 'success') return { text: t('automation.status.success'), color: 'var(--success-text)' }
+    if (record.status === 'skipped') return { text: t('automation.status.skipped'), color: WARNING }
+    return { text: t('automation.status.error'), color: 'var(--danger-text)' }
+  }, [t])
+
+  /** Compact duration: whole minutes once a run passes one, seconds below. */
+  const durationText = useCallback((ms: number | null): string | null => {
+    if (ms === null) return null
+    if (ms < 60_000) {
+      const seconds = ms / 1000
+      return t('automation.history.seconds', {
+        seconds: seconds < 10 ? seconds.toFixed(1).replace(/\.0$/, '') : String(Math.round(seconds)),
+      })
+    }
+    return t('automation.history.minutes', { minutes: Math.round(ms / 60_000) })
+  }, [t])
+
+  const openRun = (sessionId: string) => {
+    // The app-level bridge owns opening: it loads the transcript, restores the
+    // session's persona and working directory, and closes Settings — the same
+    // path the archive and command palette take.
+    window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: sessionId }))
+  }
 
   const toggleJob = async (job: AutomationJobData, enabled: boolean) => {
     setError(null)
@@ -233,6 +270,10 @@ export default function SettingsAutomations() {
               const usage = usageLine(job)
               const persona = jobPersona(job)
               const busy = busyId === job.id || job.running
+              // Newest first, and only the few the disclosure lists. A job that
+              // has never run has an empty array, so the disclosure is not
+              // mounted at all rather than opening onto an empty table.
+              const recentRuns = job.history.slice(-HISTORY_VISIBLE).reverse()
               return (
                 <div
                   key={job.id}
@@ -296,6 +337,13 @@ export default function SettingsAutomations() {
 
                     <div style={{ fontSize: 11, color: status.color, marginTop: 4, lineHeight: 1.45 }}>
                       <span>{status.text}</span>
+                      {job.failureStreak >= 2 && (
+                        // Only an unattended job that keeps failing owes its owner
+                        // this sentence; a single failure is already on the line.
+                        <span style={{ color: 'var(--danger-text)' }}>
+                          {` · ${t('automation.failureStreak', { count: job.failureStreak })}`}
+                        </span>
+                      )}
                       {usage && (
                         // Muted so the spend reads as an aside to the outcome,
                         // not a second status. The tooltip carries the parts a
@@ -320,6 +368,78 @@ export default function SettingsAutomations() {
                       <div style={{ fontSize: 11, color: SECONDARY, marginTop: 2 }}>
                         {t('automation.nextRun', { time: timeText(job.nextRunAt) })}
                       </div>
+                    )}
+
+                    {recentRuns.length > 0 && (
+                      // Native <details> gives a collapsed-by-default, keyboard
+                      // operable disclosure without local state; the row grows
+                      // only when the user asks it to.
+                      <details style={{ marginTop: 3 }}>
+                        <summary style={{
+                          width: 'fit-content', cursor: 'pointer',
+                          fontSize: 11, color: SECONDARY, lineHeight: 1.45,
+                        }}>
+                          {/* Keep the native disclosure marker: it is the one
+                              affordance that says "this expands" without CSS. */}
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <History size={11} />
+                            {t('automation.history.summary', { count: recentRuns.length })}
+                          </span>
+                        </summary>
+                        <ol
+                          aria-label={t('automation.history.listLabel')}
+                          style={{
+                            margin: '3px 0 0', padding: 0, listStyle: 'none',
+                            display: 'flex', flexDirection: 'column', gap: 2,
+                          }}
+                        >
+                          {recentRuns.map((record, runIndex) => {
+                            const state = runStatus(record)
+                            const duration = durationText(record.durationMs)
+                            const runUsage = record.usage
+                            const tokens = runUsage ? runUsage.inputTokens + runUsage.outputTokens : 0
+                            const cost = runUsage?.costUsd !== undefined && runUsage.costUsd > 0
+                              ? costText(runUsage.costUsd)
+                              : null
+                            // A skip's status already says why it did not run;
+                            // only a failure carries an extra explanation.
+                            const detail = record.status === 'error' && record.error ? errorText(record.error) : ''
+                            const sessionId = record.sessionId
+                            return (
+                              <li
+                                key={`${record.startedAt}-${runIndex}`}
+                                style={{
+                                  display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap',
+                                  fontSize: 11, color: SECONDARY, lineHeight: 1.45,
+                                }}
+                              >
+                                <span>{timeText(record.startedAt)}</span>
+                                <span style={{ color: state.color }} title={detail || undefined}>
+                                  {state.text}{detail ? `: ${clipText(detail)}` : ''}
+                                </span>
+                                {duration && <span>{duration}</span>}
+                                {tokens > 0 && <span>{t('automation.usage.tokens', { count: formatTokens(tokens) })}</span>}
+                                {cost && <span>{cost}</span>}
+                                {record.late && <span>{t('automation.ranLate')}</span>}
+                                {sessionId && (
+                                  <button
+                                    type="button"
+                                    onClick={() => openRun(sessionId)}
+                                    aria-label={t('automation.history.openAria', { time: timeText(record.startedAt) })}
+                                    style={{
+                                      background: 'none', border: 'none', padding: 0,
+                                      font: 'inherit', fontSize: 11,
+                                      color: 'var(--accent-text)', cursor: 'pointer',
+                                    }}
+                                  >
+                                    {t('automation.history.open')}
+                                  </button>
+                                )}
+                              </li>
+                            )
+                          })}
+                        </ol>
+                      </details>
                     )}
                   </div>
 
