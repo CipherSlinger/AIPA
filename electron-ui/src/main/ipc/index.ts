@@ -24,6 +24,7 @@ import { redactProviderSecrets } from '../providers'
 import type { ModelProviderConfig } from '../providers'
 import { readCLISettings, writeCLISettings } from '../config/cli-settings-manager'
 import { listMemoryFiles, readMemoryFile, writeMemoryFile, createMemoryFile, deleteMemoryFile, writeConsolidatedMemoryFile, deleteConsolidatedMemoryFile } from '../sessions/memory-manager'
+import { assembleMemoryContext, readPersonalMemories } from '../sessions/memory-context'
 import { createDreamService } from '../memory/dream-service'
 import { createDreamTranscriptReader } from '../memory/dream-transcript'
 import { setDreamService, getDreamService, dreamNoteTurnStart, dreamNoteTurnEnd, dreamNoteTurnCancelled } from '../memory/dream-runtime'
@@ -1804,6 +1805,23 @@ function registerConfigHandlers(): void {
     } catch (err) {
       log.warn('memory:delete error:', String(err))
       return { success: false, error: String(err) }
+    }
+  })
+  // The canonical five-tier assembler. The renderer's chat turn calls this
+  // instead of assembling locally, so a hidden automation/plugin turn and a
+  // manual send produce the same `<memory_context>` block.
+  safeHandle('memory:buildContext', async (_e, { cwd, personalMemories }: {
+    cwd?: string
+    personalMemories?: import('../sessions/memory-context').PersonalMemoryLike[]
+  }) => {
+    try {
+      return await assembleMemoryContext({
+        cwd: typeof cwd === 'string' ? cwd : '',
+        personalMemories: Array.isArray(personalMemories) ? personalMemories : readPersonalMemories(),
+      })
+    } catch (err) {
+      log.warn('memory:buildContext error:', String(err))
+      return { text: '', applied: [], omitted: [], used: {} }
     }
   })
 

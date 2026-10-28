@@ -33,6 +33,7 @@ import { buildCodexTurnArgs } from '../codex/codex-turn-args'
 import { resolveAuxiliaryEngine } from '../llm/auxiliary-engine'
 import type { AuxiliaryEngine } from '../llm/auxiliary-engine'
 import { streamBridgeManager } from '../pty/stream-bridge'
+import { buildMemoryBlockForTurn, prefixWithMemoryContext } from '../sessions/memory-context'
 import { createLogger } from '../utils/logger'
 import type { AutomationRunOutcome, AutomationRunRequest } from './types'
 
@@ -333,6 +334,20 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
     : createClaudeRun(req, bridgeId, engine)
   activeRuns.set(jobId, bridgeId)
 
+  // Memory for a run nobody is watching. One snapshot per run: every prompt in
+  // the job belongs to the same conversation, so re-reading the tiers between
+  // steps could hand one session two different views of the user. Best-effort —
+  // a failed read sends the raw prompt rather than failing the job.
+  const memoryText = await buildMemoryBlockForTurn(req.cwd)
+
+  // PERSONA RULE: a scheduled run gets no persona. `AutomationJob` stores only a
+  // workflow id or a raw prompt, and neither `MainWorkflow` nor its steps carry
+  // a persona binding; there is also no session to bind one to. Falling back to
+  // `prefs.activePersonaId` would be inventing a global default for a run the
+  // user never saw created — the wrong expert (or the wrong model and cost)
+  // would silently drive a 3 a.m. job. Until workflows can store a persona, the
+  // honest choice is the plain assistant.
+
   const remaining = (): number => Math.min(TURN_TIMEOUT_MS, req.deadline - Date.now())
 
   try {
@@ -342,7 +357,10 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
       if (remaining() <= 0) {
         return { ok: false, error: 'Run exceeded its time budget', sessionId: run.sessionId() }
       }
-      const turn = await run.send(req.prompts[i], remaining())
+      const turn = await run.send(
+        prefixWithMemoryContext(req.prompts[i], memoryText),
+        remaining(),
+      )
       if (!turn.ok) {
         log.warn(`Automation ${jobId} step ${i + 1} failed: ${turn.error}`)
         // A failed turn may still have written a transcript (Claude reports its

@@ -16,6 +16,7 @@
  */
 import { listNavPlugins } from './nav-plugin-manager'
 import { pluginAiCwd } from './plugin-services'
+import { assembleMemoryContext, prefixWithMemoryContext, readPersonalMemories } from '../sessions/memory-context'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('plugin-chat')
@@ -198,10 +199,27 @@ export async function askPluginChat(
 
   log.info(`ask ${tag} (${timeoutMs}ms)`)
 
+  // A plugin's question is still the user's assistant talking to itself: give it
+  // the same persistent-memory block a manual turn sends. It reads from the
+  // plugin workspace (`pluginAiCwd()`) so project-scoped memory matches where
+  // the answer is produced. Best-effort: an empty/failed read leaves the prompt
+  // byte-for-byte as the plugin wrote it.
+  const cwd = pluginAiCwd()
+  let memoryText = ''
+  try {
+    memoryText = (await assembleMemoryContext({
+      cwd,
+      personalMemories: readPersonalMemories(),
+    })).text
+  } catch {
+    memoryText = ''
+  }
+  const memoryPrompt = prefixWithMemoryContext(prompt, memoryText)
+
   let timer: NodeJS.Timeout | undefined
   try {
     const outcome = await Promise.race([
-      runTurn({ prompt, cwd: pluginAiCwd(), timeoutMs, tag }),
+      runTurn({ prompt: memoryPrompt, cwd, timeoutMs, tag }),
       new Promise<'outer-timeout'>((resolve) => {
         timer = setTimeout(() => resolve('outer-timeout'), timeoutMs + OUTER_GRACE_MS)
         timer.unref?.()

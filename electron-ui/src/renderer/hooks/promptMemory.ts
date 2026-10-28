@@ -18,6 +18,13 @@
  * deliberately smaller than the sum of the per-tier caps: a memory file that
  * grows without bound gets truncated or dropped, it can never crowd out the
  * conversation.
+ *
+ * PARITY CONTRACT: the canonical assembler now lives in the main process
+ * (`src/main/sessions/memory-context.ts`) and is reached over
+ * `memory:buildContext`, because scheduled automations and plugin `chat.ask`
+ * turns have no renderer to assemble a prompt. The local implementation below
+ * is an offline fallback only; it must emit a byte-identical block for identical
+ * inputs. `.scratch/headless-context-harness/` compares the two.
  */
 import type { AppPrefs, MemoryItem } from '../types/app.types'
 
@@ -245,8 +252,10 @@ export async function assembleMemoryContext(input: {
   prefs: AppPrefs
   cwd: string
   io: PromptMemoryIo
+  /** Test/parity override; production always uses MEMORY_TOTAL_BUDGET. */
+  budgetChars?: number
 }): Promise<MemoryContextResult> {
-  const { prefs, cwd, io } = input
+  const { prefs, cwd, io, budgetChars = MEMORY_TOTAL_BUDGET } = input
 
   let home = ''
   try {
@@ -281,7 +290,7 @@ export async function assembleMemoryContext(input: {
   // the project's own memory. Then emit in the order the README promises.
   const allocated = new Map<TierKey, string>()
   const omitted: TierKey[] = []
-  let remaining = MEMORY_TOTAL_BUDGET - FRAMING_ALLOWANCE
+  let remaining = budgetChars - FRAMING_ALLOWANCE
 
   for (const key of ALLOCATION_PRIORITY) {
     const text = raw[key].trim()
@@ -323,4 +332,47 @@ export async function assembleMemoryContext(input: {
     omitted,
     used,
   }
+}
+
+/**
+ * Assemble memory for a chat turn through the main-process implementation.
+ *
+ * The main process owns the canonical assembler so headless turns (automation,
+ * plugin `chat.ask`) and the chat UI cannot drift. The local implementation is
+ * used only when the bridge is missing (a bare harness, or a preload from an
+ * older build). It is deliberately not used on IPC errors such as a thrown
+ * handler: a broken bridge is the same situation as a missing one.
+ */
+export async function assembleMemoryContextForTurn(input: {
+  prefs: AppPrefs
+  cwd: string
+}): Promise<MemoryContextResult> {
+  const bridge = typeof window !== 'undefined'
+    ? window.electronAPI?.memoryBuildContext
+    : undefined
+
+  if (typeof bridge === 'function') {
+    try {
+      const remote = await bridge({
+        cwd: input.cwd,
+        personalMemories: input.prefs.memories || [],
+      })
+      if (remote && typeof remote.text === 'string') {
+        return {
+          text: remote.text,
+          applied: remote.applied as MemoryContextResult['applied'],
+          omitted: remote.omitted as MemoryContextResult['omitted'],
+          used: remote.used as MemoryContextResult['used'],
+        }
+      }
+    } catch {
+      // Fall through to the local implementation.
+    }
+  }
+
+  return assembleMemoryContext({
+    prefs: input.prefs,
+    cwd: input.cwd,
+    io: createElectronMemoryIo(),
+  })
 }

@@ -6,7 +6,7 @@ import { getT } from '../i18n'
 import { resolveProvider, sendCompletionNotification, playCompletionSound, getActiveApiKey, rotateApiKey } from './streamJsonUtils'
 import { useAutoCompact } from './useAutoCompact'
 import { useAutoMemory } from './useAutoMemory'
-import { assembleMemoryContext, createElectronMemoryIo } from './promptMemory'
+import { assembleMemoryContextForTurn } from './promptMemory'
 import { composeSystemPromptParts, resolvePersonaTurnSettings } from './promptAssembly'
 import { listSessionsShared } from '../utils/sessionListShared'
 // parseTokenBudget used by token display utilities
@@ -222,10 +222,9 @@ export function useStreamJson() {
     // already budgeted and labelled by tier.
     const memoryContext = isCompactCommand
       ? null
-      : await assembleMemoryContext({
+      : await assembleMemoryContextForTurn({
           prefs,
           cwd: effectiveCwdEarly,
-          io: createElectronMemoryIo(),
         })
 
     // Build combined system prompt (injected as prefix to user message: Codex

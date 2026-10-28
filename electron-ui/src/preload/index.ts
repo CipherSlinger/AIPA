@@ -620,6 +620,26 @@ const electronAPI = {
     ipcRenderer.invoke('memory:create', args) as Promise<{ success: boolean; filePath: string }>,
   memoryDelete: (filePath: string) =>
     ipcRenderer.invoke('memory:delete', { filePath }) as Promise<{ success: boolean }>,
+  /**
+   * Assemble the five-tier `<memory_context>` block in the main process. The
+   * renderer's chat turn calls this so manual and headless turns cannot drift.
+   */
+  memoryBuildContext: (args: {
+    cwd: string
+    personalMemories?: Array<{
+      content: string
+      category?: string
+      memoryType?: string
+      pinned?: boolean
+      updatedAt: number
+    }>
+  }) =>
+    ipcRenderer.invoke('memory:buildContext', args) as Promise<{
+      text: string
+      applied: string[]
+      omitted: string[]
+      used: Record<string, number>
+    }>,
 
   // ── Dream consolidation (background memory passes) ───────────────────────
   memoryDreamList: () =>
