@@ -90,8 +90,13 @@ export function resolveCodexApprovalPolicy(permissionMode: string | undefined): 
  */
 function withInjectedKey(env: Record<string, string>): Record<string, string> {
   const resolved = { ...env }
-  if (!resolved.OPENAI_API_KEY && !resolved.ANTHROPIC_API_KEY) {
-    resolved.OPENAI_API_KEY = getApiKey()
+  const stored = getApiKey()
+  // Only *supply* a key; never overwrite one that is already in the inherited
+  // environment with an empty string. `sanitizeCodexEnv` copies
+  // process.env.OPENAI_API_KEY first and applies these overrides second, so
+  // writing '' here used to erase a key the app was launched with.
+  if (!resolved.OPENAI_API_KEY && !resolved.ANTHROPIC_API_KEY && stored) {
+    resolved.OPENAI_API_KEY = stored
   }
   return resolved
 }

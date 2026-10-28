@@ -2292,7 +2292,7 @@
     "errorNameExists": "同名服务器已存在",
     "showTools": "显示工具",
     "tools": "个工具",
-    "reconnect": "重新连接",
+    "reconnectHint": "MCP 服务器在会话启动时连接。如需重新连接，请开启新会话。",
     "removeServer": "移除服务器",
     "removeConfirm": "确认移除？",
     "removeYes": "是",

@@ -23,7 +23,10 @@ function formatIdleDuration(minutes: number): string {
  * Hook that detects when the user returns after being idle and shows a dialog
  * asking whether to continue or start a new conversation.
  *
- * Enhanced with AI-generated "away summary" that recaps where the conversation left off.
+ * Enhanced with an AI-generated "away summary" that recaps where the
+ * conversation left off. The summary runs on the profile's own engine (see
+ * `cli:generateAwaySummary`); an empty answer means the engine is unavailable
+ * or had nothing to add, and the dialog still opens without a recap.
  */
 export function useIdleReturn() {
   const [showDialog, setShowDialog] = useState(false)

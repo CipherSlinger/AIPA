@@ -12,9 +12,13 @@ export const latestSuggestionRef = { current: null as string | null }
  * Hook that generates AI-predicted follow-up suggestions after each assistant response.
  * Returns ghost text to display in the chat input as a faded placeholder.
  *
- * The suggestion is generated via a lightweight CLI call (--print mode) using
- * the last few messages as context. It fires after streaming completes and
- * is cancelled if the user starts typing or a new message arrives.
+ * The main process answers `cli:generateSuggestion` on the engine this profile
+ * is actually running (Codex, the legacy Claude CLI, or an active provider),
+ * or returns '' when no engine is authenticated — in which case the chip is
+ * simply absent. This hook never spawns a process itself.
+ *
+ * It fires after streaming completes and is cancelled if the user starts
+ * typing or a new message arrives.
  *
  * Iteration 488: Added suggestion lifecycle tracking (shownAt, acceptedAt, firstKeystrokeAt)
  * inspired by Claude Code's hooks/usePromptSuggestion.ts.

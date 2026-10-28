@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useI18n, useT } from '../../i18n'
 import Toggle from '../ui/Toggle'
-import { Plus, Trash2, RefreshCw, ChevronDown, ChevronRight, Wrench } from 'lucide-react'
+import { Plus, Trash2, ChevronDown, ChevronRight, Wrench } from 'lucide-react'
 import { usePrefsStore } from '../../store'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -431,12 +431,10 @@ function ServerCard({
   srv,
   onToggle,
   onDelete,
-  onReconnect,
 }: {
   srv: McpServer
   onToggle: (enabled: boolean) => void
   onDelete: () => void
-  onReconnect: () => void
 }) {
   const t = useT()
   const [expanded, setExpanded] = useState(false)
@@ -444,7 +442,6 @@ function ServerCard({
   const [loadingTools, setLoadingTools] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [hoveredDelete, setHoveredDelete] = useState(false)
-  const [hoveredReconnect, setHoveredReconnect] = useState(false)
   const [cardHovered, setCardHovered] = useState(false)
   const handleExpand = async () => {
     const next = !expanded
@@ -587,24 +584,6 @@ function ServerCard({
             </div>
           )}
         </div>
-
-        {/* Reconnect */}
-        <button
-          onClick={onReconnect}
-          title={t('mcp.reconnect')}
-          onMouseEnter={() => setHoveredReconnect(true)}
-          onMouseLeave={() => setHoveredReconnect(false)}
-          style={{
-            ...iconBtnStyle,
-            display: 'flex', alignItems: 'center',
-            color: hoveredReconnect ? 'var(--text-primary)' : 'var(--text-muted)',
-            background: hoveredReconnect ? 'var(--border)' : 'none',
-            borderRadius: 8, padding: '3px 5px',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          <RefreshCw size={13} />
-        </button>
 
         {/* Delete */}
         {confirmDelete ? (
@@ -912,7 +891,6 @@ export default function SettingsMcp() {
   const { t } = useI18n()
   const [mcpServers, setMcpServers] = useState<McpServer[]>([])
   const [showWizard, setShowWizard] = useState(false)
-  const [reconnectMsg, setReconnectMsg] = useState<string | null>(null)
   const rawActiveMcpServers = usePrefsStore(s => s.activeMcpServers)
   const activeMcpServers = rawActiveMcpServers as unknown as ActiveMcpServer[]
   const mcpServerTools = usePrefsStore(s => s.mcpServerTools)
@@ -926,14 +904,6 @@ export default function SettingsMcp() {
   const handleDelete = async (name: string) => {
     await window.electronAPI.mcpRemove(name)
     reload()
-  }
-
-  const handleReconnect = async (name: string) => {
-    const result = await window.electronAPI.mcpReconnect(name)
-    if (result && !result.success) {
-      setReconnectMsg(result.error ?? 'Reconnect failed')
-      setTimeout(() => setReconnectMsg(null), 3000)
-    }
   }
 
   const handleToggle = async (name: string, enabled: boolean) => {
@@ -979,18 +949,12 @@ export default function SettingsMcp() {
         )}
       </div>
 
-      {/* Reconnect toast */}
-      {reconnectMsg && (
-        <div style={{
-          background: 'rgba(239,68,68,0.15)',
-          border: '1px solid rgba(239,68,68,0.30)',
-          color: '#fca5a5',
-          borderRadius: 8,
-          padding: '6px 12px',
-          fontSize: 11,
-          marginBottom: 8,
-        }}>
-          {reconnectMsg}
+      {/* There is no live MCP reconnect channel: a server is spawned by the CLI
+          when a session starts, so the only honest way to reconnect one is a
+          new session. Shown here instead of a button that could only fail. */}
+      {mcpServers.length > 0 && !showWizard && (
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.4 }}>
+          {t('mcp.reconnectHint')}
         </div>
       )}
 
@@ -1027,7 +991,6 @@ export default function SettingsMcp() {
             srv={srv}
             onToggle={v => handleToggle(srv.name, v)}
             onDelete={() => handleDelete(srv.name)}
-            onReconnect={() => handleReconnect(srv.name)}
           />
         ))
       )}

@@ -229,6 +229,9 @@ export default function ChatHeader({
       return
     }
     setIsEditingTitle(false)
+    // Remember the manual name: the first automatic title may still be in
+    // flight for this session and must not overwrite it when it lands.
+    useChatStore.getState().markSessionTitleManual(sessionId)
     useChatStore.getState().setSessionTitle(newTitle)
     const list = await listSessionsShared()
     if (list) {

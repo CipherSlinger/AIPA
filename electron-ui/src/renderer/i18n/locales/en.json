@@ -2292,7 +2292,7 @@
     "errorNameExists": "A server with this name already exists",
     "showTools": "Show tools",
     "tools": "tools",
-    "reconnect": "Reconnect",
+    "reconnectHint": "MCP servers connect when a conversation starts. To reconnect one, start a new conversation.",
     "removeServer": "Remove server",
     "removeConfirm": "Remove?",
     "removeYes": "Yes",

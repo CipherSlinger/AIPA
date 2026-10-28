@@ -17,6 +17,14 @@ import os from 'os'
 import { isPathInside, isValidSessionId } from '../utils/validate'
 import { cleanPrompt, deriveTitle, isSyntheticPrompt } from '../sessions/prompt-text'
 import { buildSnippet, contentContainsQuery } from '../sessions/search-types'
+import {
+  MAX_FALLBACK_READS,
+  MAX_FILE_CHARS,
+  SessionSearchIndex,
+  mapWithConcurrency,
+  readJsonlLines,
+} from '../sessions/search-index'
+import type { SearchIndexDoc, SearchIndexFile, SearchIndexRecord, SearchIndexStats } from '../sessions/search-index'
 import type { SearchResult } from '../sessions/search-types'
 
 // ── Constants ────────────────────────────────────────
@@ -357,18 +365,179 @@ function normalizedEntryText(entry: NormalizedEntry): string {
   return parts.join('\n')
 }
 
+// ── Incremental search index ─────────────────────────
+//
+// The pre-index search read every candidate rollout per query, parsed it
+// through `normalizeRollout` just to find the first prose hit, and only then
+// answered. `SessionSearchIndex` keeps the prose, the identity (session id,
+// cwd, title) and the newest timestamp from that same normalization, keyed on
+// (mtimeMs, size); see ../sessions/search-index.ts for freshness and budget
+// rules. Uncached or truncated files still take the old disk path.
+
+async function extractCodexSearchDoc(file: SearchIndexFile): Promise<SearchIndexDoc> {
+  const lines: RolloutLine[] = []
+  for await (const line of readJsonlLines(file.filePath)) {
+    if (!line.trim()) continue
+    try {
+      lines.push(JSON.parse(line) as RolloutLine)
+    } catch {
+      // One malformed line must not hide the rest of the rollout.
+    }
+  }
+
+  const fallback = new Date(file.mtimeMs).toISOString()
+  const summary = summarizeRollout(file.filePath, file, lines)
+  const sessionId = summary?.sessionId || file.sessionId || path.basename(file.filePath, '.jsonl')
+
+  const records: SearchIndexRecord[] = []
+  let newest = summary?.timestamp ?? file.mtimeMs
+  let chars = 0
+  let partial = false
+  for (const entry of normalizeRollout(lines, fallback)) {
+    const parsed = entry.timestamp ? Date.parse(entry.timestamp) : 0
+    if (!Number.isNaN(parsed) && parsed > newest) newest = parsed
+    if (partial) continue
+    const role = entry.type === 'user' ? 'user' : entry.type === 'assistant' ? 'assistant' : null
+    if (!role) continue
+    const text = normalizedEntryText(entry)
+    if (!text) continue
+    if (chars + text.length > MAX_FILE_CHARS) {
+      partial = true
+      continue
+    }
+    records.push({ ts: Number.isNaN(parsed) ? 0 : parsed, role, text })
+    chars += text.length
+  }
+
+  return {
+    filePath: file.filePath,
+    sessionId,
+    projectSlug: summary?.projectSlug ?? file.projectSlug,
+    project: summary?.project,
+    mtimeMs: file.mtimeMs,
+    size: file.size,
+    timestamp: newest,
+    title: summary?.title,
+    records,
+    partial,
+  }
+}
+
+const codexSearchIndex = new SessionSearchIndex('codex', extractCodexSearchDoc)
+
+/** Test/debug hook: what the in-memory index currently holds. */
+export function getSearchIndexStats(): SearchIndexStats {
+  return codexSearchIndex.stats
+}
+
+async function collectCodexSearchFiles(): Promise<SearchIndexFile[]> {
+  const paths: string[] = []
+  for (const root of [getSessionsDir(), getArchivedDir()]) {
+    for (const filePath of collectRolloutFiles(root)) {
+      if (isSessionPathSafe(filePath)) paths.push(filePath)
+    }
+  }
+
+  const files = await mapWithConcurrency(paths, 32, async filePath => {
+    try {
+      const stat = await fs.promises.stat(filePath)
+      return {
+        filePath,
+        sessionId: uuidFromRolloutName(filePath) ?? '',
+        projectSlug: '',
+        mtimeMs: stat.mtimeMs,
+        size: stat.size,
+      }
+    } catch {
+      return null // vanished mid-walk
+    }
+  })
+  return files.filter((file): file is SearchIndexFile => file !== null)
+}
+
+interface CodexFileMatch {
+  snippet: string
+  timestamp: number
+  role: 'user' | 'assistant'
+}
+
+/** First prose hit in a cached document, in normalized file order. */
+function matchCodexDoc(doc: SearchIndexDoc, query: string, lowerQuery: string): CodexFileMatch | null {
+  for (const record of doc.records) {
+    if (!record.text.toLowerCase().includes(lowerQuery)) continue
+    const snippet = buildSnippet(record.text, query)
+    if (!snippet) break
+    return { snippet, timestamp: record.ts, role: record.role }
+  }
+  return null
+}
+
+/**
+ * The pre-index single-file scan, kept verbatim for files that are not in the
+ * index. It returns a complete SearchResult so a hit always carries evidence.
+ */
+async function searchCodexFileOnDisk(
+  file: SearchIndexFile,
+  query: string,
+  lowerQuery: string,
+  indexTitles: Map<string, string>,
+  isCurrent: () => boolean,
+): Promise<SearchResult | null> {
+  let content: string
+  try {
+    content = await fs.promises.readFile(file.filePath, 'utf-8')
+  } catch {
+    return null
+  }
+  if (!isCurrent()) return null
+  if (!contentContainsQuery(content, query, lowerQuery)) return null
+
+  const lines = parseJsonLines(content)
+  const fallback = new Date(file.mtimeMs).toISOString()
+  const summary = summarizeRollout(file.filePath, file, lines)
+  if (!summary) return null
+  summaryCache.set(file.filePath, { mtimeMs: file.mtimeMs, size: file.size, item: summary })
+
+  let match: CodexFileMatch | null = null
+  let newest = summary.timestamp
+  for (const entry of normalizeRollout(lines, fallback)) {
+    const parsed = entry.timestamp ? Date.parse(entry.timestamp) : 0
+    if (!Number.isNaN(parsed) && parsed > newest) newest = parsed
+    if (match) continue
+    const role = entry.type === 'user' ? 'user' : entry.type === 'assistant' ? 'assistant' : null
+    if (!role) continue
+    const snippet = buildSnippet(normalizedEntryText(entry), query)
+    if (snippet) match = { snippet, timestamp: Number.isNaN(parsed) ? 0 : parsed, role }
+  }
+
+  const title = indexTitles.get(summary.sessionId) || summary.title
+  const titleMatched = !!title && title.toLowerCase().includes(lowerQuery)
+  if (!match && !titleMatched) return null
+
+  return {
+    sessionId: summary.sessionId,
+    title,
+    project: summary.project,
+    matchType: match ? 'content' : 'title',
+    snippet: match ? match.snippet : title || '',
+    timestamp: newest || summary.timestamp || file.mtimeMs,
+    engine: 'codex',
+    ...(match && match.timestamp > 0
+      ? { messageTimestamp: match.timestamp, messageRole: match.role }
+      : {}),
+  }
+}
+
 let codexSearchEpoch = 0
 
 /**
  * Cross-session content search over Codex rollout files.
  *
- * Rollouts are read one at a time (they live in date-sharded directories, so
- * there is no index to rely on). A byte-level prefilter skips files that do not
- * contain the query; only those that pass are parsed through the same
- * `normalizeRollout` used by `loadSession`, so a hit points at a message the
- * renderer can actually find. Cost is one read per candidate file per query;
- * the corpus here is small, and the newest-first order lets the limit stop the
- * scan early.
+ * The corpus walk and stat stay on disk (rollouts live in date-sharded
+ * directories, so there is no index to rely on), but the match itself is an
+ * in-memory scan over the incremental index. A user-set index title is read at
+ * query time so a rename is visible immediately. Uncached files fall back to
+ * `searchCodexFileOnDisk`, which is the previous implementation unchanged.
  */
 export async function searchSessions(query: string, limit = 20): Promise<SearchResult[]> {
   if (!query || query.length < 2) return []
@@ -377,68 +546,77 @@ export async function searchSessions(query: string, limit = 20): Promise<SearchR
   const isCurrent = () => epoch === codexSearchEpoch
   const lowerQuery = query.toLowerCase()
 
-  const candidates: Array<{ filePath: string; mtimeMs: number; size: number }> = []
-  for (const root of [getSessionsDir(), getArchivedDir()]) {
-    for (const filePath of collectRolloutFiles(root)) {
-      if (!isSessionPathSafe(filePath)) continue
-      try {
-        const stat = await fs.promises.stat(filePath)
-        candidates.push({ filePath, mtimeMs: stat.mtimeMs, size: stat.size })
-      } catch { /* vanished mid-walk */ }
-    }
-  }
-  candidates.sort((a, b) => b.mtimeMs - a.mtimeMs)
+  const files = await collectCodexSearchFiles()
+  if (!isCurrent()) return []
+  files.sort((a, b) => b.mtimeMs - a.mtimeMs)
 
   // The rollout file's derived title loses to a user-set index name, exactly as
-  // it does in the sidebar.
+  // it does in the sidebar. Read per query: a rename does not touch the rollout.
   const indexTitles = new Map<string, string>()
   for (const entry of readSessionIndex()) {
     const name = entry.thread_name || entry.name
     if (name) indexTitles.set(sessionIndexId(entry), name)
   }
 
+  const candidates = await codexSearchIndex.sync(files)
+  if (!isCurrent()) return []
+
   const results: SearchResult[] = []
-  for (const file of candidates) {
+  let fallbackBudget = MAX_FALLBACK_READS
+
+  for (const candidate of candidates) {
     if (!isCurrent() || results.length >= limit) break
+    const doc = candidate.doc
 
-    let content: string
-    try {
-      content = await fs.promises.readFile(file.filePath, 'utf-8')
-    } catch { continue }
-    if (!isCurrent()) break
-    if (!contentContainsQuery(content, query, lowerQuery)) continue
-
-    const lines = parseJsonLines(content)
-    const fallback = new Date(file.mtimeMs).toISOString()
-    const summary = summarizeRollout(file.filePath, file, lines)
-    if (!summary) continue
-    summaryCache.set(file.filePath, { mtimeMs: file.mtimeMs, size: file.size, item: summary })
-
-    let match: { snippet: string; timestamp: number; role: 'user' | 'assistant' } | null = null
-    let newest = summary.timestamp
-    for (const entry of normalizeRollout(lines, fallback)) {
-      const parsed = entry.timestamp ? Date.parse(entry.timestamp) : 0
-      if (!Number.isNaN(parsed) && parsed > newest) newest = parsed
-      if (match) continue
-      const role = entry.type === 'user' ? 'user' : entry.type === 'assistant' ? 'assistant' : null
-      if (!role) continue
-      const snippet = buildSnippet(normalizedEntryText(entry), query)
-      if (snippet) {
-        match = { snippet, timestamp: Number.isNaN(parsed) ? 0 : parsed, role }
-      }
+    if (!doc) {
+      // Only an evicted document is read from disk. A pending one belongs to a
+      // build still in flight; the query answers with the partial index.
+      if (candidate.state !== 'deferred' || fallbackBudget <= 0) continue
+      fallbackBudget--
+      const result = await searchCodexFileOnDisk(candidate, query, lowerQuery, indexTitles, isCurrent)
+      if (!isCurrent()) return []
+      if (result) results.push(result)
+      continue
     }
 
-    const title = indexTitles.get(summary.sessionId) || summary.title
+    let match = matchCodexDoc(doc, query, lowerQuery)
+
+    // A truncated document may hold the prose match past its stored prefix;
+    // let the disk path answer with the full result (evidence included). It is
+    // authoritative for this file either way, so do not scan the prefix again.
+    if (!match && doc.partial && fallbackBudget > 0) {
+      fallbackBudget--
+      const result = await searchCodexFileOnDisk(candidate, query, lowerQuery, indexTitles, isCurrent)
+      if (!isCurrent()) return []
+      if (result) results.push(result)
+      continue
+    }
+
+    const title = indexTitles.get(doc.sessionId) || doc.title
     const titleMatched = !!title && title.toLowerCase().includes(lowerQuery)
     if (!match && !titleMatched) continue
 
+    // The old scan only read a file after its raw bytes passed the content
+    // prefilter, so a title-only hit required the query to appear somewhere in
+    // the rollout. Preserve that (it also keeps result sets identical); a
+    // content hit never needs the check because the index covers all prose.
+    if (!match && fallbackBudget > 0) {
+      fallbackBudget--
+      let content: string | null = null
+      try {
+        content = await fs.promises.readFile(candidate.filePath, 'utf-8')
+      } catch { /* vanished; treat as no hit */ }
+      if (!isCurrent()) return []
+      if (!content || !contentContainsQuery(content, query, lowerQuery)) continue
+    }
+
     results.push({
-      sessionId: summary.sessionId,
+      sessionId: doc.sessionId,
       title,
-      project: summary.project,
+      project: doc.project ?? '',
       matchType: match ? 'content' : 'title',
       snippet: match ? match.snippet : title || '',
-      timestamp: newest || summary.timestamp || file.mtimeMs,
+      timestamp: doc.timestamp || candidate.mtimeMs,
       engine: 'codex',
       ...(match && match.timestamp > 0
         ? { messageTimestamp: match.timestamp, messageRole: match.role }

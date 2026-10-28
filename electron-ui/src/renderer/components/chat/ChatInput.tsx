@@ -194,15 +194,42 @@ export default function ChatInput({
 
   useEffect(() => { resizeTextarea() }, [input, resizeTextarea])
 
-  // Focus input on mount
-  useEffect(() => { textareaRef.current?.focus() }, [])
+  // Focus the composer with the caret after the last character. Returning
+  // whether the textarea was there lets the pending-request effect below leave
+  // the flag for a later mount instead of consuming a request it could not serve.
+  const focusComposer = useCallback(() => {
+    const ta = textareaRef.current
+    if (!ta) return false
+    ta.focus()
+    const end = ta.value.length
+    ta.setSelectionRange(end, end)
+    return true
+  }, [])
 
-  // Listen for focus request from global shortcut (Ctrl+L)
+  // Focus input on mount
+  useEffect(() => { focusComposer() }, [focusComposer])
+
+  // Listen for focus requests from in-chat callers (post-response focus,
+  // clipboard quick action). Cross-view Ctrl+L goes through the store flag.
   useEffect(() => {
-    const handler = () => textareaRef.current?.focus()
+    const handler = () => { focusComposer() }
     window.addEventListener('aipa:focusInput', handler)
     return () => window.removeEventListener('aipa:focusInput', handler)
-  }, [])
+  }, [focusComposer])
+
+  // Ctrl+L from another view: useAppShortcuts switches to chat and parks the
+  // request here, because this component did not exist when the key was pressed.
+  // ChatPanel mounts in the same commit as the view switch, so focus after the
+  // frame rather than during the effect.
+  const focusInputPending = useUiStore(s => s.focusInputPending)
+  const consumeInputFocus = useUiStore(s => s.consumeInputFocus)
+  useEffect(() => {
+    if (!focusInputPending) return
+    const id = requestAnimationFrame(() => {
+      if (focusComposer()) consumeInputFocus()
+    })
+    return () => cancelAnimationFrame(id)
+  }, [focusInputPending, focusComposer, consumeInputFocus])
 
   // Listen for text insertion requests (e.g., from file browser @mention)
   useEffect(() => {

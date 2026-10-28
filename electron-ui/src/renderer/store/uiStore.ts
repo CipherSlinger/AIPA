@@ -62,6 +62,15 @@ interface UiState {
   requestSearchFocus: () => void
   consumeSearchFocus: () => void
 
+  // Ctrl+L asks for the composer, but ChatInput only exists while the chat
+  // view is mounted. The shortcut therefore switches views first and parks
+  // the focus request here; ChatInput consumes it on mount. Same hand-off
+  // pattern as searchFocusPending, and for the same reason: a DOM event fired
+  // while another view is in front reaches no listener.
+  focusInputPending: boolean
+  requestInputFocus: () => void
+  consumeInputFocus: () => void
+
   // Global (cross-session) search overlay. Lives in the store, not in App, so
   // any view — and the shortcuts that fire while another view is mounted — can
   // open it without a DOM listener.
@@ -248,6 +257,9 @@ export const useUiStore = create<UiState>((set) => ({
   searchFocusPending: false,
   requestSearchFocus: () => set({ searchFocusPending: true }),
   consumeSearchFocus: () => set({ searchFocusPending: false }),
+  focusInputPending: false,
+  requestInputFocus: () => set({ focusInputPending: true }),
+  consumeInputFocus: () => set({ focusInputPending: false }),
   globalSearchOpen: false,
   setGlobalSearchOpen: (open) => set({ globalSearchOpen: open }),
   pendingReveal: null,

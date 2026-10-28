@@ -33,8 +33,9 @@ export interface CachedSessionSummary {
 // prompts and a derived title; v1 rows would keep showing slash commands even
 // though their transcripts never changed again.
 const CACHE_VERSION = 2
-const CACHE_DIR = path.join(os.homedir(), '.aipa', 'cache')
-const CACHE_PATH = path.join(CACHE_DIR, 'claude-sessions.json')
+/** Shared home for every persisted session cache (summaries, search index). */
+export const AIPA_CACHE_DIR = path.join(os.homedir(), '.aipa', 'cache')
+const CACHE_PATH = path.join(AIPA_CACHE_DIR, 'claude-sessions.json')
 
 /** Hard cap so a runaway corpus cannot turn the cache into a startup cost. */
 const MAX_ENTRIES = 20000
@@ -135,7 +136,7 @@ export function saveNow(): void {
   dirty = false
   try {
     enforceCap()
-    fs.mkdirSync(CACHE_DIR, { recursive: true })
+    fs.mkdirSync(AIPA_CACHE_DIR, { recursive: true })
     const payload = {
       version: CACHE_VERSION,
       entries: Object.fromEntries(entries),

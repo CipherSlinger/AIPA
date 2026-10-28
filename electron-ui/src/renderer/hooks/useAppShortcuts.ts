@@ -16,10 +16,26 @@ export function useAppShortcuts(
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Ctrl+L: Focus chat input
+      // Ctrl+L: Focus the chat composer. The composer only exists while the
+      // chat view is mounted, so the shortcut has to bring that view forward
+      // first; a DOM event alone was swallowed from Archive/Departments/Settings.
+      // The request is parked in the store and ChatInput consumes it on mount
+      // (or immediately if it is already alive).
       if (e.ctrlKey && !e.shiftKey && e.key === 'l') {
+        const activeEl = document.activeElement
+        const inField =
+          activeEl instanceof HTMLTextAreaElement ||
+          activeEl instanceof HTMLInputElement ||
+          (activeEl as HTMLElement | null)?.isContentEditable === true
+        const ui = useUiStore.getState()
+        // Do not yank the user out of a field in another view: Ctrl+L there
+        // would discard their caret and the context they were editing.
+        if (ui.mainView !== 'chat' && inField) return
         e.preventDefault()
-        window.dispatchEvent(new CustomEvent('aipa:focusInput'))
+        // Skip the nav call while already in chat: resolveNav('chat') also
+        // resets sidebar state and unread badges, which Ctrl+L should not do.
+        if (ui.mainView !== 'chat') ui.setActiveNavItem('chat')
+        ui.requestInputFocus()
       }
       // Ctrl+,: Open settings modal
       if (e.ctrlKey && !e.shiftKey && e.key === ',') {

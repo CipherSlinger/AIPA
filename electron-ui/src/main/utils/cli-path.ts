@@ -42,6 +42,22 @@ export function getCliPath(): string {
 }
 
 /**
+ * Non-throwing variant of {@link getCliPath}.
+ *
+ * Auxiliary features must decide whether the legacy engine is usable without
+ * turning a missing install into a rejected IPC call (and a stack trace in the
+ * log) every time a suggestion is generated.
+ */
+export function tryGetCliPath(): string | null {
+  try {
+    const resolved = getCliPath()
+    return fs.existsSync(resolved) ? resolved : null
+  } catch {
+    return null
+  }
+}
+
+/**
  * Returns the path to the Node.js executable.
  * Prefers bundled node in resources (for packaged app), then CLAUDE_NODE_PATH env var,
  * then attempts to resolve 'node' from PATH, then tries common Windows install locations.

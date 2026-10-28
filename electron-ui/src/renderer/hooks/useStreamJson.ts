@@ -587,6 +587,20 @@ export function useStreamJson() {
           break
         }
         case 'cli:messageEnd': {
+          // The end of a turn must obey the same ownership rule as its deltas.
+          // Before this guard, another tab's (or a background) bridge finishing
+          // cleared the foreground's isStreaming, finalized its placeholder and
+          // released its sleep lock for a conversation that was still running.
+          {
+            const endedBridgeId = String(data.sessionId ?? '')
+            if (!useChatStore.getState().isOwnedStreamEvent(endedBridgeId)) {
+              // The bridge that just ended may be the orphan the user walked
+              // away from. It is finished and cannot be reattached; forget it
+              // without touching the foreground's streaming state.
+              useChatStore.getState().releaseOrphanStream(endedBridgeId)
+              break
+            }
+          }
           stopStreamingAndReleaseSleep()
           // Auto-compact refuses to run while streaming (it would interrupt the
           // turn), so the post-turn check has to happen after the flag clears.
@@ -876,19 +890,30 @@ export function useStreamJson() {
           const userMsgs = msgs.filter(m => m.role === 'user')
           const firstUserPrompt = (userMsgs[0] as StandardChatMessage)?.content || ''
           if (userMsgs.length === 1 && firstUserPrompt && claudeSessionId) {
+            const titleSessionId = claudeSessionId
+            // Snapshot the name this conversation had when generation started.
+            // A different name by the time the answer lands means someone (the
+            // user) renamed it in between.
+            const titleBefore =
+              useSessionStore.getState().sessions.find(s => s.sessionId === titleSessionId)?.title ?? ''
             window.electronAPI.sessionGenerateTitle(firstUserPrompt).then((title: string) => {
-              if (title) {
-                window.electronAPI.sessionRename(claudeSessionId, title)
-                // Update the session title in the store for toolbar display
-                useChatStore.getState().setSessionTitle(title)
-                useUiStore.getState().addToast('info', t('session.titleGenerated'), 2000)
-                // Refresh session list in sidebar to show the new title
-                listSessionsShared().then((list: any) => {
-                  if (list) {
-                    useSessionStore.getState().setSessions(list)
-                  }
-                })
-              }
+              if (!title) return
+              // The request outlives this turn. Apply the result to the session
+              // it was generated for — never to whatever conversation happens to
+              // be open now — and never over a name the user set by hand.
+              if (useChatStore.getState().isSessionTitleManual(titleSessionId)) return
+              const titleNow =
+                useSessionStore.getState().sessions.find(s => s.sessionId === titleSessionId)?.title ?? ''
+              if (titleNow !== titleBefore) return
+              window.electronAPI.sessionRename(titleSessionId, title)
+              useChatStore.getState().setSessionTitleFor(titleSessionId, title)
+              useUiStore.getState().addToast('info', t('session.titleGenerated'), 2000)
+              // Refresh session list in sidebar to show the new title
+              listSessionsShared().then((list: any) => {
+                if (list) {
+                  useSessionStore.getState().setSessions(list)
+                }
+              })
             }).catch(() => {})
           }
 

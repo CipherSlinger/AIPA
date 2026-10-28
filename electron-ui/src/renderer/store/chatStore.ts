@@ -165,6 +165,15 @@ function scheduleFlush() {
 
 // ── Chat store ──────────────────────────────────
 
+// Sessions the user renamed by hand. The first automatic title is generated
+// asynchronously; if the user names a conversation while that request is in
+// flight, the late result must not overwrite their choice. Persisted as well,
+// because a resumed session with a single user message can trigger the title
+// generator again in a later run. Module-level (not store state) because
+// nothing renders from it.
+const manuallyTitledSessions = new Set<string>()
+const MANUAL_TITLE_KEY_PREFIX = 'aipa:session-manual-title:'
+
 // Module-level cache for scroll positions — avoids Zustand re-renders on every scroll event
 const tabScrollTopCache = new Map<string, number>()
 /** Read the cached scrollTop for a tab (used by TabBar/ChatPanel to restore scroll) */
@@ -213,6 +222,19 @@ interface ChatState {
   orphanedStream: { bridgeId: string; conversationId: string; visible: boolean } | null
   /** Record the conversation a freshly dispatched turn belongs to. */
   beginTurn: () => void
+  /**
+   * Whether a cli:* event carrying this bridge id belongs to the turn answering
+   * the visible conversation. Deltas already pass through the same internal
+   * rule; turn-end handling asks it explicitly so a background or other-tab
+   * bridge finishing cannot clear the foreground's streaming state.
+   */
+  isOwnedStreamEvent: (sessionId: string) => boolean
+  /**
+   * Drop the remembered orphan when its bridge ends while its conversation is
+   * not on screen. The turn can no longer be reattached; keeping the marker
+   * would leave a dead bridge owning a future view.
+   */
+  releaseOrphanStream: (bridgeId: string) => void
   setStreamSession: (id: string | null) => void
   setSessionId: (id: string | null) => void
   setWorkingDir: (dir: string) => void
@@ -249,6 +271,15 @@ interface ChatState {
   setLastContextUsage: (usage: { used: number; total: number } | null) => void
   currentSessionTitle: string | null
   setSessionTitle: (title: string | null) => void
+  /**
+   * Apply a title to the session it was generated for. Automatic titles arrive
+   * asynchronously, after the user may have opened another conversation;
+   * routing them through setSessionTitle renamed whatever was open instead.
+   */
+  setSessionTitleFor: (sessionId: string, title: string) => void
+  /** Sessions named by hand — a late automatic title must not overwrite them. */
+  markSessionTitleManual: (sessionId: string) => void
+  isSessionTitleManual: (sessionId: string) => boolean
 
   // Task Queue
   taskQueue: TaskQueueItem[]
@@ -414,6 +445,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (msg.role === 'user') userMessageCount++
     set((s) => ({ messages: [...s.messages, msg] }))
   },
+
+  isOwnedStreamEvent: (sessionId) => isTurnSession(sessionId),
+
+  releaseOrphanStream: (bridgeId) => set((s) =>
+    s.orphanedStream?.bridgeId === bridgeId ? { orphanedStream: null } : {}
+  ),
 
   appendTextDelta: (sessionId, text) => {
     if (!isTurnSession(sessionId)) return
@@ -642,6 +679,43 @@ export const useChatStore = create<ChatState>((set, get) => ({
   }),
   setLastContextUsage: (usage) => set({ lastContextUsage: usage }),
   setSessionTitle: (title) => set({ currentSessionTitle: title }),
+  setSessionTitleFor: (sessionId, title) => set((s) => {
+    const viewing = s.viewSessionId === sessionId
+    return {
+      // The open header changes only when the open conversation is the one the
+      // title belongs to.
+      ...(viewing ? { currentSessionTitle: title } : {}),
+      // Cached tabs carry their own title; rename the matching one even though
+      // it is not on screen, so switching to it later shows the new name.
+      tabs: s.tabs.map(tab => {
+        if (tab.snapshot && tab.snapshot.sessionId === sessionId) {
+          return { ...tab, title, snapshot: { ...tab.snapshot, sessionTitle: title } }
+        }
+        if (!tab.snapshot && (tab.sessionId === sessionId || (viewing && tab.id === s.activeTabId))) {
+          return { ...tab, title }
+        }
+        return tab
+      }),
+    }
+  }),
+  markSessionTitleManual: (sessionId) => {
+    if (!sessionId) return
+    manuallyTitledSessions.add(sessionId)
+    try {
+      localStorage.setItem(MANUAL_TITLE_KEY_PREFIX + sessionId, '1')
+    } catch { /* localStorage unavailable — the in-memory marker still holds for this run */ }
+  },
+  isSessionTitleManual: (sessionId) => {
+    if (!sessionId) return false
+    if (manuallyTitledSessions.has(sessionId)) return true
+    try {
+      if (localStorage.getItem(MANUAL_TITLE_KEY_PREFIX + sessionId) === '1') {
+        manuallyTitledSessions.add(sessionId)
+        return true
+      }
+    } catch { /* localStorage unavailable — fall through to "not manual" */ }
+    return false
+  },
 
   addPermissionRequest: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
 

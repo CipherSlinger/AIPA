@@ -12,6 +12,14 @@ import {
 } from './session-index-cache'
 import { cleanPrompt, deriveTitle, isSyntheticPrompt } from './prompt-text'
 import { buildSnippet, contentContainsQuery, textFromBlocks } from './search-types'
+import {
+  MAX_FALLBACK_READS,
+  MAX_FILE_CHARS,
+  SessionSearchIndex,
+  mapWithConcurrency,
+  readJsonlLines,
+} from './search-index'
+import type { SearchIndexDoc, SearchIndexFile, SearchIndexRecord, SearchIndexStats } from './search-index'
 import type { SearchResult } from './search-types'
 
 export type { SearchResult } from './search-types'
@@ -523,13 +531,6 @@ export function generateAwaySummary(context: string, cliPath: string): Promise<s
   })
 }
 
-interface ClaudeSearchFile {
-  sessionId: string
-  projectSlug: string
-  filePath: string
-  mtimeMs: number
-}
-
 /**
  * Stream a file looking for the query without materialising it.
  *
@@ -629,18 +630,199 @@ function scanClaudeFile(content: string, query: string, lowerQuery: string): Cla
   return null
 }
 
-// Newest-first file order makes a full scan stop as soon as the result limit is
-// reached; without it a common query would read the whole corpus to render 30
-// rows. The counter lets a newer keystroke cancel a scan already in flight.
+// ── Incremental search index ──
+//
+// Search used to stream every transcript per query (~2.5-3 s here for 1.3 GB,
+// 4240 files) even though the searchable prose is only ~5.6 MB: tool results
+// and snapshots are the bulk of a transcript. `SessionSearchIndex` keeps that
+// prose in memory, keyed on (mtimeMs, size); see ./search-index.ts for the
+// freshness and eviction rules. Files the index cannot hold fall back to the
+// pre-index disk scan below, so results always carry evidence fields.
+
+interface ClaudeSearchFile extends SearchIndexFile {}
+
+/** Extract the searchable prose of one Claude transcript. */
+async function extractClaudeSearchDoc(file: SearchIndexFile): Promise<SearchIndexDoc> {
+  let title: string | undefined
+  let timestamp = 0
+  let chars = 0
+  let partial = false
+  const records: SearchIndexRecord[] = []
+
+  for await (const line of readJsonlLines(file.filePath)) {
+    if (!line || line.charCodeAt(0) !== 123) continue
+    let entry: Record<string, unknown>
+    try {
+      entry = JSON.parse(line) as Record<string, unknown>
+    } catch {
+      continue
+    }
+
+    // The session's own recency is the newest timestamp of any entry — title
+    // rows included — so it is tracked even for rows search never matches.
+    if (typeof entry.timestamp === 'string') {
+      const t = new Date(entry.timestamp).getTime()
+      if (!Number.isNaN(t) && t > timestamp) timestamp = t
+    }
+
+    if (entry.type === 'session-title' && entry.title) {
+      title = String(entry.title)
+    }
+
+    if (entry.type !== 'user' && entry.type !== 'assistant') continue
+    const message = entry.message as Record<string, unknown> | undefined
+    const text = textFromBlocks(message?.content)
+    if (!text || partial) continue
+
+    if (chars + text.length > MAX_FILE_CHARS) {
+      // Keep the metadata pass running (title and timestamp still matter), but
+      // stop growing the buffer; a miss in the prefix is verified on disk.
+      partial = true
+      continue
+    }
+
+    const rawTs = typeof entry.timestamp === 'string' ? new Date(entry.timestamp).getTime() : 0
+    records.push({
+      ts: Number.isNaN(rawTs) ? 0 : rawTs,
+      role: entry.type === 'user' ? 'user' : 'assistant',
+      text,
+    })
+    chars += text.length
+  }
+
+  return {
+    filePath: file.filePath,
+    sessionId: file.sessionId,
+    projectSlug: file.projectSlug,
+    mtimeMs: file.mtimeMs,
+    size: file.size,
+    timestamp,
+    title,
+    records,
+    partial,
+  }
+}
+
+const claudeSearchIndex = new SessionSearchIndex('claude', extractClaudeSearchDoc)
+
+/** Test/debug hook: what the in-memory index currently holds. */
+export function getSearchIndexStats(): SearchIndexStats {
+  return claudeSearchIndex.stats
+}
+
+/** Match a cached document, mirroring `scanClaudeFile`'s first-match semantics. */
+function matchClaudeDoc(doc: SearchIndexDoc, query: string, lowerQuery: string): ClaudeFileHit | null {
+  for (const record of doc.records) {
+    if (!record.text.toLowerCase().includes(lowerQuery)) continue
+    const snippet = buildSnippet(record.text, query)
+    if (!snippet) break
+    return {
+      title: doc.title,
+      timestamp: doc.timestamp,
+      matchType: 'content',
+      snippet,
+      messageTimestamp: record.ts,
+      messageRole: record.role,
+    }
+  }
+  if (doc.title && doc.title.toLowerCase().includes(lowerQuery)) {
+    return { title: doc.title, timestamp: doc.timestamp, matchType: 'title', snippet: doc.title }
+  }
+  return null
+}
+
+/** Old disk path, kept for files the index could not hold or only partly holds. */
+async function searchClaudeFileOnDisk(
+  file: ClaudeSearchFile,
+  query: string,
+  lowerQuery: string,
+  isCurrent: () => boolean,
+): Promise<ClaudeFileHit | null> {
+  if (!(await fileContainsQuery(file.filePath, query, lowerQuery, isCurrent))) return null
+  if (!isCurrent()) return null
+  let content: string
+  try {
+    content = await fs.promises.readFile(file.filePath, 'utf-8')
+  } catch {
+    return null
+  }
+  if (!isCurrent()) return null
+  return scanClaudeFile(content, query, lowerQuery)
+}
+
+function toClaudeResult(file: ClaudeSearchFile, hit: ClaudeFileHit): SearchResult {
+  return {
+    sessionId: file.sessionId,
+    title: hit.title,
+    project: decodeProjectSlug(file.projectSlug),
+    matchType: hit.matchType,
+    snippet: hit.snippet,
+    timestamp: hit.timestamp || Date.now(),
+    engine: 'claude',
+    ...(hit.matchType === 'content' && hit.messageTimestamp
+      ? { messageTimestamp: hit.messageTimestamp, messageRole: hit.messageRole }
+      : {}),
+  }
+}
+
+/**
+ * Async walk plus concurrent stats so freshness checking does not block the
+ * event loop. The stats are what make the index correct; doing them serially
+ * costs ~200 ms on 4000 transcripts, concurrent ~30 ms.
+ */
+async function collectClaudeSearchFiles(): Promise<ClaudeSearchFile[]> {
+  const entries: Array<Omit<ClaudeSearchFile, 'mtimeMs' | 'size'>> = []
+  let projectDirs: fs.Dirent[]
+  try {
+    projectDirs = await fs.promises.readdir(PROJECTS_DIR, { withFileTypes: true })
+  } catch {
+    return []
+  }
+
+  for (const dir of projectDirs) {
+    if (!dir.isDirectory()) continue
+    const dirPath = path.join(PROJECTS_DIR, dir.name)
+    // One containment check per project directory: `dir.name` comes from
+    // readdir and cannot contain a separator, so every path below it is inside.
+    if (dir.name !== path.basename(dirPath) || !isPathInside(PROJECTS_DIR, dirPath)) continue
+    let names: string[]
+    try {
+      names = await fs.promises.readdir(dirPath)
+    } catch {
+      continue
+    }
+    for (const name of names) {
+      if (!name.endsWith('.jsonl')) continue
+      const sessionId = name.slice(0, -'.jsonl'.length)
+      if (!isValidSessionId(sessionId)) continue
+      entries.push({ filePath: path.join(dirPath, name), sessionId, projectSlug: dir.name })
+    }
+  }
+
+  const stats = await mapWithConcurrency(entries, 32, async entry => {
+    try {
+      const stat = await fs.promises.stat(entry.filePath)
+      return { ...entry, mtimeMs: stat.mtimeMs, size: stat.size }
+    } catch {
+      return null // vanished between readdir and stat
+    }
+  })
+  return stats.filter((file): file is ClaudeSearchFile => file !== null)
+}
+
+// Newest-first file order makes a scan stop as soon as the result limit is
+// reached; without it a common query would produce every hit in the corpus to
+// render 30 rows. The counter lets a newer keystroke cancel a query in flight.
 let claudeSearchEpoch = 0
 
 /**
  * Cross-session content search over Claude transcripts.
  *
  * Asynchronous on purpose: the IPC handler is the only caller and a synchronous
- * scan of the corpus would freeze the window. Files are byte-filtered before
- * any JSON parsing, so only sessions that actually contain the query pay for a
- * parse.
+ * scan of the corpus would freeze the window. The corpus walk and stat are
+ * async, and the match itself is an in-memory scan over the incremental index.
+ * Files not indexed (cold start, budget eviction, truncated prefix) are read
+ * with the previous streaming/parse path so their evidence fields stay intact.
  */
 export async function searchSessions(query: string, limit = 30): Promise<SearchResult[]> {
   if (!query || query.length < 2 || !fs.existsSync(PROJECTS_DIR)) return []
@@ -648,69 +830,39 @@ export async function searchSessions(query: string, limit = 30): Promise<SearchR
   const epoch = ++claudeSearchEpoch
   const isCurrent = () => epoch === claudeSearchEpoch
   const lowerQuery = query.toLowerCase()
-  const files: ClaudeSearchFile[] = []
 
-  try {
-    const projectDirs = fs.readdirSync(PROJECTS_DIR, { withFileTypes: true })
-      .filter(d => d.isDirectory())
-    for (const dir of projectDirs) {
-      const projectSlug = dir.name
-      const dirPath = path.join(PROJECTS_DIR, projectSlug)
-      let names: string[]
-      try {
-        names = fs.readdirSync(dirPath).filter(f => f.endsWith('.jsonl'))
-      } catch { continue }
-      for (const file of names) {
-        const sessionId = file.replace('.jsonl', '')
-        const filePath = path.join(dirPath, file)
-        if (!isValidSessionId(sessionId) || !isPathInside(PROJECTS_DIR, filePath)) continue
-        try {
-          const stat = fs.statSync(filePath)
-          files.push({ sessionId, projectSlug, filePath, mtimeMs: stat.mtimeMs })
-        } catch { /* vanished between readdir and stat */ }
-      }
-    }
-  } catch {
-    return []
-  }
-
+  const files = await collectClaudeSearchFiles()
+  if (!isCurrent()) return []
   files.sort((a, b) => b.mtimeMs - a.mtimeMs)
 
-  const CONCURRENCY = 3
+  const candidates = await claudeSearchIndex.sync(files)
+  if (!isCurrent()) return []
+
   const results: SearchResult[] = []
-  let cursor = 0
+  let fallbackBudget = MAX_FALLBACK_READS
 
-  const worker = async () => {
-    while (isCurrent() && cursor < files.length && results.length < limit) {
-      const file = files[cursor++]
-      if (!(await fileContainsQuery(file.filePath, query, lowerQuery, isCurrent))) continue
-      if (!isCurrent()) return
-      let content: string
-      try {
-        content = await fs.promises.readFile(file.filePath, 'utf-8')
-      } catch { continue }
-      if (!isCurrent()) return
-      const hit = scanClaudeFile(content, query, lowerQuery)
-      if (!hit) continue
-      results.push({
-        sessionId: file.sessionId,
-        title: hit.title,
-        project: decodeProjectSlug(file.projectSlug),
-        matchType: hit.matchType,
-        snippet: hit.snippet,
-        timestamp: hit.timestamp || Date.now(),
-        engine: 'claude',
-        ...(hit.matchType === 'content' && hit.messageTimestamp
-          ? { messageTimestamp: hit.messageTimestamp, messageRole: hit.messageRole }
-          : {}),
-      })
+  for (const candidate of candidates) {
+    if (!isCurrent() || results.length >= limit) break
+
+    let hit = candidate.doc ? matchClaudeDoc(candidate.doc, query, lowerQuery) : null
+
+    // A partial document may hold the match past its stored prefix. A deferred
+    // document was evicted for budget and was never in memory. Either way the
+    // disk path answers with the same evidence the old implementation produced.
+    // A `pending` document is being extracted by a running build: the query
+    // answers with what is indexed so far instead of reading it now.
+    const needsDisk = candidate.doc
+      ? candidate.doc.partial && hit?.matchType !== 'content'
+      : candidate.state === 'deferred'
+    if (needsDisk && fallbackBudget > 0) {
+      fallbackBudget--
+      const diskHit = await searchClaudeFileOnDisk(candidate, query, lowerQuery, isCurrent)
+      if (!isCurrent()) return []
+      hit = diskHit ?? hit
     }
+    if (!hit) continue
+    results.push(toClaudeResult(candidate, hit))
   }
-
-  await Promise.all(Array.from(
-    { length: Math.min(CONCURRENCY, files.length) },
-    () => worker(),
-  ))
 
   if (!isCurrent()) return []
   return results.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit)

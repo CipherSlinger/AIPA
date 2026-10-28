@@ -1,6 +1,5 @@
 import { ipcMain, BrowserWindow, shell, app, dialog } from 'electron'
 import * as fs from 'fs'
-import * as os from 'os'
 import * as path from 'path'
 import { ptyManager } from '../pty/pty-manager'
 import { fallbackShellManager } from '../pty/fallback-shell'
@@ -8,8 +7,8 @@ import { codexBridgeManager, renameCodexThread } from '../codex/codex-bridge'
 import { buildCodexTurnArgs } from '../codex/codex-turn-args'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { speculationManager, isSafeToSpeculate } from '../pty/speculation-bridge'
-import { readSettings, writeSettings, listSessions as listClaudeSessions, loadSession as loadClaudeSession, deleteSession as deleteClaudeSession, forkSession as forkClaudeSession, renameSession, generateSessionTitle, generatePromptSuggestion, generateAwaySummary, rewindSession, searchSessions as searchClaudeSessions, detectTurnInterruption, getDreamConsolidationMtime } from '../sessions/session-reader'
-import { listSessions as listCodexSessions, loadSession as loadCodexSession, deleteSession as deleteCodexSession, forkSession as forkCodexSession, searchSessions as searchCodexSessions, readCodexConfig, isCodexSession } from '../codex/codex-session-reader'
+import { readSettings, writeSettings, listSessions as listClaudeSessions, loadSession as loadClaudeSession, deleteSession as deleteClaudeSession, forkSession as forkClaudeSession, renameSession, rewindSession, searchSessions as searchClaudeSessions, detectTurnInterruption, getDreamConsolidationMtime } from '../sessions/session-reader'
+import { listSessions as listCodexSessions, loadSession as loadCodexSession, deleteSession as deleteCodexSession, forkSession as forkCodexSession, searchSessions as searchCodexSessions, isCodexSession } from '../codex/codex-session-reader'
 import { addMcpServer, getMcpConfigInfo, readMcpServers, removeMcpServer, setMcpServerEnabledRouted } from '../config/mcp-config'
 import { getSessionStats } from '../sessions/session-stats'
 import { getApiKey, setApiKey, getPref, setPref, getAllPrefs, resetAllPrefs } from '../config/config-manager'
@@ -26,6 +25,7 @@ import { readPluginData, writePluginData, fetchGithubCommits, scanFolderChanges,
 import { startPluginEdit, sendPluginEdit, abortPluginEdit, endPluginEdit } from '../plugins/plugin-edit-session'
 import { askPluginChat } from '../plugins/plugin-chat'
 import { getCliPath } from '../utils/cli-path'
+import { resolveAuxiliaryEngine, noteAuxiliaryEngineUnavailable, deriveSessionTitle } from '../llm/auxiliary-engine'
 import { validateApiKey, validateModelName, validateFlags, safePath, getAllowedFsRoots, isValidSessionId } from '../utils/validate'
 import { registerSkillsHandlers } from './skills-handlers'
 import { registerProviderHandlers } from './provider-handlers'
@@ -860,6 +860,25 @@ async function registerLegacySendMessage(
 // ── Internal (background) turns ──────────────────────────
 
 /**
+ * Keep a background caller's model id from crossing engines.
+ *
+ * Suggestions and memory extraction take the model from renderer prefs, which
+ * describes the *chat* engine. A Claude id sent to Codex's `thread/start` is
+ * rejected as an unknown model, so it is dropped there and Codex uses its own
+ * default. The Claude bridge is left alone: provider scenarios deliberately
+ * pass non-Claude model ids through `ANTHROPIC_MODEL`/`--model`.
+ */
+function pickModelForEngine(
+  model: string | undefined,
+  engine: 'codex' | 'claude',
+): string | undefined {
+  if (!model) return undefined
+  const looksClaude = /^claude[-:]/i.test(model)
+  if (engine === 'codex' && looksClaude) return undefined
+  return model
+}
+
+/**
  * Run one CLI turn that belongs to no conversation: the bridge gets an
  * `internal-` id, its events go to a private sink, and the final text is the
  * invoke's result. Both engines are reachable through the same two helpers,
@@ -930,18 +949,42 @@ async function runInternalTurn(
     }
   }
 
-  const env = (args.env as Record<string, string>) || {}
+  const explicitEnv = (args.env as Record<string, string>) || {}
   // Explicit Claude credentials mean the caller meant the Claude engine.
   // Testing the API key for truthiness sent gateway configs (empty key + auth
   // token) to Codex, which then failed auth or rejected the read-only sandbox.
-  const hasClaudeCredentials = 'ANTHROPIC_API_KEY' in env || 'ANTHROPIC_AUTH_TOKEN' in env
-  const useCodex = !hasClaudeCredentials || !!env.OPENAI_API_KEY
+  const hasClaudeCredentials = 'ANTHROPIC_API_KEY' in explicitEnv || 'ANTHROPIC_AUTH_TOKEN' in explicitEnv
+  let useCodex: boolean
+  let engineEnv: Record<string, string> = explicitEnv
+  let engineKind: 'codex' | 'claude'
+  if (hasClaudeCredentials) {
+    useCodex = Boolean(explicitEnv.OPENAI_API_KEY)
+    engineKind = useCodex ? 'codex' : 'claude'
+  } else {
+    // No engine hint from the caller: pick the engine this profile can
+    // actually authenticate with. Defaulting to Codex used to break
+    // legacy-only profiles; defaulting to the legacy CLI (the old behaviour
+    // for these callers) spent the wrong account on Codex profiles.
+    const engine = resolveAuxiliaryEngine()
+    if (engine.kind === 'none') {
+      noteAuxiliaryEngineUnavailable(engine.reason)
+      return { success: false, error: `No authenticated engine: ${engine.reason}` }
+    }
+    engineKind = engine.kind
+    useCodex = engine.kind === 'codex'
+    if (engine.kind === 'claude') {
+      // Provider credentials/URLs must reach the child, exactly as they do for
+      // `provider:sendMessage`. Legacy credentials are also passed explicitly
+      // so the bridge cannot fall back to the other engine.
+      engineEnv = { ...explicitEnv, ...engine.env }
+    }
+  }
 
   const sendArgs: Record<string, unknown> = {
     prompt,
     cwd: (args.cwd as string) || process.cwd(),
-    model: args.model,
-    env,
+    model: pickModelForEngine(typeof args.model === 'string' ? args.model : undefined, engineKind),
+    env: engineEnv,
     // Answer-only turns (plugin `chat.ask`) must not touch tools. Codex's plan
     // mode already means a read-only sandbox; the Claude CLI needs the empty
     // tool list to get the same guarantee.
@@ -995,6 +1038,71 @@ async function runInternalTurn(
     return { success: false, error: lastError || 'Empty response' }
   }
   return { success: true, text }
+}
+
+/**
+ * One hidden, engine-routed turn for a small UI feature.
+ *
+ * Returning '' is the feature's "off" state: the renderer already treats an
+ * empty result as "nothing to show", and doing so here keeps an unconfigured
+ * profile from spawning a process it cannot authenticate.
+ */
+async function runAuxiliaryPrompt(args: {
+  prompt: string
+  timeoutMs: number
+  tag: string
+}): Promise<string> {
+  const engine = resolveAuxiliaryEngine()
+  if (engine.kind === 'none') {
+    noteAuxiliaryEngineUnavailable(engine.reason)
+    return ''
+  }
+  const result = await runInternalTurn({
+    prompt: args.prompt,
+    timeoutMs: args.timeoutMs,
+    internalTag: args.tag,
+    // A read-only, answer-only turn: these prompts may summarise private chat
+    // context and must not get tool access to the workspace.
+    answerOnly: true,
+    // Pass the resolved engine's credentials so `runInternalTurn` cannot pick
+    // the other engine if the profile state changed between the two checks.
+    ...(engine.kind === 'claude' ? { env: engine.env } : {}),
+  })
+  return result.success ? (result.text || '').trim() : ''
+}
+
+/**
+ * Predict the user's next message (ghost text in the composer).
+ *
+ * Previously spawned `cli --print`; now runs on whichever engine the profile
+ * is actually on, through the same private bridge as other background work.
+ */
+async function generatePromptSuggestion(context: string): Promise<string> {
+  const systemPrompt = 'You are a prompt predictor. Given the conversation context, predict what the user would naturally type next as their follow-up message. Output ONLY the predicted prompt text (2-12 words). Match the user\'s language and style. No quotes, no explanation.'
+  const text = await runAuxiliaryPrompt({
+    prompt: `${systemPrompt}\n\nConversation context:\n${context}\n\nPredict the user's next message (2-12 words):`,
+    timeoutMs: 12_000,
+    tag: 'suggestion',
+  })
+  // Models occasionally wrap the answer in quotes despite the instruction.
+  const suggestion = text.replace(/^["'`]+|["'`]+$/g, '').trim()
+  return suggestion.length > 0 && suggestion.length <= 120 ? suggestion : ''
+}
+
+/**
+ * A 1-3 sentence recap for the "while you were away" dialog.
+ *
+ * Same engine rule as the suggestion; `cli:runInternal` was already the right
+ * shape, so this uses it rather than a second spawn path.
+ */
+async function generateAwaySummary(context: string): Promise<string> {
+  const systemPrompt = 'You are a session recap assistant. The user stepped away and is coming back. Write exactly 1-3 short sentences. Start by stating the high-level task — what they are building or debugging, not implementation details. Next: the concrete next step. Skip status reports and commit recaps. Match the user\'s language.'
+  const text = await runAuxiliaryPrompt({
+    prompt: `${systemPrompt}\n\nConversation context:\n${context}\n\nWrite a 1-3 sentence recap of where we left off:`,
+    timeoutMs: 15_000,
+    tag: 'away-summary',
+  })
+  return text.length > 0 && text.length <= 500 ? text : ''
 }
 
 // ----------------------------------------
@@ -1071,9 +1179,17 @@ function registerSessionHandlers(): void {
       return false
     }
   })
-  ipcMain.handle('session:generateTitle', async (_e: Electron.IpcMainInvokeEvent, { description }: { description: string }) => {
-    const cliPath = getCliPath()
-    return generateSessionTitle(description, cliPath)
+  ipcMain.handle('session:generateTitle', (_e: Electron.IpcMainInvokeEvent, { description }: { description: string }) => {
+    try {
+      if (typeof description !== 'string') return ''
+      // Local derivation: the legacy CLI never shipped a working
+      // `generate-session-title` subcommand, so spawning it only added a
+      // process start on the path to the same fallback.
+      return deriveSessionTitle(description)
+    } catch (err) {
+      log.debug('session:generateTitle failed:', String(err))
+      return ''
+    }
   })
 
   ipcMain.handle('session:rewind', async (_e: Electron.IpcMainInvokeEvent, { sessionId, beforeTimestamp }: { sessionId: string; beforeTimestamp: string }) => {
@@ -1110,13 +1226,25 @@ function registerSessionHandlers(): void {
   })
 
   ipcMain.handle('cli:generateSuggestion', async (_e: Electron.IpcMainInvokeEvent, { context }: { context: string }) => {
-    const cliPath = getCliPath()
-    return generatePromptSuggestion(context, cliPath)
+    try {
+      if (typeof context !== 'string' || !context.trim()) return ''
+      return await generatePromptSuggestion(context)
+    } catch (err) {
+      // Fires after every assistant turn; a warning per failure would drown
+      // the log. The empty string is the renderer's "no suggestion" state.
+      log.debug('cli:generateSuggestion failed:', String(err))
+      return ''
+    }
   })
 
   ipcMain.handle('cli:generateAwaySummary', async (_e: Electron.IpcMainInvokeEvent, { context }: { context: string }) => {
-    const cliPath = getCliPath()
-    return generateAwaySummary(context, cliPath)
+    try {
+      if (typeof context !== 'string' || !context.trim()) return ''
+      return await generateAwaySummary(context)
+    } catch (err) {
+      log.debug('cli:generateAwaySummary failed:', String(err))
+      return ''
+    }
   })
   ipcMain.handle('session:detectInterruption', (_e: Electron.IpcMainInvokeEvent, { sessionId }: { sessionId: string }) => {
     try {
@@ -1712,11 +1840,23 @@ function registerSpeculationHandlers(): void {
     if (!isSafeToSpeculate(prompt)) {
       return { id, error: 'unsafe_prompt' }
     }
+    // Speculation executes the guessed prompt in an isolated overlay using the
+    // legacy CLI's `--print`/`--skip-permissions` loop. Codex's app-server has
+    // no equivalent, and running the guess on the Codex engine would spend the
+    // user's quota on a message they never sent. Off is the honest state on
+    // every other engine (the hook already treats an error as "idle").
+    const engine = resolveAuxiliaryEngine()
+    if (engine.kind !== 'claude') {
+      return { id, error: 'engine_unavailable' }
+    }
+    // Provider credentials/URLs must reach the child; renderer-provided vars
+    // still win, mirroring how chat routing passes its env.
+    const effectiveEnv = { ...engine.env, ...(env || {}) }
     // Abort any previous speculation with the same id
     speculationManager.abort(id)
     const bridge = speculationManager.create(id)
     try {
-      const result = await bridge.run(prompt, cwd, model, env || {})
+      const result = await bridge.run(prompt, cwd, model, effectiveEnv)
       speculationManager.remove(id)
       return result
     } catch (err) {
