@@ -14,8 +14,10 @@
  * never labelled "paused", because its own setting is not what stopped it.
  *
  * No Electron runtime import: only the menu item shape (erased at compile
- * time), so the ordering/label logic can be exercised with plain Node.
+ * time) and Node's `path`, so the ordering/label logic can be exercised with
+ * plain Node.
  */
+import * as path from 'path'
 import type { MenuItemConstructorOptions } from 'electron'
 import type { AutomationJobView } from './automation/types'
 
@@ -27,6 +29,9 @@ export const MAX_AUTOMATIONS_IN_MENU = 12
  * inside a single comfortable row at common menu widths.
  */
 const MAX_NAME_CHARS = 36
+
+/** A watched file's basename shares the row with the job name, so it is clipped too. */
+const MAX_WATCH_LABEL_CHARS = 28
 
 export interface AutomationMenuOptions {
   isZh: boolean
@@ -57,8 +62,10 @@ export interface AutomationMenuOptions {
 type JobState =
   | 'paused'
   | 'workflow-missing'
+  | 'watch-missing'
   | 'running'
   | 'held-by-global-pause'
+  | 'watching'
   | 'no-upcoming-run'
   | 'scheduled'
 
@@ -70,23 +77,44 @@ type JobState =
  *    is also gone.
  * 2. A job whose workflow was deleted is broken, and resuming will not fix
  *    it, so it is still named while the global pause hides everything else.
- * 3. A running job is a live fact. Manual runs are allowed during a pause, so
+ * 3. A watch job whose path is gone is broken in the same durable way: the
+ *    watcher is not attached, so no file change can start it, and waiting or
+ *    resuming will not bring the path back. It sits with the deleted-workflow
+ *    row — ahead of "running" because a manual run can be in flight without the
+ *    watcher being attached — and it outranks "watching" because that label
+ *    would claim a listener that does not exist.
+ * 4. A running job is a live fact. Manual runs are allowed during a pause, so
  *    "running now" outranks the global hold.
- * 4. An enabled job under the global pause is held, not scheduled. Its
+ * 5. An enabled job under the global pause is held, not scheduled. Its
  *    `nextRunAt` is frozen across the pause, so showing that countdown would
  *    promise a run the scheduler will not start. This sits before "no
  *    upcoming run" because a dead cron is re-evaluated on resume, while the
  *    pause is the operative reason right now.
- * 5. An enabled job with no next fire is a dead cron.
- * 6. Otherwise the row carries the countdown and starts the job.
+ * 6. An enabled watch job whose watcher is attached is "watching": there is no
+ *    countdown to show, and the row must never read as "no upcoming run", which
+ *    would describe a dead cron. It stays clickable to run by hand.
+ * 7. An enabled job with no next fire is a dead cron.
+ * 8. Otherwise the row carries the countdown and starts the job.
  */
 function jobState(job: AutomationJobView, pausedAll: boolean): JobState {
   if (!job.enabled) return 'paused'
   if (job.actionMissing) return 'workflow-missing'
+  if (job.trigger.kind === 'watch' && job.watchMissing === true) return 'watch-missing'
   if (job.running) return 'running'
   if (pausedAll) return 'held-by-global-pause'
+  if (job.trigger.kind === 'watch') return 'watching'
   if (job.nextRunAt === null) return 'no-upcoming-run'
   return 'scheduled'
+}
+
+/**
+ * Basename for a watch row. A drive root ("C:\") has no basename, so the path
+ * itself is the only honest label there.
+ */
+function watchTargetLabel(target: string): string {
+  const base = path.basename(target)
+  const text = base || target.trim() || '?'
+  return text.length > MAX_WATCH_LABEL_CHARS ? `${text.slice(0, MAX_WATCH_LABEL_CHARS - 1)}…` : text
 }
 
 function clipName(name: string): string {
@@ -131,9 +159,10 @@ function formatNextRun(nextRunAt: number, isZh: boolean, now: number): string {
 }
 
 /**
- * Enabled jobs first, soonest occurrence first; a dead cron (no next fire)
- * after them; paused jobs last. Ties fall back to the name so the list does
- * not reshuffle between two jobs due in the same minute.
+ * Enabled jobs first, soonest occurrence first; a job with no next fire — a
+ * dead cron, or a live watcher, which has no calendar at all — after them;
+ * paused jobs last. Ties fall back to the name so the list does not reshuffle
+ * between two jobs due in the same minute.
  */
 function menuRank(job: AutomationJobView): number {
   if (!job.enabled) return 2
@@ -168,6 +197,10 @@ function jobItem(
       return { label: status('paused', '已暂停'), enabled: false }
     case 'workflow-missing':
       return { label: status('workflow deleted', '工作流已删除'), enabled: false }
+    case 'watch-missing':
+      // Nothing can start this job until the path is back; offering a click
+      // would suggest the row is only idly waiting for a file.
+      return { label: status('watch path missing', '监听路径不存在'), enabled: false }
     case 'running':
       // The run already owns this job; a second start is refused by the
       // scheduler, so do not even offer it.
@@ -180,6 +213,16 @@ function jobItem(
         label: status('held by global pause', '全局暂停中'),
         click: () => runNow(job.id),
       }
+    case 'watching': {
+      // The live watcher is the schedule; there is no time to show. A click
+      // starts the job now, exactly like a scheduled row. `jobState` only
+      // returns this state for a watch trigger; the check is for the compiler.
+      const target = job.trigger.kind === 'watch' ? watchTargetLabel(job.trigger.path) : '?'
+      return {
+        label: status(`watching ${target}`, `监听 ${target}`),
+        click: () => runNow(job.id),
+      }
+    }
     case 'no-upcoming-run':
       return { label: status('no upcoming run', '无下次运行'), enabled: false }
     case 'scheduled': {

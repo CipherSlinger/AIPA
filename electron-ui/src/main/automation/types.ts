@@ -9,9 +9,37 @@
 
 import type { RunUsage } from './run-usage'
 
+/**
+ * A trigger with no calendar: the job runs when the watched path changes.
+ *
+ * `nextRunAt` stays null for such a job for its whole life — the next run is a
+ * file-system event this process cannot predict — so every scheduler rail that
+ * reasons about "the next occurrence" must special-case this kind rather than
+ * read null as "a dead cron".
+ */
+export interface AutomationWatchTrigger {
+  kind: 'watch'
+  /** Absolute path to a file or to a directory. Relative paths are refused at save. */
+  path: string
+  /** Directories only: watch the whole subtree. Defaults to true. */
+  recursive?: boolean
+  /** Minimum quiet period between two watch-triggered runs, in minutes. Default 5, clamped 1..1440. */
+  debounceMinutes?: number
+}
+
 export type AutomationTrigger =
   | { kind: 'cron'; expr: string }
   | { kind: 'interval'; minutes: number }
+  | AutomationWatchTrigger
+
+/**
+ * Why a run started.
+ *
+ * `scheduled` and `watch` are the two unattended sources, so the spend rails and
+ * the hourly cap treat them identically; `manual` is the user spending on
+ * purpose and is the only source those rails exempt.
+ */
+export type AutomationRunSource = 'manual' | 'scheduled' | 'watch'
 
 export type AutomationAction =
   | { kind: 'workflow'; workflowId: string }
@@ -269,6 +297,13 @@ export interface AutomationJobView extends AutomationJob {
    * from an individually paused job without a second call.
    */
   pausedAll: boolean
+  /**
+   * A watch job whose watched path no longer exists, or whose watcher could
+   * not be attached. Absent on every other trigger kind. Present (true or
+   * false) only on watch jobs, because "no upcoming run" means something
+   * different for them: a live watcher is not a dead cron.
+   */
+  watchMissing?: boolean
   /**
    * Consecutive failed attempts, newest first, with skips ignored. Derived from
    * `history` on every read so it can never disagree with the records shown.

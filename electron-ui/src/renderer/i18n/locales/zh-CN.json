@@ -2994,7 +2994,12 @@
       "everyDays": "每 {{count}} 天",
       "daily": "每天 {{time}}",
       "weekly": "每{{day}} {{time}}",
-      "cron": "Cron：{{expr}}"
+      "cron": "Cron：{{expr}}",
+      "watch": "当 {{path}} 有变化时",
+      "watchRecursive": "包含子文件夹",
+      "watchFlat": "仅此文件夹",
+      "watchQuiet": "每 {{minutes}} 分钟最多运行一次",
+      "watchMissing": "路径不存在——未在监视"
     },
     "weekdays": {
       "0": "周日",
@@ -3039,7 +3044,8 @@
       "daily": "每天",
       "weekly": "每周",
       "interval": "间隔",
-      "cron": "自定义 Cron"
+      "cron": "自定义 Cron",
+      "watch": "文件或文件夹变化"
     },
     "dialog": {
       "createTitle": "新建自动化",
@@ -3075,7 +3081,8 @@
       "run_failed": "这次运行失败了。",
       "nothing_to_run": "工作流没有可运行的内容。",
       "cost_limit_invalid": "花费上限必须是大于 0 的金额。",
-      "cost_limit_too_high": "花费上限每天不能超过 $1000。"
+      "cost_limit_too_high": "花费上限每天不能超过 $1000。",
+      "watch_path_invalid": "请填写绝对路径，例如 /Users/me/Notes 或 C:\\Notes。"
     },
     "personaHint": "该工作流的定时运行使用此专家；工作流页面上的“运行”按钮仍使用当前对话的专家。",
     "personaMissing": "专家已删除",
@@ -3180,6 +3187,19 @@
       "lowerBoundNote": "有些运行没有报告费用，因此这个总额只是下限。",
       "partialNote": "历史记录有上限，这个时间段内较早的一次运行可能未计入总额。",
       "help": "每日预算覆盖所有定时运行；每个任务自己的限额仍然生效，手动运行不会被两者阻止。"
+    },
+    "watch": {
+      "path": "监视路径",
+      "pathPlaceholder": "输入或粘贴绝对路径，或直接选择",
+      "chooseFolder": "选择文件夹…",
+      "chooseFile": "选择文件…",
+      "pathInvalid": "请输入绝对路径，例如 /Users/me/Notes 或 C:\\Notes。",
+      "recursive": "同时监视子文件夹",
+      "recursiveHint": "仅对文件夹有效；单个文件没有子文件夹。",
+      "quiet": "静默期（分钟）",
+      "quietHint": "两次运行至少间隔这么久，这样文件夹被写入时不会每个文件都启动一次。",
+      "eventHint": "路径发生变化时运行。监视型任务没有下次运行时间；每小时上限和每日预算仍然生效。",
+      "createdToast": "“{{name}}”将在 {{path}} 发生变化时运行"
     }
   },
   "speculation": {

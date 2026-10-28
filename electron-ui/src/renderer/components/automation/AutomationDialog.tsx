@@ -6,14 +6,20 @@
 // `AutomationInputData` accepts and reports save errors verbatim.
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Info } from 'lucide-react'
+import { AlertTriangle, File, FolderOpen, Info } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { usePrefsStore, useUiStore } from '../../store'
 import type { Persona } from '../../types/app.types'
 import Toggle from '../ui/Toggle'
 import { INPUT_STYLE } from '../settings/settingsConstants'
 import { pushEscapeHandler } from '../ui/escapeStack'
-import { clockText, describeCron, scheduleText } from './scheduleText'
+import {
+  DEFAULT_WATCH_DEBOUNCE_MINUTES,
+  clockText,
+  describeCron,
+  scheduleText,
+  watchWarningText,
+} from './scheduleText'
 import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from './automationStyles'
 import type {
   AutomationInputData,
@@ -39,7 +45,24 @@ export const ASSISTANT_PERSONA_ID = '__assistant__'
 // Stable empty array: an absent pref must not create a new reference per render.
 const EMPTY_PERSONAS: Persona[] = []
 
-type ScheduleKind = 'daily' | 'weekly' | 'interval' | 'cron'
+type ScheduleKind = 'daily' | 'weekly' | 'interval' | 'cron' | 'watch'
+
+/** The quiet-period bounds the main process enforces, kept in the input too. */
+const WATCH_DEBOUNCE_MIN = 1
+const WATCH_DEBOUNCE_MAX = 1440
+
+/**
+ * Whether a path looks absolute, as far as the renderer can tell. Main
+ * re-validates and its refusal is final; this only stops a save that is
+ * certain to be rejected. A leading `/` (POSIX), a drive letter such as
+ * `C:\` or `C:/`, and a UNC prefix `\\server\share` all count.
+ */
+function isAbsolutePath(path: string): boolean {
+  const trimmed = path.trim()
+  if (trimmed === '') return false
+  if (trimmed.startsWith('/') || trimmed.startsWith('\\\\')) return true
+  return /^[a-zA-Z]:[\\/]/.test(trimmed)
+}
 
 export interface AutomationDialogProps {
   /** null = create a new automation. */
@@ -139,6 +162,7 @@ export default function AutomationDialog({
   const [retryOnFailure, setRetryOnFailure] = useState(job?.retryOnFailure === true)
   const [scheduleKind, setScheduleKind] = useState<ScheduleKind>(() => {
     if (!job) return 'daily'
+    if (job.trigger.kind === 'watch') return 'watch'
     if (job.trigger.kind === 'interval') return 'interval'
     const parsed = describeCron(job.trigger.expr)
     if (!parsed) return 'cron'
@@ -153,6 +177,19 @@ export default function AutomationDialog({
   const [cronExpr, setCronExpr] = useState(
     cronIsCustom && job?.trigger.kind === 'cron' ? job.trigger.expr : '0 9 * * *',
   )
+  // A watch job stores an absolute path and, for folders, whether subfolders
+  // count. Kept as text so a pasted path is never normalized behind the user's
+  // back; main trims and validates it.
+  const [watchPath, setWatchPath] = useState(job?.trigger.kind === 'watch' ? job.trigger.path : '')
+  // `recursive` defaults to true on the wire, so only an explicit false is off.
+  const [watchRecursive, setWatchRecursive] = useState(
+    job?.trigger.kind === 'watch' ? job.trigger.recursive !== false : true,
+  )
+  const [watchDebounce, setWatchDebounce] = useState(
+    job?.trigger.kind === 'watch'
+      ? (job.trigger.debounceMinutes ?? DEFAULT_WATCH_DEBOUNCE_MINUTES)
+      : DEFAULT_WATCH_DEBOUNCE_MINUTES,
+  )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -165,11 +202,24 @@ export default function AutomationDialog({
   }, [t])
 
   const trigger = useMemo<AutomationTriggerData>(() => {
+    if (scheduleKind === 'watch') {
+      // Clamp here only so a cleared or wild number cannot be sent as NaN; the
+      // authoritative bounds live in the main process and its error is shown.
+      const minutes = Number.isFinite(watchDebounce)
+        ? Math.min(WATCH_DEBOUNCE_MAX, Math.max(WATCH_DEBOUNCE_MIN, Math.round(watchDebounce)))
+        : DEFAULT_WATCH_DEBOUNCE_MINUTES
+      return {
+        kind: 'watch',
+        path: watchPath.trim(),
+        recursive: watchRecursive,
+        debounceMinutes: minutes,
+      }
+    }
     if (scheduleKind === 'interval') return { kind: 'interval', minutes: Number(intervalMinutes) || 0 }
     if (scheduleKind === 'cron') return { kind: 'cron', expr: cronExpr.trim() }
     if (scheduleKind === 'weekly') return { kind: 'cron', expr: `${minute} ${hour} * * ${weekday}` }
     return { kind: 'cron', expr: `${minute} ${hour} * * *` }
-  }, [scheduleKind, intervalMinutes, cronExpr, minute, hour, weekday])
+  }, [scheduleKind, intervalMinutes, cronExpr, minute, hour, weekday, watchPath, watchRecursive, watchDebounce])
 
   const action = useMemo(() => {
     if (actionKind === 'workflow') return { kind: 'workflow', workflowId } as const
@@ -183,9 +233,14 @@ export default function AutomationDialog({
   const spendLimitValid = spendLimitValue === undefined ||
     (Number.isFinite(spendLimitValue) && spendLimitValue > 0)
 
+  // A watch job with no absolute path would be rejected by main anyway; the
+  // dialog refuses first so the user sees the field rather than a round-trip.
+  const watchPathValid = scheduleKind !== 'watch' || isAbsolutePath(watchPath)
+
   const canSave = name.trim().length > 0 &&
     (actionKind === 'workflow' ? !!workflowId : prompt.trim().length > 0) &&
     spendLimitValid &&
+    watchPathValid &&
     !saving
 
   const save = async () => {
@@ -214,12 +269,20 @@ export default function AutomationDialog({
       if (result.ok) {
         // A new job's next run is the one fact the user cannot see yet: the
         // list behind this dialog may not even be open. Name the schedule in
-        // the same words the settings row uses.
+        // the same words the settings row uses. A watch job has no next run, so
+        // its toast names the event instead of a time.
         if (!job) {
-          addToast('success', t('automation.createdToast', {
-            name: name.trim(),
-            schedule: scheduleText(t, trigger),
-          }))
+          if (trigger.kind === 'watch') {
+            addToast('success', t('automation.watch.createdToast', {
+              name: name.trim(),
+              path: trigger.path,
+            }))
+          } else {
+            addToast('success', t('automation.createdToast', {
+              name: name.trim(),
+              schedule: scheduleText(t, trigger),
+            }))
+          }
         }
         onClose()
       } else setError(errorText(result.error))
@@ -230,7 +293,38 @@ export default function AutomationDialog({
     }
   }
 
+  /**
+   * The two pickers only fill the path field: the field stays editable, so a
+   * pasted path works without either dialog. Both resolve to null when the
+   * user cancels, which must leave whatever was typed in place.
+   */
+  const pickFolder = async () => {
+    try {
+      const picked = await window.electronAPI.fsShowOpenDialog()
+      if (picked) setWatchPath(picked)
+    } catch {
+      /* the dialog is unavailable or was cancelled; keep the typed path */
+    }
+  }
+
+  const pickFile = async () => {
+    try {
+      const picked = await window.electronAPI.fsShowOpenFileDialog(
+        [{ name: t('toolbar.allFiles'), extensions: ['*'] }],
+        false,
+      )
+      if (picked && picked.length > 0) setWatchPath(picked[0])
+    } catch {
+      /* cancelled or unavailable; keep the typed path */
+    }
+  }
+
   const timeValue = clockText(hour, minute)
+
+  // Only an existing job can already be missing its path; a path typed in this
+  // dialog has not been checked against the disk, and main reports it after
+  // save, so the dialog does not pretend to know.
+  const missingWarning = job ? watchWarningText(job, t) : null
 
   const selectedWorkflow = workflows.find(w => w.id === workflowId)
   const workflowPersona = selectedWorkflow?.personaId
@@ -429,7 +523,7 @@ export default function AutomationDialog({
         <div style={{ marginBottom: 12 }}>
           <label style={labelStyle}>{t('automation.field.schedule')}</label>
           <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-            {(['daily', 'weekly', 'interval'] as const).map(kind => (
+            {(['daily', 'weekly', 'interval', 'watch'] as const).map(kind => (
               <button
                 key={kind}
                 onClick={() => setScheduleKind(kind)}
@@ -460,7 +554,102 @@ export default function AutomationDialog({
             )}
           </div>
 
-          {scheduleKind === 'interval' ? (
+          {scheduleKind === 'watch' ? (
+            <div>
+              <label style={labelStyle}>{t('automation.watch.path')}</label>
+              <input
+                value={watchPath}
+                onChange={e => setWatchPath(e.target.value)}
+                placeholder={t('automation.watch.pathPlaceholder')}
+                style={{ ...INPUT_STYLE, fontFamily: 'monospace' }}
+                spellCheck={false}
+                aria-invalid={watchPath.trim() !== '' && !isAbsolutePath(watchPath)}
+              />
+              <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                <button type="button" style={smallButtonStyle} onClick={pickFolder}>
+                  <FolderOpen size={11} />
+                  {t('automation.watch.chooseFolder')}
+                </button>
+                <button type="button" style={smallButtonStyle} onClick={pickFile}>
+                  <File size={11} />
+                  {t('automation.watch.chooseFile')}
+                </button>
+              </div>
+              {watchPath.trim() !== '' && !isAbsolutePath(watchPath) && (
+                // Only the case the renderer can be sure of. An existing job's
+                // missing path is main's report, shown below.
+                <div style={{ fontSize: 11, color: 'var(--danger-text)', marginTop: 4, lineHeight: 1.5 }}>
+                  {t('automation.watch.pathInvalid')}
+                </div>
+              )}
+              {missingWarning && (
+                <div style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 5,
+                  fontSize: 11, color: WARNING, marginTop: 4, lineHeight: 1.5,
+                }}>
+                  <AlertTriangle size={11} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>{missingWarning}</span>
+                </div>
+              )}
+
+              {watchPath.trim() !== '' && (
+                // The dialog is the one surface with room for the whole
+                // sentence, so the subfolder and quiet-period clauses live
+                // here and the settings row keeps the bare form. It previews
+                // the words the row will use, including the two controls below.
+                <div style={{
+                  fontSize: 11, color: SECONDARY, marginTop: 6,
+                  lineHeight: 1.5, overflowWrap: 'anywhere',
+                }}>
+                  {scheduleText(t, trigger, true)}
+                </div>
+              )}
+
+              {/* Shown for every path rather than guessed from the text. A
+                  trailing slash is the only folder signal a typed path gives,
+                  and a wrong guess would silently drop a folder's subfolders
+                  from the watch. */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10 }}>
+                <div style={{ paddingTop: 1 }}>
+                  <Toggle
+                    value={watchRecursive}
+                    onChange={setWatchRecursive}
+                    aria-label={t('automation.watch.recursive')}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                    {t('automation.watch.recursive')}
+                  </div>
+                  <div style={{ fontSize: 11, color: SECONDARY, marginTop: 2, lineHeight: 1.5 }}>
+                    {t('automation.watch.recursiveHint')}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 10 }}>
+                <label style={labelStyle}>{t('automation.watch.quiet')}</label>
+                <input
+                  type="number"
+                  min={WATCH_DEBOUNCE_MIN}
+                  max={WATCH_DEBOUNCE_MAX}
+                  value={watchDebounce}
+                  onChange={e => setWatchDebounce(Number(e.target.value))}
+                  style={{ ...INPUT_STYLE, width: 140 }}
+                />
+                <div style={{ fontSize: 11, color: SECONDARY, marginTop: 4, lineHeight: 1.5 }}>
+                  {t('automation.watch.quietHint')}
+                </div>
+              </div>
+
+              {/* A watch job has no next run to name. Saying so here, where the
+                  schedule is decided, keeps the row's missing countdown from
+                  reading as a bug. */}
+              <div style={{ fontSize: 11, color: SECONDARY, marginTop: 8, lineHeight: 1.5 }}>
+                {t('automation.watch.eventHint')}
+              </div>
+            </div>
+          ) : scheduleKind === 'interval' ? (
             <div>
               <label style={labelStyle}>{t('automation.field.interval')}</label>
               <input

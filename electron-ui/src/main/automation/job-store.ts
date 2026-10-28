@@ -15,6 +15,7 @@ import { normalizePendingRetry } from './retry-policy'
 import { normalizeRunHistory } from './run-history'
 import { normalizeCost, normalizeRunUsage, normalizeTokenCount } from './run-usage'
 import { normalizeDailyCostLimit } from './spend-guard'
+import { normalizeWatchDebounceMinutes } from './watcher'
 import type { AutomationAction, AutomationJob, AutomationRunStatus, AutomationTrigger } from './types'
 
 const log = createLogger('automation-store')
@@ -30,6 +31,16 @@ function isTrigger(value: unknown): value is AutomationTrigger {
   const trigger = value as Record<string, unknown>
   if (trigger.kind === 'cron') return typeof trigger.expr === 'string' && trigger.expr.trim().length > 0
   if (trigger.kind === 'interval') return typeof trigger.minutes === 'number' && Number.isFinite(trigger.minutes)
+  if (trigger.kind === 'watch') {
+    // The same shape the create/update path enforces: a hand-edited file must
+    // not smuggle in a relative path, which the watcher would resolve against
+    // an unrelated cwd. Defaults are filled by `normalizeTrigger` below.
+    return typeof trigger.path === 'string' &&
+      path.isAbsolute(trigger.path.trim()) &&
+      (trigger.recursive === undefined || typeof trigger.recursive === 'boolean') &&
+      (trigger.debounceMinutes === undefined ||
+        (typeof trigger.debounceMinutes === 'number' && Number.isFinite(trigger.debounceMinutes)))
+  }
   return false
 }
 
@@ -50,12 +61,31 @@ function numberOrNull(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
+/**
+ * A validated trigger with its defaults filled in.
+ *
+ * A watch trigger's optional fields are materialized here so the rest of the
+ * main process (watcher, view, menu) never has to repeat "absent means true /
+ * five minutes". This is a normalization, not a migration: the values are the
+ * ones the create/update validation would have stored.
+ */
+function normalizeTrigger(trigger: AutomationTrigger): AutomationTrigger {
+  if (trigger.kind !== 'watch') return trigger
+  return {
+    kind: 'watch',
+    path: trigger.path.trim(),
+    recursive: trigger.recursive !== false,
+    debounceMinutes: normalizeWatchDebounceMinutes(trigger.debounceMinutes),
+  }
+}
+
 function normalizeJob(raw: unknown): AutomationJob | null {
   if (!raw || typeof raw !== 'object') return null
   const job = raw as Record<string, unknown>
   if (typeof job.id !== 'string' || !job.id) return null
   if (typeof job.name !== 'string' || !job.name.trim()) return null
   if (!isTrigger(job.trigger) || !isAction(job.action)) return null
+  const trigger = normalizeTrigger(job.trigger)
 
   const status = typeof job.lastStatus === 'string' && STATUSES.includes(job.lastStatus as AutomationRunStatus)
     ? job.lastStatus as AutomationRunStatus
@@ -70,7 +100,7 @@ function normalizeJob(raw: unknown): AutomationJob | null {
     id: job.id,
     name: job.name.trim(),
     enabled,
-    trigger: job.trigger,
+    trigger,
     action: job.action,
     // Absent and '' both mean "follow the workflow"; only a real id is kept,
     // so a job can never be persisted as "a persona called ''".
@@ -92,7 +122,9 @@ function normalizeJob(raw: unknown): AutomationJob | null {
       : undefined,
     createdAt: numberOrNull(job.createdAt) ?? Date.now(),
     updatedAt: numberOrNull(job.updatedAt) ?? Date.now(),
-    nextRunAt: numberOrNull(job.nextRunAt),
+    // A watch job has no calendar at all. A stale or hand-edited `nextRunAt`
+    // must never let the due-tick pick it up, so it is nulled on the way in.
+    nextRunAt: trigger.kind === 'watch' ? null : numberOrNull(job.nextRunAt),
     lastRunAt: numberOrNull(job.lastRunAt),
     lastStatus: status,
     lastError: typeof job.lastError === 'string' ? job.lastError : null,

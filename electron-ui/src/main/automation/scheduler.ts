@@ -15,6 +15,7 @@
 import { app, BrowserWindow } from 'electron'
 import * as fs from 'fs'
 import * as os from 'os'
+import * as path from 'path'
 import { getPref, getRawPref } from '../config/config-manager'
 import { raiseAttention } from '../clawd-attention'
 import { nextFireTime, parseCron } from '../utils/cron'
@@ -35,6 +36,8 @@ import {
 import { pickRunModel, resolveScheduledPersona } from './persona-plan'
 import type { StoredPersona, WorkflowPersonaBinding } from './persona-plan'
 import { abortAutomationRun } from './runner'
+import { normalizeWatchDebounceMinutes, stopWatchers, syncWatchTriggers, watchAttachFailed } from './watcher'
+import type { WatchHandlers } from './watcher'
 import { workflowPrompts } from './workflow-plan'
 import type { MainWorkflow, UiLocale } from './workflow-plan'
 import type {
@@ -45,6 +48,7 @@ import type {
   AutomationLimits,
   AutomationRunOutcome,
   AutomationRunRequest,
+  AutomationRunSource,
   AutomationTrigger,
 } from './types'
 
@@ -130,11 +134,31 @@ function nextRunAfter(trigger: AutomationTrigger, after: number): number | null 
     const next = nextFireTime(trigger.expr, new Date(after))
     return next ? next.getTime() : null
   }
+  // A watch job has no calendar. Its next run is the next file-system event,
+  // which this process cannot predict, so "never" is the only honest answer —
+  // and it is also what keeps the due-tick from ever choosing the job.
+  if (trigger.kind === 'watch') return null
   return after + trigger.minutes * 60_000
 }
 
 function validateTrigger(value: AutomationTrigger): AutomationTrigger {
   if (!value || typeof value !== 'object') throw new AutomationInputError('trigger_invalid')
+  if (value.kind === 'watch') {
+    const target = typeof value.path === 'string' ? value.path.trim() : ''
+    // A relative path would be resolved against whatever cwd the main process
+    // happens to have, which is not the folder the user picked. Refuse it here
+    // rather than watch the wrong place. A path that merely does not exist yet
+    // is accepted: folders get created and drives come back, and the view says
+    // when it is missing.
+    if (!target || !path.isAbsolute(target)) throw new AutomationInputError('watch_path_invalid')
+    return {
+      kind: 'watch',
+      path: target,
+      // Directory recursion defaults to on; a single file ignores it.
+      recursive: value.recursive !== false,
+      debounceMinutes: normalizeWatchDebounceMinutes(value.debounceMinutes),
+    }
+  }
   if (value.kind === 'cron') {
     const expr = String(value.expr ?? '').trim().replace(/\s+/g, ' ')
     if (!parseCron(expr)) throw new AutomationInputError('cron_invalid')
@@ -320,6 +344,12 @@ function toView(job: AutomationJob): AutomationJobView {
     // Derived, so a surface reading the list alone can tell that this enabled
     // job is waiting on the global pause rather than on its own schedule.
     pausedAll,
+    // A watch job's "no upcoming run" would otherwise read like a dead cron.
+    // What matters is whether the watcher is attached: a path that is gone and
+    // a watcher that could not attach both mean nothing will fire.
+    ...(job.trigger.kind === 'watch'
+      ? { watchMissing: !fs.existsSync(job.trigger.path) || watchAttachFailed(job.id) }
+      : {}),
     // Derived rather than persisted: the history is the authority, so the
     // streak can never drift from the runs the row is about to list.
     failureStreak: countFailureStreak(job.history),
@@ -357,6 +387,9 @@ function resolveModel(): string | undefined {
  * resolved so it cannot fire again a tick later, and the regular schedule
  * advances so the refused occurrence does not re-check every tick.
  * `countFailureStreak` keeps ignoring skips, so a skip is not a failure.
+ *
+ * A watch-triggered run uses this too: it is unattended spend under the same
+ * rails, and its "occurrence" is simply the moment the file changed.
  */
 function recordSpendSkip(
   job: AutomationJob,
@@ -386,7 +419,7 @@ function recordSpendSkip(
 
 async function startRun(
   job: AutomationJob,
-  opts: { manual: boolean; late: boolean; retryAttempt?: number },
+  opts: { manual: boolean; late: boolean; watch?: boolean; retryAttempt?: number },
 ): Promise<void> {
   if (!ctx || running.has(job.id)) return
   const now = Date.now()
@@ -424,6 +457,9 @@ async function startRun(
       ...(opts.retryAttempt !== undefined ? { retry: opts.retryAttempt } : {}),
     })
     log.warn(`Automation "${job.name}" disabled — its workflow no longer exists`)
+    // A disabled watch job must release its watcher here rather than wait for
+    // the next mutation that may never come.
+    syncWatchers()
     persistAndBroadcast()
     return
   }
@@ -459,7 +495,9 @@ async function startRun(
   // Manual runs bypass it: Run now is the user spending on purpose. A window
   // whose engines reported no money is *not* treated as $0 spent — the run is
   // allowed and the row says the limit could not be checked (see spend-guard).
-  const source = opts.manual ? 'manual' : 'scheduled'
+  // A watch-triggered run is unattended spend exactly like a scheduled one, so
+  // it is railed the same way. Only `manual` is exempt (the user spending now).
+  const source: AutomationRunSource = opts.manual ? 'manual' : opts.watch ? 'watch' : 'scheduled'
   const spend = checkSpendLimit(job, now, source)
   if (spend.kind === 'blocked') {
     recordSpendSkip(job, now, opts.retryAttempt, 'budget_exceeded')
@@ -580,6 +618,11 @@ async function startRun(
   // bounded attempt. `nextRetryAfterFailure` returns nothing for a default-off
   // job, a manual run, an exhausted budget, or when the regular occurrence
   // would arrive first. A failed retry is never rewritten as a success here.
+  //
+  // A failed watch run is deliberately never retried: the policy needs a
+  // non-null `nextRunAt` (it is what `expiresAt` is derived from), and a watch
+  // job's is null for life. The next file change is its retry — that is why no
+  // timer or special case is needed here.
   job.pendingRetry = outcome.ok
     ? undefined
     : nextRetryAfterFailure({
@@ -657,6 +700,85 @@ function clip(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text
 }
 
+// ── Watch triggers ───────────────────────────────────
+
+function watchHandlers(): WatchHandlers {
+  return {
+    fire: fireWatchJob,
+    // Live accessors: a watcher attaches long before an event arrives, and the
+    // pause or an in-flight run may have changed by then.
+    isRunning: id => running.has(id),
+    isPausedAll: () => pausedAll,
+    notify: broadcastChanged,
+  }
+}
+
+/**
+ * Re-align the attached watchers with the live job list.
+ *
+ * Called after every store mutation and at startup. Syncing is cheap when
+ * nothing changed; the alternative — a dirty flag kept in step by every
+ * mutation path — is one more fact that can disagree with the job list.
+ */
+function syncWatchers(): void {
+  try {
+    syncWatchTriggers(jobs, watchHandlers())
+  } catch (err) {
+    // The watcher module already absorbs per-path failures; this guards the
+    // scheduler against a bug there taking a create/update down with it.
+    log.warn('Could not sync watch triggers:', err)
+  }
+}
+
+/**
+ * Start a job because its watched path changed.
+ *
+ * The watcher has already answered "may an event fire at all" (pause, single
+ * run, debounce). This is where the rails every unattended run meets apply; a
+ * refusal writes the same skip record a scheduled occurrence would, so the
+ * history explains the silence the same way.
+ */
+function fireWatchJob(jobId: string): void {
+  const job = jobs.find(j => j.id === jobId)
+  if (!job || !job.enabled || pausedAll) return
+  if (running.has(job.id)) return
+  const now = Date.now()
+
+  // The concurrency rail. A due occurrence waits on the ticker for a free slot;
+  // a file-system event has already happened, and holding it would replay a
+  // burst of changes long after they were made. The event is dropped instead —
+  // the same coalescing rule the debounce window follows — and the next change
+  // re-opens the question.
+  if (running.size >= AUTOMATION_LIMITS.maxConcurrentRuns) {
+    log.warn(
+      `Automation "${job.name}" watch event dropped — ${running.size} runs already in flight`,
+    )
+    return
+  }
+
+  if (!hasHourlyCapacity(job, now)) {
+    // Same shape as the tick's runaway guard: a skip record, no attempt, no
+    // spend, the streak untouched. There is no occurrence to advance — the
+    // job has no calendar — so the record's time is the event itself.
+    job.lastRunAt = now
+    job.lastStatus = 'skipped'
+    job.lastError = 'hourly_limit'
+    job.lastRunLate = false
+    job.lastUsage = undefined
+    job.history = appendRunRecord(job.history, createSkipRecord(now, 'hourly_limit'))
+    persistAndBroadcast()
+    log.warn(
+      `Automation "${job.name}" watch run skipped — more than `
+      + `${AUTOMATION_LIMITS.maxRunsPerHour} runs this hour`,
+    )
+    return
+  }
+
+  // `late` stays false: a watch run is by definition on time, the file changed
+  // now. `watch` is what puts it under the unattended spend rails.
+  void startRun(job, { manual: false, late: false, watch: true })
+}
+
 // ── Tick ─────────────────────────────────────────────
 
 function tick(): void {
@@ -672,6 +794,10 @@ function tick(): void {
 
   for (const job of jobs) {
     if (!job.enabled) continue
+    // A watch job's `nextRunAt` is null for life by design, and the watcher —
+    // not this ticker — is what starts it. Falling through would make it look
+    // like a dead cron and disable it on the very first tick.
+    if (job.trigger.kind === 'watch') continue
     if (running.has(job.id)) continue
 
     // A pending retry is a bounded wait owned by this one ticker. Expire it
@@ -808,8 +934,9 @@ export function startAutomationScheduler(
       repaired = true
     }
     // Due-while-closed jobs keep their past nextRunAt: the first tick runs them
-    // once and flags them late.
-    if (job.enabled && job.nextRunAt === null) {
+    // once and flags them late. A watch job is skipped: it is meant to have no
+    // next run, and computing one would defeat the whole trigger kind.
+    if (job.enabled && job.nextRunAt === null && job.trigger.kind !== 'watch') {
       const next = nextRunAfter(job.trigger, now)
       if (next !== null) {
         job.nextRunAt = next
@@ -822,6 +949,10 @@ export function startAutomationScheduler(
     }
   }
   if (repaired) persist()
+
+  // Attach watchers before the first tick: a watch job enabled at launch must
+  // start listening at launch, not on the first store mutation.
+  syncWatchers()
 
   tick()
   timer = setInterval(tick, CHECK_INTERVAL_MS)
@@ -886,6 +1017,9 @@ export function createAutomationJob(input: AutomationInput): AutomationMutationR
       history: [],
     }
     jobs.push(job)
+    // Before the broadcast, so the view a listener reads already knows whether
+    // this watch job's path could be attached.
+    syncWatchers()
     persistAndBroadcast()
     log.info(`Automation "${name}" created`)
     return { ok: true, job: toView(job) }
@@ -937,6 +1071,9 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     else if (triggerChanged || !wasEnabled) {
       job.nextRunAt = nextRunAfter(trigger, job.updatedAt)
     }
+    // Path, recursion, debounce or `enabled` may all have changed; one sync
+    // closes what no longer matches and attaches what does.
+    syncWatchers()
     persistAndBroadcast()
     return { ok: true, job: toView(job) }
   } catch (err) {
@@ -949,6 +1086,9 @@ export function deleteAutomationJob(id: string): { ok: boolean; error?: string }
   if (index < 0) return { ok: false, error: 'not_found' }
   if (running.has(id)) abortAutomationRun(id)
   jobs.splice(index, 1)
+  // A deleted job must stop watching immediately; its watcher has no owner left
+  // to fire into.
+  syncWatchers()
   persistAndBroadcast()
   return { ok: true }
 }
@@ -963,6 +1103,7 @@ export function setAutomationEnabled(id: string, enabled: boolean): AutomationMu
   // A job that is off must not keep a retry waiting; turning it back on is a
   // fresh start, not a resumption of the old failure.
   if (!job.enabled) job.pendingRetry = undefined
+  syncWatchers()
   persistAndBroadcast()
   return { ok: true, job: toView(job) }
 }
@@ -1008,6 +1149,11 @@ export function setAutomationPausedAll(paused: boolean): AutomationPauseResult {
   } else {
     for (const job of jobs) {
       if (!job.enabled) continue
+      // A watch job has nothing to recalculate on resume: its watcher stayed
+      // attached through the pause (it was the fire decision that consulted
+      // `pausedAll`), and its `nextRunAt` is meant to be null. Treating that
+      // null as a dead cron is what this loop does for clock jobs.
+      if (job.trigger.kind === 'watch') continue
       // Keep an occurrence that is still ahead; only what the pause swallowed
       // needs a new time.
       if (job.nextRunAt !== null && job.nextRunAt > now) continue
@@ -1025,6 +1171,10 @@ export function setAutomationPausedAll(paused: boolean): AutomationPauseResult {
     }
   }
 
+  // The watchers stay attached across the pause (a fire is suppressed by the
+  // decision, not by detaching), but a sync here retries any attach that failed
+  // before the pause and keeps the contract "every mutation re-aligns".
+  syncWatchers()
   persistAndBroadcast()
   log.info(`Automation scheduler ${pausedAll ? 'paused' : 'resumed'} (${jobs.length} job(s))`)
   return { ok: true, pausedAll }
@@ -1084,9 +1234,12 @@ export function runAutomationNow(id: string): AutomationMutationResult {
   return { ok: true, job: toView(job) }
 }
 
-/** Stop the ticker (tests and shutdown). */
+/** Stop the ticker and close every watcher (tests and shutdown). */
 export function stopAutomationScheduler(): void {
   if (timer) clearInterval(timer)
   timer = null
+  // Watchers hold OS handles; without this a restart in the same process (or a
+  // harness) would leave stale listeners firing into a dead scheduler.
+  stopWatchers()
   ctx = null
 }

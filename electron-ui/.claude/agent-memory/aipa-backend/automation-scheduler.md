@@ -23,6 +23,18 @@ schedule from the main process. Decisions that are not obvious from the code:
   floor. `runNow` deliberately bypasses `enabled` and the hourly cap but not concurrency.
 - **Missing workflow:** listing flags `actionMissing`; firing it disables the job, sets `nextRunAt = null`
   and records `lastError = 'workflow_missing'`.
+- **Watch triggers (`{kind:'watch'}`, added 2026-10-29) have no calendar by design.** `nextRunAt` is
+  null for life; `nextRunAfter` returns null, and both the tick and the pause-resume loop skip watch
+  jobs before their dead-cron branch — without that skip the first tick disables every watch job.
+  `src/main/automation/watcher.ts` owns one `fs.watch` per enabled watch job (a file is watched via
+  its parent with a basename filter), `decideWatchEvent` is the pure paused/running/debounce gate
+  (coalescing: events inside the window are dropped, never replayed), and `watchAttachFailed(jobId)`
+  feeds `AutomationJobView.watchMissing`. `syncWatchTriggers` runs after every store mutation + startup
+  and retries failed attaches; `stopAutomationScheduler` closes them. A watch fire enters
+  `startRun(job, {manual:false, late:false, watch:true})` through `fireWatchJob`, so the per-job and
+  global spend rails and the hourly cap all apply (source `'watch'`); a failure never retries because
+  `nextRetryAfterFailure` needs a non-null `nextRunAt` — the next file change is the retry.
+  Menu states `watch-missing` (disabled) and `watching <basename>` (clickable).
 - **Errors crossing IPC are codes**, translated by `automation.errors.*` in both locales — never prose.
 - **Turn args come from `buildCodexTurnArgs` (`src/main/codex/codex-turn-args.ts`)**, never a hand-built
   `env: {}`. That builder injects the Settings key and picks sandbox/approval; automations add

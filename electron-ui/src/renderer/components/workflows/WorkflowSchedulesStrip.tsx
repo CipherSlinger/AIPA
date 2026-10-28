@@ -8,10 +8,10 @@
 // this is a status surface, not a management one.
 
 import { useCallback, useState, type CSSProperties } from 'react'
-import { CalendarClock, ExternalLink, Pause, Play, Zap } from 'lucide-react'
+import { CalendarClock, ExternalLink, Pause, Play, RefreshCw, Zap } from 'lucide-react'
 import type { AutomationJobData } from '../../../preload'
 import { useUiStore } from '../../store'
-import { scheduleText, type Translate } from '../automation/scheduleText'
+import { scheduleText, watchWarningText, type Translate } from '../automation/scheduleText'
 import { smallButtonStyle } from '../automation/automationStyles'
 import { errorCodeText, outcomeText, spendText } from './scheduleSummary'
 
@@ -107,6 +107,10 @@ export default function WorkflowSchedulesStrip({
       {jobs.map(job => {
         const outcome = outcomeText(job, t)
         const spend = spendText(job, t)
+        // Watch jobs share the one sentence the settings row uses, so a bound
+        // job never reads here as a calendar schedule with a missing time.
+        const watch = job.trigger.kind === 'watch'
+        const watchWarning = watchWarningText(job, t)
         const running = job.running || job.lastStatus === 'running'
         // Pausing stays available during a run: it stops future runs, not the
         // current one. Only a request this strip is still awaiting locks the row.
@@ -119,7 +123,11 @@ export default function WorkflowSchedulesStrip({
               minWidth: 0, fontSize: 11, color: 'var(--text-muted)',
             }}
           >
-            <CalendarClock size={11} style={{ flexShrink: 0, opacity: 0.8 }} />
+            {/* A calendar icon over an event-driven job would advertise a
+                countdown that never arrives. */}
+            {watch
+              ? <RefreshCw size={11} style={{ flexShrink: 0, opacity: 0.8 }} />
+              : <CalendarClock size={11} style={{ flexShrink: 0, opacity: 0.8 }} />}
             <span
               title={job.name}
               style={{
@@ -129,8 +137,25 @@ export default function WorkflowSchedulesStrip({
             >
               {job.name}
             </span>
-            <span style={{ whiteSpace: 'nowrap' }}>{scheduleText(t, job.trigger)}</span>
+            {/* A watch sentence carries an absolute path, which can be longer
+                than the row; it may wrap, a countdown may not. */}
+            <span style={{
+              whiteSpace: watch ? 'normal' : 'nowrap',
+              overflowWrap: 'anywhere', minWidth: 0,
+            }}>
+              {scheduleText(t, job.trigger)}
+            </span>
 
+            {watchWarning && (
+              // The path is gone, so the watcher is not attached. Warn instead
+              // of showing the sentence as if the job were live.
+              <span style={{ color: 'var(--warning-text)', whiteSpace: 'nowrap' }}>
+                {watchWarning}
+              </span>
+            )}
+
+            {/* A watch job's nextRunAt is always null, so this branch renders
+                nothing for it and the row never implies a countdown. */}
             {job.enabled ? (
               job.nextRunAt !== null && (
                 <span style={{ whiteSpace: 'nowrap' }}>

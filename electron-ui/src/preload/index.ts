@@ -347,9 +347,25 @@ export type PluginEditEvent =
 // Mirrors src/main/automation/types.ts. Declared inline so preload keeps no
 // runtime dependency on main-process modules.
 
+/**
+ * Mirrors main's `AutomationWatchTrigger`: the job runs when the watched path
+ * changes. It has no `nextRunAt` at all, so any surface that shows a countdown
+ * must branch on the trigger kind rather than read the null as "dead schedule".
+ */
+export interface AutomationWatchTriggerData {
+  kind: 'watch'
+  /** Absolute path to a file or a directory; relative paths are refused at save. */
+  path: string
+  /** Directories only: watch the whole subtree. Defaults to true. */
+  recursive?: boolean
+  /** Minimum quiet period between two runs, in minutes. Default 5, clamped 1..1440. */
+  debounceMinutes?: number
+}
+
 export type AutomationTriggerData =
   | { kind: 'cron'; expr: string }
   | { kind: 'interval'; minutes: number }
+  | AutomationWatchTriggerData
 
 export type AutomationActionData =
   | { kind: 'workflow'; workflowId: string }
@@ -508,6 +524,12 @@ export interface AutomationJobData {
    * global pause apart from an individually paused job.
    */
   pausedAll: boolean
+  /**
+   * Watch jobs only: the watched path is gone, or the watcher could not be
+   * attached. Present only for `trigger.kind === 'watch'`, and never to be read
+   * as "no upcoming run" — a live watcher and a dead cron are different facts.
+   */
+  watchMissing?: boolean
 }
 
 export interface AutomationLimitsData {

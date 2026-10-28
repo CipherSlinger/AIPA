@@ -7,7 +7,7 @@
 // `automation:changed` instead of guessing what the scheduler did.
 
 import { useCallback, useEffect, useState } from 'react'
-import { AlarmClock, AlertTriangle, Clock, History, Pause, Pencil, Play, Plus, RotateCcw, Trash2, Wallet } from 'lucide-react'
+import { AlarmClock, AlertTriangle, Clock, History, Pause, Pencil, Play, Plus, RefreshCw, RotateCcw, Trash2, Wallet } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { usePrefsStore } from '../../store'
 import SettingsGroup from './SettingsGroup'
@@ -15,7 +15,7 @@ import { INPUT_STYLE } from './settingsConstants'
 import Toggle from '../ui/Toggle'
 import { formatTokens } from '../../utils/formatUtils'
 import AutomationDialog, { ASSISTANT_PERSONA_ID, type WorkflowOption } from '../automation/AutomationDialog'
-import { scheduleText } from '../automation/scheduleText'
+import { scheduleText, watchWarningText } from '../automation/scheduleText'
 import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from '../automation/automationStyles'
 import type {
   AutomationJobData,
@@ -608,6 +608,10 @@ export default function SettingsAutomations() {
               const spendLimit = spendLimitLine(job)
               const expert = jobExpert(job)
               const busy = busyId === job.id || job.running
+              // A watch job runs on an event, so its schedule line names the
+              // path instead of a time, and a lost path is the row's warning.
+              const watch = job.trigger.kind === 'watch'
+              const watchWarning = watchWarningText(job, t)
               // Newest first, and only the few the disclosure lists. A job that
               // has never run has an empty array, so the disclosure is not
               // mounted at all rather than opening onto an empty table.
@@ -636,8 +640,14 @@ export default function SettingsAutomations() {
                       <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>
                         {job.name}
                       </span>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: SECONDARY }}>
-                        <Clock size={11} />
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4, flexWrap: 'wrap',
+                        maxWidth: '100%', overflowWrap: 'anywhere',
+                        fontSize: 11, color: watchWarning ? WARNING : SECONDARY,
+                      }}>
+                        {/* A clock beside "when the path changes" would promise
+                            a time that does not exist. */}
+                        {watch ? <RefreshCw size={11} /> : <Clock size={11} />}
                         {scheduleText(t, job.trigger)}
                       </span>
                       {pausedAll && job.enabled && (
@@ -756,6 +766,19 @@ export default function SettingsAutomations() {
                       </div>
                     )}
 
+                    {watchWarning && (
+                      // The watcher was never attached, so the job will not
+                      // fire. The sentence above already says what it watches;
+                      // this says it is not watching it.
+                      <div style={{
+                        display: 'flex', alignItems: 'flex-start', gap: 5,
+                        fontSize: 11, color: WARNING, marginTop: 4, lineHeight: 1.5,
+                      }}>
+                        <AlertTriangle size={11} style={{ flexShrink: 0, marginTop: 2 }} />
+                        <span>{watchWarning}</span>
+                      </div>
+                    )}
+
                     {job.actionMissing && (
                       // Icon hugs the first line; centring it against a wrapped
                       // three-line warning leaves a hole beside the opening words.
@@ -770,7 +793,9 @@ export default function SettingsAutomations() {
 
                     {/* While paused the stored nextRunAt is frozen; showing it
                         would promise a run that cannot happen. The banner says
-                        when scheduling returns. */}
+                        when scheduling returns. A watch job's nextRunAt is null
+                        by design, so nothing here pretends it has a countdown;
+                        the schedule line above already names its event. */}
                     {!pausedAll && job.enabled && job.nextRunAt !== null && (
                       <div style={{ fontSize: 11, color: SECONDARY, marginTop: 2 }}>
                         {t('automation.nextRun', { time: timeText(job.nextRunAt) })}

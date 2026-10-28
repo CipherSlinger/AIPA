@@ -2994,7 +2994,12 @@
       "everyDays": "Every {{count}} day(s)",
       "daily": "Every day at {{time}}",
       "weekly": "Every {{day}} at {{time}}",
-      "cron": "Cron: {{expr}}"
+      "cron": "Cron: {{expr}}",
+      "watch": "When {{path}} changes",
+      "watchRecursive": "including subfolders",
+      "watchFlat": "this folder only",
+      "watchQuiet": "runs at most once every {{minutes}} min",
+      "watchMissing": "Path not found — not watching"
     },
     "weekdays": {
       "0": "Sunday",
@@ -3039,7 +3044,8 @@
       "daily": "Daily",
       "weekly": "Weekly",
       "interval": "Interval",
-      "cron": "Custom cron"
+      "cron": "Custom cron",
+      "watch": "File or folder changes"
     },
     "dialog": {
       "createTitle": "New automation",
@@ -3075,7 +3081,8 @@
       "run_failed": "The run failed.",
       "nothing_to_run": "The workflow produced nothing to run.",
       "cost_limit_invalid": "The spend limit must be an amount greater than 0.",
-      "cost_limit_too_high": "The spend limit cannot exceed $1000 per day."
+      "cost_limit_too_high": "The spend limit cannot exceed $1000 per day.",
+      "watch_path_invalid": "Watch an absolute path — a full path like /Users/me/Notes or C:\\Notes."
     },
     "personaHint": "Scheduled runs of this workflow use this expert. The workflow's own Run button still uses the current conversation's expert.",
     "personaMissing": "Expert deleted",
@@ -3180,6 +3187,19 @@
       "lowerBoundNote": "Some runs did not report cost, so the total is a lower bound.",
       "partialNote": "History is capped, so an older run in this window may be missing from the total.",
       "help": "The daily budget covers every scheduled run together. Each job's own limit still applies, and Run now is never blocked by either."
+    },
+    "watch": {
+      "path": "Path to watch",
+      "pathPlaceholder": "Type or paste an absolute path, or choose one",
+      "chooseFolder": "Choose folder…",
+      "chooseFile": "Choose file…",
+      "pathInvalid": "Enter an absolute path, like /Users/me/Notes or C:\\Notes.",
+      "recursive": "Watch subfolders too",
+      "recursiveHint": "Applies to a folder; a single file has no subfolders.",
+      "quiet": "Quiet period (minutes)",
+      "quietHint": "Wait at least this long between runs, so a folder being written does not start a run per file.",
+      "eventHint": "Runs whenever the path changes. A watch job has no next run time; the hourly cap and the daily budget still apply.",
+      "createdToast": "“{{name}}” will run whenever {{path}} changes"
     }
   },
   "speculation": {

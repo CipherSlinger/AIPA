@@ -32,6 +32,7 @@ import type {
   AutomationGlobalSpendWindow,
   AutomationJob,
   AutomationRunRecordStatus,
+  AutomationRunSource,
   AutomationSpendWindow,
 } from './types'
 
@@ -154,11 +155,15 @@ export type SpendGuardDecision =
  * At or above the limit blocks. The tiny epsilon only absorbs float dust from
  * summing fractional costs, so a sum that is mathematically exactly at the
  * limit is still treated as at the limit.
+ *
+ * `watch` is treated exactly like `scheduled`: a file landing in a watched
+ * folder is unattended spend just as much as a clock tick is, and it is the
+ * user's own limit either way. Only `manual` bypasses the rail.
  */
 export function checkSpendLimit(
   job: AutomationJob,
   now: number,
-  source: 'scheduled' | 'manual',
+  source: AutomationRunSource,
 ): SpendGuardDecision {
   if (source === 'manual') return { kind: 'not_applicable' }
   const limit = normalizeDailyCostLimit(job.dailyCostLimitUsd)
@@ -259,8 +264,9 @@ export function checkGlobalSpendLimit(
   jobs: readonly AutomationJob[],
   globalDailyCostLimitUsd: unknown,
   now: number,
-  source: 'scheduled' | 'manual',
+  source: AutomationRunSource,
 ): GlobalSpendGuardDecision {
+  // Same rule as the per-job rail: `watch` counts as unattended spend.
   if (source === 'manual') return { kind: 'not_applicable' }
   const limit = normalizeDailyCostLimit(globalDailyCostLimitUsd)
   if (limit === undefined) return { kind: 'not_applicable' }
