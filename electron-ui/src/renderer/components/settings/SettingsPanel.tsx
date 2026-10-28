@@ -12,6 +12,7 @@ import SettingsAutomations from './SettingsAutomations'
 const MemoryPanel = React.lazy(() => import('../memory/MemoryPanel'))
 import SettingsPlugins from './SettingsPlugins'
 import SettingsProjectMcp from './SettingsProjectMcp'
+import SettingsHooks from './SettingsHooks'
 import SettingsAIEngine from './SettingsAIEngine'
 import { SETTINGS_TABS, type SettingsTab } from './settingsConstants'
 // Personas tab has been moved to the Workflows sidebar panel (Iteration 376)
@@ -222,6 +223,8 @@ export default function SettingsPanel() {
             <div style={{ height: 1, background: 'var(--border)' }} />
             <SettingsProjectMcp />
           </div>
+        ) : settingsTab === 'hooks' ? (
+          <SettingsHooks />
         ) : settingsTab === 'automations' ? (
           <SettingsAutomations />
         ) : settingsTab === 'advanced' ? (

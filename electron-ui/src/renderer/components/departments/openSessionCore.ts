@@ -51,10 +51,11 @@ export async function openSessionCore(
 /**
  * Open a branch that has no history yet.
  *
- * Codex persists a forked thread only once it has a turn, so a branch created
- * before the first user message has no rollout file: `session:load` returns
- * nothing and the normal open path would report it missing. The thread id is
- * real, though — sending the next message resumes it and starts turn one.
+ * Codex writes a rollout for a forked thread at once, but a branch created
+ * before the first user message has no turns: the file holds only metadata,
+ * `session:load` parses no messages, and `thread/list` omits the thread until
+ * its first turn. The id is real and resumable, though — the next message
+ * resumes it and starts turn one.
  *
  * The branch keeps the source thread's working directory (the engine copies
  * it), so the window's current directory is deliberately left alone.

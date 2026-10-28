@@ -72,6 +72,25 @@ export interface GuidanceReceipt {
   error?: string
 }
 
+/**
+ * A Codex hook notice rendered as a system row. The model did not produce it:
+ * `blocked` means the hook stopped the turn before any model request, and
+ * `failed` is shown only for the events whose output the model would have
+ * depended on (`userPromptSubmit`, `sessionStart`).
+ */
+export interface HookNotice {
+  kind: 'blocked' | 'failed'
+  /** `<event>:<displayOrder>:<sourcePath>` — stable per hook run. */
+  runId: string
+  eventName: string
+  /** Basename of the hook's `sourcePath`; empty when the engine named none. */
+  sourceName: string
+  /** Feedback (blocked) or error (failed) entries, verbatim, joined by blanks. */
+  text: string
+  /** At least one entry was cut by the main process. */
+  truncated: boolean
+}
+
 export interface StandardChatMessage {
   id: string
   role: 'user' | 'assistant' | 'system'
@@ -80,6 +99,11 @@ export interface StandardChatMessage {
   toolUses?: ToolUseInfo[]
   timestamp: number
   isStreaming?: boolean
+  /**
+   * A hook-run notice. Rendered by `Message` from the fields, so the protocol
+   * vocabulary (event name, source path) is never translated away.
+   */
+  hookNotice?: HookNotice
   attachments?: MessageAttachment[]  // user image attachments (on disk)
   /** Set when the turn failed after the images had been attached: the
    *  transcript must say they were not sent instead of implying delivery. */

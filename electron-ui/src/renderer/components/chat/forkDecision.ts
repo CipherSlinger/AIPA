@@ -170,11 +170,11 @@ export function readForkResult(result: unknown): ForkOutcome {
  * Whether the branch the engine reported needs a direct adoption rather than
  * the normal "open session" path.
  *
- * A branch with zero turns is a real Codex thread with no rollout file, so
- * `session:load` returns nothing and the archive path would report it missing.
- * The window adopts the id instead, and the first message starts turn one in
- * it. `null` (unknown) keeps the normal path: guessing "empty" would replace a
- * conversation that actually has history.
+ * A branch with zero turns is a real Codex thread whose rollout holds only
+ * metadata, so `session:load` finds no messages and the archive path would
+ * report it missing. The window adopts the id instead, and the first message
+ * starts turn one in it. `null` (unknown) keeps the normal path: guessing
+ * "empty" would replace a conversation that actually has history.
  */
 export function isEmptyBranch(turnCount: number | null): boolean {
   return turnCount === 0

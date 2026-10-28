@@ -16,6 +16,8 @@ export const SETTINGS_TABS = [
   { id: 'stats', labelKey: 'settings.tabs.stats' },
   // Plugins and MCP servers share this page, hence the label key's name.
   { id: 'plugins', labelKey: 'settings.tabs.pluginsAndMcp' },
+  // Codex-native, read-only hook list (not the removed Claude hook editor).
+  { id: 'hooks', labelKey: 'settings.tabs.hooks' },
   { id: 'advanced', labelKey: 'settings.tabs.advanced' },
   { id: 'about', labelKey: 'settings.tabs.about' },
 ] as const

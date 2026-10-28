@@ -9,7 +9,7 @@ import SelectionToolbar from './SelectionToolbar'
 import ImageLightbox from '../shared/ImageLightbox'
 import ReactionChips from './ReactionChips'
 import AnnotationEditor from './AnnotationEditor'
-import { User, Bot, Bookmark, Pin } from 'lucide-react'
+import { User, Bot, Bookmark, Pin, Webhook } from 'lucide-react'
 import { usePrefsStore, useChatStore } from '../../store'
 import { useT } from '../../i18n'
 import { useMessageActions } from '../../hooks/useMessageActions'
@@ -187,6 +187,82 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   // --- System message ---
   if (isSystem) {
     const content = (message as StandardChatMessage).content || ''
+    // Hook notice. A blocked turn ends with no assistant answer at all, so this
+    // row is the only place the user learns that a hook — not the model —
+    // stopped it. The hook's own event name, source file and feedback text are
+    // shown verbatim; the surrounding sentences only explain the provenance.
+    const hookNotice = (message as StandardChatMessage).hookNotice
+    if (hookNotice) {
+      const blocked = hookNotice.kind === 'blocked'
+      return (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 20px' }}>
+          <div style={{
+            maxWidth: 640,
+            width: '100%',
+            background: blocked ? 'rgba(251,191,36,0.07)' : 'var(--glass-shimmer)',
+            border: `1px solid ${blocked ? 'rgba(251,191,36,0.28)' : 'var(--glass-border)'}`,
+            borderRadius: 10,
+            padding: '10px 14px',
+            boxShadow: 'var(--code-shadow)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <Webhook
+                size={13}
+                color={blocked ? 'var(--warning-text)' : 'var(--text-muted)'}
+                style={{ flexShrink: 0 }}
+              />
+              <span style={{
+                fontSize: 11, fontWeight: 700,
+                color: blocked ? 'var(--warning-text)' : 'var(--text-secondary)',
+              }}>
+                {t(blocked ? 'chat.hook.blockedTitle' : 'chat.hook.failedTitle')}
+              </span>
+              <span style={{
+                fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                background: 'rgba(251,191,36,0.12)',
+                color: 'var(--warning-text)',
+                border: '1px solid rgba(251,191,36,0.25)',
+                borderRadius: 4, padding: '1px 5px',
+              }}>
+                {t('chat.hook.badge')}
+              </span>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.55 }}>
+              {t(blocked ? 'chat.hook.blockedBody' : 'chat.hook.failedBody')}
+            </div>
+            <div style={{
+              marginTop: 5, fontSize: 10, color: 'var(--text-faint)',
+              fontFamily: 'monospace', wordBreak: 'break-all',
+            }}>
+              {hookNotice.sourceName
+                ? t('chat.hook.hookLine', {
+                    event: hookNotice.eventName,
+                    source: hookNotice.sourceName,
+                  })
+                : hookNotice.eventName}
+            </div>
+            {hookNotice.text && (
+              <pre style={{
+                margin: '6px 0 0', padding: '7px 9px',
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border)', borderRadius: 6,
+                fontSize: 11, color: 'var(--text-secondary)',
+                whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                fontFamily: 'monospace', lineHeight: 1.5,
+              }}>
+                {hookNotice.text}
+              </pre>
+            )}
+            {hookNotice.truncated && (
+              <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 4 }}>
+                {t('chat.hook.truncated')}
+              </div>
+            )}
+          </div>
+        </div>
+      )
+    }
     // Away summary card (Iteration 481) — special collapsible card with moon icon
     if (content.startsWith('[AWAY_SUMMARY]')) {
       const summaryText = content.replace('[AWAY_SUMMARY]', '').trim()

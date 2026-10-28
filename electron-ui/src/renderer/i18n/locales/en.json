@@ -271,6 +271,15 @@
       "composerHint": "Enter sends guidance to the running turn",
       "imagesNotSent": "Images can't join a running turn. Wait for it to finish, or keep them for your next message.",
       "noActiveTurn": "The running turn has already ended"
+    },
+    "hook": {
+      "badge": "hook",
+      "blockedTitle": "A hook stopped this turn",
+      "failedTitle": "A hook failed",
+      "blockedBody": "A Codex hook refused this prompt before the model ran, so there is no model answer to read. This is the hook's own reason, not the model's words.",
+      "failedBody": "The model ran without this hook's output. This is the hook's own error, not the model's words.",
+      "hookLine": "{{event}} · {{source}}",
+      "truncated": "The hook output was shortened here."
     }
   },
   "sessionReuse": {
@@ -638,7 +647,8 @@
       "automations": "Automations",
       "pluginsAndMcp": "Plugins & MCP",
       "advanced": "Advanced",
-      "about": "About"
+      "about": "About",
+      "hooks": "Hooks"
     },
     "groups": {
       "aiEngine": "AI Engine",
@@ -880,7 +890,35 @@
     "petDesc": "Show a desktop pet that reacts to what the assistant is doing.",
     "petLaunchError": "Could not start the desktop pet process",
     "petBubbleFollow": "Bubbles follow the pet",
-    "petBubbleFollowHint": "Permission bubbles move with the desktop pet"
+    "petBubbleFollowHint": "Permission bubbles move with the desktop pet",
+    "hooks": {
+      "title": "Hooks",
+      "subtitle": "Every hook Codex has configured for the current working directory, and whether it will actually run. Read-only: Codex owns hook trust.",
+      "codexOnly": "This list shows hooks from Codex's configuration. The active engine is not Codex, so there is nothing to list here.",
+      "loading": "Reading Codex hooks…",
+      "readFailed": "Could not read the hooks Codex has configured.",
+      "refresh": "Refresh",
+      "emptyTitle": "No hooks are configured for this working directory",
+      "warningsTitle": "Warnings from the engine",
+      "errorsTitle": "Hooks the engine could not parse",
+      "trustLabel": "Trust",
+      "matcherLabel": "Matcher",
+      "handlerLabel": "Handler",
+      "sourceLabel": "Source",
+      "enabled": "enabled",
+      "disabled": "disabled",
+      "willRun": "will run",
+      "notRunning": "not running",
+      "unknownState": "unknown",
+      "trusted": "trusted",
+      "untrusted": "untrusted",
+      "modified": "changed since it was trusted",
+      "managed": "managed by Codex",
+      "trustUnknown": "trust status not recognized",
+      "trustNote": "Codex lists an untrusted or modified hook but never runs it. To trust one, write [hooks.state.'<key>'] with enabled = true and trusted_hash = \"<currentHash>\" into Codex's config, then restart Codex. AIPA cannot do this for you: the protocol has no trust request.",
+      "keyLabel": "key",
+      "hashLabel": "hash"
+    }
   },
   "outputStyle": {
     "title": "Output Style",

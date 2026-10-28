@@ -15,6 +15,7 @@ import { describeThreadStatus } from '../components/chat/threadStatusText'
 import { describeEngineItem, TOOL_CARD_KINDS } from '../components/chat/engineStepText'
 import { itemIdFromToolId } from '../components/chat/fileChangePatch'
 import { buildCodexImageInput, canSendCodexImages } from '../components/chat/imageAttachmentRules'
+import { decideHookNotice } from '../components/chat/hookRunView'
 import { liveFilePatchStore } from '../components/chat/liveFilePatchStore'
 import { engineNoticeStore } from '../components/chat/engineNoticeStore'
 import { autoApprovalReviewStore } from '../components/chat/autoApprovalReviewStore'
@@ -1544,6 +1545,27 @@ export function useStreamJson() {
           if (typeof turnId === 'string' && turnId) {
             useChatStore.getState().attachTurnToLastUserMessage(turnId)
           }
+          break
+        }
+        case 'cli:hookRun': {
+          // Hook notices are turn-scoped. A background or other-tab bridge must
+          // not write into this transcript — same ownership rule as the deltas.
+          const sid = typeof data.sessionId === 'string' ? data.sessionId : ''
+          if (!sid || !useChatStore.getState().isOwnedStreamEvent(sid)) break
+          const notice = decideHookNotice(data)
+          if (!notice) break
+          // `run.id` is stable across the started/completed pair; the turn id
+          // keeps a run without one from colliding across turns.
+          const turnId = typeof data.turnId === 'string' ? data.turnId : ''
+          const id = `hook-${notice.runId || `${notice.kind}-${notice.eventName}-${turnId}`}`
+          if (useChatStore.getState().messages.some(m => m.id === id)) break
+          useChatStore.getState().addMessage({
+            id,
+            role: 'system',
+            content: '',
+            hookNotice: notice,
+            timestamp: Date.now(),
+          } as StandardChatMessage)
           break
         }
         case 'cli:itemStarted':

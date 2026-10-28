@@ -36,8 +36,27 @@ import { EventEmitter } from 'events'
 import { getCodexPath } from './codex-resolver'
 import { sanitizeCodexEnv } from './codex-env'
 import { normalizeTurnCompleted } from './turn-outcome'
+import { normalizeHookRun } from './hook-runs'
+import { normalizeHookList, type CodexHookListGroup } from './hook-list'
 import { readCodexMcpServers } from '../config/codex-config-manager'
 import { createLogger } from '../utils/logger'
+
+// The hook normalizers live in dependency-free modules so the harness can test
+// them without bundling the bridge. Re-exported here because the bridge is the
+// protocol's public face for callers.
+export { normalizeHookRun } from './hook-runs'
+export type {
+  CodexHookRun,
+  CodexHookRunEntry,
+  CodexHookRunNotification,
+  CodexHookRunStatus,
+} from './hook-runs'
+export { normalizeHookList } from './hook-list'
+export type {
+  CodexHookDefinition,
+  CodexHookListError,
+  CodexHookListGroup,
+} from './hook-list'
 
 const log = createLogger('codex-bridge')
 
@@ -1676,6 +1695,24 @@ export class CodexBridge extends EventEmitter {
   }
 
   /**
+   * `hooks/list` — the hooks Codex will consider for one or more working
+   * directories. The request takes `{ cwds?: string[] }` (no thread id);
+   * omitting `cwds` means the session cwd. This is read-only: the protocol has
+   * no trust request, so AIPA can list a hook but never enable one.
+   */
+  async listHooks(options: { cwds?: string[]; timeoutMs?: number } = {}): Promise<CodexHookListGroup[]> {
+    this._requireProcess('hooks/list')
+    const cwds = (options.cwds ?? []).filter(cwd => typeof cwd === 'string' && cwd.trim())
+    // The engine rejects a non-array `cwds`; keep the request shape exact.
+    const result = await this._sendRequest(
+      'hooks/list',
+      cwds.length > 0 ? { cwds } : {},
+      options.timeoutMs ?? PROBE_TIMEOUT_MS,
+    )
+    return normalizeHookList(result)
+  }
+
+  /**
    * Unsubscribe from the thread and clean up.
    * Replaces StreamBridge.endSession().
    */
@@ -3055,6 +3092,29 @@ export class CodexBridge extends EventEmitter {
         break
       }
 
+      // ── Hook runs ──────────────────────────────
+      // `hook/started` and `hook/completed` carry the same `HookRunSummary`.
+      // A blocked run is the only explanation for a turn that ends with no
+      // answer at all (the model never runs), so it must reach the renderer;
+      // a failed run is surfaced there only for the events the model depends
+      // on. The normalizer drops an unusable payload instead of inventing one.
+      case 'hook/started':
+      case 'hook/completed': {
+        const view = normalizeHookRun(params)
+        if (!view) {
+          log.debug(`Malformed ${method} notification dropped`)
+          break
+        }
+        this.emit('hookRun', {
+          sessionId: sid,
+          phase: method === 'hook/started' ? 'started' : 'completed',
+          threadId: view.threadId,
+          turnId: view.turnId,
+          run: view.run,
+        })
+        break
+      }
+
       // ── Compaction ─────────────────────────────
       case 'thread/compacted':
         this.emit('compacted', { sessionId: sid, turnId: params.turnId })
@@ -3666,4 +3726,29 @@ export async function fetchCodexSkills(options: CodexProbeOptions = {}): Promise
         bridge.listSkills({ cwd, force: true }))
   detachedSkillsCache = { cwd, skills, fetchedAt: Date.now() }
   return skills
+}
+
+export interface CodexHookProbeOptions {
+  /** Working directories to list. Defaults to `cwd` (or the session cwd). */
+  cwds?: string[]
+  /** Spawn cwd for a detached probe; defaults to process.cwd(). */
+  cwd?: string
+  /** Extra environment (normally the stored API key) for a detached probe. */
+  env?: Record<string, string>
+}
+
+/**
+ * Configured Codex hooks for the given working directories.
+ *
+ * Uses a live user-facing bridge when one exists, otherwise a short-lived
+ * app-server: Settings → Hooks must answer before the user's first message.
+ * No cache — trust and enablement change on disk, and the page refetches.
+ */
+export async function fetchCodexHooks(options: CodexHookProbeOptions = {}): Promise<CodexHookListGroup[]> {
+  const cwds = options.cwds?.length ? options.cwds : undefined
+  const live = codexBridgeManager.firstLive()
+  if (live) return live.listHooks({ cwds })
+  const cwd = options.cwd ?? cwds?.[0] ?? process.cwd()
+  return CodexBridge.withDetached(cwd, options.env ?? {}, bridge =>
+    bridge.listHooks({ cwds: cwds ?? [cwd] }))
 }

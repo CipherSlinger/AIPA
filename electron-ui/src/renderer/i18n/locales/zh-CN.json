@@ -271,6 +271,15 @@
       "composerHint": "回车把这段话作为引导发给正在运行的这一轮",
       "imagesNotSent": "图片无法加进正在运行的这一轮。等它结束，或把图片留到下一次发送。",
       "noActiveTurn": "正在运行的那一轮已经结束"
+    },
+    "hook": {
+      "badge": "钩子",
+      "blockedTitle": "一个钩子拦下了本轮对话",
+      "failedTitle": "一个钩子运行失败",
+      "blockedBody": "在模型运行之前，一个 Codex 钩子拒绝了这条提示，因此没有模型回答可读。以下是钩子自己的理由，不是模型的话。",
+      "failedBody": "模型在没有这个钩子输出的情况下继续运行了。以下是钩子自己的错误，不是模型的话。",
+      "hookLine": "{{event}} · {{source}}",
+      "truncated": "钩子输出在此处已截断。"
     }
   },
   "sessionReuse": {
@@ -638,7 +647,8 @@
       "automations": "自动化",
       "pluginsAndMcp": "插件与 MCP",
       "advanced": "高级",
-      "about": "关于"
+      "about": "关于",
+      "hooks": "钩子"
     },
     "groups": {
       "aiEngine": "AI 引擎",
@@ -880,7 +890,35 @@
     "petDesc": "在桌面上显示一只随 AI 工作状态变化的宠物。",
     "petLaunchError": "无法启动桌宠进程",
     "petBubbleFollow": "气泡跟随桌宠",
-    "petBubbleFollowHint": "权限气泡跟随桌宠移动"
+    "petBubbleFollowHint": "权限气泡跟随桌宠移动",
+    "hooks": {
+      "title": "钩子",
+      "subtitle": "Codex 为当前工作目录配置的全部钩子，以及它们是否真的会运行。此页只读：钩子的信任由 Codex 管理。",
+      "codexOnly": "此列表显示的是 Codex 配置中的钩子。当前引擎不是 Codex，因此这里没有可列出的内容。",
+      "loading": "正在读取 Codex 钩子……",
+      "readFailed": "无法读取 Codex 已配置的钩子。",
+      "refresh": "刷新",
+      "emptyTitle": "当前工作目录没有配置任何钩子",
+      "warningsTitle": "引擎给出的警告",
+      "errorsTitle": "引擎无法解析的钩子",
+      "trustLabel": "信任",
+      "matcherLabel": "匹配",
+      "handlerLabel": "处理方式",
+      "sourceLabel": "来源",
+      "enabled": "已启用",
+      "disabled": "未启用",
+      "willRun": "会运行",
+      "notRunning": "不会运行",
+      "unknownState": "未知",
+      "trusted": "已信任",
+      "untrusted": "未信任",
+      "modified": "信任后已被修改",
+      "managed": "由 Codex 管理",
+      "trustUnknown": "无法识别的信任状态",
+      "trustNote": "Codex 会列出未信任或已修改的钩子，但绝不会运行它们。要信任某个钩子，请把 [hooks.state.'<key>'] 以及 enabled = true、trusted_hash = \"<currentHash>\" 写入 Codex 配置，然后重启 Codex。AIPA 无法代你完成：协议里没有信任请求。",
+      "keyLabel": "键名",
+      "hashLabel": "哈希"
+    }
   },
   "outputStyle": {
     "title": "输出风格",

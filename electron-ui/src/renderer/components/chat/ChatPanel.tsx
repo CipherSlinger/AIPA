@@ -367,8 +367,9 @@ export default function ChatPanel() {
         addToast('error', outcome.error || t('branch.failed'))
         return
       }
-      // An empty branch has no rollout for `session:load` to read; adopt its
-      // thread id so the next message resumes it instead of starting a new one.
+      // An empty branch's rollout holds no messages for `session:load` to read;
+      // adopt its thread id so the next message resumes it instead of starting
+      // a new one.
       if (isEmptyBranch(outcome.turnCount)) {
         adoptEmptyBranch(outcome.threadId)
         addToast('success', t('branch.createdEmpty'))

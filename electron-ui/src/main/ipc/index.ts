@@ -12,6 +12,7 @@ import {
   fetchCodexAccountUsage,
   fetchCodexRateLimits,
   fetchCodexSkills,
+  fetchCodexHooks,
 } from '../codex/codex-bridge'
 import type {
   CodexMcpStartupStatus,
@@ -862,6 +863,36 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     }
   })
 
+  // Configured Codex hooks (read-only). `cwds` is validated against the same
+  // roots as every `fs:*` path and capped; nothing here can trust or enable a
+  // hook — the protocol has no trust request. Failures resolve as a result,
+  // never throw across IPC.
+  safeHandle('hooks:list', async (_e, args?: { cwds?: unknown } | undefined) => {
+    try {
+      const workingDir = getPref('workingDir') as string | undefined
+      let cwds: string[] | undefined
+      if (args?.cwds !== undefined) {
+        if (!Array.isArray(args.cwds) || args.cwds.some(cwd => typeof cwd !== 'string')) {
+          return { success: false, error: 'Invalid cwds' }
+        }
+        cwds = (args.cwds as string[]).slice(0, 8)
+          .map(cwd => safePath(cwd, getAllowedFsRoots(workingDir)))
+      }
+      // Settings must answer before the first turn; a detached app-server is
+      // the only way to list hooks when no conversation is open.
+      const fallbackCwd = resolveCodexProbeCwd(undefined)
+      const data = await fetchCodexHooks({
+        cwds: cwds && cwds.length > 0 ? cwds : [fallbackCwd],
+        cwd: fallbackCwd,
+        env: codexProbeEnv(),
+      })
+      return { success: true, data }
+    } catch (err) {
+      log.warn('hooks:list error:', String(err))
+      return { success: false, error: String(err) }
+    }
+  })
+
   // Legacy handlers (kept for backward compat during migration)
   ipcMain.handle('cli:respondHookCallback', (_e, { sessionId, requestId, response }: { sessionId: string; requestId: string; response: Record<string, unknown> }) => {
     const bridge = streamBridgeManager.get(sessionId)
@@ -1035,6 +1066,10 @@ function wireCodexBridge(
   // the bridge before this point.
   bridge.on('engineWarning', (d) => sink('cli:engineWarning', d))
   bridge.on('modelRerouted', (d) => sink('cli:modelRerouted', d))
+  // Hook runs. A blocked user-prompt-submit hook produces a turn with no
+  // model answer; the renderer needs the completed run to explain that gap.
+  // A background bridge returned above: its hooks own no transcript.
+  bridge.on('hookRun', (d) => sink('cli:hookRun', d))
   bridge.on('accountUpdated', (d) => sink('cli:accountUpdated', d))
   bridge.on('skillsChanged', (d) => sink('cli:skillsChanged', d))
   // Live MCP startup/auth reports. Also user-facing by definition, so an

@@ -105,6 +105,68 @@ export interface CodexSkillInfoData {
   shortDescription?: string | null
 }
 
+/** One entry of a Codex hook run (`HookRunSummary.entries`). */
+export interface CodexHookRunEntryData {
+  kind: string
+  text: string
+  /** The main process capped `text`; it is not the whole hook output. */
+  truncated: boolean
+}
+
+/** `HookRunSummary` trimmed by main to the fields AIPA displays. */
+export interface CodexHookRunData {
+  id: string
+  eventName: string
+  handlerType: string
+  executionMode: string
+  scope: string
+  sourcePath: string
+  source: string
+  displayOrder: number | null
+  status: 'running' | 'completed' | 'failed' | 'blocked'
+  statusMessage: string | null
+  startedAt: number | null
+  completedAt: number | null
+  durationMs: number | null
+  entries: CodexHookRunEntryData[]
+}
+
+/** `cli:hookRun` — the normalized `hook/started` / `hook/completed` event. */
+export interface CodexHookRunEventData {
+  sessionId: string
+  phase: 'started' | 'completed'
+  threadId: string
+  turnId: string | null
+  run: CodexHookRunData
+}
+
+/** One configured hook from `hooks/list`. */
+export interface CodexHookDefinitionData {
+  key: string
+  eventName: string
+  handlerType: string
+  matcher: string | null
+  command: string | null
+  timeoutSec: number | null
+  statusMessage: string | null
+  additionalContextLimit: number | null
+  sourcePath: string
+  source: string
+  pluginId: string | null
+  displayOrder: number
+  enabled: boolean
+  isManaged: boolean
+  currentHash: string | null
+  trustStatus: string
+}
+
+export interface CodexHookListGroupData {
+  cwd: string
+  hooks: CodexHookDefinitionData[]
+  warnings: string[]
+  errors: Array<{ path: string; message: string }>
+}
+
 /**
  * Which engine the next chat turn will use (see `resolveAuxiliaryEngine` in
  * the main process). Deliberately omits the Claude `env`: it carries the
@@ -1148,6 +1210,19 @@ const electronAPI = {
   codexSkillsList: (args?: { sessionId?: string; cwd?: string; force?: boolean }) =>
     ipcRenderer.invoke('codex:skillsList', args) as Promise<{ success: boolean; skills?: CodexSkillInfoData[]; error?: string }>,
 
+  /**
+   * Configured Codex hooks for one or more working directories (`hooks/list`).
+   * Read-only: trust is written by the user into Codex's config and needs a
+   * restart; there is no trust request on the wire. `cwds` is validated in the
+   * main process; an omitted list means the session working directory.
+   */
+  hooksList: (args?: { cwds?: string[] }) =>
+    ipcRenderer.invoke('hooks:list', args) as Promise<{
+      success: boolean
+      data?: CodexHookListGroupData[]
+      error?: string
+    }>,
+
   // ── Speculation ───────────────────────────
   speculationIsSafe: (prompt: string) =>
     ipcRenderer.invoke('speculation:isSafe', { prompt }) as Promise<boolean>,
@@ -1365,6 +1440,9 @@ const electronAPI = {
       // Thread goal (standing objective shown in the composer strip) and the
       // inverse of archive — the row belongs back in the sidebar.
       'cli:threadGoalUpdated', 'cli:threadGoalCleared', 'cli:threadUnarchived',
+      // Normalized `hook/started` / `hook/completed`. A blocked hook is the
+      // explanation for a turn with no model answer.
+      'cli:hookRun',
       // Windows sandbox lifecycle + the automatic reviewer's verdict on an
       // existing item. The sandbox warning itself rides `cli:engineWarning`
       // with `kind: 'worldWritable'`.
