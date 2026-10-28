@@ -15,7 +15,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, Copy, Loader2, Search, Sparkles, X } from 'lucide-react'
 import type { AskHistorySourceData, SessionSearchResultData } from '../../../preload/index'
 import { useI18n, useT } from '../../i18n'
-import { useSessionStore, useUiStore } from '../../store'
+import { useDepartmentStore, useSessionStore, useUiStore } from '../../store'
 import { pushEscapeHandler } from '../ui/escapeStack'
 import { useGlobalSessionSearch } from './useGlobalSessionSearch'
 import { SearchResultRow, relativeTime } from './SearchResultRow'
@@ -30,6 +30,16 @@ import {
   searchResultOrigin,
   type SearchOriginFilter,
 } from './searchOriginFilter'
+import {
+  buildDeptAttributionMap,
+  buildDeptFilterOptions,
+  deptAttributionFor,
+  deptFilterForQuery,
+  deptFilterOptionText,
+  filterResultsByDept,
+  isDeptFilterEmpty,
+  searchRowKeys,
+} from './searchDeptAttribution'
 
 /**
  * Every ask source records the term it matched on, so a citation click can mark
@@ -94,6 +104,24 @@ const ORIGIN_ROW_STYLE: React.CSSProperties = {
   gap: 6,
   padding: '6px 16px',
   borderBottom: '1px solid var(--border)',
+  flexShrink: 0,
+}
+
+/**
+ * The department narrowing lives in the same row as the origin pills. A
+ * select, not a second row: the overlay is narrow, and a full tree of pills
+ * would push the results down for a filter most sessions do not need.
+ */
+const DEPT_SELECT_STYLE: React.CSSProperties = {
+  background: 'transparent',
+  border: '1px solid var(--border)',
+  borderRadius: 6,
+  color: 'var(--text-muted)',
+  cursor: 'pointer',
+  fontSize: 11,
+  fontFamily: 'inherit',
+  padding: '2px 5px',
+  maxWidth: 180,
   flexShrink: 0,
 }
 
@@ -229,6 +257,10 @@ export default function GlobalSearchOverlay() {
   // Which origin kind the current result set is narrowed to. It is a client
   // view over the rows already returned — never a new search.
   const [originFilter, setOriginFilter] = useState<SearchOriginFilter>('all')
+  // The org node whose subtree the current rows are narrowed to, or null for
+  // every department. Like the origin filter, this is a client view over rows
+  // already returned — it never starts a new search.
+  const [deptFilter, setDeptFilter] = useState<string | null>(null)
   const [askAvailable, setAskAvailable] = useState(false)
   const [askState, setAskState] = useState<AskState>('idle')
   const [askAnswer, setAskAnswer] = useState('')
@@ -277,10 +309,33 @@ export default function GlobalSearchOverlay() {
   // Search hits carry no origin of their own; the session listing does. A hit
   // that is not listed stays unknown and shows no badge.
   const sessions = useSessionStore(s => s.sessions)
+  const homeDir = useSessionStore(s => s.homeDir)
+  const departments = useDepartmentStore(s => s.departments)
   const originMap = useMemo(() => buildSessionOriginMap(sessions), [sessions])
   const filtered = useMemo(
     () => filterResultsByOrigin(results, originMap, originFilter),
     [results, originMap, originFilter],
+  )
+  // One pass over this query's hits, shared by every row's chip and by the
+  // department filter. Rebuilt when the listing, tree or language changes, not
+  // per row and never through IPC.
+  const deptAttributions = useMemo(
+    () => buildDeptAttributionMap({
+      results,
+      sessions,
+      departments,
+      locale: resolvedLocale,
+      homeDir,
+    }),
+    [results, sessions, departments, resolvedLocale, homeDir],
+  )
+  const deptOptions = useMemo(
+    () => buildDeptFilterOptions(departments, resolvedLocale),
+    [departments, resolvedLocale],
+  )
+  const deptFiltered = useMemo(
+    () => filterResultsByDept(filtered.visible, deptAttributions, departments, deptFilter),
+    [filtered, deptAttributions, departments, deptFilter],
   )
 
   const close = useCallback(() => {
@@ -382,20 +437,29 @@ export default function GlobalSearchOverlay() {
 
   const groups = useMemo(() => {
     const map = new Map<string, SessionSearchResultData[]>()
-    for (const hit of filtered.visible) {
+    for (const hit of deptFiltered.visible) {
       const key = hit.project || ''
       const bucket = map.get(key)
       if (bucket) bucket.push(hit)
       else map.set(key, [hit])
     }
     return [...map.entries()].map(([project, items]) => ({ project, items }))
-  }, [filtered])
+  }, [deptFiltered])
 
   const flat = useMemo(() => groups.flatMap(group => group.items), [groups])
+  // Two hits can share a session and match type; a suffixed key keeps React
+  // from merging rows that describe different messages.
+  const rowKeys = useMemo(() => searchRowKeys(flat), [flat])
 
-  // A new result set — or a different origin narrowing — starts at the best
-  // visible hit. A session-list refresh alone must not move the selection.
-  useEffect(() => { setActive(0) }, [results, originFilter])
+  // A filter choice that points at a node the org chart no longer has would
+  // hide every row for a reason the user cannot see.
+  useEffect(() => {
+    if (deptFilter && !deptOptions.some(option => option.id === deptFilter)) setDeptFilter(null)
+  }, [deptFilter, deptOptions])
+
+  // A new result set — or a different narrowing — starts at the best visible
+  // hit. A session-list refresh alone must not move the selection.
+  useEffect(() => { setActive(0) }, [results, originFilter, deptFilter])
   useEffect(() => {
     if (active >= flat.length) setActive(Math.max(0, flat.length - 1))
   }, [flat.length, active])
@@ -578,10 +642,15 @@ export default function GlobalSearchOverlay() {
   const showIdle = trimmed.length < 2
   const showLoading = status === 'loading' && trimmed.length >= 2
   const showEmpty = status === 'ready' && results.length === 0 && searchedQuery.length >= 2
-  // The search found matches but the origin filter is hiding all of them. The
-  // copy must name the filter, not pretend the query had no results.
+  // The search found matches but a filter is hiding all of them. The copy must
+  // name the filter, not pretend the query had no results. The origin filter
+  // runs first, so it is the one to blame when it leaves nothing behind; the
+  // department filter only empties what survived it.
   const showFilterEmpty = status === 'ready'
     && isOriginFilterEmpty(results.length, filtered.visible.length, originFilter)
+  const showDeptFilterEmpty = status === 'ready'
+    && !showFilterEmpty
+    && isDeptFilterEmpty(filtered.visible.length, deptFiltered.visible.length, deptFilter)
   const showAskEntry = askState === 'idle' && askAvailable && trimmed.length >= ASK_MIN_QUERY
 
   return (
@@ -646,6 +715,7 @@ export default function GlobalSearchOverlay() {
               // synchronously — an effect would let a stale filter hide the
               // new query's rows for a frame.
               setOriginFilter(current => originFilterForQuery(query, e.target.value, current))
+              setDeptFilter(current => deptFilterForQuery(query, e.target.value, current))
               // Editing invalidates whatever the previous text produced. An
               // answer is simply stale, so return to the list; a running turn
               // must stop, because it streams for a question the input no
@@ -777,7 +847,7 @@ export default function GlobalSearchOverlay() {
         {/* Origin narrowing. It filters the rows already on screen, so changing
             it never starts a scan and never races the search sequencing. */}
         {askState === 'idle' && results.length > 0 && (
-          <div role="group" aria-label={t('globalSearch.originFilterLabel')} style={ORIGIN_ROW_STYLE}>
+          <div role="group" aria-label={t('globalSearch.filtersLabel')} style={ORIGIN_ROW_STYLE}>
             {SEARCH_ORIGIN_FILTERS.map(kind => {
               const active = originFilter === kind
               return (
@@ -799,6 +869,47 @@ export default function GlobalSearchOverlay() {
                 </button>
               )
             })}
+            {/* Narrow to one node's subtree. Native options keep the row a
+                single compact control; filtering is local and never re-runs
+                the query. */}
+            {deptOptions.length > 0 && (
+              <select
+                aria-label={t('globalSearch.dept.filterLabel')}
+                title={t('globalSearch.dept.selectTitle')}
+                value={deptFilter ?? ''}
+                onChange={e => setDeptFilter(e.target.value || null)}
+                onKeyDown={e => {
+                  // Let the select keep its own arrow/Enter handling instead of
+                  // moving the result selection or opening the highlighted hit.
+                  if (
+                    e.key === 'ArrowDown' || e.key === 'ArrowUp'
+                    || e.key === 'Enter' || e.key === ' '
+                  ) e.stopPropagation()
+                }}
+                style={{
+                  ...DEPT_SELECT_STYLE,
+                  borderColor: deptFilter ? 'rgba(99,102,241,0.5)' : 'var(--border)',
+                  color: deptFilter ? 'var(--accent-text)' : 'var(--text-muted)',
+                }}
+              >
+                <option value="">{t('globalSearch.dept.all')}</option>
+                {deptOptions.map(option => (
+                  <option key={option.id} value={option.id}>
+                    {deptFilterOptionText(option)}
+                  </option>
+                ))}
+              </select>
+            )}
+            {deptFilter && deptFiltered.hidden > 0 && (
+              <span style={{ fontSize: 10, color: 'var(--text-muted)', minWidth: 0 }}>
+                {t(
+                  deptFiltered.hidden === 1
+                    ? 'globalSearch.dept.hiddenOne'
+                    : 'globalSearch.dept.hidden',
+                  { count: deptFiltered.hidden },
+                )}
+              </span>
+            )}
             {originFilter !== 'all' && (
               <>
                 {filtered.hidden > 0 && (
@@ -1142,6 +1253,30 @@ export default function GlobalSearchOverlay() {
                   </div>
                 )}
 
+                {showDeptFilterEmpty && !showLoading && (
+                  <div style={EMPTY_STYLE}>
+                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                      {t(
+                        filtered.visible.length === 1
+                          ? 'globalSearch.dept.emptyOne'
+                          : 'globalSearch.dept.empty',
+                        { count: filtered.visible.length },
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                      {t('globalSearch.dept.emptyHint')}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setDeptFilter(null)}
+                      onKeyDown={stopPillActivation}
+                      style={{ ...GHOST_BUTTON_STYLE, marginTop: 12 }}
+                    >
+                      {t('globalSearch.dept.clear')}
+                    </button>
+                  </div>
+                )}
+
                 {groups.map(group => {
                   const groupStart = flat.indexOf(group.items[0])
                   return (
@@ -1166,7 +1301,7 @@ export default function GlobalSearchOverlay() {
                         const index = groupStart + offset
                         return (
                           <SearchResultRow
-                            key={`${hit.sessionId}-${hit.matchType}`}
+                            key={rowKeys[index] ?? `${hit.sessionId}-${hit.matchType}-${index}`}
                             hit={hit}
                             query={searchedQuery || trimmed}
                             index={index}
@@ -1174,6 +1309,7 @@ export default function GlobalSearchOverlay() {
                             onHover={() => setActive(index)}
                             onOpen={() => void openHit(hit)}
                             origin={searchResultOrigin(hit.sessionId, originMap)}
+                            attribution={deptAttributionFor(hit.sessionId, deptAttributions)}
                           />
                         )
                       })}
@@ -1205,10 +1341,10 @@ export default function GlobalSearchOverlay() {
               {results.length > 0 && (
                 <span style={{ marginLeft: 'auto' }}>
                   {t(
-                    filtered.visible.length === 1
+                    deptFiltered.visible.length === 1
                       ? 'globalSearch.resultOne'
                       : 'globalSearch.resultsCount',
-                    { count: filtered.visible.length },
+                    { count: deptFiltered.visible.length },
                   )}
                 </span>
               )}

@@ -1,7 +1,7 @@
 // The department view's top bar: identity, breadcrumb, and the handful of
 // actions that act on the whole department rather than on one employee.
 
-import { ArrowLeft, BookOpen, ChevronRight, Download, FolderOpen, ListChecks, MessageSquarePlus } from 'lucide-react'
+import { ArrowLeft, BookOpen, ChevronRight, Download, FolderOpen, ListChecks, MessageSquarePlus, ScrollText } from 'lucide-react'
 import type { Department } from '../../store'
 import { useI18n } from '../../i18n'
 import type { SortOrder } from './DepartmentDashboard.data'
@@ -39,6 +39,9 @@ interface DeptHeaderProps {
   onExport: () => void
   onOpenFiles: () => void
   onOpenHandbook: () => void
+  /** The brief panel is open below this header. */
+  briefOpen: boolean
+  onToggleBrief: () => void
   onSortChange: (order: SortOrder) => void
   onNewSession: () => void
 }
@@ -55,6 +58,8 @@ export default function DeptHeader({
   onExport,
   onOpenFiles,
   onOpenHandbook,
+  briefOpen,
+  onToggleBrief,
   onSortChange,
   onNewSession,
 }: DeptHeaderProps) {
@@ -341,6 +346,47 @@ export default function DeptHeader({
         {dept.handbook?.trim() && (
           <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent-muted)' }} />
         )}
+      </button>
+
+      {/* The brief is a read-only excerpt of what is already on disk, so it sits
+          with the other department-wide actions rather than in the roster. */}
+      <button
+        onClick={onToggleBrief}
+        className="dept-action-btn"
+        aria-label={t('dept.brief.open')}
+        aria-pressed={briefOpen}
+        title={t('dept.brief.open')}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 5,
+          padding: '5px 10px',
+          borderRadius: 6,
+          border: `1px solid ${briefOpen ? 'rgba(99,102,241,0.7)' : 'var(--border)'}`,
+          background: briefOpen ? 'rgba(99,102,241,0.1)' : 'transparent',
+          color: briefOpen ? 'var(--accent-text)' : 'var(--text-secondary)',
+          fontSize: 11,
+          cursor: 'pointer',
+          flexShrink: 0,
+          transition: 'all 0.15s ease',
+        }}
+        onMouseEnter={e => {
+          if (!briefOpen) {
+            e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'
+            e.currentTarget.style.color = 'var(--accent-text)'
+            e.currentTarget.style.background = 'rgba(99,102,241,0.06)'
+          }
+        }}
+        onMouseLeave={e => {
+          if (!briefOpen) {
+            e.currentTarget.style.borderColor = 'var(--border)'
+            e.currentTarget.style.color = 'var(--text-secondary)'
+            e.currentTarget.style.background = 'transparent'
+          }
+        }}
+      >
+        <ScrollText size={12} style={{ flexShrink: 0 }} />
+        <span className="dept-action-label">{t('dept.brief.title')}</span>
       </button>
 
       <div style={{ display: 'flex', gap: 2, background: 'var(--bg-hover)', borderRadius: 6, padding: 2, flexShrink: 0 }}>

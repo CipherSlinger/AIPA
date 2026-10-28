@@ -16,6 +16,7 @@ import RecruitEmployeeModal from './RecruitEmployeeModal'
 import PositionEditorModal from './PositionEditorModal'
 import PositionHireModal from './PositionHireModal'
 import DeptHandbookModal from './DeptHandbookModal'
+import DeptBrief from './DeptBrief'
 import { bindPersonaToNewSession } from './personaBinding'
 import {
   deptDisplayName, positionDisplayBrief, sessionMatchesDir, teamsOf,
@@ -43,7 +44,7 @@ const NO_PERSONAS: Persona[] = []
 interface DeptViewProps {
   deptId: string
   onBack: () => void
-  onOpenSession: (session: SessionListItem) => void
+  onOpenSession: (session: SessionListItem, directory?: string) => void
   /** Drill into another node — the parent in the breadcrumb, or a child team. */
   onSelectDept: (deptId: string) => void
   loadingSessionId?: string | null
@@ -104,6 +105,8 @@ export default function DeptView({
   // The seat whose hire dialog is open; null = closed.
   const [hiringPosition, setHiringPosition] = useState<Position | null>(null)
   const [handbookOpen, setHandbookOpen] = useState(false)
+  // Page-local, like the handbook dialog: closing the department page closes it.
+  const [briefOpen, setBriefOpen] = useState(false)
 
   const sortedSessions = useMemo(
     () => sortSessions(deptSessions, sortOrder),
@@ -272,9 +275,23 @@ export default function DeptView({
         onExport={handleExport}
         onOpenFiles={openFiles}
         onOpenHandbook={() => setHandbookOpen(true)}
+        briefOpen={briefOpen}
+        onToggleBrief={() => setBriefOpen(open => !open)}
         onSortChange={setSortOrder}
         onNewSession={newSession}
       />
+
+      {briefOpen && (
+        <DeptBrief
+          dept={dept}
+          departments={departments}
+          sessions={allSessions}
+          homeDir={homeDir}
+          loadingSessionId={loadingSessionId}
+          onOpenSession={onOpenSession}
+          onClose={() => setBriefOpen(false)}
+        />
+      )}
 
       {/* Sessions area */}
       <div style={{ flex: 1, overflow: 'auto', padding: '24px 24px', background: 'var(--bg-chat)' }}>

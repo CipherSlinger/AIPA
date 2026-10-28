@@ -114,7 +114,10 @@ export default function DepartmentDashboard() {
             deptId={selectedDeptId}
             onBack={handleBack}
             onSelectDept={handleSelectDept}
-            onOpenSession={session => handleOpenSession(session, departments.find(d => d.id === selectedDeptId)?.directory ?? '')}
+            onOpenSession={(session, directory) => handleOpenSession(
+              session,
+              directory ?? departments.find(d => d.id === selectedDeptId)?.directory ?? '',
+            )}
             loadingSessionId={loadingSession}
             onDeleteSession={handleDeleteSession}
             autoNewSession={autoNewSessionDeptId === selectedDeptId}

@@ -1,0 +1,379 @@
+// The department Brief panel: a ledger excerpt for the selected node and its
+// subtree. It owns only the window toggle and presentation; every count and
+// every "which dates are admissible" decision lives in `deptBrief.data.ts`.
+//
+// The panel deliberately reads as a record, not an analysis: no quality, no
+// progress, no utilization. The footnotes say what the numbers cannot prove.
+
+import { useMemo, useState, type ReactNode } from 'react'
+import { ScrollText, X } from 'lucide-react'
+import type { Department } from '../../store'
+import type { SessionListItem } from '../../types/app.types'
+import { useI18n } from '../../i18n'
+import {
+  deptDisplayName,
+  formatRelativeTime,
+  positionDisplayTitle,
+} from './deptUtils'
+import {
+  buildDeptBrief,
+  type BriefSession,
+  type BriefWindow,
+} from './deptBrief.data'
+
+interface DeptBriefProps {
+  dept: Department
+  /** The whole tree — the subtree and its seats are derived from it. */
+  departments: Department[]
+  /** Every listed conversation; ownership is resolved by folder. */
+  sessions: SessionListItem[]
+  homeDir?: string
+  loadingSessionId?: string | null
+  /** `directory` is the owning node's folder when the row came from a descendant. */
+  onOpenSession: (session: SessionListItem, directory?: string) => void
+  onClose: () => void
+}
+
+const ACCENT = '#6366f1'
+
+export default function DeptBrief({
+  dept,
+  departments,
+  sessions,
+  homeDir,
+  loadingSessionId,
+  onOpenSession,
+  onClose,
+}: DeptBriefProps) {
+  const { t, resolvedLocale } = useI18n()
+  const [briefWindow, setBriefWindow] = useState<BriefWindow>('today')
+  // Evaluated when the panel opens and when the window changes, so the bounds
+  // stay put while the user reads. Nothing is written to preferences.
+  const [now, setNow] = useState(() => Date.now())
+
+  const selectWindow = (next: BriefWindow) => {
+    setBriefWindow(next)
+    setNow(Date.now())
+  }
+
+  const brief = useMemo(
+    () => buildDeptBrief({
+      nodes: departments,
+      sessions: sessions as BriefSession[],
+      rootId: dept.id,
+      window: briefWindow,
+      now,
+      homeDir,
+    }),
+    [departments, sessions, dept.id, briefWindow, now, homeDir],
+  )
+
+  const nodeName = (nodeId: string): string => {
+    const node = brief.nodes.find(n => n.id === nodeId)
+    return node ? deptDisplayName(node, resolvedLocale) : ''
+  }
+
+  const nodeDirectory = (nodeId: string): string | undefined =>
+    brief.nodes.find(n => n.id === nodeId)?.directory
+
+  const windowLabel = briefWindow === 'today' ? t('dept.brief.today') : t('dept.brief.week')
+
+  return (
+    <section
+      aria-label={t('dept.brief.title')}
+      style={{
+        flexShrink: 0,
+        margin: '10px 24px 0',
+        padding: '12px 14px 11px',
+        background: 'var(--glass-bg-low)',
+        border: '1px solid var(--border)',
+        borderRadius: 12,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        maxHeight: 'min(48vh, 440px)',
+        overflowY: 'auto',
+        animation: 'slideUp 0.15s ease',
+      }}
+    >
+      {/* Title row ------------------------------------------------------- */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        <span style={{
+          width: 26, height: 26, borderRadius: 8, flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(99,102,241,0.12)', color: 'var(--accent-text)',
+        }}>
+          <ScrollText size={14} />
+        </span>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', flexShrink: 0 }}>
+              {t('dept.brief.title')}
+            </span>
+            <span style={{
+              fontSize: 11, color: 'var(--text-muted)',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
+            }}>
+              {deptDisplayName(dept, resolvedLocale)}
+            </span>
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--text-subtle)', marginTop: 1 }}>
+            {brief.descendants.length > 0 ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                <span>{t('dept.brief.scopeLabel')}</span>
+                {brief.descendants.map(node => (
+                  <span
+                    key={node.id}
+                    style={{
+                      padding: '0 5px', borderRadius: 999,
+                      background: 'var(--bg-hover)', color: 'var(--text-muted)',
+                      fontSize: 9.5, lineHeight: '16px',
+                    }}
+                  >
+                    {deptDisplayName(node, resolvedLocale)}
+                  </span>
+                ))}
+              </span>
+            ) : t('dept.brief.scopeSelf')}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 2, background: 'var(--bg-hover)', borderRadius: 6, padding: 2, flexShrink: 0 }}>
+          {(['today', 'week'] as const).map(value => {
+            const active = briefWindow === value
+            return (
+              <button
+                key={value}
+                onClick={() => selectWindow(value)}
+                aria-pressed={active}
+                style={{
+                  padding: '3px 8px', borderRadius: 4, border: 'none',
+                  background: active ? 'rgba(99,102,241,0.25)' : 'transparent',
+                  color: active ? 'var(--accent-text-strong)' : 'var(--text-muted)',
+                  fontSize: 10, cursor: 'pointer',
+                  fontWeight: active ? 600 : 400,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {value === 'today' ? t('dept.brief.today') : t('dept.brief.week')}
+              </button>
+            )
+          })}
+        </div>
+
+        <button
+          onClick={onClose}
+          aria-label={t('dept.brief.close')}
+          title={t('dept.brief.close')}
+          style={{
+            width: 26, height: 26, borderRadius: 6, flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--border)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+        >
+          <X size={14} />
+        </button>
+      </div>
+
+      {/* Counts ---------------------------------------------------------- */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+        <BriefStat value={brief.counts.windowConversations} label={t('dept.brief.inWindow')} />
+        <BriefStat
+          value={brief.counts.activeConversations}
+          label={t('dept.brief.active')}
+          hint={t('dept.brief.activeHint')}
+        />
+        <BriefStat
+          value={brief.counts.firstSeenConversations}
+          label={t('dept.brief.firstSeen')}
+          hint={t('dept.brief.firstSeenHint')}
+        />
+        <BriefStat value={brief.counts.openSeats} label={t('dept.brief.seats')} />
+      </div>
+
+      {/* Empty states ---------------------------------------------------- */}
+      {brief.empty === 'noNode' && (
+        <BriefEmptyText title={t('dept.brief.emptyNoNode')} />
+      )}
+      {brief.empty === 'noSessions' && (
+        <BriefEmptyText
+          title={t('dept.brief.emptyNoSessionsTitle')}
+          body={t('dept.brief.emptyNoSessionsBody')}
+        />
+      )}
+      {brief.empty === 'noActivity' && (
+        <BriefEmptyText
+          title={t('dept.brief.emptyNoActivityTitle')}
+          body={t('dept.brief.emptyNoActivityBody', { count: brief.counts.allTimeSessions })}
+        />
+      )}
+
+      {/* Recent conversations -------------------------------------------- */}
+      {brief.recent.length > 0 && (
+        <div style={{ marginTop: 10 }}>
+          <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>
+            {t('dept.brief.recent')}
+          </div>
+          {brief.recent.map(row => {
+            const title = row.session.title?.trim()
+              || row.session.lastPrompt?.trim()
+              || t('session.untitled')
+            const busy = loadingSessionId === row.session.sessionId
+            return (
+              <button
+                key={row.session.sessionId}
+                onClick={() => onOpenSession(row.session, nodeDirectory(row.nodeId))}
+                title={t('dept.brief.openSession', { title })}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '4px 6px', borderRadius: 6, border: 'none',
+                  background: 'transparent', cursor: busy ? 'progress' : 'pointer',
+                  opacity: busy ? 0.6 : 1, textAlign: 'left', minWidth: 0,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+              >
+                <span style={{
+                  flex: 1, minWidth: 0, fontSize: 11.5, color: 'var(--text-secondary)',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {title}
+                </span>
+                {row.basis === 'created' && (
+                  <span style={{
+                    flexShrink: 0, fontSize: 9, lineHeight: '15px', padding: '0 5px',
+                    borderRadius: 999, background: 'rgba(99,102,241,0.12)',
+                    color: 'var(--accent-text)',
+                  }}>
+                    {t('dept.brief.createdTag')}
+                  </span>
+                )}
+                <span style={{
+                  flexShrink: 0, fontSize: 10, color: 'var(--text-faint)',
+                  fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+                }}>
+                  {row.engine === 'codex' ? t('dept.engineCodex') : t('dept.engineClaude')}
+                  {' · '}
+                  {formatRelativeTime(row.at, t, resolvedLocale)}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Seats ----------------------------------------------------------- */}
+      {brief.seats.length > 0 && (
+        <div style={{ marginTop: 9 }}>
+          <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>
+            {t('dept.brief.seats')}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+            {brief.seats.map(seat => (
+              <span
+                key={`${seat.nodeId}:${seat.position.id}`}
+                title={seat.position.brief || seat.position.title}
+                style={{
+                  display: 'inline-flex', alignItems: 'baseline', gap: 4,
+                  padding: '2px 8px', borderRadius: 999,
+                  border: '1px dashed var(--border)', background: 'transparent',
+                  fontSize: 10.5, color: 'var(--text-secondary)', maxWidth: '100%',
+                }}
+              >
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {positionDisplayTitle(seat.position, resolvedLocale)}
+                </span>
+                {seat.nodeId !== dept.id && (
+                  <span style={{ fontSize: 9.5, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>
+                    {nodeName(seat.nodeId)}
+                  </span>
+                )}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Written limits -------------------------------------------------- */}
+      <div style={{
+        marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border)',
+        display: 'flex', flexDirection: 'column', gap: 3,
+      }}>
+        <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+          {t('dept.brief.limits')}
+        </div>
+        <BriefNote>{t('dept.brief.noteFiling')}</BriefNote>
+        <BriefNote>{t('dept.brief.noteEngines')}</BriefNote>
+        {brief.disclosures.firstTimestampMissing > 0 && (
+          <BriefNote>{t('dept.brief.noteMissingFirst', { count: brief.disclosures.firstTimestampMissing })}</BriefNote>
+        )}
+        <BriefNote>{t('dept.brief.noteMessages')}</BriefNote>
+        <BriefNote>{t('dept.brief.noteLocal')}</BriefNote>
+        <BriefNote>{t('dept.brief.noteJobs')}</BriefNote>
+      </div>
+
+      {/* The window is stated once, in words, next to the limits. */}
+      <div style={{ marginTop: 6, fontSize: 9.5, color: 'var(--text-faint)' }}>
+        {windowLabel} · {new Date(brief.window.start).toLocaleString(resolvedLocale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+        {' – '}
+        {new Date(brief.window.end).toLocaleString(resolvedLocale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+      </div>
+    </section>
+  )
+}
+
+// ── Small presentational pieces ─────────────────────────────────────────────
+
+function BriefStat({ value, label, hint }: { value: number; label: string; hint?: string }) {
+  return (
+    <div style={{
+      flex: '1 1 90px', minWidth: 82,
+      padding: '6px 8px', borderRadius: 8,
+      background: 'rgba(99,102,241,0.05)',
+      border: `1px solid ${ACCENT}22`,
+      display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'center',
+    }}>
+      <span style={{
+        fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2,
+        fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"',
+      }}>
+        {value}
+      </span>
+      <span
+        title={hint}
+        style={{
+          fontSize: 9, fontWeight: 700, color: 'var(--text-muted)',
+          textTransform: 'uppercase', letterSpacing: '0.06em', lineHeight: 1.35,
+          cursor: hint ? 'help' : 'default',
+        }}
+      >
+        {label}
+      </span>
+    </div>
+  )
+}
+
+function BriefEmptyText({ title, body }: { title: string; body?: string }) {
+  return (
+    <div style={{
+      marginTop: 10, padding: '10px 12px', borderRadius: 8,
+      border: '1px dashed var(--border)',
+      display: 'flex', flexDirection: 'column', gap: 3,
+    }}>
+      <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-secondary)' }}>{title}</span>
+      {body && <span style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>{body}</span>}
+    </div>
+  )
+}
+
+function BriefNote({ children }: { children: ReactNode }) {
+  return (
+    <div style={{
+      fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5,
+      paddingLeft: 9, position: 'relative',
+    }}>
+      <span style={{ position: 'absolute', left: 1, top: 0, color: 'var(--text-faint)' }}>·</span>
+      {children}
+    </div>
+  )
+}

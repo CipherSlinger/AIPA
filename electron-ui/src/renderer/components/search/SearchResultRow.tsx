@@ -4,6 +4,8 @@ import type { SessionSearchResultData } from '../../../preload/index'
 import type { SessionOrigin } from '../../types/app.types'
 import { useT } from '../../i18n'
 import SessionOriginBadge from '../shared/SessionOriginBadge'
+import SearchDeptBadge from './SearchDeptBadge'
+import type { DeptAttribution } from './searchDeptAttribution'
 
 interface Props {
   hit: SessionSearchResultData
@@ -17,6 +19,8 @@ interface Props {
    * nothing in that case; the filter, not the row, knows the difference.
    */
   origin?: SessionOrigin
+  /** Always present: "cannot attribute" is an answer, not a missing badge. */
+  attribution: DeptAttribution
 }
 
 /** Split the snippet around every case-insensitive occurrence of the query. */
@@ -62,7 +66,7 @@ export function relativeTime(timestamp: number, t: ReturnType<typeof useT>): str
   return new Date(timestamp).toLocaleDateString()
 }
 
-export function SearchResultRow({ hit, query, index, selected, onHover, onOpen, origin }: Props) {
+export function SearchResultRow({ hit, query, index, selected, onHover, onOpen, origin, attribution }: Props) {
   const t = useT()
   return (
     <div
@@ -113,6 +117,10 @@ export function SearchResultRow({ hit, query, index, selected, onHover, onOpen, 
           {/* Who started the conversation, quiet enough that the title still
               reads first. Nothing renders for user-started or unknown hits. */}
           <SessionOriginBadge origin={origin} />
+          {/* Which org node would file this conversation. Beside, not instead
+              of, the origin: who started it and where it was filed are two
+              different facts, and neither replaces the other. */}
+          <SearchDeptBadge attribution={attribution} />
           <span
             style={{
               fontSize: 11,
