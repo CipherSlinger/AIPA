@@ -5,6 +5,7 @@ import { useT } from '../../i18n'
 import FloatingPortal from '../ui/FloatingPortal'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
+import type { CodexModelInfoData } from '../../../preload/index'
 
 interface ModelPickerProps {
   model: string | undefined
@@ -60,7 +61,7 @@ type ModelTier = 'haiku' | 'sonnet' | 'opus'
 
 const TIER_STYLES: Record<ModelTier, React.CSSProperties> = {
   haiku:  { background: 'rgba(74,222,128,0.12)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.25)', borderRadius: 8, padding: '1px 5px', fontSize: 9, fontWeight: 700 },
-  sonnet: { background: 'rgba(99,102,241,0.14)',  color: '#818cf8', border: '1px solid rgba(99,102,241,0.25)',  borderRadius: 8, padding: '1px 5px', fontSize: 9, fontWeight: 700 },
+  sonnet: { background: 'rgba(99,102,241,0.14)',  color: 'var(--accent-text)', border: '1px solid rgba(99,102,241,0.25)',  borderRadius: 8, padding: '1px 5px', fontSize: 9, fontWeight: 700 },
   opus:   { background: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 8, padding: '1px 5px', fontSize: 9, fontWeight: 700 },
 }
 
@@ -78,6 +79,12 @@ export default function ModelPicker({ model }: ModelPickerProps) {
   const pickerRef = useRef<HTMLDivElement>(null)
   const [providerGroups, setProviderGroups] = useState<ProviderGroup[]>([])
   const [loadFailed, setLoadFailed] = useState(false)
+  // What the open menu is allowed to offer. `probing` means the engine has not
+  // answered yet — deliberately render no list rather than the Claude
+  // fallback, which would be a lie on a Codex profile. `codexLoading` is the
+  // Codex catalogue call, which can take seconds on a cold app-server.
+  const [pickMode, setPickMode] = useState<'probing' | 'codexLoading' | 'codex' | 'legacy'>('probing')
+  const [codexModels, setCodexModels] = useState<CodexModelInfoData[]>([])
 
   // A persona-bound conversation runs on the persona's model unless the user
   // explicitly overrides it here. `model` is already the effective model.
@@ -88,7 +95,10 @@ export default function ModelPicker({ model }: ModelPickerProps) {
   const menuRef = useRef<HTMLDivElement>(null)
   useClickOutside(pickerRef, showPicker, useCallback(() => setShowPicker(false), []), [menuRef])
 
-  // Load multi-provider models when dropdown opens
+  // Load the list the active engine can actually run when the dropdown opens.
+  // Codex profiles get Codex's own catalogue; every other profile keeps the
+  // provider groups. Any failure falls back silently to the provider groups,
+  // and only then to the static Claude list, so the menu always opens.
   useEffect(() => {
     if (!showPicker) return
     let cancelled = false
@@ -135,20 +145,66 @@ export default function ModelPicker({ model }: ModelPickerProps) {
           })
         }
 
+        if (cancelled) return
         setProviderGroups(groups)
         setLoadFailed(false)
       } catch {
-        setLoadFailed(true)
+        if (!cancelled) setLoadFailed(true)
       }
     }
 
-    loadProviderModels()
+    const loadModels = async () => {
+      setPickMode('probing')
+      setCodexModels([])
+
+      let engineKind: 'codex' | 'claude' | 'none' = 'claude'
+      try {
+        const active = await window.electronAPI.engineGetActive()
+        if (active?.kind === 'codex' || active?.kind === 'none') engineKind = active.kind
+      } catch {
+        // No engine probe available: keep the pre-existing provider behaviour.
+      }
+      if (cancelled) return
+
+      if (engineKind === 'codex') {
+        setPickMode('codexLoading')
+        // Snapshot the active conversation here so the probe runs where the
+        // next turn will run, and reuses a live app-server when one exists.
+        const chat = useChatStore.getState()
+        const activeTab = chat.tabs.find(tab => tab.id === chat.activeTabId)
+        try {
+          const result = await window.electronAPI.codexModelList({
+            cwd: activeTab?.cwd || usePrefsStore.getState().prefs.workingDir || undefined,
+            sessionId: chat.streamSessionId || undefined,
+          })
+          const models = result?.success
+            ? (result.models ?? []).filter(m => m.hidden !== true)
+            : []
+          if (!cancelled && models.length > 0) {
+            setPickMode('codex')
+            setCodexModels(models)
+            return
+          }
+        } catch {
+          // A read-only probe must never block picking a model — fall through.
+        }
+        if (cancelled) return
+      }
+
+      setPickMode('legacy')
+      await loadProviderModels()
+    }
+
+    loadModels()
     return () => { cancelled = true }
   }, [showPicker])
 
-  const handleModelSwitch = useCallback((modelId: string) => {
+  // `label` lets a Codex row carry its own display name into the toast; the
+  // persisted value stays `modelId`, so persona/override/prefs routing is
+  // identical to a provider row.
+  const handleModelSwitch = useCallback((modelId: string, label?: string) => {
     setShowPicker(false)
-    const shortName = getModelShortName(modelId)
+    const shortName = label || getModelShortName(modelId)
     if (sessionPersona) {
       // The conversation is bound to a persona, whose model prompt assembly
       // reads at send time. Writing `prefs.model` here used to change the
@@ -218,7 +274,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
           borderRadius: 8,
           padding: '2px 8px',
           cursor: 'pointer',
-          color: showPicker ? '#818cf8' : 'var(--text-secondary)',
+          color: showPicker ? 'var(--accent-text)' : 'var(--text-secondary)',
           fontSize: 11,
           fontWeight: 600,
           display: 'flex',
@@ -296,7 +352,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
                 width: '100%', textAlign: 'left',
                 padding: '6px 12px', margin: '0 0 2px',
                 background: 'transparent', border: 'none',
-                color: '#818cf8', cursor: 'pointer', fontSize: 11,
+                color: 'var(--accent-text)', cursor: 'pointer', fontSize: 11,
                 borderRadius: 7,
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.12)' }}
@@ -306,7 +362,107 @@ export default function ModelPicker({ model }: ModelPickerProps) {
             </button>
           )}
 
-          {displayGroups.map((group, groupIdx) => (
+          {/* The catalogue call spawns (or attaches to) the app-server, so on a
+              cold start it outlives the menu opening. Say so instead of
+              showing an empty panel. */}
+          {pickMode === 'codexLoading' && (
+            <div style={{ padding: '10px 12px 8px 22px', fontSize: 11, color: 'var(--text-muted)' }}>
+              {t('codex.models.loading')}
+            </div>
+          )}
+
+          {/* Codex's own catalogue: what this installation will actually run.
+              Read-only information — reasoning efforts are shown, not chosen. */}
+          {pickMode === 'codex' && (
+            <div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '8px 12px 2px', fontSize: 10, fontWeight: 700,
+                textTransform: 'uppercase', letterSpacing: '0.07em',
+                color: 'var(--text-muted)',
+              }}>
+                <span>{t('codex.models.title')}</span>
+              </div>
+
+              {codexModels.map(m => {
+                // `model` is the slug Codex accepts on the wire; `id` is the
+                // catalogue key. They are usually equal, so match either.
+                const modelId = m.model || m.id
+                const isActive = m.id === model || m.model === model
+                const efforts = m.supportedReasoningEfforts
+                  .map(option => option.reasoningEffort)
+                  .filter(Boolean)
+                  .join(' · ')
+                return (
+                  <button
+                    key={m.id}
+                    role="option"
+                    aria-selected={isActive}
+                    onClick={() => handleModelSwitch(modelId, m.displayName)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      width: '100%',
+                      textAlign: 'left',
+                      background: isActive ? 'rgba(99,102,241,0.12)' : 'transparent',
+                      border: 'none',
+                      borderLeft: isActive ? '2px solid rgba(99,102,241,0.60)' : '2px solid transparent',
+                      padding: '8px 12px 8px 22px',
+                      cursor: 'pointer',
+                      color: isActive ? 'var(--accent-text)' : 'var(--text-primary)',
+                      borderRadius: 7,
+                      transition: 'all 0.15s ease',
+                      gap: 6,
+                    }}
+                    onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.borderLeftColor = 'rgba(99,102,241,0.40)' } }}
+                    onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent' } }}
+                  >
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{
+                          fontSize: 13, fontWeight: 600,
+                          color: isActive ? 'var(--accent-text)' : 'var(--text-primary)',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                          {m.displayName || m.id}
+                        </span>
+                        {m.isDefault && (
+                          <span style={{
+                            fontSize: 9, padding: '1px 5px', borderRadius: 8,
+                            background: 'rgba(99,102,241,0.14)', color: 'var(--accent-text)',
+                            fontWeight: 700, flexShrink: 0,
+                          }}>
+                            {t('codex.models.default')}
+                          </span>
+                        )}
+                      </span>
+                      {m.description && (
+                        <span style={{
+                          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden', fontSize: 10, lineHeight: 1.45,
+                          color: 'var(--text-muted)', marginTop: 2,
+                        }}>
+                          {m.description}
+                        </span>
+                      )}
+                      {efforts && (
+                        <span style={{
+                          display: 'block', marginTop: 2, fontSize: 9,
+                          color: 'var(--text-muted)', letterSpacing: '0.02em',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                          {efforts}
+                        </span>
+                      )}
+                    </span>
+                    {isActive && <span style={{ fontSize: 14, color: 'var(--accent-text)' }}>&#10003;</span>}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {pickMode === 'legacy' && displayGroups.map((group, groupIdx) => (
             <div key={group.providerId}>
               {/* Provider section header */}
               <div style={{
@@ -346,7 +502,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
                       borderLeft: isActive ? '2px solid rgba(99,102,241,0.60)' : '2px solid transparent',
                       padding: '8px 12px 8px 22px',
                       cursor: 'pointer',
-                      color: isActive ? '#818cf8' : 'var(--text-primary)',
+                      color: isActive ? 'var(--accent-text)' : 'var(--text-primary)',
                       fontSize: 13,
                       fontWeight: 600,
                       borderRadius: 7,
@@ -357,7 +513,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
                     onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.borderLeftColor = 'rgba(99,102,241,0.40)' } }}
                     onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent' } }}
                   >
-                    <span style={{ flex: 1, fontWeight: 600, fontSize: 13, color: isActive ? '#818cf8' : 'var(--text-primary)' }}>{m.name}</span>
+                    <span style={{ flex: 1, fontWeight: 600, fontSize: 13, color: isActive ? 'var(--accent-text)' : 'var(--text-primary)' }}>{m.name}</span>
 
                     {/* Tier badge */}
                     {tier && <span style={TIER_STYLES[tier]}>{tier.charAt(0).toUpperCase() + tier.slice(1)}</span>}
@@ -375,13 +531,13 @@ export default function ModelPicker({ model }: ModelPickerProps) {
                         </span>
                       )}
                       {m.capabilities?.reasoning && (
-                        <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(99,102,241,0.14)', color: '#818cf8', fontWeight: 700 }}>
+                        <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(99,102,241,0.14)', color: 'var(--accent-text)', fontWeight: 700 }}>
                           {t('provider.capabilities.reasoning')}
                         </span>
                       )}
                     </span>
 
-                    {isActive && <span style={{ fontSize: 14, color: '#818cf8' }}>&#10003;</span>}
+                    {isActive && <span style={{ fontSize: 14, color: 'var(--accent-text)' }}>&#10003;</span>}
                   </button>
                 )
               })}

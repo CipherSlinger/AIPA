@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useMemo } from 'react'
 import { ArrowLeft, Store } from 'lucide-react'
 import { useT } from '../../i18n'
-import { useUiStore, useChatStore, usePrefsStore } from '../../store'
+import { useUiStore, usePrefsStore } from '../../store'
 import {
   MARKETPLACE_SKILLS,
   SKILL_CATEGORIES,
@@ -12,6 +12,7 @@ import {
   type SkillSource,
 } from '../../utils/skillMarketplace'
 import MarketplaceCard from './MarketplaceCard'
+import CodexSkillsSection from './CodexSkillsSection'
 
 export default function SkillMarketplacePage() {
   const t = useT()
@@ -300,6 +301,9 @@ export default function SkillMarketplacePage() {
             {t('skills.noResults')}
           </div>
         )}
+        {/* Skills Codex already knows about — read-only, and absent entirely
+            when the probe fails or finds nothing. */}
+        <CodexSkillsSection />
       </div>
     </div>
   )

@@ -2992,5 +2992,61 @@
     "accept": "采纳",
     "discard": "丢弃",
     "sandboxNote": "已在沙箱中预执行"
+  },
+  "codex": {
+    "account": {
+      "title": "Codex 账户",
+      "refresh": "刷新账户数据",
+      "plan": "方案",
+      "planUnknown": "未知方案",
+      "window": {
+        "primary": "主要窗口",
+        "secondary": "次要窗口",
+        "hours": "{{count}} 小时窗口",
+        "days": "{{count}} 天窗口",
+        "minutes": "{{count}} 分钟窗口",
+        "weekly": "每周窗口"
+      },
+      "usedPercent": "已用 {{percent}}",
+      "resetsIn": "重置：{{time}}",
+      "limitReached": "已达上限",
+      "usageAria": "{{window}}用量：已用 {{percent}}",
+      "credits": "额度",
+      "creditsUnlimited": "无限",
+      "creditsBalance": "{{balance}} 点额度",
+      "creditsAvailable": "可用",
+      "creditsNone": "无额度",
+      "resetCredits": "可重置 {{count}} 次额度",
+      "usage": {
+        "title": "账户用量",
+        "lifetime": "累计 Token",
+        "peakDaily": "单日峰值",
+        "currentStreak": "当前连续",
+        "longestStreak": "最长连续",
+        "longestTurn": "最长回合"
+      },
+      "sparklineAria": "最近 14 天每日 Token 用量",
+      "staleNote": "刷新失败 — 显示上次获取的数据。"
+    },
+    "models": {
+      "title": "Codex 模型",
+      "default": "默认",
+      "loading": "正在加载 Codex 模型…"
+    },
+    "skills": {
+      "title": "Codex 技能",
+      "description": "这些技能由 Codex 管理，AIPA 只做展示和在文件夹中定位。请到 Codex 中维护。",
+      "scopeRepo": "仓库",
+      "scopeUser": "用户",
+      "scopeAdmin": "管理员",
+      "scopeSystem": "系统",
+      "scopeOther": "其他",
+      "showInFolder": "在文件夹中显示",
+      "copyPath": "复制路径",
+      "copied": "路径已复制",
+      "copyFailed": "复制路径失败",
+      "revealFailed": "无法打开所在文件夹",
+      "disabled": "已禁用"
+    }
   }
 }

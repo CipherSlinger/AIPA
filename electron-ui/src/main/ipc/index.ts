@@ -540,6 +540,26 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     return { success: false, error: 'No active codex bridge' }
   })
 
+  // ── Engine routing ──────────────────────────────────
+  // The model picker may only offer what the engine that will run the next
+  // turn actually accepts: Codex's own catalog on a Codex profile, the legacy
+  // provider groups otherwise. `resolveAuxiliaryEngine` answers from
+  // credentials and installed binaries, so it is a cheap read with no spawn.
+  // Its `env` is deliberately dropped here — it carries the provider key and
+  // has no business crossing the context bridge — and a failed probe reports
+  // "none" instead of throwing into the renderer.
+  safeHandle('engine:getActive', () => {
+    try {
+      const engine = resolveAuxiliaryEngine()
+      if (engine.kind === 'codex') return { kind: 'codex' as const }
+      if (engine.kind === 'claude') return { kind: 'claude' as const, source: engine.source }
+      return { kind: 'none' as const, reason: engine.reason }
+    } catch (err) {
+      log.warn('engine:getActive error:', String(err))
+      return { kind: 'none' as const, reason: 'probe_failed' }
+    }
+  })
+
   // ── Codex read-only protocol probes ─────────────────
   // These back Settings/model pickers with Codex's real data instead of
   // app-side synthetic numbers. Each uses a live user-facing bridge when one

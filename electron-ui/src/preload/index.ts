@@ -78,6 +78,19 @@ export interface CodexSkillInfoData {
   shortDescription?: string | null
 }
 
+/**
+ * Which engine the next chat turn will use (see `resolveAuxiliaryEngine` in
+ * the main process). Deliberately omits the Claude `env`: it carries the
+ * provider's credentials, which must stay out of the renderer.
+ */
+export interface ActiveEngineData {
+  kind: 'codex' | 'claude' | 'none'
+  /** `claude` only: a third-party provider, or the legacy Anthropic login. */
+  source?: 'legacy' | 'provider'
+  /** `none` only: why no engine can authenticate. */
+  reason?: string
+}
+
 /** Where MCP configuration lives for the active engine. */
 export interface McpConfigInfoData {
   engine: 'codex' | 'claude'
@@ -370,6 +383,12 @@ const electronAPI = {
     ipcRenderer.invoke('cli:steerTurn', args),
   cliForkThread: (args: { sessionId: string; lastTurnId?: string }) =>
     ipcRenderer.invoke('cli:forkThread', args) as Promise<{ success: boolean; threadId?: string; error?: string }>,
+
+  // ── Engine routing ─────────────────────────────
+  // Which engine the next chat turn will run on. Read-only and derived from
+  // credentials, so the model picker can offer that engine's real catalogue.
+  engineGetActive: () =>
+    ipcRenderer.invoke('engine:getActive') as Promise<ActiveEngineData>,
 
   // ── Codex read-only protocol probes ───────────
   // Backed by `model/list`, `account/usage/read`, `account/rateLimits/read`

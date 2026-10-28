@@ -2992,5 +2992,61 @@
     "accept": "Accept",
     "discard": "Discard",
     "sandboxNote": "Pre-executed in sandbox"
+  },
+  "codex": {
+    "account": {
+      "title": "Codex account",
+      "refresh": "Refresh account data",
+      "plan": "Plan",
+      "planUnknown": "Unknown plan",
+      "window": {
+        "primary": "Primary window",
+        "secondary": "Secondary window",
+        "hours": "{{count}}-hour window",
+        "days": "{{count}}-day window",
+        "minutes": "{{count}}-minute window",
+        "weekly": "Weekly window"
+      },
+      "usedPercent": "{{percent}} used",
+      "resetsIn": "Resets {{time}}",
+      "limitReached": "Limit reached",
+      "usageAria": "{{window}} usage: {{percent}} used",
+      "credits": "Credits",
+      "creditsUnlimited": "Unlimited",
+      "creditsBalance": "{{balance}} credits",
+      "creditsAvailable": "Available",
+      "creditsNone": "No credits",
+      "resetCredits": "{{count}} rate-limit resets available",
+      "usage": {
+        "title": "Account usage",
+        "lifetime": "Lifetime tokens",
+        "peakDaily": "Peak day",
+        "currentStreak": "Current streak",
+        "longestStreak": "Longest streak",
+        "longestTurn": "Longest turn"
+      },
+      "sparklineAria": "Daily token usage over the last 14 days",
+      "staleNote": "Couldn't refresh — showing the last known data."
+    },
+    "models": {
+      "title": "Codex models",
+      "default": "Default",
+      "loading": "Loading Codex models…"
+    },
+    "skills": {
+      "title": "Codex skills",
+      "description": "Codex owns these skills — AIPA only shows them and reveals their files. Manage them in Codex.",
+      "scopeRepo": "Repo",
+      "scopeUser": "User",
+      "scopeAdmin": "Admin",
+      "scopeSystem": "System",
+      "scopeOther": "Other",
+      "showInFolder": "Show in folder",
+      "copyPath": "Copy path",
+      "copied": "Path copied",
+      "copyFailed": "Couldn't copy the path",
+      "revealFailed": "Couldn't open the containing folder",
+      "disabled": "Disabled"
+    }
   }
 }

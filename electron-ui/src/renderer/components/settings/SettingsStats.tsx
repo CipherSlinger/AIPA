@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useI18n } from '../../i18n'
+import CodexAccountPanel from './CodexAccountPanel'
 
 interface SessionStats {
   totalSessions: number
@@ -79,30 +80,42 @@ export default function SettingsStats() {
       })
   }, [])
 
+  // Account data comes from a different probe than the local session stats, so
+  // it stays visible (and starts loading) regardless of this page's own state.
+  const pageStyle: React.CSSProperties = {
+    paddingBottom: 24, display: 'flex', flexDirection: 'column', gap: 20,
+  }
+
   if (loading) {
     return (
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        padding: '48px 0', gap: 10,
-      }}>
+      <div style={pageStyle}>
+        <CodexAccountPanel />
         <div style={{
-          width: 32, height: 32, borderRadius: '50%',
-          border: '2px solid rgba(99,102,241,0.3)',
-          borderTopColor: 'rgba(99,102,241,0.85)',
-          animation: 'spin 0.8s linear infinite',
-        }} />
-        <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{t('stats.loading')}</span>
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          padding: '48px 0', gap: 10,
+        }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: '50%',
+            border: '2px solid rgba(99,102,241,0.3)',
+            borderTopColor: 'rgba(99,102,241,0.85)',
+            animation: 'spin 0.8s linear infinite',
+          }} />
+          <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{t('stats.loading')}</span>
+        </div>
       </div>
     )
   }
 
   if (error || !stats) {
     return (
-      <div style={{
-        padding: '32px 0', textAlign: 'center',
-        color: 'var(--text-faint)', fontSize: 13,
-      }}>
-        {t('stats.error')}
+      <div style={pageStyle}>
+        <CodexAccountPanel />
+        <div style={{
+          padding: '32px 0', textAlign: 'center',
+          color: 'var(--text-faint)', fontSize: 13,
+        }}>
+          {t('stats.error')}
+        </div>
       </div>
     )
   }
@@ -157,7 +170,11 @@ export default function SettingsStats() {
   ]
 
   return (
-    <div style={{ paddingBottom: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={pageStyle}>
+      {/* Live Codex account state (plan limits, credits, lifetime usage).
+          Renders nothing when both probes fail — e.g. Claude-only setups. */}
+      <CodexAccountPanel />
+
       {/* Overview cards */}
       <div>
         <div style={sectionLabelStyle}>{t('stats.overview')}</div>
