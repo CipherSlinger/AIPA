@@ -78,6 +78,53 @@ export function resolveWorkflowPersona(
 }
 
 /**
+ * Reserved job-level choice meaning "run as the plain assistant".
+ *
+ * An absent `personaId` cannot say this: it means "follow the workflow", which
+ * promises something else as soon as the workflow is re-bound. Persona ids are
+ * generated as `persona-…`, so this literal can never collide with a real one.
+ * The renderer mirrors it in `AutomationDialog`.
+ */
+export const ASSISTANT_PERSONA_ID = '__assistant__'
+
+export interface ResolvedScheduledPersona {
+  persona: WorkflowPersonaBinding | null
+  /** The chosen id that matches no persona; the caller logs the degradation. */
+  missingId?: string
+}
+
+/**
+ * The expert a scheduled run adopts, in precedence order:
+ * job override → workflow binding → plain assistant.
+ *
+ * `jobPersonaId` is the job's own choice and outranks the workflow even after
+ * the workflow is re-bound. A deleted override does NOT fall back to the
+ * workflow's expert: the user asked for that person, and substituting another
+ * would answer a different question. Either way the run proceeds as the plain
+ * assistant rather than failing the job.
+ */
+export function resolveScheduledPersona(
+  jobPersonaId: string | undefined,
+  workflowPersonaId: string | undefined,
+  personas: readonly StoredPersona[],
+  locale: UiLocale,
+): ResolvedScheduledPersona {
+  const overrideId = nonEmptyString(jobPersonaId)
+  if (overrideId) {
+    // Explicit "assistant" is answered before any lookup and never reaches the
+    // workflow binding below.
+    if (overrideId === ASSISTANT_PERSONA_ID) return { persona: null }
+    const persona = resolveWorkflowPersona(overrideId, personas, locale)
+    return persona ? { persona } : { persona: null, missingId: overrideId }
+  }
+
+  const boundId = nonEmptyString(workflowPersonaId)
+  if (!boundId) return { persona: null }
+  const persona = resolveWorkflowPersona(boundId, personas, locale)
+  return persona ? { persona } : { persona: null, missingId: boundId }
+}
+
+/**
  * Model precedence for a scheduled run: the bound persona's preference wins,
  * then the global chat model pref. Blank strings in either place fall through
  * instead of being sent to an engine as a model id.

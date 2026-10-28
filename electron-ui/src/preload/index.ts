@@ -374,6 +374,11 @@ export interface AutomationJobData {
   enabled: boolean
   trigger: AutomationTriggerData
   action: AutomationActionData
+  /**
+   * This job's own expert override; absent means "follow the workflow".
+   * `__assistant__` is the reserved explicit plain-assistant choice.
+   */
+  personaId?: string
   createdAt: number
   updatedAt: number
   nextRunAt: number | null
@@ -413,6 +418,8 @@ export interface AutomationInputData {
   enabled: boolean
   trigger: AutomationTriggerData
   action: AutomationActionData
+  /** Empty/omitted follows the workflow; absent is not a persona id ''. */
+  personaId?: string
 }
 
 export type AutomationMutationData =

@@ -68,6 +68,11 @@ function normalizeJob(raw: unknown): AutomationJob | null {
     enabled: job.enabled !== false,
     trigger: job.trigger,
     action: job.action,
+    // Absent and '' both mean "follow the workflow"; only a real id is kept,
+    // so a job can never be persisted as "a persona called ''".
+    personaId: typeof job.personaId === 'string' && job.personaId.trim()
+      ? job.personaId.trim()
+      : undefined,
     createdAt: numberOrNull(job.createdAt) ?? Date.now(),
     updatedAt: numberOrNull(job.updatedAt) ?? Date.now(),
     nextRunAt: numberOrNull(job.nextRunAt),

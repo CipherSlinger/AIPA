@@ -2,11 +2,13 @@
 //
 // Extracted from SettingsAutomations so the workflow page can open it bound to
 // the workflow being viewed. All scheduling and validation live in the main
-// process (`src/main/automation/`); this dialog only edits the four fields an
+// process (`src/main/automation/`); this dialog only edits the fields an
 // `AutomationInputData` accepts and reports save errors verbatim.
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useI18n } from '../../i18n'
+import { usePrefsStore } from '../../store'
+import type { Persona } from '../../types/app.types'
 import Toggle from '../ui/Toggle'
 import { INPUT_STYLE } from '../settings/settingsConstants'
 import { pushEscapeHandler } from '../ui/escapeStack'
@@ -25,6 +27,16 @@ export interface WorkflowOption {
   icon?: string
   personaId?: string
 }
+
+/**
+ * Mirrors `ASSISTANT_PERSONA_ID` in src/main/automation/persona-plan.ts: the
+ * reserved choice meaning "plain assistant". It is distinct from the empty
+ * selection, which follows the workflow's expert.
+ */
+export const ASSISTANT_PERSONA_ID = '__assistant__'
+
+// Stable empty array: an absent pref must not create a new reference per render.
+const EMPTY_PERSONAS: Persona[] = []
 
 type ScheduleKind = 'daily' | 'weekly' | 'interval' | 'cron'
 
@@ -58,6 +70,7 @@ export default function AutomationDialog({
 }: AutomationDialogProps) {
   const { t } = useI18n()
   const editing = job !== null
+  const personas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
 
   // Only honour the preset when the workflow is actually in the list, so the
   // select and the saved id cannot disagree.
@@ -68,15 +81,25 @@ export default function AutomationDialog({
   const initialCron = job && job.trigger.kind === 'cron' ? describeCron(job.trigger.expr) : null
   const cronIsCustom = !!job && job.trigger.kind === 'cron' && !initialCron
 
+  const defaultActionKind: 'workflow' | 'prompt' =
+    job?.action.kind ?? (presetWorkflowId || workflows.length > 0 ? 'workflow' : 'prompt')
+
   const [name, setName] = useState(job?.name ?? '')
   const [enabled, setEnabled] = useState(job?.enabled ?? true)
-  const [actionKind, setActionKind] = useState<'workflow' | 'prompt'>(
-    job?.action.kind ?? (presetWorkflowId || workflows.length > 0 ? 'workflow' : 'prompt'),
-  )
+  const [actionKind, setActionKind] = useState<'workflow' | 'prompt'>(defaultActionKind)
   const [workflowId, setWorkflowId] = useState(
     job?.action.kind === 'workflow' ? job.action.workflowId : (presetWorkflowId ?? workflows[0]?.id ?? ''),
   )
   const [prompt, setPrompt] = useState(job?.action.kind === 'prompt' ? job.action.prompt : '')
+  // '' follows the workflow; ASSISTANT_PERSONA_ID is an explicit plain assistant;
+  // anything else is a persona id.
+  const [personaChoice, setPersonaChoice] = useState<string>(() => {
+    const override = job?.personaId?.trim()
+    if (override) return override
+    // A prompt job has no workflow to inherit from, so it starts as the plain
+    // assistant — the only run it could have had before this field existed.
+    return defaultActionKind === 'prompt' ? ASSISTANT_PERSONA_ID : ''
+  })
   const [scheduleKind, setScheduleKind] = useState<ScheduleKind>(() => {
     if (!job) return 'daily'
     if (job.trigger.kind === 'interval') return 'interval'
@@ -124,7 +147,12 @@ export default function AutomationDialog({
     if (!canSave) return
     setSaving(true)
     setError(null)
-    const input: AutomationInputData = { name: name.trim(), enabled, trigger, action }
+    // '' is not an id: omit it so the main process stores "follow the workflow".
+    const personaId = personaChoice === '' ? undefined : personaChoice
+    const input: AutomationInputData = {
+      name: name.trim(), enabled, trigger, action,
+      ...(personaId ? { personaId } : {}),
+    }
     try {
       const result = job
         ? await window.electronAPI.automationUpdate(job.id, input)
@@ -139,6 +167,21 @@ export default function AutomationDialog({
   }
 
   const timeValue = clockText(hour, minute)
+
+  const selectedWorkflow = workflows.find(w => w.id === workflowId)
+  const workflowPersona = selectedWorkflow?.personaId
+    ? personas.find(p => p.id === selectedWorkflow.personaId)
+    : undefined
+  const followWorkflowLabel = t('automation.expert.followWorkflow', {
+    name: workflowPersona
+      ? `${workflowPersona.emoji} ${workflowPersona.name}`.trim()
+      : t('automation.expert.noBinding'),
+  })
+  // A saved override can outlive its persona. Keep it selectable so the field
+  // shows what is stored instead of silently displaying a different choice.
+  const orphanChoice = personaChoice !== '' &&
+    personaChoice !== ASSISTANT_PERSONA_ID &&
+    !personas.some(p => p.id === personaChoice)
 
   return (
     <div
@@ -180,7 +223,17 @@ export default function AutomationDialog({
             {(['workflow', 'prompt'] as const).map(kind => (
               <button
                 key={kind}
-                onClick={() => setActionKind(kind)}
+                onClick={() => {
+                  setActionKind(kind)
+                  // Each action has its own default: a prompt job cannot follow
+                  // a workflow, and a workflow should inherit its expert after a
+                  // mode switch rather than silently keep an implicit override.
+                  if (kind === 'prompt') {
+                    setPersonaChoice(prev => prev === '' ? ASSISTANT_PERSONA_ID : prev)
+                  } else {
+                    setPersonaChoice(prev => prev === ASSISTANT_PERSONA_ID ? '' : prev)
+                  }
+                }}
                 style={{
                   ...smallButtonStyle,
                   borderColor: actionKind === kind ? 'rgba(99,102,241,0.55)' : 'var(--border)',
@@ -218,6 +271,37 @@ export default function AutomationDialog({
               maxLength={4000}
               style={{ ...INPUT_STYLE, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }}
             />
+          )}
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={labelStyle}>{t('automation.field.expert')}</label>
+          <select
+            value={personaChoice}
+            onChange={e => setPersonaChoice(e.target.value)}
+            style={INPUT_STYLE}
+          >
+            {/* Offered only for a workflow: a prompt job has no binding to
+                follow, so showing it there would promise what cannot happen. */}
+            {actionKind === 'workflow' && (
+              <option value="">{followWorkflowLabel}</option>
+            )}
+            <option value={ASSISTANT_PERSONA_ID}>{t('automation.expert.assistant')}</option>
+            {personas.map(p => (
+              <option key={p.id} value={p.id}>
+                {`${p.emoji} ${p.name}`.trim()}
+              </option>
+            ))}
+            {orphanChoice && (
+              <option value={personaChoice}>{t('automation.expert.missingOption')}</option>
+            )}
+          </select>
+          {actionKind === 'workflow' && (
+            // The override is durable: re-binding the workflow later must not
+            // quietly change who runs this job.
+            <div style={{ fontSize: 11, color: SECONDARY, marginTop: 4, lineHeight: 1.5 }}>
+              {t('automation.expert.overrideHint')}
+            </div>
           )}
         </div>
 

@@ -7,14 +7,18 @@ import {
   Brain, Workflow, Play, NotebookPen, ClipboardPaste, Radio, Archive,
   Sun, Moon, Languages, Copy, Pin, StickyNote, ArrowUpDown,
   FileText, Stethoscope, Pencil, BarChart2, Shield,
-  Database, DollarSign, SkipBack, RefreshCw,
+  Database, DollarSign, SkipBack, RefreshCw, ExternalLink,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
 import type { SidebarTab, NavItem } from '../../store'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
 import type { SessionListItem } from '../../types/app.types'
 import { getWorkflowQueuePlan } from '../workflows/workflowConstants'
-import { formatDateMedium, type AppLocale } from '../../utils/formatDate'
+import { errorCodeText } from '../workflows/scheduleSummary'
+import { formatDateMedium, formatDateTimeShort, type AppLocale } from '../../utils/formatDate'
+import { buildAutomationDescriptors, canRunAutomation } from './automationPalette'
+import type { Translate } from '../automation/scheduleText'
+import type { AutomationJobData } from '../../../preload'
 
 export interface PaletteCommand {
   id: string
@@ -23,7 +27,7 @@ export interface PaletteCommand {
   icon?: React.ReactNode
   shortcut?: string
   action: () => void
-  category: 'action' | 'slash' | 'session' | 'model' | 'persona' | 'workflow'
+  category: 'action' | 'slash' | 'session' | 'model' | 'persona' | 'workflow' | 'automation'
 }
 
 interface CommandBuilderArgs {
@@ -610,4 +614,78 @@ export function buildWorkflowCommands(args: Pick<CommandBuilderArgs, 't' | 'onCl
     },
     category: 'workflow' as const,
   }))
+}
+
+export interface AutomationCommandBuilderArgs {
+  /** Wider than `CommandBuilderArgs['t']`: `scheduleText` passes numeric params. */
+  t: Translate
+  onClose: () => void
+  addToast: CommandBuilderArgs['addToast']
+  /** `null` = the probe failed or has not answered; `[]` = the probe succeeded, no jobs. */
+  jobs: AutomationJobData[] | null
+  resolvedLocale: AppLocale
+}
+
+/**
+ * Scheduled jobs as a jump-and-trigger surface: open the last run, start one
+ * now, or land on the page that manages the job. Creation, editing and
+ * deletion stay in Settings — the palette would duplicate that list otherwise.
+ */
+export function buildAutomationCommands(args: AutomationCommandBuilderArgs): PaletteCommand[] {
+  const { t, onClose, addToast, jobs, resolvedLocale } = args
+  // A failed probe must not leave an empty "Automations" header behind.
+  if (!jobs || jobs.length === 0) return []
+
+  const nextRunText = (ts: number) => formatDateTimeShort(resolvedLocale, ts)
+
+  const runNow = async (job: AutomationJobData) => {
+    // The row is only built for an idle job, but the list behind an open
+    // palette can be a few seconds old. Refusing here is what keeps a second
+    // start from being sent while the scheduler is already working.
+    if (!canRunAutomation(job)) return
+    try {
+      const result = await window.electronAPI.automationRunNow(job.id)
+      // Success is not announced: the scheduler's `automation:changed` is the
+      // state, and the palette has already closed by the time it lands.
+      if (!result.ok) {
+        addToast('error', t('automation.errors.runFailed', { error: errorCodeText(result.error, t) }))
+      }
+    } catch (err) {
+      addToast('error', t('automation.errors.runFailed', { error: String(err) }))
+    }
+  }
+
+  return buildAutomationDescriptors(jobs, t, Date.now(), nextRunText).map(descriptor => {
+    const job = descriptor.job
+    const icon = descriptor.kind === 'run'
+      ? <Play size={14} />
+      : descriptor.kind === 'manage'
+        ? <Settings size={14} />
+        : <ExternalLink size={14} />
+
+    return {
+      id: descriptor.id,
+      name: descriptor.name,
+      description: descriptor.description,
+      icon,
+      category: 'automation' as const,
+      action: () => {
+        if (descriptor.kind === 'open') {
+          if (!job.lastSessionId) return
+          // A bare session id: the app-level bridge resolves it and closes any
+          // overlay, so the palette does not need to know how sessions open.
+          window.dispatchEvent(new CustomEvent('aipa:openSession', { detail: job.lastSessionId }))
+          onClose()
+          return
+        }
+        if (descriptor.kind === 'run') {
+          onClose()
+          void runNow(job)
+          return
+        }
+        useUiStore.getState().openSettingsAt('automations')
+        onClose()
+      },
+    }
+  })
 }

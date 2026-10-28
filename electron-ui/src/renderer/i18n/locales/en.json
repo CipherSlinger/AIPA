@@ -2003,7 +2003,12 @@
       "openHint": "Open the conversation from the last scheduled run",
       "pause": "Pause",
       "resume": "Resume"
-    }
+    },
+    "scheduleLine": "Scheduled: {{schedule}}",
+    "schedulePausedLine": "Paused · {{schedule}}",
+    "scheduleAllPaused": "{{count}} schedules · all paused",
+    "scheduleCount": "{{count}} schedules",
+    "scheduleMultipleLine": "{{count}} schedules · Next: {{time}}"
   },
   "snippet": {
     "title": "Text Snippets",
@@ -2959,7 +2964,8 @@
       "day": "Day",
       "interval": "Every (minutes)",
       "cron": "Cron expression",
-      "enabled": "Enabled"
+      "enabled": "Enabled",
+      "expert": "Expert"
     },
     "action": {
       "workflow": "Run a workflow",
@@ -3028,6 +3034,18 @@
       "minutes": "{{minutes}}m",
       "open": "Open",
       "openAria": "Open the conversation from {{time}}"
+    },
+    "expert": {
+      "followWorkflow": "Workflow default ({{name}})",
+      "noBinding": "no expert",
+      "assistant": "Default assistant",
+      "overrideHint": "This job's own expert wins over the workflow's, even if the workflow is bound to someone else later.",
+      "missingOption": "Deleted expert",
+      "overrideMark": "this job"
+    },
+    "palette": {
+      "paused": "Paused",
+      "manage": "Manage"
     }
   },
   "speculation": {

@@ -25,8 +25,10 @@ import {
   buildPersonaCommands,
   buildSessionCommands,
   buildWorkflowCommands,
+  buildAutomationCommands,
   type PaletteCommand,
 } from '../shared/commandPaletteCommands'
+import type { AutomationJobData } from '../../../preload'
 
 interface Props {
   onClose: () => void
@@ -35,8 +37,9 @@ interface Props {
   onSendSlashCommand: (cmd: string) => void
 }
 
-// Category display config
-const CATEGORY_LABELS: Record<PaletteCommand['category'], string> = {
+// Category display config. `automation` is absent because its header is
+// localized through `automation.title`, the same string the Settings tab uses.
+const CATEGORY_LABELS: Record<Exclude<PaletteCommand['category'], 'automation'>, string> = {
   action: 'Actions',
   session: 'Recent Sessions',
   model: 'Models',
@@ -46,7 +49,7 @@ const CATEGORY_LABELS: Record<PaletteCommand['category'], string> = {
 }
 
 const CATEGORY_ORDER: PaletteCommand['category'][] = [
-  'session', 'action', 'slash', 'workflow', 'model', 'persona',
+  'session', 'automation', 'action', 'slash', 'workflow', 'model', 'persona',
 ]
 
 export default function CommandPalette({
@@ -78,6 +81,36 @@ export default function CommandPalette({
   const sessions = useSessionStore(s => s.sessions)
   const addToQueue = useChatStore(s => s.addToQueue)
 
+  // Automations live in the main process, not a store: probe them when the
+  // palette opens (this component only mounts while it is open) and follow the
+  // scheduler for as long as it stays up. `null` means the probe failed, which
+  // hides the group instead of leaving an empty header in the list.
+  const [automationJobs, setAutomationJobs] = useState<AutomationJobData[] | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    let seq = 0
+    const load = async () => {
+      const request = ++seq
+      try {
+        const result = await window.electronAPI.automationList()
+        // An event-triggered refetch can land before an older response; only
+        // the newest request may write, or the list would move backwards.
+        if (!cancelled && request === seq) {
+          setAutomationJobs(Array.isArray(result?.jobs) ? result.jobs : null)
+        }
+      } catch (err) {
+        console.error('[AIPA] Command palette could not load automations', err)
+        if (!cancelled && request === seq) setAutomationJobs(null)
+      }
+    }
+    void load()
+    const off = window.electronAPI.onAutomationChanged(() => { void load() })
+    return () => {
+      cancelled = true
+      off()
+    }
+  }, [])
+
   // Build all commands
   const commands = useMemo<PaletteCommand[]>(() => {
     const args = {
@@ -87,6 +120,7 @@ export default function CommandPalette({
     }
     return [
       ...buildSessionCommands(args),
+      ...buildAutomationCommands({ t, onClose, addToast, jobs: automationJobs, resolvedLocale }),
       ...buildActionCommands(args),
       ...buildSlashCommands(args),
       ...buildWorkflowCommands(args),
@@ -97,6 +131,7 @@ export default function CommandPalette({
     onClose, onExport, onNewConversation, onSendSlashCommand,
     toggleSidebar, setSidebarTab, setSidebarOpen, setActiveNavItem,
     addToQueue, addToast, sessions, query, askHistoryAvailable, t, resolvedLocale,
+    automationJobs,
   ])
 
   // Filter and rank by query. A raw `includes` made "ask" surface "Open
@@ -289,7 +324,7 @@ export default function CommandPalette({
               padding: '1px 5px',
             }}
           >
-            {cmd.category}
+            {cmd.category === 'automation' ? t('automation.title') : cmd.category}
           </span>
         )}
       </div>
@@ -440,7 +475,7 @@ export default function CommandPalette({
                   color: 'var(--text-muted)',
                 }}
               >
-                {CATEGORY_LABELS[category]}
+                {category === 'automation' ? t('automation.title') : CATEGORY_LABELS[category]}
               </div>
               {items.map(cmd => {
                 const globalIndex = flatItems.indexOf(cmd)

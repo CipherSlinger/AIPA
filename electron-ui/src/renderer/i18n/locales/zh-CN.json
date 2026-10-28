@@ -2003,7 +2003,12 @@
       "openHint": "打开上次定时运行产生的对话",
       "pause": "暂停",
       "resume": "恢复"
-    }
+    },
+    "scheduleLine": "已排程：{{schedule}}",
+    "schedulePausedLine": "已暂停 · {{schedule}}",
+    "scheduleAllPaused": "{{count}} 个定时任务 · 全部已暂停",
+    "scheduleCount": "{{count}} 个定时任务",
+    "scheduleMultipleLine": "{{count}} 个定时任务 · 下次：{{time}}"
   },
   "snippet": {
     "title": "文本片段",
@@ -2959,7 +2964,8 @@
       "day": "星期",
       "interval": "间隔（分钟）",
       "cron": "Cron 表达式",
-      "enabled": "启用"
+      "enabled": "启用",
+      "expert": "专家"
     },
     "action": {
       "workflow": "运行工作流",
@@ -3028,6 +3034,18 @@
       "minutes": "{{minutes}} 分钟",
       "open": "打开",
       "openAria": "打开 {{time}} 的对话"
+    },
+    "expert": {
+      "followWorkflow": "跟随工作流（{{name}}）",
+      "noBinding": "无专家",
+      "assistant": "默认助手",
+      "overrideHint": "这里选定的专家优先于工作流绑定的专家，即使以后工作流改绑其他人也仍然有效。",
+      "missingOption": "已删除的专家",
+      "overrideMark": "本任务"
+    },
+    "palette": {
+      "paused": "已暂停",
+      "manage": "管理"
     }
   },
   "speculation": {

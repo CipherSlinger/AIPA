@@ -58,6 +58,12 @@ export interface AutomationJob {
   enabled: boolean
   trigger: AutomationTrigger
   action: AutomationAction
+  /**
+   * This job's own expert, overriding the workflow's binding. Absent means
+   * "follow the workflow" (plain assistant for a prompt job); the reserved
+   * `ASSISTANT_PERSONA_ID` means an explicit plain-assistant override.
+   */
+  personaId?: string
   createdAt: number
   updatedAt: number
   /** Epoch ms of the next scheduled occurrence; null only for a dead cron. */
@@ -128,6 +134,11 @@ export interface AutomationInput {
   enabled: boolean
   trigger: AutomationTrigger
   action: AutomationAction
+  /**
+   * Per-job expert override. Empty/null means "follow the workflow" (which is
+   * never a persona whose id is ''), so the scheduler stores it as absent.
+   */
+  personaId?: string
 }
 
 /** What the scheduler asks the main process to execute. */
@@ -138,10 +149,10 @@ export interface AutomationRunRequest {
   cwd: string
   model?: string
   /**
-   * Persona bound to the job's workflow. Present only when the job runs a
-   * workflow and that workflow names a persona that still exists; a plain
-   * prompt job, or one whose persona was deleted, leaves all three unset so
-   * the run is byte-identical to the old plain-assistant behaviour.
+   * The expert this run adopts: the job's override first, then its workflow's
+   * binding. Present only when the chosen persona still exists; a job with no
+   * binding, or one that names a deleted persona, leaves all four unset so the
+   * run is byte-identical to the old plain-assistant behaviour.
    */
   personaId?: string
   personaName?: string

@@ -13,7 +13,7 @@ import { usePrefsStore } from '../../store'
 import SettingsGroup from './SettingsGroup'
 import Toggle from '../ui/Toggle'
 import { formatTokens } from '../../utils/formatUtils'
-import AutomationDialog, { type WorkflowOption } from '../automation/AutomationDialog'
+import AutomationDialog, { ASSISTANT_PERSONA_ID, type WorkflowOption } from '../automation/AutomationDialog'
 import { scheduleText } from '../automation/scheduleText'
 import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from '../automation/automationStyles'
 import type { AutomationJobData, AutomationLimitsData, AutomationRunRecordData } from '../../../preload'
@@ -21,6 +21,12 @@ import type { Persona } from '../../types/app.types'
 
 /** How many of the remembered runs a row lists once expanded. */
 const HISTORY_VISIBLE = 5
+
+/** The expert a row should name: a person, the plain assistant, or a broken binding. */
+type JobExpert =
+  | { kind: 'persona'; persona: Persona; override: boolean }
+  | { kind: 'assistant'; override: boolean }
+  | { kind: 'missing'; override: boolean }
 
 /**
  * Money as the engine reported it. Costs stay compact: a settings row has room
@@ -78,16 +84,28 @@ export default function SettingsAutomations() {
   }, [workflows])
 
   /**
-   * The expert a job's workflow runs as: a persona, 'missing' when the workflow
-   * still names one that was deleted, or null when the job is not a workflow or
-   * its workflow has no binding (the plain assistant).
+   * The expert that will actually run this job: its own override first, then
+   * the workflow's binding. `missing` stays truthful for a deleted persona in
+   * either place, and `override` lets the row say which of the two it is.
+   * Null means no chip: nothing is bound, so the plain assistant runs.
    */
-  const jobPersona = useCallback((job: AutomationJobData): Persona | 'missing' | null => {
+  const jobExpert = useCallback((job: AutomationJobData): JobExpert | null => {
+    const overrideId = typeof job.personaId === 'string' ? job.personaId.trim() : ''
+    if (overrideId) {
+      if (overrideId === ASSISTANT_PERSONA_ID) return { kind: 'assistant', override: true }
+      const persona = (personas || []).find(p => p.id === overrideId)
+      return persona
+        ? { kind: 'persona', persona, override: true }
+        : { kind: 'missing', override: true }
+    }
     const action = job.action
     if (action.kind !== 'workflow') return null
     const workflow = (workflows || []).find(w => w.id === action.workflowId)
     if (!workflow?.personaId) return null
-    return (personas || []).find(p => p.id === workflow.personaId) ?? 'missing'
+    const persona = (personas || []).find(p => p.id === workflow.personaId)
+    return persona
+      ? { kind: 'persona', persona, override: false }
+      : { kind: 'missing', override: false }
   }, [workflows, personas])
 
   const timeText = (ts: number): string => new Date(ts).toLocaleString(resolvedLocale)
@@ -268,7 +286,7 @@ export default function SettingsAutomations() {
             {jobs.map((job, index) => {
               const status = statusLine(job)
               const usage = usageLine(job)
-              const persona = jobPersona(job)
+              const expert = jobExpert(job)
               const busy = busyId === job.id || job.running
               // Newest first, and only the few the disclosure lists. A job that
               // has never run has an empty array, so the disclosure is not
@@ -315,22 +333,33 @@ export default function SettingsAutomations() {
                             })
                           : t('automation.promptAction', { text: job.action.prompt })}
                       </span>
-                      {persona && (
+                      {expert && (
                         // The expert behind a background job is the point of the
                         // binding, so it sits on the row rather than behind Edit.
+                        // A short suffix separates this job's override from the
+                        // workflow's own binding, which can differ after a re-bind.
                         <span
-                          title={t('automation.personaHint')}
+                          title={expert.override
+                            ? t('automation.expert.overrideHint')
+                            : t('automation.personaHint')}
                           style={{
                             display: 'inline-flex', alignItems: 'center', gap: 4,
                             padding: '1px 7px', borderRadius: 9, fontWeight: 600,
-                            color: persona === 'missing' ? WARNING : 'var(--accent-text)',
+                            color: expert.kind === 'missing' ? WARNING : 'var(--accent-text)',
                             background: 'var(--bg-hover)',
                             border: '1px solid var(--border)',
                           }}
                         >
-                          {persona === 'missing'
+                          {expert.kind === 'missing'
                             ? t('automation.personaMissing')
-                            : `${persona.emoji} ${persona.name}`.trim()}
+                            : expert.kind === 'assistant'
+                              ? t('automation.expert.assistant')
+                              : `${expert.persona.emoji} ${expert.persona.name}`.trim()}
+                          {expert.override && (
+                            <span style={{ color: SECONDARY, fontWeight: 500 }}>
+                              {`· ${t('automation.expert.overrideMark')}`}
+                            </span>
+                          )}
                         </span>
                       )}
                     </div>

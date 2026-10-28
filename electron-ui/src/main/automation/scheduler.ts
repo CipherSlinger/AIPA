@@ -23,7 +23,7 @@ import { getAllowedFsRoots, safePath } from '../utils/validate'
 import { readAutomationJobs, writeAutomationJobs } from './job-store'
 import { appendRunRecord, countFailureStreak, MAX_RUN_ERROR_CHARS } from './run-history'
 import { addToLifetimeTotals } from './run-usage'
-import { pickRunModel, resolveWorkflowPersona } from './persona-plan'
+import { pickRunModel, resolveScheduledPersona } from './persona-plan'
 import type { StoredPersona, WorkflowPersonaBinding } from './persona-plan'
 import { abortAutomationRun } from './runner'
 import { workflowPrompts } from './workflow-plan'
@@ -130,6 +130,19 @@ function validateTrigger(value: AutomationTrigger): AutomationTrigger {
   throw new AutomationInputError('trigger_invalid')
 }
 
+/**
+ * A job's own expert override.
+ *
+ * Empty/null means "follow the workflow" (plain assistant for a prompt job),
+ * not a persona whose id is ''. Anything that is not a non-empty string is
+ * therefore treated exactly like an absent override.
+ */
+function validatePersonaId(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const id = value.trim()
+  return id || undefined
+}
+
 function validateAction(value: AutomationAction): AutomationAction {
   if (!value || typeof value !== 'object') throw new AutomationInputError('action_invalid')
   if (value.kind === 'workflow') {
@@ -174,24 +187,29 @@ function readPersonas(): StoredPersona[] {
 }
 
 /**
- * The persona a workflow run should adopt, or null for the plain assistant.
+ * The persona a run should adopt, or null for the plain assistant.
  *
- * A deleted persona must not disable the job or fail the run: the workflow keeps
- * working, and the warning is the only trace of the broken binding.
+ * A job's own override wins over its workflow's binding. A deleted persona in
+ * either place must not disable the job or fail the run: the job keeps working
+ * as the plain assistant, and this warning is the only trace of the break.
  */
-function resolveBoundPersona(
+function resolveRunPersona(
   job: AutomationJob,
-  workflow: MainWorkflow,
+  workflow: MainWorkflow | undefined,
   locale: UiLocale,
 ): WorkflowPersonaBinding | null {
-  if (!workflow.personaId) return null
-  const persona = resolveWorkflowPersona(workflow.personaId, readPersonas(), locale)
-  if (!persona) {
+  const resolved = resolveScheduledPersona(
+    job.personaId,
+    workflow?.personaId,
+    readPersonas(),
+    locale,
+  )
+  if (resolved.missingId) {
     log.warn(
-      `Automation "${job.name}" references missing persona ${workflow.personaId}; running as the plain assistant`,
+      `Automation "${job.name}" references missing persona ${resolved.missingId}; running as the plain assistant`,
     )
   }
-  return persona
+  return resolved.persona
 }
 
 function resolveActionPrompts(action: AutomationAction, locale: UiLocale): string[] | null {
@@ -304,12 +322,12 @@ async function startRun(job: AutomationJob, opts: { manual: boolean; late: boole
     return
   }
 
-  // A workflow may carry the expert the user chose for it; a prompt job cannot
-  // bind one, so it stays the plain assistant.
+  // A job may name its own expert; otherwise the workflow's binding applies.
+  // A prompt job with no override stays the plain assistant.
   const workflow = job.action.kind === 'workflow'
     ? findWorkflow(job.action.workflowId)
     : undefined
-  const persona = workflow ? resolveBoundPersona(job, workflow, locale) : null
+  const persona = resolveRunPersona(job, workflow, locale)
   // Persona model > global model, so a 3 a.m. run costs what the chosen expert
   // costs rather than whatever the chat picker happens to be set to.
   const model = pickRunModel(persona?.model, resolveModel())
@@ -574,6 +592,7 @@ export function createAutomationJob(input: AutomationInput): AutomationMutationR
     const name = validateName(input?.name)
     const trigger = validateTrigger(input?.trigger)
     const action = validateAction(input?.action)
+    const personaId = validatePersonaId(input?.personaId)
     const enabled = input?.enabled !== false
     const job: AutomationJob = {
       id: `auto-${now.toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
@@ -581,6 +600,7 @@ export function createAutomationJob(input: AutomationInput): AutomationMutationR
       enabled,
       trigger,
       action,
+      ...(personaId ? { personaId } : {}),
       createdAt: now,
       updatedAt: now,
       nextRunAt: enabled ? nextRunAfter(trigger, now) : null,
@@ -610,6 +630,7 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     const name = validateName(input?.name)
     const trigger = validateTrigger(input?.trigger)
     const action = validateAction(input?.action)
+    const personaId = validatePersonaId(input?.personaId)
     const enabled = input?.enabled !== false
 
     const previousTrigger = JSON.stringify(job.trigger)
@@ -617,6 +638,9 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     job.name = name
     job.trigger = trigger
     job.action = action
+    // Assignment (not omission) is deliberate: clearing the field must remove a
+    // previous override, falling back to the workflow binding.
+    job.personaId = personaId
     job.enabled = enabled
     job.updatedAt = Date.now()
     // Keep the existing schedule unless it is genuinely invalidated — renaming
