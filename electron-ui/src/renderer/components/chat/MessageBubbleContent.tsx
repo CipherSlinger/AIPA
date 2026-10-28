@@ -267,7 +267,7 @@ export default React.memo(function MessageBubbleContent({
                       background: 'none',
                       border: 'none',
                       borderTop: '1px solid var(--border)',
-                      color: '#818cf8',
+                      color: 'var(--accent-text)',
                       cursor: 'pointer',
                       fontSize: 11,
                       fontWeight: 500,
@@ -296,7 +296,7 @@ export default React.memo(function MessageBubbleContent({
                         background: 'none',
                         border: 'none',
                         borderTop: '1px solid var(--border)',
-                        color: '#818cf8',
+                        color: 'var(--accent-text)',
                         cursor: 'pointer',
                         fontSize: 11,
                         fontWeight: 500,
@@ -356,7 +356,7 @@ export default React.memo(function MessageBubbleContent({
               })()}
               {msgStatus === 'sending' && <Clock size={10} style={{ opacity: 0.8 }} />}
               {msgStatus === 'sent' && <Check size={12} style={{ opacity: 0.9 }} />}
-              {msgStatus === 'read' && <CheckCheck size={12} style={{ color: '#818cf8', opacity: 1 }} />}
+              {msgStatus === 'read' && <CheckCheck size={12} style={{ color: 'var(--accent-text)', opacity: 1 }} />}
             </div>
           )}
 

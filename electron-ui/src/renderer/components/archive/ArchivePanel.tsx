@@ -376,7 +376,7 @@ export default function ArchivePanel() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: 'rgba(99,102,241,0.14)', border: '1px solid rgba(99,102,241,0.28)',
         }}>
-          <Archive size={14} color="#818cf8" />
+          <Archive size={14} color="var(--accent-text)" />
         </span>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
           {t('nav.archive')}
@@ -536,7 +536,10 @@ export default function ArchivePanel() {
                   >
                     {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
                     <span style={{ fontSize: 13, lineHeight: 1 }}>{group.root ? deptEmoji(group.root.id) : '📭'}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700 }}>
+                    <span
+                      title={group.root?.name ?? t('archive.unassigned')}
+                      style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    >
                       {group.root?.name ?? t('archive.unassigned')}
                     </span>
                     {group.root && kindOf(group.root) === 'company' && (
@@ -556,7 +559,7 @@ export default function ArchivePanel() {
                       {group.records.length}
                     </span>
                     {group.root && (
-                      <span style={{ fontSize: 10, color: 'var(--text-subtle)', ...ELLIPSIS, maxWidth: 260 }}>
+                      <span title={group.root.directory} style={{ fontSize: 10, color: 'var(--text-subtle)', ...ELLIPSIS, maxWidth: 260 }}>
                         {group.root.directory}
                       </span>
                     )}
@@ -661,7 +664,7 @@ function ArchiveRow({
         {record.archived ? '📦' : '📄'}
       </span>
 
-      <span style={{
+      <span title={title} style={{
         flex: 1, minWidth: 0, fontSize: 12, color: 'var(--text-primary)',
         fontWeight: 500, ...ELLIPSIS,
       }}>
@@ -720,7 +723,7 @@ function ArchiveRow({
       {!record.dept && (
         <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-subtle)', maxWidth: 200 }}>
           <FolderOpen size={10} />
-          <span style={ELLIPSIS}>{session.project || '—'}</span>
+          <span title={session.project || undefined} style={ELLIPSIS}>{session.project || '—'}</span>
         </span>
       )}
 

@@ -13,22 +13,24 @@ import { MemoryCategory, MemoryType } from '../../types/app.types'
 import { escapeRegExp } from '../../utils/stringUtils'
 import { count } from '../../utils/arrayUtils'
 
-export const CATEGORY_CONFIG: Record<MemoryCategory, { icon: React.ReactNode; color: string; labelKey: string }> = {
-  preference: { icon: React.createElement(Star, { size: 12 }), color: '#f59e0b', labelKey: 'memory.catPreference' },
-  fact:       { icon: React.createElement(BookOpen, { size: 12 }), color: '#3b82f6', labelKey: 'memory.catFact' },
-  instruction:{ icon: React.createElement(Lightbulb, { size: 12 }), color: '#10b981', labelKey: 'memory.catInstruction' },
-  context:    { icon: React.createElement(Info, { size: 12 }), color: '#8b5cf6', labelKey: 'memory.catContext' },
+// `color` tints the chip background/border (hex + alpha suffix); `textColor`
+// is the theme-aware token used whenever the category name or icon is read.
+export const CATEGORY_CONFIG: Record<MemoryCategory, { icon: React.ReactNode; color: string; textColor: string; labelKey: string }> = {
+  preference: { icon: React.createElement(Star, { size: 12 }), color: '#f59e0b', textColor: 'var(--memory-preference)', labelKey: 'memory.catPreference' },
+  fact:       { icon: React.createElement(BookOpen, { size: 12 }), color: '#3b82f6', textColor: 'var(--memory-fact)', labelKey: 'memory.catFact' },
+  instruction:{ icon: React.createElement(Lightbulb, { size: 12 }), color: '#10b981', textColor: 'var(--memory-instruction)', labelKey: 'memory.catInstruction' },
+  context:    { icon: React.createElement(Info, { size: 12 }), color: '#8b5cf6', textColor: 'var(--memory-context)', labelKey: 'memory.catContext' },
 }
 
 /**
  * Claude Code-aligned memory type config (Iteration 480).
  * Maps semantic type to display properties for the type badge shown below the content.
  */
-export const MEMORY_TYPE_CONFIG: Record<MemoryType, { icon: React.ReactNode; color: string; labelKey: string; description: string }> = {
-  user:      { icon: React.createElement(User, { size: 10 }), color: '#3b82f6', labelKey: 'memory.typeUser', description: "About the user's role, goals, and preferences" },
-  feedback:  { icon: React.createElement(MessageSquare, { size: 10 }), color: '#f59e0b', labelKey: 'memory.typeFeedback', description: 'Guidance on how to approach work (corrections + confirmations)' },
-  project:   { icon: React.createElement(FolderOpen, { size: 10 }), color: '#8b5cf6', labelKey: 'memory.typeProject', description: 'Ongoing work, goals, decisions, deadlines' },
-  reference: { icon: React.createElement(Link, { size: 10 }), color: '#10b981', labelKey: 'memory.typeReference', description: 'Pointers to external systems and resources' },
+export const MEMORY_TYPE_CONFIG: Record<MemoryType, { icon: React.ReactNode; color: string; textColor: string; labelKey: string; description: string }> = {
+  user:      { icon: React.createElement(User, { size: 10 }), color: '#3b82f6', textColor: 'var(--memory-fact)', labelKey: 'memory.typeUser', description: "About the user's role, goals, and preferences" },
+  feedback:  { icon: React.createElement(MessageSquare, { size: 10 }), color: '#f59e0b', textColor: 'var(--memory-preference)', labelKey: 'memory.typeFeedback', description: 'Guidance on how to approach work (corrections + confirmations)' },
+  project:   { icon: React.createElement(FolderOpen, { size: 10 }), color: '#8b5cf6', textColor: 'var(--memory-context)', labelKey: 'memory.typeProject', description: 'Ongoing work, goals, decisions, deadlines' },
+  reference: { icon: React.createElement(Link, { size: 10 }), color: '#10b981', textColor: 'var(--memory-instruction)', labelKey: 'memory.typeReference', description: 'Pointers to external systems and resources' },
 }
 
 export const MEMORY_TYPES: MemoryType[] = ['user', 'feedback', 'project', 'reference']

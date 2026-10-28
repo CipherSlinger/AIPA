@@ -201,7 +201,7 @@ export default function RecruitEmployeeModal({ deptName, deptColor, defaultPerso
               <button
                 onClick={() => void polish()}
                 title={t('dept.jdPolishHint')}
-                style={{ ...PILL, borderColor: 'rgba(99,102,241,0.4)', color: '#818cf8' }}
+                style={{ ...PILL, borderColor: 'rgba(99,102,241,0.4)', color: 'var(--accent-text)' }}
               >
                 <Sparkles size={11} />
                 {t('dept.jdPolish')}

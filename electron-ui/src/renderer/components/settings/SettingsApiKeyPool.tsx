@@ -162,11 +162,11 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
                   <span style={{ fontSize: 11, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>{entry.label}</span>
                   {entry.exhausted && (
                     <span style={{
-                      fontSize: 10, color: '#f87171',
+                      fontSize: 10, color: 'var(--danger-text)',
                       background: 'rgba(239,68,68,0.1)', padding: '1px 4px', borderRadius: 6,
                     }}>{t('settings.keyExhausted')}</span>
                   )}
-                  <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'rgba(165,180,252,0.8)', flex: 'none' }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--accent-text)', flex: 'none' }}>
                     {'···' + entry.apiKey.slice(-6)}
                   </span>
                   {/* Active status badge */}
@@ -175,15 +175,15 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
                       background: 'rgba(34,197,94,0.15)',
                       border: '1px solid rgba(34,197,94,0.3)',
                       borderRadius: 20, padding: '2px 8px',
-                      fontSize: 10, color: '#4ade80',
+                      fontSize: 10, color: 'var(--success-text)',
                     }}>
-                      active
+                      {t('settings.keyActive')}
                     </span>
                   )}
                   <button
                     onClick={() => savePool(apiKeyPool.map(k => k.id === entry.id ? { ...k, enabled: !k.enabled } : k))}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: entry.enabled ? '#818cf8' : 'var(--text-faint)', fontSize: 10, padding: '1px 4px' }}
-                    title={entry.enabled ? 'Disable' : 'Enable'}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: entry.enabled ? 'var(--accent-text)' : 'var(--text-faint)', fontSize: 10, padding: '1px 4px' }}
+                    title={entry.enabled ? t('common.disable') : t('common.enable')}
                   >{entry.enabled ? '✓' : '○'}</button>
                   <button
                     onClick={() => savePool(apiKeyPool.filter(k => k.id !== entry.id))}
@@ -191,7 +191,8 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
                     onMouseLeave={() => setHoveredRemove(null)}
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer',
-                      color: hoveredRemove === entry.id ? '#fca5a5' : 'rgba(239,68,68,0.7)',
+                      color: 'var(--danger-text)',
+                      opacity: hoveredRemove === entry.id ? 1 : 0.8,
                       display: 'flex', alignItems: 'center', padding: 2,
                       transition: 'all 0.15s ease',
                     }}

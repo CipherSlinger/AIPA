@@ -7,7 +7,7 @@ import { useUiStore, useChatStore } from '../../store'
 import { getWorkflowQueuePlan } from './workflowConstants'
 import { cardStyle } from './EmployeesShared'
 
-const ICON_PALETTE = ['#6366f1', '#a78bfa', '#ec4899', '#fbbf24', '#4ade80', '#67e8f9', '#818cf8', '#f87171']
+const ICON_PALETTE = ['#6366f1', '#a78bfa', '#ec4899', '#fbbf24', '#4ade80', '#67e8f9', 'var(--accent-text)', '#f87171']
 
 function iconColor(icon: string): string {
   let hash = 0
@@ -29,7 +29,7 @@ function IconAction({ title, onClick, danger, active, children }: {
   children: React.ReactNode
 }) {
   const [hovered, setHovered] = useState(false)
-  const color = danger ? '#f87171' : '#818cf8'
+  const color = danger ? '#f87171' : 'var(--accent-text)'
   return (
     <button
       title={title}
@@ -125,7 +125,7 @@ export default function WorkflowCard({ wf, onDuplicate, onDelete }: WorkflowCard
 
       {/* Name + description */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div title={displayName} style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {displayName}
         </div>
         {displayDesc && (
@@ -160,7 +160,7 @@ export default function WorkflowCard({ wf, onDuplicate, onDelete }: WorkflowCard
             display: 'flex', alignItems: 'center', gap: 4, height: 24, padding: '0 10px', borderRadius: 8, flexShrink: 0,
             border: 'none', fontSize: 11, fontWeight: 600, cursor: wf.steps.length ? 'pointer' : 'not-allowed',
             background: hovered ? 'linear-gradient(135deg, rgba(99,102,241,0.92), rgba(139,92,246,0.92))' : 'rgba(99,102,241,0.12)',
-            color: hovered ? '#fff' : '#818cf8',
+            color: hovered ? '#fff' : 'var(--accent-text)',
             boxShadow: hovered ? '0 2px 10px -2px rgba(99,102,241,0.65)' : 'inset 0 1px 0 rgba(255,255,255,0.04)',
             transition: 'background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease',
           }}

@@ -737,7 +737,7 @@ export default function GlobalSearchOverlay() {
                       height: '1em',
                       marginLeft: 2,
                       verticalAlign: 'text-bottom',
-                      background: '#a5b4fc',
+                      background: 'var(--accent-text)',
                       animation: 'ask-caret-blink 1s steps(1, end) infinite',
                     }}
                   />
@@ -762,7 +762,7 @@ export default function GlobalSearchOverlay() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                   <Loader2
                     size={20}
-                    style={{ color: '#a5b4fc', animation: 'spin 1s linear infinite' }}
+                    style={{ color: 'var(--accent-text)', animation: 'spin 1s linear infinite' }}
                   />
                   <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                     {t('askHistory.reading')}
@@ -804,7 +804,7 @@ export default function GlobalSearchOverlay() {
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 5,
-                        color: copied ? '#4ade80' : 'var(--text-muted)',
+                        color: copied ? 'var(--success-text)' : 'var(--text-muted)',
                         padding: '3px 8px',
                       }}
                     >
@@ -880,6 +880,7 @@ export default function GlobalSearchOverlay() {
                       >
                         <span style={{ ...CHIP_STYLE, cursor: 'inherit' }}>[{i + 1}]</span>
                         <span
+                          title={source.title || t('askHistory.untitled')}
                           style={{
                             fontSize: 12,
                             color: 'var(--text-primary)',
@@ -892,6 +893,7 @@ export default function GlobalSearchOverlay() {
                           {source.title || t('askHistory.untitled')}
                         </span>
                         <span
+                          title={projectLabel(source.project, t('askHistory.unknownProject'))}
                           style={{
                             fontSize: 11,
                             color: 'var(--text-muted)',

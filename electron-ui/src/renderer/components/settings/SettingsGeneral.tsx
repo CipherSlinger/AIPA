@@ -287,7 +287,10 @@ export default function SettingsGeneral({
                   <div style={{ display: 'flex', gap: 2 }}>
                     {theme.colors.map((c, i) => <div key={i} style={{ width: 10, height: 10, borderRadius: 2, background: c }} />)}
                   </div>
-                  <span style={{ fontSize: 9, color: theme.id === 'light' ? 'rgba(30,30,30,0.60)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{t(theme.labelKey)}</span>
+                  {/* The light swatch is always light (it previews the light
+                      theme), including in dark mode, so it needs a fixed dark
+                      label rather than a theme token. 0.72 clears AA (5.5:1). */}
+                  <span style={{ fontSize: 9, color: theme.id === 'light' ? 'rgba(30,30,30,0.72)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{t(theme.labelKey)}</span>
                 </button>
               )
             })}
@@ -520,7 +523,7 @@ export default function SettingsGeneral({
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
-                    桌宠 / Desktop Pet
+                    {t('settings.petTitle')}
                     {clawdStatus === 'running' && (
                       <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#22c55e', marginLeft: 6, flexShrink: 0 }} />
                     )}
@@ -532,10 +535,10 @@ export default function SettingsGeneral({
                     )}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.5 }}>
-                    Show Clawd desktop pet that reacts to AI session state
+                    {t('settings.petDesc')}
                   </div>
                   {clawdError && (
-                    <div style={{ fontSize: 11, color: '#ef4444', marginTop: 3, lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 11, color: 'var(--color-error)', marginTop: 3, lineHeight: 1.5 }}>
                       {clawdError}
                     </div>
                   )}
@@ -560,10 +563,10 @@ export default function SettingsGeneral({
                             try {
                               const errResult = await window.electronAPI.clawdGetInitError?.()
                               if (errResult?.error) setClawdError(errResult.error.slice(0, 300))
-                              else setClawdError('无法启动桌宠进程')
-                            } catch { setClawdError('无法启动桌宠进程') }
+                              else setClawdError(t('settings.petLaunchError'))
+                            } catch { setClawdError(t('settings.petLaunchError')) }
                           }
-                        } catch { setClawdStatus('stopped'); setClawdError('无法启动桌宠进程') }
+                        } catch { setClawdStatus('stopped'); setClawdError(t('settings.petLaunchError')) }
                       }, 2000)
                     }
                   }}
@@ -591,8 +594,8 @@ export default function SettingsGeneral({
                           style={{
                             padding: '2px 10px', fontSize: 11, borderRadius: 4, border: '1px solid',
                             // 11px white on #6366f1 is 4.47:1; this fill clears AA.
-                            borderColor: sizeLabel === s ? '#4f46e5' : 'var(--border)',
-                            background: sizeLabel === s ? '#4f46e5' : 'transparent',
+                            borderColor: sizeLabel === s ? 'var(--accent-solid)' : 'var(--border)',
+                            background: sizeLabel === s ? 'var(--accent-solid)' : 'transparent',
                             color: sizeLabel === s ? '#fff' : 'var(--text-primary)',
                             cursor: 'pointer', fontWeight: sizeLabel === s ? 600 : 400,
                           }}
@@ -660,8 +663,8 @@ export default function SettingsGeneral({
                   {/* Bubbles Follow Pet */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                     <div>
-                      <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>气泡跟随桌宠</div>
-                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>权限气泡跟随桌宠移动</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t('settings.petBubbleFollow')}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settings.petBubbleFollowHint')}</div>
                     </div>
                     <Toggle value={petPrefs.bubbleFollowPet === true} onChange={v => updatePetPref('bubbleFollowPet', v)} />
                   </div>

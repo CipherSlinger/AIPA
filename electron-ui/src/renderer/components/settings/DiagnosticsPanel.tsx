@@ -17,11 +17,11 @@ interface DiagnosticsPanelProps {
 const statusIcon = (status: DiagnosticResult['status'] | 'loading', size = 16) => {
   switch (status) {
     case 'ok':
-      return <CheckCircle size={size} style={{ color: '#4ade80', flexShrink: 0 }} />
+      return <CheckCircle size={size} style={{ color: 'var(--success-text)', flexShrink: 0 }} />
     case 'warning':
-      return <AlertTriangle size={size} style={{ color: '#fbbf24', flexShrink: 0 }} />
+      return <AlertTriangle size={size} style={{ color: 'var(--warning-text)', flexShrink: 0 }} />
     case 'error':
-      return <XCircle size={size} style={{ color: '#f87171', flexShrink: 0 }} />
+      return <XCircle size={size} style={{ color: 'var(--danger-text)', flexShrink: 0 }} />
     case 'loading':
       return <Loader size={size} style={{ color: 'var(--text-muted)', flexShrink: 0, animation: 'spin 1s linear infinite' }} />
   }
@@ -205,7 +205,7 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
                       <div style={{
                         fontSize: 11,
                         fontFamily: 'monospace',
-                        color: 'rgba(165,180,252,0.8)',
+                        color: 'var(--accent-text)',
                         background: 'var(--code-bg)',
                         borderRadius: 6,
                         padding: '2px 6px',
@@ -231,7 +231,7 @@ export default function DiagnosticsPanel({ onBack }: DiagnosticsPanelProps) {
                     border: '1px solid var(--border)',
                     borderRadius: 8,
                     padding: '3px 6px',
-                    color: copiedId === item.id ? '#4ade80' : 'var(--text-muted)',
+                    color: copiedId === item.id ? 'var(--success-text)' : 'var(--text-muted)',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',

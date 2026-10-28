@@ -169,7 +169,7 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
         ...style,
       }}
     >
-      <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: active ? '#818cf8' : 'var(--text-secondary)' }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: active ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
         {icon}
         <span style={{ fontSize: 12, fontWeight: 700 }}>{title}</span>
       </span>

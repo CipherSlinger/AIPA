@@ -141,18 +141,19 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
           WebkitBackdropFilter: 'blur(20px)',
           border: '1px solid var(--border)',
           borderRadius: 16,
-          boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
-          padding: '20px 24px',
+          boxShadow: 'var(--dialog-shadow)',
           maxWidth: 480,
           width: '90%',
           maxHeight: '80vh',
-          overflowY: 'auto',
-          scrollbarWidth: 'thin',
-          scrollbarColor: 'var(--border) transparent',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
           animation: 'sc-slideUp 0.15s ease',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+        {/* Header is outside the scroll container so the close button stays
+            reachable after scrolling the shortcut list. */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px 12px', flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0, lineHeight: 1.4, letterSpacing: '-0.01em' }}>
             {t('shortcutCheatsheet.title')}
           </h2>
@@ -179,6 +180,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
           </button>
         </div>
 
+        <div data-shortcuts-scroll style={{ overflowY: 'auto', minHeight: 0, padding: '12px 24px 20px', scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
         {/* Search filter */}
         <div style={{ position: 'relative', marginBottom: 12 }}>
           <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
@@ -252,6 +254,7 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
 
         <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
           {t('shortcutCheatsheet.pressEscToClose')}
+        </div>
         </div>
       </div>
     </div>

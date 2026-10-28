@@ -187,7 +187,7 @@ function SkillCard({ skill, hovered, onOpen, onUse, onDelete }: {
             display: 'flex', alignItems: 'center', gap: 4, height: 24, padding: '0 10px', borderRadius: 8,
             border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer',
             background: hovered ? 'linear-gradient(135deg, rgba(99,102,241,0.92), rgba(139,92,246,0.92))' : 'rgba(99,102,241,0.12)',
-            color: hovered ? '#fff' : '#818cf8', transition: 'all 0.15s ease',
+            color: hovered ? '#fff' : 'var(--accent-text)', transition: 'all 0.15s ease',
           }}
         >
           <Play size={10} fill="currentColor" />
@@ -319,7 +319,7 @@ export function EmployeesSkillsSection({ state, onOpenSkill }: {
             onClick={openMarketplace}
             style={{
               marginTop: 10, display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none',
-              color: '#818cf8', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0,
+              color: 'var(--accent-text)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0,
             }}
           >
             {t('skills.browseMarketplace')}

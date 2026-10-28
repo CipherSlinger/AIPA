@@ -98,7 +98,7 @@ export default function MemoryAddForm({
               borderRadius: 6,
               padding: '3px 8px',
               fontSize: 10,
-              color: CATEGORY_CONFIG[newCategory].color,
+              color: CATEGORY_CONFIG[newCategory].textColor,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -146,7 +146,7 @@ export default function MemoryAddForm({
                     padding: '6px 10px',
                     background: newCategory === cat ? 'var(--bg-hover)' : 'transparent',
                     border: 'none',
-                    color: CATEGORY_CONFIG[cat].color,
+                    color: CATEGORY_CONFIG[cat].textColor,
                     fontSize: 11,
                     cursor: 'pointer',
                     textAlign: 'left',
@@ -170,7 +170,7 @@ export default function MemoryAddForm({
           {/* Character counter */}
           <span style={{
             fontSize: 10,
-            color: newContent.length > MAX_CONTENT_LENGTH * 0.9 ? '#fbbf24' : 'var(--text-muted)',
+            color: newContent.length > MAX_CONTENT_LENGTH * 0.9 ? 'var(--warning-text)' : 'var(--text-muted)',
             alignSelf: 'center',
             fontVariantNumeric: 'tabular-nums',
           }}>

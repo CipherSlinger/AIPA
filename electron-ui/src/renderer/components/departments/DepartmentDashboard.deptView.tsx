@@ -324,7 +324,9 @@ export default function DeptView({
               padding: '3px 9px', borderRadius: 999, cursor: 'pointer',
               border: `1px solid ${(dept.color || '#6366f1')}55`,
               background: `${dept.color || '#6366f1'}18`,
-              color: dept.color && dept.color.toLowerCase() !== '#6366f1' ? dept.color : 'var(--accent-text)',
+              // Department colours are picked for the avatar, not for text on
+              // their own 9% tint; a 10px label in sky blue was 2.33:1.
+              color: 'var(--text-primary)',
               fontSize: 10, fontWeight: 700, lineHeight: 1.5,
             }}
           >

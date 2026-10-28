@@ -107,7 +107,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             padding: '3px 10px',
             fontSize: 12,
             fontWeight: 700,
-            color: '#818cf8',
+            color: 'var(--accent-text)',
             fontVariantNumeric: 'tabular-nums',
           }}>
             App v{window.electronAPI.versions?.app || '1.0.0'}
@@ -119,7 +119,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             padding: '3px 10px',
             fontSize: 12,
             fontWeight: 700,
-            color: '#6ee7b7',
+            color: 'var(--success-text)',
             fontVariantNumeric: 'tabular-nums',
           }}>
             CLI v{__CLI_VERSION__}
@@ -149,7 +149,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
                 background: 'var(--bg-hover)',
                 border: '1px solid var(--glass-border-md)',
                 borderRadius: 6,
-                color: '#818cf8', cursor: 'pointer', fontSize: 12,
+                color: 'var(--accent-text)', cursor: 'pointer', fontSize: 12,
                 textAlign: 'left',
                 transition: 'all 0.15s ease',
               }}
@@ -189,7 +189,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
           onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Keyboard size={14} style={{ color: '#a5b4fc' }} />
+            <Keyboard size={14} style={{ color: 'var(--accent-text)' }} />
             {t('settings.about.viewAllShortcuts')}
           </span>
           <kbd style={{
@@ -221,7 +221,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             onMouseEnter={(e) => { if (!backupLoading) e.currentTarget.style.background = 'var(--glass-border-md)' }}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
           >
-            {backupLoading ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={14} style={{ color: '#a5b4fc' }} />}
+            {backupLoading ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={14} style={{ color: 'var(--accent-text)' }} />}
             {t('backup.export')}
           </button>
           <button
@@ -240,7 +240,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
             onMouseEnter={(e) => { if (!restoreLoading) e.currentTarget.style.background = 'var(--glass-border-md)' }}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
           >
-            {restoreLoading ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={14} style={{ color: '#a5b4fc' }} />}
+            {restoreLoading ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={14} style={{ color: 'var(--accent-text)' }} />}
             {t('backup.import')}
           </button>
         </div>
@@ -268,7 +268,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
           onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Activity size={14} style={{ color: '#a5b4fc' }} />
+            <Activity size={14} style={{ color: 'var(--accent-text)' }} />
             {t('diagnostics.runDiagnostics')}
           </span>
         </button>
@@ -290,7 +290,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
                 <span style={{ fontSize: 11, color: 'var(--text-faint)', fontVariantNumeric: 'tabular-nums' }}>{row.key}</span>
                 <span style={{
-                  fontFamily: 'monospace', fontSize: 11, color: 'rgba(165,180,252,0.8)',
+                  fontFamily: 'monospace', fontSize: 11, color: 'var(--accent-text)',
                   background: 'var(--bg-primary)', borderRadius: 6, padding: '1px 5px',
                 }}>{row.val}</span>
               </div>
@@ -309,7 +309,7 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
           border: '1px solid rgba(239,68,68,0.2)',
           borderRadius: 6,
           padding: '8px 16px',
-          color: '#fca5a5',
+          color: 'var(--danger-text)',
           cursor: 'pointer',
           fontSize: 12,
           width: '100%',

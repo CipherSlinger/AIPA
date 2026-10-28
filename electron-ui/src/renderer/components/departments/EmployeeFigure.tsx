@@ -73,7 +73,7 @@ export default function EmployeeFigure({
   const title = displayTitle(session, t('session.untitled'), 60)
 
   const status = isLoading
-    ? { label: t('dept.empLoading'), color: '#818cf8' }
+    ? { label: t('dept.empLoading'), color: 'var(--accent-text)' }
     : working
     ? { label: t('dept.empWorking'), color: '#4ade80' }
     : { label: t('dept.empIdle'), color: 'var(--text-faint)' }

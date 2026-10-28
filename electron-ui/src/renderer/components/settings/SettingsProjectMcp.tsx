@@ -52,9 +52,9 @@ function stdioPreview(command: string | undefined, args: string[] | undefined): 
 }
 
 const TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  stdio:  { bg: 'rgba(99,102,241,0.12)', text: '#818cf8', border: 'rgba(99,102,241,0.25)' },
+  stdio:  { bg: 'rgba(99,102,241,0.12)', text: 'var(--accent-text)', border: 'rgba(99,102,241,0.25)' },
   sse:    { bg: 'rgba(52,211,153,0.12)', text: '#34d399', border: 'rgba(52,211,153,0.25)' },
-  http:   { bg: 'rgba(251,191,36,0.12)', text: '#fbbf24', border: 'rgba(251,191,36,0.25)' },
+  http:   { bg: 'rgba(251,191,36,0.12)', text: 'var(--warning-text)', border: 'rgba(251,191,36,0.25)' },
 }
 
 const inputStyle: React.CSSProperties = {
@@ -148,7 +148,7 @@ function ServerCard({ server, onToggleDisabled, onDelete }: ServerCardProps) {
           padding: 4, display: 'flex', alignItems: 'center',
           color: 'var(--text-faint)', flexShrink: 0,
         }}
-        onMouseEnter={e => { e.currentTarget.style.color = '#f87171' }}
+        onMouseEnter={e => { e.currentTarget.style.color = 'var(--danger-text)' }}
         onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-faint)' }}
       >
         <Trash2 size={14} />
@@ -160,12 +160,12 @@ function ServerCard({ server, onToggleDisabled, onDelete }: ServerCardProps) {
         style={{
           background: 'none', border: 'none', cursor: 'pointer',
           padding: 4, display: 'flex', alignItems: 'center',
-          color: isDisabled ? 'var(--text-faint)' : '#818cf8',
+          color: isDisabled ? 'var(--text-faint)' : 'var(--accent-text)',
           flexShrink: 0,
           transition: 'color 0.15s ease',
         }}
-        onMouseEnter={e => { e.currentTarget.style.color = isDisabled ? 'var(--text-secondary)' : '#a5b4fc' }}
-        onMouseLeave={e => { e.currentTarget.style.color = isDisabled ? 'var(--text-faint)' : '#818cf8' }}
+        onMouseEnter={e => { e.currentTarget.style.color = isDisabled ? 'var(--text-secondary)' : 'var(--accent-text)' }}
+        onMouseLeave={e => { e.currentTarget.style.color = isDisabled ? 'var(--text-faint)' : 'var(--accent-text)' }}
         aria-label={isDisabled ? t('settings.mcpPage.enableServer') : t('settings.mcpPage.disableServer')}
       >
         {isDisabled ? <ToggleLeft size={20} /> : <ToggleRight size={20} />}
@@ -232,7 +232,7 @@ function AddServerForm({ existingNames, onAdd, onCancel }: {
               flex: 1, height: 28, borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600,
               background: transport === kind ? 'rgba(99,102,241,0.14)' : 'var(--bg-primary)',
               border: `1px solid ${transport === kind ? 'rgba(99,102,241,0.45)' : 'var(--border)'}`,
-              color: transport === kind ? '#818cf8' : 'var(--text-muted)',
+              color: transport === kind ? 'var(--accent-text)' : 'var(--text-muted)',
             }}
           >
             {kind === 'stdio' ? t('mcp.typeStdio') : t('mcp.typeHttp')}
@@ -518,7 +518,7 @@ export default function SettingsProjectMcp() {
               borderRadius: 4, padding: '2px 6px',
               background: isCodex ? 'rgba(99,102,241,0.12)' : 'rgba(52,211,153,0.12)',
               border: `1px solid ${isCodex ? 'rgba(99,102,241,0.25)' : 'rgba(52,211,153,0.25)'}`,
-              color: isCodex ? '#818cf8' : '#34d399',
+              color: isCodex ? 'var(--accent-text)' : 'var(--success-text)',
             }}>
               {configInfo.engine}
             </span>

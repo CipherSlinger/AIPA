@@ -19,11 +19,11 @@ function formatNumber(n: number): string {
 
 function toolColor(name: string): string {
   const lower = name.toLowerCase()
-  if (lower.includes('bash') || lower.includes('exec') || lower.includes('run')) return '#6366f1'
-  if (lower.includes('read') || lower.includes('write') || lower.includes('file') || lower.includes('edit')) return '#4ade80'
-  if (lower.includes('search') || lower.includes('grep') || lower.includes('glob')) return '#fbbf24'
-  if (lower.includes('web') || lower.includes('fetch') || lower.includes('url')) return '#a78bfa'
-  return '#6366f1'
+  if (lower.includes('bash') || lower.includes('exec') || lower.includes('run')) return 'var(--accent-text)'
+  if (lower.includes('read') || lower.includes('write') || lower.includes('file') || lower.includes('edit')) return 'var(--success-text)'
+  if (lower.includes('search') || lower.includes('grep') || lower.includes('glob')) return 'var(--warning-text)'
+  if (lower.includes('web') || lower.includes('fetch') || lower.includes('url')) return 'var(--violet-text)'
+  return 'var(--accent-text)'
 }
 
 function toolGlow(name: string): string {
@@ -124,7 +124,7 @@ export default function SettingsStats() {
       label: t('stats.totalSessions'),
       value: formatNumber(stats.totalSessions),
       sub: t('stats.sessions'),
-      accent: '#a5b4fc',
+      accent: 'var(--accent-text)',
       accentBg: 'rgba(99,102,241,0.08)',
       accentBgHover: 'rgba(99,102,241,0.13)',
     },
@@ -132,7 +132,7 @@ export default function SettingsStats() {
       label: t('stats.totalMessages'),
       value: formatNumber(totalMsgs),
       sub: `${formatNumber(stats.totalMessages.user)} user / ${formatNumber(stats.totalMessages.assistant)} asst`,
-      accent: '#4ade80',
+      accent: 'var(--success-text)',
       accentBg: 'rgba(74,222,128,0.08)',
       accentBgHover: 'rgba(74,222,128,0.13)',
     },
@@ -142,7 +142,7 @@ export default function SettingsStats() {
       sub: totalTokensNum !== null
         ? `${formatNumber(stats.totalTokens!.input)} in / ${formatNumber(stats.totalTokens!.output)} out`
         : t('stats.noTokenData'),
-      accent: '#fbbf24',
+      accent: 'var(--warning-text)',
       accentBg: 'rgba(251,191,36,0.08)',
       accentBgHover: 'rgba(251,191,36,0.13)',
     },
@@ -150,7 +150,7 @@ export default function SettingsStats() {
       label: t('stats.avgSessionLength'),
       value: String(stats.averageSessionMessages),
       sub: t('stats.msgsPerSession'),
-      accent: '#a78bfa',
+      accent: 'var(--violet-text)',
       accentBg: 'rgba(167,139,250,0.08)',
       accentBgHover: 'rgba(167,139,250,0.13)',
     },
@@ -303,7 +303,7 @@ export default function SettingsStats() {
                       : '1px solid transparent',
                     borderRadius: 4,
                     padding: '2px 10px',
-                    color: isActive ? '#a5b4fc' : 'var(--text-muted)',
+                    color: isActive ? 'var(--accent-text)' : 'var(--text-muted)',
                     cursor: 'pointer',
                     fontSize: 11,
                     fontWeight: isActive ? 600 : 400,

@@ -25,7 +25,9 @@ export default function PersonaChoice({ personas, value, onChange, noneLabel, ac
     fontSize: 11, lineHeight: 1.4,
     border: `1px solid ${selected ? `${color}99` : 'var(--border)'}`,
     background: selected ? `${color}1f` : 'var(--bg-hover)',
-    color: selected ? color : 'var(--text-secondary)',
+    // The accent stays in the border/tint; per-department colours are arbitrary
+    // data and several fail AA as 11px text on a light surface.
+    color: selected ? 'var(--text-primary)' : 'var(--text-secondary)',
     fontWeight: selected ? 600 : 500,
     transition: 'all 0.15s ease',
   })

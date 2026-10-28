@@ -1,9 +1,11 @@
 // ExportDialog — dialog for exporting conversation as Markdown or JSON
-import React, { useState, useMemo, useRef, useEffect } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { X, Download } from 'lucide-react'
 import { useChatStore, useUiStore } from '../../store'
 import { ChatMessage, StandardChatMessage } from '../../types/app.types'
 import { useClickOutside } from '../../hooks/useClickOutside'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { useT } from '../../i18n'
 import { generateShortWordSlug } from '../../utils/wordSlug'
 
 interface Props {
@@ -81,6 +83,7 @@ function buildJson(
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ExportDialog({ onClose }: Props) {
+  const t = useT()
   const messages = useChatStore(s => s.messages)
   const currentSessionId = useChatStore(s => s.currentSessionId)
   const currentSessionTitle = useChatStore(s => s.currentSessionTitle)
@@ -91,7 +94,7 @@ export default function ExportDialog({ onClose }: Props) {
   const [includeTimestamps, setIncludeTimestamps] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  const dialogRef = useRef<HTMLDivElement>(null)
+  const dialogRef = useFocusTrap(true)
   useClickOutside(dialogRef, true, onClose)
 
   // Escape key closes
@@ -125,13 +128,13 @@ export default function ExportDialog({ onClose }: Props) {
 
       const result = await window.electronAPI.fsWriteFile(filePath, content)
       if ((result as any)?.error) {
-        addToast('error', `Export failed: ${(result as any).error}`)
+        addToast('error', t('chat.exportFailed', { error: (result as any).error }))
       } else {
-        addToast('success', 'Conversation exported successfully')
+        addToast('success', t('chat.exportSuccess'))
         onClose()
       }
     } catch (err: any) {
-      addToast('error', `Export failed: ${err?.message || err}`)
+      addToast('error', t('chat.exportFailed', { error: err?.message || err }))
     } finally {
       setSaving(false)
     }
@@ -161,10 +164,12 @@ export default function ExportDialog({ onClose }: Props) {
     padding: 20,
     width: 480,
     maxWidth: 'calc(100vw - 40px)',
-    boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
+    maxHeight: 'calc(100vh - 48px)',
+    boxShadow: 'var(--dialog-shadow)',
     display: 'flex',
     flexDirection: 'column',
     gap: 14,
+    overflow: 'hidden',
     animation: 'slideUp 0.15s ease',
   }
 
@@ -188,7 +193,7 @@ export default function ExportDialog({ onClose }: Props) {
   const radioOptionStyle = (active: boolean): React.CSSProperties => ({
     padding: '5px 14px',
     borderRadius: 6,
-    background: active ? 'rgba(99,102,241,0.88)' : 'transparent',
+    background: active ? 'var(--accent-solid)' : 'transparent',
     border: 'none',
     color: active ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
     fontSize: 12,
@@ -237,14 +242,21 @@ export default function ExportDialog({ onClose }: Props) {
 
   return (
     <div style={overlayStyle}>
-      <div ref={dialogRef} style={dialogStyle}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid var(--bg-hover)' }}>
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('chat.exportTitle')}
+        style={dialogStyle}
+      >
+        {/* Header — stays put while the body scrolls at 200% zoom. */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid var(--bg-hover)', flexShrink: 0 }}>
           <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
-            导出会话
+            {t('chat.exportTitle')}
           </span>
           <button
             onClick={onClose}
+            aria-label={t('common.close')}
             style={{
               background: 'transparent', border: 'none', cursor: 'pointer',
               color: 'var(--text-muted)', display: 'flex', padding: 4, borderRadius: 8,
@@ -257,51 +269,53 @@ export default function ExportDialog({ onClose }: Props) {
           </button>
         </div>
 
-        {/* Format picker */}
-        <div>
-          <div style={labelStyle}>格式</div>
-          <div style={radioGroupStyle}>
-            <button style={radioOptionStyle(format === 'markdown')} onClick={() => setFormat('markdown')}>
-              Markdown
-            </button>
-            <button style={radioOptionStyle(format === 'json')} onClick={() => setFormat('json')}>
-              JSON
-            </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', minHeight: 0 }}>
+          {/* Format picker */}
+          <div>
+            <div style={labelStyle}>{t('chat.exportFormat')}</div>
+            <div style={radioGroupStyle}>
+              <button style={radioOptionStyle(format === 'markdown')} onClick={() => setFormat('markdown')}>
+                Markdown
+              </button>
+              <button style={radioOptionStyle(format === 'json')} onClick={() => setFormat('json')}>
+                JSON
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Options — only relevant for Markdown */}
-        {format === 'markdown' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <label style={checkRowStyle}>
-              <input
-                type="checkbox"
-                checked={includeTools}
-                onChange={e => setIncludeTools(e.target.checked)}
-                style={{ accentColor: 'rgba(99,102,241,0.88)', cursor: 'pointer', width: 14, height: 14 }}
-              />
-              包含工具调用记录
-            </label>
-            <label style={checkRowStyle}>
-              <input
-                type="checkbox"
-                checked={includeTimestamps}
-                onChange={e => setIncludeTimestamps(e.target.checked)}
-                style={{ accentColor: 'rgba(99,102,241,0.88)', cursor: 'pointer', width: 14, height: 14 }}
-              />
-              包含时间戳
-            </label>
+          {/* Options — only relevant for Markdown */}
+          {format === 'markdown' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label style={checkRowStyle}>
+                <input
+                  type="checkbox"
+                  checked={includeTools}
+                  onChange={e => setIncludeTools(e.target.checked)}
+                  style={{ accentColor: 'var(--accent-solid)', cursor: 'pointer', width: 14, height: 14 }}
+                />
+                {t('chat.exportIncludeTools')}
+              </label>
+              <label style={checkRowStyle}>
+                <input
+                  type="checkbox"
+                  checked={includeTimestamps}
+                  onChange={e => setIncludeTimestamps(e.target.checked)}
+                  style={{ accentColor: 'var(--accent-solid)', cursor: 'pointer', width: 14, height: 14 }}
+                />
+                {t('chat.exportIncludeTimestamps')}
+              </label>
+            </div>
+          )}
+
+          {/* Preview */}
+          <div>
+            <div style={labelStyle}>{t('chat.exportPreview')}</div>
+            <div style={previewBoxStyle}>{preview}</div>
           </div>
-        )}
-
-        {/* Preview */}
-        <div>
-          <div style={labelStyle}>预览（前 500 字）</div>
-          <div style={previewBoxStyle}>{preview}</div>
         </div>
 
         {/* Footer buttons */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexShrink: 0 }}>
           <button
             onClick={onClose}
             style={{
@@ -319,14 +333,14 @@ export default function ExportDialog({ onClose }: Props) {
               e.currentTarget.style.borderColor = 'var(--border)'
             }}
           >
-            取消
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleSave}
             disabled={saving || messages.length === 0}
             style={{
               ...btnBase,
-              background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
+              background: 'var(--cta-gradient)',
               border: 'none',
               color: 'rgba(255,255,255,0.95)',
               boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
@@ -337,7 +351,7 @@ export default function ExportDialog({ onClose }: Props) {
             onMouseLeave={e => { if (!saving && messages.length > 0) { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' } }}
           >
             <Download size={13} />
-            {saving ? '保存中...' : '选择路径并保存'}
+            {saving ? t('chat.exportSaving') : t('chat.exportChoosePath')}
           </button>
         </div>
       </div>

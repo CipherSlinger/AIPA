@@ -216,7 +216,7 @@ export default function DeptRow({
           marginLeft: 'auto',
           fontSize: 10,
           fontWeight: 700,
-          color: '#818cf8',
+          color: 'var(--accent-text)',
           background: 'rgba(99,102,241,0.15)',
           borderRadius: 6,
           padding: '1px 7px',
@@ -272,7 +272,7 @@ export default function DeptRow({
             border: 'none',
             background: isActive ? 'rgba(99,102,241,0.25)' : 'rgba(99,102,241,0.12)',
             cursor: 'pointer',
-            color: isActive ? '#818cf8' : 'rgba(99,102,241,0.85)',
+            color: isActive ? 'var(--accent-text)' : 'var(--accent-text)',
             padding: '3px 7px',
             borderRadius: 5,
             display: 'flex',
@@ -286,11 +286,11 @@ export default function DeptRow({
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = 'rgba(99,102,241,0.28)'
-            e.currentTarget.style.color = '#818cf8'
+            e.currentTarget.style.color = 'var(--accent-text)'
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = isActive ? 'rgba(99,102,241,0.25)' : 'rgba(99,102,241,0.12)'
-            e.currentTarget.style.color = isActive ? '#818cf8' : 'rgba(99,102,241,0.85)'
+            e.currentTarget.style.color = isActive ? 'var(--accent-text)' : 'var(--accent-text)'
           }}
         >
           <LogIn size={9} />

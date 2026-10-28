@@ -2,7 +2,6 @@
 import React, { useState } from 'react'
 import { Package, Download, CheckCircle, ExternalLink } from 'lucide-react'
 import {
-  CATEGORY_COLORS,
   SOURCE_COLORS,
   type MarketplaceSkill,
 } from '../../utils/skillMarketplace'
@@ -20,7 +19,6 @@ interface MarketplaceCardProps {
 export default function MarketplaceCard({ skill, isInstalled, isInstalling, onInstall, onUse, t, language }: MarketplaceCardProps) {
   const [hovered, setHovered] = useState(false)
   const [btnHovered, setBtnHovered] = useState(false)
-  const catColor = CATEGORY_COLORS[skill.category]
   const srcColor = SOURCE_COLORS[skill.source]
   const description = (language === 'zh-CN' && skill.descriptionZh) ? skill.descriptionZh : skill.description
 
@@ -55,7 +53,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-          <Package size={18} style={{ color: '#818cf8' }} />
+          <Package size={18} style={{ color: 'var(--accent-text)' }} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -63,7 +61,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
               fontSize: 13,
               fontWeight: 700,
               color: 'var(--text-primary)',
-            }}>
+            }} title={skill.name}>
               {skill.name}
             </span>
             <span style={{
@@ -82,14 +80,16 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
               padding: '2px 8px',
               borderRadius: 20,
               background: `${srcColor}20`,
-              color: srcColor,
+              // Hue lives in the tint; the arbitrary source hex is too pale for
+              // 10px text on a light card.
+              color: 'var(--text-primary)',
               fontWeight: 600,
               letterSpacing: '0.04em',
             }}>
               {t(`skills.source_${skill.source.toLowerCase()}`)}
             </span>
           </div>
-          <div style={{
+          <div title={description} style={{
             fontSize: 11,
             color: 'var(--text-muted)',
             lineHeight: 1.5,
@@ -128,7 +128,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#a5b4fc'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)' }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent-text)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)' }}
                 onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)' }}
               >
                 <ExternalLink size={9} />
@@ -147,7 +147,7 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
                 gap: 4,
                 padding: '4px 10px',
                 background: 'rgba(34,197,94,0.12)',
-                color: '#4ade80',
+                color: 'var(--success-text)',
                 border: '1px solid rgba(34,197,94,0.25)',
                 borderRadius: 6,
                 fontSize: 11,

@@ -205,7 +205,7 @@ function DeptCard({
             style={{
               flexShrink: 0, padding: 4, borderRadius: 6, border: 'none',
               background: hovered ? 'rgba(99,102,241,0.12)' : 'transparent',
-              color: hovered ? '#818cf8' : 'var(--text-muted)',
+              color: hovered ? 'var(--accent-text)' : 'var(--text-muted)',
               cursor: 'pointer', display: 'flex', transition: 'all 0.15s ease',
             }}
           >

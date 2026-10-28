@@ -251,8 +251,8 @@ export default function ProviderEditDrawer({
     : health.status === 'healthy'
       ? '#22c55e'
       : health.status === 'degraded'
-        ? '#fbbf24'
-        : '#fca5a5'
+        ? 'var(--warning-text)'
+        : 'var(--danger-text)'
 
   return (
     // Untransformed root: it only positions the scrim + panel, so `position:
@@ -432,7 +432,7 @@ export default function ProviderEditDrawer({
                 <button
                   onClick={handleFetchRemoteModels}
                   disabled={fetchingModels}
-                  onMouseEnter={e => { if (!fetchingModels) { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = '#a5b4fc' } }}
+                  onMouseEnter={e => { if (!fetchingModels) { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = 'var(--accent-text)' } }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
                   style={{ ...GHOST_BTN, cursor: fetchingModels ? 'wait' : 'pointer', opacity: fetchingModels ? 0.6 : 1 }}
                 >
@@ -466,12 +466,12 @@ export default function ProviderEditDrawer({
             <div>
               <button
                 onClick={() => window.electronAPI.shellOpenExternal(PROVIDER_KEY_LINKS[provider.id])}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = '#a5b4fc' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'rgba(99,102,241,0.6)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = 'var(--accent-text)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--accent-text)' }}
                 style={{
                   ...GHOST_BTN,
                   background: 'rgba(99,102,241,0.08)',
-                  color: 'rgba(99,102,241,0.60)',
+                  color: 'var(--accent-text)',
                 }}
               >
                 <ExternalLink size={11} />
@@ -496,7 +496,7 @@ export default function ProviderEditDrawer({
               )}
             </div>
             {health?.lastError && (
-              <div style={{ fontSize: 10, color: '#fca5a5', lineHeight: 1.5 }}>
+              <div style={{ fontSize: 10, color: 'var(--danger-text)', lineHeight: 1.5 }}>
                 {t('provider.lastError')}: {health.lastError}
               </div>
             )}
@@ -518,7 +518,7 @@ export default function ProviderEditDrawer({
                   ...GHOST_BTN,
                   background: 'rgba(239,68,68,0.15)',
                   borderColor: 'rgba(239,68,68,0.30)',
-                  color: '#fca5a5',
+                  color: 'var(--danger-text)',
                   fontWeight: 600,
                 }}
               >
@@ -528,7 +528,7 @@ export default function ProviderEditDrawer({
               <button
                 onClick={() => setDeleteConfirm(true)}
                 aria-label={t('provider.deleteProvider')}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; e.currentTarget.style.color = '#fca5a5' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; e.currentTarget.style.color = 'var(--danger-text)' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
                 style={{ ...GHOST_BTN, padding: '6px 10px' }}
               >
@@ -540,7 +540,7 @@ export default function ProviderEditDrawer({
           <button
             onClick={() => onTest(provider.id)}
             disabled={testing}
-            onMouseEnter={e => { if (!testing) { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = '#a5b4fc' } }}
+            onMouseEnter={e => { if (!testing) { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = 'var(--accent-text)' } }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
             style={{ ...GHOST_BTN, padding: '6px 12px', cursor: testing ? 'wait' : 'pointer', opacity: testing ? 0.6 : 1 }}
           >

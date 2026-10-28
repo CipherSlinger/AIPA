@@ -193,7 +193,7 @@ export default function MemoryItemCard({
                       borderRadius: 4,
                       padding: '1px 4px',
                       cursor: 'pointer',
-                      color: CATEGORY_CONFIG[cat].color,
+                      color: CATEGORY_CONFIG[cat].textColor,
                       display: 'flex',
                       alignItems: 'center',
                       transition: 'all 0.15s ease',
@@ -220,7 +220,7 @@ export default function MemoryItemCard({
                           borderRadius: 4,
                           padding: '1px 5px',
                           cursor: 'pointer',
-                          color: isActive ? tc.color : 'var(--text-muted)',
+                          color: isActive ? tc.textColor : 'var(--text-muted)',
                           display: 'flex',
                           alignItems: 'center',
                           gap: 2,
@@ -331,7 +331,7 @@ export default function MemoryItemCard({
                   fontWeight: 700,
                   letterSpacing: '0.07em',
                   textTransform: 'uppercase',
-                  color: cfg.color,
+                  color: cfg.textColor,
                   background: `${cfg.color}1e`,
                   borderRadius: 10,
                   padding: '1px 6px',
@@ -366,7 +366,7 @@ export default function MemoryItemCard({
                   gap: 3,
                   fontSize: 9,
                   fontWeight: 600,
-                  color: decayInfo.dot,
+                  color: 'var(--text-primary)',
                   background: `${decayInfo.dot}18`,
                   border: `1px solid ${decayInfo.dot}44`,
                   borderRadius: 8,
@@ -389,7 +389,7 @@ export default function MemoryItemCard({
                   {ageLabel}
                 </span>
                 {mem.pinned && (
-                  <Pin size={9} style={{ color: '#fbbf24' }} />
+                  <Pin size={9} style={{ color: 'var(--warning-text)' }} />
                 )}
               </div>
             </div>
@@ -421,7 +421,7 @@ export default function MemoryItemCard({
                 borderRadius: 4,
                 padding: 3,
                 cursor: 'pointer',
-                color: mem.pinned ? '#fbbf24' : 'var(--text-muted)',
+                color: mem.pinned ? 'var(--warning-text)' : 'var(--text-muted)',
                 display: 'flex',
                 transition: 'all 0.15s ease',
               }}
@@ -445,7 +445,7 @@ export default function MemoryItemCard({
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.background = 'rgba(99,102,241,0.12)'
-                e.currentTarget.style.color = '#818cf8'
+                e.currentTarget.style.color = 'var(--accent-text)'
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.background = 'none'
@@ -463,14 +463,14 @@ export default function MemoryItemCard({
                 borderRadius: 4,
                 padding: 3,
                 cursor: 'pointer',
-                color: copied ? '#4ade80' : 'var(--text-muted)',
+                color: copied ? 'var(--success-text)' : 'var(--text-muted)',
                 display: 'flex',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => {
                 if (!copied) {
                   e.currentTarget.style.background = 'rgba(74,222,128,0.12)'
-                  e.currentTarget.style.color = '#4ade80'
+                  e.currentTarget.style.color = 'var(--success-text)'
                 }
               }}
               onMouseLeave={e => {
@@ -497,7 +497,7 @@ export default function MemoryItemCard({
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.background = 'rgba(239,68,68,0.15)'
-                e.currentTarget.style.color = '#f87171'
+                e.currentTarget.style.color = 'var(--danger-text)'
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.background = 'none'

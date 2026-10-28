@@ -77,7 +77,7 @@ export function SearchResultRow({ hit, query, index, selected, onHover, onOpen }
     >
       <span
         style={{
-          color: selected ? '#a5b4fc' : 'var(--text-muted)',
+          color: selected ? 'var(--accent-text)' : 'var(--text-muted)',
           display: 'flex',
           paddingTop: 2,
           flexShrink: 0,
@@ -91,6 +91,7 @@ export function SearchResultRow({ hit, query, index, selected, onHover, onOpen }
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <span
+            title={hit.title || t('globalSearch.untitled')}
             style={{
               fontSize: 13,
               fontWeight: 500,

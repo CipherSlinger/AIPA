@@ -172,7 +172,14 @@
       "thinking": "思考中",
       "writing": "写作中",
       "usingTool": "正在使用 {{tool}}"
-    }
+    },
+    "exportTitle": "导出对话",
+    "exportFormat": "格式",
+    "exportIncludeTools": "包含工具调用",
+    "exportIncludeTimestamps": "包含时间戳",
+    "exportPreview": "预览",
+    "exportSaving": "正在保存…",
+    "exportChoosePath": "选择保存位置…"
   },
   "sessionReuse": {
     "menu": {
@@ -500,7 +507,15 @@
     "untitledSession": "无标题会话",
     "titleGenerated": "会话标题已更新",
     "notFound": "找不到该会话，可能已被删除。",
-    "openFailed": "无法打开该会话。"
+    "openFailed": "无法打开该会话。",
+    "addNote": "添加备注",
+    "addNoteDesc": "为本会话添加备注",
+    "editNote": "编辑备注",
+    "removeNote": "移除备注",
+    "inTitle": "标题中",
+    "inContent": "内容中",
+    "inProject": "项目中",
+    "noSessions": "还没有会话"
   },
   "settings": {
     "title": "设置",
@@ -730,7 +745,13 @@
       "customSuffix": "（自定义）"
     },
     "plugins": "插件",
-    "pluginsEmpty": "未安装插件"
+    "pluginsEmpty": "未安装插件",
+    "keyActive": "启用中",
+    "petTitle": "桌宠",
+    "petDesc": "在桌面上显示一只随 AI 工作状态变化的宠物。",
+    "petLaunchError": "无法启动桌宠进程",
+    "petBubbleFollow": "气泡跟随桌宠",
+    "petBubbleFollowHint": "权限气泡跟随桌宠移动"
   },
   "outputStyle": {
     "title": "输出风格",
@@ -907,7 +928,20 @@
     "openChannel": "打开通道",
     "openChannelDesc": "连接飞书和微信消息通道",
     "toggleAlwaysOnTop": "切换窗口置顶",
-    "toggleAlwaysOnTopDesc": "将窗口固定或取消固定在其他窗口上方"
+    "toggleAlwaysOnTopDesc": "将窗口固定或取消固定在其他窗口上方",
+    "initDesc": "在当前目录初始化新的 Claude 项目",
+    "doctorDesc": "检查 Claude CLI 安装与连接",
+    "renameDesc": "重命名当前对话",
+    "exportSlashDesc": "导出对话为 Markdown 或 JSON",
+    "planDesc": "计划模式——先思考再执行",
+    "permissionsDesc": "查看和管理工具权限",
+    "mcpDesc": "Model Context Protocol 服务器管理",
+    "aiEngineDesc": "打开 AI 引擎与提供商设置",
+    "memorySlashDesc": "查看和管理 Claude 记忆文件",
+    "modelSlashDesc": "切换当前模型",
+    "costDesc": "查看本次会话的 token 用量与费用",
+    "skillsDesc": "列出可用的 Claude 技能",
+    "rewindDesc": "回退到对话中的某条消息"
   },
   "permission": {
     "allow": "允许",
@@ -940,7 +974,11 @@
     "alwaysDenyTool": "始终拒绝",
     "ruleAddedAllow": "规则已添加: {{rule}} -> 始终允许",
     "ruleAddedDeny": "规则已添加: {{rule}} -> 始终拒绝",
-    "denialsCount": "本轮有 {{count}} 个权限请求被拒绝"
+    "denialsCount": "本轮有 {{count}} 个权限请求被拒绝",
+    "useTool": "使用工具：{{tool}}",
+    "parameters": "参数",
+    "confirmPrompt": "Claude 想使用一个工具，请确认",
+    "clickOutsideToDeny": "点击外部区域即拒绝"
   },
   "permissions": {
     "allowRules": "允许规则",
@@ -971,7 +1009,13 @@
     "noAdditionalDirs": "暂无附加目录",
     "dirAdded": "目录已添加",
     "dirRemoved": "目录已移除",
-    "dirExists": "该目录已在列表中"
+    "dirExists": "该目录已在列表中",
+    "historyTitle": "会话权限历史",
+    "historyEmpty": "当前会话暂无工具权限请求记录",
+    "decisionAllowed": "已允许",
+    "decisionDenied": "已拒绝",
+    "decisionPending": "待决定",
+    "manualPath": "手动输入路径"
   },
   "taskQueue": {
     "title": "任务队列",
@@ -988,7 +1032,9 @@
     "totalLabel": "总计",
     "addToQueue": "加入队列",
     "addToQueueShortcut": "加入队列 (Ctrl+Shift+Q)",
-    "queueComplete": "队列完成：{{count}} 个任务已执行"
+    "queueComplete": "队列完成：{{count}} 个任务已执行",
+    "close": "关闭",
+    "empty": "队列中没有任务"
   },
   "task": {
     "backgroundCompleted": "后台任务{{id}}已完成"
@@ -1041,7 +1087,8 @@
     "showDetails": "发生了什么？",
     "hideDetails": "隐藏详情",
     "reportBug": "报告 Bug",
-    "structuredOutputRetries": "结构化输出重试次数已达上限，模型在多次尝试后仍无法生成有效的结构化响应。"
+    "structuredOutputRetries": "结构化输出重试次数已达上限，模型在多次尝试后仍无法生成有效的结构化响应。",
+    "close": "关闭"
   },
   "startup": {
     "prefsLoadFailed": "偏好设置加载失败，已使用默认值。"
@@ -1225,7 +1272,16 @@
     "diffError": "加载 diff 失败",
     "noDiff": "无 diff 输出",
     "gitDiffTitle": "Git Diff（HEAD）",
-    "close": "关闭"
+    "close": "关闭",
+    "copied": "已复制",
+    "tooltip": "文件变更",
+    "fileChanged": "1 个文件已更改",
+    "filesChanged": "{{count}} 个文件已更改",
+    "linesAdded": "{{count}} 行新增",
+    "linesRemoved": "{{count}} 行删除",
+    "statusCreated": "新建",
+    "statusModified": "已修改",
+    "turn": "第 {{num}} 轮：{{prompt}}"
   },
   "cost": {
     "thresholdWarning": "会话费用已超过 $5.00。建议开始新对话或压缩上下文。",
@@ -1341,7 +1397,8 @@
     "summary": "上次对话进展：",
     "generatingSummary": "正在生成摘要...",
     "dialogEnabled": "空闲返回对话框",
-    "dialogEnabledHint": "离开 30 分钟以上后返回时，询问是否继续或重新开始"
+    "dialogEnabledHint": "离开 30 分钟以上后返回时，询问是否继续或重新开始",
+    "awayLabel": "离开"
   },
   "lightbox": {
     "zoomIn": "放大 (+)",
@@ -1448,7 +1505,9 @@
     "noteRefHint": "输入 @note: 引用笔记",
     "pinToChat": "固定到聊天",
     "unpinFromChat": "从聊天取消固定",
-    "pinnedToChat": "笔记已固定到聊天"
+    "pinnedToChat": "笔记已固定到聊天",
+    "add": "新建便签",
+    "empty": "还没有便签"
   },
   "clipboard": {
     "pasteAndAsk": "粘贴并提问",
@@ -1518,7 +1577,10 @@
     "createSkill": "创建自定义技能",
     "create": "创建",
     "createOwn": "创建自定义",
-    "skillCreatorLaunched": "技能创建器已在聊天中打开"
+    "skillCreatorLaunched": "技能创建器已在聊天中打开",
+    "skills": "个技能",
+    "results": "结果",
+    "featured": "精选"
   },
   "skill": {
     "createTitle": "创建技能",
@@ -1621,7 +1683,10 @@
     "removeDefault": "取消默认",
     "defaultBadge": "默认",
     "defaultSet": "已将 {name} 设为新会话默认专家",
-    "defaultRemoved": "已取消默认专家"
+    "defaultRemoved": "已取消默认专家",
+    "added": "专家已添加",
+    "delete": "删除专家",
+    "deleteWarning": "删除后无法恢复，使用该专家的对话将回退到默认设置。"
   },
   "memory": {
     "title": "记忆",
@@ -1690,7 +1755,15 @@
     "typeProject": "项目",
     "typeReference": "参考",
     "copyContent": "复制内容",
-    "copied": "已复制"
+    "copied": "已复制",
+    "addTitle": "添加记忆",
+    "instructionFilesLoaded": "当前加载的 CLAUDE.md 文件",
+    "instructionFilesCount": "{{existing}}/{{total}} 已存在",
+    "instructionPrecedence": "优先级：本地覆盖项目，项目覆盖全局。",
+    "instructionBannerTitle": "指令文件",
+    "instructionBannerDesc": "CLAUDE.md 会自动加载，并应用于每次会话。",
+    "memdirBannerTitle": "结构化记忆",
+    "memdirBannerDesc": "AI 生成的结构化记忆存放在 ~/.claude/memory/。"
   },
   "workflow": {
     "title": "工作流",
@@ -1909,7 +1982,8 @@
     "stop": "停止",
     "breadcrumbList": "工作流",
     "clickToEditTitle": "点击编辑标题",
-    "stepNameRequired": "步骤名称不能为空"
+    "stepNameRequired": "步骤名称不能为空",
+    "doubleClickToEdit": "双击编辑"
   },
   "snippet": {
     "title": "文本片段",
@@ -2254,7 +2328,8 @@
     "close": "关闭标签页",
     "maxReached": "最多允许 8 个标签页。请先关闭一个现有标签页。",
     "newTab": "新标签页",
-    "closeOthers": "关闭其他标签页"
+    "closeOthers": "关闭其他标签页",
+    "new": "新建标签页"
   },
   "token": {
     "contextWindow": "上下文窗口",
@@ -2376,7 +2451,8 @@
     "sourceExternal": "外部",
     "mcpCount": "{{count}} MCP",
     "hookCount_one": "{{count}} 个钩子",
-    "hookCount_other": "{{count}} 个钩子"
+    "hookCount_other": "{{count}} 个钩子",
+    "installedLabel": "已安装"
   },
   "settingsAdvanced": {
     "presetConcise": "简洁模式",
@@ -2428,7 +2504,19 @@
     "presetNoNetwork": "禁止联网",
     "presetAnalysisOnly": "仅分析",
     "hideApiKey": "隐藏 API 密钥",
-    "showApiKey": "显示 API 密钥"
+    "showApiKey": "显示 API 密钥",
+    "permissionModeDesc": "控制 AI 工具调用的权限策略，适用于每次新对话。",
+    "modeDefaultLabel": "默认",
+    "modeDefaultDesc": "每次工具调用均需确认",
+    "modeAcceptEditsLabel": "接受编辑",
+    "modeAcceptEditsDesc": "自动接受文件修改",
+    "modeDontAskLabel": "不再询问",
+    "modeDontAskDesc": "自动接受大多数操作",
+    "modePlanLabel": "仅计划",
+    "modePlanDesc": "仅规划，不执行",
+    "modeBypassLabel": "跳过",
+    "modeBypassDesc": "跳过所有权限检查 ⚠️",
+    "bypassWarning": "Bypass 模式将跳过所有权限检查，AI 可无限制地执行工具调用。"
   },
   "dept": {
     "panelTitle": "部门",

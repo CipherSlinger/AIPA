@@ -43,14 +43,14 @@ export function SectionHeader({ icon, title, subtitle, count, actions }: {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{
             width: 26, height: 26, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(99,102,241,0.12)', color: '#818cf8', flexShrink: 0,
+            background: 'rgba(99,102,241,0.12)', color: 'var(--accent-text)', flexShrink: 0,
           }}>
             {icon}
           </span>
           <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{title}</span>
           {count !== undefined && (
             <span style={{
-              fontSize: 10, fontWeight: 700, color: '#818cf8', background: 'rgba(99,102,241,0.12)',
+              fontSize: 10, fontWeight: 700, color: 'var(--accent-text)', background: 'rgba(99,102,241,0.12)',
               border: '1px solid rgba(99,102,241,0.22)', borderRadius: 10, padding: '1px 7px',
               fontVariantNumeric: 'tabular-nums',
             }}>
@@ -121,7 +121,7 @@ export function AddCard({ label, onClick, disabled, minHeight }: {
       disabled={disabled}
       style={{
         minHeight, borderRadius: 12, border: `1.5px dashed ${on ? 'rgba(99,102,241,0.6)' : 'var(--glass-border-md, var(--border))'}`,
-        background: on ? 'rgba(99,102,241,0.06)' : 'transparent', color: on ? '#818cf8' : 'var(--text-muted)',
+        background: on ? 'rgba(99,102,241,0.06)' : 'transparent', color: on ? 'var(--accent-text)' : 'var(--text-muted)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
         cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
         fontSize: 12, fontWeight: 600,
@@ -174,7 +174,7 @@ export function PresetCard({ icon, title, subtitle, onClick }: {
           </span>
         )}
       </span>
-      <Plus size={13} style={{ color: hovered ? '#818cf8' : 'var(--text-muted)', flexShrink: 0 }} />
+      <Plus size={13} style={{ color: hovered ? 'var(--accent-text)' : 'var(--text-muted)', flexShrink: 0 }} />
     </button>
   )
 }

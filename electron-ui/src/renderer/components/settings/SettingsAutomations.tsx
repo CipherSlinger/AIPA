@@ -27,7 +27,7 @@ interface WorkflowOption {
 }
 
 const SECONDARY = 'var(--text-muted)'
-const WARNING = '#fbbf24'
+const WARNING = 'var(--warning-text)'
 
 const smallButtonStyle: React.CSSProperties = {
   display: 'inline-flex',
@@ -191,19 +191,19 @@ export default function SettingsAutomations() {
 
   const statusLine = (job: AutomationJobData): { text: string; color: string } => {
     if (job.running || job.lastStatus === 'running') {
-      return { text: t('automation.status.running'), color: '#a5b4fc' }
+      return { text: t('automation.status.running'), color: 'var(--accent-text)' }
     }
     if (!job.lastStatus || job.lastRunAt === null) {
       return { text: t('automation.neverRun'), color: SECONDARY }
     }
     const when = t('automation.lastRun', { time: timeText(job.lastRunAt) })
     const late = job.lastRunLate ? ` · ${t('automation.ranLate')}` : ''
-    if (job.lastStatus === 'success') return { text: `${t('automation.status.success')} · ${when}${late}`, color: '#4ade80' }
+    if (job.lastStatus === 'success') return { text: `${t('automation.status.success')} · ${when}${late}`, color: 'var(--success-text)' }
     if (job.lastStatus === 'skipped') return { text: `${t('automation.status.skipped')} · ${when}`, color: WARNING }
     const detail = errorText(job.lastError)
     return {
       text: `${t('automation.status.error')}${detail ? `: ${detail}` : ''} · ${when}${late}`,
-      color: '#f87171',
+      color: 'var(--danger-text)',
     }
   }
 
@@ -225,7 +225,7 @@ export default function SettingsAutomations() {
             display: 'flex', alignItems: 'center', gap: 6,
             marginBottom: 10, padding: '6px 9px', borderRadius: 6,
             background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.35)',
-            color: '#f87171', fontSize: 11,
+            color: 'var(--danger-text)', fontSize: 11,
           }}>
             <AlertTriangle size={12} />
             <span>{error}</span>
@@ -309,7 +309,7 @@ export default function SettingsAutomations() {
                       // opening a second dialog on top of the settings page.
                       <>
                         <button
-                          style={{ ...smallButtonStyle, borderColor: 'rgba(248,113,113,0.5)', color: '#f87171' }}
+                          style={{ ...smallButtonStyle, borderColor: 'rgba(248,113,113,0.5)', color: 'var(--danger-text)' }}
                           onClick={() => removeJob(job)}
                         >
                           <Trash2 size={11} />
@@ -345,7 +345,7 @@ export default function SettingsAutomations() {
                           style={smallButtonStyle}
                           disabled={busyId === job.id}
                           onClick={() => setConfirmingId(job.id)}
-                          onMouseEnter={e => { e.currentTarget.style.color = '#f87171' }}
+                          onMouseEnter={e => { e.currentTarget.style.color = 'var(--danger-text)' }}
                           onMouseLeave={e => { e.currentTarget.style.color = SECONDARY }}
                         >
                           <Trash2 size={11} />
@@ -521,7 +521,7 @@ function AutomationDialog({ job, workflows, limits, onClose }: AutomationDialogP
                 style={{
                   ...smallButtonStyle,
                   borderColor: actionKind === kind ? 'rgba(99,102,241,0.55)' : 'var(--border)',
-                  color: actionKind === kind ? '#a5b4fc' : SECONDARY,
+                  color: actionKind === kind ? 'var(--accent-text)' : SECONDARY,
                   background: actionKind === kind ? 'rgba(99,102,241,0.12)' : 'transparent',
                 }}
               >
@@ -568,7 +568,7 @@ function AutomationDialog({ job, workflows, limits, onClose }: AutomationDialogP
                 style={{
                   ...smallButtonStyle,
                   borderColor: scheduleKind === kind ? 'rgba(99,102,241,0.55)' : 'var(--border)',
-                  color: scheduleKind === kind ? '#a5b4fc' : SECONDARY,
+                  color: scheduleKind === kind ? 'var(--accent-text)' : SECONDARY,
                   background: scheduleKind === kind ? 'rgba(99,102,241,0.12)' : 'transparent',
                 }}
               >
@@ -583,7 +583,7 @@ function AutomationDialog({ job, workflows, limits, onClose }: AutomationDialogP
                 style={{
                   ...smallButtonStyle,
                   borderColor: scheduleKind === 'cron' ? 'rgba(99,102,241,0.55)' : 'var(--border)',
-                  color: scheduleKind === 'cron' ? '#a5b4fc' : SECONDARY,
+                  color: scheduleKind === 'cron' ? 'var(--accent-text)' : SECONDARY,
                   background: scheduleKind === 'cron' ? 'rgba(99,102,241,0.12)' : 'transparent',
                 }}
               >
@@ -655,7 +655,7 @@ function AutomationDialog({ job, workflows, limits, onClose }: AutomationDialogP
         {error && (
           <div style={{
             marginBottom: 12, padding: '6px 9px', borderRadius: 6, fontSize: 11,
-            background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.35)', color: '#f87171',
+            background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.35)', color: 'var(--danger-text)',
           }}>{error}</div>
         )}
 

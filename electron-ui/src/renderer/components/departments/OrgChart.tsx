@@ -316,7 +316,7 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   background: 'none', border: 'none', cursor: 'pointer',
-                  color: '#818cf8', fontSize: 11,
+                  color: 'var(--accent-text)', fontSize: 11,
                 }}
               >
                 <LayoutGrid size={11} />{t('dept.presets.fromTemplate')}

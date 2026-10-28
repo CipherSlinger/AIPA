@@ -293,7 +293,7 @@ export default function WorkflowDetailHeader({
                 />
               ))}
               {extraSteps > 0 && (
-                <span style={{ fontSize: 9, color: 'var(--accent-muted, #818cf8)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>+{extraSteps}</span>
+                <span style={{ fontSize: 9, color: 'var(--accent-muted, var(--accent-text))', fontWeight: 700, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>+{extraSteps}</span>
               )}
             </div>
           )}
@@ -339,7 +339,7 @@ export default function WorkflowDetailHeader({
           {/* Execution summary badge */}
           {execution.isRunning && (
             <span style={{
-              fontSize: 10, color: 'var(--accent-muted, #818cf8)', fontWeight: 500,
+              fontSize: 10, color: 'var(--accent-muted, var(--accent-text))', fontWeight: 500,
               padding: '2px 8px', borderRadius: 20,
               background: 'var(--accent-bg, rgba(99,102,241,0.1))',
               border: '1px solid var(--accent-border, rgba(99,102,241,0.2))',

@@ -182,7 +182,7 @@ function ProjectMemoryTab() {
       </div>
 
       {error && (
-        <div style={{ padding: '6px 12px', fontSize: 11, color: '#fca5a5', background: 'rgba(239,68,68,0.08)' }}>
+        <div style={{ padding: '6px 12px', fontSize: 11, color: 'var(--danger-text)', background: 'rgba(239,68,68,0.08)' }}>
           {error}
         </div>
       )}
@@ -388,7 +388,7 @@ function MemdirTab() {
           onClick={() => setTypeFilter('all')}
           style={{
             background: typeFilter === 'all' ? 'rgba(99,102,241,0.20)' : 'var(--bg-hover)',
-            color: typeFilter === 'all' ? 'rgba(165,180,252,0.90)' : 'var(--text-muted)',
+            color: typeFilter === 'all' ? 'var(--accent-text)' : 'var(--text-muted)',
             border: typeFilter === 'all' ? '1px solid rgba(99,102,241,0.40)' : '1px solid var(--border)',
             borderRadius: 20, padding: '2px 10px', fontSize: 10, cursor: 'pointer',
             fontWeight: typeFilter === 'all' ? 600 : 400, transition: 'all 0.15s ease',
@@ -472,7 +472,7 @@ function MemdirTab() {
                     </div>
                   )}
                 </div>
-                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: typeColor, background: `${typeColor}1e`, borderRadius: 8, padding: '1px 6px', flexShrink: 0 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-primary)', background: `${typeColor}1e`, borderRadius: 8, padding: '1px 6px', flexShrink: 0 }}>
                   {f.type}
                 </span>
                 <span style={{ fontSize: 9, color: 'var(--text-muted)', background: 'var(--border)', borderRadius: 6, padding: '1px 6px', flexShrink: 0 }}>
@@ -482,7 +482,7 @@ function MemdirTab() {
                   <span style={{
                     display: 'flex', alignItems: 'center', gap: 3,
                     fontSize: 9, fontWeight: 600,
-                    color: decayDot,
+                    color: 'var(--text-primary)',
                     background: `${decayDot}18`,
                     border: `1px solid ${decayDot}44`,
                     borderRadius: 8, padding: '1px 5px', flexShrink: 0,
@@ -545,6 +545,7 @@ interface LoadedPathsPanelProps {
 }
 
 function LoadedPathsPanel({ homeDir, workingDir, onSwitchScope, onCreateFile }: LoadedPathsPanelProps) {
+  const t = useT()
   const [collapsed, setCollapsed] = useState(false)
   const [statuses, setStatuses] = useState<PathStatus[]>([])
 
@@ -611,16 +612,16 @@ function LoadedPathsPanel({ homeDir, workingDir, onSwitchScope, onCreateFile }: 
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)' }}>
-            CLI 当前加载的 CLAUDE.md 文件
+            {t('memory.instructionFilesLoaded')}
           </span>
           <span style={{
             fontSize: 9, fontWeight: 600,
             background: existingCount > 0 ? 'rgba(74,222,128,0.15)' : 'var(--border)',
-            color: existingCount > 0 ? '#4ade80' : 'var(--text-muted)',
+            color: existingCount > 0 ? 'var(--success-text)' : 'var(--text-muted)',
             borderRadius: 8, padding: '1px 6px',
             fontVariantNumeric: 'tabular-nums',
           }}>
-            {existingCount}/{totalCount} 已存在
+            {t('memory.instructionFilesCount', { existing: existingCount, total: totalCount })}
           </span>
         </div>
         <span style={{
@@ -647,7 +648,7 @@ function LoadedPathsPanel({ homeDir, workingDir, onSwitchScope, onCreateFile }: 
               {s.loading ? (
                 <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0, width: 14, textAlign: 'center' }}>…</span>
               ) : s.exists ? (
-                <span style={{ fontSize: 11, color: '#4ade80', flexShrink: 0, width: 14, textAlign: 'center' }}>✓</span>
+                <span style={{ fontSize: 11, color: 'var(--success-text)', flexShrink: 0, width: 14, textAlign: 'center' }}>✓</span>
               ) : (
                 <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0, width: 14, textAlign: 'center', opacity: 0.4 }}>○</span>
               )}
@@ -674,10 +675,10 @@ function LoadedPathsPanel({ homeDir, workingDir, onSwitchScope, onCreateFile }: 
               {/* Scope badge */}
               <span style={{
                 fontSize: 8, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' as const,
-                color: SCOPE_COLORS[s.scope], background: `${SCOPE_COLORS[s.scope]}1a`,
+                color: 'var(--text-primary)', background: `${SCOPE_COLORS[s.scope]}1a`,
                 borderRadius: 6, padding: '1px 5px', flexShrink: 0,
               }}>
-                {s.scope === 'global' ? '全局' : s.scope === 'project' ? '项目' : '本地'}
+                {t(SCOPE_LABEL_KEYS[s.scope])}
               </span>
 
               {/* Create button for non-existing files */}
@@ -699,13 +700,13 @@ function LoadedPathsPanel({ homeDir, workingDir, onSwitchScope, onCreateFile }: 
                   onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.2)' }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.12)' }}
                 >
-                  创建
+                  {t('common.create')}
                 </button>
               )}
             </div>
           ))}
           <div style={{ fontSize: 9, color: 'var(--text-muted)', paddingTop: 2, paddingLeft: 2 }}>
-            CLI 会按优先级从下到上覆盖：本地 &gt; 项目 &gt; 全局
+            {t('memory.instructionPrecedence')}
           </div>
         </div>
       )}
@@ -976,7 +977,7 @@ function InstructionFilesTab() {
           title={pathCopied ? 'Copied!' : 'Click to copy path'}
           style={{
             fontSize: 10,
-            color: pathCopied ? '#a5b4fc' : 'var(--text-muted)',
+            color: pathCopied ? 'var(--accent-text)' : 'var(--text-muted)',
             fontFamily: 'monospace',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -1066,7 +1067,7 @@ function InstructionFilesTab() {
       </div>
 
       {error && (
-        <div style={{ padding: '6px 12px', fontSize: 11, color: '#fca5a5', background: 'rgba(239,68,68,0.08)' }}>
+        <div style={{ padding: '6px 12px', fontSize: 11, color: 'var(--danger-text)', background: 'rgba(239,68,68,0.08)' }}>
           {error}
         </div>
       )}
@@ -1194,7 +1195,7 @@ export default function MemoryPanel() {
     flex: 1,
     padding: '5px 0',
     background: 'transparent',
-    color: active ? '#818cf8' : 'var(--text-muted)',
+    color: active ? 'var(--accent-text)' : 'var(--text-muted)',
     border: 'none',
     borderBottom: active ? '2px solid rgba(99,102,241,0.6)' : '2px solid transparent',
     borderRadius: 0,
@@ -1237,7 +1238,7 @@ export default function MemoryPanel() {
           paddingTop: 10,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Brain size={16} style={{ color: '#818cf8' }} />
+            <Brain size={16} style={{ color: 'var(--accent-text)' }} />
             <span style={{
               fontSize: 13,
               fontWeight: 700,
@@ -1305,7 +1306,7 @@ export default function MemoryPanel() {
                     alignItems: 'center',
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#fca5a5')}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--danger-text)')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
                 >
                   <Trash2 size={14} />
@@ -1361,16 +1362,16 @@ export default function MemoryPanel() {
               <>
                 <FileText size={10} style={{ color: 'var(--accent-text)', flexShrink: 0, marginTop: 1 }} />
                 <span style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                  <span style={{ color: 'var(--accent-text)', fontWeight: 600 }}>指令文件 (CLAUDE.md)</span>
-                  {' '}— 每次对话时自动注入给 Claude，用于设置行为规则和项目背景
+                  <span style={{ color: 'var(--accent-text)', fontWeight: 600 }}>{t('memory.instructionBannerTitle')}</span>
+                  {' '}— {t('memory.instructionBannerDesc')}
                 </span>
               </>
             ) : (
               <>
-                <Brain size={10} style={{ color: '#4ade80', flexShrink: 0, marginTop: 1 }} />
+                <Brain size={10} style={{ color: 'var(--success-text)', flexShrink: 0, marginTop: 1 }} />
                 <span style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                  <span style={{ color: '#4ade80', fontWeight: 600 }}>结构化记忆 (memdir)</span>
-                  {' '}— Claude 自动记录的用户偏好、反馈和项目上下文，按需检索
+                  <span style={{ color: 'var(--success-text)', fontWeight: 600 }}>{t('memory.memdirBannerTitle')}</span>
+                  {' '}— {t('memory.memdirBannerDesc')}
                 </span>
               </>
             )}
@@ -1425,7 +1426,7 @@ export default function MemoryPanel() {
                   top: '50%',
                   transform: 'translateY(-50%)',
                   fontSize: 9,
-                  color: crud.filteredMemories.length > 0 ? '#a5b4fc' : 'var(--text-muted)',
+                  color: crud.filteredMemories.length > 0 ? 'var(--accent-text)' : 'var(--text-muted)',
                   fontWeight: 500,
                   pointerEvents: 'none',
                   fontVariantNumeric: 'tabular-nums',
@@ -1443,7 +1444,7 @@ export default function MemoryPanel() {
                   background: crud.filterCategory === 'all'
                     ? 'rgba(99,102,241,0.15)'
                     : 'var(--bg-hover)',
-                  color: crud.filterCategory === 'all' ? '#a5b4fc' : 'var(--text-muted)',
+                  color: crud.filterCategory === 'all' ? 'var(--accent-text)' : 'var(--text-muted)',
                   border: crud.filterCategory === 'all'
                     ? '1px solid rgba(99,102,241,0.3)'
                     : '1px solid var(--border)',
@@ -1466,7 +1467,7 @@ export default function MemoryPanel() {
                     onClick={() => crud.setFilterCategory(isActive ? 'all' : cat)}
                     style={{
                       background: isActive ? `${cfg.color}20` : 'var(--bg-hover)',
-                      color: isActive ? cfg.color : 'var(--text-muted)',
+                      color: isActive ? cfg.textColor : 'var(--text-muted)',
                       border: isActive
                         ? `1px solid ${cfg.color}40`
                         : '1px solid var(--border)',
@@ -1490,7 +1491,7 @@ export default function MemoryPanel() {
 
             {/* Memory type filter chips */}
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 5 }}>
-              {/* "全部" chip */}
+              {/* "All" chip */}
               <button
                 onClick={() => crud.setFilterMemoryType('all')}
                 style={{
@@ -1498,7 +1499,7 @@ export default function MemoryPanel() {
                     ? 'rgba(99,102,241,0.20)'
                     : 'var(--bg-hover)',
                   color: crud.filterMemoryType === 'all'
-                    ? 'rgba(165,180,252,0.82)'
+                    ? 'var(--accent-text)'
                     : 'var(--text-muted)',
                   border: crud.filterMemoryType === 'all'
                     ? '1px solid rgba(99,102,241,0.40)'
@@ -1513,7 +1514,7 @@ export default function MemoryPanel() {
                   gap: 3,
                 }}
               >
-                全部
+                {t('memory.all')}
                 {crud.memoryTypeCounts.all > 0 && (
                   <span style={{ fontSize: 9, opacity: 0.7, fontVariantNumeric: 'tabular-nums', marginLeft: 3 }}>
                     {crud.memoryTypeCounts.all}
@@ -1526,10 +1527,10 @@ export default function MemoryPanel() {
                 const isActive = crud.filterMemoryType === type
                 // Map type to Chinese label and dot color
                 const typeLabels: Record<string, { label: string; dot: string }> = {
-                  user:      { label: '用户', dot: 'rgba(251,191,36,0.82)' },
-                  feedback:  { label: '反馈', dot: 'rgba(134,239,172,0.82)' },
-                  project:   { label: '项目', dot: 'rgba(96,165,250,0.82)' },
-                  reference: { label: '参考', dot: 'rgba(192,132,252,0.82)' },
+                  user:      { label: t('memory.typeUser'), dot: 'rgba(251,191,36,0.82)' },
+                  feedback:  { label: t('memory.typeFeedback'), dot: 'rgba(134,239,172,0.82)' },
+                  project:   { label: t('memory.typeProject'), dot: 'rgba(96,165,250,0.82)' },
+                  reference: { label: t('memory.typeReference'), dot: 'rgba(192,132,252,0.82)' },
                 }
                 const info = typeLabels[type] || { label: type, dot: tc.color }
                 return (
@@ -1541,7 +1542,7 @@ export default function MemoryPanel() {
                         ? 'rgba(99,102,241,0.20)'
                         : 'var(--bg-hover)',
                       color: isActive
-                        ? 'rgba(165,180,252,0.82)'
+                        ? 'var(--accent-text)'
                         : 'var(--text-muted)',
                       border: isActive
                         ? '1px solid rgba(99,102,241,0.40)'
@@ -1626,7 +1627,7 @@ export default function MemoryPanel() {
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                  <Brain size={22} style={{ color: '#818cf8' }} />
+                  <Brain size={22} style={{ color: 'var(--accent-text)' }} />
                 </div>
                 <span>
                   {crud.memories.length === 0

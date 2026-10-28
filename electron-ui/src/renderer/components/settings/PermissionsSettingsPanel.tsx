@@ -227,7 +227,7 @@ export default function PermissionsSettingsPanel() {
         title={t('permissions.allowRules')}
         rules={allowList}
         type="allow"
-        color="#4ade80"
+        color="var(--success-text)"
         bgColor="rgba(74,222,128,0.10)"
         borderColor="rgba(74,222,128,0.20)"
         badgeBg="rgba(34,197,94,0.12)"
@@ -247,7 +247,7 @@ export default function PermissionsSettingsPanel() {
         title={t('permissions.denyRules')}
         rules={denyList}
         type="deny"
-        color="#f87171"
+        color="var(--danger-text)"
         bgColor="rgba(239,68,68,0.10)"
         borderColor="rgba(239,68,68,0.20)"
         badgeBg="rgba(239,68,68,0.12)"
@@ -267,7 +267,7 @@ export default function PermissionsSettingsPanel() {
         title={t('permissions.askRules')}
         rules={askList}
         type="ask"
-        color="#fbbf24"
+        color="var(--warning-text)"
         bgColor="rgba(251,191,36,0.10)"
         borderColor="rgba(251,191,36,0.22)"
         badgeBg="rgba(245,158,11,0.12)"
@@ -406,21 +406,22 @@ interface SessionPermissionHistoryProps {
 }
 
 function SessionPermissionHistory({ permissionHistory }: SessionPermissionHistoryProps) {
+  const t = useT()
   const formatTime = (ts: number) => {
     const d = new Date(ts)
     return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   }
 
   const decisionIcon = (decision: PermissionMessage['decision']) => {
-    if (decision === 'allowed') return <CheckCircle2 size={12} color="#4ade80" style={{ flexShrink: 0 }} />
-    if (decision === 'denied') return <XCircle size={12} color="#f87171" style={{ flexShrink: 0 }} />
+    if (decision === 'allowed') return <CheckCircle2 size={12} color="var(--success-text)" style={{ flexShrink: 0 }} />
+    if (decision === 'denied') return <XCircle size={12} color="var(--danger-text)" style={{ flexShrink: 0 }} />
     return <Clock size={12} color="var(--text-faint)" style={{ flexShrink: 0 }} />
   }
 
   const decisionBadge = (decision: PermissionMessage['decision']): { text: string; color: string } => {
-    if (decision === 'allowed') return { text: '已允许', color: '#4ade80' }
-    if (decision === 'denied') return { text: '已拒绝', color: '#f87171' }
-    return { text: '待决定', color: 'var(--text-faint)' }
+    if (decision === 'allowed') return { text: t('permissions.decisionAllowed'), color: 'var(--success-text)' }
+    if (decision === 'denied') return { text: t('permissions.decisionDenied'), color: 'var(--danger-text)' }
+    return { text: t('permissions.decisionPending'), color: 'var(--text-faint)' }
   }
 
   return (
@@ -433,13 +434,13 @@ function SessionPermissionHistory({ permissionHistory }: SessionPermissionHistor
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <Shield size={13} color="var(--text-faint)" style={{ flexShrink: 0 }} />
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-          会话权限历史
+          {t('permissions.historyTitle')}
         </span>
         {permissionHistory.length > 0 && (
           <span style={{
             background: 'rgba(99,102,241,0.12)',
             border: '1px solid rgba(99,102,241,0.25)',
-            color: 'rgba(99,102,241,0.9)',
+            color: 'var(--accent-text)',
             borderRadius: 20, padding: '1px 8px',
             fontSize: 10, fontWeight: 700,
             fontVariantNumeric: 'tabular-nums',
@@ -455,7 +456,7 @@ function SessionPermissionHistory({ permissionHistory }: SessionPermissionHistor
           fontStyle: 'italic', padding: '4px 0',
           textAlign: 'center',
         }}>
-          当前会话暂无工具权限请求记录
+          {t('permissions.historyEmpty')}
         </div>
       ) : (
         <div style={{
@@ -608,7 +609,7 @@ function RuleSection({
           >
             {hasConflict(rule) && (
               <span title={t('permissions.conflictHint')} style={{ display: 'inline-flex' }}>
-                <AlertTriangle size={11} color="#fbbf24" />
+                <AlertTriangle size={11} color="var(--warning-text)" />
               </span>
             )}
             {rule}
@@ -758,7 +759,7 @@ function AdditionalDirectoriesSection({ dirs, onAdd, onRemove, t }: AdditionalDi
           </button>
           <button
             onClick={() => setShowInput(v => !v)}
-            title="手动输入路径"
+            title={t('permissions.manualPath')}
             style={{
               display: 'flex', alignItems: 'center',
               background: showInput ? 'var(--glass-border-md)' : 'var(--bg-input)',
@@ -776,7 +777,7 @@ function AdditionalDirectoriesSection({ dirs, onAdd, onRemove, t }: AdditionalDi
               e.currentTarget.style.background = showInput ? 'var(--glass-border-md)' : 'var(--bg-input)'
               e.currentTarget.style.color = 'var(--text-secondary)'
             }}
-            aria-label="手动输入路径"
+            aria-label={t('permissions.manualPath')}
           >
             ···
           </button>

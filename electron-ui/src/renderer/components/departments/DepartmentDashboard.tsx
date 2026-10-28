@@ -139,7 +139,7 @@ export default function DepartmentDashboard() {
             <span style={{
               width: 28, height: 28, borderRadius: 9, flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'rgba(99,102,241,0.12)', color: '#818cf8',
+              background: 'rgba(99,102,241,0.12)', color: 'var(--accent-text)',
             }}>
               <Building2 size={15} />
             </span>

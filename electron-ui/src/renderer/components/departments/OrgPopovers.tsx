@@ -121,7 +121,7 @@ export function DeptStatsPopover({ dept, sessions, position, onClose, onEnter }:
           style={{
             flex: 1, padding: '4px 8px', borderRadius: 5,
             border: '1px solid rgba(99,102,241,0.35)', background: 'rgba(99,102,241,0.10)',
-            color: '#818cf8', fontSize: 10, fontWeight: 600, cursor: 'pointer',
+            color: 'var(--accent-text)', fontSize: 10, fontWeight: 600, cursor: 'pointer',
           }}
         >
           {t('dept.enter')}
@@ -182,8 +182,11 @@ export function DeleteDeptPopover({ node, departments, position, onCancel, onCon
       onMouseDown={e => e.stopPropagation()}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
-        <AlertTriangle size={13} style={{ color: '#f87171', flexShrink: 0 }} />
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', ...ELLIPSIS }}>
+        <AlertTriangle size={13} style={{ color: 'var(--danger-text)', flexShrink: 0 }} />
+        <span
+          title={deptDisplayName(node, resolvedLocale)}
+          style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', ...ELLIPSIS }}
+        >
           {deptDisplayName(node, resolvedLocale)}
         </span>
         <button
@@ -197,7 +200,7 @@ export function DeleteDeptPopover({ node, departments, position, onCancel, onCon
         {t(isCompany ? 'dept.confirmDeleteCompany' : 'dept.confirmDelete')}
       </div>
       {below.length > 0 && (
-        <div style={{ fontSize: 11, color: '#f87171', marginTop: 6, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 11, color: 'var(--danger-text)', marginTop: 6, lineHeight: 1.6 }}>
           {isCompany
             ? teamCount > 0
               ? t('dept.deleteCascadeCompanyTeams', { depts: String(deptCount), teams: String(teamCount) })
@@ -214,7 +217,7 @@ export function DeleteDeptPopover({ node, departments, position, onCancel, onCon
           style={{
             flex: 1, padding: '5px 8px', borderRadius: 5, cursor: 'pointer',
             border: '1px solid rgba(248,113,113,0.5)', background: 'rgba(248,113,113,0.12)',
-            color: '#f87171', fontSize: 10.5, fontWeight: 700,
+            color: 'var(--danger-text)', fontSize: 10.5, fontWeight: 700,
           }}
         >
           {t('dept.deleteConfirm')}
@@ -281,7 +284,7 @@ export function EmptyOrgState({ onPickPreset }: EmptyOrgStateProps) {
               border: '1px solid rgba(99,102,241,0.28)', background: 'rgba(99,102,241,0.07)',
               color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600,
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.16)'; e.currentTarget.style.color = '#818cf8' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.16)'; e.currentTarget.style.color = 'var(--accent-text)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.07)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
           >
             {t(p.labelKey)}

@@ -1,7 +1,9 @@
 // RunConfirmDialog — confirmation dialog for executing shell commands
 import React from 'react'
+import { createPortal } from 'react-dom'
 import { AlertTriangle, Play, Terminal, ShieldAlert } from 'lucide-react'
 import { useT } from '../../i18n'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 // Dangerous command patterns
 const DANGER_PATTERNS = [
@@ -29,9 +31,12 @@ interface RunConfirmDialogProps {
 
 export default function RunConfirmDialog({ command, workingDir, onConfirm, onCancel }: RunConfirmDialogProps) {
   const t = useT()
+  const dialogRef = useFocusTrap(true)
   const isDangerous = isDangerousCommand(command)
 
-  return (
+  // CodeBlock lives inside react-markdown's <pre>, so an inline overlay would
+  // inherit `white-space: pre` and a monospace font. Portal it to the body.
+  const dialog = (
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
@@ -44,6 +49,10 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
       onClick={onCancel}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('codeAction.confirmRunTitle')}
         onClick={e => e.stopPropagation()}
         style={{
           background: 'var(--popup-bg)',
@@ -53,10 +62,16 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
             ? '1px solid rgba(239,68,68,0.25)'
             : '1px solid var(--border)',
           borderRadius: 16,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+          boxShadow: 'var(--dialog-shadow)',
           maxWidth: 480,
           width: '90%',
+          maxHeight: 'calc(100vh - 48px)',
           overflow: 'hidden',
+          // The dialog is rendered inside a markdown <pre>, which inherits
+          // `white-space: pre` into every label and refuses to wrap.
+          whiteSpace: 'normal',
+          display: 'flex',
+          flexDirection: 'column',
           animation: 'slideUp 0.15s ease',
         }}
       >
@@ -71,6 +86,7 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
               ? '1px solid rgba(239,68,68,0.15)'
               : '1px solid var(--border)',
             background: isDangerous ? 'rgba(239,68,68,0.05)' : 'transparent',
+            flexShrink: 0,
           }}
         >
           {/* Icon badge */}
@@ -86,7 +102,7 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
             flexShrink: 0,
           }}>
             {isDangerous
-              ? <ShieldAlert size={15} style={{ color: '#f87171' }} />
+              ? <ShieldAlert size={15} style={{ color: 'var(--color-error)' }} />
               : <Terminal size={15} style={{ color: '#6366f1' }} />
             }
           </div>
@@ -96,7 +112,7 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
         </div>
 
         {/* Body */}
-        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', minHeight: 0 }}>
           {/* Description */}
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             {t('codeAction.confirmRunMessage')}
@@ -111,6 +127,9 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
               padding: '12px 16px',
               fontSize: 12,
               fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
+              // This box stays near-black in both themes, so the text must be
+              // fixed-light: `--danger-text` (#b91c1c in light) measured 1.81:1
+              // here. #fca5a5 keeps 6.19:1 and #a5b4fc 6.4:1 on the same glass.
               color: isDangerous ? '#fca5a5' : '#a5b4fc',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-all',
@@ -138,14 +157,20 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
               alignItems: 'center',
             }}
           >
-            <span>{t('codeAction.workingDirectory')}:</span>
+            <span style={{ flexShrink: 0 }}>{t('codeAction.workingDirectory')}:</span>
             <span
+              title={workingDir}
               style={{
                 fontFamily: '"JetBrains Mono", "Fira Code", monospace',
                 fontSize: 11,
                 textTransform: 'none',
                 letterSpacing: 'normal',
                 color: 'var(--text-muted)',
+                // A deep Windows path has no break opportunities; without
+                // minWidth:0 it widens the whole dialog body and clips the
+                // danger warning beside it.
+                minWidth: 0, flex: 1,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}
             >
               {workingDir}
@@ -163,8 +188,8 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
                 padding: '10px 14px',
               }}
             >
-              <AlertTriangle size={14} style={{ color: '#f87171', flexShrink: 0, marginTop: 1 }} />
-              <span style={{ fontSize: 12, color: 'rgba(248,113,113,0.90)', lineHeight: 1.5 }}>
+              <AlertTriangle size={14} style={{ color: 'var(--color-error)', flexShrink: 0, marginTop: 1 }} />
+              <span style={{ fontSize: 12, color: 'var(--danger-text)', lineHeight: 1.5, minWidth: 0 }}>
                 {t('codeAction.dangerWarning')}
               </span>
             </div>
@@ -210,7 +235,7 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
                   ? 'rgba(239,68,68,0.15)'
                   : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
                 border: isDangerous ? '1px solid rgba(239,68,68,0.35)' : 'none',
-                color: isDangerous ? '#fca5a5' : 'rgba(255,255,255,0.95)',
+                color: isDangerous ? 'var(--danger-text)' : 'rgba(255,255,255,0.95)',
                 cursor: 'pointer',
                 fontWeight: 600,
                 display: 'flex',
@@ -252,4 +277,6 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
       </div>
     </div>
   )
+
+  return createPortal(dialog, document.body)
 }

@@ -179,7 +179,7 @@ export function SnippetsSection() {
                     <span style={{
                       fontSize: 12,
                       fontWeight: 600,
-                      color: 'rgba(165,180,252,0.9)',
+                      color: 'var(--accent-text)',
                       fontFamily: 'monospace',
                     }}>::{s.keyword}</span>
                   </div>
@@ -207,7 +207,7 @@ export function SnippetsSection() {
                     }}
                     title={t('common.edit')}
                     style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: 4, borderRadius: 8, transition: 'all 0.15s ease' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(165,180,252,0.9)')}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-text)')}
                     onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
                   >
                     <Pencil size={13} />
@@ -218,7 +218,7 @@ export function SnippetsSection() {
                     style={{
                       background: deletingId === s.id ? 'rgba(239,68,68,0.12)' : 'none',
                       border: 'none',
-                      color: deletingId === s.id ? '#fca5a5' : 'var(--text-muted)',
+                      color: deletingId === s.id ? 'var(--danger-text)' : 'var(--text-muted)',
                       cursor: 'pointer',
                       display: 'flex',
                       padding: 4,
@@ -227,7 +227,7 @@ export function SnippetsSection() {
                       fontSize: deletingId === s.id ? 10 : 'inherit',
                       transition: 'all 0.15s ease',
                     }}
-                    onMouseEnter={(e) => { if (deletingId !== s.id) e.currentTarget.style.color = '#fca5a5' }}
+                    onMouseEnter={(e) => { if (deletingId !== s.id) e.currentTarget.style.color = 'var(--danger-text)' }}
                     onMouseLeave={(e) => { if (deletingId !== s.id) e.currentTarget.style.color = 'var(--text-muted)' }}
                   >
                     {deletingId === s.id ? t('common.confirm') : <Trash2 size={13} />}
@@ -261,7 +261,7 @@ export function SnippetsSection() {
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'
-            e.currentTarget.style.color = 'rgba(165,180,252,0.9)'
+            e.currentTarget.style.color = 'var(--accent-text)'
             e.currentTarget.style.background = 'rgba(99,102,241,0.07)'
           }}
           onMouseLeave={(e) => {

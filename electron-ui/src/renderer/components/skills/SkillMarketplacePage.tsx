@@ -101,7 +101,7 @@ export default function SkillMarketplacePage() {
         >
           <ArrowLeft size={16} />
         </button>
-        <Store size={16} style={{ color: '#818cf8' }} />
+        <Store size={16} style={{ color: 'var(--accent-text)' }} />
         <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', flex: 1, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
           {t('skills.marketplace')}
         </span>
@@ -170,7 +170,7 @@ export default function SkillMarketplacePage() {
               borderRadius: 20,
               border: marketplaceSource === null ? '1px solid rgba(99,102,241,0.30)' : '1px solid var(--border)',
               background: marketplaceSource === null ? 'rgba(99,102,241,0.15)' : 'var(--bg-hover)',
-              color: marketplaceSource === null ? '#818cf8' : 'var(--text-secondary)',
+              color: marketplaceSource === null ? 'var(--accent-text)' : 'var(--text-secondary)',
               fontSize: 11,
               fontWeight: marketplaceSource === null ? 600 : 400,
               cursor: 'pointer',
@@ -188,7 +188,7 @@ export default function SkillMarketplacePage() {
                 borderRadius: 20,
                 border: marketplaceSource === src ? '1px solid rgba(99,102,241,0.30)' : '1px solid var(--border)',
                 background: marketplaceSource === src ? 'rgba(99,102,241,0.15)' : 'var(--bg-hover)',
-                color: marketplaceSource === src ? '#818cf8' : 'var(--text-secondary)',
+                color: marketplaceSource === src ? 'var(--accent-text)' : 'var(--text-secondary)',
                 fontSize: 11,
                 fontWeight: marketplaceSource === src ? 600 : 400,
                 cursor: 'pointer',
@@ -207,7 +207,7 @@ export default function SkillMarketplacePage() {
               borderRadius: 20,
               border: marketplaceCategory === null ? '1px solid rgba(99,102,241,0.30)' : '1px solid var(--border)',
               background: marketplaceCategory === null ? 'rgba(99,102,241,0.15)' : 'var(--bg-hover)',
-              color: marketplaceCategory === null ? '#818cf8' : 'var(--text-secondary)',
+              color: marketplaceCategory === null ? 'var(--accent-text)' : 'var(--text-secondary)',
               fontSize: 11,
               fontWeight: marketplaceCategory === null ? 600 : 400,
               cursor: 'pointer',
@@ -225,7 +225,7 @@ export default function SkillMarketplacePage() {
                 borderRadius: 20,
                 border: marketplaceCategory === cat ? '1px solid rgba(99,102,241,0.30)' : '1px solid var(--border)',
                 background: marketplaceCategory === cat ? 'rgba(99,102,241,0.15)' : 'var(--bg-hover)',
-                color: marketplaceCategory === cat ? '#818cf8' : 'var(--text-secondary)',
+                color: marketplaceCategory === cat ? 'var(--accent-text)' : 'var(--text-secondary)',
                 fontSize: 11,
                 fontWeight: marketplaceCategory === cat ? 600 : 400,
                 cursor: 'pointer',
@@ -263,7 +263,7 @@ export default function SkillMarketplacePage() {
                   padding: '1px 6px',
                   borderRadius: 20,
                   background: 'rgba(99,102,241,0.15)',
-                  color: '#818cf8',
+                  color: 'var(--accent-text)',
                   border: '1px solid rgba(99,102,241,0.25)',
                 }}>
                   Featured

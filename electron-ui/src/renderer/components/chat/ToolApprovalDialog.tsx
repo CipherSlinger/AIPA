@@ -21,6 +21,8 @@ import {
 } from 'lucide-react'
 import { useChatStore, usePrefsStore } from '../../store'
 import { PermissionMessage } from '../../types/app.types'
+import { useT } from '../../i18n'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 // ── Helpers (shared subset of PermissionCard's logic) ──────────────────────
 
@@ -57,43 +59,52 @@ function getToolTint(toolName: string): string {
   }
 }
 
-function getToolLabel(toolName: string, toolInput: Record<string, unknown>): { title: string; detail: string } {
+function getToolLabel(toolName: string, toolInput: Record<string, unknown>, t: ReturnType<typeof useT>): { title: string; detail: string } {
   switch (toolName) {
     case 'Bash': case 'computer': {
       const cmd = (toolInput.command as string) || (toolInput.cmd as string) || ''
-      return { title: 'Run shell command', detail: cmd.slice(0, 200) || 'Execute a shell command' }
+      return { title: t('permission.toolRunCommand'), detail: cmd.slice(0, 200) || t('permission.toolRunCommandDetail') }
     }
     case 'Write': case 'create_file': {
       const p = (toolInput.path as string) || (toolInput.file_path as string) || ''
-      return { title: 'Write file', detail: p || 'Create or overwrite a file' }
+      return { title: t('permission.toolWriteFile'), detail: p || t('permission.toolWriteFileDetail') }
     }
     case 'Edit': case 'str_replace_editor': case 'MultiEdit': {
       const p = (toolInput.path as string) || (toolInput.file_path as string) || ''
-      return { title: 'Edit file', detail: p || 'Modify an existing file' }
+      return { title: t('permission.toolEditFile'), detail: p || t('permission.toolEditFileDetail') }
     }
     case 'Read': case 'read_file': {
       const p = (toolInput.path as string) || (toolInput.file_path as string) || ''
-      return { title: 'Read file', detail: p || 'Read file contents' }
+      return { title: t('permission.toolReadFile'), detail: p || t('permission.toolReadFileDetail') }
     }
     case 'WebFetch': case 'web_fetch': {
       const url = (toolInput.url as string) || ''
-      return { title: 'Fetch URL', detail: url || 'Fetch web content' }
+      return { title: t('permission.toolWebFetch'), detail: url || t('permission.toolWebFetchDetail') }
     }
     case 'WebSearch': {
       const q = (toolInput.query as string) || ''
-      return { title: 'Web search', detail: q ? `"${q.slice(0, 100)}"` : 'Search the web' }
+      return { title: t('permission.toolWebSearch'), detail: q ? `"${q.slice(0, 100)}"` : t('permission.toolWebSearchDetail') }
     }
     case 'Grep': {
       const q = (toolInput.pattern as string) || ''
-      return { title: 'Search content', detail: q ? `Pattern: "${q.slice(0, 80)}"` : 'Search file contents' }
+      return { title: t('permission.toolSearchContent'), detail: q ? `"${q.slice(0, 80)}"` : t('permission.toolSearchContentDetail') }
     }
     case 'Glob': case 'LS': {
       const p = (toolInput.pattern as string) || (toolInput.path as string) || ''
-      return { title: 'List / search files', detail: p || 'Browse directory contents' }
+      return { title: t('permission.toolSearchFiles'), detail: p || t('permission.toolSearchFilesDetail') }
     }
     default:
-      return { title: `Use tool: ${toolName}`, detail: JSON.stringify(toolInput).slice(0, 120) }
+      return { title: t('permission.useTool', { tool: toolName }), detail: JSON.stringify(toolInput).slice(0, 120) }
   }
+}
+
+const MODE_LABEL_KEYS: Record<string, string> = {
+  default: 'permissions.modeDefault',
+  acceptEdits: 'permissions.modeAcceptEdits',
+  autoEdit: 'permissions.modeAutoEdit',
+  plan: 'permissions.modePlan',
+  dontAsk: 'permissions.modeDontAsk',
+  bypassPermissions: 'permissions.modeBypassPermissions',
 }
 
 // Build a compact params preview (key=value pairs, max 3 lines)
@@ -118,6 +129,7 @@ interface Props {
 }
 
 export default function ToolApprovalDialog({ onRespond }: Props) {
+  const t = useT()
   const prefs = usePrefsStore(s => s.prefs)
   const messages = useChatStore(s => s.messages)
 
@@ -130,6 +142,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
   // (those modes auto-handle without user interaction)
   const mode = prefs.permissionMode || 'default'
   const shouldShow = pending !== undefined && mode !== 'bypassPermissions' && mode !== 'dontAsk'
+  const dialogRef = useFocusTrap(shouldShow)
 
   const handleAllow = useCallback(() => {
     if (pending) onRespond(pending.permissionId, true)
@@ -142,7 +155,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
   if (!shouldShow || !pending) return null
 
   const toolName = typeof pending.toolName === 'string' ? pending.toolName : String(pending.toolName ?? '')
-  const { title, detail } = getToolLabel(toolName, pending.toolInput)
+  const { title, detail } = getToolLabel(toolName, pending.toolInput, t)
   const icon = getToolIcon(toolName)
   const tint = getToolTint(toolName)
   const paramsPreview = buildParamsPreview(pending.toolInput)
@@ -167,15 +180,21 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
     >
       {/* Dialog card */}
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
         style={{
           background: 'var(--popup-bg)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           borderRadius: 16,
           border: '1px solid var(--border)',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)',
+          boxShadow: 'var(--dialog-shadow)',
           maxWidth: 480,
           width: '100%',
+          maxHeight: 'calc(100vh - 48px)',
+          overflowY: 'auto',
           padding: 24,
           display: 'flex',
           flexDirection: 'column',
@@ -218,13 +237,13 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
                 letterSpacing: '0.07em',
                 textTransform: 'uppercase',
                 background: 'rgba(99,102,241,0.15)',
-                color: '#818cf8',
+                color: 'var(--accent-text)',
                 border: '1px solid rgba(99,102,241,0.30)',
                 borderRadius: 20,
                 padding: '1px 7px',
                 flexShrink: 0,
               }}>
-                {mode}
+                {MODE_LABEL_KEYS[mode] ? t(MODE_LABEL_KEYS[mode]) : mode}
               </span>
             </div>
             <div style={{
@@ -233,7 +252,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
               marginTop: 3,
               lineHeight: 1.4,
             }}>
-              Claude wants to use a tool — please confirm
+              {t('permission.confirmPrompt')}
             </div>
           </div>
         </div>
@@ -248,11 +267,11 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
           borderRadius: 8,
           padding: '8px 12px',
         }}>
-          <ShieldCheck size={14} color="rgba(165,180,252,0.80)" style={{ flexShrink: 0 }} />
+          <ShieldCheck size={14} color="var(--accent-text)" style={{ flexShrink: 0 }} />
           <span style={{
             fontSize: 13,
             fontWeight: 600,
-            color: 'rgba(165,180,252,0.90)',
+            color: 'var(--accent-text)',
             fontFamily: 'monospace',
           }}>
             {toolName}
@@ -263,7 +282,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
         {detail && (
           <div style={{
             fontSize: 12,
-            color: 'rgba(165,180,252,0.85)',
+            color: 'var(--accent-text)',
             background: 'var(--code-bg)',
             border: '1px solid var(--border)',
             borderRadius: 8,
@@ -288,7 +307,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
               color: 'var(--text-faint)',
               marginBottom: 6,
             }}>
-              Parameters
+              {t('permission.parameters')}
             </div>
             <pre style={{
               margin: 0,
@@ -325,12 +344,12 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
             }}
             style={{
               flex: 1,
-              background: 'linear-gradient(135deg, rgba(34,197,94,0.88), rgba(16,185,129,0.88))',
+              background: 'var(--success-solid)',
               border: 'none',
               borderRadius: 8,
               padding: '0',
               height: 40,
-              color: 'var(--text-bright)',
+              color: 'rgba(255,255,255,0.95)',
               cursor: 'pointer',
               fontSize: 13,
               fontWeight: 600,
@@ -342,7 +361,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
               transition: 'all 0.15s ease',
             }}
           >
-            <Check size={15} /> Allow
+            <Check size={15} /> {t('permission.allow')}
           </button>
 
           {/* Deny */}
@@ -357,7 +376,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
               borderRadius: 8,
               padding: '0',
               height: 40,
-              color: 'rgba(239,68,68,0.80)',
+              color: 'var(--danger-text)',
               cursor: 'pointer',
               fontSize: 13,
               fontWeight: 600,
@@ -368,7 +387,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
               transition: 'all 0.15s ease',
             }}
           >
-            <X size={15} /> Deny
+            <X size={15} /> {t('permission.deny')}
           </button>
         </div>
 
@@ -379,7 +398,7 @@ export default function ToolApprovalDialog({ onRespond }: Props) {
           textAlign: 'center',
           marginTop: -6,
         }}>
-          Click outside to deny
+          {t('permission.clickOutsideToDeny')}
         </div>
       </div>
     </div>

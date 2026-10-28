@@ -104,9 +104,9 @@ export default function SettingsPlugins() {
   }
 
   const sourceTag = (source: string) => {
-    if (source.startsWith('local:')) return { label: t('settingsPlugins.sourceLocal'), color: '#4ade80', bg: 'rgba(74,222,128,0.10)', border: 'rgba(74,222,128,0.25)' }
-    if (source.startsWith('npm:')) return { label: t('settingsPlugins.sourceNpm'), color: '#fbbf24', bg: 'rgba(251,191,36,0.10)', border: 'rgba(251,191,36,0.25)' }
-    return { label: t('settingsPlugins.sourceExternal'), color: '#a78bfa', bg: 'rgba(167,139,250,0.10)', border: 'rgba(167,139,250,0.25)' }
+    if (source.startsWith('local:')) return { label: t('settingsPlugins.sourceLocal'), color: 'var(--success-text)', bg: 'rgba(74,222,128,0.10)', border: 'rgba(74,222,128,0.25)' }
+    if (source.startsWith('npm:')) return { label: t('settingsPlugins.sourceNpm'), color: 'var(--warning-text)', bg: 'rgba(251,191,36,0.10)', border: 'rgba(251,191,36,0.25)' }
+    return { label: t('settingsPlugins.sourceExternal'), color: 'var(--violet-text)', bg: 'rgba(167,139,250,0.10)', border: 'rgba(167,139,250,0.25)' }
   }
 
   const pluginAccentColor = (source: string) => {
@@ -138,7 +138,7 @@ export default function SettingsPlugins() {
             border: '1px solid rgba(99,102,241,0.25)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <Puzzle size={14} style={{ color: '#a5b4fc' }} />
+            <Puzzle size={14} style={{ color: 'var(--accent-text)' }} />
           </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -242,7 +242,7 @@ export default function SettingsPlugins() {
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
-                e.currentTarget.style.color = '#a5b4fc'
+                e.currentTarget.style.color = 'var(--accent-text)'
                 e.currentTarget.style.background = 'rgba(99,102,241,0.10)'
               }}
               onMouseLeave={e => {
@@ -310,9 +310,9 @@ export default function SettingsPlugins() {
           padding: '10px 14px',
           background: 'rgba(239,68,68,0.06)',
           border: '1px solid rgba(239,68,68,0.20)',
-          borderRadius: 10, fontSize: 12, color: '#fca5a5',
+          borderRadius: 10, fontSize: 12, color: 'var(--danger-text)',
         }}>
-          <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 1, color: '#f87171' }} />
+          <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 1, color: 'var(--color-error)' }} />
           <span style={{ flex: 1, lineHeight: 1.5 }}>{error}</span>
           <button
             onClick={() => setError(null)}
@@ -322,7 +322,7 @@ export default function SettingsPlugins() {
               display: 'flex', alignItems: 'center',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.color = '#fca5a5' }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--danger-text)' }}
             onMouseLeave={e => { e.currentTarget.style.color = 'rgba(252,165,165,0.6)' }}
           >
             <X size={13} />
@@ -472,7 +472,7 @@ export default function SettingsPlugins() {
                               fontSize: 9, fontWeight: 600, padding: '2px 7px',
                               borderRadius: 8,
                               background: 'rgba(139,92,246,0.10)',
-                              color: '#a78bfa',
+                              color: 'var(--violet-text)',
                               border: '1px solid rgba(167,139,250,0.22)',
                             }}>
                               {t('settingsPlugins.mcpCount', { count: String(mcpCount) })}
@@ -483,7 +483,7 @@ export default function SettingsPlugins() {
                               fontSize: 9, fontWeight: 600, padding: '2px 7px',
                               borderRadius: 8,
                               background: 'rgba(245,158,11,0.10)',
-                              color: '#fbbf24',
+                              color: 'var(--warning-text)',
                               border: '1px solid rgba(251,191,36,0.22)',
                             }}>
                               {hooksCount > 1
@@ -513,7 +513,7 @@ export default function SettingsPlugins() {
                               padding: '5px 10px', fontSize: 11, fontWeight: 600,
                               background: 'rgba(239,68,68,0.15)',
                               border: '1px solid rgba(239,68,68,0.30)',
-                              borderRadius: 6, color: '#f87171', cursor: 'pointer',
+                              borderRadius: 6, color: 'var(--color-error)', cursor: 'pointer',
                               transition: 'all 0.15s ease',
                             }}
                             onMouseEnter={e => {
@@ -561,7 +561,7 @@ export default function SettingsPlugins() {
                             borderRadius: 7,
                             cursor: 'pointer',
                             color: deleteHover === plugin.name
-                              ? '#f87171'
+                              ? 'var(--danger-text)'
                               : 'var(--text-faint)',
                             padding: '5px 7px',
                             display: 'flex', alignItems: 'center',

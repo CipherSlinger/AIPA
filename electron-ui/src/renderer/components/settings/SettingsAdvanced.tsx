@@ -66,15 +66,15 @@ const ALL_TOOL_NAMES = TOOL_GROUP_DEFS.flatMap(g => g.tools.map(t => t.name))
 // ── Permission mode options ────────────────────────────────────────────────
 const PERMISSION_MODE_OPTIONS: {
   mode: PermissionMode
-  label: string
-  desc: string
+  labelKey: string
+  descKey: string
   danger?: boolean
 }[] = [
-  { mode: 'default',            label: 'Default',        desc: '每次工具调用均需确认' },
-  { mode: 'acceptEdits',        label: 'Accept Edits',   desc: '自动接受文件修改' },
-  { mode: 'dontAsk',            label: "Don't Ask",      desc: '自动接受大多数操作' },
-  { mode: 'plan',               label: 'Plan Only',      desc: '仅规划，不执行' },
-  { mode: 'bypassPermissions',  label: 'Bypass',         desc: '跳过所有权限检查 ⚠️', danger: true },
+  { mode: 'default',            labelKey: 'settingsAdvanced.modeDefaultLabel',    descKey: 'settingsAdvanced.modeDefaultDesc' },
+  { mode: 'acceptEdits',        labelKey: 'settingsAdvanced.modeAcceptEditsLabel', descKey: 'settingsAdvanced.modeAcceptEditsDesc' },
+  { mode: 'dontAsk',            labelKey: 'settingsAdvanced.modeDontAskLabel',     descKey: 'settingsAdvanced.modeDontAskDesc' },
+  { mode: 'plan',               labelKey: 'settingsAdvanced.modePlanLabel',        descKey: 'settingsAdvanced.modePlanDesc' },
+  { mode: 'bypassPermissions',  labelKey: 'settingsAdvanced.modeBypassLabel',      descKey: 'settingsAdvanced.modeBypassDesc', danger: true },
 ]
 
 type PresetKey = 'all' | 'readonly' | 'nonet' | 'analysis' | 'custom'
@@ -227,7 +227,7 @@ export default function SettingsAdvanced() {
       {/* ── Section 0: Permission Mode ───────────────────────────────── */}
       <div style={sectionCardStyle}>
         <div style={sectionTitleStyle}>PERMISSION MODE</div>
-        <div style={descStyle}>控制 AI 工具调用的权限策略，适用于每次新对话。</div>
+        <div style={descStyle}>{t('settingsAdvanced.permissionModeDesc')}</div>
 
         {/* Button group */}
         <div style={{
@@ -251,7 +251,7 @@ export default function SettingsAdvanced() {
                   borderRadius: 6,
                   padding: '6px 12px',
                   color: isSelected
-                    ? (opt.danger ? 'rgba(239,68,68,0.82)' : 'rgba(165,180,252,0.82)')
+                    ? (opt.danger ? 'var(--danger-text)' : 'var(--accent-text)')
                     : 'var(--text-muted)',
                   fontSize: 11,
                   fontWeight: isSelected ? 600 : 400,
@@ -261,8 +261,8 @@ export default function SettingsAdvanced() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                <div>{opt.label}</div>
-                <div style={{ fontSize: 9, opacity: 0.7, marginTop: 2 }}>{opt.desc}</div>
+                <div>{t(opt.labelKey)}</div>
+                <div style={{ fontSize: 9, marginTop: 2 }}>{t(opt.descKey)}</div>
               </button>
             )
           })}
@@ -275,9 +275,9 @@ export default function SettingsAdvanced() {
             background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)',
             borderRadius: 6, padding: '8px 12px',
           }}>
-            <AlertTriangle size={13} color="#f87171" />
-            <span style={{ fontSize: 11, color: '#fca5a5' }}>
-              Bypass 模式将跳过所有权限检查，AI 可无限制地执行工具调用。
+            <AlertTriangle size={13} color="var(--color-error)" />
+            <span style={{ fontSize: 11, color: 'var(--danger-text)' }}>
+              {t('settingsAdvanced.bypassWarning')}
             </span>
           </div>
         )}
@@ -304,7 +304,7 @@ export default function SettingsAdvanced() {
               }}>
                 <code style={{
                   fontSize: 11, fontFamily: 'monospace',
-                  color: 'rgba(165,180,252,0.85)',
+                  color: 'var(--accent-text)',
                   background: 'rgba(99,102,241,0.10)', borderRadius: 4,
                   padding: '1px 5px', flexShrink: 0,
                 }}>{key}</code>
@@ -317,7 +317,7 @@ export default function SettingsAdvanced() {
                 <button
                   onClick={() => handleEnvDelete(key)}
                   aria-label={`${t('settings.sessionEnvVarsDelete')} ${key}`}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--danger-text)'; e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
                   style={{
                     background: 'transparent', border: 'none',
@@ -378,7 +378,7 @@ export default function SettingsAdvanced() {
               background: newEnvKey.trim() ? 'rgba(99,102,241,0.25)' : 'var(--bg-hover)',
               border: `1px solid ${newEnvKey.trim() ? 'rgba(99,102,241,0.4)' : 'var(--glass-border)'}`,
               borderRadius: 6,
-              color: newEnvKey.trim() ? '#a5b4fc' : 'var(--text-faint)',
+              color: newEnvKey.trim() ? 'var(--accent-text)' : 'var(--text-faint)',
               cursor: newEnvKey.trim() ? 'pointer' : 'default',
               flexShrink: 0, transition: 'all 0.15s ease',
             }}
@@ -409,7 +409,7 @@ export default function SettingsAdvanced() {
                   background: isActive ? 'rgba(99,102,241,0.25)' : 'var(--bg-hover)',
                   border: isActive ? '1px solid rgba(99,102,241,0.5)' : '1px solid var(--glass-border-md)',
                   borderRadius: 8, padding: '3px 10px', fontSize: 11,
-                  color: isActive ? '#a5b4fc' : 'var(--text-secondary)',
+                  color: isActive ? 'var(--accent-text)' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
@@ -430,7 +430,7 @@ export default function SettingsAdvanced() {
             <span style={{ fontSize: 11, color: 'var(--text-secondary)', flex: 1 }}>
               {t('systemPrompt.replaceConfirm')}
             </span>
-            <button onClick={confirmReplace} style={{ fontSize: 11, padding: '3px 10px', background: 'rgba(99,102,241,0.25)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: 8, color: '#a5b4fc', cursor: 'pointer', transition: 'all 0.15s ease' }}>
+            <button onClick={confirmReplace} style={{ fontSize: 11, padding: '3px 10px', background: 'rgba(99,102,241,0.25)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: 8, color: 'var(--accent-text)', cursor: 'pointer', transition: 'all 0.15s ease' }}>
               {t('common.confirm')}
             </button>
             <button onClick={() => setReplaceConfirm(null)} style={{ fontSize: 11, padding: '3px 10px', background: 'none', border: '1px solid var(--glass-border)', borderRadius: 8, color: 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s ease' }}>
@@ -459,7 +459,7 @@ export default function SettingsAdvanced() {
             onFocus={e => (e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)')}
             onBlur={e => (e.currentTarget.style.borderColor = 'var(--glass-border)')}
           />
-          <span style={{ position: 'absolute', bottom: 8, right: 10, fontSize: 10, color: draft.length >= MAX_CHARS ? '#f87171' : 'var(--text-faint)', fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ position: 'absolute', bottom: 8, right: 10, fontSize: 10, color: draft.length >= MAX_CHARS ? 'var(--danger-text)' : 'var(--text-faint)', fontVariantNumeric: 'tabular-nums' }}>
             {draft.length} / {MAX_CHARS}
           </span>
         </div>
@@ -468,7 +468,7 @@ export default function SettingsAdvanced() {
           <button onClick={savePrompt}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.35)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.25)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)' }}
-            style={{ padding: '7px 18px', fontSize: 12, fontWeight: 600, background: 'rgba(99,102,241,0.25)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: 6, color: '#a5b4fc', cursor: 'pointer', transition: 'all 0.15s ease' }}>
+            style={{ padding: '7px 18px', fontSize: 12, fontWeight: 600, background: 'rgba(99,102,241,0.25)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: 6, color: 'var(--accent-text)', cursor: 'pointer', transition: 'all 0.15s ease' }}>
             {saved ? t('common.saved') : t('common.save')}
           </button>
           {draft.trim() && (
@@ -499,7 +499,7 @@ export default function SettingsAdvanced() {
                   background: isActive ? 'rgba(99,102,241,0.25)' : 'var(--bg-hover)',
                   border: isActive ? '1px solid rgba(99,102,241,0.5)' : '1px solid var(--glass-border-md)',
                   borderRadius: 5, padding: '3px 10px',
-                  fontSize: 11, color: isActive ? '#a5b4fc' : 'var(--text-secondary)',
+                  fontSize: 11, color: isActive ? 'var(--accent-text)' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
@@ -519,8 +519,8 @@ export default function SettingsAdvanced() {
             display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
             background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, padding: '8px 12px',
           }}>
-            <AlertTriangle size={13} color="#f87171" />
-            <span style={{ fontSize: 11, color: '#fca5a5' }}>{t('settings.toolAccessAllDisabled')}</span>
+            <AlertTriangle size={13} color="var(--color-error)" />
+            <span style={{ fontSize: 11, color: 'var(--danger-text)' }}>{t('settings.toolAccessAllDisabled')}</span>
           </div>
         )}
 
@@ -555,14 +555,14 @@ export default function SettingsAdvanced() {
                         />
                         <code style={{
                           fontSize: 11, fontFamily: 'monospace',
-                          color: 'rgba(165,180,252,0.85)',
+                          color: 'var(--accent-text)',
                           background: 'rgba(99,102,241,0.10)', borderRadius: 4, padding: '1px 5px',
                           flex: '0 0 auto',
                         }}>{tool.name}</code>
                         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t(tool.descKey)}</span>
                       </div>
                       {!isAllowed && (
-                        <span style={{ fontSize: 10, background: 'rgba(239,68,68,0.12)', color: '#fca5a5', borderRadius: 3, padding: '1px 5px', flexShrink: 0 }}>{t('settings.toolAccessDisabled')}</span>
+                        <span style={{ fontSize: 10, background: 'rgba(239,68,68,0.12)', color: 'var(--danger-text)', borderRadius: 3, padding: '1px 5px', flexShrink: 0 }}>{t('settings.toolAccessDisabled')}</span>
                       )}
                     </label>
                     {idx < arr.length - 1 && (

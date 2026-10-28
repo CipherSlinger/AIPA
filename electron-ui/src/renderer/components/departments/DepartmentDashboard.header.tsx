@@ -152,7 +152,10 @@ export default function DeptHeader({
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-subtle)' }}
             >
               <ArrowLeft size={9} style={{ flexShrink: 0 }} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span
+                title={deptDisplayName(parentDept, resolvedLocale)}
+                style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              >
                 {deptDisplayName(parentDept, resolvedLocale)}
               </span>
             </button>
@@ -201,7 +204,7 @@ export default function DeptHeader({
           minWidth: 0,
         }}>
           <FolderOpen size={10} style={{ opacity: 0.7, flexShrink: 0 }} />
-          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dept.directory}</span>
+          <span title={dept.directory} style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dept.directory}</span>
         </div>
       </div>
 
@@ -296,7 +299,7 @@ export default function DeptHeader({
         }}
         onMouseEnter={e => {
           e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'
-          e.currentTarget.style.color = '#818cf8'
+          e.currentTarget.style.color = 'var(--accent-text)'
           e.currentTarget.style.background = 'rgba(99,102,241,0.08)'
         }}
         onMouseLeave={e => {
@@ -320,7 +323,7 @@ export default function DeptHeader({
           display: 'flex', alignItems: 'center', gap: 5,
           padding: '5px 10px', borderRadius: 6,
           border: '1px solid var(--border)', background: 'transparent',
-          color: dept.handbook?.trim() ? '#818cf8' : 'var(--text-secondary)',
+          color: dept.handbook?.trim() ? 'var(--accent-text)' : 'var(--text-secondary)',
           fontSize: 11, cursor: 'pointer', flexShrink: 0,
           transition: 'border-color 0.15s, color 0.15s, background 0.15s',
         }}
@@ -336,7 +339,7 @@ export default function DeptHeader({
         <BookOpen size={12} />
         <span className="dept-action-label">{t('dept.handbook')}</span>
         {dept.handbook?.trim() && (
-          <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#818cf8' }} />
+          <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent-muted)' }} />
         )}
       </button>
 

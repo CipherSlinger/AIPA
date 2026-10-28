@@ -224,6 +224,7 @@ export default function CommandPalette({
         {/* Label + description */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
+            title={cmd.name}
             style={{
               fontSize: 13,
               fontWeight: 500,
@@ -238,6 +239,7 @@ export default function CommandPalette({
           </div>
           {cmd.description && (
             <div
+              title={cmd.description}
               style={{
                 fontSize: 11,
                 color: 'var(--text-muted)',

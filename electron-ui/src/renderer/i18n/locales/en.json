@@ -172,7 +172,14 @@
       "thinking": "Thinking",
       "writing": "Writing",
       "usingTool": "Using {{tool}}"
-    }
+    },
+    "exportTitle": "Export Conversation",
+    "exportFormat": "Format",
+    "exportIncludeTools": "Include tool calls",
+    "exportIncludeTimestamps": "Include timestamps",
+    "exportPreview": "Preview",
+    "exportSaving": "Saving…",
+    "exportChoosePath": "Choose path…"
   },
   "sessionReuse": {
     "menu": {
@@ -500,7 +507,15 @@
     "untitledSession": "Untitled Session",
     "titleGenerated": "Session title updated",
     "notFound": "That session could not be found — it may have been deleted.",
-    "openFailed": "Could not open that session."
+    "openFailed": "Could not open that session.",
+    "addNote": "Add note",
+    "addNoteDesc": "Pin a note to this session",
+    "editNote": "Edit note",
+    "removeNote": "Remove note",
+    "inTitle": "in title",
+    "inContent": "in content",
+    "inProject": "in project",
+    "noSessions": "No sessions yet"
   },
   "settings": {
     "title": "Settings",
@@ -730,7 +745,13 @@
       "customSuffix": "(Custom)"
     },
     "plugins": "Plugins",
-    "pluginsEmpty": "No plugins installed"
+    "pluginsEmpty": "No plugins installed",
+    "keyActive": "active",
+    "petTitle": "Desktop Pet",
+    "petDesc": "Show a desktop pet that reacts to what the assistant is doing.",
+    "petLaunchError": "Could not start the desktop pet process",
+    "petBubbleFollow": "Bubbles follow the pet",
+    "petBubbleFollowHint": "Permission bubbles move with the desktop pet"
   },
   "outputStyle": {
     "title": "Output Style",
@@ -907,7 +928,20 @@
     "openChannel": "Open Channel",
     "openChannelDesc": "Connect Feishu and WeChat messaging channels",
     "toggleAlwaysOnTop": "Toggle Always on Top",
-    "toggleAlwaysOnTopDesc": "Pin or unpin window above all other windows"
+    "toggleAlwaysOnTopDesc": "Pin or unpin window above all other windows",
+    "initDesc": "Initialize a new Claude project in the current directory",
+    "doctorDesc": "Check Claude CLI installation and connectivity",
+    "renameDesc": "Rename the current conversation",
+    "exportSlashDesc": "Export conversation to Markdown or JSON",
+    "planDesc": "Plan mode — think before acting",
+    "permissionsDesc": "View and manage tool permissions",
+    "mcpDesc": "Model Context Protocol server management",
+    "aiEngineDesc": "Open AI engine and provider settings",
+    "memorySlashDesc": "View and manage Claude memory files",
+    "modelSlashDesc": "Switch the active model",
+    "costDesc": "Show token usage and cost for this session",
+    "skillsDesc": "List available Claude skills",
+    "rewindDesc": "Rewind to a previous message in the conversation"
   },
   "permission": {
     "allow": "Allow",
@@ -940,7 +974,11 @@
     "alwaysDenyTool": "Always Deny",
     "ruleAddedAllow": "Rule added: {{rule}} -> always allow",
     "ruleAddedDeny": "Rule added: {{rule}} -> always deny",
-    "denialsCount": "{{count}} permission request(s) were denied this turn"
+    "denialsCount": "{{count}} permission request(s) were denied this turn",
+    "useTool": "Use tool: {{tool}}",
+    "parameters": "Parameters",
+    "confirmPrompt": "Claude wants to use a tool — please confirm",
+    "clickOutsideToDeny": "Click outside to deny"
   },
   "permissions": {
     "allowRules": "Allow Rules",
@@ -971,7 +1009,13 @@
     "noAdditionalDirs": "No additional directories",
     "dirAdded": "Directory added",
     "dirRemoved": "Directory removed",
-    "dirExists": "This directory is already in the list"
+    "dirExists": "This directory is already in the list",
+    "historyTitle": "Session permission history",
+    "historyEmpty": "No permission requests in this session",
+    "decisionAllowed": "Allowed",
+    "decisionDenied": "Denied",
+    "decisionPending": "Pending",
+    "manualPath": "Type a path manually"
   },
   "taskQueue": {
     "title": "Task Queue",
@@ -988,7 +1032,9 @@
     "totalLabel": "total",
     "addToQueue": "Add to queue",
     "addToQueueShortcut": "Add to queue (Ctrl+Shift+Q)",
-    "queueComplete": "Queue complete: {{count}} tasks finished"
+    "queueComplete": "Queue complete: {{count}} tasks finished",
+    "close": "Close",
+    "empty": "No tasks queued"
   },
   "task": {
     "backgroundCompleted": "Background task{{id}} completed"
@@ -1041,7 +1087,8 @@
     "showDetails": "What happened?",
     "hideDetails": "Hide details",
     "reportBug": "Report Bug",
-    "structuredOutputRetries": "Structured output retries exceeded. The model could not produce a valid structured response after multiple attempts."
+    "structuredOutputRetries": "Structured output retries exceeded. The model could not produce a valid structured response after multiple attempts.",
+    "close": "Close"
   },
   "startup": {
     "prefsLoadFailed": "Preferences could not be loaded. Using defaults."
@@ -1225,7 +1272,16 @@
     "diffError": "Failed to load diff",
     "noDiff": "No diff output",
     "gitDiffTitle": "Git Diff (HEAD)",
-    "close": "Close"
+    "close": "Close",
+    "copied": "Copied",
+    "tooltip": "File changes",
+    "fileChanged": "1 file changed",
+    "filesChanged": "{{count}} files changed",
+    "linesAdded": "{{count}} lines added",
+    "linesRemoved": "{{count}} lines removed",
+    "statusCreated": "Created",
+    "statusModified": "Modified",
+    "turn": "Turn {{num}}: {{prompt}}"
   },
   "cost": {
     "thresholdWarning": "Session cost exceeded $5.00. Consider starting a new conversation or compacting.",
@@ -1341,7 +1397,8 @@
     "summary": "Here's where you left off:",
     "generatingSummary": "Generating summary...",
     "dialogEnabled": "Idle Return Dialog",
-    "dialogEnabledHint": "Ask whether to continue or start fresh when returning after 30+ minutes"
+    "dialogEnabledHint": "Ask whether to continue or start fresh when returning after 30+ minutes",
+    "awayLabel": "Away"
   },
   "lightbox": {
     "zoomIn": "Zoom in (+)",
@@ -1448,7 +1505,9 @@
     "noteRefHint": "Type @note: to insert a note",
     "pinToChat": "Pin to chat",
     "unpinFromChat": "Unpin from chat",
-    "pinnedToChat": "Note pinned to chat"
+    "pinnedToChat": "Note pinned to chat",
+    "add": "New note",
+    "empty": "No notes yet"
   },
   "clipboard": {
     "pasteAndAsk": "Paste & Ask",
@@ -1518,7 +1577,10 @@
     "createSkill": "Create Custom Skill",
     "create": "Create",
     "createOwn": "Create Your Own",
-    "skillCreatorLaunched": "Skill Creator opened in chat"
+    "skillCreatorLaunched": "Skill Creator opened in chat",
+    "skills": "skills",
+    "results": "Results",
+    "featured": "Featured"
   },
   "skill": {
     "createTitle": "Create Skill",
@@ -1621,7 +1683,10 @@
     "removeDefault": "Remove Default",
     "defaultBadge": "Default",
     "defaultSet": "Set {name} as default for new sessions",
-    "defaultRemoved": "Default expert removed"
+    "defaultRemoved": "Default expert removed",
+    "added": "Expert added",
+    "delete": "Delete Expert",
+    "deleteWarning": "Deleting this expert cannot be undone. Conversations that used it will fall back to the default settings."
   },
   "memory": {
     "title": "Memory",
@@ -1690,7 +1755,15 @@
     "typeProject": "Project",
     "typeReference": "Reference",
     "copyContent": "Copy content",
-    "copied": "Copied"
+    "copied": "Copied",
+    "addTitle": "Add Memory",
+    "instructionFilesLoaded": "CLAUDE.md files loaded now",
+    "instructionFilesCount": "{{existing}}/{{total}} exist",
+    "instructionPrecedence": "Precedence: local overrides project, project overrides global.",
+    "instructionBannerTitle": "Instruction files",
+    "instructionBannerDesc": "CLAUDE.md files are loaded automatically and apply to every session.",
+    "memdirBannerTitle": "Structured memory",
+    "memdirBannerDesc": "AI-generated memories stored under ~/.claude/memory/."
   },
   "workflow": {
     "title": "Workflows",
@@ -1909,7 +1982,8 @@
     "stop": "Stop",
     "breadcrumbList": "Workflows",
     "clickToEditTitle": "Click to edit title",
-    "stepNameRequired": "Step name is required"
+    "stepNameRequired": "Step name is required",
+    "doubleClickToEdit": "Double-click to edit"
   },
   "snippet": {
     "title": "Text Snippets",
@@ -2254,7 +2328,8 @@
     "close": "Close tab",
     "maxReached": "Maximum 8 tabs allowed. Close an existing tab first.",
     "newTab": "New tab",
-    "closeOthers": "Close other tabs"
+    "closeOthers": "Close other tabs",
+    "new": "New tab"
   },
   "token": {
     "contextWindow": "Context Window",
@@ -2376,7 +2451,8 @@
     "sourceExternal": "external",
     "mcpCount": "{{count}} MCP",
     "hookCount_one": "{{count}} hook",
-    "hookCount_other": "{{count}} hooks"
+    "hookCount_other": "{{count}} hooks",
+    "installedLabel": "Installed"
   },
   "settingsAdvanced": {
     "presetConcise": "Concise",
@@ -2428,7 +2504,19 @@
     "presetNoNetwork": "No Network",
     "presetAnalysisOnly": "Analysis Only",
     "hideApiKey": "Hide API key",
-    "showApiKey": "Show API key"
+    "showApiKey": "Show API key",
+    "permissionModeDesc": "Controls which tools the AI may run without asking. Applies to every new conversation.",
+    "modeDefaultLabel": "Default",
+    "modeDefaultDesc": "Ask before every tool call",
+    "modeAcceptEditsLabel": "Accept Edits",
+    "modeAcceptEditsDesc": "Apply file edits automatically",
+    "modeDontAskLabel": "Don't Ask",
+    "modeDontAskDesc": "Accept most actions automatically",
+    "modePlanLabel": "Plan Only",
+    "modePlanDesc": "Plan without executing",
+    "modeBypassLabel": "Bypass",
+    "modeBypassDesc": "Skip every permission check ⚠️",
+    "bypassWarning": "Bypass mode skips every permission check — the AI can run tools without limits."
   },
   "dept": {
     "panelTitle": "Departments",

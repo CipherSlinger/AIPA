@@ -106,8 +106,8 @@ export interface ProviderHealthStatus {
 export const BUILT_IN_IDS = ['claude-cli', 'gateway', 'openai', 'ollama', 'deepseek', 'qwen']
 
 export const SCENARIO_COLORS: Record<ProviderScenario, string> = {
-  official: '#818cf8',
-  gateway: '#fbbf24',
+  official: 'var(--accent-text)',
+  gateway: 'var(--warning-text)',
 }
 
 /** "Get an API key" deep links, keyed by built-in provider id. */

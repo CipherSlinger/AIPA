@@ -121,7 +121,10 @@
   --border-strong:   rgba(255,255,255,0.16);
   --glass-shadow:    0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3);
   --glass-overlay:   rgba(0,0,0,0.70);
-  --text-faint:      rgba(255,255,255,0.38);
+  /* Faintest *readable* tier. It clears AA on every dark surface in use
+     (worst pair: white on #2a2d2e = 4.5:1). Decorative-only marks should not
+     use this token — they should use an explicit low-alpha colour. */
+  --text-faint:      rgba(255,255,255,0.53);
   --glass-shimmer:   rgba(255,255,255,0.04);
   --cta-gradient:    linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88));
   /* Welcome greeting headline — dark text on the light theme, not a pale glow */
@@ -131,11 +134,28 @@
   --accent-bg:       rgba(99,102,241,0.10);
   --accent-border:   rgba(99,102,241,0.25);
   --accent-muted:    #818cf8;
+  /* Solid accent behind white text (segmented controls). */
+  --accent-solid:    #4f46e5;
   /* Accent *text* on tinted/hover surfaces. Decorative fills keep --accent. */
   --accent-text:        #a5b4fc;
   --accent-text-strong: #c7d2fe;
-  /* Semantic success text (e.g. archive Export) */
+  /* Semantic *text* colours for tinted status surfaces. The base --color-*
+     aliases are fill colours; several of them are too light/dark to read when
+     used as 10–13px labels in the opposite theme. */
   --success-text:       #22c55e;
+  --danger-text:        #fca5a5;
+  /* Solid danger fill that keeps white labels readable in both themes. */
+  --danger-solid:       #b91c1c;
+  --success-solid:      #166534;
+  --warning-text:       #fbbf24;
+  --violet-text:        #c4b5fd;
+  --info-text:          #67e8f9;
+  /* Memory category *text* colours; the hex values in memoryConstants.ts are
+     only used for the low-alpha tint behind them. */
+  --memory-preference:  #fbbf24;
+  --memory-fact:        #93c5fd;
+  --memory-instruction: #6ee7b7;
+  --memory-context:     #c4b5fd;
 
   /* Status color aliases (semantic, mirrors light-theme parity) */
   --color-error:    #f87171;
@@ -177,8 +197,10 @@
   --text-primary: #1d1d1f;
   --text-secondary: #48484a;
   --text-muted: #5c5c63;
-  /* Content formerly on --text-faint; clears AA on bg-primary/hover/active. */
-  --text-subtle: #5f5f66;
+  /* Content formerly on --text-faint. #5f5f66 measured 4.49:1 on --bg-active,
+     where rows invert their hover background; the muted value is the lightest
+     tone that still clears AA there (4.70:1), so subtle shares it. */
+  --text-subtle: #5c5c63;
   --text-bright: #000000;
   --accent: #2563eb;
   --accent-hover: #3b82f6;
@@ -254,11 +276,23 @@
   --accent-bg:       rgba(37,99,235,0.08);
   --accent-border:   rgba(37,99,235,0.20);
   --accent-muted:    #2563eb;
+  --accent-solid:    #2563eb;
   /* --accent (#2563eb) is only 4.01:1 on the selected lavender tint; use the
-     darker text token for anything that has to be read. */
-  --accent-text:        #1d4ed8;
+     darker text token for anything that has to be read. #1e40af keeps even a
+     10px label above 5:1 on the tinted chips and segmented buttons. */
+  --accent-text:        #1e40af;
   --accent-text-strong: #1e3a8a;
   --success-text:       #166534;
+  --danger-text:        #b91c1c;
+  --danger-solid:       #dc2626;
+  --success-solid:      #15803d;
+  --warning-text:       #92400e;
+  --violet-text:        #6d28d9;
+  --info-text:          #155e75;
+  --memory-preference:  #92400e;
+  --memory-fact:        #1d4ed8;
+  --memory-instruction: #047857;
+  --memory-context:     #6d28d9;
 
   /* Status colors */
   --color-error:    #dc2626;
@@ -284,7 +318,9 @@
   --border-strong:   rgba(0,0,0,0.18);
   --glass-shadow:    0 4px 8px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08);
   --glass-overlay:   rgba(0,0,0,0.50);
-  --text-faint:      rgba(15,15,35,0.38);
+  /* Same AA floor as the dark theme. 0.38 measured 2.4:1 on bg-primary; 0.60
+     keeps the tier below --text-muted while clearing 4.5:1 on every surface. */
+  --text-faint:      rgba(15,15,35,0.60);
   --glass-shimmer:   rgba(0,0,0,0.04);
   /* Always-dark code blocks need only a softer lift in the light theme. */
   --code-shadow:     0 2px 8px rgba(0,0,0,0.10);
@@ -1097,4 +1133,29 @@ mark.search-current-match {
 }
 @media (min-width: 1180px) {
   .settings-group-columns { column-count: 2; }
+}
+
+/* ── Reduced motion (global) ─────────────────────────────────────────────────
+   Every non-essential transition and animation is collapsed to a single frame.
+   Duration rather than `animation: none` is used so entrance animations still
+   land on their final state instead of leaving content mid-fade. Scroll
+   behaviour also stops smooth-scrolling under the preference. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Progress indicators are the one exception: a frozen spinner is
+     indistinguishable from a hung operation. This targets both the utility
+     class and the inline `animation: spin …` styles used across the app. */
+  .animate-spin,
+  [style*="spin"] {
+    animation-duration: 0.8s !important;
+    animation-iteration-count: infinite !important;
+  }
 }

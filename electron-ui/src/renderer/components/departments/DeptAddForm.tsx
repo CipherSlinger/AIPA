@@ -82,7 +82,7 @@ export default function DeptAddForm({ onDone }: { onDone: () => void }) {
           style={{
             display: 'flex', alignItems: 'center', gap: 4,
             background: 'none', border: 'none', cursor: 'pointer',
-            color: '#818cf8', fontSize: 10, textTransform: 'none', letterSpacing: 'normal',
+            color: 'var(--accent-text)', fontSize: 10, textTransform: 'none', letterSpacing: 'normal',
             fontWeight: 600, padding: 0,
           }}
         >

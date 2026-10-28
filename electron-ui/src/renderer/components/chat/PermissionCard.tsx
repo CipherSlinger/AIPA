@@ -63,9 +63,9 @@ function getPermissionType(toolName: string): 'bash' | 'file' | 'network' | 'oth
 }
 
 const PERMISSION_TYPE_BADGE: Record<'bash' | 'file' | 'network' | 'other', { label: string; bg: string; color: string; border: string }> = {
-  bash:    { label: 'bash',    bg: 'rgba(99,102,241,0.15)',  color: '#818cf8', border: 'rgba(99,102,241,0.30)' },
-  file:    { label: 'file',    bg: 'rgba(251,191,36,0.15)',  color: '#fbbf24', border: 'rgba(251,191,36,0.30)' },
-  network: { label: 'network', bg: 'rgba(67,229,229,0.15)',  color: '#67e8f9', border: 'rgba(67,229,229,0.30)' },
+  bash:    { label: 'bash',    bg: 'rgba(99,102,241,0.15)',  color: 'var(--accent-text)',  border: 'rgba(99,102,241,0.30)' },
+  file:    { label: 'file',    bg: 'rgba(251,191,36,0.15)',  color: 'var(--warning-text)', border: 'rgba(251,191,36,0.30)' },
+  network: { label: 'network', bg: 'rgba(67,229,229,0.15)',  color: 'var(--info-text)',    border: 'rgba(67,229,229,0.30)' },
   other:   { label: 'action',  bg: 'var(--border)', color: 'var(--text-secondary)', border: 'var(--border)' },
 }
 
@@ -418,7 +418,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
         <div
           style={{
             fontSize: 11,
-            color: 'rgba(165,180,252,0.9)',
+            color: 'var(--accent-text)',
             background: 'var(--code-bg)',
             border: '1px solid var(--border)',
             borderRadius: 8,
@@ -450,7 +450,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
               }}
               style={{
                 flex: 1,
-                background: 'linear-gradient(135deg, rgba(34,197,94,0.70), rgba(16,185,129,0.70))',
+                background: 'var(--success-solid)',
                 border: 'none',
                 borderRadius: 7,
                 padding: '0',
@@ -484,7 +484,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                 borderRadius: 7,
                 padding: '0',
                 height: 36,
-                color: '#fca5a5',
+                color: 'var(--danger-text)',
                 cursor: 'pointer',
                 fontSize: 13,
                 fontWeight: 600,
@@ -515,7 +515,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                     border: '1px solid rgba(34,197,94,0.3)',
                     borderRadius: 6,
                     padding: '4px 0',
-                    color: '#4ade80',
+                    color: 'var(--success-text)',
                     cursor: 'pointer',
                     fontSize: 11,
                     fontWeight: 600,
@@ -541,7 +541,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                     border: '1px solid rgba(239,68,68,0.4)',
                     borderRadius: 6,
                     padding: '4px 0',
-                    color: '#fca5a5',
+                    color: 'var(--danger-text)',
                     cursor: 'pointer',
                     fontSize: 11,
                     fontWeight: 600,
@@ -610,7 +610,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                     }}>
                       {checked && <Check size={9} color="rgba(255,255,255,0.95)" />}
                     </div>
-                    <ShieldPlus size={11} color="#4ade80" style={{ flexShrink: 0 }} />
+                    <ShieldPlus size={11} color="var(--success-text)" style={{ flexShrink: 0 }} />
                     <span style={{
                       fontSize: 12,
                       color: 'var(--text-primary)',
@@ -622,7 +622,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                     }}>
                       {rule}
                     </span>
-                    <span style={{ fontSize: 9, color: '#4ade80', fontWeight: 600, flexShrink: 0 }}>allow</span>
+                    <span style={{ fontSize: 9, color: 'var(--success-text)', fontWeight: 600, flexShrink: 0 }}>allow</span>
                   </div>
                 )
               })}
@@ -658,7 +658,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                     }}>
                       {checked && <Check size={9} color="rgba(255,255,255,0.95)" />}
                     </div>
-                    <ShieldOff size={11} color="#fca5a5" style={{ flexShrink: 0 }} />
+                    <ShieldOff size={11} color="var(--danger-text)" style={{ flexShrink: 0 }} />
                     <span style={{
                       fontSize: 12,
                       color: 'var(--text-primary)',
@@ -670,7 +670,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                     }}>
                       {rule}
                     </span>
-                    <span style={{ fontSize: 9, color: '#fca5a5', fontWeight: 600, flexShrink: 0 }}>deny</span>
+                    <span style={{ fontSize: 9, color: 'var(--danger-text)', fontWeight: 600, flexShrink: 0 }}>deny</span>
                   </div>
                 )
               })}
@@ -681,7 +681,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                 disabled={checkedRules.size === 0}
                 style={{
                   marginTop: 2,
-                  background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
+                  background: 'var(--cta-gradient)',
                   border: 'none',
                   borderRadius: 7,
                   padding: '6px 0',
@@ -724,7 +724,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                 alignItems: 'center',
                 gap: 4,
                 background: 'rgba(34,197,94,0.15)',
-                color: '#4ade80',
+                color: 'var(--success-text)',
                 borderRadius: 12,
                 padding: '3px 10px',
                 fontWeight: 600,
@@ -739,7 +739,7 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
                 alignItems: 'center',
                 gap: 4,
                 background: 'rgba(239,68,68,0.15)',
-                color: '#fca5a5',
+                color: 'var(--danger-text)',
                 borderRadius: 12,
                 padding: '3px 10px',
                 fontWeight: 600,

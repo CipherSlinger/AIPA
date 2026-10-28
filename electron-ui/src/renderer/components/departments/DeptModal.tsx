@@ -6,6 +6,7 @@
 
 import { useEffect, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 interface DeptModalProps {
   title: string
@@ -21,6 +22,7 @@ interface DeptModalProps {
 export default function DeptModal({
   title, subtitle, accent = '#6366f1', icon, width = 460, onClose, children, footer,
 }: DeptModalProps) {
+  const dialogRef = useFocusTrap(true)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
@@ -39,17 +41,22 @@ export default function DeptModal({
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
         style={{
           background: 'var(--popup-bg)',
           backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
           border: '1px solid var(--border)', borderRadius: 16,
-          boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
+          boxShadow: 'var(--dialog-shadow)',
           width, maxWidth: 'calc(100vw - 48px)',
+          maxHeight: 'calc(100vh - 48px)',
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
           animation: 'slideUp 0.15s ease',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 20px', borderBottom: '1px solid var(--bg-hover)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 20px', borderBottom: '1px solid var(--bg-hover)', flexShrink: 0 }}>
           {icon && (
             <div style={{
               width: 30, height: 30, borderRadius: 10, flexShrink: 0,
@@ -69,12 +76,12 @@ export default function DeptModal({
           </div>
         </div>
 
-        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto', minHeight: 0 }}>
           {children}
         </div>
 
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
+          display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0,
           padding: '12px 20px', borderTop: '1px solid var(--bg-hover)',
         }}>
           {footer}

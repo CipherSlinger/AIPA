@@ -203,7 +203,7 @@ function WorkflowsSection({ crud }: { crud: ReturnType<typeof useWorkflowCrud> }
                   display: 'flex', alignItems: 'center', gap: 5, height: 24, padding: '0 12px', borderRadius: 7, border: 'none',
                   fontSize: 12, fontWeight: on ? 600 : 500, cursor: 'pointer', transition: 'all 0.15s ease',
                   background: on ? 'var(--bg-primary)' : 'transparent',
-                  color: on ? '#818cf8' : 'var(--text-muted)',
+                  color: on ? 'var(--accent-text)' : 'var(--text-muted)',
                   boxShadow: on ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
                 }}
               >

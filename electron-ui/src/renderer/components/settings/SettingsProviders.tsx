@@ -121,8 +121,8 @@ export default function SettingsProviders() {
     if (!health) return { color: 'var(--text-muted)', label: t('provider.unchecked') }
     switch (health.status) {
       case 'healthy': return { color: '#22c55e', label: t('provider.healthy') }
-      case 'degraded': return { color: '#fbbf24', label: t('provider.degraded') }
-      case 'down': return { color: '#fca5a5', label: t('provider.down') }
+      case 'degraded': return { color: 'var(--warning-text)', label: t('provider.degraded') }
+      case 'down': return { color: 'var(--danger-text)', label: t('provider.down') }
     }
   }
 
@@ -193,7 +193,7 @@ export default function SettingsProviders() {
 
         {modelCount > 0 && (
           <span style={{
-            background: 'rgba(99,102,241,0.12)', color: '#a5b4fc',
+            background: 'rgba(99,102,241,0.12)', color: 'var(--accent-text)',
             borderRadius: 10, padding: '2px 7px', fontSize: 10, fontWeight: 600, flexShrink: 0,
           }}>
             {t('provider.modelCount', { count: modelCount })}
@@ -203,7 +203,7 @@ export default function SettingsProviders() {
         {!isBuiltIn && (
           <span style={{
             fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 6, flexShrink: 0,
-            background: 'rgba(99,102,241,0.12)', color: '#a5b4fc',
+            background: 'rgba(99,102,241,0.12)', color: 'var(--accent-text)',
             border: '1px solid rgba(99,102,241,0.2)',
           }}>
             {t('provider.custom')}
@@ -215,7 +215,7 @@ export default function SettingsProviders() {
           disabled={testing === provider.id}
           aria-label={t('provider.testConnection')}
           title={t('provider.testConnection')}
-          onMouseEnter={e => { if (testing !== provider.id) { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = '#a5b4fc' } }}
+          onMouseEnter={e => { if (testing !== provider.id) { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = 'var(--accent-text)' } }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -291,7 +291,7 @@ export default function SettingsProviders() {
         }}
         onMouseEnter={e => {
           e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'
-          e.currentTarget.style.color = '#a5b4fc'
+          e.currentTarget.style.color = 'var(--accent-text)'
           e.currentTarget.style.background = 'rgba(99,102,241,0.06)'
         }}
         onMouseLeave={e => {
@@ -345,7 +345,7 @@ export default function SettingsProviders() {
               {modelModal.models.map(m => (
                 <div key={m} style={{
                   padding: '6px 10px', borderRadius: 6, fontSize: 12,
-                  color: 'rgba(165,180,252,0.85)',
+                  color: 'var(--accent-text)',
                   background: 'var(--bg-hover)',
                   border: '1px solid var(--border)',
                   fontFamily: 'monospace',

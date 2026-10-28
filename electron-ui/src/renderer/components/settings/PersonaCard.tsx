@@ -73,7 +73,7 @@ export default function PersonaCard({ persona, isActive, isDefault, isDeleting, 
               fontWeight: 600,
               background: 'rgba(34,197,94,0.15)',
               border: '1px solid rgba(34,197,94,0.3)',
-              color: '#4ade80',
+              color: 'var(--success-text)',
               padding: '1px 6px',
               borderRadius: 10,
             }}>
@@ -131,7 +131,7 @@ export default function PersonaCard({ persona, isActive, isDefault, isDeleting, 
             borderRadius: 8,
             border: 'none',
             background: editHovered ? 'rgba(99,102,241,0.15)' : 'transparent',
-            color: editHovered ? '#818cf8' : 'var(--text-muted)',
+            color: editHovered ? 'var(--accent-text)' : 'var(--text-muted)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -157,8 +157,8 @@ export default function PersonaCard({ persona, isActive, isDefault, isDeleting, 
               ? 'rgba(239,68,68,0.12)'
               : deleteHovered ? 'rgba(239,68,68,0.12)' : 'transparent',
             color: isDeleting
-              ? '#fca5a5'
-              : deleteHovered ? '#fca5a5' : 'var(--text-muted)',
+              ? 'var(--danger-text)'
+              : deleteHovered ? 'var(--danger-text)' : 'var(--text-muted)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',

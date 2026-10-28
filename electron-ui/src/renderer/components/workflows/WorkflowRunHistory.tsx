@@ -202,7 +202,7 @@ export default function WorkflowRunHistory({
             : '1px solid var(--glass-border-md)',
           borderRadius: 7,
           cursor: 'pointer',
-          color: isReplay ? '#818cf8' : 'var(--text-muted)',
+          color: isReplay ? 'var(--accent-text)' : 'var(--text-muted)',
           fontSize: 10,
           fontWeight: 500,
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
@@ -310,7 +310,7 @@ export default function WorkflowRunHistory({
               border: 'none',
               borderBottom: '1px solid var(--bg-hover)',
               cursor: 'pointer',
-              color: selectedRunId === null ? '#818cf8' : 'var(--text-secondary)',
+              color: selectedRunId === null ? 'var(--accent-text)' : 'var(--text-secondary)',
               fontSize: 10,
               fontWeight: 600,
               textAlign: 'left',
@@ -387,7 +387,7 @@ export default function WorkflowRunHistory({
                             ? '3px solid rgba(34,197,94,0.6)'
                             : '3px solid rgba(239,68,68,0.6)',
                         cursor: 'pointer',
-                        color: isSelected ? '#818cf8' : 'var(--text-secondary)',
+                        color: isSelected ? 'var(--accent-text)' : 'var(--text-secondary)',
                         fontSize: 10,
                         textAlign: 'left',
                         transition: 'background 0.15s ease, color 0.15s ease',
@@ -404,7 +404,7 @@ export default function WorkflowRunHistory({
                       {/* Top row: relative time + badges */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
-                          <span style={{ fontWeight: 700, fontSize: 11, flexShrink: 0, color: isSelected ? '#818cf8' : 'var(--text-primary)' }}>
+                          <span style={{ fontWeight: 700, fontSize: 11, flexShrink: 0, color: isSelected ? 'var(--accent-text)' : 'var(--text-primary)' }}>
                             {formatRelativeTime(run.startedAt)}
                           </span>
                           <span style={{
@@ -447,7 +447,7 @@ export default function WorkflowRunHistory({
                           background: run.success === undefined
                             ? 'linear-gradient(90deg, rgba(99,102,241,0.75), rgba(139,92,246,0.60))'
                             : run.success
-                              ? (isSelected ? '#818cf8' : 'rgba(34,197,94,0.60)')
+                              ? (isSelected ? 'var(--accent-text)' : 'rgba(34,197,94,0.60)')
                               : 'rgba(248,113,113,0.60)',
                           borderRadius: 2,
                           transition: 'width 0.3s ease',

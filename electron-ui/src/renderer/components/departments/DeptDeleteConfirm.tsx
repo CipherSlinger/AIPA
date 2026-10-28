@@ -50,15 +50,15 @@ export default function DeptDeleteConfirm({ dept, isActive, onClose }: Props) {
     >
       <div style={{ fontSize: 12, color: 'var(--text-primary)', marginBottom: 8 }}>{t('dept.confirmDelete')}</div>
       {childCount > 0 && (
-        <div style={{ fontSize: 11, color: '#f87171', marginBottom: 8, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 11, color: 'var(--danger-text)', marginBottom: 8, lineHeight: 1.5 }}>
           {t('dept.deleteCascade', { count: String(childCount) })}
         </div>
       )}
       <div style={{ display: 'flex', gap: 6 }}>
         <button onClick={() => { removeDepartment(dept.id); onClose(); if (isActive) useUiStore.getState().setMainView('chat') }}
-          style={{ flex: 1, padding: '5px 0', borderRadius: 5, border: 'none', background: '#f87171', color: 'rgba(255,255,255,0.95)', fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease' }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.85)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = '#f87171' }}
+          style={{ flex: 1, padding: '5px 0', borderRadius: 5, border: 'none', background: 'var(--danger-solid)', color: 'rgba(255,255,255,0.95)', fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease' }}
+          onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.1)' }}
+          onMouseLeave={e => { e.currentTarget.style.filter = '' }}
         >
           {t('dept.deleteConfirm')}
         </button>
