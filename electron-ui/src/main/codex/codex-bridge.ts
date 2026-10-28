@@ -2857,6 +2857,13 @@ export class CodexBridge extends EventEmitter {
           turnId: params.turnId,
           diff: bounded.text,
           truncated: bounded.truncated,
+          // The moment AIPA received this snapshot. The renderer compares file
+          // mtimes against it, never against the file's own timestamp alone: a
+          // touch or a clock skew must not fabricate "changed since the turn".
+          capturedAt: Date.now(),
+          // Diff paths are relative to the thread's cwd. Without it the
+          // renderer cannot resolve a path, and must report `unchecked`.
+          cwd: this.currentCwd,
         })
         break
       }

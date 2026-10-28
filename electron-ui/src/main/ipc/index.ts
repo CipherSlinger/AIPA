@@ -74,6 +74,7 @@ import {
   createDirectoryWatchService,
   type DirectoryWatchService,
 } from '../fs/watch-service'
+import { partitionStatPaths, statPaths } from '../fs/stat-paths'
 import { registerAttachmentHandlers, sanitizeCodexInput } from './attachment-handlers'
 import { registerWindowHandlers } from './window-handlers'
 import { registerDiagnosticsHandlers } from './diagnostics-handlers'
@@ -327,6 +328,7 @@ export function registerAllHandlers(
     registerConfigHandlers()
     registerFsHandlers()
     registerFsWatchHandlers(send)
+    registerFsStatHandlers()
     registerAttachmentHandlers()
     registerShellHandlers()
     registerWindowHandlers(win)
@@ -480,6 +482,31 @@ function registerFsWatchHandlers(send: (ch: string, ...a: unknown[]) => void): v
   app.once('before-quit', () => {
     service.dispose()
     fsWatchService = null
+  })
+}
+
+// ----------------------------------------
+// Turn-diff disk checks
+// ----------------------------------------
+//
+// The turn-diff card asks only about files it already shows, and only for a
+// cheap size + mtime snapshot. Paths are confined by the same `safePath` rule
+// as `fs:watchDirectories`; a rejected path comes back as an error code so the
+// card can say "not checked" instead of implying the file is unchanged.
+function registerFsStatHandlers(): void {
+  safeHandle('fs:statPaths', async (_e, args?: { paths?: unknown }) => {
+    try {
+      const requested = Array.isArray(args?.paths) ? args.paths : []
+      const workingDir = getPref('workingDir')
+      const { allowed, rejected } = partitionStatPaths(requested, getAllowedFsRoots(workingDir))
+      const settled = await statPaths(allowed)
+      return [...settled, ...rejected]
+    } catch (err) {
+      // The renderer must interpret an empty answer as "nothing was checked",
+      // never as "everything matches".
+      log.warn('fs:statPaths error:', String(err))
+      return []
+    }
   })
 }
 

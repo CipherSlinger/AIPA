@@ -282,6 +282,9 @@ export function useStreamJson() {
     // confirmed: the turn it was addressed to is gone. Say that on the row
     // instead of letting it keep claiming delivery.
     useChatStore.getState().settlePendingGuidance(getT()('chat.steer.turnEnded'))
+    // The diff snapshot becomes final here: files the turn itself wrote are
+    // "before", not drift. Only a change after this moment can be reported.
+    useChatStore.getState().markTurnDiffCaptured(Date.now())
     useChatStore.getState().setStreaming(false)
     if (window.electronAPI?.windowPreventSleep) {
       window.electronAPI.windowPreventSleep(false)
@@ -1621,6 +1624,10 @@ export function useStreamJson() {
             turnId: compactString(data.turnId),
             diff,
             truncated: data.truncated === true,
+            capturedAt: typeof data.capturedAt === 'number' && Number.isFinite(data.capturedAt)
+              ? data.capturedAt
+              : null,
+            cwd: compactString(data.cwd),
           })
           break
         }

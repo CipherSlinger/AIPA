@@ -3569,7 +3569,23 @@
       "truncated": "The earlier part of this diff was trimmed — only the end is shown.",
       "region": "Diff for this turn",
       "empty": "The diff was empty or couldn't be read.",
-      "showAll": "Show all {{count}} lines"
+      "showAll": "Show all {{count}} lines",
+      "drift": {
+        "changedOne": "1 file changed on disk since this turn",
+        "changedMany": "{{count}} files changed on disk since this turn",
+        "missingOne": "1 file is no longer on disk",
+        "missingMany": "{{count}} files are no longer on disk",
+        "mixed": "{{changed}} changed and {{missing}} no longer on disk since this turn",
+        "uncheckedOne": "1 file was not checked against the disk",
+        "uncheckedMany": "{{count}} files were not checked against the disk",
+        "uncheckedNotWatchedOne": "1 file was not checked: its folder is not being watched",
+        "uncheckedNotWatchedMany": "{{count}} files were not checked: their folders are not being watched",
+        "refresh": "Check these files against the disk again",
+        "files": "Files in this diff",
+        "chipChanged": "changed on disk",
+        "chipMissing": "no longer on disk",
+        "chipUnchanged": "no change since this turn"
+      }
     },
     "thread": {
       "approval": {

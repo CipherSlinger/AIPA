@@ -818,6 +818,22 @@ export interface FsChangedData {
 }
 
 /**
+ * One `fs:statPaths` result. `exists: false` with `error: null` is a definite
+ * "gone"; a non-null `error` means nothing was proven and the caller must keep
+ * its own state `unchecked`. Size and mtime are the only file facts returned —
+ * contents never cross this boundary.
+ */
+export interface FsStatPathResultData {
+  path: string
+  exists: boolean
+  isFile: boolean
+  size: number | null
+  mtimeMs: number | null
+  /** `not_allowed`, `stat_failed`, an errno code, or null when the stat ran. */
+  error: string | null
+}
+
+/**
  * `TurnStatus` normalized for the renderer. `unknown` means the notification
  * carried no status (or one this build cannot name) — it is never success.
  */
@@ -1372,6 +1388,13 @@ const electronAPI = {
    */
   fsWatchDirectories: (directories: string[], subscriberId?: string) =>
     ipcRenderer.invoke('fs:watchDirectories', { directories, subscriberId }) as Promise<FsWatchStateData>,
+  /**
+   * Size + mtime for a bounded list of absolute paths. Confined to the same
+   * allowed roots as the other `fs:*` handlers; a rejected path returns an
+   * error instead of a stat, so callers never mistake it for "unchanged".
+   */
+  fsStatPaths: (paths: string[]) =>
+    ipcRenderer.invoke('fs:statPaths', { paths }) as Promise<FsStatPathResultData[]>,
   /** Pushed after the main-process debounce; names only, never contents. */
   onFsChanged: (cb: (payload: FsChangedData) => void): Unsubscribe => {
     const handler = (_: unknown, data: FsChangedData) => cb(data)

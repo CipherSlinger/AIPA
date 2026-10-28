@@ -3569,7 +3569,23 @@
       "truncated": "这段改动的前半部分已被截断，只显示末尾部分。",
       "region": "本轮改动内容",
       "empty": "改动内容为空或无法解析。",
-      "showAll": "显示全部 {{count}} 行"
+      "showAll": "显示全部 {{count}} 行",
+      "drift": {
+        "changedOne": "本轮之后有 1 个文件在磁盘上发生了变化",
+        "changedMany": "本轮之后有 {{count}} 个文件在磁盘上发生了变化",
+        "missingOne": "1 个文件已不在磁盘上",
+        "missingMany": "{{count}} 个文件已不在磁盘上",
+        "mixed": "本轮之后有 {{changed}} 个文件发生变化，{{missing}} 个已不在磁盘上",
+        "uncheckedOne": "1 个文件没有对照磁盘检查",
+        "uncheckedMany": "{{count}} 个文件没有对照磁盘检查",
+        "uncheckedNotWatchedOne": "1 个文件未检查：它所在的文件夹没有被监视",
+        "uncheckedNotWatchedMany": "{{count}} 个文件未检查：它们所在的文件夹没有被监视",
+        "refresh": "重新对照磁盘检查这些文件",
+        "files": "本次改动涉及的文件",
+        "chipChanged": "磁盘上已变化",
+        "chipMissing": "已不在磁盘上",
+        "chipUnchanged": "本轮之后没有变化"
+      }
     },
     "thread": {
       "approval": {

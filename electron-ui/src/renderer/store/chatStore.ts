@@ -56,6 +56,14 @@ export interface TurnDiffUpdate {
   diff: string
   /** `true` means the beginning of the diff is missing, not the end. */
   truncated: boolean
+  /**
+   * Epoch ms when AIPA received this snapshot. Drift checks compare file
+   * mtimes against it; null means the receipt time is unknown, so no
+   * changed/unchanged claim can be made.
+   */
+  capturedAt: number | null
+  /** The thread cwd that diff paths are relative to; null when unknown. */
+  cwd: string | null
 }
 
 // ── Codex thread settings (thread/settings/updated) ──
@@ -254,6 +262,12 @@ interface ChatState {
   settlePendingGuidance: (error: string) => void
   appendTextDelta: (sessionId: string, text: string) => void
   setStreaming: (v: boolean) => void
+  /**
+   * Set the turn diff's capture time to the moment the turn ended, so the
+   * card's drift check answers "changed after this turn" rather than "changed
+   * after some mid-turn snapshot". A no-op when there is no diff.
+   */
+  markTurnDiffCaptured: (capturedAt: number) => void
   /**
    * Bridge id of the turn the composer started. Deltas from any other bridge
    * (background memory extraction, away summary) are dropped by
@@ -1204,6 +1218,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
   clearChangedFiles: () => set({ changedFiles: [] }),
   setTurnDiff: (turnDiff) => set({ turnDiff }),
   clearTurnDiff: () => set({ turnDiff: null }),
+  // The diff arrives incrementally while the turn is still writing files, so
+  // its receipt time cannot answer "did the disk change after this turn?" —
+  // it is only the moment one snapshot was taken. Re-stamping at turn end is
+  // what makes the drift claim mean what the card says.
+  markTurnDiffCaptured: (capturedAt) => set((s) => (
+    s.turnDiff ? { turnDiff: { ...s.turnDiff, capturedAt } } : {}
+  )),
   setThreadSettings: (threadSettings) => set({ threadSettings }),
   clearThreadSettings: () => set({ threadSettings: null }),
   setThreadStatus: (threadStatus) => set({ threadStatus }),
