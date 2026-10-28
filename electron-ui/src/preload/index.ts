@@ -102,6 +102,8 @@ export interface AskHistoryResultData {
   ok: boolean
   answer?: string
   sources?: AskHistorySourceData[]
+  /** True when an empty answer was returned while the transcript index was still building. */
+  indexing?: boolean
   /** Set when no authenticated engine could run the turn. */
   available?: boolean
   reason?: string
@@ -320,10 +322,20 @@ const electronAPI = {
   /** Whether this profile can run an ask turn; the overlay hides the row when not. */
   sessionAskHistoryStatus: () =>
     ipcRenderer.invoke('session:askHistoryStatus') as Promise<{ available: boolean; reason?: string }>,
-  sessionAskHistory: ({ question, locale }: { question: string; locale?: string }) =>
-    ipcRenderer.invoke('session:askHistory', { question, locale }) as Promise<AskHistoryResultData>,
+  sessionAskHistory: ({ question, locale, requestId }: { question: string; locale?: string; requestId: string }) =>
+    ipcRenderer.invoke('session:askHistory', { question, locale, requestId }) as Promise<AskHistoryResultData>,
   /** Abort the in-flight ask (the overlay closes mid-run) and free the slot. */
   sessionAskHistoryCancel: () => ipcRenderer.invoke('session:askHistoryCancel') as Promise<void>,
+  /**
+   * Cumulative answer text for one ask, pushed every ~120 ms while the private
+   * turn runs. The `requestId` is the one passed to `sessionAskHistory`; an
+   * event for any other id belongs to a superseded ask and must be ignored.
+   */
+  onAskHistoryProgress: (cb: (data: { requestId: string; text: string }) => void): Unsubscribe => {
+    const handler = (_: unknown, data: { requestId: string; text: string }) => cb(data)
+    ipcRenderer.on('session:askHistoryProgress', handler)
+    return () => ipcRenderer.removeListener('session:askHistoryProgress', handler)
+  },
   sessionDetectInterruption: (sessionId: string) => ipcRenderer.invoke('session:detectInterruption', { sessionId }),
   sessionGetStats: () => ipcRenderer.invoke('session:getStats'),
   /** Returns mtime (ms) of .consolidate-lock — used to detect dream completions */

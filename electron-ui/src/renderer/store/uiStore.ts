@@ -77,6 +77,12 @@ interface UiState {
   globalSearchOpen: boolean
   setGlobalSearchOpen: (open: boolean) => void
 
+  // Text the next overlay mount should start with (command palette → search).
+  // The overlay reads it once and clears it, so reopening the search later
+  // does not resurrect a question the user already saw.
+  globalSearchSeed: string
+  setGlobalSearchSeed: (seed: string) => void
+
   // Evidence hand-off from the search overlay to ChatPanel. The overlay knows
   // the matched message only as a timestamp; ChatPanel owns the parsed message
   // array that turns it into an index. The nonce makes two clicks on the same
@@ -262,6 +268,8 @@ export const useUiStore = create<UiState>((set) => ({
   consumeInputFocus: () => set({ focusInputPending: false }),
   globalSearchOpen: false,
   setGlobalSearchOpen: (open) => set({ globalSearchOpen: open }),
+  globalSearchSeed: '',
+  setGlobalSearchSeed: (seed) => set({ globalSearchSeed: seed }),
   pendingReveal: null,
   requestReveal: (reveal) => set({
     pendingReveal: { ...reveal, nonce: Date.now() },

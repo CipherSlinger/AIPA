@@ -25,10 +25,14 @@ export function useGlobalSessionSearch(query: string, enabled = true) {
   const sequence = useRef(0)
 
   useEffect(() => {
+    // Invalidate the previous query's in-flight scan immediately, not when the
+    // debounce fires. A scan started for the old text can resolve inside the
+    // new query's 180 ms window; without this bump it would still match
+    // `sequence.current` and paint rows for text the input no longer holds.
+    const mine = ++sequence.current
     if (!enabled) return
     const trimmed = query.trim()
     if (trimmed.length < 2) {
-      sequence.current++
       setResults([])
       setStatus('idle')
       setSearchedQuery('')
@@ -41,7 +45,6 @@ export function useGlobalSessionSearch(query: string, enabled = true) {
     setStatus('loading')
 
     const timer = setTimeout(async () => {
-      const mine = ++sequence.current
       try {
         const api = window.electronAPI
         if (!api?.sessionSearch) throw new Error('sessionSearch unavailable')

@@ -12,7 +12,7 @@
 // message the answer was built from.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Loader2, Search, Sparkles, X } from 'lucide-react'
+import { Check, Copy, Loader2, Search, Sparkles, X } from 'lucide-react'
 import type { AskHistorySourceData, SessionSearchResultData } from '../../../preload/index'
 import { useI18n, useT } from '../../i18n'
 import { useUiStore } from '../../store'
@@ -32,6 +32,24 @@ type AskSource = AskHistorySourceData & { matchedTerm?: string }
 /** Optional abort, same reason: the preload typing may not expose it yet. */
 type AskHistoryCancelApi = { sessionAskHistoryCancel?: () => void | Promise<void> }
 
+/** Optional progress feed, also tolerated when the preload lags this build. */
+type AskHistoryProgressApi = {
+  onAskHistoryProgress?: (
+    cb: (data: { requestId: string; text: string }) => void,
+  ) => () => void
+}
+
+// Streaming answers blink a caret at the end. Injected once, module-wide, so
+// every overlay mount can reuse it.
+;(function ensureAskCaretKeyframes() {
+  if (typeof document === 'undefined') return
+  if (document.getElementById('ask-history-kf')) return
+  const style = document.createElement('style')
+  style.id = 'ask-history-kf'
+  style.textContent = '@keyframes ask-caret-blink { 0%, 49% { opacity: 1 } 50%, 100% { opacity: 0 } }'
+  document.head.appendChild(style)
+})()
+
 function projectLabel(project: string, fallback: string): string {
   if (!project) return fallback
   const parts = project.split(/[\\/]/).filter(Boolean)
@@ -42,6 +60,17 @@ type AskState = 'idle' | 'running' | 'answer'
 
 /** Minimum query length worth an LLM turn — same threshold as the pinned row. */
 const ASK_MIN_QUERY = 4
+
+const GHOST_BUTTON_STYLE: React.CSSProperties = {
+  background: 'none',
+  border: '1px solid var(--border)',
+  borderRadius: 6,
+  color: 'var(--text-muted)',
+  cursor: 'pointer',
+  fontSize: 11,
+  padding: '3px 10px',
+  fontFamily: 'inherit',
+}
 
 const CHIP_STYLE: React.CSSProperties = {
   display: 'inline-flex',
@@ -120,12 +149,22 @@ export default function GlobalSearchOverlay() {
   const { resolvedLocale } = useI18n()
   const addToast = useUiStore(s => s.addToast)
   const setOpen = useUiStore(s => s.setGlobalSearchOpen)
-  const [query, setQuery] = useState('')
+  // The command palette can hand a typed question to the next overlay mount.
+  // Read it once here (the state initializer runs on mount only) so typing
+  // remains fully controlled afterwards.
+  const [query, setQuery] = useState(() => useUiStore.getState().globalSearchSeed || '')
   const [active, setActive] = useState(0)
   const [askAvailable, setAskAvailable] = useState(false)
   const [askState, setAskState] = useState<AskState>('idle')
   const [askAnswer, setAskAnswer] = useState('')
+  // Cumulative answer text pushed while the private turn runs. It becomes the
+  // visible body until the invoke resolves with the final answer.
+  const [askDraft, setAskDraft] = useState('')
+  const [copied, setCopied] = useState(false)
   const [askSources, setAskSources] = useState<AskSource[]>([])
+  // The main process says an empty answer was answered before its transcript
+  // index finished building, so the copy must not claim nothing matched.
+  const [askIndexing, setAskIndexing] = useState(false)
   // The question the visible answer belongs to. The input stays editable, so
   // the citation click must reopen evidence for the query that produced it.
   const [askedQuestion, setAskedQuestion] = useState('')
@@ -136,6 +175,10 @@ export default function GlobalSearchOverlay() {
   // "failed" for a turn the user deliberately stopped.
   const dismissedRef = useRef(false)
   const askRunRef = useRef(0)
+  // Identifies the ask whose progress events are allowed to paint. A new ask
+  // replaces it, so events from the previous turn can never leak in.
+  const requestIdRef = useRef('')
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Latest input text, readable from a turn that was started several renders
   // ago. The callback's captured `query` is the question as it was asked, so
   // it cannot tell whether the user has edited since.
@@ -148,8 +191,8 @@ export default function GlobalSearchOverlay() {
   // The list is hidden for the whole answer view, not just while the turn
   // runs. Gating on `!== 'running'` flipped back on the moment the answer
   // arrived, firing a full-corpus scan nobody could see. Only an idle overlay
-  // searches: editing the query (which drops a stale answer) or a later open
-  // resumes it.
+  // searches: editing the query (which stops a running turn or drops a stale
+  // answer) or a later open resumes it.
   const { results, status, searchedQuery } = useGlobalSessionSearch(query, askState === 'idle')
 
   const close = useCallback(() => {
@@ -165,6 +208,38 @@ export default function GlobalSearchOverlay() {
   useEffect(() => { queryRef.current = query }, [query])
 
   useEffect(() => { askStateRef.current = askState }, [askState])
+
+  // The seed is one-shot: consume it on mount so closing and reopening the
+  // overlay does not bring the palette's old question back.
+  useEffect(() => {
+    const store = useUiStore.getState()
+    if (store.globalSearchSeed) store.setGlobalSearchSeed('')
+  }, [])
+
+  // Live answer text for the running ask. The optional call keeps an older
+  // preload (no progress channel) from crashing the overlay.
+  useEffect(() => {
+    const api = window.electronAPI as (typeof window.electronAPI & AskHistoryProgressApi) | undefined
+    let unsubscribe: (() => void) | undefined
+    try {
+      unsubscribe = api?.onAskHistoryProgress?.(data => {
+        if (!data || data.requestId !== requestIdRef.current) return
+        if (askStateRef.current !== 'running') return
+        if (dismissedRef.current) return
+        if (typeof data.text !== 'string') return
+        setAskDraft(data.text)
+      })
+    } catch {
+      // Progress is an enhancement; the final invoke result still lands.
+    }
+    return () => {
+      try { unsubscribe?.() } catch { /* the overlay is going away */ }
+    }
+  }, [])
+
+  useEffect(() => () => {
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+  }, [])
 
   // Closing the overlay is the user's "stop". A turn that was still running
   // keeps a model call and the transcript readers' epoch alive behind a window
@@ -241,24 +316,33 @@ export default function GlobalSearchOverlay() {
     if (!askAvailable || question.length < ASK_MIN_QUERY || askState === 'running') return
 
     const run = ++askRunRef.current
+    // Fresh id per ask: the main process echoes it on every progress event,
+    // and anything carrying an older id is ignored by the listener.
+    const requestId = `ask-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+    requestIdRef.current = requestId
     setAskState('running')
     setAskAnswer('')
+    setAskDraft('')
     setAskSources([])
+    setAskIndexing(false)
+    setCopied(false)
     setAskedQuestion(question)
 
     try {
       const api = window.electronAPI
       if (!api?.sessionAskHistory) throw new Error('sessionAskHistory unavailable')
-      const result = await api.sessionAskHistory({ question, locale: resolvedLocale })
+      const result = await api.sessionAskHistory({ question, locale: resolvedLocale, requestId })
       if (run !== askRunRef.current || dismissedRef.current) return
       if (queryRef.current.trim() !== question) {
         // The input no longer holds the question this turn was asked for.
         // Showing the answer would attach it to text the user has replaced.
         setAskState('idle')
+        setAskDraft('')
         return
       }
       if (!result?.ok) {
         setAskState('idle')
+        setAskDraft('')
         if (result?.error === 'busy') addToast('error', t('askHistory.busy'))
         else if (result?.error === 'timeout') addToast('error', t('askHistory.timeout'))
         else if (result?.error === 'empty_response') addToast('error', t('askHistory.empty'))
@@ -266,15 +350,67 @@ export default function GlobalSearchOverlay() {
         return
       }
       setAskAnswer(result.answer || '')
+      setAskDraft('')
       setAskSources(result.sources || [])
+      setAskIndexing(Boolean(result.indexing))
       setAskState('answer')
     } catch {
       if (run !== askRunRef.current || dismissedRef.current) return
       // Stay in the overlay with the query intact so the user can retry.
       setAskState('idle')
+      setAskDraft('')
       addToast('error', t('askHistory.failed'))
     }
   }, [addToast, askAvailable, askState, query, resolvedLocale, t])
+
+  // Stop is a user decision, not an abort of the overlay: bump the run token
+  // so the late invoke result is ignored, clear the partial text, and free the
+  // main-process slot.
+  const stopAsk = useCallback(() => {
+    askRunRef.current += 1
+    requestIdRef.current = ''
+    setAskDraft('')
+    setAskIndexing(false)
+    setAskState('idle')
+    const api = window.electronAPI as (typeof window.electronAPI & AskHistoryCancelApi) | undefined
+    try {
+      void api?.sessionAskHistoryCancel?.()
+    } catch {
+      // The turn may already have settled; nothing useful to report.
+    }
+  }, [])
+
+  // Copy the answer verbatim, citations included — they mean something.
+  const copyAnswer = useCallback(() => {
+    const textToCopy = askAnswer
+    if (!textToCopy) return
+    const done = () => {
+      setCopied(true)
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+      copyTimerRef.current = setTimeout(() => setCopied(false), 1500)
+    }
+    const fallback = () => {
+      try {
+        const area = document.createElement('textarea')
+        area.value = textToCopy
+        area.style.position = 'fixed'
+        area.style.opacity = '0'
+        document.body.appendChild(area)
+        area.select()
+        const ok = document.execCommand('copy')
+        document.body.removeChild(area)
+        if (ok) done()
+        else addToast('error', t('askHistory.copyFailed'))
+      } catch {
+        addToast('error', t('askHistory.copyFailed'))
+      }
+    }
+    try {
+      void navigator.clipboard.writeText(textToCopy).then(done).catch(fallback)
+    } catch {
+      fallback()
+    }
+  }, [addToast, askAnswer, t])
 
   const openCitation = useCallback(async (source: AskSource) => {
     if (openingRef.current) return
@@ -387,10 +523,16 @@ export default function GlobalSearchOverlay() {
             value={query}
             onChange={e => {
               setQuery(e.target.value)
-              // Editing after an answer makes that answer stale; go back to
-              // the search list. A running turn is left alone — it keeps going
-              // and its result is still shown.
-              if (askState === 'answer') setAskState('idle')
+              // Editing invalidates whatever the previous text produced. An
+              // answer is simply stale, so return to the list; a running turn
+              // must stop, because it streams for a question the input no
+              // longer holds and its late result would be discarded anyway.
+              if (askState === 'running') {
+                stopAsk()
+              } else if (askState === 'answer') {
+                setAskState('idle')
+                setAskIndexing(false)
+              }
             }}
             placeholder={t('globalSearch.placeholder')}
             aria-label={t('globalSearch.placeholder')}
@@ -443,42 +585,73 @@ export default function GlobalSearchOverlay() {
           }}
         >
           {askState === 'running' && (
-            <div
-              aria-live="polite"
-              style={{
-                ...EMPTY_STYLE,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 10,
-              }}
-            >
-              <Loader2
-                size={20}
-                style={{ color: '#a5b4fc', animation: 'spin 1s linear infinite' }}
-              />
-              <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                {t('askHistory.reading')}
+            askDraft ? (
+              <div
+                role="region"
+                aria-label={t('askHistory.answerLabel')}
+                aria-live="polite"
+                style={{ padding: '16px 16px 14px' }}
+              >
+                <div
+                  style={{
+                    fontSize: 13,
+                    lineHeight: 1.7,
+                    color: 'var(--text-primary)',
+                    whiteSpace: 'pre-wrap',
+                  }}
+                >
+                  {askDraft}
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      display: 'inline-block',
+                      width: 1,
+                      height: '1em',
+                      marginLeft: 2,
+                      verticalAlign: 'text-bottom',
+                      background: '#a5b4fc',
+                      animation: 'ask-caret-blink 1s steps(1, end) infinite',
+                    }}
+                  />
+                </div>
+                <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+                  <button type="button" onClick={stopAsk} style={GHOST_BUTTON_STYLE}>
+                    {t('askHistory.stop')}
+                  </button>
+                </div>
               </div>
-              {/* Closing dismisses the overlay and aborts the turn through the
-                  unmount cleanup, so no model call keeps running unseen. */}
-              <button
-                type="button"
-                onClick={close}
+            ) : (
+              <div
+                aria-live="polite"
                 style={{
-                  background: 'none',
-                  border: '1px solid var(--border)',
-                  borderRadius: 6,
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  fontSize: 11,
-                  padding: '3px 10px',
-                  fontFamily: 'inherit',
+                  ...EMPTY_STYLE,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 10,
                 }}
               >
-                {t('askHistory.cancel')}
-              </button>
-            </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                  <Loader2
+                    size={20}
+                    style={{ color: '#a5b4fc', animation: 'spin 1s linear infinite' }}
+                  />
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                    {t('askHistory.reading')}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {/* Stops just the turn and returns to the search list. Closing
+                      still dismisses the overlay and aborts through unmount. */}
+                  <button type="button" onClick={stopAsk} style={GHOST_BUTTON_STYLE}>
+                    {t('askHistory.stop')}
+                  </button>
+                  <button type="button" onClick={close} style={GHOST_BUTTON_STYLE}>
+                    {t('askHistory.cancel')}
+                  </button>
+                </div>
+              </div>
+            )
           )}
 
           {askState === 'answer' && (
@@ -489,14 +662,37 @@ export default function GlobalSearchOverlay() {
               style={{ padding: '16px 16px 14px' }}
             >
               {askAnswer ? (
-                <AnswerBody
-                  answer={askAnswer}
-                  sources={askSources}
-                  onCite={(_n, source) => void openCitation(source)}
-                />
+                <>
+                  {/* The row keeps its height in both states: growing it on
+                      "Copied" would shift the answer under the cursor. */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 2, minHeight: 22 }}>
+                    <button
+                      type="button"
+                      onClick={copyAnswer}
+                      title={t(copied ? 'askHistory.copied' : 'askHistory.copy')}
+                      aria-label={t(copied ? 'askHistory.copied' : 'askHistory.copy')}
+                      style={{
+                        ...GHOST_BUTTON_STYLE,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        color: copied ? '#4ade80' : 'var(--text-muted)',
+                        padding: '3px 8px',
+                      }}
+                    >
+                      {copied ? <Check size={12} /> : <Copy size={12} />}
+                      <span>{t(copied ? 'askHistory.copied' : 'askHistory.copy')}</span>
+                    </button>
+                  </div>
+                  <AnswerBody
+                    answer={askAnswer}
+                    sources={askSources}
+                    onCite={(_n, source) => void openCitation(source)}
+                  />
+                </>
               ) : (
                 <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                  {t('askHistory.noSources')}
+                  {t(askIndexing ? 'askHistory.stillIndexing' : 'askHistory.noSources')}
                 </div>
               )}
 

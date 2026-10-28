@@ -79,7 +79,7 @@ export default function CommandPalette({
     const args = {
       t, onClose, onExport, onNewConversation, onSendSlashCommand,
       toggleSidebar, setSidebarTab, setSidebarOpen, setActiveNavItem,
-      addToQueue, addToast, sessions,
+      addToQueue, addToast, sessions, query,
     }
     return [
       ...buildSessionCommands(args),
@@ -92,7 +92,7 @@ export default function CommandPalette({
   }, [
     onClose, onExport, onNewConversation, onSendSlashCommand,
     toggleSidebar, setSidebarTab, setSidebarOpen, setActiveNavItem,
-    addToQueue, addToast, sessions, t,
+    addToQueue, addToast, sessions, query, t,
   ])
 
   // Filter by query

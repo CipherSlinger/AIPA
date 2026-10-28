@@ -38,6 +38,8 @@ interface CommandBuilderArgs {
   addToQueue: (text: string) => void
   addToast: (type: 'success' | 'error' | 'info' | 'warning', msg: string, duration?: number) => void
   sessions: SessionListItem[]
+  /** Text currently typed into the palette; seeds the global search overlay. */
+  query?: string
 }
 
 export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] {
@@ -142,6 +144,22 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
       icon: <Archive size={14} />,
       shortcut: 'Ctrl+8',
       action: () => { setActiveNavItem('archive'); onClose() },
+      category: 'action',
+    },
+    {
+      id: 'ask-history',
+      name: t('command.askHistory'),
+      description: t('command.askHistoryDesc'),
+      icon: <Sparkles size={14} />,
+      action: () => {
+        // The palette query becomes the question; the overlay reads the seed
+        // once on mount. An empty query just opens the search as usual.
+        const seed = (args.query || '').trim()
+        const ui = useUiStore.getState()
+        if (seed) ui.setGlobalSearchSeed(seed)
+        ui.setGlobalSearchOpen(true)
+        onClose()
+      },
       category: 'action',
     },
     {

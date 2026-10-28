@@ -18,11 +18,13 @@
  * engine, via `runInternalTurn`.
  */
 import {
+  getSearchIndexStats as getClaudeSearchIndexStats,
   searchSessions as searchClaudeSessions,
   readSessionProse as readClaudeSessionProse,
   type SearchResult,
 } from './session-reader'
 import {
+  getSearchIndexStats as getCodexSearchIndexStats,
   searchSessions as searchCodexSessions,
   readSessionProse as readCodexSessionProse,
 } from '../codex/codex-session-reader'
@@ -48,9 +50,10 @@ export interface AskSource {
   /** The excerpt that surfaced this session (newest matching line, trimmed). */
   snippet: string
   /**
-   * The search term `snippet` contains. The renderer highlights it in the
-   * opened transcript instead of the whole question, which contains words the
-   * matched line does not.
+   * A search term `snippet` contains. The renderer highlights it in the opened
+   * transcript instead of the whole question, which contains words the matched
+   * line does not. Empty when the 400-character snippet cap cut the matched
+   * term away; the renderer then falls back to the asked question.
    */
   matchedTerm: string
 }
@@ -59,6 +62,11 @@ export interface HistoryDigest {
   sources: AskSource[]
   /** Numbered evidence blocks, ready to paste into the ask prompt. */
   digest: string
+  /**
+   * True when a zero-source result was answered while an index was still
+   * building, so "no matches" is provisional rather than a verdict.
+   */
+  indexing: boolean
 }
 
 export interface CollectHistoryOptions {
@@ -235,7 +243,13 @@ export function wholeStringProbe(question: string): string | null {
   const stripped = question.trim().replace(/^[\s\p{P}\p{S}]+|[\s\p{P}\p{S}]+$/gu, '')
   const length = Array.from(stripped).length
   if (length < 2 || length > 6) return null
-  return stripped.toLowerCase()
+  const lowered = stripped.toLowerCase()
+  // "What?" and "1234" are questions, not noun phrases. Probing the literal
+  // string would search every transcript for a stopword, fill the digest with
+  // noise and pay for a model call instead of answering "no match".
+  if (EN_STOPWORDS.has(lowered) || /^\d+$/.test(lowered)) return null
+  if (!/\p{L}/u.test(lowered) && !CJK_RE.test(lowered)) return null
+  return lowered
 }
 
 /**
@@ -267,9 +281,13 @@ export function rankHistoryHits(
     // the reveal target should come from the most recent matching turn. A
     // content hit always wins over a title-only one — a title match has no
     // prose to quote, and dropping the content hit would make the session
-    // uncitable even though one of its terms did match its body.
+    // uncitable even though one of its terms did match its body. Otherwise only
+    // a hit of the same kind may replace: a newer title-only hit must not
+    // displace an older content hit, or the excerpt below is silently lost.
     const preferContent = existing.hit.matchType === 'title' && hit.matchType === 'content'
-    if (preferContent || hit.timestamp > existing.hit.timestamp) existing.hit = hit
+    const sameKindNewer = existing.hit.matchType === hit.matchType
+      && hit.timestamp > existing.hit.timestamp
+    if (preferContent || sameKindNewer) existing.hit = hit
   }
 
   const ranked = [...bySession.values()]
@@ -283,15 +301,23 @@ export function rankHistoryHits(
 interface Excerpt {
   text: string
   snippet: string
-  /** The term that matched `snippet`'s line (the line the citation opens). */
+  /** A term visible in `snippet`; empty when the cap cut every term away. */
   matchedTerm: string
   messageTimestamp?: number
   messageRole?: 'user' | 'assistant'
 }
 
 function capLine(text: string, max: number): string {
-  const chars = Array.from(text)
-  return chars.length > max ? `${chars.slice(0, max).join('').trimEnd()}…` : text
+  // `max` counts UTF-16 units, the same unit as the budget arithmetic in
+  // `collectHistoryDigest`. Code points would let a digest dense in astral
+  // characters grow to nearly twice its character budget.
+  if (text.length <= max) return text
+  let cut = Math.max(0, max)
+  // Never split a surrogate pair: back off one unit when the cut would fall
+  // between a high and a low surrogate.
+  const last = cut > 0 ? text.charCodeAt(cut - 1) : 0
+  if (last >= 0xd800 && last <= 0xdbff) cut -= 1
+  return `${text.slice(0, cut).trimEnd()}…`
 }
 
 /**
@@ -336,10 +362,12 @@ function excerptForSession(
       const excerpt = capLine(line, MAX_EXCERPT_LINE)
       if (!snippet) {
         snippet = excerpt
-        // Prefer a term that survives the 400-character cap; the renderer
-        // highlights this exact text inside the opened line.
+        // The renderer highlights this exact text inside the opened line, so
+        // it must be a term that survived the 400-character cap. Falling back
+        // to the full-line match would point at text the snippet does not
+        // contain; an empty value lets the renderer highlight the question.
         const visible = lowered.findIndex(term => excerpt.toLowerCase().includes(term))
-        matchedTerm = terms[visible >= 0 ? visible : matched]
+        matchedTerm = visible >= 0 ? terms[visible] : ''
         if (record.ts > 0) {
           messageTimestamp = record.ts
           messageRole = record.role
@@ -401,6 +429,15 @@ export function historyAskStatus(): { available: boolean; reason?: string } {
     : { available: true }
 }
 
+/**
+ * Whether either transcript index is still building. A cold index answers a
+ * search from whatever is already extracted, so a zero-hit retrieval during a
+ * build is not evidence that the history is silent.
+ */
+export function historyIndexBuilding(): boolean {
+  return getClaudeSearchIndexStats().building || getCodexSearchIndexStats().building
+}
+
 // ── Retrieval ────────────────────────────────────────
 
 /**
@@ -418,7 +455,9 @@ export async function collectHistoryDigest(
   const terms = extractSearchTerms(question)
   const probe = wholeStringProbe(question)
   const probes = probe && !terms.includes(probe) ? [...terms, probe] : terms
-  if (probes.length === 0) return { sources: [], digest: '' }
+  if (probes.length === 0) {
+    return { sources: [], digest: '', indexing: historyIndexBuilding() }
+  }
 
   const searchLimit = Math.max(1, opts.searchLimit ?? DEFAULT_SEARCH_LIMIT)
   const matches: Array<{ term: string; hit: SearchResult }> = []
@@ -478,7 +517,14 @@ export async function collectHistoryDigest(
     sources.push(toSource(hit, excerpt))
   }
 
-  return { sources, digest: blocks.join('\n\n') }
+  return {
+    sources,
+    digest: blocks.join('\n\n'),
+    // Only a zero-source digest needs the distinction: a non-empty answer was
+    // built from transcripts that were indexed, so a background build cannot
+    // change what it says.
+    indexing: sources.length === 0 ? historyIndexBuilding() : false,
+  }
 }
 
 // ── Prompt ───────────────────────────────────────────

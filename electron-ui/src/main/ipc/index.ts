@@ -10,7 +10,12 @@ import { streamBridgeManager } from '../pty/stream-bridge'
 import { speculationManager, isSafeToSpeculate } from '../pty/speculation-bridge'
 import { readSettings, writeSettings, listSessions as listClaudeSessions, loadSession as loadClaudeSession, deleteSession as deleteClaudeSession, forkSession as forkClaudeSession, renameSession, rewindSession, searchSessions as searchClaudeSessions, detectTurnInterruption, getDreamConsolidationMtime } from '../sessions/session-reader'
 import { listSessions as listCodexSessions, loadSession as loadCodexSession, deleteSession as deleteCodexSession, forkSession as forkCodexSession, searchSessions as searchCodexSessions, isCodexSession } from '../codex/codex-session-reader'
-import { historyAskStatus, collectHistoryDigest, buildAskPrompt } from '../sessions/ask-history'
+import {
+  historyAskStatus,
+  historyIndexBuilding,
+  collectHistoryDigest,
+  buildAskPrompt,
+} from '../sessions/ask-history'
 import { addMcpServer, getMcpConfigInfo, readMcpServers, removeMcpServer, setMcpServerEnabledRouted } from '../config/mcp-config'
 import { getSessionStats } from '../sessions/session-stats'
 import { getApiKey, setApiKey, getPref, getRawPref, setPref, getAllPrefs, resetAllPrefs } from '../config/config-manager'
@@ -887,9 +892,19 @@ async function registerCodexSendMessage(
     },
     {
       // A background turn has no UI to answer an approval prompt (its events
-      // never reach the renderer), so it must never ask: deny and let the
-      // model finish. It must also not leave a rollout in session history.
-      ...(internal ? { approvalPolicy: 'never' as const, ephemeral: true } : {}),
+      // never reach the renderer), so it can never ask. For an answer-only
+      // turn — whose prompt is built from the user's own transcripts — "cannot
+      // ask" must not mean "may run things": `always` is the bridge-level
+      // spelling for the wire value `untrusted`, which raises an approval
+      // request for every command, and `runInternalTurn`'s sink denies each
+      // one, so nothing executes. Every other internal turn keeps `never`,
+      // which denies silently without the round trip.
+      ...(internal
+        ? {
+            approvalPolicy: args.answerOnly === true ? 'always' : 'never',
+            ephemeral: true,
+          }
+        : {}),
       ...(args.ephemeral === true ? { ephemeral: true } : {}),
     },
   )
@@ -1005,6 +1020,7 @@ function pickModelForEngine(
 async function runInternalTurn(
   args: Record<string, unknown>,
   signal?: AbortSignal,
+  onText?: (text: string) => void,
 ): Promise<{ success: boolean; text?: string; error?: string }> {
   // Nobody is waiting for a turn that was cancelled before it even started.
   if (signal?.aborted) return { success: false, error: 'aborted' }
@@ -1035,7 +1051,17 @@ async function runInternalTurn(
   const sink: BridgeSink = (channel, data) => {
     switch (channel) {
       case 'cli:assistantText':
-        if (typeof data.text === 'string') streamed += data.text
+        if (typeof data.text === 'string') {
+          streamed += data.text
+          // The listener is the caller's progress tap (the ask overlay). It
+          // must never be able to break the private turn, so a throw here is
+          // swallowed and the turn continues with the accumulated text.
+          try {
+            onText?.(streamed)
+          } catch {
+            // intentionally ignored
+          }
+        }
         break
       case 'cli:result': {
         // Terminal for both engines: Codex emits it from turn/completed, and
@@ -1107,9 +1133,14 @@ async function runInternalTurn(
     cwd: (args.cwd as string) || process.cwd(),
     model: pickModelForEngine(typeof args.model === 'string' ? args.model : undefined, engineKind),
     env: engineEnv,
-    // Answer-only turns (plugin `chat.ask`) must not touch tools. Codex's plan
-    // mode already means a read-only sandbox; the Claude CLI needs the empty
-    // tool list to get the same guarantee.
+    // Forwarded so the Codex path can pick an approval policy that raises a
+    // request for every command; the internal sink denies all of them.
+    answerOnly: args.answerOnly === true,
+    // Answer-only turns (plugin `chat.ask`, ask-history) must not touch tools.
+    // Codex gets an `always` (wire `untrusted`) approval policy from
+    // `registerCodexSendMessage`, so every command it tries raises a request its
+    // internal sink denies; a read-only sandbox alone still executed shell
+    // commands silently. The Claude CLI needs the empty tool list.
     flags: args.answerOnly === true && !useCodex ? ['--tools', ''] : [],
     // Read-only turns: a memory extraction must not be able to edit the repo.
     permissionMode: 'plan',
@@ -1397,12 +1428,14 @@ function registerSessionHandlers(): void {
   })
 
   ipcMain.handle('session:askHistory', async (
-    _e: Electron.IpcMainInvokeEvent,
-    { question, locale }: { question: string; locale?: string },
+    event: Electron.IpcMainInvokeEvent,
+    { question, locale, requestId }: { question: string; locale?: string; requestId?: string },
   ): Promise<{
     ok: boolean
     answer?: string
     sources?: Awaited<ReturnType<typeof collectHistoryDigest>>['sources']
+    /** A zero-source answer was answered while an index was still building. */
+    indexing?: boolean
     error?: string
     available?: boolean
     reason?: string
@@ -1418,16 +1451,73 @@ function registerSessionHandlers(): void {
     const controller = new AbortController()
     askHistoryAbort = controller
     askHistoryInFlight = true
+    let progressTimer: ReturnType<typeof setInterval> | null = null
     try {
       const normalizedLocale = /^zh/i.test(locale || '') ? 'zh-CN' : 'en'
-      const { sources, digest } = await collectHistoryDigest(trimmed, {
+      let { sources, digest, indexing } = await collectHistoryDigest(trimmed, {
         locale: normalizedLocale,
         signal: controller.signal,
       })
       if (controller.signal.aborted) return { ok: false, error: 'aborted' }
+
+      // A cold index answers from whatever is already extracted and builds the
+      // rest in the background, so zero hits can mean "not indexed yet". Wait
+      // briefly (polling, so a cancel is honoured) and ask once more before
+      // telling the user the history is silent.
+      if (sources.length === 0 && historyIndexBuilding()) {
+        const deadline = Date.now() + 2_000
+        while (!controller.signal.aborted && Date.now() < deadline && historyIndexBuilding()) {
+          await new Promise<void>(resolve => {
+            const timer = setTimeout(done, 150)
+            function done(): void {
+              clearTimeout(timer)
+              controller.signal.removeEventListener('abort', done)
+              resolve()
+            }
+            controller.signal.addEventListener('abort', done, { once: true })
+          })
+        }
+        if (controller.signal.aborted) return { ok: false, error: 'aborted' }
+        const retry = await collectHistoryDigest(trimmed, {
+          locale: normalizedLocale,
+          signal: controller.signal,
+        })
+        sources = retry.sources
+        digest = retry.digest
+        indexing = retry.indexing
+        if (controller.signal.aborted) return { ok: false, error: 'aborted' }
+      }
+
       // Nothing matched. Skipping the turn is honest and saves a model call:
-      // the renderer shows its own "no matching history" copy.
-      if (sources.length === 0) return { ok: true, answer: '', sources: [] }
+      // the renderer shows its own "no matching history" copy, or an
+      // "indexing" note when `indexing` says the search was provisional.
+      if (sources.length === 0) {
+        return { ok: true, answer: '', sources: [], indexing }
+      }
+
+      // The overlay paints tokens as they arrive instead of spinning for up to
+      // 90 s. The buffer is filled by `runInternalTurn`'s tap and pushed on a
+      // timer so a fast model cannot flood the IPC channel with one event per
+      // token. Nothing is pushed for callers that did not ask for progress.
+      let draft = ''
+      if (typeof requestId === 'string' && requestId) {
+        let lastSent = ''
+        progressTimer = setInterval(() => {
+          // A cancelled or superseded ask must never paint the overlay.
+          if (askHistoryGeneration !== generation) return
+          if (event.sender.isDestroyed()) return
+          // The answer is ≤200 words; this only guards a runaway generation.
+          const text = draft.slice(0, 12_000)
+          if (text === lastSent) return
+          lastSent = text
+          try {
+            event.sender.send('session:askHistoryProgress', { requestId, text })
+          } catch {
+            // The renderer went away between the check and the send.
+          }
+        }, 120)
+        progressTimer.unref?.()
+      }
 
       const result = await runInternalTurn({
         prompt: buildAskPrompt(trimmed, digest, sources, normalizedLocale),
@@ -1437,7 +1527,9 @@ function registerSessionHandlers(): void {
         // tools (the Claude bridge needs the empty tool list for that).
         answerOnly: true,
         cwd: getPref('workingDir'),
-      }, controller.signal)
+      }, controller.signal, (text) => {
+        draft = text
+      })
 
       if (!result.success) {
         const code = result.error === 'aborted'
@@ -1455,6 +1547,9 @@ function registerSessionHandlers(): void {
       log.warn('session:askHistory error:', String(err).slice(0, 300))
       return { ok: false, error: 'failed' }
     } finally {
+      // The timer must not outlive the handler: after the invoke settles the
+      // renderer's final answer supersedes every progress event.
+      if (progressTimer) clearInterval(progressTimer)
       // A cancellation already handed the slot to the next ask: only the
       // handler that still owns this generation may clear the state.
       if (askHistoryGeneration === generation) {
