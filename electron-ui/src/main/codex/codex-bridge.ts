@@ -5,7 +5,23 @@
  * Maps Codex protocol events to the same EventEmitter interface that StreamBridge used,
  * so the IPC layer and renderer need minimal changes.
  *
- * Protocol reference: codex/codex-rs/app-server/README.md
+ * Protocol reference: the `codex/` sparse checkout is empty, so the schema is
+ * generated from the installed binary (0.145.x):
+ *
+ *     node node_modules/@openai/codex/bin/codex.js \
+ *       app-server generate-json-schema --out .scratch/codex-schema
+ *
+ * Files this bridge depends on (paths under `.scratch/codex-schema/`):
+ *   - `ServerRequest.json` — every server→client request method
+ *   - `ToolRequestUserInputParams.json` / `ToolRequestUserInputResponse.json`
+ *   - `McpServerElicitationRequestParams.json` / `McpServerElicitationRequestResponse.json`
+ *   - `CommandExecutionRequestApprovalResponse.json`, `FileChangeRequestApprovalResponse.json`,
+ *     `PermissionsRequestApprovalResponse.json`
+ *   - `ServerNotification.json` — every server→client notification
+ *   - `v2/ModelListResponse.json`, `v2/GetAccountTokenUsageResponse.json`,
+ *     `v2/GetAccountRateLimitsResponse.json`, `v2/SkillsListResponse.json`
+ *
+ * `.scratch/` is gitignored; regenerate the schema before changing field names.
  */
 import { spawn, ChildProcess } from 'child_process'
 import { createInterface } from 'readline'
@@ -71,11 +87,90 @@ export interface CodexSendMessageArgs {
   flags?: string[]           // unused, kept for interface compat
 }
 
+/**
+ * One entry of `model/list` (`v2/ModelListResponse.json`), trimmed to the
+ * fields a picker needs. `hidden` is preserved so callers can filter it.
+ */
+export interface CodexModelInfo {
+  id: string
+  model: string
+  displayName: string
+  description: string
+  hidden: boolean
+  isDefault: boolean
+  defaultReasoningEffort: string
+  supportedReasoningEfforts: Array<{ reasoningEffort: string; description: string }>
+  inputModalities: string[]
+  supportsPersonality: boolean
+}
+
+/** `account/usage/read` (`v2/GetAccountTokenUsageResponse.json`), normalized. */
+export interface CodexAccountUsage {
+  fetchedAt: number
+  summary: {
+    lifetimeTokens: number | null
+    peakDailyTokens: number | null
+    currentStreakDays: number | null
+    longestStreakDays: number | null
+    longestRunningTurnSec: number | null
+  }
+  dailyUsageBuckets: Array<{ startDate: string; tokens: number }> | null
+}
+
+/** One bucket of `account/rateLimits/read` (`RateLimitSnapshot`). */
+export interface CodexRateLimitWindow {
+  usedPercent: number
+  windowDurationMins: number | null
+  resetsAt: number | null
+}
+
+export interface CodexRateLimitSnapshot {
+  limitId: string | null
+  limitName: string | null
+  planType: string | null
+  primary: CodexRateLimitWindow | null
+  secondary: CodexRateLimitWindow | null
+  credits: { hasCredits: boolean; unlimited: boolean; balance: string | null } | null
+  rateLimitReachedType: string | null
+  spendControlReached: boolean | null
+}
+
+/** `account/rateLimits/read` (`v2/GetAccountRateLimitsResponse.json`), normalized. */
+export interface CodexRateLimits {
+  fetchedAt: number
+  rateLimits: CodexRateLimitSnapshot
+  rateLimitsByLimitId: Record<string, CodexRateLimitSnapshot> | null
+  rateLimitResetCredits: { availableCount: number } | null
+}
+
+/** One enabled skill from `skills/list` (`v2/SkillsListResponse.json`). */
+export interface CodexSkillInfo {
+  name: string
+  description: string
+  path: string
+  scope: 'user' | 'repo' | 'system' | 'admin' | string
+  enabled: boolean
+  shortDescription?: string | null
+}
+
 interface PendingRequest {
   resolve: (value: unknown) => void
   reject: (reason: Error) => void
   method: string
   timer: NodeJS.Timeout
+}
+
+/** A server→client request awaiting a user answer. */
+type ServerRequestKind = 'approval' | 'permissions' | 'legacy' | 'userInput' | 'elicitation'
+
+interface PendingServerRequest {
+  /** The raw JSON-RPC id. RequestId is `string | integer`, so never coerce it blindly. */
+  id: string | number
+  method: string
+  kind: ServerRequestKind
+  timer: NodeJS.Timeout
+  /** requestUserInput question ids, used to build the response map. */
+  questionIds?: string[]
 }
 
 interface JsonRpcRequest {
@@ -201,6 +296,151 @@ function parseChecklist(text: string): Array<{ content: string; status: string }
   return todos
 }
 
+// ── Protocol payload normalizers ─────────────────────
+// Every field name below is taken from the generated schema listed in the file
+// header; none of these are guessed.
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null
+}
+
+function stringOr(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback
+}
+
+function numberOrNull(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function normalizeModel(raw: unknown): CodexModelInfo | null {
+  const m = asRecord(raw)
+  const id = stringOr(m?.id)
+  if (!id) return null
+  return {
+    id,
+    model: stringOr(m?.model, id),
+    displayName: stringOr(m?.displayName, id),
+    description: stringOr(m?.description),
+    hidden: m?.hidden === true,
+    isDefault: m?.isDefault === true,
+    defaultReasoningEffort: stringOr(m?.defaultReasoningEffort),
+    supportedReasoningEfforts: Array.isArray(m?.supportedReasoningEfforts)
+      ? (m!.supportedReasoningEfforts as unknown[])
+          .map(option => {
+            const o = asRecord(option)
+            const effort = stringOr(o?.reasoningEffort)
+            return effort ? { reasoningEffort: effort, description: stringOr(o?.description) } : null
+          })
+          .filter((option): option is { reasoningEffort: string; description: string } => option !== null)
+      : [],
+    inputModalities: Array.isArray(m?.inputModalities)
+      ? (m!.inputModalities as unknown[]).filter((modality): modality is string => typeof modality === 'string')
+      : [],
+    supportsPersonality: m?.supportsPersonality === true,
+  }
+}
+
+function normalizeUsage(raw: unknown): CodexAccountUsage {
+  const r = asRecord(raw) ?? {}
+  const summary = asRecord(r.summary) ?? {}
+  // Keep the bucket list bounded: a user with years of history should not push
+  // an unbounded array through IPC on every settings read.
+  const buckets = Array.isArray(r.dailyUsageBuckets)
+    ? (r.dailyUsageBuckets as unknown[]).slice(-366).map(bucket => {
+        const b = asRecord(bucket)
+        return { startDate: stringOr(b?.startDate), tokens: numberOrNull(b?.tokens) ?? 0 }
+      })
+    : null
+  return {
+    fetchedAt: Date.now(),
+    summary: {
+      lifetimeTokens: numberOrNull(summary.lifetimeTokens),
+      peakDailyTokens: numberOrNull(summary.peakDailyTokens),
+      currentStreakDays: numberOrNull(summary.currentStreakDays),
+      longestStreakDays: numberOrNull(summary.longestStreakDays),
+      longestRunningTurnSec: numberOrNull(summary.longestRunningTurnSec),
+    },
+    dailyUsageBuckets: buckets,
+  }
+}
+
+function normalizeRateLimitWindow(raw: unknown): CodexRateLimitWindow | null {
+  const w = asRecord(raw)
+  if (!w) return null
+  return {
+    usedPercent: numberOrNull(w.usedPercent) ?? 0,
+    windowDurationMins: numberOrNull(w.windowDurationMins),
+    resetsAt: numberOrNull(w.resetsAt),
+  }
+}
+
+function normalizeRateLimitSnapshot(raw: unknown): CodexRateLimitSnapshot {
+  const r = asRecord(raw) ?? {}
+  const credits = asRecord(r.credits)
+  return {
+    limitId: typeof r.limitId === 'string' ? r.limitId : null,
+    limitName: typeof r.limitName === 'string' ? r.limitName : null,
+    planType: typeof r.planType === 'string' ? r.planType : null,
+    primary: normalizeRateLimitWindow(r.primary),
+    secondary: normalizeRateLimitWindow(r.secondary),
+    credits: credits
+      ? {
+          hasCredits: credits.hasCredits === true,
+          unlimited: credits.unlimited === true,
+          balance: typeof credits.balance === 'string' ? credits.balance : null,
+        }
+      : null,
+    rateLimitReachedType: typeof r.rateLimitReachedType === 'string' ? r.rateLimitReachedType : null,
+    spendControlReached: typeof r.spendControlReached === 'boolean' ? r.spendControlReached : null,
+  }
+}
+
+function normalizeRateLimits(raw: unknown): CodexRateLimits {
+  const r = asRecord(raw) ?? {}
+  const byId = asRecord(r.rateLimitsByLimitId)
+  const credits = asRecord(r.rateLimitResetCredits)
+  return {
+    fetchedAt: Date.now(),
+    rateLimits: normalizeRateLimitSnapshot(r.rateLimits),
+    rateLimitsByLimitId: byId
+      ? Object.fromEntries(Object.entries(byId).map(([key, value]) => [key, normalizeRateLimitSnapshot(value)]))
+      : null,
+    rateLimitResetCredits: credits
+      ? { availableCount: numberOrNull(credits.availableCount) ?? 0 }
+      : null,
+  }
+}
+
+function normalizeSkills(raw: unknown): CodexSkillInfo[] {
+  const response = asRecord(raw) ?? {}
+  const entries = Array.isArray(response.data) ? response.data as unknown[] : []
+  const byPath = new Map<string, CodexSkillInfo>()
+  for (const entry of entries) {
+    const e = asRecord(entry)
+    const skills = Array.isArray(e?.skills) ? e!.skills as unknown[] : []
+    for (const skill of skills) {
+      const s = asRecord(skill)
+      const name = stringOr(s?.name)
+      if (!name) continue
+      const path = stringOr(s?.path)
+      // Multiple cwds can surface the same skill directory; the first wins.
+      if (path && byPath.has(path)) continue
+      const info: CodexSkillInfo = {
+        name,
+        description: stringOr(s?.description),
+        path,
+        scope: stringOr(s?.scope, 'user'),
+        enabled: s?.enabled !== false,
+        ...(typeof s?.shortDescription === 'string' ? { shortDescription: s.shortDescription } : {}),
+      }
+      byPath.set(path || `${info.scope}:${name}`, info)
+    }
+  }
+  return [...byPath.values()]
+}
+
 /** Token usage normalized into the snake_case shape the renderer already reads. */
 interface CodexClaudeUsage {
   input_tokens: number
@@ -214,6 +454,27 @@ const REQUEST_TIMEOUT_MS = 60_000
 const INITIALIZE_TIMEOUT_MS = 15_000
 /** MCP tools are a nicety on the init event — never hold the handshake for them. */
 const MCP_STATUS_TIMEOUT_MS = 3_000
+/**
+ * How long a user-facing server request (approval or question) may sit
+ * unanswered. After this the bridge sends a JSON-RPC error, so a turn cannot
+ * hang forever waiting for an answer nobody gave. Per-request
+ * `autoResolutionMs` (requestUserInput) wins when it is shorter.
+ */
+const SERVER_REQUEST_TIMEOUT_MS = 10 * 60_000
+/** Probes must not hold Settings/UI open when Codex is slow or offline. */
+const PROBE_TIMEOUT_MS = 10_000
+const SKILLS_INIT_TIMEOUT_MS = 3_000
+const MODEL_LIST_TIMEOUT_MS = 15_000
+const MODEL_LIST_CACHE_TTL_MS = 5 * 60_000
+const USAGE_CACHE_TTL_MS = 60_000
+const RATE_LIMITS_CACHE_TTL_MS = 30_000
+const SKILLS_CACHE_TTL_MS = 60_000
+/** Chatty delta streams: coalesce/drop and hard-cap what crosses IPC. */
+const TOOL_PROGRESS_MIN_INTERVAL_MS = 100
+const TOOL_PROGRESS_CHUNK_LIMIT = 4 * 1024
+const PLAN_DELTA_MIN_INTERVAL_MS = 150
+const PLAN_DELTA_BUFFER_LIMIT = 16 * 1024
+const TURN_DIFF_LIMIT = 32 * 1024
 
 // ── CodexBridge ──────────────────────────────────────
 
@@ -241,6 +502,22 @@ export class CodexBridge extends EventEmitter {
   // Server approval responses use different decision enums per method.
   private pendingApprovalKinds = new Map<string, 'command' | 'fileChange' | 'permissions' | 'legacy'>()
   private pendingPermissionProfiles = new Map<string, unknown>()
+  // Every server→client request that is waiting on the user. Entries are
+  // removed when answered, resolved by the server, timed out, or interrupted.
+  private pendingServerRequests = new Map<string, PendingServerRequest>()
+  // Unknown methods are logged once per method, not once per occurrence.
+  private loggedUnknownServerRequests = new Set<string>()
+  // The cwd of the current thread; skills/list is relative to it.
+  private currentCwd: string | null = null
+  // Per-bridge caches for the read-only protocol probes.
+  private modelListCache: { models: CodexModelInfo[]; fetchedAt: number } | null = null
+  private usageCache: { usage: CodexAccountUsage; fetchedAt: number } | null = null
+  private rateLimitsCache: { rateLimits: CodexRateLimits; fetchedAt: number } | null = null
+  private skillsCache: { cwd: string; skills: CodexSkillInfo[]; fetchedAt: number } | null = null
+  // Bounded bookkeeping for streaming notifications.
+  private toolProgressLastAt = new Map<string, number>()
+  private planDeltaBuffers = new Map<string, string>()
+  private planDeltaLastEmit = new Map<string, number>()
 
   constructor(bridgeSessionId: string) {
     super()
@@ -261,6 +538,7 @@ export class CodexBridge extends EventEmitter {
 
     log.info(`Spawning codex app-server: ${codexPath}`)
 
+    this.currentCwd = args.cwd
     this.proc = spawn(codexPath, ['app-server', '--stdio'], {
       cwd: args.cwd,
       env,
@@ -270,7 +548,7 @@ export class CodexBridge extends EventEmitter {
     this._attachOutputHandlers()
 
     // Step 1: Initialize handshake
-    await this._initialize()
+    await this._initialize({ cwd: args.cwd })
 
     // Without credentials Codex retries the model request indefinitely, so
     // callers that can't show a login flow check up front.
@@ -320,13 +598,14 @@ export class CodexBridge extends EventEmitter {
     if (!this.proc) {
       const codexPath = getCodexPath()
       const env = sanitizeCodexEnv({ ...args.env })
+      this.currentCwd = args.cwd
       this.proc = spawn(codexPath, ['app-server', '--stdio'], {
         cwd: args.cwd,
         env,
         stdio: ['pipe', 'pipe', 'pipe'],
       })
       this._attachOutputHandlers()
-      await this._initialize()
+      await this._initialize({ cwd: args.cwd })
     }
     if (!this.currentThreadId) {
       if (!args.threadId) throw new Error('No thread to compact')
@@ -360,11 +639,15 @@ export class CodexBridge extends EventEmitter {
       this.abort()
       return
     }
+    // Reject anything waiting on the user *before* asking the server to stop:
+    // an answer request the server is blocked on can otherwise outlive the
+    // interrupt and leave the turn (and its IPC timers) hanging.
+    this._rejectAllServerRequests('Turn interrupted by the user')
     try {
       await this._sendRequest('turn/interrupt', {
         threadId: this.currentThreadId,
         turnId: this.currentTurnId,
-      })
+      }, 15_000)
     } catch (err) {
       log.debug('turn/interrupt error (may already be done):', String(err))
     }
@@ -377,6 +660,20 @@ export class CodexBridge extends EventEmitter {
   respondApproval(requestId: string | number, approved: boolean): void {
     if (!this.proc?.stdin) return
     const key = String(requestId)
+    const pending = this.pendingServerRequests.get(key)
+    // An untracked id is a stale answer: the request was already answered, the
+    // server sent `serverRequest/resolved`, or the turn ended. Writing the
+    // legacy "approved" shape for it would fabricate a decision nobody asked
+    // for — the same failure this wave removed from the unknown-request path.
+    if (!pending) {
+      log.debug(`Ignoring approval response for untracked request ${key}`)
+      return
+    }
+    // A stale answer for a different request kind must not become an approval.
+    if (pending.kind === 'userInput' || pending.kind === 'elicitation') {
+      log.debug(`Ignoring approval response for a ${pending.kind} request ${key}`)
+      return
+    }
     const kind = this.pendingApprovalKinds.get(key)
     let result: Record<string, unknown>
     if (kind === 'command' || kind === 'fileChange') {
@@ -392,14 +689,143 @@ export class CodexBridge extends EventEmitter {
         decision: approved ? 'approved' : { denied: { rejection: 'Denied by user' } },
       }
     }
-    this.pendingApprovalKinds.delete(key)
-    this.pendingPermissionProfiles.delete(key)
-    // Approval responses are JSON-RPC responses to the server's request
-    const response = JSON.stringify({
-      id: typeof requestId === 'string' ? parseInt(requestId, 10) : requestId,
-      result,
-    }) + '\n'
-    this.proc.stdin.write(response)
+    // RequestId may be a string; use the id the server actually sent.
+    const wireId = pending.id
+    this._clearServerRequest(key)
+    this._writeServerResult(wireId, result)
+  }
+
+  /**
+   * Respond to a user-facing question. Both `item/tool/requestUserInput` and
+   * `mcpServer/elicitation/request` surface through the same `cli:elicitation`
+   * event, so the renderer's existing elicitation card can answer either.
+   *
+   * `result` is the renderer shape `{ action: 'accept'|'decline'|'cancel', content? }`.
+   * MCP elicitations accept it verbatim (Codex's response schema uses the same
+   * action/content fields). requestUserInput needs the questions mapped back to
+   * `{ answers: { <questionId>: { answers: string[] } } }`.
+   */
+  respondElicitation(requestId: string | number, result: Record<string, unknown>): void {
+    const key = String(requestId)
+    const pending = this.pendingServerRequests.get(key)
+    if (!pending || (pending.kind !== 'userInput' && pending.kind !== 'elicitation')) {
+      log.debug(`Ignoring elicitation response for unknown request ${key}`)
+      return
+    }
+
+    let payload: Record<string, unknown>
+    if (pending.kind === 'elicitation') {
+      const requested = typeof result.action === 'string' ? result.action : 'accept'
+      const action = requested === 'decline' || requested === 'cancel' ? requested : 'accept'
+      const content = asRecord(result.content)
+      // McpServerElicitationRequestResponse: required `action`, optional
+      // structured `content` only on accept.
+      payload = { action, ...(action === 'accept' && content ? { content } : {}) }
+    } else {
+      const accepted = result.action === undefined || result.action === 'accept'
+      const content = accepted ? asRecord(result.content) ?? {} : {}
+      const answers: Record<string, { answers: string[] }> = {}
+      for (const questionId of pending.questionIds ?? Object.keys(content)) {
+        const raw = content[questionId]
+        const values = Array.isArray(raw)
+          ? raw.filter((value): value is string => typeof value === 'string')
+          : typeof raw === 'string' && raw.trim()
+            ? [raw]
+            : []
+        answers[questionId] = { answers: values }
+      }
+      // ToolRequestUserInputResponse requires `answers`; an empty map is the
+      // valid "user declined / no input" form.
+      payload = { answers }
+    }
+
+    this._clearServerRequest(key)
+    this._writeServerResult(pending.id, payload)
+  }
+
+  /**
+   * `model/list` — the models this Codex installation exposes. Cached per
+   * bridge; `force` bypasses the cache. Paginated responses are followed until
+   * `nextCursor` is null (with a hard page cap so a buggy server cannot loop).
+   */
+  async listModels(options: { force?: boolean } = {}): Promise<CodexModelInfo[]> {
+    this._requireProcess('model/list')
+    if (!options.force && this.modelListCache
+      && Date.now() - this.modelListCache.fetchedAt < MODEL_LIST_CACHE_TTL_MS) {
+      return this.modelListCache.models
+    }
+
+    const models: CodexModelInfo[] = []
+    const seen = new Set<string>()
+    let cursor: string | null = null
+    for (let page = 0; page < 10; page++) {
+      const result = await this._sendRequest('model/list', cursor ? { cursor } : {}, MODEL_LIST_TIMEOUT_MS) as {
+        data?: unknown[]
+        nextCursor?: string | null
+      }
+      for (const raw of Array.isArray(result?.data) ? result.data : []) {
+        const model = normalizeModel(raw)
+        if (!model || seen.has(model.id)) continue
+        seen.add(model.id)
+        models.push(model)
+      }
+      cursor = typeof result?.nextCursor === 'string' && result.nextCursor ? result.nextCursor : null
+      if (!cursor) break
+    }
+
+    this.modelListCache = { models, fetchedAt: Date.now() }
+    return models
+  }
+
+  /** `account/usage/read` — real token usage, cached for a minute. */
+  async readAccountUsage(options: { force?: boolean } = {}): Promise<CodexAccountUsage> {
+    this._requireProcess('account/usage/read')
+    if (!options.force && this.usageCache
+      && Date.now() - this.usageCache.fetchedAt < USAGE_CACHE_TTL_MS) {
+      return this.usageCache.usage
+    }
+    const result = await this._sendRequest('account/usage/read', {}, PROBE_TIMEOUT_MS)
+    const usage = normalizeUsage(result)
+    this.usageCache = { usage, fetchedAt: Date.now() }
+    return usage
+  }
+
+  /** `account/rateLimits/read` — real plan limits, cached briefly. */
+  async readRateLimits(options: { force?: boolean } = {}): Promise<CodexRateLimits> {
+    this._requireProcess('account/rateLimits/read')
+    if (!options.force && this.rateLimitsCache
+      && Date.now() - this.rateLimitsCache.fetchedAt < RATE_LIMITS_CACHE_TTL_MS) {
+      return this.rateLimitsCache.rateLimits
+    }
+    const result = await this._sendRequest('account/rateLimits/read', {}, PROBE_TIMEOUT_MS)
+    const rateLimits = normalizeRateLimits(result)
+    this.rateLimitsCache = { rateLimits, fetchedAt: Date.now() }
+    return rateLimits
+  }
+
+  /**
+   * `skills/list` — the skills Codex will actually load for `cwd`. The renderer
+   * has only ever received names via `systemInit.skills`, so that field keeps
+   * its `string[]` shape while the IPC probe exposes the full metadata.
+   *
+   * `force` re-scans disk; the default uses Codex's own cache.
+   */
+  async listSkills(options: { cwd?: string; force?: boolean; timeoutMs?: number } = {}): Promise<CodexSkillInfo[]> {
+    this._requireProcess('skills/list')
+    const cwd = options.cwd ?? this.currentCwd ?? process.cwd()
+    if (!options.force && this.skillsCache
+      && this.skillsCache.cwd === cwd
+      && Date.now() - this.skillsCache.fetchedAt < SKILLS_CACHE_TTL_MS) {
+      return this.skillsCache.skills
+    }
+    const result = await this._sendRequest(
+      'skills/list',
+      { cwds: [cwd], ...(options.force ? { forceReload: true } : {}) },
+      options.timeoutMs ?? PROBE_TIMEOUT_MS,
+    )
+    const skills = normalizeSkills(result)
+    this.skillsCache = { cwd, skills, fetchedAt: Date.now() }
+    return skills
   }
 
   /**
@@ -492,13 +918,41 @@ export class CodexBridge extends EventEmitter {
     return this.currentThreadId
   }
 
+  /**
+   * Run a read-only probe on a throwaway app-server that has completed
+   * `initialize` but owns no thread or turn. Used when no live bridge exists
+   * (e.g. Settings opened before the first message). The process is always
+   * reaped, including when the probe throws.
+   */
+  static async withDetached<T>(
+    cwd: string,
+    env: Record<string, string>,
+    fn: (bridge: CodexBridge) => Promise<T>,
+  ): Promise<T> {
+    const bridge = new CodexBridge(`probe-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`)
+    bridge.currentCwd = cwd
+    bridge.proc = spawn(getCodexPath(), ['app-server', '--stdio'], {
+      cwd,
+      env: sanitizeCodexEnv({ ...env }),
+      stdio: ['pipe', 'pipe', 'pipe'],
+    })
+    bridge._attachOutputHandlers()
+    try {
+      await bridge._initialize({ silent: true, cwd })
+      return await fn(bridge)
+    } finally {
+      bridge.abort()
+    }
+  }
+
   // ── Private: Protocol handshake ─────────────────
 
   /**
-   * `silent` skips the synthetic `systemInit` event (and the MCP probe behind
-   * it) for short-lived processes — a detached rename has no renderer listening.
+   * `silent` skips the synthetic `systemInit` event (and the MCP/skills probes
+   * behind it) for short-lived processes — a detached rename has no renderer
+   * listening.
    */
-  private async _initialize(opts: { silent?: boolean } = {}): Promise<void> {
+  private async _initialize(opts: { silent?: boolean; cwd?: string } = {}): Promise<void> {
     const result = await this._sendRequest('initialize', {
       clientInfo: {
         name: 'aipa_desktop',
@@ -511,6 +965,7 @@ export class CodexBridge extends EventEmitter {
     }, INITIALIZE_TIMEOUT_MS)
 
     this.initialized = true
+    if (opts.cwd) this.currentCwd = opts.cwd
 
     // Send initialized notification (no response expected)
     this._sendNotification('initialized', {})
@@ -520,22 +975,47 @@ export class CodexBridge extends EventEmitter {
       return
     }
 
-    // Emit a synthetic systemInit event for compatibility
+    // Emit a synthetic systemInit event for compatibility. MCP discovery and
+    // skills/list are independent reads, so run them together; both are
+    // best-effort and bounded so they can never hold the handshake open.
+    const cwd = opts.cwd ?? this.currentCwd ?? process.cwd()
+    const [mcpServers, skills] = await Promise.all([
+      this._collectMcpServers(),
+      this._collectSkillNames(cwd),
+    ])
     const initResult = result as Record<string, unknown> ?? {}
     this.emit('systemInit', {
       sessionId: this.bridgeSessionId,
       tools: [],
-      mcpServers: await this._collectMcpServers(),
+      mcpServers,
       model: (initResult.model as string) ?? '',
       permissionMode: 'default',
-      cwd: '',
-      skills: [],
+      cwd,
+      skills,
       plugins: [],
       codexHome: (initResult.codexHome as string) ?? '',
       platformFamily: (initResult.platformFamily as string) ?? '',
     })
 
     log.info('Codex app-server initialized successfully')
+  }
+
+  /**
+   * Names of the skills Codex actually exposes for `cwd`.
+   *
+   * `systemInit.skills` is the Claude CLI's `string[]` shape, which the
+   * renderer already consumes. Codex's own `skills/list` returns metadata, so
+   * the names are extracted here; `listSkills()` is the full-metadata probe.
+   * A Codex that is slow or has no skills must not block initialization.
+   */
+  private async _collectSkillNames(cwd: string): Promise<string[]> {
+    try {
+      const skills = await this.listSkills({ cwd, timeoutMs: SKILLS_INIT_TIMEOUT_MS })
+      return [...new Set(skills.filter(skill => skill.enabled).map(skill => skill.name))]
+    } catch (err) {
+      log.debug('skills/list failed during initialize:', String(err))
+      return []
+    }
   }
 
   /**
@@ -642,6 +1122,41 @@ export class CodexBridge extends EventEmitter {
 
   // ── Private: JSON-RPC transport ─────────────────
 
+  private _requireProcess(method: string): void {
+    if (!this.proc?.stdin) throw new Error(`No active codex process for ${method}`)
+  }
+
+  /** Write a JSON-RPC success response to a server-initiated request. */
+  private _writeServerResult(id: string | number, result: Record<string, unknown>): void {
+    this._writeServerLine({ id, result }, `result id=${id}`)
+  }
+
+  /**
+   * Write a JSON-RPC error response. Unknown or expired server requests use
+   * this instead of a fabricated approval: a visible turn failure is the only
+   * safe answer when AIPA cannot actually grant what was asked.
+   */
+  private _writeServerError(id: string | number, code: number, message: string, data?: unknown): void {
+    this._writeServerLine(
+      { id, error: { code, message, ...(data === undefined ? {} : { data }) } },
+      `error id=${id}: ${message}`,
+    )
+  }
+
+  private _writeServerLine(payload: Record<string, unknown>, description: string): void {
+    const stdin = this.proc?.stdin
+    if (!stdin) {
+      log.debug(`Cannot write server response (${description}): no stdin`)
+      return
+    }
+    try {
+      stdin.write(JSON.stringify(payload) + '\n')
+      log.debug(`→ ${description}`)
+    } catch (err) {
+      log.debug(`Failed to write server response (${description}):`, String(err))
+    }
+  }
+
   private _sendRequest(method: string, params: Record<string, unknown>, timeoutMs = REQUEST_TIMEOUT_MS): Promise<unknown> {
     if (!this.proc?.stdin) {
       return Promise.reject(new Error('No active codex process'))
@@ -715,6 +1230,8 @@ export class CodexBridge extends EventEmitter {
         pending.reject(new Error(`Process exited with code ${code}`))
         this.pendingRequests.delete(id)
       }
+      // No process remains to receive answers; drop their timers.
+      this._clearAllServerRequests()
       this.proc = null
     })
   }
@@ -758,10 +1275,18 @@ export class CodexBridge extends EventEmitter {
 
   private _handleServerRequest(msg: Record<string, unknown>): void {
     const method = msg.method as string
-    const params = (msg.params ?? {}) as Record<string, unknown>
+    const params = asRecord(msg.params) ?? {}
     const requestId = String(msg.id)
+    // RequestId is `string | integer`; keep the wire type so a string id is not
+    // sent back as a numeric one (and vice versa).
+    const wireId: string | number = typeof msg.id === 'number' || typeof msg.id === 'string'
+      ? msg.id
+      : requestId
 
     log.debug(`← server request [${requestId}]: ${method}`)
+
+    // A server can reuse an id after resolving it; drop any stale timer first.
+    this._clearServerRequest(requestId)
 
     const request = (
       toolName: string,
@@ -782,6 +1307,7 @@ export class CodexBridge extends EventEmitter {
       // serde reject the response, so the kind is remembered for respondApproval.
       case 'item/commandExecution/requestApproval':
         this.pendingApprovalKinds.set(requestId, 'command')
+        this._trackServerRequest(wireId, method, 'approval')
         request(
           'Bash',
           {
@@ -796,6 +1322,7 @@ export class CodexBridge extends EventEmitter {
 
       case 'item/fileChange/requestApproval':
         this.pendingApprovalKinds.set(requestId, 'fileChange')
+        this._trackServerRequest(wireId, method, 'approval')
         request(
           'Edit',
           { itemId: params.itemId ?? '', grantRoot: params.grantRoot ?? '', reason: params.reason ?? '' },
@@ -807,6 +1334,7 @@ export class CodexBridge extends EventEmitter {
       case 'item/permissions/requestApproval':
         this.pendingApprovalKinds.set(requestId, 'permissions')
         this.pendingPermissionProfiles.set(requestId, params.permissions ?? {})
+        this._trackServerRequest(wireId, method, 'permissions')
         request(
           'Permissions',
           {
@@ -823,6 +1351,7 @@ export class CodexBridge extends EventEmitter {
       case 'execCommandApproval':
       case 'applyPatchApproval':
         this.pendingApprovalKinds.set(requestId, 'legacy')
+        this._trackServerRequest(wireId, method, 'legacy')
         request(
           method === 'applyPatchApproval' ? 'Edit' : 'Bash',
           { ...params },
@@ -833,6 +1362,7 @@ export class CodexBridge extends EventEmitter {
       // Older protocol revision used by the first AIPA integration.
       case 'item/approval/request':
         this.pendingApprovalKinds.set(requestId, 'legacy')
+        this._trackServerRequest(wireId, method, 'legacy')
         request(
           (params.toolName ?? params.tool_name ?? 'unknown') as string,
           (params.input ?? params.toolInput ?? {}) as Record<string, unknown>,
@@ -841,11 +1371,219 @@ export class CodexBridge extends EventEmitter {
         )
         break
 
+      // ── User-facing questions ────────────────────
+      // Both are answer requests, never approvals. They surface through the
+      // same `cli:elicitation` event the Claude path already renders; the
+      // answer is sent back only when respondElicitation() is called.
+      case 'item/tool/requestUserInput': {
+        const payload = this._userInputElicitationPayload(requestId, params)
+        const questionIds = Array.isArray(params.questions)
+          ? (params.questions as unknown[])
+              .map(question => stringOr(asRecord(question)?.id))
+              .filter(Boolean)
+          : []
+        // The server may cap how long it will wait; never exceed our own bound.
+        const auto = numberOrNull(params.autoResolutionMs)
+        const timeoutMs = auto !== null && auto > 0
+          ? Math.min(SERVER_REQUEST_TIMEOUT_MS, auto)
+          : SERVER_REQUEST_TIMEOUT_MS
+        this._trackServerRequest(wireId, method, 'userInput', { timeoutMs, questionIds })
+        this.emit('elicitationRequest', payload)
+        // Background/internal turns have no listener: decline immediately
+        // instead of holding the turn until the timeout.
+        if (this.listenerCount('elicitationRequest') === 0) {
+          this.respondElicitation(requestId, { action: 'decline' })
+        }
+        break
+      }
+
+      case 'mcpServer/elicitation/request': {
+        const mode = params.mode === 'url' ? 'url' : 'form'
+        const payload = {
+          sessionId: this.bridgeSessionId,
+          requestId,
+          serverName: stringOr(params.serverName, 'MCP'),
+          message: stringOr(params.message),
+          mode,
+          ...(mode === 'url' ? { url: stringOr(params.url) || undefined } : {}),
+          ...(mode === 'form' ? { requestedSchema: asRecord(params.requestedSchema) ?? undefined } : {}),
+        }
+        this._trackServerRequest(wireId, method, 'elicitation')
+        this.emit('elicitationRequest', payload)
+        if (this.listenerCount('elicitationRequest') === 0) {
+          this.respondElicitation(requestId, { action: 'decline' })
+        }
+        break
+      }
+
+      // AIPA registers no dynamic tools and cannot refresh ChatGPT tokens or
+      // mint attestations. These are recognisable protocol methods, but there
+      // is no honest success answer, so they fail the turn visibly.
+      case 'item/tool/call':
+      case 'account/chatgptAuthTokens/refresh':
+      case 'attestation/generate':
+        this._rejectUnsupportedServerRequest(wireId, method)
+        break
+
       default:
-        log.debug(`Unhandled server request: ${method}`)
-        // Auto-approve unknown requests to avoid deadlock
-        this.respondApproval(requestId, true)
+        this._rejectUnsupportedServerRequest(wireId, method)
     }
+  }
+
+  /**
+   * Answer an unknown server request with a JSON-RPC error. Approving it would
+   * hand the model a permission the user never granted, and doing so silently
+   * was the old behaviour.
+   */
+  private _rejectUnsupportedServerRequest(id: string | number, method: string): void {
+    if (!this.loggedUnknownServerRequests.has(method)) {
+      log.warn(`Unsupported server request rejected: ${method}`)
+      this.loggedUnknownServerRequests.add(method)
+    }
+    this._writeServerError(id, -32601, `AIPA does not support server request: ${method}`, { method })
+  }
+
+  /** Track a server request so it times out (and is rejected on interrupt). */
+  private _trackServerRequest(
+    id: string | number,
+    method: string,
+    kind: ServerRequestKind,
+    opts: { timeoutMs?: number; questionIds?: string[] } = {},
+  ): void {
+    const key = String(id)
+    const timeoutMs = Math.max(1, opts.timeoutMs ?? SERVER_REQUEST_TIMEOUT_MS)
+    const timer = setTimeout(() => {
+      const pending = this.pendingServerRequests.get(key)
+      if (!pending) return
+      log.warn(`Server request timed out after ${timeoutMs}ms: ${method} (id=${key})`)
+      this._clearServerRequest(key)
+      // Reject, never approve. For approvals this fails the turn; for questions
+      // it is the only response schema-compatible way to say "nobody answered".
+      this._writeServerError(id, -32001, `Request timed out waiting for the user: ${method}`, { method })
+      this.emit('serverRequestTimedOut', {
+        sessionId: this.bridgeSessionId,
+        requestId: key,
+        kind,
+        method,
+      })
+    }, timeoutMs)
+    // A pending question must not keep a desktop process alive after teardown.
+    timer.unref?.()
+
+    this.pendingServerRequests.set(key, {
+      id,
+      method,
+      kind,
+      timer,
+      ...(opts.questionIds ? { questionIds: opts.questionIds } : {}),
+    })
+  }
+
+  /** Stop tracking one request, clearing its timer and approval bookkeeping. */
+  private _clearServerRequest(key: string): void {
+    const pending = this.pendingServerRequests.get(key)
+    if (pending) {
+      clearTimeout(pending.timer)
+      this.pendingServerRequests.delete(key)
+    }
+    this.pendingApprovalKinds.delete(key)
+    this.pendingPermissionProfiles.delete(key)
+  }
+
+  /**
+   * Reject every pending server request. Called when the user interrupts or
+   * the bridge tears down, so neither the codex process nor an IPC timer can
+   * wait forever for an answer that will never arrive.
+   */
+  private _rejectAllServerRequests(reason: string): void {
+    for (const [key, pending] of this.pendingServerRequests) {
+      clearTimeout(pending.timer)
+      this._writeServerError(pending.id, -32001, reason, { method: pending.method })
+      this.pendingApprovalKinds.delete(key)
+      this.pendingPermissionProfiles.delete(key)
+    }
+    this.pendingServerRequests.clear()
+  }
+
+  /** Forget pending request timers without answering (the turn/process is gone). */
+  private _clearAllServerRequests(): void {
+    for (const pending of this.pendingServerRequests.values()) clearTimeout(pending.timer)
+    this.pendingServerRequests.clear()
+    this.pendingApprovalKinds.clear()
+    this.pendingPermissionProfiles.clear()
+  }
+
+  /**
+   * Map `item/tool/requestUserInput` questions onto the renderer's elicitation
+   * card shape. The card renders one text input per schema property; the
+   * question id is the key, so the answer maps back in respondElicitation().
+   */
+  private _userInputElicitationPayload(
+    requestId: string,
+    params: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const questions = Array.isArray(params.questions)
+      ? (params.questions as unknown[]).map(asRecord).filter((q): q is Record<string, unknown> => q !== null)
+      : []
+    const properties: Record<string, unknown> = {}
+    const required: string[] = []
+    const promptLines: string[] = []
+    for (const question of questions) {
+      const id = stringOr(question.id)
+      if (!id) continue
+      const header = stringOr(question.header, id)
+      const text = stringOr(question.question)
+      const options = Array.isArray(question.options)
+        ? (question.options as unknown[]).map(option => {
+            const o = asRecord(option)
+            const label = stringOr(o?.label)
+            const description = stringOr(o?.description)
+            return label ? (description ? `${label} — ${description}` : label) : ''
+          }).filter(Boolean)
+        : []
+      properties[id] = {
+        type: 'string',
+        title: header,
+        description: [text, options.length > 0 ? `Options: ${options.join('; ')}` : '']
+          .filter(Boolean)
+          .join('\n'),
+        ...(question.isSecret === true ? { format: 'password' } : {}),
+      }
+      required.push(id)
+      promptLines.push(text || header)
+    }
+    return {
+      sessionId: this.bridgeSessionId,
+      requestId,
+      // The elicitation card shows this above the message; "Codex" keeps it
+      // honest that the question comes from the agent, not an MCP server.
+      serverName: 'Codex',
+      message: promptLines.filter(Boolean).join('\n\n') || 'Codex needs your input to continue.',
+      mode: 'form',
+      requestedSchema: { type: 'object', properties, required },
+    }
+  }
+
+  /**
+   * Forward one tool-output chunk, throttled per item and hard-capped. Dropped
+   * intermediate chunks are harmless: the completed item carries the aggregate.
+   */
+  private _emitToolProgress(itemId: string, delta: string): void {
+    if (!itemId || !delta) return
+    const now = Date.now()
+    const last = this.toolProgressLastAt.get(itemId) ?? 0
+    if (now - last < TOOL_PROGRESS_MIN_INTERVAL_MS) return
+    // Bound the bookkeeping map as well as the payload: a turn that touches
+    // hundreds of items must not leave hundreds of timestamps behind.
+    if (this.toolProgressLastAt.size > 512) this.toolProgressLastAt.clear()
+    this.toolProgressLastAt.set(itemId, now)
+    this.emit('toolProgress', {
+      sessionId: this.bridgeSessionId,
+      itemId,
+      delta: delta.length > TOOL_PROGRESS_CHUNK_LIMIT
+        ? delta.slice(-TOOL_PROGRESS_CHUNK_LIMIT)
+        : delta,
+    })
   }
 
   private _handleNotification(notification: JsonRpcNotification): void {
@@ -915,6 +1653,12 @@ export class CodexBridge extends EventEmitter {
         this.errorTurnId = null
         this.streamedTextItems.clear()
         this.streamedThinkingKinds.clear()
+        this.toolProgressLastAt.clear()
+        this.planDeltaBuffers.clear()
+        this.planDeltaLastEmit.clear()
+        // A completed turn cannot still need an answer; drop stale timers
+        // without sending responses the server no longer expects.
+        this._clearAllServerRequests()
         this.emit('messageStop', { sessionId: sid })
         break
       }
@@ -938,6 +1682,33 @@ export class CodexBridge extends EventEmitter {
         if (delta) {
           this.emit('textDelta', { sessionId: sid, text: delta, itemId })
         }
+        break
+      }
+
+      // ── Plan streaming ─────────────────────────
+      // `item/plan/delta` is a raw text stream; the structured plan arrives via
+      // turn/plan/updated and the completed plan item. Accumulate a bounded
+      // window (never concatenate unboundedly), parse checkboxes when present,
+      // and throttle: a verbose plan must not flood IPC.
+      case 'item/plan/delta': {
+        const itemId = stringOr(params.itemId)
+        const delta = stringOr(params.delta)
+        if (!itemId || !delta) break
+        const previous = this.planDeltaBuffers.get(itemId) ?? ''
+        const next = (previous + delta).slice(-PLAN_DELTA_BUFFER_LIMIT)
+        this.planDeltaBuffers.set(itemId, next)
+        const now = Date.now()
+        const last = this.planDeltaLastEmit.get(itemId) ?? 0
+        if (now - last < PLAN_DELTA_MIN_INTERVAL_MS) break
+        this.planDeltaLastEmit.set(itemId, now)
+        const todos = parseChecklist(next)
+        if (todos.length === 0) break
+        this.emit('planUpdated', {
+          sessionId: sid,
+          turnId: params.turnId,
+          planId: `plan-${params.turnId ?? itemId}`,
+          plan: todos,
+        })
         break
       }
 
@@ -992,6 +1763,61 @@ export class CodexBridge extends EventEmitter {
 
       case 'thread/deleted': {
         this.emit('threadDeleted', { sessionId: sid, threadId: params.threadId })
+        break
+      }
+
+      // A settings change made through any client (or the protocol's own
+      // defaults). Forward only the compact fields the UI can act on — the
+      // full ThreadSettings includes permission-profile internals.
+      case 'thread/settings/updated': {
+        const settings = asRecord(params.threadSettings) ?? {}
+        this.emit('threadSettingsUpdated', {
+          sessionId: sid,
+          threadId: params.threadId,
+          settings: {
+            cwd: settings.cwd ?? null,
+            model: settings.model ?? null,
+            modelProvider: settings.modelProvider ?? null,
+            approvalPolicy: settings.approvalPolicy ?? null,
+            approvalsReviewer: settings.approvalsReviewer ?? null,
+            personality: settings.personality ?? null,
+            effort: settings.effort ?? null,
+            serviceTier: settings.serviceTier ?? null,
+            sandboxPolicy: settings.sandboxPolicy ?? null,
+          },
+        })
+        break
+      }
+
+      // The server resolved a request on its own (auto-resolution, another
+      // client, or a turn cancel). Stop the local timer and re-enable the card;
+      // never send a response for an id the server has already closed.
+      case 'serverRequest/resolved': {
+        const key = String(params.requestId ?? '')
+        const pending = key ? this.pendingServerRequests.get(key) : undefined
+        this._clearServerRequest(key)
+        this.emit('serverRequestResolved', {
+          sessionId: sid,
+          requestId: key,
+          threadId: params.threadId,
+          ...(pending ? { kind: pending.kind, method: pending.method } : {}),
+        })
+        break
+      }
+
+      // The aggregate turn diff can be large; keep the latest bounded window
+      // and mark truncation rather than pushing unbounded text over IPC.
+      case 'turn/diff/updated': {
+        const diff = stringOr(params.diff)
+        if (!diff) break
+        const bounded = diff.length > TURN_DIFF_LIMIT ? diff.slice(-TURN_DIFF_LIMIT) : diff
+        this.emit('turnDiffUpdated', {
+          sessionId: sid,
+          threadId: params.threadId,
+          turnId: params.turnId,
+          diff: bounded,
+          truncated: bounded.length < diff.length,
+        })
         break
       }
 
@@ -1064,16 +1890,22 @@ export class CodexBridge extends EventEmitter {
       }
 
       // ── Tool progress ─────────────────────────
-      // Command/file output deltas are intentionally not forwarded: they fire
-      // per chunk and nothing in the UI consumes them, so mirroring them would
-      // just flood IPC during long commands.
+      // Command/file output deltas fire per chunk. They are forwarded as the
+      // existing `cli:toolProgress` shape, but throttled and truncated so a
+      // long build cannot flood IPC. `item/completed` still carries the full
+      // aggregate output for the final result.
+      case 'item/commandExecution/outputDelta':
+      case 'item/fileChange/outputDelta': {
+        this._emitToolProgress(stringOr(params.itemId), stringOr(params.delta))
+        break
+      }
+
       case 'item/mcpToolCall/progress':
       case 'item/toolCall/progress': {
-        this.emit('toolProgress', {
-          sessionId: sid,
-          itemId: params.itemId ?? null,
-          delta: params.delta ?? params.message ?? '',
-        })
+        this._emitToolProgress(
+          stringOr(params.itemId),
+          stringOr(params.delta) || stringOr(params.message),
+        )
         break
       }
 
@@ -1084,11 +1916,16 @@ export class CodexBridge extends EventEmitter {
 
       // ── Skill/plugin notifications ─────────────
       case 'skills/changed': {
+        // The next systemInit / skills probe must see the new list.
+        this.skillsCache = null
         this.emit('skillsChanged', { sessionId: sid })
         break
       }
 
       default:
+        // Explicitly drop notifications AIPA has no consumer for. A debug line
+        // means a newly added protocol method is discoverable instead of silent.
+        log.debug(`Unhandled notification: ${method}`)
         this.emit('unknown', { sessionId: sid, event: { method, params } })
     }
   }
@@ -1162,6 +1999,7 @@ export class CodexBridge extends EventEmitter {
           },
         })
         this.toolStarts.delete(itemId)
+        this.toolProgressLastAt.delete(itemId)
         break
       }
 
@@ -1305,6 +2143,9 @@ export class CodexBridge extends EventEmitter {
       // ── Plan / checklist ───────────────────────
       case 'plan': {
         if (!isDone) break
+        // The completed item supersedes any streamed delta buffer.
+        this.planDeltaBuffers.delete(itemId)
+        this.planDeltaLastEmit.delete(itemId)
         // turn/plan/updated normally carries the structured steps; this item is
         // the markdown fallback. Both share the plan-<turnId> id so the renderer
         // updates one card instead of stacking two.
@@ -1351,6 +2192,9 @@ export class CodexBridge extends EventEmitter {
       pending.reject(new Error('Bridge cleanup'))
       this.pendingRequests.delete(id)
     }
+    // Nobody can answer these once the bridge is gone; reject instead of
+    // leaving the codex process (or an IPC waiter) blocked.
+    this._rejectAllServerRequests('Bridge closed before the user answered')
     this.currentThreadId = null
     this.currentTurnId = null
     this.initialized = false
@@ -1361,6 +2205,13 @@ export class CodexBridge extends EventEmitter {
     this.errorTurnId = null
     this.pendingApprovalKinds.clear()
     this.pendingPermissionProfiles.clear()
+    this.toolProgressLastAt.clear()
+    this.planDeltaBuffers.clear()
+    this.planDeltaLastEmit.clear()
+    this.modelListCache = null
+    this.usageCache = null
+    this.rateLimitsCache = null
+    this.skillsCache = null
   }
 }
 
@@ -1386,6 +2237,19 @@ class CodexBridgeManager {
    * session from another panel (or calling /compact without an active bridge
    * id) must reuse it instead of resuming the thread in a second process.
    */
+  /**
+   * The first user-facing live bridge, if any. Read-only probes (models,
+   * usage, skills) reuse it instead of spawning a second app-server; internal
+   * background bridges are skipped because they own no conversation.
+   */
+  firstLive(): CodexBridge | null {
+    for (const [bridgeId, bridge] of this.bridges) {
+      if (bridgeId.startsWith('internal-')) continue
+      return bridge
+    }
+    return null
+  }
+
   findByThreadId(threadId: string): { bridgeId: string; bridge: CodexBridge } | null {
     for (const [bridgeId, bridge] of this.bridges) {
       // Background bridges (`internal-…`): automation runs, memory extraction,
@@ -1455,4 +2319,89 @@ export async function renameCodexThread(threadId: string, name: string): Promise
     log.debug(`renameCodexThread failed for ${threadId}:`, String(err))
     return false
   }
+}
+
+// ── Read-only protocol probes ───────────────────────
+//
+// These are independent of any turn: they use a live user-facing bridge when
+// one exists and otherwise spawn a short-lived app-server. Nothing here is
+// called from sendMessage(), so a slow probe can never hold a turn open.
+
+export interface CodexProbeOptions {
+  /** Spawn cwd for a detached probe; defaults to process.cwd(). */
+  cwd?: string
+  /** Extra environment (normally the stored API key) for a detached probe. */
+  env?: Record<string, string>
+  /** Bypass the module-level cache. */
+  force?: boolean
+}
+
+// Module-level caches back the detached path (a fresh bridge has no cache of
+// its own). Live bridges cache on the instance; both TTLs are identical.
+let detachedModelCache: { cwd: string; models: CodexModelInfo[]; fetchedAt: number } | null = null
+let detachedUsageCache: { usage: CodexAccountUsage; fetchedAt: number } | null = null
+let detachedRateLimitsCache: { rateLimits: CodexRateLimits; fetchedAt: number } | null = null
+let detachedSkillsCache: { cwd: string; skills: CodexSkillInfo[]; fetchedAt: number } | null = null
+
+/** Models Codex exposes, from a live bridge or a short-lived probe. */
+export async function fetchCodexModels(options: CodexProbeOptions = {}): Promise<CodexModelInfo[]> {
+  const cwd = options.cwd ?? process.cwd()
+  if (!options.force && detachedModelCache
+    && detachedModelCache.cwd === cwd
+    && Date.now() - detachedModelCache.fetchedAt < MODEL_LIST_CACHE_TTL_MS) {
+    return detachedModelCache.models
+  }
+  const live = codexBridgeManager.firstLive()
+  const models = live
+    ? await live.listModels({ force: options.force })
+    : await CodexBridge.withDetached(cwd, options.env ?? {}, bridge => bridge.listModels({ force: true }))
+  detachedModelCache = { cwd, models, fetchedAt: Date.now() }
+  return models
+}
+
+/** Real token usage from Codex's account endpoint (briefly cached). */
+export async function fetchCodexAccountUsage(options: CodexProbeOptions = {}): Promise<CodexAccountUsage> {
+  if (!options.force && detachedUsageCache
+    && Date.now() - detachedUsageCache.fetchedAt < USAGE_CACHE_TTL_MS) {
+    return detachedUsageCache.usage
+  }
+  const live = codexBridgeManager.firstLive()
+  const usage = live
+    ? await live.readAccountUsage({ force: options.force })
+    : await CodexBridge.withDetached(options.cwd ?? process.cwd(), options.env ?? {}, bridge =>
+        bridge.readAccountUsage({ force: true }))
+  detachedUsageCache = { usage, fetchedAt: Date.now() }
+  return usage
+}
+
+/** Real plan rate limits from Codex's account endpoint (briefly cached). */
+export async function fetchCodexRateLimits(options: CodexProbeOptions = {}): Promise<CodexRateLimits> {
+  if (!options.force && detachedRateLimitsCache
+    && Date.now() - detachedRateLimitsCache.fetchedAt < RATE_LIMITS_CACHE_TTL_MS) {
+    return detachedRateLimitsCache.rateLimits
+  }
+  const live = codexBridgeManager.firstLive()
+  const rateLimits = live
+    ? await live.readRateLimits({ force: options.force })
+    : await CodexBridge.withDetached(options.cwd ?? process.cwd(), options.env ?? {}, bridge =>
+        bridge.readRateLimits({ force: true }))
+  detachedRateLimitsCache = { rateLimits, fetchedAt: Date.now() }
+  return rateLimits
+}
+
+/** Full skill metadata (enabled and disabled) Codex sees for `cwd`. */
+export async function fetchCodexSkills(options: CodexProbeOptions = {}): Promise<CodexSkillInfo[]> {
+  const cwd = options.cwd ?? process.cwd()
+  if (!options.force && detachedSkillsCache
+    && detachedSkillsCache.cwd === cwd
+    && Date.now() - detachedSkillsCache.fetchedAt < SKILLS_CACHE_TTL_MS) {
+    return detachedSkillsCache.skills
+  }
+  const live = codexBridgeManager.firstLive()
+  const skills = live
+    ? await live.listSkills({ cwd, force: options.force })
+    : await CodexBridge.withDetached(cwd, options.env ?? {}, bridge =>
+        bridge.listSkills({ cwd, force: true }))
+  detachedSkillsCache = { cwd, skills, fetchedAt: Date.now() }
+  return skills
 }

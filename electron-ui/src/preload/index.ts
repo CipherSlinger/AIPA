@@ -13,6 +13,71 @@ export interface SystemInitData {
   plugins: string[]
 }
 
+/**
+ * Codex `model/list` row (see `.scratch/codex-schema/v2/ModelListResponse.json`).
+ * Main process trims the payload to these picker-relevant fields.
+ */
+export interface CodexModelInfoData {
+  id: string
+  model: string
+  displayName: string
+  description: string
+  hidden: boolean
+  isDefault: boolean
+  defaultReasoningEffort: string
+  supportedReasoningEfforts: Array<{ reasoningEffort: string; description: string }>
+  inputModalities: string[]
+  supportsPersonality: boolean
+}
+
+/** `account/usage/read`, normalized in the main process. */
+export interface CodexAccountUsageData {
+  fetchedAt: number
+  summary: {
+    lifetimeTokens: number | null
+    peakDailyTokens: number | null
+    currentStreakDays: number | null
+    longestStreakDays: number | null
+    longestRunningTurnSec: number | null
+  }
+  dailyUsageBuckets: Array<{ startDate: string; tokens: number }> | null
+}
+
+export interface CodexRateLimitWindowData {
+  usedPercent: number
+  windowDurationMins: number | null
+  resetsAt: number | null
+}
+
+export interface CodexRateLimitSnapshotData {
+  limitId: string | null
+  limitName: string | null
+  planType: string | null
+  primary: CodexRateLimitWindowData | null
+  secondary: CodexRateLimitWindowData | null
+  credits: { hasCredits: boolean; unlimited: boolean; balance: string | null } | null
+  rateLimitReachedType: string | null
+  spendControlReached: boolean | null
+}
+
+/** `account/rateLimits/read`, normalized in the main process. */
+export interface CodexRateLimitsData {
+  fetchedAt: number
+  rateLimits: CodexRateLimitSnapshotData
+  rateLimitsByLimitId: Record<string, CodexRateLimitSnapshotData> | null
+  rateLimitResetCredits: { availableCount: number } | null
+}
+
+/** One `skills/list` entry, flattened across cwds in the main process. */
+export interface CodexSkillInfoData {
+  name: string
+  description: string
+  path: string
+  scope: string
+  enabled: boolean
+  shortDescription?: string | null
+}
+
 /** Where MCP configuration lives for the active engine. */
 export interface McpConfigInfoData {
   engine: 'codex' | 'claude'
@@ -306,6 +371,20 @@ const electronAPI = {
   cliForkThread: (args: { sessionId: string; lastTurnId?: string }) =>
     ipcRenderer.invoke('cli:forkThread', args) as Promise<{ success: boolean; threadId?: string; error?: string }>,
 
+  // ── Codex read-only protocol probes ───────────
+  // Backed by `model/list`, `account/usage/read`, `account/rateLimits/read`
+  // and `skills/list` on the installed Codex app-server. A live session's
+  // bridge is reused when `sessionId` names one; otherwise the main process
+  // starts a short-lived probe. `force` bypasses the short cache.
+  codexModelList: (args?: { sessionId?: string; cwd?: string; force?: boolean }) =>
+    ipcRenderer.invoke('codex:modelList', args) as Promise<{ success: boolean; models?: CodexModelInfoData[]; error?: string }>,
+  codexAccountUsage: (args?: { sessionId?: string; force?: boolean }) =>
+    ipcRenderer.invoke('codex:accountUsage', args) as Promise<{ success: boolean; usage?: CodexAccountUsageData; error?: string }>,
+  codexRateLimits: (args?: { sessionId?: string; force?: boolean }) =>
+    ipcRenderer.invoke('codex:rateLimits', args) as Promise<{ success: boolean; rateLimits?: CodexRateLimitsData; error?: string }>,
+  codexSkillsList: (args?: { sessionId?: string; cwd?: string; force?: boolean }) =>
+    ipcRenderer.invoke('codex:skillsList', args) as Promise<{ success: boolean; skills?: CodexSkillInfoData[]; error?: string }>,
+
   // ── Speculation ───────────────────────────
   speculationIsSafe: (prompt: string) =>
     ipcRenderer.invoke('speculation:isSafe', { prompt }) as Promise<boolean>,
@@ -460,6 +539,9 @@ const electronAPI = {
       'cli:threadStarted', 'cli:threadClosed', 'cli:messageStart',
       'cli:tokenUsageUpdated', 'cli:turnError', 'cli:threadStatusChanged',
       'cli:planUpdated', 'cli:compacted',
+      // Server-question + observability events (renderer adoption is a later wave)
+      'cli:turnDiffUpdated', 'cli:threadSettingsUpdated',
+      'cli:serverRequestResolved', 'cli:serverRequestTimedOut',
     ]
     const handlers = channels.map((ch) => {
       const h = (_: unknown, d: Record<string, unknown>) => {

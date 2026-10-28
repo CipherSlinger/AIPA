@@ -4,7 +4,14 @@ import * as os from 'os'
 import * as path from 'path'
 import { ptyManager } from '../pty/pty-manager'
 import { fallbackShellManager } from '../pty/fallback-shell'
-import { codexBridgeManager, renameCodexThread } from '../codex/codex-bridge'
+import {
+  codexBridgeManager,
+  renameCodexThread,
+  fetchCodexModels,
+  fetchCodexAccountUsage,
+  fetchCodexRateLimits,
+  fetchCodexSkills,
+} from '../codex/codex-bridge'
 import { buildCodexTurnArgs } from '../codex/codex-turn-args'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { speculationManager, isSafeToSpeculate } from '../pty/speculation-bridge'
@@ -533,6 +540,75 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     return { success: false, error: 'No active codex bridge' }
   })
 
+  // ── Codex read-only protocol probes ─────────────────
+  // These back Settings/model pickers with Codex's real data instead of
+  // app-side synthetic numbers. Each uses a live user-facing bridge when one
+  // exists, otherwise a short-lived probe; failures are returned, never thrown.
+  safeHandle('codex:modelList', async (_e, args?: { sessionId?: string; cwd?: string; force?: boolean }) => {
+    try {
+      const bridge = typeof args?.sessionId === 'string'
+        ? codexBridgeManager.get(args.sessionId)
+        : codexBridgeManager.firstLive()
+      const models = bridge
+        ? await bridge.listModels({ force: args?.force === true })
+        : await fetchCodexModels({
+            cwd: resolveCodexProbeCwd(args?.cwd),
+            env: codexProbeEnv(),
+            force: args?.force === true,
+          })
+      return { success: true, models }
+    } catch (err) {
+      log.warn('codex:modelList error:', String(err))
+      return { success: false, error: String(err) }
+    }
+  })
+
+  safeHandle('codex:accountUsage', async (_e, args?: { sessionId?: string; force?: boolean }) => {
+    try {
+      const bridge = typeof args?.sessionId === 'string'
+        ? codexBridgeManager.get(args.sessionId)
+        : codexBridgeManager.firstLive()
+      const usage = bridge
+        ? await bridge.readAccountUsage({ force: args?.force === true })
+        : await fetchCodexAccountUsage({ env: codexProbeEnv(), force: args?.force === true })
+      return { success: true, usage }
+    } catch (err) {
+      log.warn('codex:accountUsage error:', String(err))
+      return { success: false, error: String(err) }
+    }
+  })
+
+  safeHandle('codex:rateLimits', async (_e, args?: { sessionId?: string; force?: boolean }) => {
+    try {
+      const bridge = typeof args?.sessionId === 'string'
+        ? codexBridgeManager.get(args.sessionId)
+        : codexBridgeManager.firstLive()
+      const rateLimits = bridge
+        ? await bridge.readRateLimits({ force: args?.force === true })
+        : await fetchCodexRateLimits({ env: codexProbeEnv(), force: args?.force === true })
+      return { success: true, rateLimits }
+    } catch (err) {
+      log.warn('codex:rateLimits error:', String(err))
+      return { success: false, error: String(err) }
+    }
+  })
+
+  safeHandle('codex:skillsList', async (_e, args?: { sessionId?: string; cwd?: string; force?: boolean }) => {
+    try {
+      const cwd = resolveCodexProbeCwd(args?.cwd)
+      const bridge = typeof args?.sessionId === 'string'
+        ? codexBridgeManager.get(args.sessionId)
+        : codexBridgeManager.firstLive()
+      const skills = bridge
+        ? await bridge.listSkills({ cwd, force: args?.force === true })
+        : await fetchCodexSkills({ cwd, env: codexProbeEnv(), force: args?.force === true })
+      return { success: true, skills }
+    } catch (err) {
+      log.warn('codex:skillsList error:', String(err))
+      return { success: false, error: String(err) }
+    }
+  })
+
   // Legacy handlers (kept for backward compat during migration)
   ipcMain.handle('cli:respondHookCallback', (_e, { sessionId, requestId, response }: { sessionId: string; requestId: string; response: Record<string, unknown> }) => {
     const bridge = streamBridgeManager.get(sessionId)
@@ -541,6 +617,13 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
 
   ipcMain.handle('cli:respondElicitation', (_e, { sessionId, requestId, result }: { sessionId: string; requestId: string; result: Record<string, unknown> }) => {
     resolveAttention({ kind: 'clarification', bridgeId: sessionId, requestId })
+    // Codex routes both `item/tool/requestUserInput` and
+    // `mcpServer/elicitation/request` through the same card/answer channel.
+    const codexBridge = codexBridgeManager.get(sessionId)
+    if (codexBridge) {
+      codexBridge.respondElicitation(requestId, result)
+      return
+    }
     const bridge = streamBridgeManager.get(sessionId)
     if (bridge) bridge.respondElicitation(requestId, result)
   })
@@ -568,6 +651,41 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
 }
 
 // ── CodexBridge send message implementation ──────────
+
+/**
+ * Environment for a detached Codex probe.
+ *
+ * Chat turns go through `buildCodexTurnArgs`, which injects the Settings key;
+ * probes spawn their own app-server and must do the same, otherwise usage and
+ * limits fail with "authentication required" even though the user is signed in.
+ */
+function codexProbeEnv(): Record<string, string> {
+  try {
+    const key = getApiKey()
+    return key ? { OPENAI_API_KEY: key } : {}
+  } catch (err) {
+    log.debug('codexProbeEnv: no stored key:', String(err))
+    return {}
+  }
+}
+
+/**
+ * Resolve the cwd for a detached probe. The renderer may pass the active tab's
+ * cwd; keep the same sandbox check as `fs:*` and fall back to the app's working
+ * directory rather than failing the whole probe on a stale path.
+ */
+function resolveCodexProbeCwd(input: unknown): string {
+  const workingDir = getPref('workingDir') as string | undefined
+  const candidate = typeof input === 'string' && input.trim()
+    ? input
+    : (workingDir && workingDir.trim() ? workingDir : process.cwd())
+  try {
+    return safePath(candidate, getAllowedFsRoots(workingDir))
+  } catch (err) {
+    log.debug('codex probe rejected cwd:', String(err))
+    return process.cwd()
+  }
+}
 
 /** Wire a CodexBridge to the renderer, reusing the legacy channel names. */
 function wireCodexBridge(
@@ -615,6 +733,13 @@ function wireCodexBridge(
     sink('cli:threadStarted', d)
   })
   bridge.on('threadClosed', (d) => sink('cli:threadClosed', d))
+  // Read-only/observability notifications. The renderer ignores channels it
+  // does not know, but forwarding them keeps the renderer wave able to adopt
+  // them without another main-process change.
+  bridge.on('turnDiffUpdated', (d) => sink('cli:turnDiffUpdated', d))
+  bridge.on('threadSettingsUpdated', (d) => sink('cli:threadSettingsUpdated', d))
+  bridge.on('serverRequestResolved', (d) => sink('cli:serverRequestResolved', d))
+  bridge.on('serverRequestTimedOut', (d) => sink('cli:serverRequestTimedOut', d))
 
   // A background turn must not drive the desktop pet — it has no session id
   // the pet can attribute, and it would flip the state while the user reads.
@@ -643,6 +768,19 @@ function wireCodexBridge(
   bridge.on('result', () => notifyClawdState('happy', bridgeId))
   bridge.on('processExit', () => notifyClawdState('idle', bridgeId))
 
+  // Codex's user-facing questions (requestUserInput and MCP elicitation) use
+  // the Claude elicitation card; only user-facing bridges get this listener,
+  // so an internal turn auto-declines inside the bridge instead of hanging.
+  bridge.on('elicitationRequest', (d) => {
+    sink('cli:elicitation', d)
+    raiseAttention({
+      kind: 'clarification',
+      bridgeId,
+      sessionId: sessionForBridge(bridgeId),
+      requestId: d.requestId != null ? String(d.requestId) : null,
+    })
+  })
+
   // Attention: the four events that may need the user while AIPA is in the
   // background. Approvals are per-request so answering one leaves the rest.
   bridge.on('permissionRequest', (d) => {
@@ -654,6 +792,15 @@ function wireCodexBridge(
       detail: clipDetail(d.toolName ?? d.title),
     })
   })
+
+  // The server resolved or expired a request itself; retract its bubble.
+  const resolveServerRequestAttention = (d: Record<string, unknown>) => {
+    if (d.requestId == null) return
+    resolveAttention({ kind: 'approval', bridgeId, requestId: String(d.requestId) })
+    resolveAttention({ kind: 'clarification', bridgeId, requestId: String(d.requestId) })
+  }
+  bridge.on('serverRequestResolved', resolveServerRequestAttention)
+  bridge.on('serverRequestTimedOut', resolveServerRequestAttention)
   bridge.on('result', (d) => {
     // A finished turn answers whatever it was waiting on.
     resolveAttention({ kind: 'approval', bridgeId })
