@@ -12,6 +12,10 @@ import {
   fetchCodexRateLimits,
   fetchCodexSkills,
 } from '../codex/codex-bridge'
+import type {
+  CodexMcpStartupStatus,
+  CodexMcpOauthLoginCompleted,
+} from '../codex/codex-bridge'
 import { buildCodexTurnArgs } from '../codex/codex-turn-args'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { speculationManager, isSafeToSpeculate } from '../pty/speculation-bridge'
@@ -195,6 +199,66 @@ function cacheMcpTools(initData: unknown): void {
   if (!servers) return
   for (const srv of servers) {
     if (srv.tools && srv.tools.length > 0) mcpServerToolsCache[srv.name] = srv.tools
+  }
+}
+
+/**
+ * Latest live MCP reports, for Settings → MCP when it opens after the engine
+ * already spoke. Startup state belongs to one app-server process, so records
+ * are kept per (bridge, server) and a process exiting removes only its own:
+ * a "ready" from a dead process is not a current status, while another live
+ * process's older report still is. Background (`internal-`) bridges never
+ * write here — they own no user-facing surface.
+ */
+type McpStartupStatusRecord = CodexMcpStartupStatus & { sessionId: string; receivedAt: number }
+type McpOauthRecord = CodexMcpOauthLoginCompleted & { sessionId: string; receivedAt: number }
+
+const mcpStartupStatusCache = new Map<string, McpStartupStatusRecord>()
+const mcpOauthCache = new Map<string, McpOauthRecord>()
+
+function mcpReportKey(bridgeId: string, serverName: string): string {
+  return `${bridgeId}\u0000${serverName}`
+}
+
+/** Collapse the per-process records to the newest report per server name. */
+function latestMcpReports<T extends { serverName: string; receivedAt: number }>(
+  reports: Iterable<T>,
+): T[] {
+  const latest = new Map<string, T>()
+  for (const report of reports) {
+    const existing = latest.get(report.serverName)
+    if (!existing || report.receivedAt >= existing.receivedAt) latest.set(report.serverName, report)
+  }
+  return [...latest.values()]
+}
+
+function noteMcpStartupStatus(bridgeId: string, report: CodexMcpStartupStatus): void {
+  mcpStartupStatusCache.set(mcpReportKey(bridgeId, report.serverName), {
+    ...report,
+    sessionId: bridgeId,
+    receivedAt: Date.now(),
+  })
+  // A newer startup report supersedes an earlier sign-in notice from the same
+  // process: the engine has moved on and the completion line would describe a
+  // previous attempt.
+  mcpOauthCache.delete(mcpReportKey(bridgeId, report.serverName))
+}
+
+function noteMcpOauthCompleted(bridgeId: string, completed: CodexMcpOauthLoginCompleted): void {
+  mcpOauthCache.set(mcpReportKey(bridgeId, completed.serverName), {
+    ...completed,
+    sessionId: bridgeId,
+    receivedAt: Date.now(),
+  })
+}
+
+function forgetMcpRuntimeReports(bridgeId: string): void {
+  const prefix = `${bridgeId}\u0000`
+  for (const key of mcpStartupStatusCache.keys()) {
+    if (key.startsWith(prefix)) mcpStartupStatusCache.delete(key)
+  }
+  for (const key of mcpOauthCache.keys()) {
+    if (key.startsWith(prefix)) mcpOauthCache.delete(key)
   }
 }
 
@@ -552,13 +616,31 @@ function registerCliHandlers(win: BrowserWindow, send: (ch: string, ...a: unknow
     if (bridge) bridge.endSession()
   })
 
-  // Codex-specific: steer an in-progress turn
-  ipcMain.handle('cli:steerTurn', (_e, { sessionId, prompt }: { sessionId: string; prompt: string }) => {
+  // Codex-specific: steer an in-progress turn.
+  //
+  // The rejection has to reach the renderer: the guidance row it just wrote is
+  // the only place the user learns the steer did not land, and a swallowed
+  // error would leave that row claiming delivery. The handler therefore
+  // resolves with a result instead of fire-and-forget.
+  ipcMain.handle('cli:steerTurn', async (_e, args: { sessionId?: unknown; prompt?: unknown; expectedTurnId?: unknown } | undefined) => {
+    const sessionId = typeof args?.sessionId === 'string' ? args.sessionId : ''
+    const prompt = typeof args?.prompt === 'string' ? args.prompt : ''
+    if (!sessionId || !prompt.trim()) {
+      return { success: false, error: 'Missing sessionId or prompt' }
+    }
     const codexBridge = codexBridgeManager.get(sessionId)
-    if (codexBridge) {
-      codexBridge.steerTurn(prompt).catch((err) => {
-        log.warn('steerTurn error:', String(err))
-      })
+    if (!codexBridge) {
+      return { success: false, error: 'No active codex bridge' }
+    }
+    try {
+      const turnId = await codexBridge.steerTurn(
+        prompt,
+        typeof args?.expectedTurnId === 'string' && args.expectedTurnId ? args.expectedTurnId : undefined,
+      )
+      return { success: true, turnId }
+    } catch (err) {
+      log.warn('steerTurn error:', String(err))
+      return { success: false, error: String(err) }
     }
   })
 
@@ -832,6 +914,19 @@ function wireCodexBridge(
   bridge.on('modelRerouted', (d) => sink('cli:modelRerouted', d))
   bridge.on('accountUpdated', (d) => sink('cli:accountUpdated', d))
   bridge.on('skillsChanged', (d) => sink('cli:skillsChanged', d))
+  // Live MCP startup/auth reports. Also user-facing by definition, so an
+  // internal bridge never reaches them. The cache lets Settings → MCP show
+  // what the engine already said when the page opens later; an open page is
+  // kept current by the forwarded events.
+  bridge.on('mcpStartupStatusUpdated', (d) => {
+    noteMcpStartupStatus(bridgeId, d)
+    sink('cli:mcpStartupStatusUpdated', d)
+  })
+  bridge.on('mcpOauthLoginCompleted', (d) => {
+    noteMcpOauthCompleted(bridgeId, d)
+    sink('cli:mcpOauthLoginCompleted', d)
+  })
+  bridge.on('processExit', () => forgetMcpRuntimeReports(bridgeId))
   // Windows sandbox lifecycle. Success is intentionally low-key (diagnostics
   // may consume it); failure is shown from `error` by the notice stack. The
   // sandbox setup is app-wide, but an internal bridge still owns no UI and
@@ -2077,6 +2172,17 @@ function registerConfigHandlers(): void {
       env: srv.env ? redactKeys(srv.env) : undefined,
       headers: srv.headers ? redactKeys(srv.headers) : undefined,
     })),
+  }))
+
+  /**
+   * Live MCP startup/auth reports from the current app-server process, for
+   * Settings → MCP when it opens after the notifications already fired. The
+   * renderer intersects these with its configured list, so a report about a
+   * server that is no longer configured never becomes a row.
+   */
+  safeHandle('mcp:runtimeStatus', () => ({
+    startup: latestMcpReports(mcpStartupStatusCache.values()),
+    oauth: latestMcpReports(mcpOauthCache.values()),
   }))
 
   // ── CLI settings.json read/write (Iteration 518) ─────

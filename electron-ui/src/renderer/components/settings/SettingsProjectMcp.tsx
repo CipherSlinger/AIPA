@@ -9,6 +9,19 @@ import { Server, Plus, ToggleLeft, ToggleRight, Info, FileJson, AlertCircle, Tra
 import { usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import type { McpConfigInfoData, McpServerConfigData } from '../../../preload/index'
+import {
+  EMPTY_MCP_STATUS_SNAPSHOT,
+  applyMcpOauthReport,
+  applyMcpStartupReport,
+  deriveMcpServerStatuses,
+  dropMcpReportsForSession,
+  mergeMcpStatusSnapshot,
+  parseMcpOauthReport,
+  parseMcpStartupReport,
+  readMcpStatusSnapshot,
+  type McpServerStatusRow,
+  type McpStatusSnapshot,
+} from './mcpStatusView'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -57,6 +70,27 @@ const TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> 
   http:   { bg: 'rgba(251,191,36,0.12)', text: 'var(--warning-text)', border: 'rgba(251,191,36,0.25)' },
 }
 
+/**
+ * Colour by the state the engine reported. `needsAuth` is the engine's
+ * `failed` + `reauthenticationRequired`, not a separate state AIPA invented.
+ */
+function statusTone(status: McpServerStatusRow['startup']): { bg: string; text: string; border: string } {
+  if (!status) return { bg: 'rgba(156,163,175,0.12)', text: 'var(--text-faint)', border: 'rgba(156,163,175,0.20)' }
+  if (status.state === 'ready') {
+    return { bg: 'rgba(52,211,153,0.12)', text: 'var(--success-text)', border: 'rgba(52,211,153,0.25)' }
+  }
+  // A failed server the engine says needs a sign-in is actionable by the user,
+  // so it reads as a prompt rather than a hard failure.
+  if (status.state === 'failed' && status.failureReason !== 'reauthenticationRequired') {
+    return { bg: 'rgba(239,68,68,0.10)', text: 'rgba(239,68,68,0.90)', border: 'rgba(239,68,68,0.22)' }
+  }
+  if (status.state === 'failed' || status.state === 'starting') {
+    return { bg: 'rgba(251,191,36,0.10)', text: 'var(--warning-text)', border: 'rgba(251,191,36,0.25)' }
+  }
+  // cancelled
+  return { bg: 'rgba(156,163,175,0.12)', text: 'var(--text-faint)', border: 'rgba(156,163,175,0.20)' }
+}
+
 const inputStyle: React.CSSProperties = {
   width: '100%', height: 30, padding: '0 10px', boxSizing: 'border-box',
   background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 6,
@@ -67,14 +101,18 @@ const inputStyle: React.CSSProperties = {
 
 interface ServerCardProps {
   server: DisplayServer
+  /** Live report from the engine, or null when it has said nothing yet. */
+  status: McpServerStatusRow | null
   onToggleDisabled: (name: string) => void
   onDelete: (name: string) => void
 }
 
-function ServerCard({ server, onToggleDisabled, onDelete }: ServerCardProps) {
+function ServerCard({ server, status, onToggleDisabled, onDelete }: ServerCardProps) {
   const t = useT()
   const colors = TYPE_COLORS[server.type] ?? TYPE_COLORS.stdio
   const isDisabled = server.disabled
+  const startup = status?.startup ?? null
+  const tone = statusTone(startup)
 
   return (
     <div
@@ -117,6 +155,23 @@ function ServerCard({ server, onToggleDisabled, onDelete }: ServerCardProps) {
           }}>
             {server.type}
           </span>
+          {/* The engine's startup verdict for this server. A server it has not
+              reported yet gets no pill at all — silence is not a success. */}
+          {startup && (
+            <span
+              title={startup.state}
+              style={{
+                fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                background: tone.bg, color: tone.text,
+                border: `1px solid ${tone.border}`,
+                borderRadius: 4, padding: '2px 6px',
+                flexShrink: 0,
+              }}
+            >
+              {t(startup.labelKey)}
+            </span>
+          )}
           {isDisabled && (
             <span style={{
               fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
@@ -137,6 +192,35 @@ function ServerCard({ server, onToggleDisabled, onDelete }: ServerCardProps) {
         }}>
           {server.preview}
         </div>
+        {/* Engine text, verbatim. No cause or remedy is added here. */}
+        {startup?.error && (
+          <div style={{
+            fontSize: 11, color: 'rgba(239,68,68,0.90)', lineHeight: 1.5,
+            marginTop: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+          }}>
+            {startup.error}
+          </div>
+        )}
+        {startup?.failureReason && (
+          <div style={{
+            fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5,
+            marginTop: 2, fontFamily: 'monospace',
+          }}>
+            {t('settings.mcpPage.statusReason', { reason: startup.failureReason })}
+          </div>
+        )}
+        {/* Sign-in completion is its own event: success here does not mean the
+            server started, so it is a separate line, never a status pill. */}
+        {status?.oauth && (
+          <div style={{
+            fontSize: 10, lineHeight: 1.5, marginTop: 2,
+            color: status.oauth.success ? 'var(--success-text)' : 'rgba(239,68,68,0.90)',
+            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+          }}>
+            {t(status.oauth.labelKey)}
+            {status.oauth.error ? `: ${status.oauth.error}` : ''}
+          </div>
+        )}
       </div>
 
       <button
@@ -306,8 +390,54 @@ export default function SettingsProjectMcp() {
   const [toast, setToast] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [adding, setAdding] = useState(false)
+  // Live startup/auth reports. Main keeps a snapshot for reports that fired
+  // before this page mounted; the push events keep an open page current.
+  const [mcpStatus, setMcpStatus] = useState<McpStatusSnapshot>(EMPTY_MCP_STATUS_SNAPSHOT)
 
   const isCodex = configInfo?.engine === 'codex'
+
+  useEffect(() => {
+    // Only the Codex engine reports MCP startup; the Claude CLI has no such
+    // notification, so nothing is shown (and no stale rows survive a switch).
+    if (!isCodex) {
+      setMcpStatus(EMPTY_MCP_STATUS_SNAPSHOT)
+      return
+    }
+    const api = window.electronAPI
+    if (!api) return
+    let cancelled = false
+    api.mcpRuntimeStatus()
+      .then(raw => {
+        if (!cancelled) {
+          // Reports that arrived while the read was in flight are newer than
+          // the snapshot and must survive the merge.
+          setMcpStatus(previous =>
+            mergeMcpStatusSnapshot(previous, readMcpStatusSnapshot(raw, Date.now())))
+        }
+      })
+      .catch(() => {
+        // Status is supplementary: the config list below still renders.
+      })
+    const unsubscribe = api.onCliEvent(null, (event, data) => {
+      if (event === 'cli:mcpStartupStatusUpdated') {
+        const report = parseMcpStartupReport(data, Date.now())
+        if (report) setMcpStatus(previous => applyMcpStartupReport(previous, report))
+      } else if (event === 'cli:mcpOauthLoginCompleted') {
+        const report = parseMcpOauthReport(data, Date.now())
+        if (report) setMcpStatus(previous => applyMcpOauthReport(previous, report))
+      } else if (event === 'cli:processExit') {
+        // Reports belong to the app-server process that sent them.
+        const sessionId = (data as { sessionId?: unknown } | null)?.sessionId
+        if (typeof sessionId === 'string') {
+          setMcpStatus(previous => dropMcpReportsForSession(previous, sessionId))
+        }
+      }
+    })
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
+  }, [isCodex])
 
   const showToast = useCallback((msg: string) => {
     setToast(msg)
@@ -484,6 +614,13 @@ export default function SettingsProjectMcp() {
         disabled: !!cfg.disabled,
       }))
 
+  // Join the config list with the engine's reports. Only configured names
+  // produce rows, so a report cannot introduce a server the file does not have.
+  const statusByName = new Map(
+    deriveMcpServerStatuses(servers.map(srv => srv.name), mcpStatus)
+      .map(row => [row.serverName, row]),
+  )
+
   // Claude branch with no file yet keeps its dedicated empty state
   const needsFile = !isCodex && !mcpJson
 
@@ -638,7 +775,12 @@ export default function SettingsProjectMcp() {
           }}>
             <Info size={12} color="var(--text-faint)" style={{ marginTop: 1, flexShrink: 0 }} />
             <div style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.6 }}>
-              {isCodex ? t('settings.mcpPage.codexNote') : t('settings.mcpPage.applyNote')}
+              {isCodex ? (
+                <>
+                  <div>{t('settings.mcpPage.codexNote')}</div>
+                  <div style={{ marginTop: 4 }}>{t('settings.mcpPage.statusNote')}</div>
+                </>
+              ) : t('settings.mcpPage.applyNote')}
             </div>
           </div>
 
@@ -668,6 +810,9 @@ export default function SettingsProjectMcp() {
                 <ServerCard
                   key={srv.name}
                   server={srv}
+                  // A disabled server is not started, so an older report about
+                  // it would read as a contradiction next to the toggle.
+                  status={srv.disabled ? null : statusByName.get(srv.name) ?? null}
                   onToggleDisabled={handleToggleDisabled}
                   onDelete={handleDelete}
                 />

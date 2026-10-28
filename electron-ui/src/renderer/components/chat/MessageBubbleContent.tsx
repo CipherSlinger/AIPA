@@ -4,7 +4,7 @@ import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import ToolBatchBlock from './ToolBatchBlock'
 import { groupToolUses } from '../../utils/toolSummary'
-import { ChevronDown, ChevronRight, ChevronUp, Check, CheckCheck, Clock, Timer, Type, AlertTriangle } from 'lucide-react'
+import { ChevronDown, ChevronRight, ChevronUp, Check, CheckCheck, Clock, CornerDownRight, Timer, Type, AlertTriangle } from 'lucide-react'
 import { ImageThumbnail } from './tool-cards/ImageThumbnail'
 import { messageAttachmentSrc } from './attachmentDisplay'
 import { useT } from '../../i18n'
@@ -169,6 +169,37 @@ export default React.memo(function MessageBubbleContent({
               <AlertTriangle size={12} style={{ flexShrink: 0, marginTop: 1 }} />
               <span>{t('chat.imageAttachment.notSent', { reason: message.attachmentError })}</span>
             </div>
+          ) : null}
+
+          {/* Guidance into a running turn. This row did not start a turn, so
+              it must not read like an ordinary prompt awaiting an answer: the
+              label states what it is, and a rejected steer leaves its reason
+              here instead of disappearing from the transcript. */}
+          {isUser && message.guidance ? (
+            message.guidance.state === 'failed' ? (
+              <div style={{
+                display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 6,
+                padding: '5px 8px', borderRadius: 6, fontSize: 11,
+                color: 'var(--warning-text, #d97706)',
+                background: 'rgba(245,158,11,0.12)',
+                border: '1px solid rgba(245,158,11,0.3)',
+              }}>
+                <AlertTriangle size={12} style={{ flexShrink: 0, marginTop: 1 }} />
+                <span>{t('chat.steer.failed', { reason: message.guidance.error || t('error.unknownError') })}</span>
+              </div>
+            ) : (
+              <div
+                role="status"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6,
+                  fontSize: 10, color: 'var(--accent-muted)', opacity: 0.85,
+                  userSelect: 'none',
+                }}
+              >
+                <CornerDownRight size={11} style={{ flexShrink: 0 }} />
+                <span>{t(message.guidance.state === 'sending' ? 'chat.steer.sending' : 'chat.steer.sent')}</span>
+              </div>
+            )
           ) : null}
 
           {/* Tool uses (inside AI bubble) -- with batch grouping */}

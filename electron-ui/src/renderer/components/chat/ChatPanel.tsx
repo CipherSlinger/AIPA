@@ -133,7 +133,7 @@ export default function ChatPanel() {
     })
   }, [addDreamEvent, addToast, t])
 
-  const { sendMessage, abort, respondPermission, respondHookCallback, respondElicitation, grantToolPermission, alwaysAllowTool, alwaysDenyTool, newConversation } = useStreamJson()
+  const { sendMessage, steerMessage, abort, respondPermission, respondHookCallback, respondElicitation, grantToolPermission, alwaysAllowTool, alwaysDenyTool, newConversation } = useStreamJson()
 
   // Extracted hooks
   const { elapsedStr } = useStreamingTimer(isStreaming)
@@ -717,6 +717,7 @@ export default function ChatPanel() {
         isStreaming={isStreaming}
         sessionId={currentSessionId}
         onSend={sendMessage}
+        onSteer={steerMessage}
         onAbort={abort}
         onNewConversation={newConversation}
       />

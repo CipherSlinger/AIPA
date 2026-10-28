@@ -260,6 +260,17 @@
       "missing": "图片文件已丢失",
       "saving": "图片仍在保存中，请稍后再发送。",
       "notSent": "未发送：{{reason}}"
+    },
+    "steer": {
+      "sending": "正在把引导发给进行中的这一轮…",
+      "sent": "已发给正在运行的这一轮",
+      "failed": "引导没有送出：{{reason}}",
+      "turnEnded": "这一轮在引擎确认前就结束了，这条引导没有送出",
+      "sendTooltip": "作为引导发给正在运行的这一轮（不会新开一轮）",
+      "waitingTurn": "正在等待引擎报告这一轮的编号",
+      "composerHint": "回车把这段话作为引导发给正在运行的这一轮",
+      "imagesNotSent": "图片无法加进正在运行的这一轮。等它结束，或把图片留到下一次发送。",
+      "noActiveTurn": "正在运行的那一轮已经结束"
     }
   },
   "sessionReuse": {
@@ -774,7 +785,16 @@
       "createFile": "创建 .mcp.json",
       "noFileTitle": "工作目录中没有 .mcp.json",
       "noFileHint": "创建 .mcp.json 以配置项目级 MCP 服务器。",
-      "errorCommandRequired": "请填写启动命令"
+      "errorCommandRequired": "请填写启动命令",
+      "statusStarting": "正在启动…",
+      "statusReady": "已启动",
+      "statusFailed": "启动失败",
+      "statusCancelled": "启动已取消",
+      "statusNeedsAuth": "需要登录",
+      "statusReason": "原因：{{reason}}",
+      "oauthCompleted": "登录已完成",
+      "oauthFailed": "登录失败",
+      "statusNote": "启动状态由运行中的 Codex 引擎报告。引擎尚未报告的服务器不会显示状态。"
     },
     "toolAccessControl": "工具访问控制",
     "toolAccessControlHint": "控制 Claude 可以使用哪些内置工具。禁用的工具通过 --disallowedTools 传递。",

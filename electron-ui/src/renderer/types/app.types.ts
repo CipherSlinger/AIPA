@@ -59,6 +59,19 @@ export interface MessageAttachment {
   dataUrl?: string
 }
 
+/**
+ * Delivery state of a message steered into a running Codex turn. The bridge
+ * either accepted the guidance or rejected it; there is no "delivered and
+ * read" signal, so `sent` means the request left the renderer.
+ */
+export interface GuidanceReceipt {
+  /** The Codex turn this guidance was addressed to. */
+  turnId: string
+  state: 'sending' | 'sent' | 'failed'
+  /** The engine's / IPC's own words when `state` is 'failed'. */
+  error?: string
+}
+
 export interface StandardChatMessage {
   id: string
   role: 'user' | 'assistant' | 'system'
@@ -71,6 +84,12 @@ export interface StandardChatMessage {
   /** Set when the turn failed after the images had been attached: the
    *  transcript must say they were not sent instead of implying delivery. */
   attachmentError?: string
+  /**
+   * This user row is guidance steered into a turn that was already running,
+   * not the message that started one. The transcript has to say so: a row that
+   * looks like an ordinary prompt would imply a fresh answer is coming.
+   */
+  guidance?: GuidanceReceipt
   fileAttachments?: { name: string; path: string; size: number }[]  // file context attachments
   rating?: 'up' | 'down' | null
   bookmarked?: boolean

@@ -277,6 +277,10 @@ export function useStreamJson() {
 
   // Helper: stop streaming + release prevent-sleep (stable — used by sendMessage/abort/effect)
   const stopStreamingAndReleaseSleep = useCallback(() => {
+    // Guidance still marked "sending" when the turn ends can no longer be
+    // confirmed: the turn it was addressed to is gone. Say that on the row
+    // instead of letting it keep claiming delivery.
+    useChatStore.getState().settlePendingGuidance(getT()('chat.steer.turnEnded'))
     useChatStore.getState().setStreaming(false)
     if (window.electronAPI?.windowPreventSleep) {
       window.electronAPI.windowPreventSleep(false)
@@ -365,6 +369,14 @@ export function useStreamJson() {
     // that bridge's events and drops anything the user has since navigated away
     // from.
     useChatStore.getState().beginTurn()
+    // Record which engine owns this turn. The composer may only steer a Codex
+    // turn, and it must never infer that from whatever credential the picker
+    // shows later: credentials can change while the turn is still running.
+    // The provider branch never reaches CodexBridge, whatever the credential
+    // probe says, so it is never steerable.
+    useChatStore.getState().beginLiveTurn(
+      routing.type === 'provider' || activeEngine.kind !== 'codex' ? 'legacy' : 'codex',
+    )
     // Prevent system idle sleep while streaming (if enabled in prefs)
     if (prefs.preventSleep !== false && window.electronAPI?.windowPreventSleep) {
       window.electronAPI.windowPreventSleep(true)
@@ -564,6 +576,71 @@ export function useStreamJson() {
 
   // Keep ref in sync so IPC handler can call sendMessage without stale closure
   sendMessageRef.current = sendMessage
+
+  /**
+   * Send a message as guidance into the turn that is already running, instead
+   * of starting another one. Only `sendMessage` owns a turn's side effects
+   * (clearing state, assembling memory, `beginTurn`, `setStreaming`); a steer
+   * reuses the live one and must not repeat any of them.
+   *
+   * The row is written before the request so an engine rejection has somewhere
+   * to land. When the promise resolves the request left the renderer — Codex
+   * has no "guidance applied" acknowledgement.
+   */
+  const steerMessage = useCallback(async (prompt: string): Promise<{ ok: boolean; messageId: string }> => {
+    const t = getT()
+    // Read at call time: the bridge id and the live turn both change during a
+    // turn, and this callback must not capture the values from its last render.
+    const bridgeId = activeBridgeIdRef.current
+    const live = useChatStore.getState().liveTurn
+    const turnId = live?.turnId ?? ''
+    const messageId = `guidance-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+
+    trackPromptHistory(prompt)
+    useChatStore.getState().addMessage({
+      id: messageId,
+      role: 'user',
+      content: prompt,
+      timestamp: Date.now(),
+      guidance: { turnId, state: 'sending' },
+    } as StandardChatMessage)
+
+    if (!bridgeId || !turnId) {
+      // The turn ended between the decision and this call, or the bridge id
+      // was never captured. Say so on the row rather than swallowing it.
+      useChatStore.getState().settleGuidance(messageId, 'failed', t('chat.steer.noActiveTurn'))
+      return { ok: false, messageId }
+    }
+
+    try {
+      // Naming the expected turn lets the engine itself refuse guidance aimed
+      // at a turn that is no longer active (`expected active turn id … but
+      // found …`) instead of steering whatever happens to be running.
+      const result = await window.electronAPI.cliSteerTurn({ sessionId: bridgeId, prompt, expectedTurnId: turnId })
+      if (!result?.success) {
+        // The engine's rejection text is the honest reason; it is shown as
+        // sent, no cause is invented.
+        useChatStore.getState().settleGuidance(
+          messageId,
+          'failed',
+          result?.error || t('chat.steer.noActiveTurn'),
+        )
+        return { ok: false, messageId }
+      }
+      // The reply may land after the turn it addressed has ended. Claiming
+      // delivery then would be false: the id we steered no longer names a
+      // turn, so settle the row as unconfirmed instead of "sent".
+      if (useChatStore.getState().liveTurn?.turnId !== turnId) {
+        useChatStore.getState().settleGuidance(messageId, 'failed', t('chat.steer.turnEnded'))
+        return { ok: false, messageId }
+      }
+      useChatStore.getState().settleGuidance(messageId, 'sent')
+      return { ok: true, messageId }
+    } catch (err) {
+      useChatStore.getState().settleGuidance(messageId, 'failed', String(err))
+      return { ok: false, messageId }
+    }
+  }, [])
 
   const abort = useCallback(() => {
     const sid = activeBridgeIdRef.current
@@ -1433,6 +1510,12 @@ export function useStreamJson() {
           // the previous turn's aggregate diff must not sit under its answer.
           const sid = typeof data.sessionId === 'string' ? data.sessionId : ''
           if (sid && useChatStore.getState().isOwnedStreamEvent(sid)) {
+            // This notification is the only place the renderer is told the
+            // turn id (`turn/started` carries `turn.id`); `turn/steer` needs
+            // exactly that id as its `expectedTurnId` precondition.
+            const startedTurn = (data.event as { turn?: { id?: unknown } } | undefined)?.turn
+            const turnId = typeof startedTurn?.id === 'string' ? startedTurn.id : ''
+            if (turnId) useChatStore.getState().setLiveTurnId(turnId)
             // A new turn is no longer covered by the previous turn's reroute
             // report. Warnings stay until `cli:result` (they can arrive before
             // `turn/started` during initialize).
@@ -1729,5 +1812,5 @@ export function useStreamJson() {
     }
   }, [stopStreamingAndReleaseSleep])
 
-  return { sendMessage, abort, respondPermission, respondHookCallback, respondElicitation, grantToolPermission, alwaysAllowTool, alwaysDenyTool, newConversation }
+  return { sendMessage, steerMessage, abort, respondPermission, respondHookCallback, respondElicitation, grantToolPermission, alwaysAllowTool, alwaysDenyTool, newConversation }
 }

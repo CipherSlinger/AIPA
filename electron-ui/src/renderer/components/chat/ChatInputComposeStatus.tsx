@@ -2,7 +2,7 @@
 // Displays word/char/token counts, WPM, calculator result, and input history hint.
 
 import React, { useSyncExternalStore } from 'react'
-import { AlertTriangle, Calculator, Clock, MessageCircleQuestion } from 'lucide-react'
+import { AlertTriangle, Calculator, Clock, CornerDownRight, MessageCircleQuestion } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useChatStore, usePrefsStore } from '../../store'
 import { personaModelOf, resolveEffectiveModel } from '../../lib/sessionModel'
@@ -15,6 +15,8 @@ interface ChatInputComposeStatusProps {
   typingWpm: number
   calcResult: string | null
   hasInputHistory: boolean
+  /** A Codex turn is running and this composer has something to steer it with. */
+  steerHint?: boolean
 }
 
 // Codex reports the policy the thread actually runs with. The labels say what
@@ -39,7 +41,7 @@ const SEP = (
   }} />
 )
 
-export default function ChatInputComposeStatus({ input, typingWpm, calcResult, hasInputHistory }: ChatInputComposeStatusProps) {
+export default function ChatInputComposeStatus({ input, typingWpm, calcResult, hasInputHistory, steerHint = false }: ChatInputComposeStatusProps) {
   const t = useT()
   const trimmed = input.trim()
 
@@ -234,7 +236,7 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
           so a user who came back to the window sees the block without a new
           row of chrome. The row exists whenever either signal has something to
           say; an empty composer with no chip keeps it hidden as before. */}
-      {(statusChip || trimmed.length > 0) && (
+      {(statusChip || trimmed.length > 0 || steerHint) && (
         <div style={{
           display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6,
           padding: '3px 12px',
@@ -263,6 +265,22 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
             >
               <statusChip.Icon size={11} />
               {statusChip.label}
+            </span>
+          )}
+          {/* One quiet line, no banner: what Enter would do while a Codex turn
+              is running. The stop button next to send still ends the turn. */}
+          {steerHint && (
+            <span
+              title={t('chat.steer.composerHint')}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                marginRight: statusChip ? 0 : 'auto',
+                fontSize: 10, color: 'var(--accent-muted)',
+                whiteSpace: 'nowrap', userSelect: 'none',
+              }}
+            >
+              <CornerDownRight size={10} />
+              {t('chat.steer.composerHint')}
             </span>
           )}
           {trimmed.length > 0 && (

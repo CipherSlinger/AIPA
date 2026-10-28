@@ -17,6 +17,7 @@ export const MAX_VISIBLE_ENGINE_WARNINGS = 3
 
 export type EngineWarningKind =
   | 'warning'
+  | 'guardianWarning'
   | 'deprecationNotice'
   | 'configWarning'
   | 'worldWritable'
@@ -82,6 +83,7 @@ export interface EngineNoticeStore {
 
 const WARNING_KINDS: ReadonlySet<string> = new Set([
   'warning',
+  'guardianWarning',
   'deprecationNotice',
   'configWarning',
   'worldWritable',

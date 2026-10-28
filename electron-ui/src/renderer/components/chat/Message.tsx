@@ -54,7 +54,9 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
     [effectivePersonaId, personas]
   )
   const globalIsStreaming = useChatStore(s => s.isStreaming)
-  const msgStatus: 'sending' | 'sent' | 'read' | null = isUser
+  // Guidance did not start a turn, so the "sending / read" status of a prompt
+  // would describe the wrong thing. Its own guidance line states its fate.
+  const msgStatus: 'sending' | 'sent' | 'read' | null = isUser && !(message as StandardChatMessage).guidance
     ? (globalIsStreaming && isLastUserMsg ? 'sending' : hasAssistantReply ? 'read' : 'sent')
     : null
 
@@ -419,7 +421,11 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
             onRememberThis={handleRememberThis}
             onReadAloud={isAssistant ? handleReadAloud : undefined}
             isSpeaking={isSpeaking}
-            hasOnEdit={!!onEdit}
+            hasOnEdit={
+              // Guidance was already delivered (or not) into a turn; editing
+              // the local row afterwards would not reach that turn.
+              !!onEdit && !(message as StandardChatMessage).guidance
+            }
             onAnnotate={handleAnnotateToggle}
             hasAnnotation={!!(message as StandardChatMessage).annotation}
             onRate={onRate ? (rating) => onRate(message.id, rating) : undefined}
@@ -493,6 +499,10 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   if (pm.collapsed !== nm.collapsed) return false
   if (pm.annotation !== nm.annotation) return false
   if (pm.thinking !== nm.thinking) return false
+  // A guidance row's state changes in place (sending -> sent/failed); the
+  // label is the whole point of the row, so it must not be memoized away.
+  if (pm.guidance?.state !== nm.guidance?.state) return false
+  if (pm.guidance?.error !== nm.guidance?.error) return false
   if (JSON.stringify(pm.reactions) !== JSON.stringify(nm.reactions)) return false
   if ((pm.toolUses?.length ?? 0) !== (nm.toolUses?.length ?? 0)) return false
   if (prevProps.searchQuery !== nextProps.searchQuery) return false

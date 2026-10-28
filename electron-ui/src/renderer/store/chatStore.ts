@@ -224,6 +224,25 @@ interface ChatState {
   addMessage: (msg: ChatMessage) => void
   /** Mark a user message's images as undelivered, with the honest reason. */
   markAttachmentsNotSent: (msgId: string, reason: string) => void
+  /**
+   * The turn currently running in the main process, as the composer knows it:
+   * which engine owns it, and the Codex turn id once `turn/started` names it.
+   * Steering is only legal against this id, never against a remembered one.
+   * Null whenever no turn is live — the composer checks `isStreaming` first,
+   * so a stale value can never turn into a steer.
+   */
+  liveTurn: { engine: 'codex' | 'legacy'; turnId: string | null } | null
+  /** A turn was dispatched; its id may not be known yet. */
+  beginLiveTurn: (engine: 'codex' | 'legacy') => void
+  /** `turn/started` (or the turn/start reply) named the running turn. */
+  setLiveTurnId: (turnId: string) => void
+  /** Record the fate of one guidance row, in place. */
+  settleGuidance: (msgId: string, state: 'sent' | 'failed', error?: string) => void
+  /**
+   * The turn ended while guidance was still in flight. Settle those rows as
+   * failed with the given reason instead of leaving them claiming delivery.
+   */
+  settlePendingGuidance: (error: string) => void
   appendTextDelta: (sessionId: string, text: string) => void
   setStreaming: (v: boolean) => void
   /**
@@ -494,6 +513,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   isStreaming: false,
   currentSessionId: null,
+  liveTurn: null,
   streamSessionId: null,
   streamConversationId: null,
   streamPending: false,
@@ -550,6 +570,36 @@ export const useChatStore = create<ChatState>((set, get) => ({
         : m
     )),
   })),
+
+  beginLiveTurn: (engine) => set({ liveTurn: { engine, turnId: null } }),
+
+  setLiveTurnId: (turnId) => set((s) =>
+    s.liveTurn ? { liveTurn: { ...s.liveTurn, turnId } } : s
+  ),
+
+  settleGuidance: (msgId, state, error) => set((s) => {
+    let changed = false
+    const messages = s.messages.map((m) => {
+      if (m.role !== 'user' || m.id !== msgId) return m
+      const std = m as StandardChatMessage
+      if (!std.guidance) return m
+      changed = true
+      // `error` only describes a failure; a settled success must not keep it.
+      return { ...std, guidance: { ...std.guidance, state, ...(state === 'failed' ? { error } : {}) } }
+    })
+    return changed ? { messages } : s
+  }),
+
+  settlePendingGuidance: (error) => set((s) => {
+    let changed = false
+    const messages = s.messages.map((m) => {
+      const std = m as StandardChatMessage
+      if (m.role !== 'user' || !std.guidance || std.guidance.state !== 'sending') return m
+      changed = true
+      return { ...std, guidance: { ...std.guidance, state: 'failed' as const, error } }
+    })
+    return changed ? { messages } : s
+  }),
 
   isOwnedStreamEvent: (sessionId) => isTurnSession(sessionId),
 
@@ -620,6 +670,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return {
         isStreaming: v,
         messages: msgs,
+        // A finished turn has no id left to steer. Keeping it would let a
+        // stale id survive into the next turn; `decideSend` also checks
+        // `isStreaming`, but the store should not carry a lie.
+        liveTurn: v ? s.liveTurn : null,
         ...(v ? {} : {
           streamSessionId: null,
           streamPending: false,
@@ -729,6 +783,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       orphanedStream: orphan,
       currentSessionTitle: null,
       isStreaming: false,
+      liveTurn: null,
       totalSessionCost: 0,
       lastCost: null,
       lastUsage: null,
@@ -1433,6 +1488,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
         threadStatus: null,
         threadGoal: null,
         isStreaming: false,
+        // The turn belongs to the view that was just left; this transcript is
+        // not the one the engine is talking into.
+        liveTurn: null,
       })
     } else {
       // Tab has no snapshot (already live) — just update tabs & activeTabId.

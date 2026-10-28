@@ -874,22 +874,25 @@ export interface CliPatchUpdatedEventData {
 }
 
 /**
- * `cli:engineWarning` payload (`warning`, `deprecationNotice`, `configWarning`;
- * verified against `.scratch/codex-schema/v2/` and the 0.145 binary).
+ * `cli:engineWarning` payload (`warning`, `guardianWarning`,
+ * `deprecationNotice`, `configWarning`; verified against
+ * `.scratch/codex-schema/v2/` and the 0.145 binary. `worldWritable` rides the
+ * same channel from `windows/worldWritableWarning`).
  *
  * Wire shapes:
  *   warning            `{ message, threadId? }`
+ *   guardianWarning    `{ message, threadId }`
  *   deprecationNotice  `{ summary, details? }`
  *   configWarning      `{ summary, details?, path?, range? }`
  *
  * The bridge folds each into `{ kind, message, details, path, range, threadId }`
  * and keeps `message` verbatim. Every field is optional here because a push
  * payload is untrusted until the renderer validates it; `kind` is one of the
- * three literal method names.
+ * literal method names above.
  */
 export interface CliEngineWarningEventData {
   sessionId?: string
-  kind?: 'warning' | 'deprecationNotice' | 'configWarning' | 'worldWritable'
+  kind?: 'warning' | 'guardianWarning' | 'deprecationNotice' | 'configWarning' | 'worldWritable'
   /** The engine's own sentence, never re-worded by AIPA. */
   message?: string
   details?: string | null
@@ -980,6 +983,55 @@ export interface CliSkillsChangedEventData {
   sessionId?: string
 }
 
+/**
+ * `cli:mcpStartupStatusUpdated` payload (`mcpServer/startupStatus/updated`).
+ *
+ * Verified wire shape (`.scratch/codex-schema/v2/
+ * McpServerStatusUpdatedNotification.json`): `{ name: string, status:
+ * 'starting' | 'ready' | 'failed' | 'cancelled', error: string | null,
+ * failureReason: 'reauthenticationRequired' | null, threadId: string | null }`.
+ * The bridge flattens `name` to `serverName`; `error` and `failureReason` are
+ * forwarded verbatim. Every field is optional here because the renderer
+ * re-validates a push payload before showing it.
+ */
+export interface CliMcpStartupStatusEventData {
+  sessionId?: string
+  serverName?: string
+  status?: 'starting' | 'ready' | 'failed' | 'cancelled'
+  /** The engine's own failure text, never re-worded. */
+  error?: string | null
+  /** Typed engine enum token, verbatim. */
+  failureReason?: 'reauthenticationRequired' | null
+  threadId?: string | null
+  /** Set on snapshot reads, not on live notifications. */
+  receivedAt?: number
+}
+
+/**
+ * `cli:mcpOauthLoginCompleted` payload (`mcpServer/oauthLogin/completed`).
+ * Verified wire shape: `{ name: string, success: boolean, error: string | null,
+ * threadId: string | null }`. Success means the sign-in flow finished, not that
+ * the server started — startup arrives separately.
+ */
+export interface CliMcpOauthLoginCompletedEventData {
+  sessionId?: string
+  serverName?: string
+  success?: boolean
+  error?: string | null
+  threadId?: string | null
+  receivedAt?: number
+}
+
+/**
+ * `mcp:runtimeStatus` result: the live reports this app-server process has
+ * produced, newest per server. The renderer intersects them with the configured
+ * server list, so nothing here can create a row on its own.
+ */
+export interface McpRuntimeStatusData {
+  startup: CliMcpStartupStatusEventData[]
+  oauth: CliMcpOauthLoginCompletedEventData[]
+}
+
 const electronAPI = {
   // ── IPC readiness check ────────────────────
   ipcPing: () => ipcRenderer.invoke('ipc:ping') as Promise<{ ok: boolean; timestamp: number }>,
@@ -1019,8 +1071,14 @@ const electronAPI = {
     ipcRenderer.invoke('cli:updateEnv', args),
 
   // ── Codex-specific ─────────────────────────────
-  cliSteerTurn: (args: { sessionId: string; prompt: string }) =>
-    ipcRenderer.invoke('cli:steerTurn', args),
+  cliSteerTurn: (args: { sessionId: string; prompt: string; expectedTurnId?: string }) =>
+    ipcRenderer.invoke('cli:steerTurn', args) as Promise<{
+      success: boolean
+      /** The turn `TurnSteerResponse` named, when the engine answered. */
+      turnId?: string
+      /** The engine's own rejection text (`-32600` and friends), verbatim. */
+      error?: string
+    }>,
   cliForkThread: (args: { sessionId: string; lastTurnId?: string }) =>
     ipcRenderer.invoke('cli:forkThread', args) as Promise<{ success: boolean; threadId?: string; error?: string }>,
 
@@ -1239,6 +1297,8 @@ const electronAPI = {
       // catalogue (Settings refetches on it).
       'cli:engineWarning', 'cli:modelRerouted',
       'cli:accountUpdated', 'cli:skillsChanged',
+      // Live MCP server startup/auth reports (Settings → MCP rows).
+      'cli:mcpStartupStatusUpdated', 'cli:mcpOauthLoginCompleted',
       // Codex thread life-cycle changes made by any client (CLI rename/archive/
       // delete). The renderer edits the session list in place from these.
       'cli:threadNameUpdated', 'cli:threadArchived', 'cli:threadDeleted',
@@ -1310,6 +1370,13 @@ const electronAPI = {
     ipcRenderer.invoke('mcp:configInfo') as Promise<McpConfigInfoData>,
   mcpReadConfig: () =>
     ipcRenderer.invoke('mcp:readConfig') as Promise<McpConfigInfoData & { servers: McpServerConfigData[] }>,
+  /**
+   * Live MCP startup/auth reports from the current app-server process. Read
+   * when Settings → MCP opens so a status reported before the page mounted is
+   * not lost; an open page also listens to the `cli:*` push channels.
+   */
+  mcpRuntimeStatus: () =>
+    ipcRenderer.invoke('mcp:runtimeStatus') as Promise<McpRuntimeStatusData>,
   mcpList: () => ipcRenderer.invoke('mcp:list') as Promise<McpServerConfigData[]>,
   mcpSetEnabled: (serverName: string, enabled: boolean) =>
     ipcRenderer.invoke('mcp:setEnabled', { serverName, enabled }) as Promise<{ success: boolean; error?: string }>,

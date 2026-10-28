@@ -22,6 +22,7 @@ import SnippetPopup from './SnippetPopup'
 import GhostTextOverlay from './GhostTextOverlay'
 import CharWordCounter from './CharWordCounter'
 import { PLACEHOLDER_KEYS } from './chatInputConstants'
+import { decideSend, engineFromActiveEngine } from './steerDecision'
 import { useImagePaste, ImageAttachment, FileAttachment } from '../../hooks/useImagePaste'
 import { useChatInputDraft } from '../../hooks/useChatInputDraft'
 import { useChatInputHistory } from '../../hooks/useChatInputHistory'
@@ -44,6 +45,8 @@ interface ChatInputProps {
   isStreaming: boolean
   sessionId: string | null
   onSend: (text: string, attachments?: ImageAttachment[], fileAttachments?: FileAttachment[]) => Promise<void>
+  /** Send into the live turn instead of starting one (Codex only). */
+  onSteer: (text: string) => Promise<unknown>
   onAbort: () => void
   onNewConversation: () => void
 }
@@ -52,6 +55,7 @@ export default function ChatInput({
   isStreaming,
   sessionId,
   onSend,
+  onSteer,
   onAbort,
   onNewConversation,
 }: ChatInputProps) {
@@ -68,6 +72,10 @@ export default function ChatInput({
   )
   const isPlanMode = useChatStore(s => s.isPlanMode)
   const setPlanMode = useChatStore(s => s.setPlanMode)
+  // The turn currently on the other side of the bridge. Its engine outranks
+  // the credential probe: the probe answers "what would run next", while
+  // steering has to address what is already running.
+  const liveTurn = useChatStore(s => s.liveTurn)
 
   // Plan Mode toggle: local UI state only — does NOT send any message to AI (Iteration 535)
   const handleTogglePlanMode = useCallback(() => {
@@ -119,13 +127,16 @@ export default function ChatInput({
 
   // Image attachments are a Codex-only capability. Ask the same engine probe
   // the model picker uses; never infer it from the model id or a setting here.
-  const [imagesEnabled, setImagesEnabled] = useState(false)
+  // The same answer decides whether a send during streaming can steer the
+  // running turn, so keep the kind rather than only the boolean.
+  const [activeEngineKind, setActiveEngineKind] = useState<'codex' | 'claude' | 'none' | null>(null)
+  const imagesEnabled = activeEngineKind === 'codex'
   useEffect(() => {
     let cancelled = false
     const probe = () => {
       window.electronAPI.engineGetActive()
-        .then(engine => { if (!cancelled) setImagesEnabled(engine.kind === 'codex') })
-        .catch(() => { if (!cancelled) setImagesEnabled(false) })
+        .then(engine => { if (!cancelled) setActiveEngineKind(engine.kind) })
+        .catch(() => { if (!cancelled) setActiveEngineKind(null) })
     }
     probe()
     // Credentials can change while the composer stays mounted (Settings).
@@ -136,6 +147,14 @@ export default function ChatInput({
       window.removeEventListener('focus', probe)
     }
   }, [prefs.apiKey, prefs.activeApiKeyId])
+
+  // The live turn's own engine wins over the probe: a credential switch while
+  // a turn is running must not make an in-flight Claude turn look steerable
+  // (or hide steerability from a Codex turn that is still running).
+  const steerEngine = liveTurn
+    ? (liveTurn.engine === 'codex' ? 'codex' as const : 'other' as const)
+    : engineFromActiveEngine(activeEngineKind)
+  const canSteer = isStreaming && steerEngine === 'codex'
 
   // Image/file attachments
   const { attachments, fileAttachments, isSavingImages, hasPendingImageSaves, handlePaste, addFiles, addFileAttachments, addImagePaths, addImageAttachment, removeAttachment, removeFileAttachment, clearAttachments } = useImagePaste({ enabled: imagesEnabled })
@@ -323,11 +342,33 @@ export default function ChatInput({
 
   const handleSend = async () => {
     const text = input.trim()
-    if (!text && attachments.length === 0 && fileAttachments.length === 0 || isStreaming) return
+    const hasAnyInput = !!text || attachments.length > 0 || fileAttachments.length > 0
+    if (!hasAnyInput) return
     // Typing is never blocked, but sending is: a file still being written is
     // not in `attachments` yet, so sending now would omit it without a word.
     if (isSavingImages || hasPendingImageSaves()) {
       addToast('info', t('chat.imageAttachment.saving'))
+      return
+    }
+    // While a turn is running, the engine decides whether these words join
+    // that turn (Codex steer), start a new one (the turn already ended), or
+    // stay in the box (an engine with no steering channel). An image-only
+    // send still has content; the placeholder is what the engine would get.
+    const decision = decideSend({
+      engine: steerEngine,
+      isStreaming,
+      turnId: liveTurn?.turnId ?? null,
+      text: text || t('chat.describeImage'),
+    })
+    if (decision.action === 'blocked') {
+      // The draft is kept. Blocking is a refusal to send, never a send that
+      // quietly dropped the user's words.
+      return
+    }
+    if (decision.action === 'steer' && attachments.length > 0) {
+      // Steering carries text only. Saying nothing here would let the row's
+      // thumbnails imply the model saw pictures it never received.
+      addToast('info', t('chat.steer.imagesNotSent'))
       return
     }
     let finalText = text || (attachments.length > 0 ? t('chat.describeImage') : t('chat.analyzeFiles'))
@@ -358,6 +399,12 @@ export default function ChatInput({
     clearAttachments()
     resizeTextarea()
     clearDraft()
+    if (decision.action === 'steer') {
+      // No second turn: the turn owner writes the guidance row and talks to
+      // the running turn. It must not re-run sendMessage's turn-boundary work.
+      await onSteer(finalText)
+      return
+    }
     await onSend(finalText, attachments.length > 0 ? attachments : undefined, fileAttachments.length > 0 ? fileAttachments : undefined)
   }
 
@@ -396,6 +443,9 @@ export default function ChatInput({
   const activePersona = effectivePersonaId ? personas.find(p => p.id === effectivePersonaId) : undefined
 
   const hasContent = !!input.trim() || attachments.length > 0 || fileAttachments.length > 0
+  // A steer needs the engine's own turn id. Until `turn/started` announces it
+  // the guidance button waits rather than racing a second turn into the thread.
+  const steerReady = canSteer && !!liveTurn?.turnId
 
   // Keep-going detection (Iteration 490): detect "continue/继续/keep going" input
   const isKeepGoing = !isStreaming && input.trim().length > 0 && matchesKeepGoingKeyword(input)
@@ -639,11 +689,15 @@ export default function ChatInput({
             </div>
           )}
         </div>
-        {/* Send / Stop button with progress ring */}
+        {/* Send / Stop button with progress ring. While a Codex turn runs the
+            stop button stays exactly where it was; the send button returns
+            beside it with a different meaning (guidance into that turn). */}
         <ChatInputSendButton
           isStreaming={isStreaming}
           inputLength={input.length}
           hasContent={hasContent}
+          canSteer={canSteer}
+          steerReady={steerReady}
           onSend={handleSend}
           onAbort={onAbort}
         />
@@ -654,6 +708,7 @@ export default function ChatInput({
         typingWpm={typingWpm}
         calcResult={calcResult}
         hasInputHistory={inputHistoryRef.current.length > 0}
+        steerHint={canSteer && hasContent}
       />
     </div>
   )

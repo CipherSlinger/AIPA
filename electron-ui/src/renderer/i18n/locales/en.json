@@ -260,6 +260,17 @@
       "missing": "Image file is missing",
       "saving": "An image is still being saved. Send again in a moment.",
       "notSent": "Not sent: {{reason}}"
+    },
+    "steer": {
+      "sending": "Sending guidance to the running turn…",
+      "sent": "Sent to the running turn",
+      "failed": "Guidance wasn't sent: {{reason}}",
+      "turnEnded": "The turn ended before the engine confirmed this guidance, so it was not sent",
+      "sendTooltip": "Send as guidance to the running turn (does not start a new turn)",
+      "waitingTurn": "Waiting for the engine to report the running turn",
+      "composerHint": "Enter sends guidance to the running turn",
+      "imagesNotSent": "Images can't join a running turn. Wait for it to finish, or keep them for your next message.",
+      "noActiveTurn": "The running turn has already ended"
     }
   },
   "sessionReuse": {
@@ -774,7 +785,16 @@
       "createFile": "Create .mcp.json",
       "noFileTitle": "No .mcp.json found in working directory",
       "noFileHint": "Create a .mcp.json file to configure project-level MCP servers.",
-      "errorCommandRequired": "Command is required"
+      "errorCommandRequired": "Command is required",
+      "statusStarting": "Starting…",
+      "statusReady": "Started",
+      "statusFailed": "Failed to start",
+      "statusCancelled": "Startup cancelled",
+      "statusNeedsAuth": "Needs sign-in",
+      "statusReason": "Reason: {{reason}}",
+      "oauthCompleted": "Sign-in completed",
+      "oauthFailed": "Sign-in failed",
+      "statusNote": "Startup status comes from the running Codex engine. A server it has not reported yet shows no status."
     },
     "toolAccessControl": "Tool Access Control",
     "toolAccessControlHint": "Control which built-in tools Claude can use. Disabled tools are passed via --disallowedTools.",

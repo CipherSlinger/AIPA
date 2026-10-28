@@ -24,6 +24,9 @@
  *   - `v2/WarningNotification.json`, `v2/DeprecationNoticeNotification.json`,
  *     `v2/ConfigWarningNotification.json`, `v2/ModelReroutedNotification.json`,
  *     `v2/AccountUpdatedNotification.json`, `v2/SkillsChangedNotification.json`
+ *   - `v2/McpServerStatusUpdatedNotification.json`,
+ *     `v2/McpServerOauthLoginCompletedNotification.json`,
+ *     `v2/GuardianWarningNotification.json`
  *
  * `.scratch/` is gitignored; regenerate the schema before changing field names.
  */
@@ -171,6 +174,7 @@ export type CodexEngineWarningKind =
   | 'deprecationNotice'
   | 'configWarning'
   | 'worldWritable'
+  | 'guardianWarning'
 
 /**
  * One engine-side warning the user should see. Verified against the generated
@@ -178,6 +182,9 @@ export type CodexEngineWarningKind =
  * strings (`warning`, `deprecationNotice`, `configWarning`):
  *
  *   warning            `{ message: string, threadId?: string | null }`
+ *   guardianWarning    `{ message: string, threadId: string }` (same sentence
+ *                       shape as `warning`; kept a distinct kind so the notice
+ *                       stack can attribute it to the automatic reviewer)
  *   deprecationNotice  `{ summary: string, details?: string | null }`
  *   configWarning      `{ summary: string, details?: string | null,
  *                         path?: string | null, range?: TextRange | null }`
@@ -836,9 +843,9 @@ function parseTextRange(raw: unknown): CodexTextRange | null {
 }
 
 /**
- * Normalize a `warning` / `deprecationNotice` / `configWarning` payload into
- * the one shape the renderer shows. Returns null when the engine sent no
- * usable sentence — the renderer never fabricates one.
+ * Normalize a `warning` / `guardianWarning` / `deprecationNotice` /
+ * `configWarning` payload into the one shape the renderer shows. Returns null
+ * when the engine sent no usable sentence — the renderer never fabricates one.
  */
 export function normalizeEngineWarning(
   method: string,
@@ -879,6 +886,21 @@ export function normalizeEngineWarning(
         path: stringOr(params.path) || null,
         range: parseTextRange(params.range),
         threadId: null,
+      }
+    }
+    // The guardian's note about an action it would not approve. Identical
+    // `{ message, threadId }` wire shape to `warning`; a separate kind keeps
+    // the provenance without touching the sentence.
+    case 'guardianWarning': {
+      const message = stringOr(params.message)
+      if (!message.trim()) return null
+      return {
+        kind: 'guardianWarning',
+        message,
+        details: null,
+        path: null,
+        range: null,
+        threadId: stringOr(params.threadId) || null,
       }
     }
     default:
@@ -932,6 +954,96 @@ export function normalizeWorldWritableWarning(
     path: null,
     range: null,
     threadId: null,
+  }
+}
+
+// ── MCP server lifecycle ────────────────────────────
+
+/**
+ * `McpServerStartupState` (`.scratch/codex-schema/v2/
+ * McpServerStatusUpdatedNotification.json`, 0.145): `starting | ready |
+ * failed | cancelled`. Only `ready` means the engine finished starting the
+ * server; nothing here is a synonym for "connected".
+ */
+export type CodexMcpStartupState = 'starting' | 'ready' | 'failed' | 'cancelled'
+
+/** `McpServerStartupFailureReason`, currently the single value below. */
+export type CodexMcpStartupFailureReason = 'reauthenticationRequired'
+
+/**
+ * `mcpServer/startupStatus/updated`:
+ *
+ *   { name: string, status: McpServerStartupState, error: string | null,
+ *     failureReason: McpServerStartupFailureReason | null,
+ *     threadId: string | null }
+ *
+ * `error` is the engine's own text. It is forwarded verbatim and never
+ * paraphrased; `failureReason` is the typed enum token, also untouched.
+ */
+export interface CodexMcpStartupStatus {
+  serverName: string
+  status: CodexMcpStartupState
+  error: string | null
+  failureReason: CodexMcpStartupFailureReason | null
+  threadId: string | null
+}
+
+/**
+ * Normalize a startup report, or return null when the payload cannot be
+ * attributed (`name`) or names a state this build does not know. Dropping an
+ * unknown state shows nothing, which is honest; guessing would not be.
+ */
+export function normalizeMcpStartupStatus(
+  params: Record<string, unknown>,
+): CodexMcpStartupStatus | null {
+  const serverName = stringOr(params.name)
+  if (!serverName.trim()) return null
+  const status = params.status
+  if (status !== 'starting' && status !== 'ready' && status !== 'failed' && status !== 'cancelled') {
+    return null
+  }
+  const error = stringOr(params.error)
+  return {
+    serverName,
+    status,
+    // An empty error string is not an error sentence; keep it null (the
+    // original text is otherwise untouched).
+    error: error.trim() ? error : null,
+    failureReason: params.failureReason === 'reauthenticationRequired'
+      ? 'reauthenticationRequired'
+      : null,
+    threadId: stringOr(params.threadId) || null,
+  }
+}
+
+/**
+ * `mcpServer/oauthLogin/completed`:
+ *
+ *   { name: string, success: boolean, error: string | null,
+ *     threadId: string | null }
+ *
+ * A completed sign-in is not a successful startup: the server still has to be
+ * started, and that arrives separately on `mcpServer/startupStatus/updated`.
+ */
+export interface CodexMcpOauthLoginCompleted {
+  serverName: string
+  success: boolean
+  error: string | null
+  threadId: string | null
+}
+
+export function normalizeMcpOauthLoginCompleted(
+  params: Record<string, unknown>,
+): CodexMcpOauthLoginCompleted | null {
+  const serverName = stringOr(params.name)
+  if (!serverName.trim()) return null
+  if (typeof params.success !== 'boolean') return null
+  const error = stringOr(params.error)
+  return {
+    serverName,
+    success: params.success,
+    error: error.trim() ? error : null,
+    threadId: stringOr(params.threadId) || null,
   }
 }
 
@@ -1285,15 +1397,23 @@ export class CodexBridge extends EventEmitter {
    * Steer an in-progress turn with additional guidance.
    * Codex-specific feature — no Claude CLI equivalent.
    */
-  async steerTurn(prompt: string): Promise<void> {
-    if (!this.currentThreadId || !this.currentTurnId) {
+  async steerTurn(prompt: string, expectedTurnId?: string): Promise<string> {
+    // 0.145 requires `expectedTurnId` (not `turnId`) and rejects a mismatch with
+    // `expected active turn id … but found …`. The caller may name the turn it
+    // believes is running; passing it through lets the engine be the one that
+    // decides whether the guidance still has a turn to land in.
+    const turnId = expectedTurnId || this.currentTurnId
+    if (!this.currentThreadId || !turnId) {
       throw new Error('No active turn to steer')
     }
-    await this._sendRequest('turn/steer', {
+    const response = await this._sendRequest('turn/steer', {
       threadId: this.currentThreadId,
-      turnId: this.currentTurnId,
+      expectedTurnId: turnId,
       input: toUserInput(prompt),
-    })
+    }) as { turnId?: unknown } | null
+    // `TurnSteerResponse` echoes the turn the guidance landed in. Returning it
+    // lets the caller confirm the steer reached the turn it named.
+    return typeof response?.turnId === 'string' ? response.turnId : turnId
   }
 
   /**
@@ -1700,9 +1820,10 @@ export class CodexBridge extends EventEmitter {
    * The renderer's chat header and MCP panels are built around the Claude CLI's
    * system.init payload, so we synthesise the same shape. `status` describes the
    * configuration (enabled / disabled), not the live connection — Codex reports
-   * startup separately through `mcpServer/startupStatus/updated`, which we don't
-   * mirror yet. Tool lists come from `mcpServerStatus/list`, best-effort: servers
-   * may still be starting when we ask, so an empty list means "not discovered".
+   * startup separately through `mcpServer/startupStatus/updated`, which is
+   * mirrored on `cli:mcpStartupStatusUpdated` for Settings → MCP. Tool lists
+   * come from `mcpServerStatus/list`, best-effort: servers may still be starting
+   * when we ask, so an empty list means "not discovered".
    */
   private async _collectMcpServers(): Promise<Array<{ name: string; status: string; tools?: string[] }>> {
     const configured = readCodexMcpServers()
@@ -2735,6 +2856,7 @@ export class CodexBridge extends EventEmitter {
       // in main. Forward the verified sentence verbatim; the renderer only
       // dedupes and caps, it never invents severity or a cause.
       case 'warning':
+      case 'guardianWarning':
       case 'deprecationNotice':
       case 'configWarning': {
         const warning = normalizeEngineWarning(method, params)
@@ -2891,6 +3013,29 @@ export class CodexBridge extends EventEmitter {
         this.skillsCache = null
         this.skillsCacheDirty = true
         this.emit('skillsChanged', { sessionId: sid })
+        break
+      }
+
+      // ── MCP server startup ─────────────────────
+      // The engine's own verdict on a configured server. This is per
+      // app-server process (not per thread), so the payload is forwarded with
+      // the bridge id and keyed by server name; the settings page decides
+      // which configured rows may display it. The report is a snapshot, not a
+      // delta: a later one replaces the earlier for the same server.
+      case 'mcpServer/startupStatus/updated': {
+        const report = normalizeMcpStartupStatus(params)
+        if (report) this.emit('mcpStartupStatusUpdated', { sessionId: sid, ...report })
+        else log.debug('Malformed mcpServer/startupStatus/updated notification dropped')
+        break
+      }
+
+      // Sign-in for an OAuth MCP server finished. Success here says only that
+      // the authorization flow completed; the server's startup status remains
+      // whatever `mcpServer/startupStatus/updated` reports.
+      case 'mcpServer/oauthLogin/completed': {
+        const completed = normalizeMcpOauthLoginCompleted(params)
+        if (completed) this.emit('mcpOauthLoginCompleted', { sessionId: sid, ...completed })
+        else log.debug('Malformed mcpServer/oauthLogin/completed notification dropped')
         break
       }
 
