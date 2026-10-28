@@ -3356,7 +3356,22 @@
       "hint": "仅适用于在 AIPA 关闭超过一分钟后才到期的运行。被跳过的这次运行会记入运行历史，且永远不会计为失败。如果到期时 AIPA 正在运行，只是运行名额已满，它仍会在稍后补跑。",
       "row": "关闭期间错过的不补跑"
     },
-    "missedRunRuleChoice": "AIPA 关闭期间到期的运行，由任务自己的设置决定：要么在下次启动时补跑一次并标记为延迟运行，要么直接跳过、等待下一次运行。无论哪种，错过的运行都不会成批补跑。"
+    "missedRunRuleChoice": "AIPA 关闭期间到期的运行，由任务自己的设置决定：要么在下次启动时补跑一次并标记为延迟运行，要么直接跳过、等待下一次运行。无论哪种，错过的运行都不会成批补跑。",
+    "filter": {
+      "placeholder": "搜索自动化",
+      "clear": "清除筛选",
+      "clearSearch": "清除搜索",
+      "count": "{{shown}} / {{total}}",
+      "empty": "没有自动化符合这些筛选条件。",
+      "emptyQuery": "没有自动化匹配“{{query}}”。",
+      "status": {
+        "group": "按状态筛选",
+        "running": "运行中",
+        "failing": "失败",
+        "disabled": "已关闭",
+        "waitingPath": "等待路径变化"
+      }
+    }
   },
   "speculation": {
     "title": "投机预览",
@@ -3508,6 +3523,19 @@
     "reroute": {
       "moved": "本回合已从 {{from}} 切换到 {{to}}。",
       "reason": "引擎给出的原因：{{reason}}"
+    },
+    "threadGoal": {
+      "aria": "线程目标",
+      "label": "目标",
+      "status": {
+        "active": "进行中",
+        "paused": "已暂停",
+        "blocked": "受阻",
+        "usageLimited": "用量受限",
+        "budgetLimited": "预算受限",
+        "complete": "已完成"
+      },
+      "tokens": "{{used}} / {{budget}} 个 token"
     }
   },
   "plugin": {

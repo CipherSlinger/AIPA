@@ -4,6 +4,7 @@ import { create } from 'zustand'
 import { ChatMessage, ElicitationMessage, HookCallbackMessage, PermissionMessage, PlanMessage, StandardChatMessage } from '../types/app.types'
 import { sessionModelStorageKey } from '../lib/sessionModel'
 import type { ThreadStatusChip } from '../components/chat/threadStatusText'
+import type { ThreadGoalView } from '../utils/threadGoal'
 
 // ── Task Queue types ─────────────────────────────
 export interface TaskQueueItem {
@@ -395,6 +396,13 @@ interface ChatState {
   threadStatus: ThreadStatusChip | null
   setThreadStatus: (status: ThreadStatusChip | null) => void
 
+  // Standing goal reported by `thread/goal/updated` (validated by
+  // utils/threadGoal). A goal belongs to one thread; it is cleared by
+  // `thread/goal/cleared` or when the conversation changes.
+  threadGoal: ThreadGoalView | null
+  setThreadGoal: (goal: ThreadGoalView | null) => void
+  clearThreadGoal: () => void
+
   // Temporary system prompt override (Iteration 523): set per-session, cleared on new conversation
   tempSystemPrompt: string | null
   setTempSystemPrompt: (prompt: string | null) => void
@@ -509,6 +517,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   turnDiff: null,
   threadSettings: null,
   threadStatus: null,
+  threadGoal: null,
   tempSystemPrompt: null,
   hookEvents: [],
   dreamEvents: [],
@@ -722,6 +731,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       turnDiff: null,
       threadSettings: null,
       threadStatus: null,
+      threadGoal: null,
       tempSystemPrompt: null,
       hookEvents: [],
       dreamEvents: [],
@@ -1105,6 +1115,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setThreadSettings: (threadSettings) => set({ threadSettings }),
   clearThreadSettings: () => set({ threadSettings: null }),
   setThreadStatus: (threadStatus) => set({ threadStatus }),
+  setThreadGoal: (threadGoal) => set({ threadGoal }),
+  clearThreadGoal: () => set({ threadGoal: null }),
 
   // Temp system prompt override (Iteration 523)
   setTempSystemPrompt: (prompt) => set({ tempSystemPrompt: prompt }),
@@ -1269,6 +1281,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         turnDiff: null,
         threadSettings: null,
         threadStatus: null,
+        threadGoal: null,
         tempSystemPrompt: null,
       })
       return
@@ -1300,6 +1313,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             turnDiff: null,
             threadSettings: null,
             threadStatus: null,
+            threadGoal: null,
             isStreaming: false,
           })
         } else {
@@ -1340,6 +1354,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           turnDiff: null,
           threadSettings: null,
           threadStatus: null,
+          threadGoal: null,
           isStreaming: false,
         })
       } else {
@@ -1406,13 +1421,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
         turnDiff: null,
         threadSettings: null,
         threadStatus: null,
+        threadGoal: null,
         isStreaming: false,
       })
     } else {
       // Tab has no snapshot (already live) — just update tabs & activeTabId.
       // The status chip describes the thread that was on screen; a switch
       // retires it even on this fallback path.
-      set({ tabs: updatedTabs, activeTabId: tabId, threadStatus: null })
+      set({ tabs: updatedTabs, activeTabId: tabId, threadStatus: null, threadGoal: null })
     }
   },
 

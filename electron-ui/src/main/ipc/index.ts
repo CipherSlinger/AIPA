@@ -810,6 +810,15 @@ function wireCodexBridge(
     return
   }
 
+  // Thread goal + unarchive. Both are user-facing: a goal is a standing
+  // objective the composer shows, and an unarchive puts a row back in the
+  // sidebar. A background bridge must not touch either surface, so they are
+  // registered after the `internal` early return (the private sink drops
+  // them anyway, but the listener never runs for an internal bridge).
+  bridge.on('threadGoalUpdated', (d) => sink('cli:threadGoalUpdated', d))
+  bridge.on('threadGoalCleared', (d) => sink('cli:threadGoalCleared', d))
+  bridge.on('threadUnarchived', (d) => sink('cli:threadUnarchived', d))
+
   // The engine's own notices. These are user-facing by definition (warnings
   // meant to be read, a reroute the picker would otherwise hide, an account
   // change, a changed skills catalogue), so they are wired only after the

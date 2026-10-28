@@ -1,13 +1,13 @@
 /**
  * Codex thread life-cycle events → session-list edits, without a reload.
  *
- * Codex reports `thread/name/updated`, `thread/archived` and `thread/deleted`
- * for changes made by *any* client, including the Codex CLI. The bridge already
- * forwards them, but the sidebar used to wait for its next `session:list`, so a
- * rename from the CLI kept its old title and an archived conversation stayed
- * forever. This module owns the one decision the renderer makes about those
- * events, and stays dependency-free so a harness can exercise it without
- * Electron or a store.
+ * Codex reports `thread/name/updated`, `thread/archived`, `thread/unarchived`
+ * and `thread/deleted` for changes made by *any* client, including the Codex
+ * CLI. The bridge already forwards them, but the sidebar used to wait for its
+ * next `session:list`, so a rename from the CLI kept its old title and an
+ * archived conversation stayed forever. This module owns the one decision the
+ * renderer makes about those events, and stays dependency-free so a harness
+ * can exercise it without Electron or a store.
  *
  * ── Id mapping: threadId *is* the list's sessionId ──
  *
@@ -35,6 +35,7 @@ export type ThreadLifecycleEvent =
   | { kind: 'rename'; threadId: string; name: string }
   | { kind: 'archive'; threadId: string }
   | { kind: 'delete'; threadId: string }
+  | { kind: 'unarchive'; threadId: string }
 
 /** The slice of a session row this module touches. */
 export interface ThreadLifecycleRow {
@@ -58,6 +59,9 @@ function asRecord(value: unknown): Record<string, unknown> | null {
  * name is missing, blank or not a string (the wire type is `string | null`,
  * and Codex rejects an empty name at the source, so an empty one here is a
  * malformed event — never "clear the title").
+ *
+ * For `unarchive`, the returned event carries only the id the notification
+ * has; the row's metadata is fetched separately by the caller.
  */
 export function readThreadLifecycleEvent(
   kind: ThreadLifecycleKind,
@@ -84,9 +88,11 @@ export function readThreadLifecycleEvent(
     if (!name) return null
     return { kind: 'rename', threadId, name }
   }
-  return kind === 'archive'
-    ? { kind: 'archive', threadId }
-    : { kind: 'delete', threadId }
+  switch (kind) {
+    case 'archive': return { kind: 'archive', threadId }
+    case 'delete': return { kind: 'delete', threadId }
+    case 'unarchive': return { kind: 'unarchive', threadId }
+  }
 }
 
 /**
@@ -119,6 +125,45 @@ export function applyThreadLifecycle<T extends ThreadLifecycleRow>(
     return changed ? next : null
   }
 
+  // An unarchive cannot be applied from the notification alone: it names the
+  // thread but carries none of the row's metadata (ThreadUnarchivedNotification
+  // requires only `threadId`). The caller reads that row from the session
+  // index and hands it to `restoreThreadRow`; this function must never remove
+  // a row for an unarchive event, so it is an explicit no-op rather than a
+  // fall-through into the archive/delete branch below.
+  if (event.kind === 'unarchive') return null
+
   if (!sessions.some(row => row.sessionId === event.threadId)) return null
   return sessions.filter(row => row.sessionId !== event.threadId)
+}
+
+/** The slice of a session row an unarchive needs: id plus sort key. */
+export interface ThreadRestoreRow extends ThreadLifecycleRow {
+  timestamp: number
+}
+
+/**
+ * Put one row back after `thread/unarchived`.
+ *
+ * Returns a new, timestamp-descending array — the same order `session:list`
+ * produces. Null means "leave the store untouched":
+ *
+ *   - no row (the index does not know the thread, or a stale scan missed it);
+ *   - a row that is already listed (another refresh beat this event, or the
+ *     user has two windows) — restoring it again would duplicate it;
+ *   - an id the engine reported deleted in this window. The user's delete is
+ *     final: a late unarchive for the same id must not resurrect the row.
+ *
+ * The tombstone check is passed in rather than owned here so this module stays
+ * free of store state; the caller is the one that recorded the delete.
+ */
+export function restoreThreadRow<T extends ThreadRestoreRow>(
+  sessions: readonly T[],
+  row: T | null | undefined,
+  deletedThreadIds?: ReadonlySet<string>,
+): T[] | null {
+  if (!row || typeof row.sessionId !== 'string' || !row.sessionId) return null
+  if (deletedThreadIds?.has(row.sessionId)) return null
+  if (sessions.some(existing => existing.sessionId === row.sessionId)) return null
+  return [...sessions, row].sort((a, b) => b.timestamp - a.timestamp)
 }

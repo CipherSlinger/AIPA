@@ -786,6 +786,50 @@ export interface CliThreadLifecycleEventData {
 }
 
 /**
+ * `cli:threadUnarchived` payload (`thread/unarchived`,
+ * ThreadUnarchivedNotification). The schema requires exactly one field —
+ * `threadId` — so there is no name, cwd or timestamp to restore a row from;
+ * the renderer re-reads that session's row from the list index.
+ */
+export interface CliThreadUnarchivedEventData {
+  sessionId?: string
+  threadId?: string
+}
+
+/**
+ * `cli:threadGoalUpdated` payload (`thread/goal/updated`,
+ * ThreadGoalUpdatedNotification; verified against the 0.145 schema and
+ * binary).
+ *
+ * Wire shape: `{ threadId, turnId?: string | null, goal: ThreadGoal }`, where
+ * `ThreadGoal` requires `threadId`, `objective`, `status` and the
+ * `timeUsedSeconds` / `tokensUsed` / `createdAt` / `updatedAt` counters
+ * (`tokenBudget` is nullable). The bridge flattens the nested goal; it
+ * forwards only what the composer can state honestly and keeps every field
+ * optional here because a push payload is untrusted until the renderer
+ * validates it.
+ */
+export interface CliThreadGoalUpdatedEventData {
+  sessionId?: string
+  threadId?: string
+  objective?: string
+  status?: 'active' | 'paused' | 'blocked' | 'usageLimited' | 'budgetLimited' | 'complete' | null
+  tokensUsed?: number | null
+  tokenBudget?: number | null
+  timeUsedSeconds?: number | null
+}
+
+/**
+ * `cli:threadGoalCleared` payload (`thread/goal/cleared`,
+ * ThreadGoalClearedNotification). `threadId` is the only field; a cleared
+ * goal for another thread must not clear the line on screen.
+ */
+export interface CliThreadGoalClearedEventData {
+  sessionId?: string
+  threadId?: string
+}
+
+/**
  * `cli:patchUpdated` payload (`item/fileChange/patchUpdated`, Codex 0.145).
  *
  * Verified wire shape (generated schema + binary discriminant):
@@ -1129,6 +1173,9 @@ const electronAPI = {
       // Codex thread life-cycle changes made by any client (CLI rename/archive/
       // delete). The renderer edits the session list in place from these.
       'cli:threadNameUpdated', 'cli:threadArchived', 'cli:threadDeleted',
+      // Thread goal (standing objective shown in the composer strip) and the
+      // inverse of archive — the row belongs back in the sidebar.
+      'cli:threadGoalUpdated', 'cli:threadGoalCleared', 'cli:threadUnarchived',
     ]
     const handlers = channels.map((ch) => {
       const h = (_: unknown, d: Record<string, unknown>) => {

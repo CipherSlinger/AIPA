@@ -3356,7 +3356,22 @@
       "hint": "Only applies when a time came due while AIPA was closed for more than a minute. A skipped occurrence is listed in the run history and never counts as a failure. A run that came due while AIPA was open still happens late if the run slots were busy.",
       "row": "skips times missed while closed"
     },
-    "missedRunRuleChoice": "A run that came due while AIPA was closed follows the job's own choice: it either happens once at the next launch and is marked late, or it is skipped and the job waits for the next occurrence. Either way, missed runs are never replayed in a burst."
+    "missedRunRuleChoice": "A run that came due while AIPA was closed follows the job's own choice: it either happens once at the next launch and is marked late, or it is skipped and the job waits for the next occurrence. Either way, missed runs are never replayed in a burst.",
+    "filter": {
+      "placeholder": "Search automations",
+      "clear": "Clear filters",
+      "clearSearch": "Clear search",
+      "count": "{{shown}} of {{total}}",
+      "empty": "No automations match these filters.",
+      "emptyQuery": "No automations match “{{query}}”.",
+      "status": {
+        "group": "Filter by status",
+        "running": "Running",
+        "failing": "Failing",
+        "disabled": "Turned off",
+        "waitingPath": "Waiting on a path"
+      }
+    }
   },
   "speculation": {
     "title": "Speculative Preview",
@@ -3508,6 +3523,19 @@
     "reroute": {
       "moved": "This turn was moved from {{from}} to {{to}}.",
       "reason": "Engine reason: {{reason}}"
+    },
+    "threadGoal": {
+      "aria": "Thread goal",
+      "label": "Goal",
+      "status": {
+        "active": "active",
+        "paused": "paused",
+        "blocked": "blocked",
+        "usageLimited": "usage limit",
+        "budgetLimited": "budget limit",
+        "complete": "complete"
+      },
+      "tokens": "{{used}} / {{budget}} tokens"
     }
   },
   "plugin": {

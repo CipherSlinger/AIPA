@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useChatStore, usePrefsStore, useSessionStore } from '../store'
-import { CodexQuestion, ElicitationMessage, HookCallbackMessage, PermissionMessage, PlanMessage, StandardChatMessage, PromptHistoryItem } from '../types/app.types'
+import { CodexQuestion, ElicitationMessage, HookCallbackMessage, PermissionMessage, PlanMessage, StandardChatMessage, PromptHistoryItem, SessionListItem } from '../types/app.types'
 import { useUiStore } from '../store'
 import { getT } from '../i18n'
 import { resolveProvider, sendCompletionNotification, playCompletionSound, getActiveApiKey, rotateApiKey } from './streamJsonUtils'
@@ -10,6 +10,7 @@ import { assembleMemoryContextForTurn } from './promptMemory'
 import { composeSystemPromptParts, resolvePersonaTurnSettings } from './promptAssembly'
 import { listSessionsShared } from '../utils/sessionListShared'
 import { readThreadLifecycleEvent } from '../utils/threadLifecycle'
+import { readThreadGoalNotice, shouldClearThreadGoal } from '../utils/threadGoal'
 import { describeThreadStatus } from '../components/chat/threadStatusText'
 import { describeEngineItem, TOOL_CARD_KINDS } from '../components/chat/engineStepText'
 import { itemIdFromToolId } from '../components/chat/fileChangePatch'
@@ -1480,6 +1481,22 @@ export function useStreamJson() {
           if (lifecycle) useSessionStore.getState().applyThreadLifecycle(lifecycle)
           break
         }
+        case 'cli:threadUnarchived': {
+          // The inverse of archive. `ThreadUnarchivedNotification` carries only
+          // `threadId` — no title, cwd or timestamp — so the row cannot be
+          // rebuilt from the event alone. Re-read the index and restore just
+          // that one row; `restoreThreadRow` refuses an id that is already
+          // listed (no duplicates) or that this window saw deleted (a late
+          // unarchive cannot resurrect the user's delete).
+          const lifecycle = readThreadLifecycleEvent('unarchive', data)
+          if (!lifecycle || lifecycle.kind !== 'unarchive') break
+          void listSessionsShared().then((list) => {
+            if (!list) return
+            const row = (list as SessionListItem[]).find(item => item.sessionId === lifecycle.threadId)
+            if (row) useSessionStore.getState().restoreThreadRow(row)
+          })
+          break
+        }
         case 'cli:threadStatusChanged': {
           // `thread/status/changed`, reduced to a composer chip. This is a
           // thread-level report, so it uses the same ownership rule as the
@@ -1494,9 +1511,16 @@ export function useStreamJson() {
         case 'cli:threadStarted': {
           // `thread/started`: the conversation moved to a different thread, so
           // the previous thread's "waiting on you" claim is no longer about
-          // what is on screen.
+          // what is on screen. A goal belongs to a thread too: retire the line
+          // when the report names another thread, and leave a same-thread
+          // start (a resume) alone.
           if (!isThreadReportForActiveConversation(data, activeBridgeIdRef.current)) break
           useChatStore.getState().setThreadStatus(null)
+          const startedThreadId = (data as { threadId?: unknown } | null)?.threadId
+          const goal = useChatStore.getState().threadGoal
+          if (goal && typeof startedThreadId === 'string' && startedThreadId && startedThreadId !== goal.threadId) {
+            useChatStore.getState().setThreadGoal(null)
+          }
           break
         }
         case 'cli:threadSettingsUpdated': {
@@ -1512,6 +1536,27 @@ export function useStreamJson() {
             effort: compactString(settings.effort),
             sandboxPolicy: compactSandboxPolicy(settings.sandboxPolicy),
           })
+          break
+        }
+        case 'cli:threadGoalUpdated': {
+          // A standing objective, not a turn delta. Same ownership rule as the
+          // settings report: only the thread on screen may paint the strip.
+          // `readThreadGoalNotice` is the validator — a malformed payload or an
+          // unknown status leaves the current line untouched.
+          if (!isThreadReportForActiveConversation(data, activeBridgeIdRef.current)) break
+          const goal = readThreadGoalNotice(data)
+          if (goal) useChatStore.getState().setThreadGoal(goal)
+          break
+        }
+        case 'cli:threadGoalCleared': {
+          // `ThreadGoalClearedNotification` names only its thread. Clear only
+          // when it is the goal currently on screen; a cleared event for a
+          // different thread (or a malformed one) must not retire this line.
+          if (!isThreadReportForActiveConversation(data, activeBridgeIdRef.current)) break
+          const clearedThreadId = (data as { threadId?: unknown } | null)?.threadId
+          if (shouldClearThreadGoal(useChatStore.getState().threadGoal, clearedThreadId)) {
+            useChatStore.getState().setThreadGoal(null)
+          }
           break
         }
         case 'cli:engineWarning': {

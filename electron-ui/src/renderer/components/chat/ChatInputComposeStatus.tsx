@@ -8,6 +8,7 @@ import { useChatStore, usePrefsStore } from '../../store'
 import { personaModelOf, resolveEffectiveModel } from '../../lib/sessionModel'
 import EngineWarningNotices from './EngineWarningNotices'
 import { engineNoticeStore } from './engineNoticeStore'
+import { describeThreadGoalLine } from '../../utils/threadGoal'
 
 interface ChatInputComposeStatusProps {
   input: string
@@ -49,6 +50,10 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
   // This line never infers "thinking" from it: only the two waiting flags and
   // the engine's own error produce a chip.
   const threadStatus = useChatStore(s => s.threadStatus)
+  // Standing goal reported by `thread/goal/updated`. Rendered as one quiet,
+  // non-interactive line: objective + the status the engine named, plus the
+  // raw used/budget counts only when the payload actually carried a budget.
+  const threadGoal = useChatStore(s => s.threadGoal)
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
   const sessionModelOverride = useChatStore(s => s.sessionModelOverride)
   const pickerModel = usePrefsStore(s =>
@@ -86,6 +91,8 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
   const rerouteTitle = rerouteText && rerouteDetail
     ? `${rerouteText} ${rerouteDetail}`
     : rerouteText
+  // Localized segments for the goal line; null when there is no standing goal.
+  const goalLine = describeThreadGoalLine(threadGoal, t)
 
   const isOverLimit = input.length > 10000
   const isNearLimit = input.length > 5000
@@ -134,7 +141,7 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
           interactive: the picker above stays the only way to change a model.
           The reroute line also lives here so the strip names both models even
           when the thread's settings report has not arrived yet. */}
-      {((threadSettings && hasThreadLine) || rerouteText) && (
+      {(goalLine || (threadSettings && hasThreadLine) || rerouteText) && (
         <div
           role="status"
           aria-label={t('codex.thread.settingsAria')}
@@ -146,6 +153,33 @@ export default function ChatInputComposeStatus({ input, typingWpm, calcResult, h
             lineHeight: 1.5,
           }}
         >
+          {/* A standing goal sits on the left of the same strip as the reported
+              settings: the strip answers "what is this thread doing?" without
+              adding another row of chrome. Nothing here is clickable. */}
+          {goalLine && (
+            <span
+              aria-label={goalLine.aria}
+              title={goalLine.title}
+              style={{
+                marginRight: 'auto',
+                minWidth: 0,
+                fontSize: 10, color: 'var(--text-muted)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}
+            >
+              <span style={{ fontWeight: 500 }}>{goalLine.label}</span>
+              {': '}
+              {goalLine.objective}
+              {/* The same dot separator the settings segments use, so the goal
+                  reads as part of this strip rather than a pasted sentence. */}
+              {goalLine.status && (
+                <>{SEP}<span style={{ opacity: 0.75 }}>{goalLine.status}</span></>
+              )}
+              {goalLine.budget && (
+                <>{SEP}<span style={{ opacity: 0.75 }}>{goalLine.budget}</span></>
+              )}
+            </span>
+          )}
           {rerouteText && reroute && (
             <span
               aria-label={rerouteTitle ?? rerouteText}

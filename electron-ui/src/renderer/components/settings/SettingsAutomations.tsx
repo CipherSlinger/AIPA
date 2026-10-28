@@ -6,8 +6,8 @@
 // page only reflects state and sends CRUD requests, then waits for
 // `automation:changed` instead of guessing what the scheduler did.
 
-import { useCallback, useEffect, useState, type CSSProperties } from 'react'
-import { AlarmClock, AlertTriangle, Clock, Copy, History, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Sparkles, Trash2, Wallet } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { AlarmClock, AlertTriangle, Clock, Copy, History, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Search, Sparkles, Trash2, Wallet, X } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { usePluginStore } from '../../store/pluginStore'
@@ -19,6 +19,14 @@ import { formatTokens } from '../../utils/formatUtils'
 import AutomationDialog, { ASSISTANT_PERSONA_ID, type WorkflowOption } from '../automation/AutomationDialog'
 import { scheduleText, watchWarningText } from '../automation/scheduleText'
 import { nextRunText } from '../automation/nextRunText'
+import {
+  JOB_FILTER_STATUSES,
+  countJobsByStatus,
+  hasActiveFilters,
+  matchesJob,
+  type JobFilterStatus,
+  type JobSearchContext,
+} from '../automation/jobFilter'
 import { buildInvestigatePrompt } from '../automation/investigatePrompt'
 import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from '../automation/automationStyles'
 import { RUN_HISTORY_CAP, viewRunHistory } from './runHistoryView'
@@ -39,6 +47,17 @@ const RUN_HISTORY_UI_DEFAULT: RunHistoryUi = { expanded: false, failuresOnly: fa
 const QUIET_LINK: CSSProperties = {
   background: 'none', border: 'none', padding: 0, margin: '4px 0 0',
   font: 'inherit', fontSize: 11, color: 'var(--accent-text)', cursor: 'pointer',
+}
+
+/**
+ * The filter row's reset, in the archive's quiet underlined style. It shares
+ * the row with 24px fields and chips, so it carries no vertical margin of its
+ * own; the empty-state call site adds spacing instead.
+ */
+const FILTER_LINK: CSSProperties = {
+  background: 'none', border: 'none', padding: 0,
+  font: 'inherit', fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer',
+  textDecoration: 'underline', textUnderlineOffset: 3,
 }
 
 /** The expert a row should name: a person, the plain assistant, or a broken binding. */
@@ -94,6 +113,11 @@ export default function SettingsAutomations() {
   // its entry with it on the next interaction rather than leaking into a new
   // job that happens to reuse the slot.
   const [runHistoryUi, setRunHistoryUi] = useState<Record<string, RunHistoryUi>>({})
+  // The filter row is page-local: no pref is written, so opening Settings a
+  // second time starts from the whole list. Keeping it out of the store also
+  // means none of the row/dialog actions below have to know it exists.
+  const [filterText, setFilterText] = useState('')
+  const [filterStatuses, setFilterStatuses] = useState<JobFilterStatus[]>([])
 
   // The pause travels in the scheduler's limits payload; a null payload (the
   // list call failed) reads as not paused rather than inventing a banner.
@@ -168,6 +192,47 @@ export default function SettingsAutomations() {
       ? { kind: 'persona', persona, override: false }
       : { kind: 'missing', override: false }
   }, [workflows, personas])
+
+  /**
+   * The job facts the pure predicate cannot derive on its own.
+   *
+   * The schedule sentence is localized and the workflow/persona names live in
+   * other stores, so they are resolved here and handed over as plain strings.
+   * The predicate stays React-free and the filter row cannot drift from the
+   * row's own wording: both call the same `scheduleText` / `jobExpert`.
+   */
+  const searchContextFor = useCallback((job: AutomationJobData): JobSearchContext => {
+    const expert = jobExpert(job)
+    return {
+      workflowName: job.action.kind === 'workflow'
+        ? workflowName(job.action.workflowId) ?? null
+        : null,
+      scheduleSentence: scheduleText(t, job.trigger),
+      personaName: expert?.kind === 'persona' ? expert.persona.name : null,
+    }
+  }, [jobExpert, workflowName, t])
+
+  const filterQuery = useMemo(
+    () => ({ text: filterText, statuses: filterStatuses }),
+    [filterText, filterStatuses],
+  )
+  const filteredJobs = useMemo(
+    () => jobs.filter(job => matchesJob(job, filterQuery, searchContextFor(job))),
+    [jobs, filterQuery, searchContextFor],
+  )
+  // Counts see the text query but not the status selection, so a chip shows
+  // what clicking it would add rather than zeroing itself out.
+  const statusCounts = useMemo(
+    () => countJobsByStatus(jobs, filterQuery, searchContextFor),
+    [jobs, filterQuery, searchContextFor],
+  )
+  const filtersActive = hasActiveFilters(filterQuery)
+  // Escape and the two reset buttons all land here; clearing is one state
+  // update per dimension so React never renders a half-reset row.
+  const clearFilters = () => {
+    setFilterText('')
+    setFilterStatuses([])
+  }
 
   const timeText = (ts: number): string => new Date(ts).toLocaleString(resolvedLocale)
 
@@ -713,15 +778,166 @@ export default function SettingsAutomations() {
           </div>
         )}
 
+        {/* The filter row lives outside the list's conditional so typing can
+            empty the list without unmounting (and blurring) the field. It is
+            plain uncontrolled-by-prefs state: no storage, no store. */}
+        {!loading && jobs.length > 0 && (
+          <div style={{
+            display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6,
+            marginBottom: 10,
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 5, flex: '1 1 160px',
+              minWidth: 140, maxWidth: 280,
+              height: 24, boxSizing: 'border-box', padding: '0 9px', borderRadius: 8,
+              border: '1px solid var(--border)', background: 'var(--bg-hover)',
+              transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
+            }}>
+              <Search size={11} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+              <input
+                value={filterText}
+                onChange={e => setFilterText(e.target.value)}
+                onKeyDown={event => {
+                  // Escape is the field's own reset, not the page's: with a
+                  // value present it clears the text and keeps the caret here;
+                  // with nothing to clear it does nothing.
+                  if (event.key === 'Escape' && filterText !== '') {
+                    event.preventDefault()
+                    setFilterText('')
+                  }
+                }}
+                placeholder={t('automation.filter.placeholder')}
+                aria-label={t('automation.filter.placeholder')}
+                spellCheck={false}
+                autoCorrect="off"
+                autoCapitalize="off"
+                onFocus={e => {
+                  const bar = e.currentTarget.parentElement
+                  if (bar) {
+                    bar.style.boxShadow = '0 0 0 2px var(--accent-bg)'
+                    bar.style.borderColor = 'var(--accent-border)'
+                  }
+                }}
+                onBlur={e => {
+                  const bar = e.currentTarget.parentElement
+                  if (bar) {
+                    bar.style.boxShadow = 'none'
+                    bar.style.borderColor = 'var(--border)'
+                  }
+                }}
+                style={{
+                  flex: 1, minWidth: 0, background: 'none', border: 'none',
+                  color: 'var(--text-primary)', fontSize: 11,
+                }}
+              />
+              {filterText && (
+                <button
+                  type="button"
+                  onClick={() => setFilterText('')}
+                  aria-label={t('automation.filter.clearSearch')}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--text-muted)', display: 'flex', padding: 0,
+                  }}
+                >
+                  <X size={10} />
+                </button>
+              )}
+            </div>
+
+            {/* All four chips are always present with their counts, even at
+                zero, so the row does not reflow as jobs start, fail, or are
+                switched off. A zero-count chip is disabled: filtering to it
+                could only produce the empty state, and its count already says
+                why. The counts follow the text query but not the chip
+                selection, so a chip advertises what toggling it would reveal. */}
+            <span
+              role="group"
+              aria-label={t('automation.filter.status.group')}
+              style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}
+            >
+              {JOB_FILTER_STATUSES.map(status => {
+                const active = filterStatuses.includes(status)
+                const count = statusCounts[status]
+                const unavailable = count === 0 && !active
+                return (
+                  <button
+                    key={status}
+                    type="button"
+                    aria-pressed={active}
+                    disabled={unavailable}
+                    onClick={() => setFilterStatuses(prev => prev.includes(status)
+                      ? prev.filter(value => value !== status)
+                      : [...prev, status])}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      height: 24, boxSizing: 'border-box', padding: '0 9px',
+                      borderRadius: 999, fontSize: 11, lineHeight: '16px',
+                      cursor: unavailable ? 'default' : 'pointer',
+                      border: `1px solid ${active ? 'var(--accent-border)' : 'var(--border)'}`,
+                      background: active ? 'var(--accent-bg)' : 'transparent',
+                      color: active ? 'var(--accent-text)' : SECONDARY,
+                      fontWeight: active ? 600 : 400,
+                      opacity: unavailable ? 0.45 : 1,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {t(`automation.filter.status.${status}`)}
+                    <span style={{ fontSize: 10, opacity: 0.7, fontVariantNumeric: 'tabular-nums' }}>
+                      {count}
+                    </span>
+                  </button>
+                )
+              })}
+            </span>
+
+            {filtersActive && (
+              <button type="button" onClick={clearFilters} style={FILTER_LINK}>
+                {t('automation.filter.clear')}
+              </button>
+            )}
+
+            <span
+              role="status"
+              aria-live="polite"
+              style={{
+                marginLeft: 'auto', fontSize: 10.5, color: SECONDARY,
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {t('automation.filter.count', {
+                shown: filteredJobs.length,
+                total: jobs.length,
+              })}
+            </span>
+          </div>
+        )}
+
         {loading ? (
           <div style={{ fontSize: 12, color: SECONDARY, padding: '10px 0' }}>{t('common.loading')}</div>
         ) : jobs.length === 0 ? (
           <div style={{ fontSize: 12, color: SECONDARY, padding: '10px 0', lineHeight: 1.5 }}>
             {t('automation.empty')}
           </div>
+        ) : filteredJobs.length === 0 ? (
+          // One line, with the reset beside it: a filter that matches nothing
+          // must not look like an empty account.
+          <div style={{
+            display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8,
+            fontSize: 11.5, color: SECONDARY, padding: '10px 0', lineHeight: 1.5,
+          }}>
+            <span>
+              {filterText.trim()
+                ? t('automation.filter.emptyQuery', { query: filterText.trim() })
+                : t('automation.filter.empty')}
+            </span>
+            <button type="button" onClick={clearFilters} style={FILTER_LINK}>
+              {t('automation.filter.clear')}
+            </button>
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {jobs.map((job, index) => {
+            {filteredJobs.map((job, index) => {
               const status = statusLine(job)
               const usage = usageLine(job)
               const spendLimit = spendLimitLine(job)

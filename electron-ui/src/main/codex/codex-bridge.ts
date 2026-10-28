@@ -214,6 +214,43 @@ export interface CodexAccountUpdate {
   planType: string | null
 }
 
+/**
+ * `ThreadGoalStatus` (`v2/ThreadGoalUpdatedNotification.json` → definitions).
+ * The wire enum, verbatim. A value outside it is not mapped to a nearby
+ * status; the reader returns `null` so the strip can omit the label rather
+ * than claim a state the engine never named.
+ */
+export type CodexThreadGoalStatus =
+  | 'active'
+  | 'paused'
+  | 'blocked'
+  | 'usageLimited'
+  | 'budgetLimited'
+  | 'complete'
+
+/**
+ * `thread/goal/updated` (`v2/ThreadGoalUpdatedNotification.json`). The nested
+ * `ThreadGoal` requires `createdAt`, `objective`, `status`, `threadId`,
+ * `timeUsedSeconds`, `tokensUsed` and `updatedAt`; `tokenBudget` is nullable.
+ *
+ * A goal is a standing objective the thread works toward — not a single
+ * turn's checklist — so the composer shows `objective` plus `status` for as
+ * long as it stands, and clears it on `thread/goal/cleared`. Only fields the
+ * strip can render honestly are forwarded; `createdAt`/`updatedAt` are
+ * int64 timestamps whose unit (seconds vs milliseconds) the schema does not
+ * state, so they are deliberately not forwarded. `tokensUsed`/`tokenBudget`
+ * are counts from the payload: when a budget is present the strip may name
+ * both, and it never computes a percentage or a progress bar.
+ */
+export interface CodexThreadGoal {
+  threadId: string
+  objective: string
+  status: CodexThreadGoalStatus | null
+  tokensUsed: number | null
+  tokenBudget: number | null
+  timeUsedSeconds: number | null
+}
+
 interface PendingRequest {
   resolve: (value: unknown) => void
   reject: (reason: Error) => void
@@ -811,6 +848,66 @@ export function normalizeAccountUpdated(params: Record<string, unknown>): CodexA
     authMode: stringOr(params.authMode) || null,
     planType: stringOr(params.planType) || null,
   }
+}
+
+const THREAD_GOAL_STATUSES = new Set<string>([
+  'active', 'paused', 'blocked', 'usageLimited', 'budgetLimited', 'complete',
+])
+
+/** int64 counts on the wire; a negative, fractional or non-numeric value is
+ *  not a count and becomes `null` rather than being rounded or clamped. */
+function nonNegativeIntOrNull(value: unknown): number | null {
+  const n = numberOrNull(value)
+  return n !== null && Number.isInteger(n) && n >= 0 ? n : null
+}
+
+/**
+ * Normalize `thread/goal/updated`. Returns null unless the payload carries a
+ * non-blank objective and a thread id; the status is optional-but-validated,
+ * and the counts stay `null` when malformed. The notification-level
+ * `threadId` is cross-checked with `goal.threadId` when present: a
+ * disagreement means the payload is malformed and cannot be attributed
+ * honestly, so it is dropped instead of picking one id.
+ */
+export function normalizeThreadGoalUpdated(
+  params: Record<string, unknown>,
+): CodexThreadGoal | null {
+  const goal = asRecord(params.goal)
+  if (!goal) return null
+  const goalThreadId = stringOr(goal.threadId).trim()
+  const notificationThreadId = stringOr(params.threadId).trim()
+  if (!goalThreadId) return null
+  if (notificationThreadId && notificationThreadId !== goalThreadId) return null
+  // The objective is a sentence shown on one line; collapse whitespace so a
+  // multi-line string cannot break the strip's layout. The words themselves
+  // are never re-written.
+  const objective = stringOr(goal.objective).replace(/\s+/g, ' ').trim()
+  if (!objective) return null
+  const rawStatus = goal.status
+  const status = typeof rawStatus === 'string' && THREAD_GOAL_STATUSES.has(rawStatus)
+    ? rawStatus as CodexThreadGoalStatus
+    : null
+  return {
+    threadId: goalThreadId,
+    objective,
+    status,
+    tokensUsed: nonNegativeIntOrNull(goal.tokensUsed),
+    tokenBudget: nonNegativeIntOrNull(goal.tokenBudget),
+    timeUsedSeconds: nonNegativeIntOrNull(goal.timeUsedSeconds),
+  }
+}
+
+/**
+ * `thread/goal/cleared` and `thread/unarchived` each carry exactly one
+ * required field, `threadId` (verified per-file schemas). Both describe a
+ * change to a thread the app may not have listed yet, so the id is the whole
+ * payload — anything malformed is dropped rather than guessed.
+ */
+export function normalizeThreadIdNotification(
+  params: Record<string, unknown>,
+): { threadId: string } | null {
+  const threadId = stringOr(params.threadId).trim()
+  return threadId ? { threadId } : null
 }
 
 // ── CodexBridge ──────────────────────────────────────
@@ -2259,6 +2356,35 @@ export class CodexBridge extends EventEmitter {
 
       case 'thread/deleted': {
         this.emit('threadDeleted', { sessionId: sid, threadId: stringOr(params.threadId) })
+        break
+      }
+
+      // An unarchive is the inverse of `thread/archived`: the thread is live
+      // again and belongs back in the sidebar. The notification carries only
+      // the id (ThreadUnarchivedNotification), so the renderer must re-read
+      // that row's metadata before restoring it — this bridge forwards the
+      // id and nothing invented.
+      case 'thread/unarchived': {
+        const unarchived = normalizeThreadIdNotification(params)
+        if (unarchived) this.emit('threadUnarchived', { sessionId: sid, ...unarchived })
+        else log.debug('Malformed thread/unarchived notification dropped')
+        break
+      }
+
+      // A standing objective the thread is working toward. `goal` carries the
+      // objective, status enum and token/time counters; the renderer shows the
+      // objective and status only (see `CodexThreadGoal`).
+      case 'thread/goal/updated': {
+        const goal = normalizeThreadGoalUpdated(params)
+        if (goal) this.emit('threadGoalUpdated', { sessionId: sid, ...goal })
+        else log.debug('Malformed thread/goal/updated notification dropped')
+        break
+      }
+
+      case 'thread/goal/cleared': {
+        const cleared = normalizeThreadIdNotification(params)
+        if (cleared) this.emit('threadGoalCleared', { sessionId: sid, ...cleared })
+        else log.debug('Malformed thread/goal/cleared notification dropped')
         break
       }
 
