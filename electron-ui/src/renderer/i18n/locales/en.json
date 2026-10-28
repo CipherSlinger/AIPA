@@ -179,7 +179,13 @@
     "exportIncludeTimestamps": "Include timestamps",
     "exportPreview": "Preview",
     "exportSaving": "Saving…",
-    "exportChoosePath": "Choose path…"
+    "exportChoosePath": "Choose path…",
+    "elicitation": {
+      "submitted": "Submitted",
+      "declined": "Declined",
+      "cancelled": "Cancelled",
+      "requestingInformation": "Requesting information"
+    }
   },
   "sessionReuse": {
     "menu": {
@@ -3047,6 +3053,22 @@
       "copyFailed": "Couldn't copy the path",
       "revealFailed": "Couldn't open the containing folder",
       "disabled": "Disabled"
+    },
+    "questions": {
+      "title": "Codex has a question",
+      "other": "Other",
+      "otherPlaceholder": "Type your own answer",
+      "placeholder": "Type your answer",
+      "submit": "Submit answers",
+      "decline": "Decline",
+      "cancel": "Cancel",
+      "answerRequired": "Answer every question to submit"
+    },
+    "request": {
+      "resolved": "Codex resolved this request on its own",
+      "expired": "Timed out — no answer was sent",
+      "resolvedShort": "Resolved",
+      "expiredShort": "Timed out"
     }
   }
 }

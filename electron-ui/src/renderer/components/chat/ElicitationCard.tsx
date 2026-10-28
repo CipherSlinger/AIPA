@@ -1,6 +1,9 @@
 import React, { useState } from 'react'
 import { ElicitationMessage } from '../../types/app.types'
-import { Check, X, ExternalLink, MessageSquare } from 'lucide-react'
+import { Check, X, ExternalLink, MessageSquare, Clock } from 'lucide-react'
+import { useT } from '../../i18n'
+import { ElicitationActions } from './ElicitationActions'
+import { ElicitationQuestionForm } from './ElicitationQuestionForm'
 
 interface Props {
   message: ElicitationMessage
@@ -8,9 +11,13 @@ interface Props {
 }
 
 export function ElicitationCard({ message, onRespond }: Props) {
+  const t = useT()
   const [formData, setFormData] = useState<Record<string, string>>({})
 
   const isPending = message.decision === 'pending'
+  const isSettled = message.decision === 'resolved' || message.decision === 'expired'
+  const codexQuestions = message.codexQuestions
+  const hasQuestions = Array.isArray(codexQuestions) && codexQuestions.length > 0
 
   const handleSubmit = () => {
     if (!isPending) return
@@ -33,22 +40,45 @@ export function ElicitationCard({ message, onRespond }: Props) {
   const required = (schema?.required as string[]) || []
 
   const decisionLabel: Record<string, string> = {
-    accepted: 'Submitted',
-    declined: 'Declined',
-    cancelled: 'Cancelled',
+    accepted: t('chat.elicitation.submitted'),
+    declined: t('chat.elicitation.declined'),
+    cancelled: t('chat.elicitation.cancelled'),
+    resolved: t('codex.request.resolved'),
+    expired: t('codex.request.expired'),
   }
 
   const decisionColor: Record<string, string> = {
     accepted: 'rgba(34,197,94,0.9)',
-    declined: '#fca5a5',
+    declined: 'var(--danger-text)',
     cancelled: 'var(--text-muted)',
+    // Not a denial: the server settled it, nobody said no.
+    resolved: 'var(--text-secondary)',
+    expired: 'var(--text-muted)',
   }
 
   const decisionBg: Record<string, string> = {
     accepted: 'rgba(34,197,94,0.12)',
     declined: 'rgba(239,68,68,0.12)',
     cancelled: 'var(--bg-hover)',
+    resolved: 'var(--bg-hover)',
+    expired: 'var(--bg-hover)',
   }
+
+  const decisionIcon = (decision: string) => {
+    if (decision === 'accepted') return <Check size={12} />
+    if (decision === 'resolved' || decision === 'expired') return <Clock size={12} />
+    return <X size={12} />
+  }
+
+  // Card tint: indigo while pending, green when accepted, red only for a real
+  // refusal, neutral when the request died without an answer.
+  const accent = isPending
+    ? { bg: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.20)', left: '3px solid rgba(99,102,241,0.6)' }
+    : message.decision === 'accepted'
+      ? { bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.20)', left: '3px solid rgba(34,197,94,0.5)' }
+      : isSettled
+        ? { bg: 'var(--popup-bg)', border: 'var(--border)', left: '3px solid var(--border-strong)' }
+        : { bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.20)', left: '3px solid rgba(239,68,68,0.5)' }
 
   return (
     <div
@@ -56,23 +86,11 @@ export function ElicitationCard({ message, onRespond }: Props) {
       style={{
         margin: '8px auto',
         maxWidth: 420,
-        background: isPending
-          ? 'rgba(99,102,241,0.08)'
-          : message.decision === 'accepted'
-            ? 'rgba(34,197,94,0.08)'
-            : 'rgba(239,68,68,0.08)',
+        background: accent.bg,
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: isPending
-          ? '1px solid rgba(99,102,241,0.20)'
-          : message.decision === 'accepted'
-            ? '1px solid rgba(34,197,94,0.20)'
-            : '1px solid rgba(239,68,68,0.20)',
-        borderLeft: isPending
-          ? '3px solid rgba(99,102,241,0.6)'
-          : message.decision === 'accepted'
-            ? '3px solid rgba(34,197,94,0.5)'
-            : '3px solid rgba(239,68,68,0.5)',
+        border: `1px solid ${accent.border}`,
+        borderLeft: accent.left,
         borderRadius: 12,
         boxShadow: 'var(--glass-shadow)',
         padding: '16px 18px',
@@ -117,28 +135,32 @@ export function ElicitationCard({ message, onRespond }: Props) {
                 textTransform: 'uppercase',
                 flexShrink: 0,
               }}>
-                MCP
+                {hasQuestions ? 'CODEX' : 'MCP'}
               </span>
             )}
           </div>
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
-            Requesting information
+            {hasQuestions ? t('codex.questions.title') : t('chat.elicitation.requestingInformation')}
           </span>
         </div>
       </div>
 
-      {/* Message text */}
-      <div style={{
-        fontSize: 12,
-        color: 'var(--text-secondary)',
-        background: 'var(--bg-hover)',
-        border: '1px solid var(--border)',
-        borderRadius: 6,
-        padding: '8px 12px',
-        lineHeight: 1.6,
-      }}>
-        {message.message}
-      </div>
+      {/* Message text. The question form already shows header + question, so
+          hide the flattened prompt copy while it is answerable; a settled card
+          keeps it as the record of what Codex asked. */}
+      {!(isPending && hasQuestions) && (
+        <div style={{
+          fontSize: 12,
+          color: 'var(--text-secondary)',
+          background: 'var(--bg-hover)',
+          border: '1px solid var(--border)',
+          borderRadius: 6,
+          padding: '8px 12px',
+          lineHeight: 1.6,
+        }}>
+          {message.message}
+        </div>
+      )}
 
       {/* Result badge */}
       {!isPending ? (
@@ -153,7 +175,7 @@ export function ElicitationCard({ message, onRespond }: Props) {
             padding: '3px 10px',
             fontWeight: 500,
           }}>
-            {message.decision === 'accepted' ? <Check size={12} /> : <X size={12} />}
+            {decisionIcon(message.decision)}
             {decisionLabel[message.decision] || message.decision}
           </span>
         </div>
@@ -183,8 +205,16 @@ export function ElicitationCard({ message, onRespond }: Props) {
               <ExternalLink size={13} /> Open in Browser
             </button>
           )}
-          <ActionButtons onSubmit={handleSubmit} onDecline={handleDecline} onCancel={handleCancel} submitLabel="Done" />
+          <ElicitationActions onSubmit={handleSubmit} onDecline={handleDecline} onCancel={handleCancel} submitLabel="Done" />
         </div>
+      ) : hasQuestions ? (
+        /* Codex question form — real choices, not a flattened text prompt */
+        <ElicitationQuestionForm
+          questions={codexQuestions ?? []}
+          onSubmit={(content) => onRespond(message.requestId, { action: 'accept', content })}
+          onDecline={handleDecline}
+          onCancel={handleCancel}
+        />
       ) : (
         /* Form mode */
         <div>
@@ -193,7 +223,7 @@ export function ElicitationCard({ message, onRespond }: Props) {
               <div key={key} style={{ marginBottom: 10 }}>
                 <label style={{ display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 4, color: 'var(--text-faint)' }}>
                   {prop.title || key}
-                  {required.includes(key) && <span style={{ color: '#fca5a5' }}> *</span>}
+                  {required.includes(key) && <span style={{ color: 'var(--danger-text)' }}> *</span>}
                 </label>
                 {prop.description && (
                   <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4, lineHeight: 1.6 }}>{prop.description}</div>
@@ -245,84 +275,10 @@ export function ElicitationCard({ message, onRespond }: Props) {
               onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
             />
           )}
-          <ActionButtons onSubmit={handleSubmit} onDecline={handleDecline} onCancel={handleCancel} />
+          <ElicitationActions onSubmit={handleSubmit} onDecline={handleDecline} onCancel={handleCancel} />
         </div>
       )}
     </div>
   )
 }
 
-function ActionButtons({
-  onSubmit, onDecline, onCancel, submitLabel = 'Submit',
-}: {
-  onSubmit: () => void
-  onDecline: () => void
-  onCancel: () => void
-  submitLabel?: string
-}) {
-  return (
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-      <button
-        onClick={onSubmit}
-        onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.12)'; e.currentTarget.style.transform = 'scale(1.02)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)'; e.currentTarget.style.transform = 'scale(1)' }}
-        style={{
-          flex: 1,
-          height: 36,
-          borderRadius: 6,
-          border: 'none',
-          background: 'linear-gradient(135deg, rgba(34,197,94,0.75), rgba(22,163,74,0.75))',
-          color: 'rgba(255,255,255,0.95)',
-          fontWeight: 600,
-          fontSize: 13,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 6,
-          transition: 'all 0.15s ease',
-        }}
-      >
-        <Check size={14} /> {submitLabel}
-      </button>
-      <button
-        onClick={onDecline}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.2)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)' }}
-        style={{
-          padding: '0 14px',
-          height: 36,
-          borderRadius: 6,
-          border: '1px solid rgba(239,68,68,0.3)',
-          background: 'rgba(239,68,68,0.12)',
-          color: '#fca5a5',
-          fontWeight: 600,
-          fontSize: 13,
-          cursor: 'pointer',
-          transition: 'all 0.15s ease',
-        }}
-      >
-        Decline
-      </button>
-      <button
-        onClick={onCancel}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-active)'; e.currentTarget.style.borderColor = 'var(--border-strong)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.borderColor = 'var(--border)' }}
-        style={{
-          padding: '0 14px',
-          height: 36,
-          borderRadius: 6,
-          border: '1px solid var(--border)',
-          background: 'var(--bg-hover)',
-          color: 'var(--text-secondary)',
-          fontWeight: 500,
-          fontSize: 13,
-          cursor: 'pointer',
-          transition: 'all 0.15s ease',
-        }}
-      >
-        Cancel
-      </button>
-    </div>
-  )
-}

@@ -339,14 +339,19 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
 
   const hasSuggestions = allowRules.length > 0 || denyRules.length > 0
 
-  // Derive state-based left border color
+  // Derive state-based left border color. A request Codex settled itself (or
+  // one the bridge timed out) is neither an approval nor a refusal — keep it
+  // neutral instead of painting it red.
   const isDenied = message.decision === 'denied'
   const isAllowed = message.decision === 'allowed'
+  const isSettled = message.decision === 'resolved' || message.decision === 'expired'
   const leftBorder = isDenied
     ? '3px solid rgba(239,68,68,0.5)'
     : isAllowed
       ? '3px solid rgba(34,197,94,0.5)'
-      : '3px solid rgba(99,102,241,0.6)'
+      : isSettled
+        ? '3px solid var(--border-strong)'
+        : '3px solid rgba(99,102,241,0.6)'
 
   return (
     <div
@@ -731,6 +736,22 @@ export default function PermissionCard({ message, onAllow, onDeny, onAlwaysAllow
               }}
             >
               <Check size={12} /> {t('permission.allowed')}
+            </span>
+          ) : isSettled ? (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                background: 'var(--bg-hover)',
+                color: 'var(--text-muted)',
+                borderRadius: 12,
+                padding: '3px 10px',
+                fontWeight: 500,
+              }}
+            >
+              <Clock size={12} />
+              {message.decision === 'resolved' ? t('codex.request.resolved') : t('codex.request.expired')}
             </span>
           ) : (
             <span

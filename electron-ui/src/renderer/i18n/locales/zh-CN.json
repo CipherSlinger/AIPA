@@ -179,7 +179,13 @@
     "exportIncludeTimestamps": "包含时间戳",
     "exportPreview": "预览",
     "exportSaving": "正在保存…",
-    "exportChoosePath": "选择保存位置…"
+    "exportChoosePath": "选择保存位置…",
+    "elicitation": {
+      "submitted": "已提交",
+      "declined": "已拒绝",
+      "cancelled": "已取消",
+      "requestingInformation": "正在请求信息"
+    }
   },
   "sessionReuse": {
     "menu": {
@@ -3047,6 +3053,22 @@
       "copyFailed": "复制路径失败",
       "revealFailed": "无法打开所在文件夹",
       "disabled": "已禁用"
+    },
+    "questions": {
+      "title": "Codex 有问题要问你",
+      "other": "其他",
+      "otherPlaceholder": "输入你自己的回答",
+      "placeholder": "输入你的回答",
+      "submit": "提交回答",
+      "decline": "拒绝",
+      "cancel": "取消",
+      "answerRequired": "请回答所有问题后再提交"
+    },
+    "request": {
+      "resolved": "Codex 已自行处理此请求",
+      "expired": "已超时，未发送任何回答",
+      "resolvedShort": "已处理",
+      "expiredShort": "已超时"
     }
   }
 }

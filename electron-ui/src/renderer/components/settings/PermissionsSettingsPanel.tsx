@@ -421,6 +421,10 @@ function SessionPermissionHistory({ permissionHistory }: SessionPermissionHistor
   const decisionBadge = (decision: PermissionMessage['decision']): { text: string; color: string } => {
     if (decision === 'allowed') return { text: t('permissions.decisionAllowed'), color: 'var(--success-text)' }
     if (decision === 'denied') return { text: t('permissions.decisionDenied'), color: 'var(--danger-text)' }
+    // Requests Codex settled itself or the bridge timed out never got a user
+    // decision — they are not pending any more either.
+    if (decision === 'resolved') return { text: t('codex.request.resolvedShort'), color: 'var(--text-secondary)' }
+    if (decision === 'expired') return { text: t('codex.request.expiredShort'), color: 'var(--text-muted)' }
     return { text: t('permissions.decisionPending'), color: 'var(--text-faint)' }
   }
 

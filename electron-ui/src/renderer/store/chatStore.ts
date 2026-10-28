@@ -252,6 +252,13 @@ interface ChatState {
   resolveHookCallback: (requestId: string, decision: 'approved' | 'blocked') => void
   addElicitation: (msg: ElicitationMessage) => void
   resolveElicitation: (requestId: string, decision: 'accepted' | 'declined' | 'cancelled') => void
+  /**
+   * Retire a still-pending permission/elicitation card because the server or
+   * the bridge settled the request without a user answer. Only `pending`
+   * messages move — a user decision already recorded wins, and unknown
+   * request ids are a no-op.
+   */
+  settleServerRequest: (requestId: string, outcome: 'resolved' | 'expired') => void
   cancelPendingInteractiveMessages: () => void
   addPlanMessage: (msg: PlanMessage) => void
   resolvePlan: (planId: string, decision: 'accepted' | 'rejected') => void
@@ -774,6 +781,30 @@ export const useChatStore = create<ChatState>((set, get) => ({
           : m
       ),
     })),
+
+  settleServerRequest: (requestId, outcome) => {
+    if (!requestId) return
+    set((s) => {
+      let changed = false
+      const messages = s.messages.map((m) => {
+        if (m.role === 'permission') {
+          const permission = m as PermissionMessage
+          if (permission.permissionId === requestId && permission.decision === 'pending') {
+            changed = true
+            return { ...permission, decision: outcome }
+          }
+        } else if (m.role === 'elicitation') {
+          const elicitation = m as ElicitationMessage
+          if (elicitation.requestId === requestId && elicitation.decision === 'pending') {
+            changed = true
+            return { ...elicitation, decision: outcome }
+          }
+        }
+        return m
+      })
+      return changed ? { messages } : s
+    })
+  },
 
   cancelPendingInteractiveMessages: () =>
     set((s) => ({

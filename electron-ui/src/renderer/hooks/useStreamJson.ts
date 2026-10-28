@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useChatStore, usePrefsStore, useSessionStore } from '../store'
-import { ElicitationMessage, HookCallbackMessage, PermissionMessage, PlanMessage, StandardChatMessage, PromptHistoryItem } from '../types/app.types'
+import { CodexQuestion, ElicitationMessage, HookCallbackMessage, PermissionMessage, PlanMessage, StandardChatMessage, PromptHistoryItem } from '../types/app.types'
 import { useUiStore } from '../store'
 import { getT } from '../i18n'
 import { resolveProvider, sendCompletionNotification, playCompletionSound, getActiveApiKey, rotateApiKey } from './streamJsonUtils'
@@ -1078,7 +1078,7 @@ export function useStreamJson() {
           break
         }
         case 'cli:elicitation': {
-          const d = data as { sessionId: string; requestId: string; serverName: string; message: string; mode?: 'form' | 'url'; url?: string; requestedSchema?: Record<string, unknown> }
+          const d = data as { sessionId: string; requestId: string; serverName: string; message: string; mode?: 'form' | 'url'; url?: string; requestedSchema?: Record<string, unknown>; codexQuestions?: CodexQuestion[] }
           useChatStore.getState().addElicitation({
             id: `elicit-${Date.now()}`,
             role: 'elicitation',
@@ -1088,9 +1088,31 @@ export function useStreamJson() {
             mode: d.mode || 'form',
             url: d.url,
             requestedSchema: d.requestedSchema,
+            // Structured Codex questions render as a choice form; absent for
+            // MCP elicitations, which keep using requestedSchema.
+            ...(Array.isArray(d.codexQuestions) && d.codexQuestions.length > 0
+              ? { codexQuestions: d.codexQuestions }
+              : {}),
             decision: 'pending',
             timestamp: Date.now(),
           } as ElicitationMessage)
+          break
+        }
+        case 'cli:serverRequestResolved': {
+          // Codex settled the request itself (auto-resolution, another client,
+          // turn cancel). No answer of ours is wanted any more — retire the card.
+          const d = data as { requestId?: string }
+          if (typeof d.requestId === 'string' && d.requestId) {
+            useChatStore.getState().settleServerRequest(d.requestId, 'resolved')
+          }
+          break
+        }
+        case 'cli:serverRequestTimedOut': {
+          // The bridge rejected the request on timeout; no answer was sent.
+          const d = data as { requestId?: string }
+          if (typeof d.requestId === 'string' && d.requestId) {
+            useChatStore.getState().settleServerRequest(d.requestId, 'expired')
+          }
           break
         }
         case 'cli:apiError': {

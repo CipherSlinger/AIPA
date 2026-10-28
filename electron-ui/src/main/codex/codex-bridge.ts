@@ -173,6 +173,75 @@ interface PendingServerRequest {
   questionIds?: string[]
 }
 
+/** One question of a `requestUserInput` request, as the renderer receives it. */
+export interface CodexQuestionPayload {
+  id: string
+  header: string
+  question: string
+  options: { label: string; description: string }[] | null
+  isOther: boolean
+  isSecret: boolean
+}
+
+// Hard bounds on the `codexQuestions` payload: a hostile or buggy server must
+// not be able to grow the IPC message or the renderer's DOM without limit.
+const MAX_CODEX_QUESTIONS = 10
+const MAX_CODEX_QUESTION_OPTIONS = 20
+const MAX_CODEX_QUESTION_HEADER = 300
+const MAX_CODEX_QUESTION_TEXT = 300
+const MAX_CODEX_QUESTION_LABEL = 200
+const MAX_CODEX_QUESTION_DESCRIPTION = 300
+
+function clip(value: string, max: number): string {
+  return value.length > max ? value.slice(0, max) : value
+}
+
+/**
+ * Normalize the `questions` array of `item/tool/requestUserInput` into the
+ * bounded shape the renderer's choice form consumes. Questions with an empty
+ * id are dropped (the id is the answer-map key), duplicate ids keep the first
+ * occurrence, and every string is clipped so one hostile payload cannot blow
+ * up the IPC message.
+ */
+export function boundCodexQuestions(raw: unknown): CodexQuestionPayload[] {
+  if (!Array.isArray(raw)) return []
+  const result: CodexQuestionPayload[] = []
+  const seen = new Set<string>()
+  for (const item of raw) {
+    if (result.length >= MAX_CODEX_QUESTIONS) break
+    const question = asRecord(item)
+    if (!question) continue
+    const id = stringOr(question.id).trim()
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+
+    const options: { label: string; description: string }[] = []
+    if (Array.isArray(question.options)) {
+      for (const rawOption of question.options) {
+        if (options.length >= MAX_CODEX_QUESTION_OPTIONS) break
+        const option = asRecord(rawOption)
+        if (!option) continue
+        const label = clip(stringOr(option.label).trim(), MAX_CODEX_QUESTION_LABEL)
+        if (!label) continue
+        options.push({
+          label,
+          description: clip(stringOr(option.description).trim(), MAX_CODEX_QUESTION_DESCRIPTION),
+        })
+      }
+    }
+
+    result.push({
+      id,
+      header: clip(stringOr(question.header, id), MAX_CODEX_QUESTION_HEADER),
+      question: clip(stringOr(question.question), MAX_CODEX_QUESTION_TEXT),
+      options: options.length > 0 ? options : null,
+      isOther: question.isOther === true,
+      isSecret: question.isSecret === true,
+    })
+  }
+  return result
+}
+
 interface JsonRpcRequest {
   id: number
   method: string
@@ -704,6 +773,11 @@ export class CodexBridge extends EventEmitter {
    * MCP elicitations accept it verbatim (Codex's response schema uses the same
    * action/content fields). requestUserInput needs the questions mapped back to
    * `{ answers: { <questionId>: { answers: string[] } } }`.
+   *
+   * The renderer builds `content` from `payload.codexQuestions` (one answer per
+   * question id: the chosen option label, the typed "Other" text, or the plain
+   * text answer) and falls back to `payload.requestedSchema` when
+   * `codexQuestions` is absent. Either way the key is the question id.
    */
   respondElicitation(requestId: string | number, result: Record<string, unknown>): void {
     const key = String(requestId)
@@ -1515,8 +1589,11 @@ export class CodexBridge extends EventEmitter {
 
   /**
    * Map `item/tool/requestUserInput` questions onto the renderer's elicitation
-   * card shape. The card renders one text input per schema property; the
-   * question id is the key, so the answer maps back in respondElicitation().
+   * card shape. `codexQuestions` carries the structured questions (bounded by
+   * `boundCodexQuestions`) so the card can render real choice controls;
+   * `requestedSchema`/`message` remain the schema-driven text form used by the
+   * plain-text fallback. The question id is the key in both shapes, so the
+   * answer maps back in respondElicitation().
    */
   private _userInputElicitationPayload(
     requestId: string,
@@ -1561,6 +1638,7 @@ export class CodexBridge extends EventEmitter {
       message: promptLines.filter(Boolean).join('\n\n') || 'Codex needs your input to continue.',
       mode: 'form',
       requestedSchema: { type: 'object', properties, required },
+      codexQuestions: boundCodexQuestions(params.questions),
     }
   }
 

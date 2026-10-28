@@ -60,9 +60,35 @@ export interface PermissionMessage {
   permissionId: string         // requestId from CLI
   toolName: string
   toolInput: Record<string, unknown>
-  decision: 'pending' | 'allowed' | 'denied'
+  /**
+   * `resolved` — Codex settled the request itself (auto-resolution, another
+   * client, turn cancel); `expired` — the bridge's timeout rejected it.
+   * Neither is a user decision, so both stay neutral in the UI.
+   */
+  decision: 'pending' | 'allowed' | 'denied' | 'resolved' | 'expired'
   timestamp: number
   permissionSuggestions?: unknown[]  // CLI-suggested rules (PermissionUpdate[])
+}
+
+/** One selectable answer offered by a Codex `requestUserInput` question. */
+export interface CodexQuestionOption {
+  label: string
+  description: string
+}
+
+/**
+ * A `item/tool/requestUserInput` question, bounded by the bridge. There is no
+ * multi-select in the protocol — every question takes exactly one answer.
+ */
+export interface CodexQuestion {
+  id: string
+  header: string
+  question: string
+  options: CodexQuestionOption[] | null
+  /** Offer a free-text "Other" answer in addition to the listed options. */
+  isOther: boolean
+  /** The answer is a secret — render the free-text input as a password field. */
+  isSecret: boolean
 }
 
 export interface HookCallbackMessage {
@@ -85,7 +111,17 @@ export interface ElicitationMessage {
   mode: 'form' | 'url'
   url?: string
   requestedSchema?: Record<string, unknown>
-  decision: 'pending' | 'accepted' | 'declined' | 'cancelled'
+  /**
+   * Present when the request came from Codex's `requestUserInput` method. The
+   * card renders a real choice form for these instead of a schema-driven text
+   * form. Absent for MCP elicitations and the plain-text fallback.
+   */
+  codexQuestions?: CodexQuestion[]
+  /**
+   * `resolved`/`expired` mean the request died without a user answer (server
+   * auto-resolution or bridge timeout) — the card must render inert.
+   */
+  decision: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'resolved' | 'expired'
   timestamp: number
 }
 
