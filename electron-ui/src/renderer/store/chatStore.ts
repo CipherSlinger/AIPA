@@ -222,6 +222,8 @@ interface ChatState {
   pendingToolUses: Map<string, { name: string; input: Record<string, unknown> }>
 
   addMessage: (msg: ChatMessage) => void
+  /** Mark a user message's images as undelivered, with the honest reason. */
+  markAttachmentsNotSent: (msgId: string, reason: string) => void
   appendTextDelta: (sessionId: string, text: string) => void
   setStreaming: (v: boolean) => void
   /**
@@ -540,6 +542,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (msg.role === 'user') userMessageCount++
     set((s) => ({ messages: [...s.messages, msg] }))
   },
+
+  markAttachmentsNotSent: (msgId, reason) => set((s) => ({
+    messages: s.messages.map(m => (
+      m.id === msgId && m.role === 'user'
+        ? { ...(m as StandardChatMessage), attachmentError: reason }
+        : m
+    )),
+  })),
 
   isOwnedStreamEvent: (sessionId) => isTurnSession(sessionId),
 

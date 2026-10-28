@@ -244,6 +244,22 @@
       "liveHint": "仍在写入——编辑完成后显示最终差异。",
       "hiddenLines": "还有 {{count}} 行",
       "partialTruncated": "改动较大，仅显示最新部分。"
+    },
+    "imageAttachment": {
+      "add": "添加图片",
+      "pickerName": "图片",
+      "remove": "移除图片",
+      "limit": "每条消息最多可附加 {{max}} 张图片。请先移除一张再添加。",
+      "tooLarge": "“{{name}}”超过 {{max}}。每张图片必须不大于 {{max}}。",
+      "unsupported": "“{{name}}”不是支持的图片格式。请添加 PNG、JPEG、WebP 或 GIF 文件。",
+      "empty": "“{{name}}”是空文件，没有内容可发送。",
+      "unreadable": "无法从磁盘读取“{{name}}”。",
+      "codexOnly": "图片附件需要 Codex 引擎。当前引擎无法接收图片，因此未添加附件。",
+      "providerUnavailable": "当前模型由不支持图片的第三方服务提供，因此图片未发送。",
+      "saveFailed": "无法保存“{{name}}”：{{reason}}",
+      "missing": "图片文件已丢失",
+      "saving": "图片仍在保存中，请稍后再发送。",
+      "notSent": "未发送：{{reason}}"
     }
   },
   "sessionReuse": {
@@ -3371,6 +3387,13 @@
         "disabled": "已关闭",
         "waitingPath": "等待路径变化"
       }
+    },
+    "sort": {
+      "label": "自动化排序方式",
+      "nextRun": "下次运行",
+      "lastRun": "上次运行",
+      "name": "名称",
+      "status": "状态"
     }
   },
   "speculation": {

@@ -244,6 +244,22 @@
       "liveHint": "Still writing — the final diff appears when the edit finishes.",
       "hiddenLines": "+{{count}} more lines",
       "partialTruncated": "Showing the latest part of a large patch."
+    },
+    "imageAttachment": {
+      "add": "Attach image",
+      "pickerName": "Images",
+      "remove": "Remove image",
+      "limit": "You can attach up to {{max}} images to one message. Remove one to add another.",
+      "tooLarge": "\"{{name}}\" is larger than {{max}}. Each image must be {{max}} or smaller.",
+      "unsupported": "\"{{name}}\" is not a supported image. Attach a PNG, JPEG, WebP or GIF file.",
+      "empty": "\"{{name}}\" is empty, so there is nothing to send.",
+      "unreadable": "\"{{name}}\" could not be read from disk.",
+      "codexOnly": "Image attachments need the Codex engine. The current engine cannot receive images, so nothing was attached.",
+      "providerUnavailable": "This model is served by a third-party provider that cannot receive images, so the image was not sent.",
+      "saveFailed": "Could not save \"{{name}}\": {{reason}}",
+      "missing": "Image file is missing",
+      "saving": "An image is still being saved. Send again in a moment.",
+      "notSent": "Not sent: {{reason}}"
     }
   },
   "sessionReuse": {
@@ -3371,6 +3387,13 @@
         "disabled": "Turned off",
         "waitingPath": "Waiting on a path"
       }
+    },
+    "sort": {
+      "label": "Sort automations by",
+      "nextRun": "Next run",
+      "lastRun": "Last run",
+      "name": "Name",
+      "status": "Status"
     }
   },
   "speculation": {

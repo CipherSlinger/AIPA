@@ -64,6 +64,7 @@ import { validateApiKey, validateModelName, validateFlags, safePath, getAllowedF
 import { registerSkillsHandlers } from './skills-handlers'
 import { registerProviderHandlers } from './provider-handlers'
 import { registerFsHandlers } from './fs-handlers'
+import { registerAttachmentHandlers, sanitizeCodexInput } from './attachment-handlers'
 import { registerWindowHandlers } from './window-handlers'
 import { registerDiagnosticsHandlers } from './diagnostics-handlers'
 import { registerBackupHandlers } from './backup-handlers'
@@ -243,6 +244,7 @@ export function registerAllHandlers(
     registerSessionHandlers()
     registerConfigHandlers()
     registerFsHandlers()
+    registerAttachmentHandlers()
     registerShellHandlers()
     registerWindowHandlers(win)
     registerSkillsHandlers()
@@ -1046,7 +1048,9 @@ async function registerCodexSendMessage(
 ): Promise<{ success: boolean; sessionId?: string; error?: string }> {
   const existingBridgeId = args.activeBridgeId as string | undefined
   const prompt = args.prompt as string
-  const input = args.input as import('../codex/codex-bridge').CodexUserInput[] | undefined
+  // The renderer's structured input crosses a trust boundary. Only text and
+  // `localImage` paths inside this app's attachments directory are forwarded.
+  const input = sanitizeCodexInput(args.input)
   // The renderer's model/effort describe the *chat* engine. A Claude id must
   // never reach Codex's thread/start or turn/start; `effort` is a Codex
   // concept and is validated against the model catalogue by the bridge.

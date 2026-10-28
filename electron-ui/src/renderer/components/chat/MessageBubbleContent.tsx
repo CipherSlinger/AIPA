@@ -4,7 +4,9 @@ import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import ToolBatchBlock from './ToolBatchBlock'
 import { groupToolUses } from '../../utils/toolSummary'
-import { ChevronDown, ChevronRight, ChevronUp, Check, CheckCheck, Clock, Timer, Type } from 'lucide-react'
+import { ChevronDown, ChevronRight, ChevronUp, Check, CheckCheck, Clock, Timer, Type, AlertTriangle } from 'lucide-react'
+import { ImageThumbnail } from './tool-cards/ImageThumbnail'
+import { messageAttachmentSrc } from './attachmentDisplay'
 import { useT } from '../../i18n'
 import { getShowAbsoluteTime, formatAbsoluteTime, relativeTime, formatResponseDuration } from './messageUtils'
 
@@ -128,22 +130,44 @@ export default React.memo(function MessageBubbleContent({
             </div>
           )}
 
-          {/* Image attachments (user messages) */}
+          {/* Image attachments (user messages) — click opens the existing
+              lightbox; a file that has since disappeared renders the shared
+              placeholder instead of a broken image. */}
           {isUser && message.attachments?.length ? (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
-              {message.attachments!.map((att, i) => (
-                <img
-                  key={i}
-                  src={att.dataUrl}
-                  alt={att.name}
-                  title={att.name}
-                  style={{
-                    maxWidth: 200, maxHeight: 150,
-                    borderRadius: 6, border: 'none', objectFit: 'cover', cursor: 'pointer',
-                  }}
-                  onClick={() => onImageClick(att.dataUrl, att.name)}
-                />
-              ))}
+              {message.attachments!.map((att, i) => {
+                const src = messageAttachmentSrc(att)
+                return (
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <ImageThumbnail
+                      filePath={att.path}
+                      src={src ?? undefined}
+                      t={t}
+                      onClick={src ? () => onImageClick(src, att.name) : undefined}
+                    />
+                    {att.name && (
+                      <span style={{ fontSize: 10, color: 'var(--text-faint)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {att.name}
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ) : null}
+
+          {/* The turn failed after the attachments were queued. Say so in the
+              transcript; the thumbnails above must not imply they were read. */}
+          {isUser && message.attachmentError ? (
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 6,
+              padding: '5px 8px', borderRadius: 6, fontSize: 11,
+              color: 'var(--warning-text, #d97706)',
+              background: 'rgba(245,158,11,0.12)',
+              border: '1px solid rgba(245,158,11,0.3)',
+            }}>
+              <AlertTriangle size={12} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>{t('chat.imageAttachment.notSent', { reason: message.attachmentError })}</span>
             </div>
           ) : null}
 

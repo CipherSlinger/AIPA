@@ -27,6 +27,11 @@ import {
   type JobFilterStatus,
   type JobSearchContext,
 } from '../automation/jobFilter'
+import {
+  JOB_SORT_MODES,
+  sortJobs,
+  type JobSortMode,
+} from '../automation/jobSort'
 import { buildInvestigatePrompt } from '../automation/investigatePrompt'
 import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from '../automation/automationStyles'
 import { RUN_HISTORY_CAP, viewRunHistory } from './runHistoryView'
@@ -118,6 +123,12 @@ export default function SettingsAutomations() {
   // means none of the row/dialog actions below have to know it exists.
   const [filterText, setFilterText] = useState('')
   const [filterStatuses, setFilterStatuses] = useState<JobFilterStatus[]>([])
+  // Ordering is page-local for the same reason as the filter row: no pref is
+  // written and opening Settings again starts from "Next run". Because it lives
+  // in component state rather than being derived from the list payload, a
+  // scheduler refresh re-sorts the new jobs with the mode the user already
+  // chose instead of snapping back to the default.
+  const [sortMode, setSortMode] = useState<JobSortMode>('nextRun')
 
   // The pause travels in the scheduler's limits payload; a null payload (the
   // list call failed) reads as not paused rather than inventing a banner.
@@ -219,6 +230,14 @@ export default function SettingsAutomations() {
   const filteredJobs = useMemo(
     () => jobs.filter(job => matchesJob(job, filterQuery, searchContextFor(job))),
     [jobs, filterQuery, searchContextFor],
+  )
+  // Filter first, then order: sorting the whole list and filtering afterwards
+  // would give the same rows, but this way the count, the empty state and the
+  // sort all talk about the same filtered set. The comparator never mutates
+  // `filteredJobs`, so the memo remains safe to reuse.
+  const sortedJobs = useMemo(
+    () => sortJobs(filteredJobs, sortMode, { now: Date.now(), locale: resolvedLocale }),
+    [filteredJobs, sortMode, resolvedLocale],
   )
   // Counts see the text query but not the status selection, so a chip shows
   // what clicking it would add rather than zeroing itself out.
@@ -891,6 +910,30 @@ export default function SettingsAutomations() {
               })}
             </span>
 
+            {/* A native select, not four more chips: ordering is exactly one
+                choice out of four, the element already gives keyboard and
+                screen-reader semantics for free, and a dropdown stays as quiet
+                as the chips instead of adding another row of pressable
+                controls. It is styled to the same 24px height and muted text
+                as its neighbours; the accessible name is separate from the
+                current value so "Next run" reads as an order, not a filter. */}
+            <select
+              value={sortMode}
+              onChange={event => setSortMode(event.target.value as JobSortMode)}
+              aria-label={t('automation.sort.label')}
+              title={t('automation.sort.label')}
+              style={{
+                height: 24, boxSizing: 'border-box', padding: '0 8px',
+                borderRadius: 8, border: '1px solid var(--border)',
+                background: 'transparent', color: SECONDARY, fontSize: 11,
+                cursor: 'pointer', maxWidth: 170,
+              }}
+            >
+              {JOB_SORT_MODES.map(mode => (
+                <option key={mode} value={mode}>{t(`automation.sort.${mode}`)}</option>
+              ))}
+            </select>
+
             {filtersActive && (
               <button type="button" onClick={clearFilters} style={FILTER_LINK}>
                 {t('automation.filter.clear')}
@@ -937,7 +980,7 @@ export default function SettingsAutomations() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {filteredJobs.map((job, index) => {
+            {sortedJobs.map((job, index) => {
               const status = statusLine(job)
               const usage = usageLine(job)
               const spendLimit = spendLimitLine(job)

@@ -40,6 +40,25 @@ export interface ToolUseInfo {
   status: 'running' | 'done' | 'error'
 }
 
+/**
+ * One image the user attached to a message.
+ *
+ * New code stores only the on-disk path (written by the main process into the
+ * app-owned attachments directory) — never base64. `dataUrl` survives only for
+ * transcripts persisted before wave 41; it is read for display and never
+ * written again.
+ */
+export interface MessageAttachment {
+  name: string
+  /** Absolute path inside the app attachments directory. Absent on legacy rows. */
+  path?: string
+  /** Byte size at attach time; 0 when the source could not be measured. */
+  size?: number
+  mimeType?: string
+  /** Legacy base64 preview from older transcripts. Do not write this. */
+  dataUrl?: string
+}
+
 export interface StandardChatMessage {
   id: string
   role: 'user' | 'assistant' | 'system'
@@ -48,7 +67,10 @@ export interface StandardChatMessage {
   toolUses?: ToolUseInfo[]
   timestamp: number
   isStreaming?: boolean
-  attachments?: { name: string; dataUrl: string }[]  // image attachments
+  attachments?: MessageAttachment[]  // user image attachments (on disk)
+  /** Set when the turn failed after the images had been attached: the
+   *  transcript must say they were not sent instead of implying delivery. */
+  attachmentError?: string
   fileAttachments?: { name: string; path: string; size: number }[]  // file context attachments
   rating?: 'up' | 'down' | null
   bookmarked?: boolean

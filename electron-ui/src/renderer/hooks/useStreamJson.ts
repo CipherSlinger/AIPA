@@ -14,6 +14,7 @@ import { readThreadGoalNotice, shouldClearThreadGoal } from '../utils/threadGoal
 import { describeThreadStatus } from '../components/chat/threadStatusText'
 import { describeEngineItem, TOOL_CARD_KINDS } from '../components/chat/engineStepText'
 import { itemIdFromToolId } from '../components/chat/fileChangePatch'
+import { buildCodexImageInput, canSendCodexImages } from '../components/chat/imageAttachmentRules'
 import { liveFilePatchStore } from '../components/chat/liveFilePatchStore'
 import { engineNoticeStore } from '../components/chat/engineNoticeStore'
 import {
@@ -293,32 +294,6 @@ export function useStreamJson() {
     // Track prompt in history for analytics (max 200 items, deduped by normalized text)
     trackPromptHistory(prompt)
 
-    const userMsg: StandardChatMessage = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: prompt,
-      timestamp: Date.now(),
-      attachments: attachments?.map(a => ({ name: a.name, dataUrl: a.dataUrl })),
-    }
-    useChatStore.getState().addMessage(userMsg)
-    useChatStore.getState().setStreaming(true)
-    // Deltas can arrive before cliSendMessage resolves with the bridge id;
-    // record which conversation this turn belongs to so the store only accepts
-    // that bridge's events and drops anything the user has since navigated away
-    // from.
-    useChatStore.getState().beginTurn()
-    // Prevent system idle sleep while streaming (if enabled in prefs)
-    if (prefs.preventSleep !== false && window.electronAPI?.windowPreventSleep) {
-      window.electronAPI.windowPreventSleep(true)
-    }
-    sendTimestampRef.current = Date.now()
-    // Snapshot .consolidate-lock mtime so we can detect dream completions after result
-    if (window.electronAPI?.sessionGetDreamMtime) {
-      window.electronAPI.sessionGetDreamMtime().then((mtime: number) => {
-        dreamMtimeSnapshotRef.current = mtime
-      }).catch(() => {})
-    }
-
     const currentSessionId = useChatStore.getState().currentSessionId
 
     // If this is a new conversation, add a pending session to the list immediately
@@ -353,6 +328,57 @@ export function useStreamJson() {
       useChatStore.getState().sessionModelOverride,
     )
 
+    // Image delivery is decided here, at the turn boundary, from the same
+    // engine probe the composer uses. A credentials change between attaching
+    // and pressing send must not turn into a silent "sent" claim.
+    const routing = await resolveProvider(personaTurn.model)
+    const activeEngine = await window.electronAPI.engineGetActive().catch(() => ({ kind: 'none' as const }))
+    const imageAttachments = (attachments || []).filter(a => typeof a.path === 'string' && a.path.length > 0)
+    const imagesDeliverable = imageAttachments.length > 0 &&
+      canSendCodexImages(activeEngine.kind, routing.type)
+    const imageNotSentReason = imageAttachments.length > 0 && !imagesDeliverable
+      ? (activeEngine.kind === 'codex'
+          ? t('chat.imageAttachment.providerUnavailable')
+          : t('chat.imageAttachment.codexOnly'))
+      : undefined
+
+    // The user's row keeps the thumbnails and the reason they could not be
+    // delivered, so the transcript never looks like an image the model saw.
+    const userMsg: StandardChatMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: prompt,
+      timestamp: Date.now(),
+      attachments: imageAttachments.map(a => ({
+        name: a.name,
+        path: a.path,
+        size: a.size,
+        mimeType: a.mimeType,
+      })),
+      ...(imageNotSentReason ? { attachmentError: imageNotSentReason } : {}),
+    }
+    useChatStore.getState().addMessage(userMsg)
+    useChatStore.getState().setStreaming(true)
+    // Deltas can arrive before cliSendMessage resolves with the bridge id;
+    // record which conversation this turn belongs to so the store only accepts
+    // that bridge's events and drops anything the user has since navigated away
+    // from.
+    useChatStore.getState().beginTurn()
+    // Prevent system idle sleep while streaming (if enabled in prefs)
+    if (prefs.preventSleep !== false && window.electronAPI?.windowPreventSleep) {
+      window.electronAPI.windowPreventSleep(true)
+    }
+    sendTimestampRef.current = Date.now()
+    // Snapshot .consolidate-lock mtime so we can detect dream completions after result
+    if (window.electronAPI?.sessionGetDreamMtime) {
+      window.electronAPI.sessionGetDreamMtime().then((mtime: number) => {
+        dreamMtimeSnapshotRef.current = mtime
+      }).catch(() => {})
+    }
+    if (imageNotSentReason) {
+      useUiStore.getState().addToast('warning', t('chat.imageAttachment.notSent', { reason: imageNotSentReason }))
+    }
+
     // `/compact` is intercepted in the main process and its result discarded,
     // so assembling/budgeting every memory tier for it is pure work with no
     // consumer. Checked before assembly because the slash command has to reach
@@ -382,11 +408,12 @@ export function useStreamJson() {
     // For Codex: system prompt is prepended to the user message (Codex doesn't have --append-system-prompt)
     // System prompt parts will be prepended to the actual prompt below
 
-    // Build actual prompt — prepend system prompt parts, handle attachments
+    // Build actual prompt — prepend system prompt parts, attach images.
+    // Codex accepts structured `UserInput[]`; the legacy Claude bridge receives
+    // the plain string. Images only ever travel as `localImage` paths, never as
+    // base64, and only when this turn will actually run on Codex.
     let actualPrompt: string
-    // Codex accepts structured `UserInput[]`; keep the JSON-string prompt for
-    // the legacy Claude bridge, which parses it itself.
-    let codexInput: Array<Record<string, unknown>> | undefined
+    let codexInput: unknown[] | undefined
 
     // `/compact` must reach the main process verbatim (it is intercepted there
     // and mapped to thread/compact/start); a prepended system prompt would hide
@@ -397,55 +424,19 @@ export function useStreamJson() {
       ? systemPromptParts.join('\n\n') + '\n\n'
       : ''
 
-    const hasImageAttachments = !isCompactCommand && attachments && attachments.length > 0
-    const binaryFileBlocks = isCompactCommand
-      ? []
-      : (fileAttachments || []).filter(f => f.dataUrl && f.mimeType)
-    const hasBinaryBlocks = binaryFileBlocks.length > 0
-
-    if (hasImageAttachments || hasBinaryBlocks) {
-      const contentBlocks: unknown[] = [{ type: 'text', text: systemPrefix + prompt }]
-      const inputs: Array<Record<string, unknown>> = [{ type: 'text', text: systemPrefix + prompt }]
-      for (const img of (attachments || [])) {
-        const base64 = img.dataUrl.split(',')[1]
-        contentBlocks.push({
-          type: 'image',
-          source: { type: 'base64', media_type: img.mimeType, data: base64 },
-        })
-        // Codex takes the image as a URL; a data URL carries the bytes inline.
-        inputs.push({ type: 'image', url: img.dataUrl })
-      }
-      for (const file of binaryFileBlocks) {
-        const base64 = file.dataUrl!.split(',')[1]
-        if (file.isImage) {
-          contentBlocks.push({
-            type: 'image',
-            source: { type: 'base64', media_type: file.mimeType, data: base64 },
-          })
-          inputs.push({ type: 'image', url: file.dataUrl! })
-        } else {
-          contentBlocks.push({
-            type: 'document',
-            source: { type: 'base64', media_type: file.mimeType, data: base64 },
-          })
-          // Codex UserInput has no document variant. Say so in-band instead of
-          // pasting base64 the model cannot read.
-          inputs.push({
-            type: 'text',
-            text: `[Attached file "${file.name}" (${file.mimeType}). This engine cannot accept document attachments, so its contents were not sent.]`,
-          })
-        }
-      }
-      actualPrompt = JSON.stringify(contentBlocks)
-      codexInput = inputs
+    if (!isCompactCommand && imageAttachments.length > 0 && imagesDeliverable) {
+      codexInput = buildCodexImageInput(systemPrefix + prompt, imageAttachments.map(a => a.path))
+      actualPrompt = systemPrefix + prompt
+    } else if (!isCompactCommand && imageNotSentReason) {
+      // Text-only fallback, with the reason in-band so the model does not
+      // answer as though it had seen the images.
+      actualPrompt = systemPrefix + prompt + `\n\n[${imageNotSentReason}]`
     } else {
       actualPrompt = systemPrefix + prompt
     }
 
     // Route by the model this conversation's persona selected, not by whatever
     // another conversation last wrote into global prefs.
-    const routing = await resolveProvider(personaTurn.model)
-
     if (routing.type === 'provider') {
       // Non-Claude provider: use providerSendMessage IPC
       // Build conversation history for context
@@ -471,7 +462,6 @@ export function useStreamJson() {
           model: personaTurn.model || 'gpt-4o',
           systemPrompt,
           messages: contextMessages,
-          images: attachments?.map(a => a.dataUrl),
           maxTokens: 4096,
           temperature: 0.7,
         })
@@ -501,9 +491,9 @@ export function useStreamJson() {
     const chatState = useChatStore.getState()
     const currentTab = chatState.tabs.find(tab => tab.id === chatState.activeTabId)
     const effectiveCwd = currentTab?.cwd || prefs.workingDir || (await window.electronAPI.fsGetHome())
-    const result = await window.electronAPI.cliSendMessage({
-      prompt: actualPrompt,
-      ...(codexInput ? { input: codexInput } : {}),
+    const sendArgs = (promptText: string, input: unknown[] | undefined) => ({
+      prompt: promptText,
+      ...(input ? { input } : {}),
       cwd: effectiveCwd,
       sessionId: currentSessionId ?? undefined,
       activeBridgeId: activeBridgeIdRef.current ?? undefined,
@@ -521,11 +511,51 @@ export function useStreamJson() {
         ? 'plan'
         : (prefs.permissionMode || 'default'),
     })
+    let result: { success?: boolean; sessionId?: string; error?: string } | undefined
+    try {
+      result = await window.electronAPI.cliSendMessage(sendArgs(actualPrompt, codexInput))
+    } catch (err) {
+      // The bridge never started: the thumbnails must not stay unmarked.
+      if (imageAttachments.length > 0) {
+        useChatStore.getState().markAttachmentsNotSent(userMsg.id, String(err))
+        useUiStore.getState().addToast('error', t('chat.imageAttachment.notSent', { reason: String(err) }))
+      }
+      stopStreamingAndReleaseSleep()
+      throw err
+    }
+
+    // The protocol accepted `localImage` in every probe so far, but a future
+    // app-server may reject the shape. Retry that turn once as text only, and
+    // leave the reason on the user's row — never a silent, image-less "success".
+    const imageInputRejected = Boolean(
+      result && !result.success && codexInput &&
+      /turn\/start:.*(invalid params|unknown variant|deserialize|localImage|expected)/i.test(result.error ?? ''),
+    )
+    if (imageInputRejected) {
+      const reason = result?.error || t('error.unknownError')
+      useChatStore.getState().markAttachmentsNotSent(userMsg.id, reason)
+      useUiStore.getState().addToast('warning', t('chat.imageAttachment.notSent', { reason }))
+      try {
+        result = await window.electronAPI.cliSendMessage(
+          sendArgs(actualPrompt + `\n\n[${reason}]`, undefined),
+        )
+      } catch (err) {
+        useUiStore.getState().addToast('error', String(err))
+        stopStreamingAndReleaseSleep()
+        throw err
+      }
+    }
 
     if (result?.success && result.sessionId) {
       activeBridgeIdRef.current = result.sessionId
       // Only this bridge's deltas may enter the streaming buffer.
       useChatStore.getState().setStreamSession(result.sessionId)
+    } else if (result && !result.success && imageAttachments.length > 0) {
+      // `turn/start` may have rejected the localImage (or the turn failed for
+      // another reason). The user's row now carries the truthful reason.
+      const reason = result.error || t('error.unknownError')
+      useChatStore.getState().markAttachmentsNotSent(userMsg.id, reason)
+      useUiStore.getState().addToast('error', t('chat.imageAttachment.notSent', { reason }))
     }
 
     return result

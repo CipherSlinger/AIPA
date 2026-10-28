@@ -91,11 +91,21 @@ interface RolloutLine {
   [key: string]: unknown
 }
 
+/** One composer image that still lives on disk, mirrored to the renderer. */
+interface StoredImageAttachment {
+  name: string
+  path: string
+  size: number
+  mimeType: string
+}
+
 /** Claude-shaped entry understood by renderer parseSessionMessages(). */
 interface NormalizedEntry {
   type: 'user' | 'assistant'
   message: { role: 'user' | 'assistant'; content: unknown }
   timestamp?: string
+  /** Codex records the localImage paths it was given; carry them through. */
+  attachments?: StoredImageAttachment[]
   [key: string]: unknown
 }
 
@@ -950,6 +960,75 @@ function extractContentText(content: unknown): string {
     .join('')
 }
 
+const IMAGE_MIME_BY_EXT: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+}
+
+/** `file:///C:/…` (Windows) and `file:///home/…` both map back to a real path. */
+function fileUrlToPath(url: string): string | null {
+  if (!url.startsWith('file://')) return null
+  let decoded = url.slice('file://'.length)
+  try { decoded = decodeURIComponent(decoded) } catch { /* keep the raw form */ }
+  if (/^\/[A-Za-z]:/.test(decoded)) decoded = decoded.slice(1)
+  return decoded.replace(/\//g, path.sep)
+}
+
+function attachmentForPath(imagePath: string): StoredImageAttachment {
+  let size = 0
+  try { size = fs.statSync(imagePath).size } catch { /* missing file: shown as a placeholder */ }
+  const ext = path.extname(imagePath).slice(1).toLowerCase()
+  return {
+    name: path.basename(imagePath),
+    path: imagePath,
+    size,
+    mimeType: IMAGE_MIME_BY_EXT[ext] || 'application/octet-stream',
+  }
+}
+
+/**
+ * Extract on-disk image references a Codex rollout recorded for a user turn.
+ * Base64 `input_image` parts are deliberately ignored: the transcript must not
+ * carry base64, and a data URL is not a file the thumbnail can reopen.
+ */
+function attachmentsFromContent(content: unknown): StoredImageAttachment[] {
+  if (!Array.isArray(content)) return []
+  const out: StoredImageAttachment[] = []
+  const seen = new Set<string>()
+  for (const part of content) {
+    if (!part || typeof part !== 'object') continue
+    const record = part as Record<string, unknown>
+    let imagePath: string | null = null
+    if (record.type === 'local_image' && typeof record.path === 'string') {
+      imagePath = record.path
+    } else if (record.type === 'input_image' && typeof record.image_url === 'string') {
+      imagePath = fileUrlToPath(record.image_url)
+    }
+    if (!imagePath || seen.has(imagePath)) continue
+    seen.add(imagePath)
+    out.push(attachmentForPath(imagePath))
+  }
+  return out
+}
+
+function attachmentsFromLocalImages(value: unknown): StoredImageAttachment[] {
+  if (!Array.isArray(value)) return []
+  const out: StoredImageAttachment[] = []
+  const seen = new Set<string>()
+  for (const item of value) {
+    const imagePath = typeof item === 'string'
+      ? item
+      : (item && typeof item === 'object' ? (item as Record<string, unknown>).path : null)
+    if (typeof imagePath !== 'string' || !imagePath || seen.has(imagePath)) continue
+    seen.add(imagePath)
+    out.push(attachmentForPath(imagePath))
+  }
+  return out
+}
+
 /** Codex injects environment/instruction preambles as user messages. */
 function isSyntheticUserText(text: string): boolean {
   const t = text.trimStart()
@@ -1160,8 +1239,27 @@ function normalizeRollout(lines: RolloutLine[], fallbackTimestamp?: string): Nor
     blocks.push(block)
   }
 
-  const pushUserText = (text: string, timestamp?: string) => {
-    if (!text.trim() || text === lastUserText) return
+  const pushUserText = (text: string, timestamp?: string, attachments: StoredImageAttachment[] = []) => {
+    if (!text.trim()) return
+    if (text === lastUserText) {
+      // The same turn can appear twice (response_item and event_msg); keep the
+      // row but merge in images only the second copy recorded.
+      if (attachments.length > 0) {
+        const last = result[result.length - 1]
+        if (last?.type === 'user') {
+          const existing = (last.attachments as StoredImageAttachment[] | undefined) ?? []
+          const seen = new Set(existing.map(a => a.path))
+          const merged = [...existing]
+          for (const attachment of attachments) {
+            if (seen.has(attachment.path)) continue
+            seen.add(attachment.path)
+            merged.push(attachment)
+          }
+          last.attachments = merged
+        }
+      }
+      return
+    }
     lastUserText = text
     lastAssistantText = null
     lastThinking = null
@@ -1170,6 +1268,7 @@ function normalizeRollout(lines: RolloutLine[], fallbackTimestamp?: string): Nor
       type: 'user',
       message: { role: 'user', content: text },
       timestamp: timestamp ?? fallback,
+      ...(attachments.length > 0 ? { attachments } : {}),
     })
   }
 
@@ -1245,8 +1344,9 @@ function normalizeRollout(lines: RolloutLine[], fallbackTimestamp?: string): Nor
         case 'message': {
           const role = payload.role
           const text = extractContentText(payload.content)
-          if (role === 'user' && !isSyntheticUserText(text)) pushUserText(text, timestamp)
-          else if (role === 'assistant') pushAssistantText(text, timestamp)
+          if (role === 'user' && !isSyntheticUserText(text)) {
+            pushUserText(text, timestamp, attachmentsFromContent(payload.content))
+          } else if (role === 'assistant') pushAssistantText(text, timestamp)
           break
         }
         case 'reasoning': {
@@ -1301,7 +1401,11 @@ function normalizeRollout(lines: RolloutLine[], fallbackTimestamp?: string): Nor
     if (line.type === 'event_msg') {
       switch (payload.type) {
         case 'user_message':
-          pushUserText(String(payload.message ?? ''), timestamp)
+          pushUserText(
+            String(payload.message ?? ''),
+            timestamp,
+            attachmentsFromLocalImages(payload.local_images),
+          )
           break
         case 'agent_message':
           pushAssistantText(String(payload.message ?? ''), timestamp)

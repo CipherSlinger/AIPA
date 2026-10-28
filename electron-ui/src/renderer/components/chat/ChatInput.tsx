@@ -117,8 +117,28 @@ export default function ChatInput({
   // Typing WPM tracking
   const { typingWpm, keystrokeTimestamps } = useTypingWpm()
 
+  // Image attachments are a Codex-only capability. Ask the same engine probe
+  // the model picker uses; never infer it from the model id or a setting here.
+  const [imagesEnabled, setImagesEnabled] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    const probe = () => {
+      window.electronAPI.engineGetActive()
+        .then(engine => { if (!cancelled) setImagesEnabled(engine.kind === 'codex') })
+        .catch(() => { if (!cancelled) setImagesEnabled(false) })
+    }
+    probe()
+    // Credentials can change while the composer stays mounted (Settings).
+    // Re-probe when the window regains focus and when the key selection moves.
+    window.addEventListener('focus', probe)
+    return () => {
+      cancelled = true
+      window.removeEventListener('focus', probe)
+    }
+  }, [prefs.apiKey, prefs.activeApiKeyId])
+
   // Image/file attachments
-  const { attachments, fileAttachments, handlePaste, addFiles, addFileAttachments, addImageAttachment, removeAttachment, removeFileAttachment, clearAttachments } = useImagePaste()
+  const { attachments, fileAttachments, isSavingImages, hasPendingImageSaves, handlePaste, addFiles, addFileAttachments, addImagePaths, addImageAttachment, removeAttachment, removeFileAttachment, clearAttachments } = useImagePaste({ enabled: imagesEnabled })
 
   // Input popups (@mention, /slash, ::snippet)
   const popups = useInputPopups({
@@ -140,7 +160,8 @@ export default function ChatInput({
     handleImagePaste: handlePaste,
   })
 
-  // Screenshot capture
+  // Screenshot capture. The data URL is decoded and written to disk before the
+  // chip appears, so the success toast can never describe a file that failed.
   const handleScreenshot = useCallback(async () => {
     try {
       const dataUrl = await window.electronAPI.windowCaptureScreen()
@@ -148,13 +169,25 @@ export default function ChatInput({
         addToast('warning', t('toolbar.screenshotFailed'))
         return
       }
-      addImageAttachment(`screenshot-${Date.now()}.png`, dataUrl, 'image/png')
-      addToast('success', t('toolbar.screenshotAdded'))
+      const saved = await addImageAttachment(`screenshot-${Date.now()}.png`, dataUrl, 'image/png')
+      if (saved) addToast('success', t('toolbar.screenshotAdded'))
+      else addToast('warning', t('toolbar.screenshotFailed'))
       textareaRef.current?.focus()
     } catch {
       addToast('warning', t('toolbar.screenshotFailed'))
     }
   }, [addImageAttachment, addToast, t])
+
+  // Image picker: the dialog returns paths; the main process copies the bytes
+  // into the app attachments directory and re-validates format and size.
+  const handleAttachImages = useCallback(async () => {
+    const paths = await window.electronAPI.fsShowOpenFileDialog(
+      [{ name: t('chat.imageAttachment.pickerName'), extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] }],
+      true,
+    )
+    if (paths && paths.length > 0) await addImagePaths(paths)
+    textareaRef.current?.focus()
+  }, [addImagePaths, t])
 
   // Rotating placeholder
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
@@ -291,6 +324,12 @@ export default function ChatInput({
   const handleSend = async () => {
     const text = input.trim()
     if (!text && attachments.length === 0 && fileAttachments.length === 0 || isStreaming) return
+    // Typing is never blocked, but sending is: a file still being written is
+    // not in `attachments` yet, so sending now would omit it without a word.
+    if (isSavingImages || hasPendingImageSaves()) {
+      addToast('info', t('chat.imageAttachment.saving'))
+      return
+    }
     let finalText = text || (attachments.length > 0 ? t('chat.describeImage') : t('chat.analyzeFiles'))
     if (paste.pendingQuote) {
       const quotedLines = paste.pendingQuote.split('\n').map((l: string) => `> ${l}`).join('\n')
@@ -413,6 +452,9 @@ export default function ChatInput({
           }
           textareaRef.current?.focus()
         }}
+        onAttachImages={handleAttachImages}
+        imagesEnabled={imagesEnabled}
+        imageAttachmentCount={attachments.length}
         onScreenshot={handleScreenshot}
         fileAttachmentCount={fileAttachments.length}
         hasInput={!!input.trim()}

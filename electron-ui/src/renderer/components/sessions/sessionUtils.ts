@@ -1,4 +1,4 @@
-import { SessionMessage, StandardChatMessage, ToolUseInfo, ChatMessage } from '../../types/app.types'
+import { SessionMessage, StandardChatMessage, ToolUseInfo, ChatMessage, MessageAttachment } from '../../types/app.types'
 import { hashIndex } from '../../utils/hashUtils'
 import { capitalize } from '../../utils/stringUtils'
 import { count } from '../../utils/arrayUtils'
@@ -49,6 +49,28 @@ export function formatSessionDuration(firstTs: number | undefined, lastTs: numbe
   return remainHours > 0 ? `${days}d ${remainHours}h` : `${days}d`
 }
 
+/**
+ * Image metadata the Codex reader attached to a user entry. Only fields with
+ * a real on-disk path are kept; this is display metadata, not base64.
+ */
+function sessionAttachments(entry: SessionMessage): MessageAttachment[] | undefined {
+  const raw = entry.attachments
+  if (!Array.isArray(raw)) return undefined
+  const attachments: MessageAttachment[] = []
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue
+    const record = item as Record<string, unknown>
+    if (typeof record.path !== 'string' || !record.path) continue
+    attachments.push({
+      name: typeof record.name === 'string' ? record.name : record.path.split(/[/\\]/).pop() || record.path,
+      path: record.path,
+      size: typeof record.size === 'number' ? record.size : 0,
+      mimeType: typeof record.mimeType === 'string' ? record.mimeType : undefined,
+    })
+  }
+  return attachments.length > 0 ? attachments : undefined
+}
+
 export function parseSessionMessages(raw: SessionMessage[]): ChatMessage[] {
   const result: ChatMessage[] = []
   // Map tool_use_id -> result message index so tool_results can be attached
@@ -84,19 +106,23 @@ export function parseSessionMessages(raw: SessionMessage[]): ChatMessage[] {
         const textBlock = blocks.find(b => b.type === 'text')
         const text = (textBlock?.text as string) || ''
         if (!text.trim()) continue
+        const attachments = sessionAttachments(entry)
         result.push({
           id: `hist-user-${entry.timestamp || Date.now()}-${result.length}`,
           role: 'user',
           content: text,
           timestamp: entry.timestamp ? new Date(String(entry.timestamp)).getTime() : Date.now(),
+          ...(attachments ? { attachments } : {}),
         } as StandardChatMessage)
       } else if (typeof content === 'string') {
         if (!content.trim()) continue
+        const attachments = sessionAttachments(entry)
         result.push({
           id: `hist-user-${entry.timestamp || Date.now()}-${result.length}`,
           role: 'user',
           content,
           timestamp: entry.timestamp ? new Date(String(entry.timestamp)).getTime() : Date.now(),
+          ...(attachments ? { attachments } : {}),
         } as StandardChatMessage)
       }
 

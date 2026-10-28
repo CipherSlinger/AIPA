@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Paperclip, Camera, ShieldOff, Shield, Shrink, WrapText, AlignLeft, ClipboardList, Sparkles } from 'lucide-react'
+import { AtSign, TerminalSquare, Mic, MicOff, ListPlus, Paperclip, ImagePlus, Camera, ShieldOff, Shield, Shrink, WrapText, AlignLeft, ClipboardList, Sparkles } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore, useChatStore, useUiStore } from '../../store'
 import ClipboardActionsMenu from './ClipboardActionsMenu'
@@ -17,6 +17,10 @@ interface InputToolbarProps {
   onQueueClick: () => void
   onSend: (text: string) => Promise<void>
   onAttachFiles: () => void
+  /** Codex-only image picker; absent when the legacy bridge is active. */
+  onAttachImages?: () => void
+  imagesEnabled?: boolean
+  imageAttachmentCount?: number
   onScreenshot: () => void
   fileAttachmentCount: number
   hasInput: boolean
@@ -37,6 +41,9 @@ export default function InputToolbar({
   onQueueClick,
   onSend,
   onAttachFiles,
+  onAttachImages,
+  imagesEnabled = false,
+  imageAttachmentCount = 0,
   onScreenshot,
   fileAttachmentCount,
   hasInput,
@@ -138,16 +145,48 @@ export default function InputToolbar({
           </span>
         )}
       </div>
-      {/* Screenshot capture */}
-      <button
-        onClick={onScreenshot}
-        title={t('toolbar.captureScreen')}
-        style={toolbarBtnStyle}
-        onMouseEnter={toolbarHoverIn}
-        onMouseLeave={toolbarHoverOut}
-      >
-        <Camera size={16} />
-      </button>
+      {/* Attach images — hidden on the legacy bridge, which has no image input */}
+      {imagesEnabled && onAttachImages && (
+        <div style={{ position: 'relative', display: 'inline-flex' }}>
+          <button
+            onClick={onAttachImages}
+            title={t('chat.imageAttachment.add')}
+            aria-label={t('chat.imageAttachment.add')}
+            style={{
+              ...toolbarBtnStyle,
+              color: imageAttachmentCount > 0 ? '#6366f1' : 'var(--text-muted)',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-active)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = imageAttachmentCount > 0 ? '#6366f1' : 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
+          >
+            <ImagePlus size={16} />
+          </button>
+          {imageAttachmentCount > 0 && (
+            <span style={{
+              position: 'absolute', top: 0, right: 0, width: 14, height: 14,
+              background: '#6366f1', color: 'rgba(255,255,255,0.95)',
+              fontSize: 9, fontWeight: 600, borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              pointerEvents: 'none',
+            }}>
+              {imageAttachmentCount}
+            </span>
+          )}
+        </div>
+      )}
+      {/* Screenshot capture — an image attachment, so it follows the same
+          Codex-only gate as the image picker. */}
+      {imagesEnabled && (
+        <button
+          onClick={onScreenshot}
+          title={t('toolbar.captureScreen')}
+          style={toolbarBtnStyle}
+          onMouseEnter={toolbarHoverIn}
+          onMouseLeave={toolbarHoverOut}
+        >
+          <Camera size={16} />
+        </button>
+      )}
       {/* Separator */}
       <span style={{ background: 'var(--border)', width: 1, height: 16, margin: '0 3px', flexShrink: 0 }} />
       {/* / slash command */}

@@ -5,6 +5,7 @@ import { X, FileText } from 'lucide-react'
 import type { ImageAttachment, FileAttachment } from '../../hooks/useImagePaste'
 import { useT } from '../../i18n'
 import { formatFileSize } from '../../utils/formatUtils'
+import { ImageThumbnail } from './tool-cards/ImageThumbnail'
 
 interface ChatInputAttachmentsProps {
   attachments: ImageAttachment[]
@@ -44,21 +45,26 @@ export default function ChatInputAttachments({ attachments, fileAttachments, onR
                 el.style.borderColor = 'var(--glass-border-md)'
               }}
             >
-              <img
-                src={img.dataUrl}
-                alt={img.name}
-                style={{ width: 28, height: 28, objectFit: 'cover', borderRadius: 8, flexShrink: 0, border: '1px solid var(--glass-border-md)' }}
-              />
-              <span style={{
-                fontSize: 11, fontWeight: 500,
-                color: 'var(--text-primary)',
-                maxWidth: 120, overflow: 'hidden',
-                textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
-                {img.name}
-              </span>
+              {/* Same thumbnail mechanism as the transcript; a missing file
+                  becomes a named placeholder rather than a broken image. */}
+              <ImageThumbnail filePath={img.path} size={28} showName={false} t={t} />
+              <div style={{ overflow: 'hidden', minWidth: 0 }}>
+                <div style={{
+                  fontSize: 11, fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  maxWidth: 120, overflow: 'hidden',
+                  textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {img.name}
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--text-faint)' }}>
+                  {formatFileSize(img.size)}
+                </div>
+              </div>
               <button
                 onClick={() => onRemoveImage(img.id)}
+                title={t('chat.imageAttachment.remove')}
+                aria-label={t('chat.imageAttachment.remove')}
                 style={{
                   background: 'none', border: 'none',
                   color: 'var(--text-faint)',

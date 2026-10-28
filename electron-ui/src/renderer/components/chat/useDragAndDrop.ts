@@ -57,7 +57,10 @@ export function useDragAndDrop(
 
     for (const file of processFiles) {
       const ext = '.' + file.name.split('.').pop()?.toLowerCase()
-      const isImage = IMAGE_EXTENSIONS.includes(ext)
+      // Trust either signal: a browser-provided image MIME or a known image
+      // extension. Unsupported formats still go through the validator so the
+      // user is told which file and format were refused.
+      const isImage = file.type.startsWith('image/') || IMAGE_EXTENSIONS.includes(ext)
 
       if (isImage) {
         if (file.size > MAX_FILE_SIZE) {

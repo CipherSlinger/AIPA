@@ -118,6 +118,24 @@ export interface ActiveEngineData {
   reason?: string
 }
 
+/** A saved composer image, as the main process reports it back. */
+export interface StoredImageAttachmentData {
+  name: string
+  path: string
+  size: number
+  mimeType: string
+}
+
+export type SaveImageAttachmentData =
+  | { success: true; attachment: StoredImageAttachmentData }
+  | {
+      success: false
+      code: 'invalid_payload' | 'source_unreadable' | 'empty_file' | 'too_large' | 'unsupported_type' | 'write_failed'
+      error: string
+      maxBytes?: number
+      mimeType?: string
+    }
+
 /** Where MCP configuration lives for the active engine. */
 export interface McpConfigInfoData {
   engine: 'codex' | 'claude'
@@ -1107,6 +1125,19 @@ const electronAPI = {
     ipcRenderer.invoke('fs:writeFile', { filePath, content }),
   fsReadFile: (filePath: string) =>
     ipcRenderer.invoke('fs:readFile', filePath) as Promise<{ content?: string; error?: string }>,
+  /**
+   * Persist one composer image into the app-owned attachments directory and
+   * return its absolute path. Pass `sourcePath` for a dialog pick, or `data`
+   * for pasted/dropped/screenshot bytes. The main process re-validates both
+   * the format (by magic bytes) and the size; the renderer's type is a hint.
+   */
+  fsSaveImageAttachment: (payload: {
+    name?: string
+    mimeType?: string
+    data?: ArrayBuffer
+    sourcePath?: string
+  }) =>
+    ipcRenderer.invoke('fs:saveImageAttachment', payload) as Promise<SaveImageAttachmentData>,
   fsGetHome: () => ipcRenderer.invoke('fs:getHome'),
   fsEnsureDir: (dirPath: string) => ipcRenderer.invoke('fs:ensureDir', dirPath),
   fsListCommands: (workingDir: string) => ipcRenderer.invoke('fs:listCommands', workingDir),
