@@ -51,11 +51,11 @@ function PreviewButton({ active, onToggle }: { active: boolean; onToggle: () => 
       onClick={onToggle}
       title={active ? t('message.closePreview') : t('message.preview')}
       style={{
-        background: active ? 'rgba(99,102,241,0.3)' : 'var(--glass-border)',
-        border: `1px solid ${active ? 'rgba(99,102,241,0.5)' : 'var(--border)'}`,
+        background: active ? 'rgba(99,102,241,0.3)' : 'var(--code-btn-bg)',
+        border: `1px solid ${active ? 'rgba(99,102,241,0.5)' : 'var(--code-border)'}`,
         borderRadius: 8,
         padding: '2px 6px',
-        color: active ? '#a5b4fc' : 'var(--text-muted)',
+        color: active ? '#a5b4fc' : 'var(--code-text-muted)',
         cursor: 'pointer',
         fontSize: 11,
         display: 'flex',
@@ -128,11 +128,11 @@ export function CopyButton({ text }: { text: string }) {
     <button
       onClick={copy}
       style={{
-        background: copied ? 'rgba(74,222,128,0.15)' : 'var(--glass-border)',
-        border: `1px solid ${copied ? 'rgba(34,197,94,0.4)' : 'var(--glass-border-md)'}`,
+        background: copied ? 'rgba(74,222,128,0.15)' : 'var(--code-btn-bg)',
+        border: `1px solid ${copied ? 'rgba(34,197,94,0.4)' : 'var(--code-border)'}`,
         borderRadius: 6,
         padding: '3px 8px',
-        color: copied ? '#4ade80' : 'var(--text-muted)',
+        color: copied ? '#4ade80' : 'var(--code-text-muted)',
         cursor: 'pointer',
         fontSize: 11,
         display: 'flex',
@@ -206,11 +206,11 @@ function SaveButton({ code, langName }: { code: string; langName: string }) {
       aria-label={t('codeAction.saveToFile')}
       title={t('codeAction.saveToFile')}
       style={{
-        background: 'var(--glass-border)',
-        border: '1px solid var(--glass-border-md)',
+        background: 'var(--code-btn-bg)',
+        border: '1px solid var(--code-border)',
         borderRadius: 8,
         padding: '2px 6px',
-        color: 'var(--text-muted)',
+        color: 'var(--code-text-muted)',
         cursor: 'pointer',
         fontSize: 11,
         display: 'flex',
@@ -232,11 +232,11 @@ function WrapToggleButton({ wrapped, onToggle }: { wrapped: boolean; onToggle: (
       onClick={onToggle}
       title={wrapped ? t('message.disableWordWrap') : t('message.enableWordWrap')}
       style={{
-        background: wrapped ? 'var(--bg-active)' : 'var(--glass-border)',
-        border: '1px solid var(--glass-border-md)',
+        background: wrapped ? 'rgba(255,255,255,0.16)' : 'var(--code-btn-bg)',
+        border: '1px solid var(--code-border)',
         borderRadius: 8,
         padding: '2px 5px',
-        color: wrapped ? 'var(--text-bright)' : 'var(--text-muted)',
+        color: wrapped ? '#ffffff' : 'var(--code-text-muted)',
         cursor: 'pointer',
         fontSize: 11,
         display: 'flex',
@@ -270,10 +270,10 @@ function CollapsiblePre({ children, className }: { children: React.ReactNode; cl
         style={{
           margin: 0,
           borderRadius: '0 0 9px 9px',
-          borderTop: '1px solid var(--glass-border)',
+          borderTop: '1px solid var(--code-border)',
           // The bundled highlight theme (github-dark) paints the <code> itself,
           // so the panel behind it stays dark in both themes by design.
-          background: 'rgba(8,8,16,1)',
+          background: 'var(--code-surface)',
           lineHeight: 1.5,
           maxHeight: isOverflow && collapsed ? CODE_COLLAPSE_THRESHOLD : undefined,
           overflow: isOverflow && collapsed ? 'hidden' : undefined,
@@ -291,11 +291,11 @@ function CollapsiblePre({ children, className }: { children: React.ReactNode; cl
             justifyContent: 'center',
             gap: 4,
             padding: '4px 0',
-            background: collapsed ? 'linear-gradient(transparent, rgba(12,12,22,0.98))' : 'var(--bg-hover)',
-            border: collapsed ? 'none' : '1px solid var(--glass-border-md)',
-            borderTop: collapsed ? 'none' : '1px solid var(--glass-border-md)',
+            background: collapsed ? 'linear-gradient(transparent, rgba(12,12,22,0.98))' : 'var(--code-header-bg)',
+            border: collapsed ? 'none' : '1px solid var(--code-border)',
+            borderTop: collapsed ? 'none' : '1px solid var(--code-border)',
             borderRadius: collapsed ? 0 : '0 0 9px 9px',
-            color: 'var(--text-secondary)',
+            color: 'var(--code-text-muted)',
             cursor: 'pointer',
             fontSize: 11,
             position: collapsed ? 'absolute' : 'relative',
@@ -366,19 +366,19 @@ export default function CodeBlockWithHeader({
   }, [codeText, workingDir, addToast, t])
 
   return (
-    <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--glass-border)', margin: '4px 0', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
+    <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--glass-border)', margin: '4px 0', boxShadow: 'var(--code-shadow)' }}>
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          background: 'var(--bg-hover)',
+          background: 'var(--code-header-bg)',
           padding: '4px 12px',
           borderRadius: '9px 9px 0 0',
-          borderBottom: '1px solid var(--glass-border)',
+          borderBottom: '1px solid var(--code-border)',
         }}
       >
-        <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ fontSize: 11, color: 'var(--code-text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
           {langColor && (
             <span style={{
               width: 8,
@@ -389,10 +389,10 @@ export default function CodeBlockWithHeader({
               display: 'inline-block',
             }} />
           )}
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-faint)', letterSpacing: '0.07em', textTransform: 'uppercase' as const }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--code-text-muted)', letterSpacing: '0.07em', textTransform: 'uppercase' as const }}>
             {langName}
           </span>
-          {lineCount > 1 && <span style={{ opacity: 0.6 }}>{t('tool.linesCount', { count: lineCount })}</span>}
+          {lineCount > 1 && <span>{t('tool.linesCount', { count: lineCount })}</span>}
         </span>
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           {isShellLang && (
@@ -439,7 +439,7 @@ export default function CodeBlockWithHeader({
                 // The code surface stays dark in both themes (the bundled
                 // highlight theme is dark-only), so the gutter must stay light.
                 borderRight: '1px solid rgba(255,255,255,0.08)',
-                color: 'rgba(255,255,255,0.30)',
+                color: 'var(--code-text-faint)',
                 fontSize: 11,
                 lineHeight: '1.5',
                 fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",

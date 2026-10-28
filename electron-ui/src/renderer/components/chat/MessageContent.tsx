@@ -149,7 +149,7 @@ export default React.memo(function MessageContent({ content, isUser, searchQuery
                     padding: '1px 4px',
                     fontSize: '0.85em',
                     fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
-                    color: 'var(--accent-muted)',
+                    color: 'var(--accent-text)',
                   }}
                   {...props}
                 >

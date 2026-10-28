@@ -18,7 +18,7 @@ export function Pill({
         padding: '3px 9px', borderRadius: 999, fontSize: 11, cursor: 'pointer',
         border: `1px solid ${active ? 'rgba(99,102,241,0.5)' : 'var(--border)'}`,
         background: active ? 'rgba(99,102,241,0.14)' : hovered ? 'var(--bg-hover)' : 'transparent',
-        color: active ? '#818cf8' : 'var(--text-muted)',
+        color: active ? 'var(--accent-text)' : 'var(--text-muted)',
         fontWeight: active ? 600 : 400,
         transition: 'all 0.15s ease',
         whiteSpace: 'nowrap',
@@ -47,7 +47,7 @@ export function CommandOnlyNotice({
     <div style={{
       flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8,
       padding: '7px 16px', borderTop: '1px solid var(--bg-hover)',
-      fontSize: 10, color: 'var(--text-faint)',
+      fontSize: 10, color: 'var(--text-subtle)',
     }}>
       <span>
         {t(shown ? 'archive.commandOnlyShown' : 'archive.commandOnlyHidden', { count: String(count) })}

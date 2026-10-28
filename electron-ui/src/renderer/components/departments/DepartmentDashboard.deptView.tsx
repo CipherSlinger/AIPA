@@ -324,7 +324,7 @@ export default function DeptView({
               padding: '3px 9px', borderRadius: 999, cursor: 'pointer',
               border: `1px solid ${(dept.color || '#6366f1')}55`,
               background: `${dept.color || '#6366f1'}18`,
-              color: dept.color || '#6366f1',
+              color: dept.color && dept.color.toLowerCase() !== '#6366f1' ? dept.color : 'var(--accent-text)',
               fontSize: 10, fontWeight: 700, lineHeight: 1.5,
             }}
           >

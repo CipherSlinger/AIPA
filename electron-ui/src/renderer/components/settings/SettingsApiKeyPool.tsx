@@ -116,7 +116,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
           />
           {/* Key list */}
           {apiKeyPool.length === 0 ? (
-            <div style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', padding: 24 }}>{t('settings.noKeysInPool')}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-subtle)', textAlign: 'center', padding: 24 }}>{t('settings.noKeysInPool')}</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
               {apiKeyPool.map((entry) => (
@@ -207,12 +207,14 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
               onClick={handleAddKey}
               disabled={!newKeyValue.trim()}
               style={{
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-                border: 'none', borderRadius: 8, padding: '7px 14px',
-                color: 'var(--text-primary)', cursor: newKeyValue.trim() ? 'pointer' : 'not-allowed',
+                background: newKeyValue.trim() ? 'var(--cta-gradient)' : 'var(--bg-hover)',
+                border: newKeyValue.trim() ? 'none' : '1px solid var(--border)',
+                borderRadius: 8, padding: '7px 14px',
+                color: newKeyValue.trim() ? '#ffffff' : 'var(--text-muted)',
+                cursor: newKeyValue.trim() ? 'pointer' : 'not-allowed',
                 fontSize: 12, fontWeight: 600,
                 display: 'flex', alignItems: 'center', gap: 4,
-                opacity: newKeyValue.trim() ? 1 : 0.5,
+                opacity: 1,
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
@@ -257,7 +259,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
             )}
           </div>
         </div>,
-        <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('settings.apiKeyPoolHint')}</span>
+        <span style={{ fontSize: 11, color: 'var(--text-subtle)' }}>{t('settings.apiKeyPoolHint')}</span>
       )}
     </>
   )

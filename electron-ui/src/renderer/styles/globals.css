@@ -12,7 +12,9 @@
   --bg-active: #37373d;
   --text-primary: rgba(255,255,255,0.82);
   --text-secondary: rgba(255,255,255,0.60);
-  --text-muted: rgba(255,255,255,0.45);
+  --text-muted: rgba(255,255,255,0.56);
+  /* Content that used to sit on --text-faint (dates, group labels, metadata) */
+  --text-subtle: rgba(255,255,255,0.55);
   --text-bright: #ffffff;
   --accent: #6366f1;
   --accent-hover: #4f52d6;
@@ -66,6 +68,15 @@
   --tool-card-header-bg:  rgba(0, 0, 0, 0.08);
   /* Code / content block dark overlay inside tool cards */
   --code-bg:              rgba(0, 0, 0, 0.25);
+  /* Code blocks are a dark surface in both themes (github-dark syntax theme).
+     These tokens stay unchanged in the light theme on purpose. */
+  --code-surface:         #0d1117;
+  --code-header-bg:       #2a2d2e;
+  --code-text-muted:      rgba(255,255,255,0.64);
+  --code-text-faint:      rgba(255,255,255,0.55);
+  --code-border:          rgba(255,255,255,0.10);
+  --code-btn-bg:          rgba(255,255,255,0.08);
+  --code-shadow:          0 2px 8px rgba(0,0,0,0.30);
   /* Section panel background (input/output panels inside tool cards) */
   --section-bg:           rgba(8, 8, 16, 0.70);
 
@@ -81,6 +92,8 @@
   --popup-bg:             rgba(15,15,25,0.95);
   --popup-border:         #404040;
   --popup-shadow:         0 8px 24px rgba(0,0,0,0.5);
+  /* Large modal/dialog elevation. Light gets a soft lift instead of a black halo. */
+  --dialog-shadow:        0 32px 80px rgba(0,0,0,0.8), 0 8px 24px rgba(0,0,0,0.5);
   --popup-item-hover:     rgba(255,255,255,0.06);
 
   /* Action buttons */
@@ -118,6 +131,11 @@
   --accent-bg:       rgba(99,102,241,0.10);
   --accent-border:   rgba(99,102,241,0.25);
   --accent-muted:    #818cf8;
+  /* Accent *text* on tinted/hover surfaces. Decorative fills keep --accent. */
+  --accent-text:        #a5b4fc;
+  --accent-text-strong: #c7d2fe;
+  /* Semantic success text (e.g. archive Export) */
+  --success-text:       #22c55e;
 
   /* Status color aliases (semantic, mirrors light-theme parity) */
   --color-error:    #f87171;
@@ -158,7 +176,9 @@
   --bg-active: #d8d9dd;
   --text-primary: #1d1d1f;
   --text-secondary: #48484a;
-  --text-muted: #6e6e73;
+  --text-muted: #5c5c63;
+  /* Content formerly on --text-faint; clears AA on bg-primary/hover/active. */
+  --text-subtle: #5f5f66;
   --text-bright: #000000;
   --accent: #2563eb;
   --accent-hover: #3b82f6;
@@ -212,6 +232,7 @@
   --popup-bg:             #f5f5f7;
   --popup-border:         #d5d5da;
   --popup-shadow:         0 8px 24px rgba(0,0,0,0.10);
+  --dialog-shadow:        0 24px 64px rgba(0,0,0,0.16), 0 6px 18px rgba(0,0,0,0.08);
   --popup-item-hover:     rgba(0,0,0,0.05);
   --action-btn-bg:        rgba(0,0,0,0.05);
   --action-btn-border:    rgba(0,0,0,0.1);
@@ -233,6 +254,11 @@
   --accent-bg:       rgba(37,99,235,0.08);
   --accent-border:   rgba(37,99,235,0.20);
   --accent-muted:    #2563eb;
+  /* --accent (#2563eb) is only 4.01:1 on the selected lavender tint; use the
+     darker text token for anything that has to be read. */
+  --accent-text:        #1d4ed8;
+  --accent-text-strong: #1e3a8a;
+  --success-text:       #166534;
 
   /* Status colors */
   --color-error:    #dc2626;
@@ -240,8 +266,8 @@
   --color-warning:  #d97706;
   --color-violet:   #7c3aed;
 
-  /* CTA gradient (blue-to-violet for light mode) */
-  --cta-gradient: linear-gradient(135deg, rgba(37,99,235,0.88), rgba(124,58,237,0.88));
+  /* CTA gradient (solid indigo→violet for light mode; white text clears AA) */
+  --cta-gradient: linear-gradient(135deg, #4f46e5, #6d28d9);
   /* Deep indigo headline: #e0e7ff was invisible on white */
   --hero-gradient: linear-gradient(135deg, #312e81, #6d28d9);
 
@@ -260,6 +286,8 @@
   --glass-overlay:   rgba(0,0,0,0.50);
   --text-faint:      rgba(15,15,35,0.38);
   --glass-shimmer:   rgba(0,0,0,0.04);
+  /* Always-dark code blocks need only a softer lift in the light theme. */
+  --code-shadow:     0 2px 8px rgba(0,0,0,0.10);
 }
 
 * {
@@ -308,9 +336,12 @@ html, body, #root {
   background: #98989e;
 }
 
-/* Light theme code block overrides */
+/* Light theme code block overrides.
+   The code body stays dark in both themes because the bundled syntax theme is
+   github-dark; a light frame around it only made the block look accidental. */
 [data-theme="light"] pre {
-  background: #ebedf2;
+  background: var(--code-surface);
+  border-color: var(--code-border);
 }
 [data-theme="light"] code:not(pre code) {
   background: #e4e6eb;
@@ -323,7 +354,7 @@ html, body, #root {
 
 /* Code block styling */
 pre {
-  background: #1a1a1a;
+  background: var(--code-surface);
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 12px;

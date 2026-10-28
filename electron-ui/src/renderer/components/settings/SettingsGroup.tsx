@@ -69,7 +69,7 @@ export default function SettingsGroup({ title, icon, children, groupKey }: Setti
           fontWeight: 700,
           letterSpacing: '0.07em',
           textTransform: 'uppercase',
-          color: 'var(--text-faint)',
+          color: 'var(--text-subtle)',
         }}>{title}</span>
         {expanded
           ? <ChevronDown size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />

@@ -212,7 +212,7 @@ export default function CommandPalette({
             style={{
               fontSize: 13,
               fontWeight: 500,
-              color: isSelected ? '#a5b4fc' : 'var(--text-primary)',
+              color: isSelected ? 'var(--accent-text)' : 'var(--text-primary)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -316,7 +316,7 @@ export default function CommandPalette({
           WebkitBackdropFilter: 'blur(24px)',
           border: '1px solid var(--border)',
           borderRadius: 16,
-          boxShadow: '0 32px 80px rgba(0,0,0,0.8), 0 8px 24px rgba(0,0,0,0.5)',
+          boxShadow: 'var(--dialog-shadow)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',

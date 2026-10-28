@@ -39,7 +39,7 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
             border: '1px solid var(--border)',
             borderRadius: 7,
             cursor: 'pointer',
-            color: '#818cf8',
+            color: 'var(--accent-text)',
             fontSize: 12,
             fontWeight: 600,
             transition: 'all 0.15s ease',
@@ -47,12 +47,12 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
           onMouseEnter={(e) => {
             e.currentTarget.style.background = 'rgba(99,102,241,0.10)'
             e.currentTarget.style.borderColor = 'rgba(99,102,241,0.30)'
-            e.currentTarget.style.color = '#a5b4fc'
+            e.currentTarget.style.color = 'var(--accent-text-strong)'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'var(--bg-hover)'
             e.currentTarget.style.borderColor = 'var(--border)'
-            e.currentTarget.style.color = '#818cf8'
+            e.currentTarget.style.color = 'var(--accent-text)'
           }}
         >
           <RefreshCw size={14} style={{ transition: 'transform 0.15s ease' }} />
@@ -87,7 +87,7 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
           onMouseEnter={(e) => {
             e.currentTarget.style.background = 'rgba(99,102,241,0.10)'
             e.currentTarget.style.borderColor = 'rgba(99,102,241,0.30)'
-            e.currentTarget.style.color = '#818cf8'
+            e.currentTarget.style.color = 'var(--accent-text)'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = showRegenModels ? 'rgba(99,102,241,0.18)' : 'var(--bg-hover)'

@@ -94,7 +94,7 @@ export function SearchResultRow({ hit, query, index, selected, onHover, onOpen }
             style={{
               fontSize: 13,
               fontWeight: 500,
-              color: selected ? '#a5b4fc' : 'var(--text-primary)',
+              color: selected ? 'var(--accent-text)' : 'var(--text-primary)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -136,7 +136,7 @@ export function SearchResultRow({ hit, query, index, selected, onHover, onOpen }
             marginTop: 3,
             fontSize: 12,
             lineHeight: 1.45,
-            color: selected ? 'var(--text-secondary)' : 'var(--text-muted)',
+            color: 'var(--text-secondary)',
             overflow: 'hidden',
             display: '-webkit-box',
             WebkitLineClamp: 2,

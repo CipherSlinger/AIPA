@@ -150,7 +150,7 @@ export default function GhostPositionTile({ position, persona, onHire, onEdit, o
               maxWidth: '100%', padding: '0 5px', borderRadius: 999,
               border: `1px solid ${persona ? `${persona.color}55` : 'var(--border)'}`,
               background: persona ? `${persona.color}14` : 'transparent',
-              color: persona ? persona.color : 'var(--text-faint)',
+              color: persona ? persona.color : 'var(--text-subtle)',
               fontSize: 9, lineHeight: '15px', whiteSpace: 'nowrap',
               overflow: 'hidden', textOverflow: 'ellipsis',
             }}
@@ -169,7 +169,7 @@ export default function GhostPositionTile({ position, persona, onHire, onEdit, o
           </div>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 4,
-            fontSize: 10, color: 'var(--text-faint)', whiteSpace: 'nowrap',
+            fontSize: 10, color: 'var(--text-subtle)', whiteSpace: 'nowrap',
           }}>
             <span style={{ width: 5, height: 5, borderRadius: '50%', border: `1px dashed ${color}aa` }} />
             {t('dept.positionOpen')}

@@ -103,7 +103,7 @@ const CHIP_STYLE: React.CSSProperties = {
   borderRadius: 4,
   border: '1px solid rgba(99,102,241,0.35)',
   background: 'rgba(99,102,241,0.18)',
-  color: '#a5b4fc',
+  color: 'var(--accent-text)',
   fontSize: 11,
   fontWeight: 600,
   lineHeight: 1.5,
@@ -550,7 +550,7 @@ export default function GlobalSearchOverlay() {
           WebkitBackdropFilter: 'blur(24px)',
           border: '1px solid var(--border)',
           borderRadius: 16,
-          boxShadow: '0 32px 80px rgba(0,0,0,0.8), 0 8px 24px rgba(0,0,0,0.5)',
+          boxShadow: 'var(--dialog-shadow)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -902,7 +902,7 @@ export default function GlobalSearchOverlay() {
                     borderLeft: '2px solid rgba(99,102,241,0.45)',
                     cursor: 'pointer',
                     fontFamily: 'inherit',
-                    color: '#a5b4fc',
+                    color: 'var(--accent-text)',
                   }}
                 >
                   <Sparkles size={14} style={{ flexShrink: 0 }} />

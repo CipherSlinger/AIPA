@@ -86,13 +86,14 @@ export function ToolbarButton({ onClick, title, children, disabled, primary }: {
       style={{
         display: 'flex', alignItems: 'center', gap: 5, height: 28, padding: '0 11px', borderRadius: 8,
         fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
-        cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
-        border: primary ? 'none' : `1px solid ${hovered && !disabled ? 'rgba(99,102,241,0.45)' : 'var(--glass-border)'}`,
-        background: primary
-          ? `linear-gradient(135deg, rgba(99,102,241,${hovered ? 0.98 : 0.9}), rgba(139,92,246,${hovered ? 0.98 : 0.9}))`
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        border: primary && !disabled ? 'none' : `1px solid ${hovered && !disabled ? 'rgba(99,102,241,0.45)' : 'var(--glass-border)'}`,
+        background: primary && !disabled
+          ? 'var(--cta-gradient)'
           : hovered && !disabled ? 'rgba(99,102,241,0.07)' : 'transparent',
-        color: primary ? '#fff' : hovered && !disabled ? '#818cf8' : 'var(--text-secondary)',
-        boxShadow: primary
+        opacity: disabled ? 1 : undefined,
+        color: primary && !disabled ? '#fff' : disabled ? 'var(--text-muted)' : hovered ? 'var(--accent-text)' : 'var(--text-secondary)',
+        boxShadow: primary && !disabled
           ? (hovered ? '0 2px 6px rgba(0,0,0,0.25), 0 8px 20px -6px rgba(99,102,241,0.6)' : '0 1px 2px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.12)')
           : 'inset 0 1px 0 rgba(255,255,255,0.04)',
         transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',

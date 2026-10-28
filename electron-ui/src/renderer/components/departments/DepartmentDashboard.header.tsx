@@ -130,18 +130,18 @@ export default function DeptHeader({
             own, so its page says which node it sits under and offers the way
             back up. The trailing label is the current node's kind. */}
         {parentDept && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: 'var(--text-subtle)', marginBottom: 2 }}>
             <button
               onClick={() => onSelectDept(parentDept.id)}
               title={t('dept.backToParent')}
               style={{
                 display: 'flex', alignItems: 'center', gap: 2,
                 background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                color: 'var(--text-muted)', fontSize: 10, maxWidth: 160,
+                color: 'var(--text-subtle)', fontSize: 10, maxWidth: 160,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}
-              onMouseEnter={e => { e.currentTarget.style.color = '#818cf8' }}
-              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent-text)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-subtle)' }}
             >
               <ArrowLeft size={9} />
               {deptDisplayName(parentDept, resolvedLocale)}
@@ -174,7 +174,7 @@ export default function DeptHeader({
         </div>
         <div style={{
           fontSize: 11,
-          color: 'var(--text-muted)',
+          color: 'var(--text-subtle)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -322,7 +322,7 @@ export default function DeptHeader({
               borderRadius: 4,
               border: 'none',
               background: sortOrder === val ? 'rgba(99,102,241,0.25)' : 'transparent',
-              color: sortOrder === val ? '#6366f1' : 'var(--text-muted)',
+              color: sortOrder === val ? 'var(--accent-text-strong)' : 'var(--text-muted)',
               fontSize: 10,
               cursor: 'pointer',
               fontWeight: sortOrder === val ? 600 : 400,
@@ -344,8 +344,8 @@ export default function DeptHeader({
           padding: '9px 20px',
           borderRadius: 8,
           border: 'none',
-          background: 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-          color: 'rgba(255,255,255,0.95)',
+          background: 'var(--cta-gradient)',
+          color: '#ffffff',
           fontSize: 13,
           fontWeight: 600,
           cursor: 'pointer',
@@ -366,7 +366,8 @@ export default function DeptHeader({
         {t('dept.newSession')}
         <kbd style={{
           fontSize: 9,
-          background: 'var(--bg-input)',
+          background: 'rgba(0,0,0,0.22)',
+          color: '#ffffff',
           borderRadius: 3,
           padding: '0px 4px',
           lineHeight: '14px',

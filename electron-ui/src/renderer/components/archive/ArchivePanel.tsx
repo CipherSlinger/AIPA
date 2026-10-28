@@ -385,7 +385,7 @@ export default function ArchivePanel() {
             display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
             padding: '5px 11px', borderRadius: 8, fontSize: 11, fontWeight: 600,
             border: '1px solid rgba(34,197,94,0.3)', background: 'rgba(34,197,94,0.06)',
-            color: records.length === 0 ? 'var(--text-faint)' : '#22c55e',
+            color: records.length === 0 ? 'var(--text-faint)' : 'var(--success-text)',
             cursor: records.length === 0 ? 'not-allowed' : 'pointer',
           }}
         >
@@ -511,7 +511,7 @@ export default function ArchivePanel() {
                       <span style={{
                         fontSize: 9, padding: '1px 6px', borderRadius: 999,
                         border: '1px solid rgba(99,102,241,0.28)', background: 'rgba(99,102,241,0.08)',
-                        color: '#818cf8',
+                        color: 'var(--accent-text)',
                       }}>
                         {t('dept.companyTag')}
                       </span>
@@ -524,7 +524,7 @@ export default function ArchivePanel() {
                       {group.records.length}
                     </span>
                     {group.root && (
-                      <span style={{ fontSize: 10, color: 'var(--text-faint)', ...ELLIPSIS, maxWidth: 260 }}>
+                      <span style={{ fontSize: 10, color: 'var(--text-subtle)', ...ELLIPSIS, maxWidth: 260 }}>
                         {group.root.directory}
                       </span>
                     )}
@@ -574,7 +574,7 @@ export default function ArchivePanel() {
       {unassignedCount > 0 && deptFilter === 'all' && (
         <div style={{
           flexShrink: 0, padding: '7px 16px', borderTop: '1px solid var(--bg-hover)',
-          fontSize: 10, color: 'var(--text-faint)',
+          fontSize: 10, color: 'var(--text-subtle)',
         }}>
           {t('archive.unassignedHint', { count: String(unassignedCount) })}
         </div>
@@ -639,7 +639,7 @@ function ArchiveRow({
       {record.commandOnly && (
         <span style={{
           flexShrink: 0, fontSize: 9, padding: '1px 6px', borderRadius: 999,
-          border: '1px solid var(--border)', color: 'var(--text-faint)',
+          border: '1px solid var(--border)', color: 'var(--text-subtle)',
         }}>
           {t('archive.commandOnlyTag')}
         </span>
@@ -660,7 +660,7 @@ function ArchiveRow({
         style={{
           flexShrink: 0, fontSize: 10, fontFamily: 'monospace',
           padding: '1px 6px', borderRadius: 5,
-          background: 'rgba(99,102,241,0.10)', color: '#818cf8',
+          background: 'rgba(99,102,241,0.10)', color: 'var(--accent-text)',
           border: '1px solid rgba(99,102,241,0.22)',
         }}
       >
@@ -673,7 +673,7 @@ function ArchiveRow({
       {record.dept && record.dept.id !== record.root?.id && (
         <span
           title={record.dept.directory}
-          style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-faint)', maxWidth: 180 }}
+          style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-subtle)', maxWidth: 180 }}
         >
           <FolderOpen size={10} />
           <span style={ELLIPSIS}>
@@ -686,7 +686,7 @@ function ArchiveRow({
 
       {/* Unassigned records have no group to carry their folder, so spell it out. */}
       {!record.dept && (
-        <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-faint)', maxWidth: 200 }}>
+        <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-subtle)', maxWidth: 200 }}>
           <FolderOpen size={10} />
           <span style={ELLIPSIS}>{session.project || '—'}</span>
         </span>
@@ -696,7 +696,7 @@ function ArchiveRow({
         {when}
       </span>
 
-      <span style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-faint)', width: 52, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-subtle)', width: 52, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
         {t('archive.rounds', { count: String(session.messageCount ?? 0) })}
       </span>
 
@@ -715,7 +715,7 @@ function ArchiveRow({
 
       <span style={{
         flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4,
-        fontSize: 11, color: opening ? 'var(--text-muted)' : '#818cf8',
+        fontSize: 11, color: opening ? 'var(--text-muted)' : 'var(--accent-text)',
         opacity: opening || hovered ? 1 : 0.55, transition: 'opacity 0.15s ease',
       }}>
         <ExternalLink size={11} />{t('archive.open')}

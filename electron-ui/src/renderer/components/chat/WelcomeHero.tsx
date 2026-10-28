@@ -53,7 +53,7 @@ export default function WelcomeHero({ greeting, displayName, activePersona, acce
             {t('persona.personaGreeting', { name: activePersona.presetKey ? t(`persona.preset.${activePersona.presetKey}`) : activePersona.name })}
           </div>
         )}
-        <div style={{ fontSize: 13, color: 'var(--text-faint)', marginTop: 4 }}>
+        <div style={{ fontSize: 13, color: 'var(--text-subtle)', marginTop: 4 }}>
           {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
         </div>
         <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 6, maxWidth: 360, lineHeight: 1.6 }}>

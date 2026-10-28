@@ -212,7 +212,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
               <div style={{ width: 1, height: 14, background: 'var(--bg-active)', opacity: 0.5 }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 <Clock size={12} style={{ opacity: 0.6 }} />
-                <span><b style={{ color: 'rgba(99,102,241,0.9)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{usageStats.sessionsToday}</b> {t('welcome.statsToday')}</span>
+                <span><b style={{ color: 'var(--accent-text)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{usageStats.sessionsToday}</b> {t('welcome.statsToday')}</span>
               </div>
             </>
           )}
@@ -274,7 +274,7 @@ export default function WelcomeScreen({ onSuggestion, onOpenSession }: Props) {
               background: 'rgba(99,102,241,0.10)',
               border: '1px solid rgba(99,102,241,0.20)',
               borderRadius: 20,
-              color: 'var(--accent-muted)',
+              color: 'var(--accent-text)',
               cursor: 'pointer',
               fontSize: 12,
               fontWeight: 600,
