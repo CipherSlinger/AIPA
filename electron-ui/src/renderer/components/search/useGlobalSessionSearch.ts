@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { SessionSearchResultData } from '../../../preload/index'
+import { GLOBAL_SEARCH_RESULT_LIMIT } from './searchMatchFilter'
 
 export type GlobalSearchStatus = 'idle' | 'loading' | 'ready'
 
 const DEBOUNCE_MS = 180
-const RESULT_LIMIT = 40
 
 /**
  * Debounced `session:search`, with a sequence guard so a slow scan started for
@@ -48,7 +48,9 @@ export function useGlobalSessionSearch(query: string, enabled = true) {
       try {
         const api = window.electronAPI
         if (!api?.sessionSearch) throw new Error('sessionSearch unavailable')
-        const hits = await api.sessionSearch(trimmed, RESULT_LIMIT)
+        // The same constant drives the UI's "this is only the newest N" note;
+        // two numbers would let the admission drift away from the request.
+        const hits = await api.sessionSearch(trimmed, GLOBAL_SEARCH_RESULT_LIMIT)
         if (mine !== sequence.current) return
         setResults(Array.isArray(hits) ? hits : [])
         setSearchedQuery(trimmed)

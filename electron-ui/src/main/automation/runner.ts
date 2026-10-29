@@ -37,6 +37,8 @@ import { streamBridgeManager } from '../pty/stream-bridge'
 import { buildMemorySnapshotForTurn, prefixWithMemoryContext } from '../sessions/memory-context'
 import { createLogger } from '../utils/logger'
 import { createChangedFilesCollector } from './changed-files'
+import { resolveRunHandbook } from './dept-handbook'
+import { readDeptHandbookSnapshot } from './dept-handbook-store'
 import { buildMemoryDigest, failedMemoryDigest } from './memory-digest'
 import { buildPersonaPromptPrefix, filterModelForEngine } from './persona-plan'
 import { RunUsageAccumulator, readTurnUsage } from './run-usage'
@@ -451,6 +453,23 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
   const memoryText = memory.text
   const memoryDigest = memory.context ? buildMemoryDigest(memory.context) : failedMemoryDigest()
 
+  // The desk's standing rules, on every unattended turn. The org tree is
+  // renderer state, so the renderer writes a snapshot of each node's id, name
+  // and handbook and main reads it here, at run start. Resolved from `req.job`
+  // — for a chained start the scheduler passes the *successor*, so the target's
+  // department decides, never the source's.
+  //
+  // Read once per run and reused for every prompt: a run is one conversation,
+  // and re-reading between steps could hand the same session two editions of
+  // its rules. The digest travels with every outcome, including failures: a
+  // run with no handbook must be explainable, not just quiet.
+  const handbook = resolveRunHandbook({
+    snapshot: readDeptHandbookSnapshot(),
+    departmentId: req.job.departmentId,
+    now: Date.now(),
+  })
+  const handbookPrefix = handbook.text ? `${handbook.text}\n\n` : ''
+
   // PERSONA RULE: a scheduled run adopts the persona its workflow binds, so a
   // job that fires at 3 a.m. behaves as the expert the user chose when they built
   // the workflow. The binding is resolved in the scheduler and carried on the
@@ -474,13 +493,15 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
           sessionId: run.sessionId(),
           usage: usage.total(),
           memory: memoryDigest,
+          handbook: handbook.digest,
           changedFiles: run.changedFiles(),
         }
       }
       // Memory stays outermost; inside it the order matches a chat turn:
-      // persona prompt, output style, then the workflow's own step.
+      // persona prompt, output style, the department handbook, then the
+      // workflow's own step.
       const turn = await run.send(
-        prefixWithMemoryContext(systemPrefix + req.prompts[i], memoryText),
+        prefixWithMemoryContext(systemPrefix + handbookPrefix + req.prompts[i], memoryText),
         remaining(),
       )
       usage.add(turn.usage)
@@ -495,6 +516,7 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
           sessionId: run.sessionId(),
           usage: usage.total(),
           memory: memoryDigest,
+          handbook: handbook.digest,
           changedFiles: run.changedFiles(),
         }
       }
@@ -513,6 +535,7 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
       summary: summarize(run.lastText()),
       usage: usage.total(),
       memory: memoryDigest,
+      handbook: handbook.digest,
       changedFiles: run.changedFiles(),
     }
   } catch (err) {
@@ -523,6 +546,7 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
       sessionId: run.sessionId(),
       usage: usage.total(),
       memory: memoryDigest,
+      handbook: handbook.digest,
       changedFiles: run.changedFiles(),
     }
   } finally {

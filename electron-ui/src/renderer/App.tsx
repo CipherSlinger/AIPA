@@ -7,10 +7,11 @@ import { useAppShortcuts } from './hooks/useAppShortcuts'
 import { useAppEventBridge } from './hooks/useAppEventBridge'
 import { useContextHealth } from './hooks/useContextHealth'
 import { cancelDeptBudgetSync, scheduleDeptBudgetSync } from './components/departments/deptBudgetSync'
+import { cancelDeptHandbookSync, scheduleDeptHandbookSync } from './components/departments/deptHandbookSync'
 import { populateDefaultPresetsIfEmpty } from './utils/presetPopulator'
 import { purgeTrashedWorkflows } from './lib/workflowTrash'
 import { listSessionsShared } from './utils/sessionListShared'
-import { useT } from './i18n'
+import { useI18n, useT } from './i18n'
 import './styles/globals.css'
 import 'highlight.js/styles/github-dark.css'
 
@@ -39,6 +40,10 @@ export default function App() {
   const toasts = useUiStore(s => s.toasts)
   const removeToast = useUiStore(s => s.removeToast)
   const t = useT()
+  // The handbook snapshot carries the *display* name, so it is written per
+  // interface language; a language switch re-syncs even when the tree is
+  // otherwise unchanged.
+  const { resolvedLocale } = useI18n()
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
   const initCalledRef = useRef(false)
@@ -184,6 +189,16 @@ export default function App() {
     scheduleDeptBudgetSync(departments)
     return cancelDeptBudgetSync
   }, [departments])
+
+  // Same app-wide reasoning for the handbook snapshot: main assembles
+  // scheduled runs and cannot read this tree, so a job filed under a
+  // department would run without the rules its conversations carry. Every
+  // handbook edit, rename and delete lands in `departments`, and the sync
+  // module debounces, deduplicates and swallows failures.
+  useEffect(() => {
+    scheduleDeptHandbookSync(departments, resolvedLocale)
+    return cancelDeptHandbookSync
+  }, [departments, resolvedLocale])
 
   // Probe once whether "Ask AIPA about your history" can run here, so the
   // command palette never offers a command whose overlay row is hidden for

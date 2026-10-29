@@ -3635,7 +3635,26 @@
     "noConversations": "没有匹配的对话——以下是你自己做过的东西。",
     "matchInTool": "工具输出中",
     "matchInThinking": "思考中",
-    "matchTruncated": "有截断"
+    "matchTruncated": "有截断",
+    "match": {
+      "groupLabel": "匹配位置",
+      "all": "全部",
+      "prose": "正文",
+      "tool": "工具输出",
+      "thinking": "思考",
+      "scopeOne": "只看{{origin}}：这个查询另有 {{count}} 条匹配没有显示。",
+      "scope": "只看{{origin}}：这个查询另有 {{count}} 条匹配没有显示。",
+      "emptyTitle": "这个查询没有{{origin}}匹配",
+      "emptyHintOne": "这段文字是存在的——搜索找到了 1 条匹配，被这个筛选挡住了。",
+      "emptyHint": "这段文字是存在的——搜索找到了 {{count}} 条匹配，全被这个筛选挡住了。",
+      "windowCapped": "搜索最多只取最近 {{limit}} 条匹配。这里看到的只是这个窗口的一部分：更早的匹配根本没有返回，筛选和倒序都到不了那里。"
+    },
+    "sort": {
+      "groupLabel": "排序",
+      "newest": "最新在前",
+      "oldest": "最早在前",
+      "hint": "结果仍按项目分组：组内按时间排序，组的先后也按同一顺序。"
+    }
   },
   "askHistory": {
     "entry": "问 AIPA…",
@@ -4063,6 +4082,24 @@
       "followDefault": "应用默认（{{level}}）",
       "hint": "这个任务的每次运行都用这里选的强度。「应用默认」在每次启动时读当前设置，而不是保存任务时的那个；Auto 交给引擎自己决定。需要深入思考的任务调高，每晚跑的小事调低。",
       "row": "强度：{{level}}"
+    },
+    "handbook": {
+      "used": "部门手册：{{name}} · {{chars}}",
+      "usedTitle": "任务所属部门的常设规则，取自主进程最近一次从应用收到的快照。这里只记大小，不记正文。",
+      "chars": "{{count}} 字符",
+      "truncated": "已截到 {{count}} 字符",
+      "truncatedHint": "手册比单轮能带的更长，只把开头部分交给了模型。截断位置写在它收到的块里面。",
+      "staleOne": "快照保存于 1 天前",
+      "staleMany": "快照保存于 {{days}} 天前",
+      "staleHint": "这些规则仍然用上了——过时的规则也好过没有——但快照可能早于最近的修改。改动部门就会刷新快照。",
+      "noDepartment": "没有部门手册：任务未归属部门",
+      "noDepartmentHint": "这个任务不属于任何部门，没有哪个部门的规则能随它的运行一起带上。",
+      "noSnapshot": "没有部门手册：尚未保存",
+      "noSnapshotHint": "主进程还没收到应用发来的手册快照，本次运行没有带上任何部门的规则。打开一次应用就会写入。",
+      "unknownDepartment": "没有部门手册：快照里没有这个部门",
+      "unknownDepartmentHint": "任务所属的部门不在已保存的快照里——可能是在上次同步之后新增或恢复的。本次运行照常进行，但没有这些规则；打开应用会刷新快照。",
+      "empty": "部门手册为空：{{name}}",
+      "emptyHint": "这个部门的部门手册没有任何文字，本次运行没有带上内容。"
     }
   },
   "speculation": {

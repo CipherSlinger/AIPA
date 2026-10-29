@@ -972,6 +972,10 @@ async function startRun(
     // A failed run still saw the snapshot it fetched, so the digest is carried
     // on either outcome. A runner that returned before fetching one has none.
     ...(outcome.memory ? { memory: outcome.memory } : {}),
+    // The handbook half of the same post-mortem: which department, how much,
+    // whether it was cut or stale — or the reason nothing was given. A skip
+    // never reaches this record at all, so it cannot claim one it never read.
+    ...(outcome.handbook ? { handbook: outcome.handbook } : {}),
     // Live-captured tool-driven file edits. Absent only when the runner had no
     // engine conversation, which is also the case where nothing was observed;
     // a present-but-empty summary is the honest "no file edits seen".

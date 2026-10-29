@@ -22,6 +22,7 @@ import {
   trashAutomationJob,
   updateAutomationJob,
 } from '../automation/scheduler'
+import { syncDeptHandbookSnapshot } from '../automation/dept-handbook-store'
 import { normalizeDeptSpendRequest, summarizeDeptSpend } from '../automation/spend-guard'
 import type { AutomationInput, AutomationTrigger } from '../automation/types'
 import { listTrashedJobs, purgeTrashedJobs, removeTrashedJob } from '../trash/job-trash'
@@ -98,6 +99,19 @@ export function registerAutomationHandlers(): void {
       return syncAutomationDeptBudgets(entries)
     } catch (err) {
       console.error('[automation:deptBudgetSync]', err)
+      return { ok: false, error: 'unexpected_error' }
+    }
+  })
+
+  // The org tree's handbook snapshot. The renderer is the only writer; main
+  // validates the payload (bounded text, usable ids) and stamps `updatedAt`
+  // with its own clock. Nothing here is broadcast: a snapshot changes no job
+  // row, and the next unattended run reads the file directly.
+  safeHandle('automation:handbookSnapshotSync', (_event, entries: unknown) => {
+    try {
+      return syncDeptHandbookSnapshot(entries)
+    } catch (err) {
+      console.error('[automation:handbookSnapshotSync]', err)
       return { ok: false, error: 'unexpected_error' }
     }
   })

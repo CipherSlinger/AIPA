@@ -9,8 +9,13 @@
  * renderer is the only place allowed to show (or re-file) it.
  *
  * This field is attribution, not execution. It is never read when resolving a
- * run's working directory, model or prompts, so a job filed under a department
- * does not run "in" it.
+ * run's working directory or model, so a job filed under a department does not
+ * run "in" it.
+ *
+ * The one thing it now selects is context: an unattended run reads the desk's
+ * handbook from the renderer's snapshot (`dept-handbook.ts`) and prepends it to
+ * the prompt envelope, exactly as chat does. That is the department's standing
+ * rules, not its folder — the run still executes where the job's action says.
  */
 
 /**

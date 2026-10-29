@@ -41,6 +41,7 @@ import { fileKindMarker, viewRunFiles } from './runFilesView'
 import ProvenanceLine from '../provenance/ProvenanceLine'
 import { workflowProvenance } from '../../lib/provenance'
 import type {
+  AutomationHandbookDigestData,
   AutomationJobData,
   AutomationLimitsData,
   AutomationMemoryDigestData,
@@ -447,6 +448,77 @@ export default function SettingsAutomations() {
       text: tiers ? t('automation.memory.summary', { tiers, chars }) : chars,
       title: t('automation.memory.title'),
       unreadable,
+    }
+  }, [t])
+
+  /**
+   * The department handbook an unattended run carried — or the reason it
+   * carried none.
+   *
+   * The chat path shows this on the turn itself; a scheduled run has nobody
+   * watching, so the run row is the only place the fact can surface. Silence
+   * is reserved for a record written before the digest existed: every run this
+   * build records says *something*, because "no handbook" and "we never looked"
+   * are different answers to the same question.
+   */
+  const handbookLine = useCallback((handbook: AutomationHandbookDigestData | undefined): {
+    text: string
+    title: string
+    color?: string
+    /** The block was cut at the ceiling; shown as its own clause. */
+    truncated?: { text: string; title: string }
+    /** The snapshot was old; the handbook was still used. */
+    stale?: { text: string; title: string }
+  } | null => {
+    if (!handbook) return null
+
+    if (handbook.state === 'no-department') {
+      return {
+        text: t('automation.handbook.noDepartment'),
+        title: t('automation.handbook.noDepartmentHint'),
+      }
+    }
+    if (handbook.state === 'no-snapshot') {
+      return {
+        text: t('automation.handbook.noSnapshot'),
+        title: t('automation.handbook.noSnapshotHint'),
+      }
+    }
+    if (handbook.state === 'unknown-department') {
+      // Warning-toned: the job is filed under a desk whose rules did not
+      // travel, and the user would otherwise never learn the run ran without
+      // them.
+      return {
+        text: t('automation.handbook.unknownDepartment'),
+        title: t('automation.handbook.unknownDepartmentHint'),
+        color: WARNING,
+      }
+    }
+    if (handbook.state === 'empty') {
+      return {
+        text: t('automation.handbook.empty', { name: handbook.departmentName ?? handbook.departmentId ?? '' }),
+        title: t('automation.handbook.emptyHint'),
+      }
+    }
+
+    const chars = t('automation.handbook.chars', { count: formatTokens(handbook.chars) })
+    return {
+      text: t('automation.handbook.used', { name: handbook.departmentName ?? '', chars }),
+      title: t('automation.handbook.usedTitle'),
+      truncated: handbook.truncated
+        ? {
+            text: t('automation.handbook.truncated', { count: formatTokens(handbook.sourceChars) }),
+            title: t('automation.handbook.truncatedHint', { count: formatTokens(handbook.sourceChars) }),
+          }
+        : undefined,
+      stale: handbook.stale && handbook.ageDays !== undefined
+        ? {
+            text: handbook.ageDays === 1
+              ? t('automation.handbook.staleOne')
+              : t('automation.handbook.staleMany', { days: handbook.ageDays }),
+            title: t('automation.handbook.staleHint'),
+          }
+        : undefined,
     }
   }, [t])
 
@@ -1584,6 +1656,7 @@ export default function SettingsAutomations() {
                             // Only a real snapshot can be truncated; a failed
                             // read has nothing to clip and must not imply one.
                             const memoryTruncated = record.memory?.state === 'ok' && record.memory.truncated
+                            const handbook = handbookLine(record.handbook)
                             const fileView = viewRunFiles(record.changedFiles)
                             const filesKey = `${job.id}:${record.startedAt}:${runIndex}`
                             const filesOpen = runFilesOpen[filesKey] === true
@@ -1657,6 +1730,29 @@ export default function SettingsAutomations() {
                                 {memoryTruncated && (
                                   <span title={t('automation.memory.truncatedHint')}>
                                     {t('automation.memory.truncated')}
+                                  </span>
+                                )}
+                                {handbook && (
+                                  // The desk's standing rules, in the same quiet
+                                  // shape as the memory clause above. Absences
+                                  // are printed with their reason rather than
+                                  // skipped — a run that lost its rules must be
+                                  // explainable after the fact.
+                                  <span
+                                    style={handbook.color ? { color: handbook.color } : undefined}
+                                    title={handbook.title}
+                                  >
+                                    {handbook.text}
+                                  </span>
+                                )}
+                                {handbook?.truncated && (
+                                  <span title={handbook.truncated.title}>
+                                    {handbook.truncated.text}
+                                  </span>
+                                )}
+                                {handbook?.stale && (
+                                  <span title={handbook.stale.title}>
+                                    {handbook.stale.text}
                                   </span>
                                 )}
                                 {fileView.coverage !== 'unrecorded' && (

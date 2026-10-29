@@ -44,6 +44,15 @@ import {
   type SearchOriginFilter,
 } from './searchOriginFilter'
 import {
+  filterResultsByMatchOrigin,
+  isMatchFilterEmpty,
+  isSearchWindowCapped,
+  sortSearchResults,
+  type SearchMatchFilter,
+  type SearchSortOrder,
+} from './searchMatchFilter'
+import { SearchMatchFilterBar } from './SearchMatchFilterBar'
+import {
   MAX_SCOPE_SESSIONS,
   buildDeptAttributionMap,
   buildDeptFilterOptions,
@@ -312,6 +321,15 @@ export default function GlobalSearchOverlay() {
   // Which origin kind the current result set is narrowed to. It is a client
   // view over the rows already returned — never a new search.
   const [originFilter, setOriginFilter] = useState<SearchOriginFilter>('all')
+  // Where the matched text lived: prose, tool output or a thinking block. This
+  // is the filter that answers "show me only the command that failed", and it
+  // is deliberately sticky across query edits: skipping thinking blocks is a
+  // preference about the corpus, not a guess about one query. The scope line
+  // below keeps it visible, so it can never hide rows unnoticed.
+  const [matchFilter, setMatchFilter] = useState<SearchMatchFilter>('all')
+  // Newest first is what the main process returns; oldest first is a client-side
+  // reversal of the same window, never a second scan.
+  const [sortOrder, setSortOrder] = useState<SearchSortOrder>('newest')
   // The org node whose subtree the current rows are narrowed to, or null for
   // every department. Like the origin filter, this is a client view over rows
   // already returned — it never starts a new search.
@@ -422,9 +440,16 @@ export default function GlobalSearchOverlay() {
     [workflows],
   )
   const originMap = useMemo(() => buildSessionOriginMap(sessions), [sessions])
+  // Where-in-the-transcript narrowing runs first, on the raw window: its counts
+  // describe the search's own result set, so "3 tool matches" means that, not
+  // "3 that survived the other filters". Everything downstream sees what it kept.
+  const matchFiltered = useMemo(
+    () => filterResultsByMatchOrigin(results, matchFilter),
+    [results, matchFilter],
+  )
   const filtered = useMemo(
-    () => filterResultsByOrigin(results, originMap, originFilter),
-    [results, originMap, originFilter],
+    () => filterResultsByOrigin(matchFiltered.visible, originMap, originFilter),
+    [matchFiltered, originMap, originFilter],
   )
   // One pass over this query's hits, shared by every row's chip and by the
   // department filter. Rebuilt when the listing, tree or language changes, not
@@ -458,6 +483,13 @@ export default function GlobalSearchOverlay() {
   const listFiltered = useMemo(
     () => filterByListScope(deptFiltered.visible, listScope?.ids ?? null),
     [deptFiltered, listScope],
+  )
+  // Ordering is applied last, on exactly the rows about to be drawn. The rows
+  // stay grouped by project below; each group follows this order, and so do the
+  // groups themselves. See `sortSearchResults` for the window caveat.
+  const sortedHits = useMemo(
+    () => sortSearchResults(listFiltered.visible, sortOrder),
+    [listFiltered, sortOrder],
   )
   // The corpus a scoped ask may read: sessions whose resolved owner (manual
   // filing first, then the folder join) is this node or a descendant, in
@@ -635,14 +667,16 @@ export default function GlobalSearchOverlay() {
 
   const groups = useMemo(() => {
     const map = new Map<string, SessionSearchResultData[]>()
-    for (const hit of listFiltered.visible) {
+    for (const hit of sortedHits) {
       const key = hit.project || ''
       const bucket = map.get(key)
       if (bucket) bucket.push(hit)
       else map.set(key, [hit])
     }
+    // Insertion order is the sort's order: the first group holds the newest
+    // (or oldest) visible hit, matching the header the user reads first.
     return [...map.entries()].map(([project, items]) => ({ project, items }))
-  }, [listFiltered])
+  }, [sortedHits])
 
   const flat = useMemo(() => groups.flatMap(group => group.items), [groups])
   // Two hits can share a session and match type; a suffixed key keeps React
@@ -669,7 +703,9 @@ export default function GlobalSearchOverlay() {
 
   // A new result set — or a different narrowing — starts at the best visible
   // hit. A session-list refresh alone must not move the selection.
-  useEffect(() => { setActive(0) }, [results, originFilter, deptFilter, listScope])
+  useEffect(() => {
+    setActive(0)
+  }, [results, matchFilter, originFilter, deptFilter, listScope, sortOrder])
   useEffect(() => {
     if (active >= flat.length) setActive(Math.max(0, flat.length - 1))
   }, [flat.length, active])
@@ -930,12 +966,16 @@ export default function GlobalSearchOverlay() {
   const showIdle = trimmed.length < 2
   const showLoading = status === 'loading' && trimmed.length >= 2
   // The search found matches but a filter is hiding all of them. The copy must
-  // name the filter, not pretend the query had no results. The origin filter
+  // name the filter, not pretend the query had no results. The match filter
   // runs first, so it is the one to blame when it leaves nothing behind; the
-  // department filter only empties what survived it.
+  // origin filter only empties what survived it, and so on down the chain.
+  const showMatchFilterEmpty = status === 'ready'
+    && isMatchFilterEmpty(results.length, matchFiltered.visible.length, matchFilter)
   const showFilterEmpty = status === 'ready'
-    && isOriginFilterEmpty(results.length, filtered.visible.length, originFilter)
+    && !showMatchFilterEmpty
+    && isOriginFilterEmpty(matchFiltered.visible.length, filtered.visible.length, originFilter)
   const showDeptFilterEmpty = status === 'ready'
+    && !showMatchFilterEmpty
     && !showFilterEmpty
     && isDeptFilterEmpty(filtered.visible.length, deptFiltered.visible.length, deptFilter)
   // The archive's snapshot is a client-side narrowing applied last. When it
@@ -946,6 +986,7 @@ export default function GlobalSearchOverlay() {
     && trimmed.length >= 2
     && searchedQuery.length >= 2
     && listScope !== null
+    && !showMatchFilterEmpty
     && !showFilterEmpty
     && !showDeptFilterEmpty
     && listFiltered.visible.length === 0
@@ -983,6 +1024,11 @@ export default function GlobalSearchOverlay() {
     && searchedQuery.length >= 2
     && !listScope
     && hasEntityHits
+
+  // The translated pill label, reused inside the empty-state copy below so no
+  // sentence has to hard-code a second name for the same bucket. The coverage
+  // lines inside the bar translate their own copies.
+  const matchFilterLabel = t(`globalSearch.match.${matchFilter}`)
 
   return (
     <div
@@ -1296,6 +1342,23 @@ export default function GlobalSearchOverlay() {
               </>
             )}
           </div>
+        )}
+
+        {/* Where in the transcript the words matched, plus the order of the
+            rows. Both are client-side views over the window the search already
+            returned — changing either never starts a scan. The strip owns no
+            state: the empty-state copy and the keyboard selection below read
+            the same filter, so it has to live with them. */}
+        {askState === 'idle' && results.length > 0 && (
+          <SearchMatchFilterBar
+            filter={matchFilter}
+            onFilterChange={setMatchFilter}
+            order={sortOrder}
+            onOrderChange={setSortOrder}
+            counts={matchFiltered.counts}
+            hidden={matchFiltered.hidden}
+            windowCapped={isSearchWindowCapped(results.length)}
+          />
         )}
 
         {/* Results / ask states */}
@@ -1795,6 +1858,34 @@ export default function GlobalSearchOverlay() {
                     <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                       {t('globalSearch.noConversations')}
                     </div>
+                  </div>
+                )}
+
+                {/* The search found rows, the match filter kept none. Saying
+                    "no matches" here would be false: the phrase exists, just
+                    not where this filter looks. Name the filter, count what it
+                    hid, and make clearing it one click. */}
+                {showMatchFilterEmpty && !showLoading && (
+                  <div style={EMPTY_STYLE}>
+                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                      {t('globalSearch.match.emptyTitle', { origin: matchFilterLabel })}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                      {t(
+                        results.length === 1
+                          ? 'globalSearch.match.emptyHintOne'
+                          : 'globalSearch.match.emptyHint',
+                        { count: results.length },
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setMatchFilter('all')}
+                      onKeyDown={stopPillActivation}
+                      style={{ ...GHOST_BUTTON_STYLE, marginTop: 12 }}
+                    >
+                      {t('globalSearch.originClear')}
+                    </button>
                   </div>
                 )}
 

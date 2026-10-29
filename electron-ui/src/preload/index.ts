@@ -740,6 +740,32 @@ export interface AutomationMemoryDigestData {
   unreadable: number
 }
 
+/**
+ * Mirrors main's `AutomationHandbookDigest`: what an unattended run did with
+ * its job's department handbook. `used` carries the size; every other state is
+ * a recorded *absence* with its reason, because a scheduled run has no receipt
+ * on screen and the run history is the only place the fact can land.
+ */
+export interface AutomationHandbookDigestData {
+  state: 'used' | 'no-department' | 'no-snapshot' | 'unknown-department' | 'empty'
+  departmentId?: string
+  departmentName?: string
+  chars: number
+  sourceChars: number
+  truncated: boolean
+  /** Read from a snapshot older than the stated threshold, and still used. */
+  stale: boolean
+  /** Snapshot age in whole days at run start; absent when none was read. */
+  ageDays?: number
+}
+
+/** One org node as the renderer sends it: id, display name, handbook text. */
+export interface DeptHandbookSyncEntryData {
+  id: string
+  name: string
+  handbook: string
+}
+
 /** Mirrors main's `MemoryUnreadable`: a memory path AIPA could not read. */
 export interface MemoryUnreadableData {
   path: string
@@ -849,6 +875,11 @@ export interface AutomationRunRecordData {
    * The memory snapshot this run saw; absent on legacy records and on skips.
    */
   memory?: AutomationMemoryDigestData
+  /**
+   * What this run did with the job's department handbook, including why it
+   * carried none; absent on older records and on skips.
+   */
+  handbook?: AutomationHandbookDigestData
   /**
    * Tool-driven file edits observed live; absent on legacy records and skips.
    * Present-but-empty is "no file-editing tool calls seen", not "not recorded".
@@ -1945,6 +1976,12 @@ const electronAPI = {
   // whose department is missing from `entries` keep their last membership.
   automationDeptBudgetSync: (entries: Array<{ departmentId: string; memberIds: string[] }>) =>
     ipcRenderer.invoke('automation:deptBudgetSync', entries) as Promise<{ ok: boolean }>,
+  // The org tree reduced to what a scheduled run needs: each node's id, name
+  // and handbook. Main keeps this snapshot beside the jobs and reads it at run
+  // start; the renderer is the only writer, so main can never edit it. Text is
+  // bounded by main, and `updatedAt` is main's clock, not the caller's.
+  automationHandbookSnapshotSync: (entries: DeptHandbookSyncEntryData[]) =>
+    ipcRenderer.invoke('automation:handbookSnapshotSync', entries) as Promise<{ ok: boolean; error?: string }>,
   onAutomationChanged: (cb: () => void): Unsubscribe => {
     const handler = () => cb()
     ipcRenderer.on('automation:changed', handler)

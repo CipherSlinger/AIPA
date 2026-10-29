@@ -3635,7 +3635,26 @@
     "noConversations": "No conversations matched — here's what you built.",
     "matchInTool": "in tool output",
     "matchInThinking": "in thinking",
-    "matchTruncated": "cut short"
+    "matchTruncated": "cut short",
+    "match": {
+      "groupLabel": "Where it matched",
+      "all": "All",
+      "prose": "Prose",
+      "tool": "Tool output",
+      "thinking": "Thinking",
+      "scopeOne": "{{origin}} only — {{count}} other match from this query is hidden.",
+      "scope": "{{origin}} only — {{count}} other matches from this query are hidden.",
+      "emptyTitle": "No {{origin}} matches for this query",
+      "emptyHintOne": "The phrase does exist — the search found 1 match, and this filter keeps it out.",
+      "emptyHint": "The phrase does exist — the search found {{count}} matches, and this filter keeps them all out.",
+      "windowCapped": "The search stops after the newest {{limit}} matches. This view is only a slice of that window: older matches were never returned, and neither the filter nor the order can reach them."
+    },
+    "sort": {
+      "groupLabel": "Order",
+      "newest": "Newest first",
+      "oldest": "Oldest first",
+      "hint": "Rows stay grouped by project. Each group is ordered, and the groups follow the same order."
+    }
   },
   "askHistory": {
     "entry": "Ask AIPA…",
@@ -4063,6 +4082,24 @@
       "followDefault": "App default ({{level}})",
       "hint": "This job's runs use this effort. “App default” follows the current setting each time a run starts, not the one saved with the job; Auto lets the engine decide. Raise it for a job that needs deep reasoning, lower it for a nightly chore.",
       "row": "Effort: {{level}}"
+    },
+    "handbook": {
+      "used": "handbook: {{name}} · {{chars}}",
+      "usedTitle": "The standing rules of the department this job is filed under, as main last received them from the app. Only the size is recorded here, never the text.",
+      "chars": "{{count}} chars",
+      "truncated": "cut at {{count}} chars",
+      "truncatedHint": "The handbook was longer than one turn may carry, so only its first part was given to the model. The cut is stated inside the block it received.",
+      "staleOne": "snapshot saved 1 day ago",
+      "staleMany": "snapshot saved {{days}} days ago",
+      "staleHint": "The rules were still used — a stale rule is better than none — but this snapshot may predate recent edits. Editing the department refreshes it.",
+      "noDepartment": "no handbook: not filed under a department",
+      "noDepartmentHint": "This job belongs to no org node, so there is no desk whose rules could travel with its runs.",
+      "noSnapshot": "no handbook: nothing saved yet",
+      "noSnapshotHint": "Main has not received a handbook snapshot from the app yet, so this run carried no department's rules. Opening the app once writes it.",
+      "unknownDepartment": "no handbook: department not in the saved snapshot",
+      "unknownDepartmentHint": "The job is filed under a department the saved snapshot does not list — it may have been added or restored since the last sync. The run went ahead without its rules; opening the app refreshes the snapshot.",
+      "empty": "handbook empty: {{name}}",
+      "emptyHint": "This department's handbook holds no text, so the run carried none."
     }
   },
   "speculation": {

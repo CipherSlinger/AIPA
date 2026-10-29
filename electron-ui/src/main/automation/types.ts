@@ -122,6 +122,44 @@ export interface AutomationMemoryDigest {
 }
 
 /**
+ * What an unattended run did with its job's department handbook — never the
+ * text itself.
+ *
+ * The chat path can show a receipt on the turn it just sent; a scheduled run
+ * has nobody watching, so the run record is the only place this fact can land.
+ * Every state is recorded, including the absences: "this job is filed nowhere",
+ * "main was never given a snapshot", "the snapshot does not know this
+ * department" and "the handbook is empty" are different answers to the same
+ * post-mortem question, and only the first is the user's choice rather than a
+ * gap. `used` carries the size and the cut; `stale` says the rules were read
+ * from an old snapshot (and were still used).
+ */
+export type AutomationHandbookState =
+  | 'used'
+  | 'no-department'
+  | 'no-snapshot'
+  | 'unknown-department'
+  | 'empty'
+
+export interface AutomationHandbookDigest {
+  state: AutomationHandbookState
+  /** The department the job names; absent only when it names none. */
+  departmentId?: string
+  /** The node's display name as the snapshot held it; absent when unknown. */
+  departmentName?: string
+  /** Characters placed in the block (after the ceiling); 0 when nothing was. */
+  chars: number
+  /** The handbook's real length before the cut; 0 for an empty or absent one. */
+  sourceChars: number
+  /** The block was cut at the shared ceiling. */
+  truncated: boolean
+  /** The snapshot was older than the stated threshold; its text was still used. */
+  stale: boolean
+  /** Snapshot age in whole days at run start; absent when no snapshot was read. */
+  ageDays?: number
+}
+
+/**
  * How a file's change was described *by the engine's payload*.
  *
  * `unknown` is deliberate and common: Claude's Edit / Write / MultiEdit inputs
@@ -224,6 +262,12 @@ export interface AutomationRunRecord {
    * memory, so inventing an empty digest would say it saw "no memory".
    */
   memory?: AutomationMemoryDigest
+  /**
+   * What this run did with its job's department handbook, including why it
+   * carried none. Absent on records written before this field existed and on
+   * skips (a rail refusal never read the handbook). See `AutomationHandbookDigest`.
+   */
+  handbook?: AutomationHandbookDigest
   /**
    * File-editing tool calls observed during the run. Absent on older records
    * and on skips (nothing ran), and absent rather than empty when normalize
@@ -822,6 +866,13 @@ export interface AutomationRunOutcome {
    * prompts, no usable engine).
    */
   memory?: AutomationMemoryDigest
+  /**
+   * What the run did with its job's department handbook. Carried on failures
+   * too, and absent only when the runner returned before resolving one
+   * (already running, no prompts, no usable engine) — the same boundary as
+   * `memory`.
+   */
+  handbook?: AutomationHandbookDigest
   /**
    * File-editing tool calls observed before the run ended. Present on failures
    * too (the edits happened); absent only when the runner returned before an

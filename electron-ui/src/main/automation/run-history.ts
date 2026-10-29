@@ -23,6 +23,7 @@
  * append, eviction, restore and streak rules without a store or a window.
  */
 import { normalizeChangedFiles } from './changed-files'
+import { normalizeAutomationHandbookDigest } from './dept-handbook'
 import { isChainNote } from './job-chain'
 import { normalizeMemoryDigest } from './memory-digest'
 import { AUTOMATION_RETRY_POLICY } from './retry-policy'
@@ -112,6 +113,10 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
   // A malformed descriptor is dropped, not the record: the run still happened,
   // and a record written before this field existed has no descriptor at all.
   const memory = normalizeMemoryDigest(record.memory)
+  // Same rule as the memory descriptor: a malformed digest is dropped, not the
+  // record. A record written before this field existed keeps no digest, and the
+  // row stays silent rather than claiming the run carried no handbook.
+  const handbook = normalizeAutomationHandbookDigest(record.handbook)
   // Absent stays absent — "not recorded" must survive restore, never collapse
   // into an empty list. A corrupt summary is dropped for the same reason.
   const changedFiles = normalizeChangedFiles(record.changedFiles)
@@ -155,6 +160,7 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
       ...(retry !== undefined ? { retry } : {}),
       ...(usage ? { usage } : {}),
       ...(memory ? { memory } : {}),
+      ...(handbook ? { handbook } : {}),
       ...(changedFiles ? { changedFiles } : {}),
       ...(chain ? { chain } : {}),
     }
@@ -172,6 +178,9 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
     // A failed run saw a snapshot too; keeping it here is what makes the
     // history explain a failure that happened after the memory read.
     ...(memory ? { memory } : {}),
+    // The handbook was resolved before the first turn, so a failure afterwards
+    // still carried (or did not carry) those rules.
+    ...(handbook ? { handbook } : {}),
     // Edits made before a failure are still real; the summary travels with them.
     ...(changedFiles ? { changedFiles } : {}),
     // A failure can name the successor it never started, just as a success can
