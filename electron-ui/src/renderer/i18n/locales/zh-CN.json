@@ -391,7 +391,14 @@
         "notProceduralGeneric": "这段对话看起来不像一套可以重复的流程。什么都没有改动。",
         "tryAgain": "重试",
         "unavailableNoSession": "这段对话尚未保存，没有可提炼的记录。",
-        "unavailableStreaming": "请等当前回复结束后再提炼。"
+        "unavailableStreaming": "请等当前回复结束后再提炼。",
+        "skillSubtitleGeneral": "AIPA 会读取已保存的对话，归纳出一个可重复使用的技能。安装前请检查各字段和推断出来的说明。",
+        "skillActionHint": "读取这段已保存的对话并归纳成技能。点安装之前不会写入任何内容。",
+        "skillAppliedNotice": "草稿已填入，请检查后再安装",
+        "skillAssumptionsNote": "为了让技能能再次使用，模型做了这些取舍。安装前请逐条确认。",
+        "skillInputsHeading": "下次使用需要提供的输入（推断）",
+        "skillInputsNote": "这些值由模型推断，并非在对话里实际观察到。安装前请逐条确认。",
+        "skillBodyTruncated": "模型给出的说明超过了编辑框能容纳的长度，已截断。安装前请检查结尾。"
       }
     }
   },

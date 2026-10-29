@@ -38,6 +38,8 @@ import {
   normalizeGeneralizeLocale,
   parseWorkflowDraft,
 } from '../sessions/workflow-generalize'
+import type { WorkflowDigestMeta } from '../sessions/workflow-generalize'
+import { buildSkillPrompt, parseSkillDraft } from '../sessions/skill-generalize'
 import { collectRelatedSessions } from '../sessions/related-sessions'
 import { addMcpServer, getMcpConfigInfo, readMcpServers, removeMcpServer, setMcpServerEnabledRouted } from '../config/mcp-config'
 import { getSessionStats } from '../sessions/session-stats'
@@ -301,12 +303,15 @@ let askHistoryInFlight = false
 let askHistoryAbort: AbortController | null = null
 let askHistoryGeneration = 0
 
-// One workflow generalisation at a time, process-wide. Unlike the ask overlay
-// (which rejects a second question as "busy"), a second request here *supersedes*
-// the first: the renderer's draft window can be reopened on another
-// conversation, and waiting up to 90 s for a draft nobody will see is worse
-// than aborting it. The generation counter makes the older handler's `finally`
-// unable to free the slot the newer one already owns.
+// One generalisation at a time, process-wide — workflow and skill share this
+// slot. The limit is the machine's, not the artefact's: the workflow and skill
+// dialogs each hold at most one model turn, and two dialogs must never both
+// hold one while the other queues behind it. Unlike the ask overlay (which
+// rejects a second question as "busy"), a second request here *supersedes* the
+// first: a review window can be reopened on another conversation, and waiting
+// up to 90 s for a draft nobody will see is worse than aborting it. The
+// generation counter makes the older handler's `finally` unable to free the
+// slot the newer one already owns.
 let workflowGeneralizeInFlight = false
 let workflowGeneralizeAbort: AbortController | null = null
 let workflowGeneralizeGeneration = 0
@@ -2266,26 +2271,56 @@ function registerSessionHandlers(): void {
     }
   })
 
-  // ── Generalise a stored conversation into a workflow draft ──
+  // ── One generalisation slot, two artefacts ──
   //
-  // Reads one transcript, asks for a reusable procedure (not a replay), and
-  // returns a draft. Nothing is saved: the renderer shows the draft for review
-  // and owns the save/edit flow. The prompt carries transcript text, so only
-  // error codes are ever logged.
-  ipcMain.handle('session:generalizeWorkflowCancel', (): void => {
+  // A workflow draft and a SKILL.md body are two questions asked of the same
+  // transcript, answered by the same read-only turn. They therefore share one
+  // in-flight controller, one generation counter and one cancel path: with a
+  // slot each, a workflow draft and a skill draft could both hold a model turn
+  // at once, and a cancel aimed at one dialog would leave the other running
+  // invisibly. Keeping the dance in one helper is what makes that a property
+  // of the code rather than a rule two handlers have to remember.
+  //
+  // Nothing is saved either way: the renderer shows the draft for review. The
+  // prompt carries transcript text, so only error codes are ever logged.
+  function cancelGeneralize(): void {
     workflowGeneralizeGeneration++
     workflowGeneralizeAbort?.abort()
     workflowGeneralizeAbort = null
     workflowGeneralizeInFlight = false
-  })
+  }
 
-  ipcMain.handle('session:generalizeWorkflow', async (
-    _e: Electron.IpcMainInvokeEvent,
-    input: unknown,
-  ) => {
+  type GeneralizeErrorCode =
+    | 'missing_session'
+    | 'empty_transcript'
+    | 'not_procedural'
+    | 'invalid_draft'
+    | 'timeout'
+    | 'failed'
+    | 'aborted'
+
+  type GeneralizeParse<T> =
+    | { ok: true; draft: T }
+    | { ok: false; error: 'not_procedural'; reason?: string }
+    | { ok: false; error: 'invalid_draft' }
+
+  async function generalizeFromSession<T>(opts: {
+    /** Log prefix; also names the artefact in the log. */
+    channel: string
+    internalTag: string
+    input: unknown
+    buildPrompt: (
+      digest: string,
+      context: { locale: 'en' | 'zh-CN'; title: string | null; meta: WorkflowDigestMeta },
+    ) => string
+    parse: (text: string, fallbackTitle: string | null) => GeneralizeParse<T>
+  }): Promise<
+    | { ok: true; draft: T; meta: WorkflowDigestMeta }
+    | { ok: false; error: GeneralizeErrorCode; reason?: string }
+  > {
     try {
-      const raw = input && typeof input === 'object' && !Array.isArray(input)
-        ? input as { sessionId?: unknown; locale?: unknown; title?: unknown }
+      const raw = opts.input && typeof opts.input === 'object' && !Array.isArray(opts.input)
+        ? opts.input as { sessionId?: unknown; locale?: unknown; title?: unknown }
         : {}
       const sessionId = typeof raw.sessionId === 'string' ? raw.sessionId.trim() : ''
       // `loadSession` itself refuses an unusable id; checking here keeps the
@@ -2307,10 +2342,11 @@ function registerSessionHandlers(): void {
 
       const locale = normalizeGeneralizeLocale(typeof raw.locale === 'string' ? raw.locale : undefined)
       const title = typeof raw.title === 'string' && raw.title.trim() ? raw.title.trim() : null
-      const prompt = buildWorkflowPrompt(digest, { locale, title, meta })
+      const prompt = opts.buildPrompt(digest, { locale, title, meta })
 
-      // Newest wins: abort the turn this one replaces, then take the slot. The
-      // digest above is synchronous, so no other invoke can interleave here.
+      // Newest wins across both kinds: abort the turn this one replaces, then
+      // take the slot. The digest above is synchronous, so no other invoke can
+      // interleave here.
       if (workflowGeneralizeInFlight) workflowGeneralizeAbort?.abort()
       const generation = ++workflowGeneralizeGeneration
       const controller = new AbortController()
@@ -2321,7 +2357,7 @@ function registerSessionHandlers(): void {
         const result = await runInternalTurn({
           prompt,
           timeoutMs: 90_000,
-          internalTag: 'generalize-workflow',
+          internalTag: opts.internalTag,
           // The draft must come from the digest alone; a read-only internal
           // turn must not reach for tools either.
           answerOnly: true,
@@ -2332,23 +2368,23 @@ function registerSessionHandlers(): void {
           return { ok: false, error: 'aborted' }
         }
         if (!result.success) {
-          const code = result.error === 'aborted'
+          const code: GeneralizeErrorCode = result.error === 'aborted'
             ? 'aborted'
             : /timed out/i.test(result.error || '') ? 'timeout' : 'failed'
           // Error code only: `result.error` can quote model output, and the
           // prompt itself is transcript text.
-          log.warn(`session:generalizeWorkflow ${code}`)
+          log.warn(`${opts.channel} ${code}`)
           return { ok: false, error: code }
         }
 
-        const parsed = parseWorkflowDraft(result.text || '', { fallbackTitle: title })
+        const parsed = opts.parse(result.text || '', title)
         if (!parsed.ok) {
           if (parsed.error === 'not_procedural') {
             return parsed.reason
               ? { ok: false, error: 'not_procedural', reason: parsed.reason }
               : { ok: false, error: 'not_procedural' }
           }
-          log.warn('session:generalizeWorkflow invalid_draft')
+          log.warn(`${opts.channel} invalid_draft`)
           return { ok: false, error: 'invalid_draft' }
         }
         return { ok: true, draft: parsed.draft, meta }
@@ -2363,10 +2399,42 @@ function registerSessionHandlers(): void {
     } catch {
       // Code only: this path can quote the prompt or the model's answer, and
       // neither belongs in the log.
-      log.warn('session:generalizeWorkflow failed')
+      log.warn(`${opts.channel} failed`)
       return { ok: false, error: 'failed' }
     }
-  })
+  }
+
+  ipcMain.handle('session:generalizeWorkflowCancel', (): void => cancelGeneralize())
+
+  ipcMain.handle('session:generalizeWorkflow', async (
+    _e: Electron.IpcMainInvokeEvent,
+    input: unknown,
+  ) => generalizeFromSession({
+    channel: 'session:generalizeWorkflow',
+    internalTag: 'generalize-workflow',
+    input,
+    buildPrompt: (digest, context) => buildWorkflowPrompt(digest, context),
+    parse: (text, fallbackTitle) => parseWorkflowDraft(text, { fallbackTitle }),
+  }))
+
+  // ── Generalise a stored conversation into a SKILL.md draft ──
+  //
+  // The same read-only turn, asked for a markdown skill body instead: when to
+  // use it, steps, checks, pitfalls, with placeholders where that run's own
+  // values were. Nothing is installed; the renderer reviews the body and the
+  // installer adds the frontmatter.
+  ipcMain.handle('session:generalizeSkillCancel', (): void => cancelGeneralize())
+
+  ipcMain.handle('session:generalizeSkill', async (
+    _e: Electron.IpcMainInvokeEvent,
+    input: unknown,
+  ) => generalizeFromSession({
+    channel: 'session:generalizeSkill',
+    internalTag: 'generalize-skill',
+    input,
+    buildPrompt: (digest, context) => buildSkillPrompt(digest, context),
+    parse: (text, fallbackTitle) => parseSkillDraft(text, { fallbackTitle }),
+  }))
 
   ipcMain.handle('cli:generateSuggestion', async (_e: Electron.IpcMainInvokeEvent, { context }: { context: string }) => {
     try {

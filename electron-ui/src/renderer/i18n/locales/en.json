@@ -391,7 +391,14 @@
         "notProceduralGeneric": "This conversation does not read like a repeatable procedure. Nothing was changed.",
         "tryAgain": "Try again",
         "unavailableNoSession": "This conversation is not stored yet, so there is no transcript to generalise.",
-        "unavailableStreaming": "Wait for the current reply to finish before generalising."
+        "unavailableStreaming": "Wait for the current reply to finish before generalising.",
+        "skillSubtitleGeneral": "AIPA reads the stored conversation and proposes a reusable skill. Review the fields and the inferred notes before installing.",
+        "skillActionHint": "Reads this stored conversation and proposes a skill. Nothing is installed until you press Install.",
+        "skillAppliedNotice": "Draft applied — review before installing",
+        "skillAssumptionsNote": "The model made these choices so the skill can be used again. Check each one before installing.",
+        "skillInputsHeading": "Inferred inputs for a future use",
+        "skillInputsNote": "The model inferred these values; they were not observed in this conversation. Check each one before installing.",
+        "skillBodyTruncated": "The model's instructions were longer than the editor can hold, so they were cut. Review the end before installing."
       }
     }
   },

@@ -392,6 +392,33 @@ export type SessionGeneralizeResultData =
       reason?: string
     }
 
+/**
+ * A SKILL.md drafted from a conversation by the model.
+ *
+ * Same doctrine as `SessionWorkflowDraftData`: a draft for review, never an
+ * install. `body` is the markdown body only — the installer adds the
+ * frontmatter — and `assumptions` records what the model generalised so the
+ * user can correct it before the skill is used on real work.
+ */
+export interface SessionSkillDraftData {
+  name: string
+  description: string
+  /** Markdown body: when to use it, the steps, the checks. No frontmatter. */
+  body: string
+  assumptions: string[]
+  /** Values a future use must supply. */
+  inputs: string[]
+}
+
+export type SessionSkillGeneralizeResultData =
+  | { ok: true; draft: SessionSkillDraftData; meta: SessionWorkflowDraftMetaData }
+  | {
+      ok: false
+      error: SessionGeneralizeError
+      /** The model's own words for `not_procedural`; absent otherwise. */
+      reason?: string
+    }
+
 export interface NavPluginManifest {
   id: string
   name: string
@@ -1517,6 +1544,13 @@ const electronAPI = {
   // `{ ok: false, error: 'aborted' }`.
   sessionGeneralizeWorkflowCancel: () =>
     ipcRenderer.invoke('session:generalizeWorkflowCancel') as Promise<void>,
+  // The skill-shaped counterpart: the same transcript digest, asked for a
+  // SKILL.md body instead of workflow steps. One generalisation runs at a time
+  // in main, so the two dialogs cannot both hold a model turn.
+  sessionGeneralizeSkill: (input: { sessionId: string; locale?: string; title?: string | null }) =>
+    ipcRenderer.invoke('session:generalizeSkill', input) as Promise<SessionSkillGeneralizeResultData>,
+  sessionGeneralizeSkillCancel: () =>
+    ipcRenderer.invoke('session:generalizeSkillCancel') as Promise<void>,
   /**
    * Cumulative answer text for one ask, pushed every ~120 ms while the private
    * turn runs. The `requestId` is the one passed to `sessionAskHistory`; an

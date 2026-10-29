@@ -135,8 +135,13 @@ function capText(text: string, max: number): { text: string; clipped: boolean } 
   return { text: text.slice(0, cut).trimEnd(), clipped: true }
 }
 
-/** Clamp by code point, for fields whose limit is in characters, not UTF-16. */
-function capCharacters(text: string, max: number): string {
+/**
+ * Clamp by code point, for fields whose limit is in characters, not UTF-16
+ * units — an emoji or a CJK character counts once. Shared with
+ * `skill-generalize.ts`: both parsers promise the same limits, and two clamps
+ * would let one of them drift.
+ */
+export function capCharacters(text: string, max: number): string {
   const chars = Array.from(text)
   return chars.length <= max ? text : chars.slice(0, max).join('').trimEnd()
 }
@@ -304,7 +309,7 @@ export function normalizeGeneralizeLocale(locale?: string | null): 'en' | 'zh-CN
 }
 
 /** "Untitled" is the renderer's label, not a name worth copying. */
-function isPlaceholderTitle(title: string): boolean {
+export function isPlaceholderTitle(title: string): boolean {
   return /^(?:untitled(?: session)?|未命名(?:会话)?)$/i.test(title.trim())
 }
 
@@ -424,7 +429,7 @@ export interface WorkflowParseOptions {
 }
 
 /** Drop a leading ```json fence and a trailing ``` when the model added them. */
-function stripFences(raw: string): string {
+export function stripFences(raw: string): string {
   let text = raw.trim()
   const leading = /^```(?:json)?\s*/i.exec(text)
   if (leading) text = text.slice(leading[0].length)
@@ -433,11 +438,11 @@ function stripFences(raw: string): string {
 }
 
 /** Only a string counts as a field value; numbers and objects are ignored. */
-function asString(value: unknown): string {
+export function asString(value: unknown): string {
   return typeof value === 'string' ? value : ''
 }
 
-function clampString(value: unknown, max: number): string {
+export function clampString(value: unknown, max: number): string {
   return capCharacters(asString(value).trim(), max)
 }
 
@@ -446,7 +451,7 @@ function clampString(value: unknown, max: number): string {
  * trimming: "the date" and "The date" are different enough for a short list,
  * and case-folding would also merge two genuinely different input names.
  */
-function stringList(raw: unknown, max: number, maxChars: number): string[] {
+export function stringList(raw: unknown, max: number, maxChars: number): string[] {
   if (!Array.isArray(raw)) return []
   const out: string[] = []
   const seen = new Set<string>()

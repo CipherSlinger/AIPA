@@ -201,6 +201,7 @@ export default function SessionReuseMenu({
       )}
       {dialog === 'skill' && (
         <SaveConversationSkillDialog
+          sessionId={viewSessionId}
           sessionTitle={sessionTitle}
           onClose={() => setDialog(null)}
         />
