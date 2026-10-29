@@ -159,19 +159,22 @@ const ELLIPSIS: CSSProperties = {
 /**
  * The request exactly as the engine stated it.
  *
- * Monospace and selectable, because the user is being asked to judge a command
- * or a path: reflowing it, eliding it or translating it would remove the only
- * thing they can act on. It scrolls instead of growing the panel without bound.
+ * It is the most important text in the row — the only thing the user can judge
+ * — so it is set larger than the row's labels, not smaller, in monospace and
+ * selectable. `overflowWrap: anywhere` keeps a 2,000-character command with no
+ * spaces inside the 340px panel instead of pushing the layout sideways. It
+ * scrolls (and is focusable, so the scroll is reachable from the keyboard)
+ * rather than growing the panel without bound.
  */
 const APPROVAL_SUBJECT: CSSProperties = {
-  margin: '1px 0', padding: '4px 6px', borderRadius: 4,
+  margin: '2px 0 1px', padding: '6px 8px', borderRadius: 6,
   background: 'var(--bg-hover)',
-  borderLeft: '2px solid var(--warning-text)',
+  borderLeft: '3px solid var(--warning-text)',
   fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-  fontSize: 10, lineHeight: 1.45,
+  fontSize: 12, lineHeight: 1.5,
   color: 'var(--text-primary)',
-  whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-  maxHeight: 120, overflowY: 'auto',
+  whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-word',
+  maxHeight: 144, overflowY: 'auto',
   userSelect: 'text',
 }
 
@@ -202,9 +205,9 @@ function ApprovalButton({
       aria-busy={busy || undefined}
       aria-label={ariaLabel}
       style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
-        flex: 1, minWidth: 0, padding: '3px 6px',
-        borderRadius: 5, fontSize: 10, cursor: busy ? 'default' : 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+        flex: 1, minWidth: 0, padding: '4px 8px',
+        borderRadius: 6, fontSize: 11, cursor: busy ? 'default' : 'pointer',
         border: `1px solid ${approve ? 'var(--accent-text)' : 'var(--border)'}`,
         background: approve ? 'var(--bg-hover)' : 'transparent',
         color: approve ? 'var(--accent-text)' : 'var(--text-secondary)',
@@ -213,8 +216,8 @@ function ApprovalButton({
       }}
     >
       {busy
-        ? <Loader2 size={10} style={{ animation: 'spin 0.9s linear infinite' }} />
-        : approve ? <Check size={10} /> : <X size={10} />}
+        ? <Loader2 size={11} style={{ animation: 'spin 0.9s linear infinite' }} />
+        : approve ? <Check size={11} /> : <X size={11} />}
       <span style={ELLIPSIS}>{label}</span>
     </button>
   )
@@ -1037,7 +1040,7 @@ export default function BackgroundWorkPopover({
         zIndex: 200,
         display: 'flex',
         flexDirection: 'column',
-        gap: 2,
+        gap: 3,
         outline: 'none',
         // Anchored to the bottom edge and grown upwards, so when several jobs
         // hold requests the top of the panel — where those requests are listed
@@ -1073,13 +1076,17 @@ export default function BackgroundWorkPopover({
         <div
           role="status"
           style={{
-            display: 'flex', alignItems: 'flex-start', gap: 5,
-            padding: '5px 6px 4px',
-            fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.45,
+            display: 'flex', alignItems: 'flex-start', gap: 6,
+            margin: '2px 0 3px',
+            padding: '6px 8px', borderRadius: 6,
+            // This sentence is the answer the click was owed, so it gets a
+            // surface of its own rather than a line of small print.
+            background: 'var(--bg-hover)',
+            fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5,
           }}
         >
-          <Clock size={10} style={{ flexShrink: 0, marginTop: 2 }} />
-          <span>{t('statusBar.background.focusGone')}</span>
+          <Clock size={11} style={{ flexShrink: 0, marginTop: 2 }} />
+          <span style={{ minWidth: 0 }}>{t('statusBar.background.focusGone')}</span>
         </div>
       )}
 
@@ -1098,16 +1105,36 @@ export default function BackgroundWorkPopover({
                 ref={focused ? focusedRowRef : undefined}
                 tabIndex={focused ? -1 : undefined}
                 style={{
-                  display: 'flex', flexDirection: 'column', gap: 3,
-                  padding: '3px 6px 5px',
+                  display: 'flex', flexDirection: 'column', gap: 4,
+                  padding: '5px 6px 7px',
                   borderBottom: '1px solid var(--border)',
+                  // The row is a landing pad, not a control: it is focused
+                  // programmatically so the answer sits one Tab away, and the
+                  // tint (not an outline) is what says "this is the one you
+                  // clicked". The buttons inside keep the app's focus ring.
+                  borderRadius: 6,
+                  background: focused ? 'var(--accent-bg)' : undefined,
+                  boxShadow: focused ? 'inset 0 0 0 1px var(--accent-border)' : undefined,
                   outline: 'none',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                  <span style={{ ...ELLIPSIS, fontWeight: 600 }}>{job.name}</span>
+                  {/* A 200-character job name wraps to two lines and is then
+                      clipped; the full name stays in the tooltip. Truncating at
+                      one line hid which job was asking. */}
+                  <span
+                    title={job.name}
+                    style={{
+                      flex: 1, minWidth: 0, fontWeight: 600, fontSize: 11.5,
+                      overflowWrap: 'anywhere',
+                      display: '-webkit-box', WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    }}
+                  >
+                    {job.name}
+                  </span>
                   <span style={{
-                    flexShrink: 0, color: 'var(--warning-text)', fontSize: 10,
+                    flexShrink: 0, color: 'var(--warning-text)', fontSize: 10.5,
                     fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"',
                   }}>
                     {t('statusBar.background.waitingWaited', {
@@ -1115,19 +1142,21 @@ export default function BackgroundWorkPopover({
                     })}
                   </span>
                 </div>
-                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>
                   {t('statusBar.background.waitingSince', { time: timeText(wait.since) })}
                 </span>
                 {/* Verbatim, selectable and scrollable. This is the whole point
-                    of the panel: approve what will actually run. */}
+                    of the panel: approve what will actually run. Focusable so
+                    the scrolled part is reachable without a mouse. */}
                 <div
                   title={t('statusBar.background.waitingAskLabel')}
                   aria-label={t('statusBar.background.waitingAskLabel')}
+                  tabIndex={0}
                   style={APPROVAL_SUBJECT}
                 >
                   {wait.subject}
                 </div>
-                <div style={{ display: 'flex', gap: 4 }}>
+                <div style={{ display: 'flex', gap: 6 }}>
                   <ApprovalButton
                     tone="approve"
                     label={t('statusBar.background.waitingApprove')}
@@ -1143,7 +1172,7 @@ export default function BackgroundWorkPopover({
                     onClick={() => { void answerApproval({ job, wait }, false) }}
                   />
                 </div>
-                <span style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                <span style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
                   {t('statusBar.background.waitingTimeout', {
                     minutes: RUN_APPROVAL_TIMEOUT_MINUTES,
                   })}
@@ -1152,8 +1181,8 @@ export default function BackgroundWorkPopover({
             )
           })}
           <span style={{
-            fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4,
-            padding: '3px 6px 2px',
+            fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.5,
+            padding: '5px 6px 3px',
           }}>
             {t('statusBar.background.waitingOnce')}
           </span>

@@ -12,3 +12,4 @@
 - [Dept cap "frees at" forecast](dept-budget-frees-forecast.md) — rail holds at `>= cap` with float epsilon; forecast keys on `unreportedRuns`, not `unmeasured`
 - [Trash holding area](trash-holding-area.md) — undoable skill/workflow/conversation/job deletes, 30-day window, `*:trash:*` surface, refusal codes, harness namespace rule
 - [Automation job effort](automation-job-effort.md) — one level list in `job-effort.ts`, absent = global at run time, explicit auto sends nothing; no `src/shared` because of rootDir
+- [Skill-backed jobs](skill-backed-jobs.md) — identity is source + one directory segment (never a path), shared 8,000 ceiling, `skill_missing` disables like a deleted workflow

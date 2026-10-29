@@ -21,6 +21,7 @@ import { normalizePendingRetry } from './retry-policy'
 import { normalizeWaitingApproval } from './run-approvals'
 import { normalizeRunHistory } from './run-history'
 import { normalizeCost, normalizeRunUsage, normalizeTokenCount } from './run-usage'
+import { isSkillActionShape } from './skill-ref'
 import { normalizeDailyCostLimit } from './spend-guard'
 import { normalizeWatchDebounceMinutes } from './watcher'
 import type {
@@ -65,6 +66,12 @@ function isAction(value: unknown): value is AutomationAction {
     return typeof action.prompt === 'string' &&
       (action.cwd === undefined || typeof action.cwd === 'string')
   }
+  // A skill job survives a reload even when the folder is gone: the identity is
+  // checked for shape here (the store must not run a filesystem probe on every
+  // load), and the scheduler disables the job with `skill_missing` when it
+  // cannot resolve it. Dropping the job instead would erase its history at the
+  // moment the user most needs to read it.
+  if (action.kind === 'skill') return isSkillActionShape(action)
   return false
 }
 

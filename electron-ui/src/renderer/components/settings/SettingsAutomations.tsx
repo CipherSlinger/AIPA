@@ -55,6 +55,7 @@ import type {
   AutomationRunApprovalData,
   AutomationRunRecordData,
   JobTrashErrorCode,
+  SkillInfoData,
 } from '../../../preload'
 import { TRASH_RETENTION_DAYS, UNDO_TOAST_MS } from '../../lib/workflowTrash'
 import type { Persona } from '../../types/app.types'
@@ -144,11 +145,17 @@ export default function SettingsAutomations() {
   const { t, resolvedLocale } = useI18n()
   const workflows = usePrefsStore(s => s.prefs.workflows) as WorkflowOption[] | undefined
   const personas = usePrefsStore(s => s.prefs.personas) as Persona[] | undefined
+  // A skill-backed job's row names the skill, and the name lives in the skills
+  // scan, not in the job. Same directory main resolves the project root from.
+  const workingDir = usePrefsStore(s => s.prefs.workingDir)
   const plugins = usePluginStore(s => s.plugins)
   const departments = useDepartmentStore(s => s.departments)
   const addToast = useUiStore(s => s.addToast)
 
   const [jobs, setJobs] = useState<AutomationJobData[]>([])
+  // `null` = not read yet. The row falls back to the stored folder name until
+  // then, which is always true; an unreadable list never blanks the row.
+  const [skills, setSkills] = useState<SkillInfoData[] | null>(null)
   const [limits, setLimits] = useState<AutomationLimitsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [dialog, setDialog] = useState<AutomationJobData | null | 'new'>(null)
@@ -214,9 +221,36 @@ export default function SettingsAutomations() {
     return window.electronAPI.onAutomationChanged(() => { refresh() })
   }, [refresh])
 
+  // Read once per working directory. The list only supplies display names, so
+  // a failure leaves the rows showing the stored folder name rather than an
+  // error: the job is still schedulable, and that is the fact the row carries.
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const list = await window.electronAPI.skillsList(workingDir || undefined)
+        if (!cancelled) setSkills(Array.isArray(list) ? list : [])
+      } catch {
+        if (!cancelled) setSkills(null)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [workingDir])
+
   const workflowName = useCallback((id: string) => {
     return (workflows || []).find(w => w.id === id)?.name
   }, [workflows])
+
+  /**
+   * The display name of the skill a job runs, or null when the scan has not
+   * returned or no longer lists it. Null is not "missing": only the pair not
+   * being in a *read* list means the folder is gone, and the row says that
+   * through `actionMissing`.
+   */
+  const skillName = useCallback((source: 'personal' | 'project', dir: string) => {
+    if (!skills) return null
+    return skills.find(skill => skill.source === source && skill.skillDir === dir)?.name ?? null
+  }, [skills])
 
   /**
    * A job's origin plugin, as a badge label. An uninstalled plugin is not an
@@ -735,8 +769,15 @@ export default function SettingsAutomations() {
         setError(t('automation.duplicate.failed', { error: errorText(result.error) }))
         return
       }
+      // The copy carries the action's identity, so a duplicated skill job must
+      // not be told its "workflow" is gone — a sentence about the wrong thing
+      // is worse than the generic one.
       addToast('success', t(
-        result.job.actionMissing ? 'automation.duplicate.doneActionMissing' : 'automation.duplicate.done',
+        result.job.actionMissing
+          ? result.job.action.kind === 'skill'
+            ? 'automation.duplicate.doneSkillMissing'
+            : 'automation.duplicate.doneActionMissing'
+          : 'automation.duplicate.done',
         { name: result.job.name },
       ))
     } catch (err) {
@@ -1487,7 +1528,15 @@ export default function SettingsAutomations() {
                           ? t('automation.workflowAction', {
                               name: workflowName(job.action.workflowId) ?? t('automation.workflowMissingShort'),
                             })
-                          : t('automation.promptAction', { text: job.action.prompt })}
+                          : job.action.kind === 'skill'
+                            // Falling back to the folder name is deliberate: it
+                            // is the identity the job stores, so it is true even
+                            // when the scan has not returned or the skill is gone.
+                            ? t('automation.skillAction', {
+                                name: skillName(job.action.skillSource, job.action.skillDir) ??
+                                  (job.action.skillDir || 'SKILL.md'),
+                              })
+                            : t('automation.promptAction', { text: job.action.prompt })}
                       </span>
                       {expert && (
                         // The expert behind a background job is the point of the
@@ -1570,11 +1619,15 @@ export default function SettingsAutomations() {
                       // honest next step — open the job — instead of teaching
                       // the user to approve the same request every night.
                       <div style={{
-                        display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap',
-                        fontSize: 11, color: SECONDARY, marginTop: 3, lineHeight: 1.45,
+                        display: 'flex', alignItems: 'flex-start', gap: 4, flexWrap: 'wrap',
+                        rowGap: 2,
+                        fontSize: 11.5, color: SECONDARY, marginTop: 4, lineHeight: 1.5,
                       }}>
-                        <Clock size={11} style={{ flexShrink: 0 }} />
-                        <span title={t('automation.repeatedAsking.hint')}>
+                        <Clock size={11} style={{ flexShrink: 0, marginTop: 3 }} />
+                        {/* The quoted ask may be long: it wraps here instead of
+                            widening the row, and the full text stays in the
+                            tooltip the note already carries. */}
+                        <span style={{ minWidth: 0, overflowWrap: 'anywhere' }} title={t('automation.repeatedAsking.hint')}>
                           {t('automation.repeatedAsking.note', {
                             count: repeatedAsking.refusals,
                             subject: clipText(repeatedAsking.latestSubject),
@@ -1582,7 +1635,12 @@ export default function SettingsAutomations() {
                         </span>
                         <button
                           type="button"
-                          style={QUIET_LINK}
+                          style={{
+                            ...QUIET_LINK,
+                            // A two-pixel-high link gave the focus ring almost
+                            // nothing to sit on; the padding is hit area only.
+                            margin: '0 0 0 2px', padding: '1px 4px', borderRadius: 4,
+                          }}
                           aria-label={t('automation.repeatedAsking.reviewAria', { name: job.name })}
                           onClick={() => setDialog(job)}
                         >
@@ -1644,7 +1702,11 @@ export default function SettingsAutomations() {
                         fontSize: 11, color: WARNING, marginTop: 4, lineHeight: 1.5,
                       }}>
                         <AlertTriangle size={11} style={{ flexShrink: 0, marginTop: 2 }} />
-                        <span>{t('automation.workflowMissing')}</span>
+                        <span>
+                          {job.action.kind === 'skill'
+                            ? t('automation.skillMissing')
+                            : t('automation.workflowMissing')}
+                        </span>
                       </div>
                     )}
 
@@ -1774,12 +1836,16 @@ export default function SettingsAutomations() {
                                       key={`${approval.askedAt}-${approvalIndex}`}
                                       title={approvalTooltip(approval, t)}
                                       style={{
-                                        display: 'inline-flex', alignItems: 'center', gap: 3,
-                                        color: mark.color,
+                                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                                        color: mark.color, lineHeight: 1.5,
                                       }}
                                     >
-                                      {mark.icon}
-                                      {approvalClause(approval, t, durationText)}
+                                      {/* The glyph keeps its size while the
+                                          sentence wraps on a narrow row. */}
+                                      <span style={{ display: 'inline-flex', flexShrink: 0 }}>{mark.icon}</span>
+                                      <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+                                        {approvalClause(approval, t, durationText)}
+                                      </span>
                                     </span>
                                   )
                                 })}

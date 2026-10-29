@@ -9321,3 +9321,50 @@ Status: SUCCESS — `npm run check`: 0 errors, 112 pre-existing warnings; main, 
 - [x] Automatic backups default on, daily, keep 7; state in a stamp file, not prefs
 - [x] Restore from a listed backup reuses `importBackup`; renderer supplies a name only
 - [x] No write outside the harness scratch directories
+
+
+## Iteration 8 (wave 78A) — Skills as scheduled work (Backend)
+_Date: 2026-10-29 | Sprint Backend_
+
+### Summary
+A job can now run a saved skill. The stored identity is `{ kind: 'skill', skillSource: 'personal' | 'project',
+skillDir }`, where `skillDir` is a single directory segment under a skills root (`''` = the root's own
+`SKILL.md`). Roots are recomputed at run time (personal `~/.claude/skills`, then the persisted working
+directory's, then the renderer-supplied one, each validated against the allowed FS roots), so renaming the
+project folder does not strand a schedule; traversal is structurally impossible because separators, `.`,
+`..`, a drive colon and NUL are rejected before `path.join`. Save time rejects an invalid identity
+(`skill_invalid`) and a skill that is not installed (`skill_missing`) instead of failing at 03:00. A skill
+deleted later disables the job and records `skill_missing` in the same shape as a deleted workflow, while an
+unreadable `SKILL.md` gets its own code (`skill_unreadable`) rather than claiming deletion. The prompt is the
+body inside `<skill_instructions>`, cut at the department handbook's 8,000 characters with the same visible
+in-band marker; the run record carries a digest (source, dir, name, chars, sourceChars, truncated) that
+`run-history` drops if it cannot be arithmetically true. The dialog gains a searchable skill picker with
+explicit empty/loading/unreadable states, and the skill page lists the schedules that run it, opening
+Settings. Retries, budgets, chains and the hourly cap are the prompt path, untouched.
+
+### Files Changed
+- `src/main/automation/types.ts` — `AutomationSkillRef/Source/Digest`, the third action kind, `record.skill`, `actionMissing` doc
+- `src/main/automation/skill-ref.ts` — new: pure identity validator, shared ceiling/block builder, digest restore
+- `src/main/automation/skill-action.ts` — new: root resolution, in-root file check, bounded read, prompt + digest
+- `src/main/automation/scheduler.ts` — save-time validation, `resolveActionForRun`, skill disable branch, digest on the record, `isActionMissing`
+- `src/main/automation/job-store.ts` — `normalizeJob` accepts the skill shape (no fs probe at load)
+- `src/main/automation/run-history.ts` — digest survives a reload; never on a skip
+- `src/main/ipc/skills-handlers.ts` — shared roots with the scheduler; `SkillInfo.skillDir`
+- `src/preload/index.ts` — appended skill action/digest types, `record.skill`, `SkillInfoData.skillDir`
+- `src/renderer/components/automation/AutomationDialog.tsx` — Run a skill picker, search, empty/unreadable states, missing-skill guard
+- `src/renderer/components/settings/SettingsAutomations.tsx` — skill row text, skill-specific missing chip, duplicate toast variant
+- `src/renderer/components/skills/SkillDetail.tsx` — schedules strip, one row each, opens Settings
+- `src/renderer/components/skills/skillsShared.tsx` — `skillDir?` on the skill view
+- `.scratch/i18n-fragments/wave78a-skill-jobs.json` — 16 keys, en/zh-CN parity
+- `.scratch/wave78a-skill-jobs-harness/` — build.js + run.js
+
+### API Changes
+- No new IPC channel. `skills:list` rows gain `skillDir: string`; `automation:*` job actions and run records carry the skill variant and digest (types only)
+
+### Build
+Status: SUCCESS — `npm run check`: 0 errors, 113 warnings (none in the files this wave touched); main, preload and renderer built.
+
+### Acceptance Criteria
+- [x] Harness: 18 checks — identity accept/reject, ceiling + in-band marker, digest arithmetic, resolution under scratch roots, parent rename, save-time rejections, whitelists through store/trash/backup, deleted skill disables the job, run-history restore, UI/preload wiring, i18n parity
+- [x] Deleted skill fails the run with a named code and a flagged row; no silent no-op
+- [x] No new spending path, no persisted permission, no write outside scratch directories

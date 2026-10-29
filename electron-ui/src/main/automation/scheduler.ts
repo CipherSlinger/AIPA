@@ -38,6 +38,8 @@ import { departmentIdForCreate, normalizeDepartmentId } from './job-department'
 import { AUTOMATION_EFFORT_LEVELS, normalizeJobEffort, resolveRunEffort } from './job-effort'
 import type { AutomationEffort } from './job-effort'
 import { normalizeJobProvenance } from './job-provenance'
+import { normalizeSkillRef } from './skill-ref'
+import { readSkillPrompt, skillExists } from './skill-action'
 import { readAutomationStore, writeAutomationStore } from './job-store'
 import { MISSED_RUN_GRACE_MS, normalizeMissedRunPolicy, shouldSkipMissedRun } from './missed-policy'
 import { nextRunAfter } from './next-run'
@@ -76,6 +78,7 @@ import type {
   AutomationRunOutcome,
   AutomationRunRequest,
   AutomationRunSource,
+  AutomationSkillDigest,
   AutomationTrigger,
   AutomationWaitingApproval,
 } from './types'
@@ -372,6 +375,18 @@ function validateAction(value: AutomationAction): AutomationAction {
     }
     return { kind: 'prompt', prompt }
   }
+  if (value.kind === 'skill') {
+    const ref = normalizeSkillRef(value.skillSource, value.skillDir)
+    // The identity is one plain segment under a known root; anything else is a
+    // payload bug, not a skill that moved.
+    if (!ref) throw new AutomationInputError('skill_invalid')
+    // Resolved now, not at 03:00: naming a folder that holds no SKILL.md would
+    // otherwise be saved as a job that fails every interval until someone
+    // reads the history. A skill deleted *after* saving is the run-time branch
+    // in `startRun`; this half refuses one that was never there.
+    if (!skillExists(ref)) throw new AutomationInputError('skill_missing')
+    return { kind: 'skill', skillSource: ref.source, skillDir: ref.dir }
+  }
   throw new AutomationInputError('action_invalid')
 }
 
@@ -419,11 +434,37 @@ function resolveRunPersona(
   return resolved.persona
 }
 
-function resolveActionPrompts(action: AutomationAction, locale: UiLocale): string[] | null {
-  if (action.kind === 'prompt') return [action.prompt]
+/**
+ * What a job's action yields for this run: the prompts to send, the skill
+ * receipt when one was read, or the reason the run cannot start.
+ *
+ * The failure is a value rather than a throw because the caller has to disable
+ * the job and write a record — the same treatment a deleted workflow has always
+ * had — and it must do so before any spend or session work.
+ */
+type ActionResolution =
+  | { ok: true; prompts: string[]; skill?: AutomationSkillDigest }
+  | { ok: false; error: 'workflow_missing' | 'skill_missing' | 'skill_unreadable' }
+
+function resolveActionForRun(action: AutomationAction, locale: UiLocale): ActionResolution {
+  if (action.kind === 'prompt') return { ok: true, prompts: [action.prompt] }
+  if (action.kind === 'skill') {
+    // Re-validated here even though the store already checked it: the store is
+    // a file on disk, and an identity is only safe once the resolver that joins
+    // it to a root agrees it is a single segment.
+    const ref = normalizeSkillRef(action.skillSource, action.skillDir)
+    if (!ref) return { ok: false, error: 'skill_missing' }
+    const read = readSkillPrompt(ref)
+    if (!read.ok) return { ok: false, error: read.error }
+    // A SKILL.md with no body is not an instruction to run. Falling through to
+    // the existing "nothing to run" branch says exactly that, instead of
+    // spending a run on an empty wrapper.
+    if (!read.prompt.trim()) return { ok: true, prompts: [] }
+    return { ok: true, prompts: [read.prompt], skill: read.digest }
+  }
   const workflow = findWorkflow(action.workflowId)
-  if (!workflow) return null
-  return workflowPrompts(workflow, locale)
+  if (!workflow) return { ok: false, error: 'workflow_missing' }
+  return { ok: true, prompts: workflowPrompts(workflow, locale) }
 }
 
 /** Working directory for a run: the job's own, else prefs, else home. */
@@ -465,6 +506,22 @@ function approvalAttentionBridge(jobId: string): string {
   return `automation:${jobId}`
 }
 
+/**
+ * Whether the thing a job names can still be found.
+ *
+ * For a skill this is a stat on every list read. That is deliberate: a cached
+ * "it exists" would keep a row looking healthy long after the folder was
+ * deleted, and the count is bounded by `MAX_AUTOMATION_JOBS`.
+ */
+function isActionMissing(action: AutomationAction): boolean {
+  if (action.kind === 'workflow') return !findWorkflow(action.workflowId)
+  if (action.kind === 'skill') {
+    const ref = normalizeSkillRef(action.skillSource, action.skillDir)
+    return !ref || !skillExists(ref)
+  }
+  return false
+}
+
 function toView(job: AutomationJob): AutomationJobView {
   const { waitingApproval, ...rest } = job
   return {
@@ -473,7 +530,7 @@ function toView(job: AutomationJob): AutomationJobView {
     // run. Anything else is a leftover (a crash, a restored trashed job) and
     // must not put an unanswerable row in front of the user.
     ...(waitingApproval && running.has(job.id) ? { waitingApproval } : {}),
-    actionMissing: job.action.kind === 'workflow' && !findWorkflow(job.action.workflowId),
+    actionMissing: isActionMissing(job.action),
     running: running.has(job.id),
     // Derived, so a surface reading the list alone can tell that this enabled
     // job is waiting on the global pause rather than on its own schedule.
@@ -701,34 +758,41 @@ async function startRun(
     job.pendingRetry = undefined
   }
 
-  const prompts = resolveActionPrompts(job.action, locale)
-  if (prompts === null) {
-    // The workflow was deleted behind this job's back: stop retrying, and let
-    // the row say why instead of failing every interval.
+  const resolved = resolveActionForRun(job.action, locale)
+  if (!resolved.ok) {
+    // What the job names is gone behind its back — a deleted workflow, or a
+    // skill folder that no longer holds a SKILL.md: stop retrying, and let the
+    // row say why instead of failing every interval.
     job.enabled = false
     job.nextRunAt = null
     job.pendingRetry = undefined
     job.lastRunAt = now
     job.lastStatus = 'error'
-    job.lastError = 'workflow_missing'
+    job.lastError = resolved.error
     job.lastSessionId = null
     job.lastRunLate = false
     job.lastDurationMs = null
     // Nothing ran, so the previous run's spend must not masquerade as this one's.
     job.lastUsage = undefined
     // The failure still belongs in the history: a job that keeps naming a
-    // deleted workflow has failed again, and the row should say so after a
-    // restart instead of only until the next persistence.
+    // deleted workflow or skill has failed again, and the row should say so
+    // after a restart instead of only until the next persistence.
     job.history = appendRunRecord(job.history, {
       startedAt: now,
       status: 'error',
       durationMs: null,
       sessionId: null,
-      error: 'workflow_missing',
+      error: resolved.error,
       late: false,
       ...(opts.retryAttempt !== undefined ? { retry: opts.retryAttempt } : {}),
     })
-    log.warn(`Automation "${job.name}" disabled — its workflow no longer exists`)
+    log.warn(
+      resolved.error === 'skill_missing'
+        ? `Automation "${job.name}" disabled — its skill no longer exists`
+        : resolved.error === 'skill_unreadable'
+          ? `Automation "${job.name}" disabled — its skill could not be read`
+          : `Automation "${job.name}" disabled — its workflow no longer exists`,
+    )
     // A chained start that lands here started nothing; the source's record says
     // so without repeating the reason, which is recorded on this job's row.
     reportChain({ note: 'target_refused' })
@@ -738,6 +802,7 @@ async function startRun(
     persistAndBroadcast()
     return
   }
+  const { prompts } = resolved
   if (prompts.length === 0) {
     job.lastRunAt = now
     job.lastStatus = 'error'
@@ -1026,6 +1091,11 @@ async function startRun(
     // whether it was cut or stale — or the reason nothing was given. A skip
     // never reaches this record at all, so it cannot claim one it never read.
     ...(outcome.handbook ? { handbook: outcome.handbook } : {}),
+    // Which skill this run read, and how much of it was sent. Taken from the
+    // resolution that built the prompt rather than from the outcome: the runner
+    // never sees the skill as a separate thing — the block *is* the prompt.
+    // Absent for every other action kind.
+    ...(resolved.skill ? { skill: resolved.skill } : {}),
     // Live-captured tool-driven file edits. Absent only when the runner had no
     // engine conversation, which is also the case where nothing was observed;
     // a present-but-empty summary is the honest "no file edits seen".

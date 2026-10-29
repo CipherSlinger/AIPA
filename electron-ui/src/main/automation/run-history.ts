@@ -28,6 +28,7 @@ import { isChainNote } from './job-chain'
 import { normalizeMemoryDigest } from './memory-digest'
 import { AUTOMATION_RETRY_POLICY } from './retry-policy'
 import { normalizeRunApprovals } from './run-approvals'
+import { normalizeSkillDigest } from './skill-ref'
 import { normalizeRunUsage } from './run-usage'
 import type {
   AutomationRunChain,
@@ -121,6 +122,11 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
   // Absent stays absent — "not recorded" must survive restore, never collapse
   // into an empty list. A corrupt summary is dropped for the same reason.
   const changedFiles = normalizeChangedFiles(record.changedFiles)
+  // Which skill the run read, with its counts checked against each other. A
+  // record for any other action kind never carries one; a skip below cannot.
+  // The job's action is validated separately, so a moved skill still restores
+  // its receipt: the identity names a folder, not a live path.
+  const skill = normalizeSkillDigest(record.skill)
   // A held request that a person answered is the one fact this record may
   // never invent, which is why each entry is re-validated: `answeredBy` exists
   // exactly for approved/denied. A malformed entry is dropped, not the run.
@@ -166,6 +172,7 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
       ...(usage ? { usage } : {}),
       ...(memory ? { memory } : {}),
       ...(handbook ? { handbook } : {}),
+      ...(skill ? { skill } : {}),
       ...(changedFiles ? { changedFiles } : {}),
       ...(chain ? { chain } : {}),
       ...(approvals ? { approvals } : {}),
@@ -187,6 +194,9 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
     // The handbook was resolved before the first turn, so a failure afterwards
     // still carried (or did not carry) those rules.
     ...(handbook ? { handbook } : {}),
+    // The skill body was read and sent before the engine failed, so the
+    // receipt belongs on the failure too.
+    ...(skill ? { skill } : {}),
     // Edits made before a failure are still real; the summary travels with them.
     ...(changedFiles ? { changedFiles } : {}),
     // A failure can name the successor it never started, just as a success can

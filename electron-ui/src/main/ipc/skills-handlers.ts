@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
 import { createLogger } from '../utils/logger'
-import { getPref } from '../config/config-manager'
-import { getAllowedFsRoots, isPathInside, safePath } from '../utils/validate'
+import { isPathInside } from '../utils/validate'
+import { canonicalSkillPath, resolveSkillRoots } from '../automation/skill-action'
 import { parseSkillMd, type ParsedSkillMd } from '../skills/skillMd'
 import {
   listTrashedSkills,
@@ -52,6 +52,13 @@ interface SkillInfo {
   source: 'personal' | 'project'
   dirPath: string
   fileName: string
+  /**
+   * The identity a scheduled job stores: one directory segment under the skills
+   * root, or `''` for a `SKILL.md` at the root itself. `dirPath`/`fileName`
+   * cannot tell those two cases apart — both end in `SKILL.md` — so the picker
+   * is handed this rather than being asked to reverse-engineer one.
+   */
+  skillDir: string
   /** Provenance keys are absent for skills installed before wave 64. */
   sourceConversation?: string
   sourceTitle?: string
@@ -89,6 +96,7 @@ function scanSkillsDir(dir: string, source: 'personal' | 'project'): SkillInfo[]
               source,
               dirPath: path.join(dir, entry.name),
               fileName: entry.name,
+              skillDir: entry.name,
               ...provenanceFields(parsed),
             })
           } catch {
@@ -106,6 +114,9 @@ function scanSkillsDir(dir: string, source: 'personal' | 'project'): SkillInfo[]
             source,
             dirPath: dir,
             fileName: entry.name,
+            // A top-level SKILL.md has no segment of its own; the root is the
+            // skill, and the scheduler resolves `''` back to it.
+            skillDir: '',
             ...provenanceFields(parsed),
           })
         } catch {
@@ -119,36 +130,15 @@ function scanSkillsDir(dir: string, source: 'personal' | 'project'): SkillInfo[]
   return skills
 }
 
-/** Path identity: resolved, and case-folded on Windows where paths are case-insensitive. */
-function canonicalPath(p: string): string {
-  const resolved = path.resolve(p)
-  return process.platform === 'win32' ? resolved.toLowerCase() : resolved
-}
-
 /**
  * The only directories skills may be read from / deleted out of.
- * A per-tab cwd may not be persisted yet, so the renderer-supplied workingDir
- * is accepted too — but only after sandboxing it against the allowed FS roots.
+ *
+ * The list itself lives in `automation/skill-action.ts` because the scheduler
+ * resolves a job's skill through the same roots: two copies would let the
+ * picker offer a skill the runner then refuses, or hide one it would happily
+ * run. That module also drops any workingDir outside the allowed FS roots.
  */
-function getSkillsRoots(workingDir?: string): string[] {
-  const roots = [path.join(os.homedir(), '.claude', 'skills')]
-  const dirs = [getPref('workingDir') as string, workingDir]
-  for (const dir of dirs) {
-    if (!dir || !dir.trim()) continue
-    try {
-      safePath(dir, getAllowedFsRoots(getPref('workingDir') as string))
-    } catch (err) {
-      log.warn('skills: rejected unsafe workingDir:', String(err))
-      continue
-    }
-    const root = path.join(dir, '.claude', 'skills')
-    // The persisted pref and the renderer's cwd are usually the same directory,
-    // so without this the same project root would be scanned twice.
-    if (roots.some(r => canonicalPath(r) === canonicalPath(root))) continue
-    roots.push(root)
-  }
-  return roots
-}
+const getSkillsRoots = resolveSkillRoots
 
 export function registerSkillsHandlers(): void {
   ipcMain.handle('skills:list', (_e, workingDir?: string) => {
@@ -162,7 +152,7 @@ export function registerSkillsHandlers(): void {
     // directory twice; keep the first hit so the personal label wins.
     const seen = new Set<string>()
     return scanned.filter(s => {
-      const key = canonicalPath(s.dirPath)
+      const key = canonicalSkillPath(s.dirPath)
       if (seen.has(key)) return false
       seen.add(key)
       return true

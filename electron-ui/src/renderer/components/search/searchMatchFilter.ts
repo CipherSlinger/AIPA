@@ -87,22 +87,95 @@ export type SearchMatchFilter = 'all' | 'prose' | 'tool' | 'thinking'
 export type ScanOrigin = 'prose' | 'tool' | 'thinking'
 
 /**
- * Whether the filter bar should offer the explicit "search with this filter"
- * action.
+ * Every origin a scan can retain, in the chips' order.
  *
- * Only when the loaded rows are a partial answer and the active chip is a real
- * origin: with everything loaded, the filter already speaks for the whole
- * result set, and `all` is not a narrowing. The action is refused while the
- * scan is already narrowed to exactly this origin — pressing it again would
- * only re-run a scan that is already narrow.
+ * Main echoes all three when only the session list narrowed the scan, so the
+ * renderer reads a full list as "not narrowed by origin". That inference is
+ * sound because the interface never asks for all three: a chip is exactly one
+ * origin. See `narrowingFromEcho`.
+ */
+export const SCAN_ORIGINS: readonly ScanOrigin[] = ['prose', 'tool', 'thinking']
+
+/**
+ * The narrowings one scan carries. `origins: null` keeps every origin;
+ * `deptId: null` keeps the whole session listing. Neither side is a filter over
+ * the returned rows — both are handed to main before it scans, so they decide
+ * what the ceiling ever sees.
+ */
+export interface ScanNarrowing {
+  origins: ScanOrigin[] | null
+  deptId: string | null
+}
+
+/** The narrowing the visible chips ask for. `all`/`null` mean "not narrowed". */
+export function scanNarrowingForChips(
+  filter: SearchMatchFilter,
+  deptId: string | null,
+): ScanNarrowing {
+  return { origins: filter === 'all' ? null : [filter], deptId }
+}
+
+/** Nothing would be pushed: the scan would be exactly the whole history. */
+export function isEmptyScanNarrowing(narrowing: ScanNarrowing): boolean {
+  return narrowing.origins === null && narrowing.deptId === null
+}
+
+/** Value equality, so pressing the action twice cannot look like progress. */
+export function sameScanNarrowing(a: ScanNarrowing, b: ScanNarrowing): boolean {
+  const sameOrigins = a.origins === null
+    ? b.origins === null
+    : b.origins !== null
+      && a.origins.length === b.origins.length
+      && a.origins.every((origin, index) => origin === b.origins?.[index])
+  return sameOrigins && a.deptId === b.deptId
+}
+
+/**
+ * The department chip as the scan sees it: which node is selected now, which
+ * node the running scan was narrowed to, and how many conversations the
+ * selected node resolves to in this machine's listing.
+ *
+ * `sessionTotal: 0` is a real empty scope. It is not a reason to widen back to
+ * the whole history, and it is not a reason to spend a scan either.
+ */
+export interface DeptScanChoice {
+  selected: string | null
+  scanned: string | null
+  sessionTotal: number | null
+}
+
+/**
+ * Whether the filter bar should offer the one explicit action that pushes the
+ * current chips into the scan.
+ *
+ * Only when the loaded rows are a partial answer and at least one chip is a real
+ * narrowing: with everything loaded, the chips already speak for the whole
+ * result set, and "All" is not a narrowing. The action is refused while the
+ * scan already carries exactly this narrowing — pressing it again would only
+ * re-run a scan that is already narrow. A department with no conversations is
+ * refused too, because the scan it would start reads nothing.
+ *
+ * The four-argument call (no `dept`) is the origin-only rule this module shipped
+ * with; the department argument extends it rather than redefining it.
  */
 export function shouldOfferScopedScan(
   partial: boolean,
   filter: SearchMatchFilter,
   scannedOrigins: readonly ScanOrigin[] | null,
+  dept?: DeptScanChoice,
 ): boolean {
-  if (!partial || filter === 'all') return false
-  return !(scannedOrigins?.length === 1 && scannedOrigins[0] === filter)
+  if (!partial) return false
+  const selected = dept?.selected ?? null
+  if (selected !== null && dept?.sessionTotal === 0) return false
+  const next = scanNarrowingForChips(filter, selected)
+  // Widening is the clear button's job; an action that pushes nothing is not an
+  // action the bar should offer.
+  if (isEmptyScanNarrowing(next)) return false
+  const scanned: ScanNarrowing = {
+    origins: scannedOrigins ? [...scannedOrigins] : null,
+    deptId: dept?.scanned ?? null,
+  }
+  return !sameScanNarrowing(next, scanned)
 }
 
 export const SEARCH_MATCH_FILTERS: readonly SearchMatchFilter[] = [

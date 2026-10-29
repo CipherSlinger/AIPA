@@ -74,6 +74,12 @@ import {
   resolveListAskIds,
   type ListScope,
 } from './searchAskScope'
+import {
+  narrowingFromEcho,
+  pinDeptScanScope,
+  scanDeptState,
+  type DeptScanPin,
+} from './searchDeptScan'
 
 /**
  * Every ask source records the term it matched on, so a citation click can mark
@@ -334,10 +340,16 @@ export default function GlobalSearchOverlay() {
   // reversal of the same window, never a second scan.
   const [sortOrder, setSortOrder] = useState<SearchSortOrder>('newest')
   // Origins the scan itself is narrowed to, or null for the whole history. Set
-  // only by the bar's explicit "search with this filter" action and cleared by
-  // its "search the whole history again" action. Changing a chip never touches
-  // it: a filter change must never start a scan behind the user's back.
+  // only by the bar's explicit scoped-scan action and cleared by its "search
+  // the whole history again" action. Changing a chip never touches it: a filter
+  // change must never start a scan behind the user's back.
   const [scanOrigins, setScanOrigins] = useState<ScanOrigin[] | null>(null)
+  // The department the scan itself is narrowed to, frozen at the press: the
+  // exact session ids, plus the name and totals the bar announced. A snapshot
+  // rather than the live resolution, so a filing change, a session that starts
+  // or a node deleted mid-scan cannot retarget the ordering a page will slice.
+  // Set only by the same explicit action as `scanOrigins`.
+  const [scanDept, setScanDept] = useState<DeptScanPin | null>(null)
   // The query for which the scan was last widened back to the whole history.
   // Keyed by the query so the note disappears as soon as the user searches for
   // something else instead of lingering over unrelated rows.
@@ -442,7 +454,15 @@ export default function GlobalSearchOverlay() {
     loadMore,
     lastPage,
     runId,
-  } = useGlobalSessionSearch(query, askState === 'idle', scanOrigins)
+  } = useGlobalSessionSearch(
+    query,
+    askState === 'idle',
+    scanOrigins,
+    // The pinned array, not a fresh `[...ids]`: the hook keys its scan on the
+    // id list, and a new identity every render would look like a new narrowing
+    // and restart the scan under the user.
+    scanDept ? scanDept.ids : null,
+  )
 
   // Search hits carry no origin of their own; the session listing does. A hit
   // that is not listed stays unknown and shows no badge.
@@ -526,6 +546,28 @@ export default function GlobalSearchOverlay() {
       : null),
     [sessions, departments, deptFilter, homeDir, filings],
   )
+  // The live chip as the filter bar describes it. `total` is what the subtree
+  // holds before the scope cap, so the bar can say "640, the scan carries 500"
+  // before anything runs — and can say "none" without pretending otherwise.
+  const deptScanChip = useMemo(
+    () => (deptFilter && deptScope
+      ? {
+          id: deptFilter,
+          label: deptFilterLabel,
+          total: deptScope.total,
+          truncated: deptScope.truncated,
+        }
+      : null),
+    [deptFilter, deptScope, deptFilterLabel],
+  )
+  // The pin named the way the scan-active line needs it. `gone` is computed
+  // from the live tree, so a node deleted while its narrowed scan is on screen
+  // is reported instead of being presented as current.
+  const liveDeptIds = useMemo(() => new Set(departments.map(dept => dept.id)), [departments])
+  const scannedDept = useMemo(
+    () => scanDeptState(scanDept, liveDeptIds),
+    [scanDept, liveDeptIds],
+  )
   // What a list-scoped ask would send: the archive's exact ids, narrowed by the
   // department subtree when one is also selected. Preserving the list order
   // keeps the receipt's count and the rows the user sees describing the same
@@ -544,19 +586,31 @@ export default function GlobalSearchOverlay() {
   }, [setOpen])
 
   // The two deliberate ways to change what the scan collects. Both are buttons
-  // in the filter bar; nothing else in this file may set `scanOrigins`, so a
-  // chip click or an order change cannot turn into a scan.
-  const scanWithMatchFilter = useCallback(() => {
-    if (matchFilter === 'all') return
+  // in the filter bar; nothing else in this file may set `scanOrigins` or
+  // `scanDept`, so a chip click or an order change cannot turn into a scan.
+  //
+  // One action, whatever the chips say: the origin chip (if one is active) and
+  // the department's sessions, using the same resolution a scoped ask uses. The
+  // bar names exactly which narrowings will be pushed before this runs.
+  const scanWithCurrentNarrowing = useCallback(() => {
     setScanClearedFor('')
-    setScanOrigins([matchFilter])
-  }, [matchFilter])
-  // Widening also clears the chip: the rows that follow are the whole history,
-  // and leaving "prose only" selected over them would describe a scan that is
-  // no longer narrowed.
+    setScanOrigins(matchFilter === 'all' ? null : [matchFilter])
+    setScanDept(
+      deptFilter && deptScope
+        ? pinDeptScanScope(deptFilter, deptFilterLabel, deptScope)
+        : null,
+    )
+  }, [matchFilter, deptFilter, deptScope, deptFilterLabel])
+  // Widening also clears the chips: the rows that follow are the whole history,
+  // and leaving "prose only" or a department selected over them would describe
+  // a scan that is no longer narrowed. The department pin is dropped with them
+  // so no later page can slice the old department's corpus.
   const scanWholeHistory = useCallback(() => {
     setScanOrigins(null)
+    setScanDept(null)
     setMatchFilter('all')
+    setDeptFilter(null)
+    setDeptPinned(false)
     setScanClearedFor(query.trim())
   }, [query])
 
@@ -1096,6 +1150,13 @@ export default function GlobalSearchOverlay() {
   // sentence has to hard-code a second name for the same bucket. The coverage
   // lines inside the bar translate their own copies.
   const matchFilterLabel = t(`globalSearch.match.${matchFilter}`)
+  // What the reply says it kept. The scoped-empty copy names those narrowings
+  // and nothing else: "no matches anywhere in the history" is a claim a
+  // department-scoped scan never earned.
+  const scopedEcho = narrowingFromEcho(filteredBy)
+  const scopedOriginLabels = (scopedEcho?.origins ?? [])
+    .map(origin => t(`globalSearch.match.${origin}`))
+    .join(' + ')
   // The loaded rows are only part of what the query knows: either more pages
   // can be fetched, or the scan's own ceiling stopped it. Every count below is
   // over the loaded set, and the copy says so when this is true.
@@ -1105,6 +1166,7 @@ export default function GlobalSearchOverlay() {
   const scanCleared = scanClearedFor !== ''
     && scanClearedFor === trimmed
     && scanOrigins === null
+    && scanDept === null
     && filteredBy === null
   // How many rows the next page would actually add (the last page can be short).
   const nextCount = nextPageSize(results.length, totalHits)
@@ -1181,9 +1243,14 @@ export default function GlobalSearchOverlay() {
               setOriginFilter(current => originFilterForQuery(query, e.target.value, current))
               // A pinned filter was chosen from a department page, not over
               // these rows, so typing must not drop it; a manual choice still
-              // resets with the query.
+              // resets with the query. While the scan itself carries a
+              // department, the chip keeps naming it too — otherwise the next
+              // result set would be narrowed at the source by a department the
+              // visible control says is not selected.
               setDeptFilter(current => (
-                deptPinned ? current : deptFilterForQuery(query, e.target.value, current)
+                deptPinned || scanDept !== null
+                  ? current
+                  : deptFilterForQuery(query, e.target.value, current)
               ))
               // Editing invalidates whatever the previous text produced. An
               // answer is simply stale, so return to the list; a running turn
@@ -1450,9 +1517,11 @@ export default function GlobalSearchOverlay() {
             ceilingReached={ceilingReached}
             scannedOrigins={scanOrigins}
             scanEcho={filteredBy}
-            onScanWithFilter={scanWithMatchFilter}
+            onScanWithFilter={scanWithCurrentNarrowing}
             onScanWholeHistory={scanWholeHistory}
             scanCleared={scanCleared}
+            dept={deptScanChip}
+            scannedDept={scannedDept}
           />
         )}
 
@@ -1924,22 +1993,38 @@ export default function GlobalSearchOverlay() {
 
                 {/* The scan was narrowed at the source and found nothing. The
                     phrase may exist in matches the user excluded, so this must
-                    not read as "nothing anywhere". The way back is one press. */}
+                    not read as "nothing anywhere". A department-scoped scan
+                    never looked outside that department, and the copy says
+                    which corpus it spoke for. The way back is one press. */}
                 {showScopedEmpty && !showLoading && (
                   <div style={EMPTY_STYLE}>
                     <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                      {t('globalSearch.match.scanEmptyTitle', {
-                        origin: (filteredBy?.origins ?? [])
-                          .map(origin => t(`globalSearch.match.${origin}`))
-                          .join(' + '),
-                      })}
+                      {t(
+                        scopedEcho?.sessionCount != null
+                          ? scopedEcho.origins !== null
+                            ? 'globalSearch.deptScan.emptyBothTitle'
+                            : 'globalSearch.deptScan.emptyDeptTitle'
+                          : 'globalSearch.match.scanEmptyTitle',
+                        {
+                          origin: scopedOriginLabels,
+                          dept: scannedDept?.label ?? '',
+                          count: scopedEcho?.sessionCount ?? 0,
+                        },
+                      )}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-                      {t('globalSearch.match.scanEmptyHint', {
-                        origin: (filteredBy?.origins ?? [])
-                          .map(origin => t(`globalSearch.match.${origin}`))
-                          .join(' + '),
-                      })}
+                      {t(
+                        scopedEcho?.sessionCount != null
+                          ? scopedEcho.origins !== null
+                            ? 'globalSearch.deptScan.emptyBothHint'
+                            : 'globalSearch.deptScan.emptyDeptHint'
+                          : 'globalSearch.match.scanEmptyHint',
+                        {
+                          origin: scopedOriginLabels,
+                          dept: scannedDept?.label ?? '',
+                          count: scopedEcho?.sessionCount ?? 0,
+                        },
+                      )}
                     </div>
                     <button
                       type="button"

@@ -66,9 +66,55 @@ export type AutomationRunSource = 'manual' | 'scheduled' | 'watch' | 'chain'
  */
 export type AutomationMissedRunPolicy = 'run' | 'skip'
 
+/**
+ * The two roots a job may name a skill from.
+ *
+ * `personal` is `~/.claude/skills`; `project` is `<working directory>/.claude/skills`.
+ * The source is stored instead of a path because the folder above a skill is
+ * allowed to move: renaming the project directory or the home folder must not
+ * strand a schedule that runs every Monday.
+ */
+export type AutomationSkillSource = 'personal' | 'project'
+
+/**
+ * Which installed skill a job runs, named the way the skills scanner names it.
+ *
+ * `dir` is one directory segment under the root — or `''` for a `SKILL.md` that
+ * sits at the root itself. It is deliberately not a path and not the display
+ * name: a slash, a `..`, a drive letter or a NUL is rejected when the job is
+ * saved and again when it is read back, so the identity cannot point outside
+ * the root it names; and renaming the skill in its frontmatter leaves the
+ * schedule attached to the folder that actually holds the instructions.
+ */
+export interface AutomationSkillRef {
+  source: AutomationSkillSource
+  dir: string
+}
+
 export type AutomationAction =
   | { kind: 'workflow'; workflowId: string }
   | { kind: 'prompt'; prompt: string; cwd?: string }
+  | { kind: 'skill'; skillSource: AutomationSkillSource; skillDir: string }
+
+/**
+ * What an unattended run actually read from its skill — never the text.
+ *
+ * A skill run has nobody watching, so the record is the only place the receipt
+ * can land: which skill, whether the body was cut at the shared ceiling, and
+ * how many characters went into the prompt. `dir` repeats the job's identity
+ * rather than the skill's current display name, so the receipt still says
+ * which folder ran after a frontmatter rename.
+ */
+export interface AutomationSkillDigest extends AutomationSkillRef {
+  /** The skill's frontmatter name when it declares one; absent otherwise. */
+  name?: string
+  /** Characters placed in the prompt (after the ceiling); never 0 on a real run. */
+  chars: number
+  /** The body's real length before the cut. */
+  sourceChars: number
+  /** The body was cut at the shared ceiling. */
+  truncated: boolean
+}
 
 /**
  * `running` is persisted so a crash mid-run is visible, but the next launch
@@ -328,6 +374,14 @@ export interface AutomationRunRecord {
    * skips (a rail refusal never read the handbook). See `AutomationHandbookDigest`.
    */
   handbook?: AutomationHandbookDigest
+  /**
+   * Which skill this run read, and how much of it went into the prompt. Present
+   * only on runs whose job action is `kind: 'skill'`; absent on every other run
+   * and on skips, which never resolved a skill at all. A skill run that failed
+   * still carries it, because the instructions were sent before the engine
+   * failed.
+   */
+  skill?: AutomationSkillDigest
   /**
    * File-editing tool calls observed during the run. Absent on older records
    * and on skips (nothing ran), and absent rather than empty when normalize
@@ -755,7 +809,12 @@ export interface AutomationDeptBudgetReport extends AutomationDeptBudget {
 }
 
 export interface AutomationJobView extends AutomationJob {
-  /** The workflow this job names no longer exists in prefs. */
+  /**
+   * What this job names no longer exists: the workflow is gone from prefs, or
+   * the skill folder no longer holds a `SKILL.md` under its root. Either way the
+   * next run cannot start, and the row says so before the user is asked to wait
+   * for a failure at 03:00.
+   */
   actionMissing: boolean
   /** A run is in flight right now (not persisted). */
   running: boolean

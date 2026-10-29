@@ -361,8 +361,10 @@ export default function BackgroundWorkIndicator() {
             <span
               style={{
                 width: 6, height: 6, borderRadius: '50%',
-                background: '#4ade80',
-                boxShadow: '0 0 4px rgba(74,222,128,0.6)',
+                // The theme's success token, not a fixed hex: the light theme
+                // needs a darker green to read on its status bar.
+                background: 'var(--success)',
+                boxShadow: '0 0 4px var(--success)',
                 animation: 'pulse 1.2s ease-in-out infinite',
               }}
             />

@@ -1129,7 +1129,9 @@
         "running": "Writing backup…",
         "saveFailed": "The automatic backup setting could not be saved.",
         "size": "{{size}} KB",
-        "title": "Automatic backups"
+        "title": "Automatic backups",
+        "intervalLabel": "How often",
+        "enableHintWeekly": "AIPA writes a backup by itself shortly after it starts, at most once a week, and never holds up the window. A week is counted from Monday midnight, local time. Quitting before that happens means the next launch writes it."
       }
     }
   },
@@ -1991,7 +1993,11 @@
     },
     "deletedToTrash": "Skill moved to Recently deleted — restorable for {{days}} days",
     "undoDeleteAria": "Undo deleting “{{name}}”",
-    "restored": "Skill restored"
+    "restored": "Skill restored",
+    "schedules": {
+      "title": "Scheduled runs",
+      "openHint": "Open in Settings → Automations"
+    }
   },
   "skill": {
     "createTitle": "Create Skill",
@@ -3753,7 +3759,27 @@
       "narrowedScopedCeiling": "The scan kept only {{origin}} matches and stopped at the newest {{ceiling}}; older {{origin}} matches were not collected."
     },
     "originFilterEmptyLoadedOne": "The filter is hiding the only loaded match",
-    "originFilterEmptyLoaded": "The filter is hiding all {{count}} loaded matches"
+    "originFilterEmptyLoaded": "The filter is hiding all {{count}} loaded matches",
+    "deptScan": {
+      "hintDept": "The department filter applies only to the {{loaded}} matches loaded so far. Searching again restarts over the whole history and keeps only conversations filed under {{dept}}; how many there are is not known until it finishes.",
+      "hintBoth": "The department filter and the {{origin}} chip apply only to the {{loaded}} matches loaded so far. Searching again restarts the whole history and keeps only {{origin}} matches from conversations filed under {{dept}}.",
+      "buttonDept": "Search all of {{dept}}",
+      "buttonBoth": "Search {{dept}} for {{origin}} matches",
+      "capped": "{{dept}} resolves to {{total}} conversations in this machine's listing; the scan can carry the first {{cap}}.",
+      "emptyDeptScope": "{{dept}} has no conversations in this machine's listing, so a department-wide scan would read nothing. Nothing is searched, and nothing falls back to the whole history.",
+      "activeDept": "The scan itself is narrowed to conversations filed under {{dept}} — the counts below describe that scan, not the whole history.",
+      "activeBoth": "The scan itself is narrowed to {{origin}} matches in conversations filed under {{dept}} — the counts below describe that scan, not the whole history.",
+      "activeTruncated": "More conversations qualified than the scan could carry; it read the first {{count}}.",
+      "activeGone": "{{dept}} is no longer in the org chart; this scan still covers the conversations it had when it started.",
+      "narrowedDeptMore": "Filters and order apply only to the {{loaded}} matches loaded so far; earlier matches in {{dept}} were scanned but are not loaded yet.",
+      "narrowedDeptCeiling": "The scan kept only matches from {{dept}} and stopped at the newest {{ceiling}}; older matches there were not collected.",
+      "narrowedBothMore": "Filters and order apply only to the {{loaded}} matches loaded so far; earlier {{origin}} matches in {{dept}} were scanned but are not loaded yet.",
+      "narrowedBothCeiling": "The scan kept only {{origin}} matches in {{dept}} and stopped at the newest {{ceiling}}; older matches there were not collected.",
+      "emptyDeptTitle": "No matches anywhere under {{dept}}",
+      "emptyDeptHint": "This scan looked only at conversations filed under {{dept}} ({{count}} of them). Matches elsewhere exist but were not part of it.",
+      "emptyBothTitle": "No {{origin}} matches under {{dept}}",
+      "emptyBothHint": "This scan looked only at {{origin}} matches in the conversations filed under {{dept}} ({{count}} of them). Matches elsewhere exist but were not part of it."
+    }
   },
   "askHistory": {
     "entry": "Ask AIPA…",
@@ -3873,7 +3899,8 @@
       "workflow": "Run a workflow",
       "prompt": "Send a prompt",
       "noWorkflows": "No workflows yet — create one in the Workflows panel first.",
-      "promptPlaceholder": "Summarise what I worked on yesterday and list today's priorities."
+      "promptPlaceholder": "Summarise what I worked on yesterday and list today's priorities.",
+      "skill": "Run a skill"
     },
     "scheduleOption": {
       "daily": "Daily",
@@ -3923,7 +3950,10 @@
       "missed_while_closed": "It came due while AIPA was closed.",
       "chain_invalid": "That next job could not be read as a job. Choose another one, or Nothing.",
       "chain_cycle": "That would make this automation run “{{job}}” and then come back to itself in a loop. Nothing was saved.",
-      "interrupted_while_waiting": "interrupted while waiting for your answer"
+      "interrupted_while_waiting": "interrupted while waiting for your answer",
+      "skill_invalid": "That skill could not be read as a skill. Pick one from the list.",
+      "skill_missing": "That skill is no longer installed. Pick another one.",
+      "skill_unreadable": "That skill's SKILL.md could not be read. Check the file's permissions."
     },
     "personaHint": "Scheduled runs of this workflow use this expert. The workflow's own Run button still uses the current conversation's expert.",
     "personaMissing": "Expert deleted",
@@ -4059,7 +4089,8 @@
     "duplicate": {
       "done": "Duplicated as “{{name}}”. It is switched off until you turn it on.",
       "doneActionMissing": "Duplicated as “{{name}}”. It is switched off until you turn it on. Its workflow no longer exists, so it is flagged until you pick another.",
-      "failed": "Could not duplicate the automation: {{error}}"
+      "failed": "Could not duplicate the automation: {{error}}",
+      "doneSkillMissing": "Duplicated as “{{name}}”. It is switched off until you turn it on. Its skill no longer exists, so it is flagged until you pick another."
     },
     "duplicateJob": "Duplicate",
     "duplicateJobHint": "Create a switched-off copy of this automation.",
@@ -4223,7 +4254,18 @@
       "hint": "A denial is a decision, not a failure. What usually helps is the job itself: a narrower folder, a different sandbox, or an instruction that does not need the tool that keeps asking.",
       "review": "Review job",
       "reviewAria": "Review the settings of {{name}}"
-    }
+    },
+    "skill": {
+      "searchPlaceholder": "Search skills…",
+      "loading": "Reading installed skills…",
+      "unreadable": "Could not read the installed skills. Any skill this automation already names is kept unchanged.",
+      "empty": "No skills are installed yet. Save a conversation as a skill, or install one from the Marketplace, then come back.",
+      "noMatch": "No installed skill matches that search.",
+      "missingHint": "The skill “{{name}}” is no longer installed. Pick another one, or choose a different action, before saving.",
+      "hint": "At run time the job sends this skill's SKILL.md as its instructions. If the skill is deleted later, the run stops and the row is flagged instead of running with nothing."
+    },
+    "skillAction": "Runs skill: {{name}}",
+    "skillMissing": "Its skill was deleted. Edit this automation to pick another, or delete it."
   },
   "speculation": {
     "title": "Speculative Preview",

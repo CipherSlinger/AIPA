@@ -1,8 +1,11 @@
 // Skill detail view — extracted from SkillsPanel.tsx (Iteration 199)
-import React, { useState } from 'react'
-import { ArrowLeft, Play, Trash2 } from 'lucide-react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { ArrowLeft, CalendarClock, ChevronRight, Play, Trash2 } from 'lucide-react'
 import { useT } from '../../i18n'
+import { useUiStore } from '../../store'
+import { scheduleText } from '../automation/scheduleText'
 import ProvenanceLine from '../provenance/ProvenanceLine'
+import type { AutomationJobData } from '../../../preload'
 import type { SkillInfo } from './skillsShared'
 
 interface SkillDetailProps {
@@ -12,6 +15,46 @@ interface SkillDetailProps {
   onBack: () => void
   onUseSkill: (name: string) => void
   onDeleteSkill: (dirPath: string) => void
+}
+
+/**
+ * One schedule that runs this skill, as a quiet row.
+ *
+ * Read-only on purpose: the row's job is "this runs without me", so it opens
+ * the automations page where the schedule can be changed, paused or deleted in
+ * the same place as every other job. Mirrors the strip a workflow page shows,
+ * but with no per-row actions — a skill has no run of its own to start.
+ */
+function SkillScheduleRow({ job, onOpen }: { job: AutomationJobData; onOpen: () => void }) {
+  const t = useT()
+  const [hovered, setHovered] = useState(false)
+  return (
+    <button
+      onClick={onOpen}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      title={t('skills.schedules.openHint')}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 7, width: '100%',
+        padding: '5px 7px', textAlign: 'left', cursor: 'pointer',
+        background: hovered ? 'var(--bg-hover)' : 'transparent',
+        border: 'none', borderRadius: 6,
+        color: hovered ? 'var(--text-primary)' : 'var(--text-secondary)',
+        fontSize: 11, transition: 'background 0.15s ease',
+      }}
+    >
+      <CalendarClock size={11} style={{ flexShrink: 0, opacity: 0.7 }} />
+      <span style={{
+        fontWeight: 600, flexShrink: 0, maxWidth: '45%',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>{job.name}</span>
+      <span style={{
+        minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap', opacity: 0.85,
+      }}>{scheduleText(t, job.trigger)}</span>
+      <ChevronRight size={11} style={{ flexShrink: 0, marginLeft: 'auto', opacity: 0.5 }} />
+    </button>
+  )
 }
 
 function getSourceBadgeStyle(source: string): React.CSSProperties {
@@ -48,6 +91,41 @@ export default function SkillDetail({
   const [backHovered, setBackHovered] = useState(false)
   const [useHovered, setUseHovered] = useState(false)
   const [deleteHovered, setDeleteHovered] = useState(false)
+
+  // Read on mount and on every scheduler broadcast, so a job created or
+  // deleted in Settings shows up here without reopening the page. A failed read
+  // is an empty list: showing no schedules is quieter than a broken strip, and
+  // the page's real subject (the SKILL.md) is unaffected.
+  const [jobs, setJobs] = useState<AutomationJobData[] | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const result = await window.electronAPI.automationList()
+        if (!cancelled) setJobs(Array.isArray(result?.jobs) ? result.jobs : [])
+      } catch {
+        if (!cancelled) setJobs(null)
+      }
+    }
+    void load()
+    const off = window.electronAPI.onAutomationChanged(() => { void load() })
+    return () => {
+      cancelled = true
+      if (typeof off === 'function') off()
+    }
+  }, [])
+
+  // A job names the skill by source + directory segment, which is exactly the
+  // identity this page was opened with. `skillDir` is absent only for a payload
+  // from an older main process; `''` is the root-level skill, not a wildcard.
+  const schedules = useMemo(() => {
+    const list = jobs ?? []
+    const dir = skill.skillDir ?? ''
+    return list.filter(job =>
+      job.action.kind === 'skill' &&
+      job.action.skillSource === skill.source &&
+      job.action.skillDir === dir)
+  }, [jobs, skill])
 
   const sourceBadge = getSourceBadgeStyle(skill.source)
 
@@ -241,6 +319,33 @@ export default function SkillDetail({
           </button>
         )}
       </div>
+
+      {/* Schedules that run this skill. Nothing at all when there are none:
+          an empty section header would suggest a feature that is missing
+          rather than a schedule that was never made. */}
+      {schedules.length > 0 && (
+        <div style={{ padding: '0 20px 10px', flexShrink: 0 }}>
+          <div style={{
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.07em',
+            textTransform: 'uppercase',
+            color: 'var(--text-muted)',
+            marginBottom: 6,
+          }}>
+            {t('skills.schedules.title')}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {schedules.map(job => (
+              <SkillScheduleRow
+                key={job.id}
+                job={job}
+                onOpen={() => useUiStore.getState().openSettingsAt('automations')}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Skill content preview */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 20px' }}>

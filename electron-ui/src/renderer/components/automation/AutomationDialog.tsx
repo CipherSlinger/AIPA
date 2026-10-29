@@ -41,6 +41,7 @@ import type {
   AutomationJobData,
   AutomationLimitsData,
   AutomationTriggerData,
+  SkillInfoData,
 } from '../../../preload'
 
 export interface WorkflowOption {
@@ -191,6 +192,10 @@ export default function AutomationDialog({
   // Shown in the "app default" option so the user reads the level a run would
   // actually send today instead of a bare word.
   const globalEffort = usePrefsStore(s => s.prefs.effortLevel)
+  // The same directory main uses to resolve a project skill root. Reading it
+  // rather than a prop keeps the picker identical in Settings, a workflow page
+  // and the chat header, like the chain list below.
+  const workingDir = usePrefsStore(s => s.prefs.workingDir)
   const plugins = usePluginStore(s => s.plugins)
   const departments = useDepartmentStore(s => s.departments)
 
@@ -219,13 +224,27 @@ export default function AutomationDialog({
   // An explicit prompt prefill wins over the "workflows exist" default: the
   // caller (the chat header) already decided that this job should send text,
   // not run a pipeline, and inventing a workflow would be a different job.
-  const defaultActionKind: 'workflow' | 'prompt' =
+  const defaultActionKind: 'workflow' | 'prompt' | 'skill' =
     job?.action.kind ??
     (presetWorkflowId || (initialPrompt === undefined && workflows.length > 0) ? 'workflow' : 'prompt')
 
   const [name, setName] = useState(job?.name ?? initialName ?? '')
   const [enabled, setEnabled] = useState(job?.enabled ?? true)
-  const [actionKind, setActionKind] = useState<'workflow' | 'prompt'>(defaultActionKind)
+  const [actionKind, setActionKind] = useState<'workflow' | 'prompt' | 'skill'>(defaultActionKind)
+  // Kept as the two stored fields, never as a joined string: main validates the
+  // pair, and a "source:dir" round-trip here would be a second parser to keep
+  // in step with the one that matters.
+  const [skillSource, setSkillSource] = useState<'' | 'personal' | 'project'>(
+    job?.action.kind === 'skill' ? job.action.skillSource : '',
+  )
+  const [skillDir, setSkillDir] = useState(
+    job?.action.kind === 'skill' ? job.action.skillDir : '',
+  )
+  const [skillQuery, setSkillQuery] = useState('')
+  // `null` means "not read yet"; an empty array is the real answer "no skills
+  // are installed", which the picker must say instead of showing an empty box.
+  const [skills, setSkills] = useState<SkillInfoData[] | null>(null)
+  const [skillsUnreadable, setSkillsUnreadable] = useState(false)
   const [workflowId, setWorkflowId] = useState(
     job?.action.kind === 'workflow' ? job.action.workflowId : (presetWorkflowId ?? workflows[0]?.id ?? ''),
   )
@@ -238,9 +257,10 @@ export default function AutomationDialog({
   const [personaChoice, setPersonaChoice] = useState<string>(() => {
     const override = job?.personaId?.trim()
     if (override) return override
-    // A prompt job has no workflow to inherit from, so it starts as the plain
-    // assistant — the only run it could have had before this field existed.
-    return defaultActionKind === 'prompt' ? ASSISTANT_PERSONA_ID : ''
+    // A prompt or skill job has no workflow to inherit from, so it starts as
+    // the plain assistant — the only run it could have had before this field
+    // existed. (A skill carries its own instructions; it does not bind an expert.)
+    return defaultActionKind !== 'workflow' ? ASSISTANT_PERSONA_ID : ''
   })
   // Three states, like the expert field: FOLLOW_APP_EFFORT follows the app
   // preference at each run, `'auto'` is an explicit "let the engine decide", and
@@ -388,6 +408,26 @@ export default function AutomationDialog({
     return () => { cancelled = true }
   }, [])
 
+  // Installed skills, read once per working directory. Re-read when the
+  // directory changes because the project root it names is part of the list;
+  // a skill installed while this dialog is open is picked up on the next open
+  // rather than by polling the disk from here.
+  useEffect(() => {
+    let cancelled = false
+    setSkills(null)
+    setSkillsUnreadable(false)
+    void (async () => {
+      try {
+        const list = await window.electronAPI.skillsList(workingDir || undefined)
+        if (cancelled) return
+        setSkills(Array.isArray(list) ? list : [])
+      } catch {
+        if (!cancelled) setSkillsUnreadable(true)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [workingDir])
+
   const errorText = useCallback((code: string, detail?: string): string => {
     const key = `automation.errors.${code}`
     // `detail` is a name the message needs (today: the job that would close a
@@ -471,10 +511,34 @@ export default function AutomationDialog({
     }
   }, [trigger])
 
-  const action = useMemo(() => {
-    if (actionKind === 'workflow') return { kind: 'workflow', workflowId } as const
-    return { kind: 'prompt', prompt: prompt.trim() } as const
-  }, [actionKind, workflowId, prompt])
+  // `null` only while a skill job has no skill chosen: there is no honest
+  // action to send, and Save is off until there is one.
+  const action = useMemo<AutomationInputData['action'] | null>(() => {
+    if (actionKind === 'workflow') return { kind: 'workflow', workflowId }
+    if (actionKind === 'skill') {
+      if (!skillSource) return null
+      return { kind: 'skill', skillSource, skillDir }
+    }
+    return { kind: 'prompt', prompt: prompt.trim() }
+  }, [actionKind, workflowId, prompt, skillSource, skillDir])
+
+  const skillList = useMemo(() => skills ?? [], [skills])
+  // Matches the three facts the row shows; a user searching "weekly" is looking
+  // at a description, not only at a folder name.
+  const filteredSkills = useMemo(() => {
+    const query = skillQuery.trim().toLowerCase()
+    if (!query) return skillList
+    return skillList.filter(skill =>
+      skill.name.toLowerCase().includes(query) ||
+      skill.description.toLowerCase().includes(query) ||
+      skill.skillDir.toLowerCase().includes(query))
+  }, [skillList, skillQuery])
+  // An edit that keeps a skill the user has since deleted is not silently
+  // switched to another one: the warning names what is stored, and main still
+  // refuses to save an identity it cannot resolve.
+  const storedSkillMissing = skillSource !== '' &&
+    skills !== null &&
+    !skills.some(skill => skill.source === skillSource && skill.skillDir === skillDir)
 
   // Empty means no limit. The upper bound is the main process's call; here we
   // only refuse a value that is not a positive amount at all, so Save cannot
@@ -493,7 +557,12 @@ export default function AutomationDialog({
   const previewInvalid = preview.kind === 'invalid'
 
   const canSave = name.trim().length > 0 &&
-    (actionKind === 'workflow' ? !!workflowId : prompt.trim().length > 0) &&
+    action !== null &&
+    (actionKind === 'workflow'
+      ? !!workflowId
+      : actionKind === 'skill'
+        ? skillsUnreadable || skillList.some(skill => skill.source === skillSource && skill.skillDir === skillDir)
+        : prompt.trim().length > 0) &&
     spendLimitValid &&
     watchPathValid &&
     dayFieldValid &&
@@ -501,7 +570,7 @@ export default function AutomationDialog({
     !saving
 
   const save = async () => {
-    if (!canSave) return
+    if (!canSave || !action) return
     setSaving(true)
     setError(null)
     // '' is not an id: omit it so the main process stores "follow the workflow".
@@ -688,18 +757,19 @@ export default function AutomationDialog({
         <div style={{ marginBottom: 12 }}>
           <label style={labelStyle}>{t('automation.field.action')}</label>
           <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-            {(['workflow', 'prompt'] as const).map(kind => (
+            {(['workflow', 'prompt', 'skill'] as const).map(kind => (
               <button
                 key={kind}
                 onClick={() => {
                   setActionKind(kind)
-                  // Each action has its own default: a prompt job cannot follow
-                  // a workflow, and a workflow should inherit its expert after a
-                  // mode switch rather than silently keep an implicit override.
-                  if (kind === 'prompt') {
-                    setPersonaChoice(prev => prev === '' ? ASSISTANT_PERSONA_ID : prev)
-                  } else {
+                  // Each action has its own default: a prompt or skill job
+                  // cannot follow a workflow, and a workflow should inherit its
+                  // expert after a mode switch rather than silently keep an
+                  // implicit override.
+                  if (kind === 'workflow') {
                     setPersonaChoice(prev => prev === ASSISTANT_PERSONA_ID ? '' : prev)
+                  } else {
+                    setPersonaChoice(prev => prev === '' ? ASSISTANT_PERSONA_ID : prev)
                   }
                 }}
                 style={{
@@ -709,7 +779,11 @@ export default function AutomationDialog({
                   background: actionKind === kind ? 'rgba(99,102,241,0.12)' : 'transparent',
                 }}
               >
-                {kind === 'workflow' ? t('automation.action.workflow') : t('automation.action.prompt')}
+                {kind === 'workflow'
+                  ? t('automation.action.workflow')
+                  : kind === 'skill'
+                    ? t('automation.action.skill')
+                    : t('automation.action.prompt')}
               </button>
             ))}
           </div>
@@ -730,6 +804,87 @@ export default function AutomationDialog({
                 ))}
               </select>
             )
+          ) : actionKind === 'skill' ? (
+            <div>
+              <input
+                value={skillQuery}
+                onChange={e => setSkillQuery(e.target.value)}
+                placeholder={t('automation.skill.searchPlaceholder')}
+                style={INPUT_STYLE}
+                spellCheck={false}
+              />
+              {skills === null && !skillsUnreadable ? (
+                <div style={{ fontSize: 11, color: SECONDARY, marginTop: 6 }}>
+                  {t('automation.skill.loading')}
+                </div>
+              ) : skillsUnreadable ? (
+                <div style={{ fontSize: 11, color: WARNING, marginTop: 6, lineHeight: 1.5 }}>
+                  {t('automation.skill.unreadable')}
+                </div>
+              ) : filteredSkills.length === 0 ? (
+                // Two different facts, said differently: nothing is installed
+                // (the dropdown would otherwise be an empty box), versus a
+                // search that matched nothing among the installed skills.
+                <div style={{ fontSize: 11, color: SECONDARY, marginTop: 6, lineHeight: 1.5 }}>
+                  {skillList.length === 0 ? t('automation.skill.empty') : t('automation.skill.noMatch')}
+                </div>
+              ) : (
+                <div style={{
+                  maxHeight: 168, overflowY: 'auto', marginTop: 6,
+                  border: '1px solid var(--border)', borderRadius: 6,
+                }}>
+                  {filteredSkills.map((skill, index) => {
+                    const selected = skill.source === skillSource && skill.skillDir === skillDir
+                    return (
+                      <button
+                        key={`${skill.source}:${skill.skillDir}`}
+                        type="button"
+                        onClick={() => { setSkillSource(skill.source); setSkillDir(skill.skillDir) }}
+                        // The description is clipped to one line here; the full
+                        // text is one hover away rather than a second click.
+                        title={skill.description || undefined}
+                        style={{
+                          display: 'block', width: '100%', textAlign: 'left',
+                          padding: '6px 8px', cursor: 'pointer',
+                          background: selected ? 'rgba(99,102,241,0.12)' : 'transparent',
+                          border: 'none',
+                          borderTop: index === 0 ? 'none' : '1px solid var(--border)',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{
+                            fontSize: 12, fontWeight: 600, minWidth: 0,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>{skill.name}</span>
+                          <span style={{ fontSize: 10, color: SECONDARY, flexShrink: 0 }}>
+                            {skill.source === 'personal' ? t('skills.personal') : t('skills.project')}
+                          </span>
+                        </div>
+                        {skill.description && (
+                          <div style={{
+                            fontSize: 10, color: SECONDARY, marginTop: 2,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>{skill.description}</div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+              {storedSkillMissing && (
+                <div style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 5,
+                  fontSize: 11, color: WARNING, marginTop: 6, lineHeight: 1.5,
+                }}>
+                  <AlertTriangle size={11} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>{t('automation.skill.missingHint', { name: skillDir || 'SKILL.md' })}</span>
+                </div>
+              )}
+              <div style={{ fontSize: 11, color: SECONDARY, marginTop: 6, lineHeight: 1.5 }}>
+                {t('automation.skill.hint')}
+              </div>
+            </div>
           ) : (
             <>
               <textarea

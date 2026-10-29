@@ -8,6 +8,13 @@ export interface SkillInfo {
   source: 'personal' | 'project'
   dirPath: string
   fileName: string
+  /**
+   * The identity a scheduled job stores for this skill: one segment under the
+   * skills root, or `''` for a root-level `SKILL.md`. Optional because a
+   * payload from an older main process (or a hand-built entry) has none; the
+   * schedules strip then treats it as `''` rather than matching the wrong skill.
+   */
+  skillDir?: string
   tags?: string[]
   /**
    * Provenance recorded when the skill was drafted from a conversation.

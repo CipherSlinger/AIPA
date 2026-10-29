@@ -23,8 +23,14 @@ export interface LoadedPage {
  * only continue a scan it was started for — a filter pushed into the scan or a
  * new query makes the previous ordering irrelevant, and appending a slice of it
  * would mix two scans in one list.
+ *
+ * The session allowlist is part of the key, so a department narrowing is
+ * covered exactly like an origin list: two departments, or one department
+ * before and after a filing change, are two corpora even when the query is the
+ * same. Main keys its page cache the same way, which is what lets a
+ * continuation either slice the same ordering or rescan instead of blending.
  */
-function scanKey(
+export function searchScanKey(
   query: string,
   origins: readonly ScanOrigin[] | null,
   sessionIds: readonly string[] | null,
@@ -87,7 +93,7 @@ export function useGlobalSessionSearch(
   const pageStateRef = useRef({ query: '', key: '', hasMore: false })
   pageStateRef.current = {
     query: searchedQuery,
-    key: scanKey(searchedQuery, scanOrigins, scanSessionIds),
+    key: searchScanKey(searchedQuery, scanOrigins, scanSessionIds),
     hasMore,
   }
   // The scan the rows on screen belong to. A continuation that no longer
@@ -141,7 +147,7 @@ export function useGlobalSessionSearch(
 
     const origins = scanOrigins ? [...scanOrigins] : undefined
     const sessionIds = scanSessionIds ? [...scanSessionIds] : undefined
-    const key = scanKey(trimmed, scanOrigins, scanSessionIds)
+    const key = searchScanKey(trimmed, scanOrigins, scanSessionIds)
 
     const timer = setTimeout(async () => {
       try {

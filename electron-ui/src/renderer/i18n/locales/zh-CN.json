@@ -1129,7 +1129,9 @@
         "running": "正在写入备份…",
         "saveFailed": "无法保存自动备份设置。",
         "size": "{{size}} KB",
-        "title": "自动备份"
+        "title": "自动备份",
+        "intervalLabel": "频率",
+        "enableHintWeekly": "AIPA 启动后不久会自己写一份备份，一周最多一次，不会拖慢窗口。一周从本地时间周一零点起算。如果在那之前就退出，下次启动时会写。"
       }
     }
   },
@@ -1991,7 +1993,11 @@
     },
     "deletedToTrash": "技能已移入“最近删除”——可在 {{days}} 天内恢复",
     "undoDeleteAria": "撤销删除“{{name}}”",
-    "restored": "技能已恢复"
+    "restored": "技能已恢复",
+    "schedules": {
+      "title": "定时运行",
+      "openHint": "在 设置 → 自动化 中打开"
+    }
   },
   "skill": {
     "createTitle": "创建技能",
@@ -3753,7 +3759,27 @@
       "narrowedScopedCeiling": "扫描只保留{{origin}}匹配，并且在最新 {{ceiling}} 条处停下；更早的{{origin}}匹配没有取回。"
     },
     "originFilterEmptyLoadedOne": "这个筛选挡住了已加载的唯一一条结果",
-    "originFilterEmptyLoaded": "这个筛选挡住了已加载的全部 {{count}} 条结果"
+    "originFilterEmptyLoaded": "这个筛选挡住了已加载的全部 {{count}} 条结果",
+    "deptScan": {
+      "hintDept": "部门筛选只作用于已加载的 {{loaded}} 条。按它重新搜索会重扫全部历史，只保留归档在「{{dept}}」下的对话；有多少条要等扫完才知道。",
+      "hintBoth": "部门筛选和{{origin}}筛选只作用于已加载的 {{loaded}} 条。按它们重新搜索会重扫全部历史，只保留「{{dept}}」下这些对话里的{{origin}}匹配。",
+      "buttonDept": "搜索整个「{{dept}}」",
+      "buttonBoth": "在「{{dept}}」里搜索{{origin}}匹配",
+      "capped": "本机列表里「{{dept}}」下共有 {{total}} 个对话；这次扫描最多只能带上前 {{cap}} 个。",
+      "emptyDeptScope": "本机列表里「{{dept}}」下没有任何对话，按部门扫描不会读到东西。所以不搜索，也不会退回到全部历史。",
+      "activeDept": "扫描本身已收窄为只看归档在「{{dept}}」下的对话——下面的计数描述这次扫描，不是全部历史。",
+      "activeBoth": "扫描本身已收窄为只看「{{dept}}」下对话里的{{origin}}匹配——下面的计数描述这次扫描，不是全部历史。",
+      "activeTruncated": "符合条件的对话超过了扫描能带上的数量；这次只读了前 {{count}} 个。",
+      "activeGone": "「{{dept}}」已不在组织架构里；这次扫描仍然覆盖它开始时名下的那些对话。",
+      "narrowedDeptMore": "筛选和排序只作用于已加载的 {{loaded}} 条；「{{dept}}」下更早的匹配已经扫描过，只是还没加载。",
+      "narrowedDeptCeiling": "扫描只保留「{{dept}}」下的匹配，并且在最新 {{ceiling}} 条处停下；那里更早的匹配没有取回。",
+      "narrowedBothMore": "筛选和排序只作用于已加载的 {{loaded}} 条；「{{dept}}」下更早的{{origin}}匹配已经扫描过，只是还没加载。",
+      "narrowedBothCeiling": "扫描只保留「{{dept}}」下的{{origin}}匹配，并且在最新 {{ceiling}} 条处停下；那里更早的匹配没有取回。",
+      "emptyDeptTitle": "「{{dept}}」下没有任何匹配",
+      "emptyDeptHint": "这次扫描只看了归档在「{{dept}}」下的对话（共 {{count}} 个）。别处有匹配，但不属于这次扫描。",
+      "emptyBothTitle": "「{{dept}}」下没有{{origin}}匹配",
+      "emptyBothHint": "这次扫描只看了「{{dept}}」下对话里的{{origin}}匹配（共 {{count}} 个对话）。别处有匹配，但不属于这次扫描。"
+    }
   },
   "askHistory": {
     "entry": "问 AIPA…",
@@ -3873,7 +3899,8 @@
       "workflow": "运行工作流",
       "prompt": "发送提示词",
       "noWorkflows": "还没有工作流——请先在工作流面板中创建一个。",
-      "promptPlaceholder": "总结我昨天做了什么，并列出今天的优先事项。"
+      "promptPlaceholder": "总结我昨天做了什么，并列出今天的优先事项。",
+      "skill": "运行技能"
     },
     "scheduleOption": {
       "daily": "每天",
@@ -3923,7 +3950,10 @@
       "missed_while_closed": "该次运行在 AIPA 关闭期间到期。",
       "chain_invalid": "这个接着运行的任务读不出来。换一个，或者选“不接着运行”。",
       "chain_cycle": "这样会让这个自动化运行“{{job}}”，然后绕回它自己，形成循环。这次没有保存。",
-      "interrupted_while_waiting": "等待你答复时中断"
+      "interrupted_while_waiting": "等待你答复时中断",
+      "skill_invalid": "无法把这个条目当作技能读取。请从列表中选择一个。",
+      "skill_missing": "该技能已不在已安装列表中。请另选一个。",
+      "skill_unreadable": "无法读取该技能的 SKILL.md。请检查文件的权限。"
     },
     "personaHint": "该工作流的定时运行使用此专家；工作流页面上的“运行”按钮仍使用当前对话的专家。",
     "personaMissing": "专家已删除",
@@ -4059,7 +4089,8 @@
     "duplicate": {
       "done": "已复制为“{{name}}”。它会保持关闭，直到你开启。",
       "doneActionMissing": "已复制为“{{name}}”。它会保持关闭，直到你开启。它使用的工作流已不存在，因此会一直标记为异常，直到你重新选择。",
-      "failed": "无法复制自动化：{{error}}"
+      "failed": "无法复制自动化：{{error}}",
+      "doneSkillMissing": "已复制为“{{name}}”。在你打开它之前它保持关闭。它指向的技能已不存在，所以会一直带着标记，直到你另选一个。"
     },
     "duplicateJob": "复制",
     "duplicateJobHint": "创建一份这份自动化的副本，默认关闭。",
@@ -4223,7 +4254,18 @@
       "hint": "拒绝是一个决定，不是出错。通常该改的是任务本身：收窄工作目录、换一种沙箱，或者换一条不需要那种反复来问的工具的指令。",
       "review": "查看任务",
       "reviewAria": "查看 {{name}} 的设置"
-    }
+    },
+    "skill": {
+      "searchPlaceholder": "搜索技能…",
+      "loading": "正在读取已安装的技能…",
+      "unreadable": "无法读取已安装的技能。这条自动化已经选好的技能会原样保留。",
+      "empty": "还没有安装任何技能。可以把一段对话保存为技能，或从技能市场安装一个，然后再回来。",
+      "noMatch": "没有已安装的技能符合这个搜索。",
+      "missingHint": "技能“{{name}}”已不在已安装列表中。保存前请另选一个，或换一种动作。",
+      "hint": "运行时这条任务会把该技能的 SKILL.md 作为指令发出去。如果技能之后被删除，这次运行会停下并给这一行打上标记，而不是空跑一遍。"
+    },
+    "skillAction": "运行技能：{{name}}",
+    "skillMissing": "它指向的技能已被删除。请编辑它改选其他技能，或删除这条自动化。"
   },
   "speculation": {
     "title": "投机预览",

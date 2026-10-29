@@ -44,13 +44,14 @@ const actionButtonStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: 5,
-  padding: '4px 10px',
+  padding: '5px 10px',
   background: 'var(--bg-hover)',
   border: '1px solid var(--glass-border-md)',
   borderRadius: 6,
   color: 'var(--text-primary)',
   cursor: 'pointer',
-  fontSize: 11,
+  fontSize: 11.5,
+  transition: 'background-color 0.15s ease, border-color 0.15s ease',
 }
 
 const smallLabelStyle: React.CSSProperties = {
@@ -61,6 +62,42 @@ const smallLabelStyle: React.CSSProperties = {
   color: 'var(--text-faint)',
   marginBottom: 8,
 }
+
+/**
+ * Both pickers share one control shape so the row reads as a row and not as
+ * two different widgets. The global `*:focus-visible` ring supplies the focus
+ * state; nothing here suppresses it.
+ */
+const selectStyle: React.CSSProperties = {
+  height: 26,
+  boxSizing: 'border-box',
+  padding: '0 8px',
+  borderRadius: 6,
+  border: '1px solid var(--border)',
+  background: 'transparent',
+  color: 'var(--text-primary)',
+  fontSize: 11.5,
+  cursor: 'pointer',
+}
+
+/**
+ * Scoped to this panel. A backup row sits on the card's own fill, so hover is
+ * the only thing that proves it is a surface; one rule covers a hundred rows
+ * where per-row React handlers would not. Colour only — and off entirely when
+ * the system asks for reduced motion.
+ */
+const PANEL_STYLES = `
+  .aipa-ab-row { transition: background-color 0.15s ease, border-color 0.15s ease; }
+  .aipa-ab-row:hover { background: var(--bg-active); }
+  .aipa-ab-action:hover:not(:disabled) {
+    background: var(--bg-active) !important;
+    border-color: var(--border-strong) !important;
+  }
+  .aipa-ab-list::-webkit-scrollbar { width: 6px; }
+  @media (prefers-reduced-motion: reduce) {
+    .aipa-ab-row, .aipa-ab-action { transition: none; }
+  }
+`
 
 function formatWhen(ms: number): string {
   try {
@@ -95,6 +132,9 @@ export default function AutoBackupPanel() {
   const [lastResult, setLastResult] = useState<LastResult | null>(null)
   const [lastSuccessAt, setLastSuccessAt] = useState<number | null>(null)
   const [busy, setBusy] = useState<null | 'policy' | 'run' | 'restore' | 'delete'>(null)
+  // Which row the running operation belongs to. Without it every row's
+  // Restore button showed a spinner for the one file being restored.
+  const [busyName, setBusyName] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [report, setReport] = useState<RestoreReport | null>(null)
 
@@ -139,7 +179,11 @@ export default function AutoBackupPanel() {
     return backupErrorText(code, t('settings.backup.auto.restoreFailed'), t)
   }
 
-  const patchPolicy = async (patch: { enabled?: boolean; retention?: number }) => {
+  const patchPolicy = async (patch: {
+    enabled?: boolean
+    retention?: number
+    interval?: 'daily' | 'weekly'
+  }) => {
     setBusy('policy')
     try {
       const result = await window.electronAPI.backupSetPolicy(patch)
@@ -177,6 +221,7 @@ export default function AutoBackupPanel() {
 
   const restore = async (name: string) => {
     setBusy('restore')
+    setBusyName(name)
     setConfirmDelete(null)
     try {
       const result = await window.electronAPI.backupRestore(name)
@@ -191,11 +236,13 @@ export default function AutoBackupPanel() {
       addToast('error', t('settings.backup.auto.restoreFailed'))
     }
     setBusy(null)
+    setBusyName(null)
     void refresh()
   }
 
   const remove = async (name: string) => {
     setBusy('delete')
+    setBusyName(name)
     try {
       const result = await window.electronAPI.backupDelete(name)
       if (result.success) {
@@ -216,20 +263,26 @@ export default function AutoBackupPanel() {
       }))
     }
     setBusy(null)
+    setBusyName(null)
     void refresh()
   }
 
   const listIsEmpty = !loading && !loadError && backups.length === 0
 
   return (
-    <div style={{ marginTop: 12, borderTop: '1px solid var(--glass-border)', paddingTop: 12 }}>
+    <div style={{ marginTop: 16, borderTop: '1px solid var(--glass-border)', paddingTop: 14 }}>
+      <style>{PANEL_STYLES}</style>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>
             {t('settings.backup.auto.title')}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.5 }}>
-            {t('settings.backup.auto.enableHint')}
+          {/* The cadence sentence names the window it is actually counting.
+              A weekly policy must not keep promising "at most once a day". */}
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.55 }}>
+            {policy.interval === 'weekly'
+              ? t('settings.backup.auto.enableHintWeekly')
+              : t('settings.backup.auto.enableHint')}
           </div>
         </div>
         <Toggle
@@ -241,13 +294,13 @@ export default function AutoBackupPanel() {
       </div>
 
       {dir && (
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5, wordBreak: 'break-all' }}>
+        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.55, wordBreak: 'break-all' }}>
           {t('settings.backup.auto.location', { dir })}
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap', rowGap: 8 }}>
+        <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
           {t('settings.backup.auto.retentionLabel')}
         </span>
         <select
@@ -255,17 +308,7 @@ export default function AutoBackupPanel() {
           onChange={event => { void patchPolicy({ retention: Number(event.target.value) }) }}
           disabled={busy === 'policy'}
           aria-label={t('settings.backup.auto.retentionLabel')}
-          style={{
-            height: 24,
-            boxSizing: 'border-box',
-            padding: '0 8px',
-            borderRadius: 8,
-            border: '1px solid var(--border)',
-            background: 'transparent',
-            color: 'var(--text-primary)',
-            fontSize: 11,
-            cursor: 'pointer',
-          }}
+          style={selectStyle}
         >
           {RETENTION_CHOICES.map(count => (
             <option key={count} value={count}>
@@ -273,11 +316,33 @@ export default function AutoBackupPanel() {
             </option>
           ))}
         </select>
+        <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+          {t('settings.backup.auto.intervalLabel')}
+        </span>
+        <select
+          value={policy.interval}
+          onChange={event => {
+            void patchPolicy({ interval: event.target.value === 'weekly' ? 'weekly' : 'daily' })
+          }}
+          disabled={busy === 'policy'}
+          aria-label={t('settings.backup.auto.intervalLabel')}
+          style={selectStyle}
+        >
+          <option value="daily">{t('automation.scheduleOption.daily')}</option>
+          <option value="weekly">{t('automation.scheduleOption.weekly')}</option>
+        </select>
         <button
           type="button"
+          className="aipa-ab-action"
           onClick={() => { void runNow() }}
           disabled={busy === 'run' || busy === 'policy'}
-          style={{ ...actionButtonStyle, opacity: busy === 'run' ? 0.5 : 1, cursor: busy ? 'wait' : 'pointer' }}
+          aria-busy={busy === 'run' || undefined}
+          style={{
+            ...actionButtonStyle,
+            marginLeft: 'auto',
+            opacity: busy === 'run' ? 0.5 : 1,
+            cursor: busy === 'run' || busy === 'policy' ? 'default' : 'pointer',
+          }}
         >
           {busy === 'run'
             ? <Loader size={12} style={{ animation: 'spin 1s linear infinite' }} />
@@ -286,25 +351,33 @@ export default function AutoBackupPanel() {
         </button>
       </div>
 
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.55 }}>
         {t('settings.backup.auto.retentionNote')}
       </div>
 
       {/* What the last attempt actually did. A failure is said here, where a
-          success would be said, never only in the console. */}
-      <div role="status" aria-live="polite" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          success would be said, never only in the console. Failures carry the
+          same warning edge the held-request ask uses, so the two surfaces read
+          as one vocabulary rather than two. */}
+      <div role="status" aria-live="polite" style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
         {loadError && (
-          <div style={{ fontSize: 11, color: 'var(--warning-text, var(--text-primary))' }}>
+          <div style={{
+            fontSize: 11.5, color: 'var(--warning-text)', lineHeight: 1.5,
+            borderLeft: '2px solid var(--warning-text)', paddingLeft: 8,
+          }}>
             {t('settings.backup.auto.loadFailed')}
           </div>
         )}
         {!policy.enabled && (
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             {t('settings.backup.auto.disabled')}
           </div>
         )}
         {lastResult && !lastResult.ok && (
-          <div style={{ fontSize: 11, color: 'var(--warning-text, var(--text-primary))', lineHeight: 1.5 }}>
+          <div style={{
+            fontSize: 11.5, color: 'var(--warning-text)', lineHeight: 1.5,
+            borderLeft: '2px solid var(--warning-text)', paddingLeft: 8,
+          }}>
             {t('settings.backup.auto.lastAttemptFailed', {
               date: formatWhen(lastResult.at),
               error: autoErrorText(lastResult.error),
@@ -312,59 +385,91 @@ export default function AutoBackupPanel() {
           </div>
         )}
         {lastSuccessAt !== null && (
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             {t('settings.backup.auto.lastSuccess', { date: formatWhen(lastSuccessAt) })}
           </div>
         )}
         {!lastResult && lastSuccessAt === null && (
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             {t('settings.backup.auto.never')}
           </div>
         )}
         {lastResult?.ok && (lastResult.pruned || 0) > 0 && (
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             {t('settings.backup.auto.pruned', { n: String(lastResult.pruned) })}
           </div>
         )}
         {lastResult?.ok && (lastResult.pruneFailures || 0) > 0 && (
-          <div style={{ fontSize: 11, color: 'var(--warning-text, var(--text-primary))' }}>
+          <div style={{
+            fontSize: 11.5, color: 'var(--warning-text)', lineHeight: 1.5,
+            borderLeft: '2px solid var(--warning-text)', paddingLeft: 8,
+          }}>
             {t('settings.backup.auto.pruneFailed', { n: String(lastResult.pruneFailures) })}
           </div>
         )}
         {foreignCount > 0 && (
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             {t('settings.backup.auto.leftAlone', { n: String(foreignCount) })}
           </div>
         )}
       </div>
 
-      <div style={{ ...smallLabelStyle, marginTop: 12 }}>{t('settings.backup.auto.listTitle')}</div>
-      {listIsEmpty && (
-        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('settings.backup.auto.empty')}</div>
+      <div style={{ ...smallLabelStyle, marginTop: 14 }}>{t('settings.backup.auto.listTitle')}</div>
+      {loading && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          fontSize: 11.5, color: 'var(--text-muted)', padding: '2px 0',
+        }}>
+          <Loader size={12} style={{ animation: 'spin 1s linear infinite' }} />
+          {t('common.loading')}
+        </div>
       )}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {backups.map(row => (
+      {listIsEmpty && (
+        // An empty folder is a normal state, not a failure: same radius and
+        // padding as a row, dashed edge so it cannot be mistaken for one.
+        <div style={{
+          fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.55,
+          padding: '12px 12px', textAlign: 'center',
+          border: '1px dashed var(--glass-border-md)', borderRadius: 8,
+        }}>
+          {t('settings.backup.auto.empty')}
+        </div>
+      )}
+      <div className="aipa-ab-list" style={{
+        display: 'flex', flexDirection: 'column', gap: 6,
+        // Retention goes up to 30 and the folder can hold a hundred files;
+        // the list scrolls inside the card instead of pushing the page.
+        maxHeight: 320, overflowY: 'auto', overscrollBehavior: 'contain',
+      }}>
+        {backups.map(row => {
+          const restoringThis = busy === 'restore' && busyName === row.name
+          const deletingThis = busy === 'delete' && busyName === row.name
+          return (
           <div
             key={row.name}
+            className="aipa-ab-row"
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: 10,
-              padding: '6px 10px',
-              background: 'var(--bg-hover)',
-              border: '1px solid var(--glass-border)',
+              rowGap: 6,
+              padding: '8px 10px',
+              border: '1px solid var(--glass-border-md)',
               borderRadius: 8,
               flexWrap: 'wrap',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: '1 1 220px' }}>
               <Clock size={12} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 11, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' }}>
                   {formatWhen(row.createdAt)}
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--text-faint)', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                <div style={{
+                  fontSize: 11, color: 'var(--text-faint)', fontFamily: 'monospace',
+                  lineHeight: 1.45, wordBreak: 'break-all',
+                }}>
                   {t('settings.backup.auto.size', { size: formatSize(row.sizeBytes) })}
                   {' · '}
                   {row.name}
@@ -372,48 +477,69 @@ export default function AutoBackupPanel() {
               </div>
             </div>
             {confirmDelete === row.name ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 10, color: 'var(--warning-text, var(--text-primary))' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', rowGap: 6 }}>
+                <span style={{ fontSize: 11, color: 'var(--warning-text)', lineHeight: 1.45 }}>
                   {t('settings.backup.auto.deleteConfirm')} {t('settings.backup.auto.deleteCannotUndo')}
                 </span>
                 <button
                   type="button"
+                  className="aipa-ab-action"
                   onClick={() => { void remove(row.name) }}
                   disabled={busy === 'delete'}
-                  style={{ ...actionButtonStyle, color: 'var(--danger-text)', cursor: busy === 'delete' ? 'wait' : 'pointer' }}
+                  style={{
+                    ...actionButtonStyle,
+                    color: 'var(--danger-text)',
+                    opacity: deletingThis ? 0.6 : 1,
+                    cursor: deletingThis ? 'wait' : busy ? 'default' : 'pointer',
+                  }}
                 >
-                  <Trash2 size={12} />
+                  {deletingThis
+                    ? <Loader size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                    : <Trash2 size={12} />}
                   {t('settings.backup.auto.deleteForever')}
                 </button>
                 <button
                   type="button"
+                  className="aipa-ab-action"
                   onClick={() => setConfirmDelete(null)}
                   disabled={busy === 'delete'}
-                  style={actionButtonStyle}
+                  style={{ ...actionButtonStyle, cursor: busy === 'delete' ? 'default' : 'pointer' }}
                 >
                   {t('settings.backup.auto.cancel')}
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                 <button
                   type="button"
+                  className="aipa-ab-action"
                   onClick={() => { void restore(row.name) }}
                   disabled={busy !== null}
+                  aria-busy={restoringThis || undefined}
                   aria-label={t('settings.backup.auto.restoreAria', { name: row.name })}
-                  style={{ ...actionButtonStyle, opacity: busy === 'restore' ? 0.5 : 1, cursor: busy ? 'wait' : 'pointer' }}
+                  style={{
+                    ...actionButtonStyle,
+                    opacity: busy && !restoringThis ? 0.5 : 1,
+                    cursor: restoringThis ? 'wait' : busy ? 'default' : 'pointer',
+                  }}
                 >
-                  {busy === 'restore'
+                  {restoringThis
                     ? <Loader size={12} style={{ animation: 'spin 1s linear infinite' }} />
                     : <RotateCcw size={12} style={{ color: 'var(--accent-text)' }} />}
                   {t('settings.backup.auto.restore')}
                 </button>
                 <button
                   type="button"
+                  className="aipa-ab-action"
                   onClick={() => setConfirmDelete(row.name)}
                   disabled={busy !== null}
                   aria-label={t('settings.backup.auto.deleteAria', { name: row.name })}
-                  style={{ ...actionButtonStyle, color: 'var(--danger-text)' }}
+                  style={{
+                    ...actionButtonStyle,
+                    color: 'var(--danger-text)',
+                    opacity: busy ? 0.5 : 1,
+                    cursor: busy ? 'default' : 'pointer',
+                  }}
                 >
                   <Trash2 size={12} />
                   {t('settings.backup.auto.delete')}
@@ -421,15 +547,20 @@ export default function AutoBackupPanel() {
               </div>
             )}
           </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* The sentence the manual export makes about scope, plus the two facts a
-          row cannot show: restore merges, and a file is a snapshot. */}
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.55 }}>
+          row cannot show: restore merges, and a file is a snapshot. Set off from
+          the list because it is the promise behind every row, not a row itself. */}
+      <div style={{
+        fontSize: 11.5, color: 'var(--text-muted)', marginTop: 12, lineHeight: 1.55,
+        borderTop: '1px solid var(--glass-border)', paddingTop: 10,
+      }}>
         <div>{t('settings.backup.auto.contains')}</div>
-        <div style={{ marginTop: 4 }}>{t('settings.backup.auto.restoreHint')}</div>
-        <div style={{ marginTop: 4 }}>{t('settings.backup.auto.notNow')}</div>
+        <div style={{ marginTop: 5 }}>{t('settings.backup.auto.restoreHint')}</div>
+        <div style={{ marginTop: 5 }}>{t('settings.backup.auto.notNow')}</div>
       </div>
 
       {report && (
@@ -450,12 +581,12 @@ export default function AutoBackupPanel() {
             <div
               key={`${line.tone}-${index}`}
               style={{
-                fontSize: 11,
-                lineHeight: 1.5,
+                fontSize: 11.5,
+                lineHeight: 1.55,
                 color: line.tone === 'ok'
                   ? 'var(--text-primary)'
                   : line.tone === 'warn'
-                    ? 'var(--warning-text, var(--text-primary))'
+                    ? 'var(--warning-text)'
                     : 'var(--text-muted)',
               }}
             >
@@ -465,6 +596,7 @@ export default function AutoBackupPanel() {
           {report.canReload && (
             <button
               type="button"
+              className="aipa-ab-action"
               onClick={() => window.location.reload()}
               style={{ ...actionButtonStyle, alignSelf: 'flex-start', color: 'var(--accent-text)' }}
             >

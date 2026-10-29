@@ -505,7 +505,10 @@ export default function CommandPalette({
                   fontWeight: 700,
                   letterSpacing: '0.07em',
                   textTransform: 'uppercase',
-                  color: 'var(--text-muted)',
+                  // The held-request group is the one header that is waiting on
+                  // the user, and it borrows the status bar's warning tone so
+                  // the two surfaces name the same state the same way.
+                  color: category === 'approval' ? 'var(--warning-text)' : 'var(--text-muted)',
                 }}
               >
                 {categoryLabel(category)}

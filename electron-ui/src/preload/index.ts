@@ -118,6 +118,12 @@ export interface SkillInfoData {
   source: 'personal' | 'project'
   dirPath: string
   fileName: string
+  /**
+   * The identity a scheduled job stores for this skill: one segment under the
+   * skills root, or `''` for a root-level `SKILL.md`. `dirPath`/`fileName`
+   * cannot distinguish those two cases, so the picker uses this.
+   */
+  skillDir: string
   sourceConversation?: string
   sourceTitle?: string
   createdAt?: string
@@ -725,9 +731,31 @@ export type AutomationTriggerData =
   | { kind: 'interval'; minutes: number }
   | AutomationWatchTriggerData
 
+/**
+ * The skill a job runs, named the way `skills:list` names it: one directory
+ * segment under the root, or `''` for a `SKILL.md` at the root itself. Stored
+ * instead of a path so renaming the project folder does not strand the job.
+ */
+export interface AutomationSkillRefData {
+  source: 'personal' | 'project'
+  dir: string
+}
+
 export type AutomationActionData =
   | { kind: 'workflow'; workflowId: string }
   | { kind: 'prompt'; prompt: string; cwd?: string }
+  | { kind: 'skill'; skillSource: 'personal' | 'project'; skillDir: string }
+
+/** The run's skill receipt: which folder ran, and how much of it was sent. */
+export interface AutomationSkillDigestData extends AutomationSkillRefData {
+  /** The skill's frontmatter name when it declares one; absent otherwise. */
+  name?: string
+  /** Characters placed in the prompt, after the shared ceiling. */
+  chars: number
+  /** The body's real length before the cut. */
+  sourceChars: number
+  truncated: boolean
+}
 
 export type AutomationRunStatusData = 'success' | 'error' | 'skipped' | 'running'
 
@@ -972,6 +1000,12 @@ export interface AutomationRunRecordData {
    * carried none; absent on older records and on skips.
    */
   handbook?: AutomationHandbookDigestData
+  /**
+   * Which skill this run read, and how much of it was sent. Present only on a
+   * run whose action was `kind: 'skill'`; absent on every other run and on
+   * skips, which never resolved one.
+   */
+  skill?: AutomationSkillDigestData
   /**
    * Tool-driven file edits observed live; absent on legacy records and skips.
    * Present-but-empty is "no file-editing tool calls seen", not "not recorded".
