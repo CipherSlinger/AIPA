@@ -1,12 +1,14 @@
 // Skills section of the Employees page — merged in from the old standalone Skills
 // panel so experts, workflows and skills all live on one page with one card language.
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Puzzle, Search, X, RefreshCw, Store, Plus, Play, Trash2, ArrowRight } from 'lucide-react'
+import { Puzzle, Search, X, RefreshCw, Store, Plus, Play, Trash2, ArrowRight, Sparkles } from 'lucide-react'
 import { useT } from '../../i18n'
-import { useUiStore, useChatStore } from '../../store'
+import { useUiStore, useChatStore, useSessionStore } from '../../store'
 import type { SkillInfo } from '../skills/skillsShared'
 import { MARKETPLACE_SKILLS, type MarketplaceSkill } from '../../utils/skillMarketplace'
 import { SectionHeader, ToolbarButton, AddCard, PresetCard, SubLabel, cardStyle, EMPLOYEE_GRID } from './EmployeesShared'
+import SkillDraftSourceDialog from '../skills/SkillDraftSourceDialog'
+import SaveConversationSkillDialog from '../chat/SaveConversationSkillDialog'
 
 const SOURCE_STYLE: Record<string, { color: string; bg: string; border: string }> = {
   personal: { color: '#a5b4fc', bg: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.30)' },
@@ -205,6 +207,15 @@ export function EmployeesSkillsSection({ state, onOpenSkill }: {
   const t = useT()
   const [searchQuery, setSearchQuery] = useState('')
   const [hoveredPath, setHoveredPath] = useState<string | null>(null)
+  // A stored conversation that is not open can still become a skill; the
+  // picker supplies the id and the dialog generalises it.
+  const sessions = useSessionStore(s => s.sessions)
+  const [sourcePickerOpen, setSourcePickerOpen] = useState(false)
+  const [sourceTarget, setSourceTarget] = useState<{
+    sessionId: string
+    title: string | null
+  } | null>(null)
+  const hasStoredSessions = sessions.length > 0
 
   const visible = useMemo(() => {
     if (!searchQuery.trim()) return state.skills
@@ -237,6 +248,16 @@ export function EmployeesSkillsSection({ state, onOpenSkill }: {
             <ToolbarButton onClick={openMarketplace} title={t('skills.marketplace')}>
               <Store size={13} />
               {t('skills.marketplace')}
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={() => setSourcePickerOpen(true)}
+              title={hasStoredSessions
+                ? t('skills.draftSource.action')
+                : t('skills.draftSource.noSessionsHint')}
+              disabled={!hasStoredSessions}
+            >
+              <Sparkles size={13} />
+              {t('skills.draftSource.action')}
             </ToolbarButton>
             <ToolbarButton onClick={openCreator} primary>
               <Plus size={13} />
@@ -326,6 +347,27 @@ export function EmployeesSkillsSection({ state, onOpenSkill }: {
             <ArrowRight size={13} />
           </button>
         </>
+      )}
+
+      {sourcePickerOpen && (
+        <SkillDraftSourceDialog
+          onClose={() => setSourcePickerOpen(false)}
+          onSelect={(sessionId, title) => {
+            setSourcePickerOpen(false)
+            setSourceTarget({ sessionId, title })
+          }}
+        />
+      )}
+      {sourceTarget && (
+        <SaveConversationSkillDialog
+          origin="stored"
+          sessionId={sourceTarget.sessionId}
+          sessionTitle={sourceTarget.title}
+          // Installing from here lands in the same list this section shows, so
+          // a closed dialog is the cue to re-read it. Refreshing when nothing
+          // was installed costs one cheap IPC call.
+          onClose={() => { setSourceTarget(null); state.refresh() }}
+        />
       )}
     </section>
   )

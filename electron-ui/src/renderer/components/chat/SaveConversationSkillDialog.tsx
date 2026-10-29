@@ -25,6 +25,7 @@ import {
   assembleSkillContent,
   buildSkillDraft,
   skillInstallSlug,
+  type SkillDraft,
 } from '../../lib/sessionReuse'
 import { canGeneralize, generalizeErrorKey, metaNote } from '../../lib/generalizeDraft'
 import {
@@ -40,6 +41,12 @@ interface Props {
   /** The stored conversation to generalise; null when it was never saved. */
   sessionId: string | null
   sessionTitle: string | null
+  /**
+   * Which conversation the dialog is looking at. `chat` is the one open beside
+   * the header; `stored` is a saved conversation that is not open, picked from
+   * the Skills section. Only the former has live messages to replay.
+   */
+  origin?: 'chat' | 'stored'
   onClose: () => void
 }
 
@@ -135,16 +142,30 @@ const bandListStyle: React.CSSProperties = {
   gap: 2,
 }
 
-export default function SaveConversationSkillDialog({ sessionId, sessionTitle, onClose }: Props) {
+export default function SaveConversationSkillDialog({
+  sessionId,
+  sessionTitle,
+  origin = 'chat',
+  onClose,
+}: Props) {
   const { t, resolvedLocale } = useI18n()
   const messages = useChatStore(s => s.messages)
   const isStreaming = useChatStore(s => s.isStreaming)
   const addToast = useUiStore(s => s.addToast)
-  const draft = useMemo(
-    () => buildSkillDraft(messages, sessionTitle, t),
-    [messages, sessionTitle, t],
+  const fromStored = origin === 'stored'
+  // A stored conversation has no live messages here — the open chat may be an
+  // entirely different conversation — so borrowing its text would be a lie.
+  // The fields start empty and stay so until the model's draft is applied.
+  const draft = useMemo<SkillDraft>(
+    () => (fromStored
+      ? { name: '', description: '', body: '', totalTurns: 0, truncated: false }
+      : buildSkillDraft(messages, sessionTitle, t)),
+    [fromStored, messages, sessionTitle, t],
   )
-  const [mode, setMode] = useState<DraftMode>('exact')
+  // The chat origin owns the user's switch. A stored conversation is always
+  // generalised: the literal replay needs messages this origin does not have.
+  const [modeChoice, setModeChoice] = useState<DraftMode>('exact')
+  const mode: DraftMode = fromStored ? 'general' : modeChoice
   const [name, setName] = useState(draft.name)
   const [description, setDescription] = useState(draft.description)
   const [body, setBody] = useState(draft.body)
@@ -162,8 +183,11 @@ export default function SaveConversationSkillDialog({ sessionId, sessionTitle, o
   const pendingRef = useRef(false)
 
   const availability = useMemo(
-    () => canGeneralize(sessionId, isStreaming),
-    [sessionId, isStreaming],
+    // Streaming belongs to the open chat. A saved conversation picked from the
+    // Skills section is not the one currently arriving, so it is never blocked
+    // by the chat panel's state.
+    () => canGeneralize(sessionId, fromStored ? false : isStreaming),
+    [sessionId, fromStored, isStreaming],
   )
   const unavailableKey = availability.reason === 'streaming'
     ? 'chat.reuse.generalize.unavailableStreaming'
@@ -191,20 +215,26 @@ export default function SaveConversationSkillDialog({ sessionId, sessionTitle, o
   // `name:` — the dialog must not advertise a path the installer will not create.
   const installSlug = skillInstallSlug(name)
   const content = assembleSkillContent(installSlug, description, body)
-  const empty = draft.totalTurns === 0 && !applied
+  // Only the chat origin can claim the conversation has no turns: a stored
+  // conversation's transcript is read by the model, not by this dialog. The
+  // empty literal draft there must not be mistaken for an empty conversation.
+  const empty = !fromStored && draft.totalTurns === 0 && !applied
   const canInstall = !empty && !!name.trim() && !!description.trim() && !!body.trim() && !installing
 
   // Choosing the literal mode again puts the deterministic draft back into the
   // fields, and stops a generalisation whose answer would otherwise land under
   // an "As it happened" label. Manual edits survive when nothing was applied.
   const selectExact = useCallback(() => {
+    // A stored conversation has nothing to replay; the disabled button already
+    // says so, and this guard keeps a programmatic call from blanking fields.
+    if (fromStored) return
     if (pendingRef.current) {
       requestRef.current += 1
       pendingRef.current = false
       setPending(false)
       void window.electronAPI?.sessionGeneralizeSkillCancel?.()
     }
-    setMode('exact')
+    setModeChoice('exact')
     setFailure(null)
     if (applied) {
       setName(draft.name)
@@ -212,7 +242,7 @@ export default function SaveConversationSkillDialog({ sessionId, sessionTitle, o
       setBody(draft.body)
       setApplied(null)
     }
-  }, [applied, draft])
+  }, [fromStored, applied, draft])
 
   const handleClose = useCallback(() => {
     requestRef.current += 1
@@ -378,14 +408,20 @@ export default function SaveConversationSkillDialog({ sessionId, sessionTitle, o
       >
         <button
           onClick={selectExact}
+          disabled={fromStored}
           aria-pressed={mode === 'exact'}
+          title={fromStored ? t('chat.reuse.generalize.unavailableExactStored') : undefined}
           data-generalize-mode="exact"
-          style={{ ...modeBtnStyle, ...(mode === 'exact' ? modeBtnActiveStyle : {}) }}
+          style={{
+            ...modeBtnStyle,
+            ...(mode === 'exact' ? modeBtnActiveStyle : {}),
+            ...(fromStored ? { opacity: 0.45, cursor: 'not-allowed' } : {}),
+          }}
         >
           {t('chat.reuse.generalize.modeExact')}
         </button>
         <button
-          onClick={() => { if (availability.ok) setMode('general') }}
+          onClick={() => { if (availability.ok) setModeChoice('general') }}
           disabled={!availability.ok}
           aria-pressed={mode === 'general'}
           title={availability.ok ? undefined : t(unavailableKey)}
@@ -593,6 +629,24 @@ export default function SaveConversationSkillDialog({ sessionId, sessionTitle, o
             </div>
           )}
 
+          {/* Until a draft arrives there is nothing truthful to put in the
+              fields; say what pressing Generalize will do rather than leaving
+              an unexplained blank editor. */}
+          {fromStored && !applied && (
+            <div
+              data-generalize-stored-empty
+              style={{
+                padding: '8px 10px', marginBottom: 12,
+                background: 'var(--bg-hover)',
+                border: '1px solid var(--bg-active)',
+                borderRadius: 8,
+                fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5,
+              }}
+            >
+              {t('chat.reuse.generalize.storedEmptyHint')}
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <label style={labelStyle}>{t('sessionReuse.skill.name')}</label>
@@ -646,9 +700,13 @@ export default function SaveConversationSkillDialog({ sessionId, sessionTitle, o
                 </button>
               ))}
             </div>
-            <span style={{ fontSize: 9.5, color: 'var(--text-muted)' }} data-reuse-install-path>
-              {t('sessionReuse.skill.installPath', { name: installSlug })}
-            </span>
+            {/* No name yet means no real destination; the hash fallback is an
+                implementation detail, not a path worth advertising. */}
+            {name.trim() && (
+              <span style={{ fontSize: 9.5, color: 'var(--text-muted)' }} data-reuse-install-path>
+                {t('sessionReuse.skill.installPath', { name: installSlug })}
+              </span>
+            )}
           </div>
 
           {tab === 'edit' ? (

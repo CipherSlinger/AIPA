@@ -2327,9 +2327,18 @@ function registerSessionHandlers(): void {
       // "no session" answer distinct from "session exists but has no turns".
       if (!sessionId || !isValidSessionId(sessionId)) return { ok: false, error: 'missing_session' }
 
-      let messages
+      let messages: Array<Record<string, unknown>>
       try {
-        messages = loadClaudeSession(sessionId)
+        // Codex is the primary engine, and its transcripts live in Codex's own
+        // rollout format. Both readers normalise to the same transcript shape
+        // (`type`, `message.content`, `tool_use` blocks), so the digest and the
+        // parsers below do not care which engine wrote the conversation — but
+        // asking only the Claude reader would answer "no stored transcript" for
+        // half of the app's history. Codex first, as `session:load` does.
+        const codexMessages = loadCodexSession(sessionId)
+        messages = (codexMessages.length > 0
+          ? codexMessages
+          : loadClaudeSession(sessionId)) as Array<Record<string, unknown>>
       } catch {
         // A read failure is reported as a missing session rather than leaking a
         // path or an fs error across IPC.

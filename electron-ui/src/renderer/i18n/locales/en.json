@@ -398,7 +398,9 @@
         "skillAssumptionsNote": "The model made these choices so the skill can be used again. Check each one before installing.",
         "skillInputsHeading": "Inferred inputs for a future use",
         "skillInputsNote": "The model inferred these values; they were not observed in this conversation. Check each one before installing.",
-        "skillBodyTruncated": "The model's instructions were longer than the editor can hold, so they were cut. Review the end before installing."
+        "skillBodyTruncated": "The model's instructions were longer than the editor can hold, so they were cut. Review the end before installing.",
+        "unavailableExactStored": "As it happened needs the conversation open in chat. A stored conversation can only be generalised by AIPA.",
+        "storedEmptyHint": "Press Generalize to read this conversation and propose a skill. Until then the fields stay empty and Install is disabled."
       }
     }
   },
@@ -1870,7 +1872,18 @@
     "skillCreatorLaunched": "Skill Creator opened in chat",
     "skills": "skills",
     "results": "Results",
-    "featured": "Featured"
+    "featured": "Featured",
+    "draftSource": {
+      "action": "Draft from a conversation…",
+      "dialogTitle": "Draft a skill from a conversation",
+      "dialogSubtitle": "Pick a stored conversation. AIPA reads it and proposes a skill; nothing is installed until you review it.",
+      "searchPlaceholder": "Search conversations…",
+      "emptyTitle": "No stored conversations yet",
+      "noSessionsHint": "Conversations are saved as you chat. Once one is saved, it can be turned into a skill.",
+      "noEligible": "No stored conversation can be used as a source right now.",
+      "noResults": "No conversations match your search.",
+      "showMore": "Show {{count}} more"
+    }
   },
   "skill": {
     "createTitle": "Create Skill",
