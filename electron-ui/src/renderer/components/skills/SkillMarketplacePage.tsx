@@ -14,6 +14,7 @@ import {
 import MarketplaceCard from './MarketplaceCard'
 import CodexSkillsSection from './CodexSkillsSection'
 import { findInstalledSkill, resolveInstallOutcome } from './installOutcome'
+import { skillSlashCommand } from './skillCommand'
 import type { SkillInfo } from './skillsShared'
 
 interface InstallConflict {
@@ -131,7 +132,7 @@ export default function SkillMarketplacePage() {
 
   const handleUseSkill = useCallback((skillName: string) => {
     const setQuotedText = useUiStore.getState().setQuotedText
-    const slashCmd = `/${skillName.replace(/\s+/g, '-').toLowerCase()}`
+    const slashCmd = skillSlashCommand(skillName)
     setQuotedText(slashCmd)
     useUiStore.getState().setActiveNavItem('chat')
     addToast('success', t('skills.skillActivated'))

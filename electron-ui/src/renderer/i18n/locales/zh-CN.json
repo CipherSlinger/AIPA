@@ -2038,6 +2038,44 @@
       "overwriteWarning": "覆盖会用你的草稿替换磁盘上的文件。这个应用还能读懂的文件头字段会保留；文件头读不懂的文件不会被覆盖。",
       "saveFailed": "保存失败：{{error}}",
       "saved": "技能已保存"
+    },
+    "run": {
+      "now": "立即运行",
+      "nowHint": "把这个技能的斜杠命令放进对话框。按下回车之前，什么都不会发送。",
+      "blockedEmpty": "没有可运行的内容：这个 SKILL.md 在头部之后没有指令。先补上指令。",
+      "blockedUnreadable": "没有可运行的内容：读不出这个 SKILL.md。先修好文件。",
+      "inserted": "{{command}} 已放进对话框——什么都没发送。按回车运行它。",
+      "copy": "复制命令",
+      "copied": "已复制 {{command}}",
+      "copyFailed": "无法复制 {{command}}",
+      "commandHint": "这个技能在对话中使用的斜杠命令。",
+      "summary": {
+        "noSchedule": "仅统计定时运行 · 没有定时任务在跑这个技能，因此没有可统计的运行记录",
+        "noRuns_one": "仅统计定时运行 · 有 1 个启用的定时任务在跑这个技能，但它还没有记录过运行",
+        "noRuns_other": "仅统计定时运行 · 有 {{count}} 个启用的定时任务在跑这个技能，但它们都还没有记录过运行",
+        "runs_one": "仅统计定时运行 · 记得 1 次运行，{{failed}} 次失败 · 最近一次 {{age}}{{spend}}",
+        "runs_other": "仅统计定时运行 · 记得 {{runs}} 次运行，{{failed}} 次失败 · 最近一次 {{age}}{{spend}}",
+        "spend": " · 报告花费 {{amount}}",
+        "spendLowerBound": " · 报告花费 ≥ {{amount}}（下限）",
+        "age": {
+          "now": "刚刚",
+          "minutes": "{{count}} 分钟前",
+          "hours": "{{count}} 小时前",
+          "days": "{{count}} 天前"
+        },
+        "title": {
+          "noSchedule": "没有启用的定时任务在跑这个技能，因此没有可统计的记录。从对话里发起的运行不会被记为自动化运行。",
+          "noRuns": "这个定时任务还没有记录过这个技能的任何一次运行——这不等于这个技能从未运行过。",
+          "runs": "启用中的定时任务记得的运行：",
+          "schedule": "• {{name}} — 运行：{{runs}}，失败：{{failed}}",
+          "digest": "按每次运行记录的技能身份匹配。",
+          "job": "有些计入的运行没有记下技能名称，或早于逐次技能记录；因为其启用中的定时任务跑的是这个技能，所以计入。",
+          "lowerBound": "并非每次计入的运行都报告了花费，因此显示的花费是下限。",
+          "window": "每个定时任务只记得最近的几次运行，更早的可能已经滚出这次统计。",
+          "liveOnly": "统计只覆盖启用中的定时任务。任务删除后，它的运行记录也随之消失。",
+          "chatOnly": "从对话发起的运行不会记录在这里；这里只统计定时运行。"
+        }
+      }
     }
   },
   "skill": {
@@ -4331,7 +4369,6 @@
       "title": "运行记录",
       "subtitle": "每个任务记住的运行，最新的在最上面。",
       "summaryAll": "共记住 {{total}} 次运行，来自所有任务。",
-      "summaryCapped": "显示最近 {{shown}} 条，共记住 {{total}} 次运行，来自所有任务。",
       "hiddenOne": "此筛选隐藏了 1 条已载入的运行",
       "hidden": "此筛选隐藏了 {{count}} 条已载入的运行",
       "chipHint": "数字统计的是本页已载入的运行，不是筛选结果。",
@@ -4372,13 +4409,48 @@
         "unreadable": {
           "title": "读取不到运行记录",
           "hint": "没有删除任何东西：这次读取存储失败。请重试。"
+        },
+        "no-window": {
+          "title": "这个时间范围内没有运行",
+          "hint": "本页已载入的运行都早于{{label}}。放宽时间范围即可看到。",
+          "showAll": "显示所有记住的运行"
         }
       },
       "capNote": "每个任务只保留最近 {{perJob}} 次运行，所以这里是各任务记住的部分，不是全部记录。列表最多到最近 {{cap}} 条。已删除任务的运行随任务一起消失。",
       "row": {
         "openTranscript": "打开这次运行留下的对话",
         "openJob": "在「设置 → 定时任务」中打开 {{name}}",
-        "session": "会话 {{id}}"
+        "session": "会话 {{id}}",
+        "runAgain": "再运行一次",
+        "runAgainHint": "立即启动这个任务。手动运行不受全局暂停影响。",
+        "runAgainRunning": "这个任务正在运行。等这一次结束后再启动。",
+        "runAgainMissingAction": "这个任务无法启动：它的工作流或技能不见了。请到「设置 → 定时任务」修复。",
+        "runStarted": "运行已开始",
+        "starting": "正在启动…",
+        "openJobLabel": "打开任务"
+      },
+      "window": {
+        "aria": "时间范围",
+        "24h": "最近 24 小时",
+        "7d": "最近 7 天",
+        "all": "所有记住的运行",
+        "label": {
+          "24h": "最近 24 小时",
+          "7d": "最近 7 天"
+        }
+      },
+      "summaryAllCapped": "显示已载入 {{loaded}} 条中的 {{shown}} 条 · 共记住 {{total}} 次运行",
+      "summaryWindowAll": "显示{{label}}内 {{window}} 条中的 {{shown}} 条 · 共记住 {{total}} 次运行",
+      "summaryWindowCapped": "显示{{label}}内 {{window}} 条中的 {{shown}} 条 · 已载入 {{loaded}} / 共记住 {{total}} 次运行",
+      "windowCut": "早于此时间范围：已载入的 {{loaded}} 条中有 {{count}} 条。",
+      "chipHintWindowed": "数字统计的是此时间范围内已载入的运行，不是筛选结果。",
+      "jobsUnreadable": "读取不到任务列表，所以这些行上的「再运行一次」和「打开任务」不可用。",
+      "ask": {
+        "action": "问问 AIPA 这些运行",
+        "title": "针对当前时间范围和筛选条件起草一份复盘问题。按下回车之前不会发送任何内容。",
+        "preparedOne": "关于这次运行的复盘问题已经放进输入框，没有发送任何内容。",
+        "prepared": "关于这 {{count}} 次运行的复盘问题已经放进输入框，没有发送任何内容。",
+        "nothing": "当前时间范围和筛选条件没有匹配的运行，没有可问的内容。"
       }
     },
     "alertPolicy": {

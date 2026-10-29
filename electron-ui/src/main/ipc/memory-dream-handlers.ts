@@ -4,13 +4,8 @@
  * Passes are addressed by record id, never by a renderer-supplied path: the
  * delete handler asks the service to look up the file it itself wrote.
  */
-import { ipcMain } from 'electron'
 import type { DreamService } from '../memory/dream-service'
-
-function safeHandle(channel: string, handler: (...args: any[]) => any): void {
-  try { ipcMain.removeHandler(channel) } catch { /* no previous handler */ }
-  ipcMain.handle(channel, handler)
-}
+import { safeHandle } from './register/safe-handle'
 
 export function registerDreamHandlers(getService: () => DreamService | null): void {
   safeHandle('memory:dream:list', () => {

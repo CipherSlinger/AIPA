@@ -2038,6 +2038,44 @@
       "overwriteWarning": "Overwrite replaces the file on disk with your draft. Frontmatter keys this app can still read are preserved; a file with unreadable frontmatter is refused.",
       "saveFailed": "Could not save: {{error}}",
       "saved": "Skill saved"
+    },
+    "run": {
+      "now": "Run now",
+      "nowHint": "Put this skill's slash command in the chat box. Nothing is sent until you press Enter.",
+      "blockedEmpty": "Nothing to run: this SKILL.md has no instructions after its header. Add instructions first.",
+      "blockedUnreadable": "Nothing to run: this SKILL.md could not be read. Fix the file first.",
+      "inserted": "{{command}} is in the chat box — nothing was sent. Press Enter to run it.",
+      "copy": "Copy command",
+      "copied": "{{command}} copied",
+      "copyFailed": "Could not copy {{command}}",
+      "commandHint": "The slash command this skill becomes in chat.",
+      "summary": {
+        "noSchedule": "Scheduled runs only · no schedule runs this skill, so there is no run record to count",
+        "noRuns_one": "Scheduled runs only · 1 live schedule runs this skill, but it has no recorded run yet",
+        "noRuns_other": "Scheduled runs only · {{count}} live schedules run this skill, but none has a recorded run of it yet",
+        "runs_one": "Scheduled runs only · 1 remembered run, {{failed}} failed · newest {{age}}{{spend}}",
+        "runs_other": "Scheduled runs only · {{runs}} remembered runs, {{failed}} failed · newest {{age}}{{spend}}",
+        "spend": " · {{amount}} reported",
+        "spendLowerBound": " · ≥ {{amount}} reported (lower bound)",
+        "age": {
+          "now": "just now",
+          "minutes": "{{count}}m ago",
+          "hours": "{{count}}h ago",
+          "days": "{{count}}d ago"
+        },
+        "title": {
+          "noSchedule": "No live schedule runs this skill, so there is nothing to count. Runs started from chat are not recorded as automation runs.",
+          "noRuns": "This schedule has no remembered run of this skill yet — that is not the same as the skill never having run.",
+          "runs": "Remembered runs across live schedules:",
+          "schedule": "• {{name}} — runs: {{runs}}, failed: {{failed}}",
+          "digest": "Runs matched by the skill identity recorded on each run.",
+          "job": "Some counted runs carry no skill name or predate per-run skill records; they are counted because their live schedule runs this skill.",
+          "lowerBound": "Not every counted run reported a cost, so the spend shown is a lower bound.",
+          "window": "Each schedule remembers only its most recent runs, so older runs may have rolled out of this count.",
+          "liveOnly": "Counts cover live schedules only. A deleted schedule's runs leave with it.",
+          "chatOnly": "Runs started from chat leave no record here; only scheduled runs are counted."
+        }
+      }
     }
   },
   "skill": {
@@ -4331,7 +4369,6 @@
       "title": "Run history",
       "subtitle": "Every job's remembered runs, newest first.",
       "summaryAll": "All {{total}} remembered runs across every job.",
-      "summaryCapped": "Showing the newest {{shown}} of {{total}} remembered runs across every job.",
       "hiddenOne": "1 loaded run hidden by this filter",
       "hidden": "{{count}} loaded runs hidden by this filter",
       "chipHint": "Counts describe the runs loaded on this page, not a filter's result.",
@@ -4372,13 +4409,48 @@
         "unreadable": {
           "title": "The run history could not be read",
           "hint": "Nothing was deleted: the store could not be read this time. Try again."
+        },
+        "no-window": {
+          "title": "No runs in this time window",
+          "hint": "The runs loaded on this page are all older than {{label}}. Widen the window to see them.",
+          "showAll": "Show all remembered runs"
         }
       },
       "capNote": "Each job keeps its last {{perJob}} runs, so this is what each job remembered, not a transcript of everything. The list stops at the newest {{cap}}. A deleted job's runs left with it.",
       "row": {
         "openTranscript": "Open the conversation this run left",
         "openJob": "Open {{name}} in Settings → Automations",
-        "session": "session {{id}}"
+        "session": "session {{id}}",
+        "runAgain": "Run again",
+        "runAgainHint": "Starts this job now. Manual runs are not stopped by the global pause.",
+        "runAgainRunning": "This job is already running. Wait for that run to finish before starting another.",
+        "runAgainMissingAction": "This job cannot start: its workflow or skill is missing. Fix it in Settings → Automations.",
+        "runStarted": "Run started",
+        "starting": "Starting…",
+        "openJobLabel": "Open job"
+      },
+      "window": {
+        "aria": "Time window",
+        "24h": "Last 24 hours",
+        "7d": "Last 7 days",
+        "all": "All remembered",
+        "label": {
+          "24h": "the last 24 hours",
+          "7d": "the last 7 days"
+        }
+      },
+      "summaryAllCapped": "Showing {{shown}} of {{loaded}} loaded · {{loaded}} of {{total}} remembered",
+      "summaryWindowAll": "Showing {{shown}} of {{window}} in {{label}} · all {{total}} remembered",
+      "summaryWindowCapped": "Showing {{shown}} of {{window}} in {{label}} · {{loaded}} of {{total}} remembered",
+      "windowCut": "Older than this window: {{count}} of the {{loaded}} loaded runs.",
+      "chipHintWindowed": "Counts describe the runs in this window, not a filter's result.",
+      "jobsUnreadable": "The job list could not be read, so Run again and Open job are unavailable on these rows.",
+      "ask": {
+        "action": "Ask AIPA about these runs",
+        "title": "Draft a post-mortem question about the runs in this window and filter. Nothing is sent until you press Enter.",
+        "preparedOne": "A post-mortem question about this run is in the composer. Nothing was sent.",
+        "prepared": "A post-mortem question about these {{count}} runs is in the composer. Nothing was sent.",
+        "nothing": "No runs match this window and filter, so there is nothing to ask about."
       }
     },
     "alertPolicy": {

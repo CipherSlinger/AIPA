@@ -12,8 +12,10 @@
 // always followed.
 
 import { useChatStore, useUiStore } from '../../store'
-import type { AutomationJobData } from '../../../preload'
+import type { AutomationJobData, AutomationRunActivityRowData } from '../../../preload'
 import { buildInvestigatePrompt } from './investigatePrompt'
+import { buildRunActivityPrompt } from './runActivityPrompt'
+import type { RunActivityFilter, RunActivityWindow } from './runActivity'
 import type { Translate } from './scheduleText'
 
 export interface InvestigateRunRequest {
@@ -72,4 +74,48 @@ export async function prepareRunInvestigation(
     addToast('error', t('automation.investigate.unavailable', { name: jobName }))
     return 'unavailable'
   }
+}
+
+export interface PrepareRunActivityInvestigationRequest {
+  /** The rows on screen after the window and every filter, newest first. */
+  rows: readonly AutomationRunActivityRowData[]
+  window: RunActivityWindow
+  filter: RunActivityFilter
+  loaded: number
+  total: number
+  cap: number
+  t: Translate
+  addToast: (type: 'success' | 'error' | 'info' | 'warning', message: string) => void
+  now?: number
+}
+
+/**
+ * "Ask AIPA about these runs": build the page-level post-mortem and park it in
+ * a fresh conversation's composer.
+ *
+ * This is the same destination as `prepareRunInvestigation` — the only
+ * difference is the question and the set it describes. It reads no live job
+ * list and sends nothing: the user still has to read the draft and press Enter.
+ * It returns the draft so a caller (or a harness) can inspect exactly what was
+ * placed there.
+ */
+export function prepareRunActivityInvestigation(
+  request: PrepareRunActivityInvestigationRequest,
+): string {
+  const { rows, t, addToast } = request
+  // A filter can change between rendering the button and clicking it. An empty
+  // set has no post-mortem to ask for, so say that instead of prefilling a
+  // question about nothing.
+  if (rows.length === 0) {
+    addToast('info', t('automation.runActivity.ask.nothing'))
+    return ''
+  }
+  const text = buildRunActivityPrompt(request)
+  useChatStore.getState().clearMessages()
+  useUiStore.getState().setActiveNavItem('chat')
+  useUiStore.getState().prefillComposer(text)
+  addToast('success', rows.length === 1
+    ? t('automation.runActivity.ask.preparedOne')
+    : t('automation.runActivity.ask.prepared', { count: rows.length }))
+  return text
 }

@@ -6,6 +6,8 @@ import {
   CalendarClock,
   CalendarPlus,
   ChevronRight,
+  Copy,
+  History,
   Pencil,
   Play,
   Save,
@@ -18,6 +20,12 @@ import { scheduleText } from '../automation/scheduleText'
 import AutomationDialog, { type WorkflowOption } from '../automation/AutomationDialog'
 import { WARNING } from '../automation/automationStyles'
 import { skillBodyState } from '../automation/skillSelection'
+import { skillSlashCommand } from './skillCommand'
+import {
+  buildSkillRunSummary,
+  matchesSkillAction,
+  skillRunSummaryText,
+} from './skillRunSummary'
 import ProvenanceLine from '../provenance/ProvenanceLine'
 import {
   parseSkillMd,
@@ -154,6 +162,8 @@ export default function SkillDetail({
   const [useHovered, setUseHovered] = useState(false)
   const [deleteHovered, setDeleteHovered] = useState(false)
   const [scheduleHovered, setScheduleHovered] = useState(false)
+  const [runHovered, setRunHovered] = useState(false)
+  const [copyHovered, setCopyHovered] = useState(false)
   const [editHovered, setEditHovered] = useState(false)
   const [saveHovered, setSaveHovered] = useState(false)
   const [cancelHovered, setCancelHovered] = useState(false)
@@ -243,18 +253,59 @@ export default function SkillDetail({
     : runState === 'ready' && bodyEmpty
       ? t('skills.schedules.blockedEmpty')
       : null
+  // Run now applies the same rule for a different reason: an empty or
+  // unreadable file cannot produce a run, and a button that inserts a command
+  // it knows will fail would only move the failure into chat.
+  const runBlockedReason = runState === 'unreadable'
+    ? t('skills.run.blockedUnreadable')
+    : runState === 'ready' && bodyEmpty
+      ? t('skills.run.blockedEmpty')
+      : null
 
   // A job names the skill by source + directory segment, which is exactly the
   // identity this page was opened with. `skillDir` is absent only for a payload
   // from an older main process; `''` is the root-level skill, not a wildcard.
+  const skillIdentity = useMemo(() => ({
+    source: skill.source,
+    dir: skill.skillDir ?? '',
+  }), [skill.source, skill.skillDir])
   const schedules = useMemo(() => {
     const list = jobs ?? []
-    const dir = skill.skillDir ?? ''
-    return list.filter(job =>
-      job.action.kind === 'skill' &&
-      job.action.skillSource === skill.source &&
-      job.action.skillDir === dir)
-  }, [jobs, skill])
+    return list.filter(job => matchesSkillAction(job, skillIdentity))
+  }, [jobs, skillIdentity])
+
+  // The same jobs the strip above reads. `automationList()` is the only source,
+  // and the pure module owns the arithmetic: which runs belong to this skill,
+  // what failed, how old the newest is and whether spend is complete. Nothing
+  // here claims a chat run — a hand-started run leaves no automation record.
+  const runSummary = useMemo(
+    () => (jobs === null ? null : buildSkillRunSummary(jobs, skillIdentity)),
+    [jobs, skillIdentity],
+  )
+  const runSummaryView = runSummary === null
+    ? null
+    : skillRunSummaryText(runSummary, t, Date.now())
+
+  // The command the Run now action puts in the composer. One helper with the
+  // marketplace's Use action, so the chip shows exactly what would be typed.
+  const runCommand = useMemo(() => skillSlashCommand(skill.name), [skill.name])
+
+  const runNow = useCallback(() => {
+    if (!canSchedule) return
+    const ui = useUiStore.getState()
+    ui.setQuotedText(runCommand)
+    ui.setActiveNavItem('chat')
+    addToast('success', t('skills.run.inserted', { command: runCommand }))
+  }, [canSchedule, runCommand, addToast, t])
+
+  const copyRunCommand = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(runCommand)
+      addToast('success', t('skills.run.copied', { command: runCommand }))
+    } catch {
+      addToast('error', t('skills.run.copyFailed', { command: runCommand }))
+    }
+  }, [runCommand, addToast, t])
 
   // ── Editing handlers ────────────────────────────────────────────────────
 
@@ -576,6 +627,7 @@ export default function SkillDetail({
         padding: '12px 20px',
         flexShrink: 0,
         alignItems: 'center',
+        flexWrap: 'wrap',
       }}>
         {editing ? (
           <>
@@ -717,6 +769,87 @@ export default function SkillDetail({
               <Play size={14} />
               {t('skills.useSkill')}
             </button>
+
+            {/* Run now inserts the command; it never sends. The same gating as
+                scheduling: an empty or unreadable file has nothing to run. */}
+            <button
+              onClick={runNow}
+              disabled={!canSchedule}
+              onMouseEnter={() => setRunHovered(true)}
+              onMouseLeave={() => setRunHovered(false)}
+              title={runBlockedReason ?? t('skills.run.nowHint')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '9px 20px',
+                background: !canSchedule
+                  ? 'var(--bg-hover)'
+                  : runHovered
+                    ? 'rgba(99,102,241,0.16)'
+                    : 'var(--bg-hover)',
+                color: canSchedule ? 'var(--accent-text)' : 'var(--text-muted)',
+                border: canSchedule
+                  ? '1px solid rgba(99,102,241,0.35)'
+                  : '1px solid var(--border)',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: canSchedule ? 'pointer' : 'not-allowed',
+                opacity: canSchedule ? 1 : 0.6,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Play size={14} />
+              {t('skills.run.now')}
+            </button>
+
+            {/* The command the action inserts, shown as text so the next run can
+                be typed without opening this page. Copying is independent of the
+                disabled Run now: the command is still worth knowing. */}
+            <span
+              title={t('skills.run.commandHint')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '5px 6px 5px 9px',
+                borderRadius: 7,
+                border: '1px solid var(--border)',
+                background: 'var(--bg-hover)',
+                color: 'var(--text-secondary)',
+                fontSize: 12,
+                fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", monospace',
+                maxWidth: '100%',
+                minWidth: 0,
+              }}
+            >
+              <code style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>{runCommand}</code>
+              <button
+                onClick={() => void copyRunCommand()}
+                onMouseEnter={() => setCopyHovered(true)}
+                onMouseLeave={() => setCopyHovered(false)}
+                title={t('skills.run.copy')}
+                aria-label={t('skills.run.copy')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: 3,
+                  border: 'none',
+                  borderRadius: 4,
+                  background: copyHovered ? 'var(--border)' : 'transparent',
+                  color: copyHovered ? 'var(--text-primary)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              >
+                <Copy size={12} />
+              </button>
+            </span>
 
             {/* Scheduling from the page a skill lives on. It only opens the same
                 dialog the workflow page opens, pre-filled with this identity; the
@@ -932,6 +1065,36 @@ export default function SkillDetail({
                 onOpen={() => useUiStore.getState().openSettingsAt('automations')}
               />
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* What the schedules above have actually done with this skill. It is
+          built from the same `automationList()` read as the strip, never from a
+          chat history: a run started by hand leaves no record here, and every
+          state says so. `title` carries the per-schedule breakdown and the
+          limits of the window, so the line itself stays one line. */}
+      {runSummaryView && (
+        <div style={{ padding: '0 20px 10px', flexShrink: 0 }}>
+          <div
+            title={runSummaryView.title}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 11,
+              lineHeight: 1.5,
+              color: runSummaryView.tone === 'warn' ? WARNING : 'var(--text-muted)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            <History size={11} style={{ flexShrink: 0, opacity: 0.7 }} />
+            <span style={{
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}>{runSummaryView.text}</span>
           </div>
         </div>
       )}

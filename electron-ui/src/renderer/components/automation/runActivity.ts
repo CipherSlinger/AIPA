@@ -11,11 +11,13 @@
 // every sentence the panel prints is careful not to imply otherwise.
 
 import type {
+  AutomationJobData,
   AutomationRunActivityRowData,
   AutomationRunRecordData,
   AutomationRunSourceData,
 } from '../../../preload'
 import type { Translate } from './scheduleText'
+import { errorCodeText } from '../workflows/scheduleSummary'
 
 /** The status chips, in display order. `all` is not narrowed. */
 export const RUN_ACTIVITY_STATUSES = ['all', 'failed', 'skipped', 'succeeded'] as const
@@ -31,6 +33,41 @@ export type RunActivityStatus = typeof RUN_ACTIVITY_STATUSES[number]
  */
 export const RUN_ACTIVITY_SOURCES = ['all', 'scheduled', 'manual', 'watch', 'chain', 'unrecorded'] as const
 export type RunActivitySource = typeof RUN_ACTIVITY_SOURCES[number]
+
+/**
+ * How far back the page looks. This is a scope over the already-loaded rows,
+ * not another request: main has already answered with the newest 500 runs, so
+ * a window can only narrow what is in hand. `all` means every loaded row,
+ * including those older than a week — it does not mean every remembered run,
+ * which is why the footer still states the cap.
+ */
+export const RUN_ACTIVITY_WINDOWS = ['24h', '7d', 'all'] as const
+export type RunActivityWindow = typeof RUN_ACTIVITY_WINDOWS[number]
+
+/** Windows that cut by age. A fixed 24 h / 7 d, not a calendar day or week. */
+export const RUN_ACTIVITY_WINDOW_MS: Record<Exclude<RunActivityWindow, 'all'>, number> = {
+  '24h': 24 * 60 * 60 * 1000,
+  '7d': 7 * 24 * 60 * 60 * 1000,
+}
+
+/**
+ * The loaded rows that fall inside the window.
+ *
+ * Boundaries are inclusive: a run started exactly 24 h (or 7 d) before `now` is
+ * still in the window, and one started 1 ms earlier is out. A run with no
+ * usable start time cannot be placed in time, so a time window drops it rather
+ * than guessing; `all` keeps it.
+ */
+export function filterRunActivityWindow(
+  rows: readonly AutomationRunActivityRowData[],
+  window: RunActivityWindow,
+  now: number = Date.now(),
+): AutomationRunActivityRowData[] {
+  if (window === 'all') return [...rows]
+  const span = RUN_ACTIVITY_WINDOW_MS[window]
+  return rows.filter(row =>
+    Number.isFinite(row.run.startedAt) && now - row.run.startedAt <= span)
+}
 
 export interface RunActivityFilter {
   status: RunActivityStatus
@@ -110,26 +147,45 @@ export function matchesRunActivityRow(
 }
 
 export interface RunActivityView {
-  /** The loaded rows this filter keeps, in main's order (newest first). */
+  /** Every loaded row inside the window, in main's order (newest first). */
+  windowed: AutomationRunActivityRowData[]
+  /** The windowed rows this filter keeps, in main's order (newest first). */
   visible: AutomationRunActivityRowData[]
-  /** Counts over every loaded row, regardless of the filter. */
+  /** Counts over every row inside the window, regardless of the filter. */
   counts: RunActivityCounts
-  /** Loaded rows the filter hides. */
+  /** Windowed rows the filter hides. */
   hidden: number
-  /** The filter narrows the list at all. */
+  /** Loaded rows the window itself hides (older than the selected window). */
+  windowHidden: number
+  /** Loaded rows inside the window. */
+  windowRows: number
+  /** The status/source/job/text filter narrows the list at all. */
   filtered: boolean
 }
 
+/**
+ * Apply the window first, then the filter. The chips describe the windowed
+ * set, not the loaded set: a page showing "last 24 hours" whose chip still
+ * counted a run from three weeks ago would be counting something the reader
+ * cannot see. The window is a scope, so it is applied before the filter but is
+ * not part of `filtered` — clearing filters must not silently widen the window.
+ */
 export function viewRunActivity(
   rows: readonly AutomationRunActivityRowData[],
   filter: RunActivityFilter = RUN_ACTIVITY_FILTER_ALL,
+  window: RunActivityWindow = 'all',
+  now: number = Date.now(),
 ): RunActivityView {
-  const counts = countRunActivity(rows)
-  const visible = rows.filter(row => matchesRunActivityRow(row, filter))
+  const windowed = filterRunActivityWindow(rows, window, now)
+  const counts = countRunActivity(windowed)
+  const visible = windowed.filter(row => matchesRunActivityRow(row, filter))
   return {
+    windowed,
     visible,
     counts,
-    hidden: rows.length - visible.length,
+    hidden: windowed.length - visible.length,
+    windowHidden: rows.length - windowed.length,
+    windowRows: windowed.length,
     filtered: filter.status !== 'all'
       || filter.source !== 'all'
       || filter.jobId !== null
@@ -165,28 +221,37 @@ export function runActivityJobChoices(
 }
 
 /**
- * Which empty state the page is in. Four answers, three of them "nothing to
+ * Which empty state the page is in. Five answers, four of them "nothing to
  * list" and each a different fact:
  *
  *  - `unreadable`  the read failed; the store may be full of runs
  *  - `no-runs`     the read worked and no job remembers a run
- *  - `no-match`    runs exist but the filter hides all of them
+ *  - `no-window`   runs were loaded, but the selected time window keeps none
+ *  - `no-match`    runs exist in the window but the filter hides all of them
  *  - `none`        there is something to render
  *
  * `total` is main's pre-cap count, so a cap that somehow returned zero rows
- * still reads as "runs exist", never as "nothing has run".
+ * still reads as "runs exist", never as "nothing has run". A window that hides
+ * everything gets its own answer because "clear the filter" would not bring
+ * the rows back: only widening the window can.
  */
-export type RunActivityEmptyState = 'none' | 'unreadable' | 'no-runs' | 'no-match'
+export type RunActivityEmptyState =
+  | 'none' | 'unreadable' | 'no-runs' | 'no-window' | 'no-match'
 
 export function runActivityEmptyState(input: {
   readFailed: boolean
   loaded: number
   total: number
   visible: number
+  /** Loaded rows inside the selected window. Omitted means "same as loaded". */
+  windowRows?: number
+  window?: RunActivityWindow
 }): RunActivityEmptyState {
   if (input.readFailed) return 'unreadable'
   if (input.visible > 0) return 'none'
   if (input.total <= 0 && input.loaded <= 0) return 'no-runs'
+  const windowRows = input.windowRows ?? input.loaded
+  if (input.window && input.window !== 'all' && windowRows === 0) return 'no-window'
   return 'no-match'
 }
 
@@ -241,4 +306,136 @@ export function runActivityStatusText(
     return { text, color: 'var(--warning-text)' }
   }
   return { text: t('automation.status.error'), color: 'var(--danger-text)' }
+}
+
+/** Thousands separators, so "500 of 1,240" does not read as a telemetry id. */
+export function runActivityCount(value: number): string {
+  return String(Math.max(0, Math.trunc(value))).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
+export interface RunActivitySummaryInput {
+  /** Rows the window and filter leave on screen. */
+  shown: number
+  /** Loaded rows inside the window, before the status/source/job/text filter. */
+  windowRows: number
+  window: RunActivityWindow
+  /** Rows main returned (already capped). */
+  loaded: number
+  /** Runs remembered before the cap. */
+  total: number
+}
+
+/**
+ * The header sentence. It names both bounds at once: how many of the window's
+ * rows the filter leaves ("showing X of Y"), and how many remembered runs main
+ * actually loaded ("Z of N remembered"). The window is in the sentence only
+ * when it cuts — "all" has no cut to explain, but the cap still does.
+ */
+export function runActivitySummaryText(
+  input: RunActivitySummaryInput,
+  t: Translate,
+): string {
+  const total = runActivityCount(input.total)
+  const shown = runActivityCount(input.shown)
+  if (input.total <= 0) return t('automation.runActivity.subtitle')
+  const capped = input.loaded < input.total
+  if (input.window === 'all') {
+    if (!capped) return t('automation.runActivity.summaryAll', { total })
+    return t('automation.runActivity.summaryAllCapped', {
+      shown,
+      loaded: runActivityCount(input.loaded),
+      total,
+    })
+  }
+  const label = t(`automation.runActivity.window.label.${input.window}`)
+  const window = runActivityCount(input.windowRows)
+  if (!capped) {
+    return t('automation.runActivity.summaryWindowAll', { shown, window, label, total })
+  }
+  return t('automation.runActivity.summaryWindowCapped', {
+    shown,
+    window,
+    label,
+    loaded: runActivityCount(input.loaded),
+    total,
+  })
+}
+
+/** How many loaded rows the window itself put out of view, in the footer's words. */
+export function runActivityWindowCutText(
+  windowHidden: number,
+  loaded: number,
+  t: Translate,
+): string {
+  if (windowHidden <= 0) return ''
+  return t('automation.runActivity.windowCut', {
+    count: runActivityCount(windowHidden),
+    loaded: runActivityCount(loaded),
+  })
+}
+
+/**
+ * Whether "Run again" can start this row's job.
+ *
+ * `jobs === null` means the live job list could not be read: the page cannot
+ * tell a deleted job from a running one, so it offers no per-row action rather
+ * than one that might refuse. A job that is missing from a *successful* read is
+ * deleted; its row keeps its record but has no live target.
+ */
+export type RunActivityRunAgainState =
+  | { kind: 'available' }
+  | { kind: 'running' }
+  | { kind: 'missing-action' }
+  | { kind: 'deleted' }
+  | { kind: 'unknown' }
+
+export function runActivityRunAgainState(
+  jobId: string,
+  jobs: readonly AutomationJobData[] | null,
+): RunActivityRunAgainState {
+  if (jobs === null) return { kind: 'unknown' }
+  const job = jobs.find(candidate => candidate.id === jobId)
+  if (!job) return { kind: 'deleted' }
+  if (job.running) return { kind: 'running' }
+  // A job whose workflow or skill no longer resolves is refused by the
+  // scheduler after it has already recorded a failure. Do not offer a start the
+  // row can already predict will fail.
+  if (job.actionMissing) return { kind: 'missing-action' }
+  return { kind: 'available' }
+}
+
+/** A row may open Settings only when its job is in a successful live read. */
+export function runActivityJobExists(
+  jobId: string,
+  jobs: readonly AutomationJobData[] | null,
+): boolean {
+  return jobs !== null && jobs.some(job => job.id === jobId)
+}
+
+/**
+ * A refusal from `automation:runNow`, in the same words the status-bar panel
+ * uses. Anything unknown goes through `errorCodeText` inside one sentence, so a
+ * raw code is never the whole message.
+ */
+export function runActivityRefusalText(
+  code: string,
+  name: string,
+  t: Translate,
+): string {
+  switch (code) {
+    case 'already_running':
+      return t('statusBar.background.runAlreadyRunning', { name })
+    case 'not_found':
+      return t('statusBar.background.runNotFound', { name })
+    case 'too_many_running':
+      return t('statusBar.background.runTooMany', { name })
+    case 'workflow_missing':
+      return t('statusBar.background.runWorkflowMissing', { name })
+    case 'nothing_to_run':
+      return t('statusBar.background.runNothingToRun', { name })
+    default: {
+      const reason = errorCodeText(code, t)
+      return t('statusBar.background.runRefused', { name, reason: reason || code })
+    }
+  }
 }

@@ -16,11 +16,12 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  AlertTriangle, Check, Clock, Inbox, ListChecks, Search, Sparkles, X,
+  AlertTriangle, Check, Clock, Inbox, ListChecks, Play, Search, Sparkles, X,
 } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { useUiStore } from '../../store'
 import type {
+  AutomationJobData,
   AutomationRunActivityData,
   AutomationRunActivityRowData,
   AutomationRunApprovalData,
@@ -31,19 +32,27 @@ import { costText, errorCodeText, relativeTimeText } from '../workflows/schedule
 import { EmptyState, Pill } from '../archive/ArchiveChrome'
 import { ELLIPSIS } from '../archive/archiveRecord'
 import { approvalClause, approvalTone, approvalTooltip } from './runApproval'
-import { prepareRunInvestigation } from './investigateRun'
+import { prepareRunActivityInvestigation, prepareRunInvestigation } from './investigateRun'
 import {
   RUN_ACTIVITY_SOURCES,
   RUN_ACTIVITY_STATUSES,
+  RUN_ACTIVITY_WINDOWS,
   runActivityDurationText,
   runActivityEmptyState,
   runActivityJobChoices,
+  runActivityJobExists,
+  runActivityRefusalText,
+  runActivityRunAgainState,
   runActivitySourceText,
   runActivityStatusText,
+  runActivitySummaryText,
+  runActivityWindowCutText,
   viewRunActivity,
   type RunActivityFilter,
+  type RunActivityRunAgainState,
   type RunActivitySource,
   type RunActivityStatus,
+  type RunActivityWindow,
 } from './runActivity'
 
 /**
@@ -83,16 +92,41 @@ const QUIET_LINK: React.CSSProperties = {
   cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3,
 }
 
+/** A per-row action, quiet enough to sit beside the facts it acts on. */
+const ROW_ACTION: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 3,
+  background: 'none', border: 'none', padding: 0,
+  font: 'inherit', fontSize: 11, color: 'var(--accent-text)',
+  cursor: 'pointer',
+}
+
+const ASK_BUTTON: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 4,
+  height: 24, flexShrink: 0, padding: '0 9px', borderRadius: 8,
+  border: '1px solid var(--accent-border)', background: 'var(--accent-bg)',
+  color: 'var(--accent-text)', fontSize: 10, fontWeight: 600, cursor: 'pointer',
+}
+
 interface RunRowProps {
   row: AutomationRunActivityRowData
   t: ReturnType<typeof useI18n>['t']
   resolvedLocale: 'en' | 'zh-CN'
   investigating: boolean
+  /** Whether the live job list lets this row be started / opened at all. */
+  runAgain: RunActivityRunAgainState
+  canOpenJob: boolean
+  starting: boolean
+  started: boolean
   onOpen: () => void
   onInvestigate: () => void
+  onRunAgain: () => void
+  onOpenJob: () => void
 }
 
-function RunRow({ row, t, resolvedLocale, investigating, onOpen, onInvestigate }: RunRowProps) {
+function RunRow({
+  row, t, resolvedLocale, investigating, runAgain, canOpenJob, starting, started,
+  onOpen, onInvestigate, onRunAgain, onOpenJob,
+}: RunRowProps) {
   const { run, jobId, jobName } = row
   const state = runActivityStatusText(run, t)
   const duration = runActivityDurationText(run.durationMs, t)
@@ -108,6 +142,20 @@ function RunRow({ row, t, resolvedLocale, investigating, onOpen, onInvestigate }
   const openLabel = sessionId
     ? t('automation.runActivity.row.openTranscript')
     : t('automation.runActivity.row.openJob', { name: jobName })
+
+  // A start is offered only while the job can accept one. Running and missing
+  // work are disabled with a reason; a deleted job (or a job list that could
+  // not be read) has no action at all — the row keeps its record, but there is
+  // no live target to act on.
+  const showRunAgain = runAgain.kind === 'available'
+    || runAgain.kind === 'running'
+    || runAgain.kind === 'missing-action'
+  const runAgainTitle = runAgain.kind === 'available'
+    ? t('automation.runActivity.row.runAgainHint')
+    : runAgain.kind === 'running'
+      ? t('automation.runActivity.row.runAgainRunning')
+      : t('automation.runActivity.row.runAgainMissingAction')
+  const runAgainDisabled = runAgain.kind !== 'available' || starting
 
   return (
     <div
@@ -222,6 +270,57 @@ function RunRow({ row, t, resolvedLocale, investigating, onOpen, onInvestigate }
             {t('automation.investigate.ask')}
           </button>
         )}
+
+        {(showRunAgain || canOpenJob || started) && (
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+            // With a failure's Ask AIPA already on the right, these follow it;
+            // without one they claim the row's right edge themselves.
+            marginLeft: run.status === 'error' ? 10 : 'auto',
+          }}>
+            {showRunAgain && (
+              <button
+                type="button"
+                disabled={runAgainDisabled}
+                onClick={e => {
+                  e.stopPropagation()
+                  if (runAgain.kind === 'available') onRunAgain()
+                }}
+                title={runAgainTitle}
+                aria-label={`${t('automation.runActivity.row.runAgain')} — ${jobName}`}
+                style={{
+                  ...ROW_ACTION,
+                  cursor: runAgainDisabled ? 'default' : 'pointer',
+                  opacity: runAgainDisabled ? 0.55 : 1,
+                }}
+              >
+                <Play size={10} />
+                {starting
+                  ? t('automation.runActivity.row.starting')
+                  : t('automation.runActivity.row.runAgain')}
+              </button>
+            )}
+            {canOpenJob && (
+              // Only a job present in a successful live read gets this. A
+              // deleted job's row keeps its record but has no target here.
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); onOpenJob() }}
+                title={t('automation.runActivity.row.openJob', { name: jobName })}
+                style={ROW_ACTION}
+              >
+                {t('automation.runActivity.row.openJobLabel')}
+              </button>
+            )}
+            {started && (
+              // The new run has not finished, so it is not a row yet. Say it
+              // started on the row the user clicked instead of inventing one.
+              <span style={{ fontSize: 10, color: 'var(--success-text)' }}>
+                {t('automation.runActivity.row.runStarted')}
+              </span>
+            )}
+          </span>
+        )}
       </div>
 
       {/* The job id is not decoration: a renamed job keeps one row name, and
@@ -235,24 +334,59 @@ export default function RunActivityPanel() {
   const { t, resolvedLocale } = useI18n()
   const addToast = useUiStore(s => s.addToast)
   const [data, setData] = useState<AutomationRunActivityData | null>(null)
+  // `null` means "the live job list is not known" — a failed read, or the first
+  // one still in flight. Per-row actions that need a live job are withheld
+  // until a successful read says which jobs exist.
+  const [jobs, setJobs] = useState<AutomationJobData[] | null>(null)
   const [readFailed, setReadFailed] = useState(false)
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState<RunActivityStatus>('all')
   const [source, setSource] = useState<RunActivitySource>('all')
   const [jobId, setJobId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  // The page's own copy calls this "run history" and "every job's remembered
+  // runs, newest first": "newest first" orders the whole remembered set, it
+  // does not promise that only recent runs matter. So the default is `all` —
+  // opening the page must not silently hide older runs the footer still counts.
+  const [windowRange, setWindowRange] = useState<RunActivityWindow>('all')
   const [investigating, setInvestigating] = useState<string | null>(null)
+  const [starting, setStarting] = useState<Set<string>>(() => new Set())
+  const [started, setStarted] = useState<Record<string, true>>({})
   const seqRef = useRef(0)
+  const startedTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
+
+  useEffect(() => {
+    const timers = startedTimers.current
+    return () => {
+      for (const timer of timers.values()) clearTimeout(timer)
+      timers.clear()
+    }
+  }, [])
 
   const load = useCallback(async () => {
     const request = ++seqRef.current
     try {
-      const result = await window.electronAPI.automationRunActivity()
+      const api = window.electronAPI
+      const result = await api.automationRunActivity()
       // An event-triggered refetch can land before an older response; only the
       // newest request may write, or the list would move backwards.
       if (request !== seqRef.current) return
       if (!result || !Array.isArray(result.rows)) throw new Error('unreadable run activity')
+
+      // The run list is the page; the job list only decides which row actions
+      // are honest. Its failure must not turn a readable run list into an
+      // unreadable page, so it degrades to "no per-row actions" instead.
+      let nextJobs: AutomationJobData[] | null = null
+      try {
+        const listed = api.automationList ? await api.automationList() : null
+        if (listed && Array.isArray(listed.jobs)) nextJobs = listed.jobs
+      } catch (err) {
+        console.error('[AIPA] Could not read automation jobs for run-row actions', err)
+      }
+
+      if (request !== seqRef.current) return
       setData(result)
+      setJobs(nextJobs)
       setReadFailed(false)
     } catch (err) {
       console.error('[AIPA] Could not read the cross-job run list', err)
@@ -262,6 +396,7 @@ export default function RunActivityPanel() {
       if (request === seqRef.current) {
         setReadFailed(true)
         setData(null)
+        setJobs(null)
       }
     } finally {
       if (request === seqRef.current) setLoading(false)
@@ -276,26 +411,31 @@ export default function RunActivityPanel() {
   }, [load])
 
   const rows = useMemo(() => data?.rows ?? [], [data])
-  const choices = useMemo(() => runActivityJobChoices(rows), [rows])
 
   // A job can be deleted or lose its last remembered run between reads. A
   // selector value that names nothing would filter the whole page to an empty
   // result and look like a bug.
-  useEffect(() => {
-    if (jobId !== null && !choices.some(choice => choice.id === jobId)) setJobId(null)
-  }, [choices, jobId])
-
   const filter: RunActivityFilter = useMemo(
     () => ({ status, source, jobId, query }),
     [status, source, jobId, query],
   )
-  const view = useMemo(() => viewRunActivity(rows, filter), [rows, filter])
+  const view = useMemo(
+    () => viewRunActivity(rows, filter, windowRange, Date.now()),
+    [rows, filter, windowRange],
+  )
+  const choices = useMemo(() => runActivityJobChoices(view.windowed), [view.windowed])
+
+  useEffect(() => {
+    if (jobId !== null && !choices.some(choice => choice.id === jobId)) setJobId(null)
+  }, [choices, jobId])
 
   const emptyState = runActivityEmptyState({
     readFailed,
     loaded: rows.length,
     total: data?.total ?? 0,
     visible: view.visible.length,
+    windowRows: view.windowRows,
+    window: windowRange,
   })
 
   const clearFilters = () => {
@@ -313,7 +453,9 @@ export default function RunActivityPanel() {
       return
     }
     // No transcript: the job that remembers this run is the only place with
-    // more context, so land on its row in Settings.
+    // more context, so land on its row in Settings. A deleted job has no row
+    // to land on, so the click does nothing rather than opening a dead target.
+    if (!runActivityJobExists(row.jobId, jobs)) return
     useUiStore.getState().focusAutomationJob(row.jobId)
   }
 
@@ -333,22 +475,106 @@ export default function RunActivityPanel() {
     }
   }
 
-  // The header names the bound and the reason for it; the footer repeats the
-  // parts a reader is most likely to get wrong (what "remembered" means, and
-  // that deleted jobs took their runs with them).
-  const summary = !data || data.total === 0
-    ? t('automation.runActivity.subtitle')
-    : data.rows.length < data.total
-      ? t('automation.runActivity.summaryCapped', {
-        shown: data.rows.length,
-        total: data.total,
+  const markStarted = (key: string) => {
+    setStarted(prev => (prev[key] ? prev : { ...prev, [key]: true }))
+    const existing = startedTimers.current.get(key)
+    if (existing) clearTimeout(existing)
+    // The confirmation belongs to the click, not to the record forever: clear
+    // it after a few seconds, by which time a real run has usually produced its
+    // own state change.
+    const timer = setTimeout(() => {
+      setStarted(prev => {
+        if (!prev[key]) return prev
+        const next = { ...prev }
+        delete next[key]
+        return next
       })
-      : t('automation.runActivity.summaryAll', { total: data.total })
+      startedTimers.current.delete(key)
+    }, 12_000)
+    startedTimers.current.set(key, timer)
+  }
+
+  /**
+   * Start a job from its remembered run.
+   *
+   * A manual run is exempt from the global pause by design, so this path is
+   * allowed even while other runs are paused; the tooltip says so before the
+   * click. A refusal is reported in words, and a run the scheduler accepted but
+   * could not actually start is caught by `result.job.running` — the same test
+   * the status-bar panel uses.
+   */
+  const startRun = async (row: AutomationRunActivityRowData, key: string) => {
+    const api = window.electronAPI
+    if (!api?.automationRunNow) {
+      addToast('error', runActivityRefusalText('unexpected_error', row.jobName, t))
+      return
+    }
+    setStarting(prev => new Set(prev).add(key))
+    try {
+      const result = await api.automationRunNow(row.jobId)
+      if (!result.ok) {
+        addToast('warning', runActivityRefusalText(result.error, row.jobName, t))
+        return
+      }
+      if (!result.job.running) {
+        addToast('warning', runActivityRefusalText(
+          result.job.lastError ?? 'unexpected_error',
+          row.jobName,
+          t,
+        ))
+        return
+      }
+      // No row is appended: the list is the stored record, and a run in flight
+      // is not a record yet. The row that was clicked says the start happened.
+      markStarted(key)
+      addToast('success', t('statusBar.background.runStarted', { name: row.jobName }))
+    } catch (err) {
+      console.error('[AIPA] Could not start a run from the run history', err)
+      addToast('error', runActivityRefusalText('unexpected_error', row.jobName, t))
+    } finally {
+      setStarting(prev => {
+        const next = new Set(prev)
+        next.delete(key)
+        return next
+      })
+    }
+  }
+
+  const askAboutRuns = () => {
+    prepareRunActivityInvestigation({
+      rows: view.visible,
+      window: windowRange,
+      filter,
+      loaded: rows.length,
+      total: data?.total ?? 0,
+      cap: data?.cap ?? 500,
+      t,
+      addToast,
+    })
+  }
+
+  // The header names the bounds: what the window/filter leave on screen, what
+  // the window kept, and what main loaded against what is remembered. The
+  // footer repeats the parts a reader is most likely to get wrong (the per-job
+  // bound, the 500-row cap, and that deleted jobs took their runs with them).
+  const summary = runActivitySummaryText({
+    shown: view.visible.length,
+    windowRows: view.windowRows,
+    window: windowRange,
+    loaded: rows.length,
+    total: data?.total ?? 0,
+  }, t)
+
+  const windowCut = runActivityWindowCutText(view.windowHidden, rows.length, t)
 
   const filtered = filter.status !== 'all'
     || filter.source !== 'all'
     || filter.jobId !== null
     || filter.query.trim().length > 0
+
+  // Nothing on screen means there is no set to ask about. The draft would
+  // describe a window and filters that match nothing, which is not a question.
+  const askDisabled = loading || data === null || view.visible.length === 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
@@ -372,6 +598,23 @@ export default function RunActivityPanel() {
         <span style={{ flex: 1, fontSize: 11, color: 'var(--text-muted)', ...ELLIPSIS }} title={summary}>
           {summary}
         </span>
+        <button
+          type="button"
+          disabled={askDisabled}
+          onClick={askAboutRuns}
+          title={askDisabled
+            ? t('automation.runActivity.ask.nothing')
+            : t('automation.runActivity.ask.title')}
+          aria-label={t('automation.runActivity.ask.action')}
+          style={{
+            ...ASK_BUTTON,
+            cursor: askDisabled ? 'default' : 'pointer',
+            opacity: askDisabled ? 0.5 : 1,
+          }}
+        >
+          <Sparkles size={11} />
+          {t('automation.runActivity.ask.action')}
+        </button>
         {view.hidden > 0 && (
           <span style={{ fontSize: 10, color: 'var(--text-subtle)', flexShrink: 0 }}>
             {t(view.hidden === 1 ? 'automation.runActivity.hiddenOne' : 'automation.runActivity.hidden', {
@@ -386,6 +629,19 @@ export default function RunActivityPanel() {
         flexShrink: 0, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6,
         padding: '10px 16px', borderBottom: '1px solid var(--border)',
       }}>
+        <select
+          value={windowRange}
+          onChange={e => setWindowRange(e.target.value as RunActivityWindow)}
+          aria-label={t('automation.runActivity.window.aria')}
+          style={FILTER_FIELD}
+        >
+          {RUN_ACTIVITY_WINDOWS.map(value => (
+            <option key={value} value={value}>
+              {t(`automation.runActivity.window.${value}`)}
+            </option>
+          ))}
+        </select>
+
         <select
           value={jobId ?? ''}
           onChange={e => setJobId(e.target.value === '' ? null : e.target.value)}
@@ -405,10 +661,12 @@ export default function RunActivityPanel() {
             key={chip}
             active={status === chip}
             onClick={() => setStatus(chip)}
-            // Counts describe the loaded rows, never the filter's result: a
-            // chip that changed its own number when clicked would be counting
-            // something else than what it names.
-            title={t('automation.runActivity.chipHint')}
+            // Counts describe the rows in the window, never the filter's
+            // result: a chip that changed its own number when clicked would be
+            // counting something else than what it names.
+            title={t(windowRange === 'all'
+              ? 'automation.runActivity.chipHint'
+              : 'automation.runActivity.chipHintWindowed')}
           >
             {`${t(`automation.runActivity.chip.${chip}`)} ${view.counts[chip]}`}
           </Pill>
@@ -496,43 +754,67 @@ export default function RunActivityPanel() {
               t={t}
               resolvedLocale={resolvedLocale}
               investigating={investigating === key}
+              runAgain={runActivityRunAgainState(row.jobId, jobs)}
+              canOpenJob={runActivityJobExists(row.jobId, jobs)}
+              starting={starting.has(key)}
+              started={started[key] === true}
               onOpen={() => openRow(row)}
               onInvestigate={() => { void investigate(row) }}
+              onRunAgain={() => { void startRun(row, key) }}
+              onOpenJob={() => { useUiStore.getState().focusAutomationJob(row.jobId) }}
             />
           )
         }) : (
           <EmptyState
             icon={emptyState === 'unreadable'
               ? <AlertTriangle size={22} color="var(--warning-text)" />
-              : emptyState === 'no-match'
-                ? <Search size={22} color="var(--text-muted)" />
-                : <Inbox size={22} color="var(--text-muted)" />}
+              : emptyState === 'no-window'
+                ? <Clock size={22} color="var(--text-muted)" />
+                : emptyState === 'no-match'
+                  ? <Search size={22} color="var(--text-muted)" />
+                  : <Inbox size={22} color="var(--text-muted)" />}
             title={t(`automation.runActivity.empty.${emptyState}.title`)}
             hint={t(`automation.runActivity.empty.${emptyState}.hint`, {
               perJob: data?.perJob ?? 20,
+              label: windowRange === 'all'
+                ? ''
+                : t(`automation.runActivity.window.label.${windowRange}`),
             })}
-            onClear={emptyState === 'no-match'
-              ? clearFilters
-              : emptyState === 'unreadable'
-                ? () => { void load() }
-                : undefined}
-            clearLabel={emptyState === 'no-match'
-              ? t('automation.runActivity.clearFilters')
-              : emptyState === 'unreadable'
-                ? t('automation.runActivity.retry')
-                : undefined}
+            onClear={emptyState === 'no-window'
+              ? () => setWindowRange('all')
+              : emptyState === 'no-match'
+                ? clearFilters
+                : emptyState === 'unreadable'
+                  ? () => { void load() }
+                  : undefined}
+            clearLabel={emptyState === 'no-window'
+              ? t('automation.runActivity.empty.no-window.showAll')
+              : emptyState === 'no-match'
+                ? t('automation.runActivity.clearFilters')
+                : emptyState === 'unreadable'
+                  ? t('automation.runActivity.retry')
+                  : undefined}
           />
         )}
       </div>
 
       {/* The bound, in the page's own words. It sits below the scroller so it
-          can never be mistaken for a row and never scrolls out of sight. */}
+          can never be mistaken for a row and never scrolls out of sight. The
+          window's cut is stated beside it rather than folded into a count. */}
       <div style={{
-        flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8,
+        flexShrink: 0, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8,
         padding: '7px 16px', borderTop: '1px solid var(--border)',
         fontSize: 10, color: 'var(--text-subtle)', lineHeight: 1.5,
       }}>
-        {t('automation.runActivity.capNote', { perJob: data?.perJob ?? 20, cap: data?.cap ?? 500 })}
+        <span>
+          {t('automation.runActivity.capNote', { perJob: data?.perJob ?? 20, cap: data?.cap ?? 500 })}
+        </span>
+        {windowCut && <span>· {windowCut}</span>}
+        {!loading && data !== null && jobs === null && (
+          <span style={{ color: 'var(--warning-text)' }}>
+            · {t('automation.runActivity.jobsUnreadable')}
+          </span>
+        )}
       </div>
     </div>
   )

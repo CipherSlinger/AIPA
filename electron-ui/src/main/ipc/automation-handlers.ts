@@ -28,17 +28,7 @@ import { runApprovalQueue } from '../automation/run-approvals'
 import { normalizeDeptSpendRequest, summarizeDeptSpend } from '../automation/spend-guard'
 import type { AutomationInput, AutomationTrigger } from '../automation/types'
 import { listTrashedJobs, purgeTrashedJobs, removeTrashedJob } from '../trash/job-trash'
-
-/**
- * Register without colliding with a handler left behind by a previous
- * registration. Local to this module for the same reason as the one in
- * `ipc/index.ts`: registration happens once per process, but a hot reload or a
- * second call must not crash the app.
- */
-function safeHandle(channel: string, handler: (...args: any[]) => any): void {
-  try { ipcMain.removeHandler(channel) } catch { /* no previous handler */ }
-  ipcMain.handle(channel, handler)
-}
+import { safeHandle } from './register/safe-handle'
 
 export function registerAutomationHandlers(): void {
   ipcMain.handle('automation:list', () => {

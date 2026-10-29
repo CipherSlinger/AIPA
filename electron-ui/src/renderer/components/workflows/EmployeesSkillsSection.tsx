@@ -12,6 +12,7 @@ import type { SkillTrashErrorCode } from '../../../preload'
 import SkillDraftSourceDialog from '../skills/SkillDraftSourceDialog'
 import SaveConversationSkillDialog from '../chat/SaveConversationSkillDialog'
 import { resolveInstallOutcome } from '../skills/installOutcome'
+import { skillSlashCommand } from '../skills/skillCommand'
 
 const SOURCE_STYLE: Record<string, { color: string; bg: string; border: string }> = {
   personal: { color: '#a5b4fc', bg: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.30)' },
@@ -62,7 +63,7 @@ export function useEmployeeSkills() {
 
   // Use a skill: drop its slash command into the chat input and jump back to chat
   const useSkill = useCallback((name: string) => {
-    useUiStore.getState().setQuotedText(`/${name.replace(/\s+/g, '-').toLowerCase()}`)
+    useUiStore.getState().setQuotedText(skillSlashCommand(name))
     useUiStore.getState().setActiveNavItem('chat')
     useUiStore.getState().addToast('success', t('skills.skillActivated'))
   }, [t])
