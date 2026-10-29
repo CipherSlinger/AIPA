@@ -8,6 +8,7 @@
  */
 import { useCallback, useRef } from 'react'
 import { useChatStore, usePrefsStore, useUiStore } from '../store'
+import { resolveWorkingDir } from '../lib/workingDir'
 import { StandardChatMessage, MemoryItem, MemoryCategory, MemoryType } from '../types/app.types'
 import { useT } from '../i18n'
 import { suggestMemoryType } from '../components/memory/memoryConstants'
@@ -42,11 +43,22 @@ export function useAutoMemory() {
     if (isExtractingRef.current) return
     if (Date.now() - lastExtractRef.current < EXTRACT_COOLDOWN_MS) return
 
-    const messages = useChatStore.getState().messages
+    const chat = useChatStore.getState()
+    const messages = chat.messages
     const chatMessages = messages.filter(m => m.role === 'user' || m.role === 'assistant') as StandardChatMessage[]
 
     // Need at least 4 messages (2 exchanges) to have meaningful context
     if (chatMessages.length < 4) return
+
+    // Which project these memories belong to. This callback can fire long after
+    // the render that captured `prefs`, so both halves are read at call time:
+    // the conversation's own folder first (a tab override is where the turn
+    // actually ran), then the default. Reading `prefs.workingDir` alone filed
+    // the memories of a tab-scoped conversation under the wrong project.
+    const cwd = resolveWorkingDir({
+      tabCwd: chat.tabs.find(tab => tab.id === chat.activeTabId)?.cwd,
+      globalDir: prefs.workingDir,
+    }).dir
 
     isExtractingRef.current = true
     lastExtractRef.current = Date.now()
@@ -62,7 +74,9 @@ export function useAutoMemory() {
       // reach the chat channels, and the final text comes back from the invoke.
       const result = await window.electronAPI.cliRunInternal({
         prompt: `${conversationText}\n\n${EXTRACT_PROMPT}`,
-        cwd: prefs.workingDir || await window.electronAPI.fsGetHome(),
+        // Home is the last resort only because nothing else answered: the turn
+        // needs *a* folder to start in, and it is not claimed to be the project.
+        cwd: cwd || await window.electronAPI.fsGetHome(),
         model: prefs.advisorModel || prefs.model,
         timeoutMs: 90_000,
       })

@@ -11,6 +11,7 @@ import {
   type TerminalTab as TerminalTabModel,
 } from '../../store/terminalTabs'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { resolveWorkingDir } from '../../lib/workingDir'
 import TerminalTab from './TerminalTab'
 import { clearTerminal } from './terminalRegistry'
 
@@ -69,10 +70,14 @@ export default function TerminalDock({ visible }: { visible: boolean }) {
   const tabs = useTerminalStore(s => s.tabs)
   const activeId = useTerminalStore(s => s.activeId)
   const height = useTerminalStore(s => s.height)
-  const chatWorkingDir = useChatStore(s => s.workingDir)
   const prefsWorkingDir = usePrefsStore(s => s.prefs.workingDir)
   const homeDir = useSessionStore(s => s.homeDir)
-  const cwd = chatWorkingDir || prefsWorkingDir || homeDir || ''
+  // A shell started here must land where the conversation runs, so this reads
+  // the active tab's restored folder, not the chat store's copy of the global
+  // preference. Same resolver as the send path: a terminal in another folder
+  // than the turn is a terminal the user did not ask for.
+  const activeTabCwd = useChatStore(s => s.tabs.find(tab => tab.id === s.activeTabId)?.cwd)
+  const cwd = resolveWorkingDir({ tabCwd: activeTabCwd, globalDir: prefsWorkingDir, homeDir }).dir
   const activeTab = tabs.find(tab => tab.id === activeId) || null
 
   const [viewportHeight, setViewportHeight] = useState(() => window.innerHeight)

@@ -154,7 +154,20 @@
     "compactHint": "压缩对话上下文以释放 Token (Ctrl+Shift+K)",
     "sessionPrefix": "会话: {{id}}...",
     "emptyPreview": "(无内容)",
-    "workingDir": "工作目录",
+    "workingDir": {
+      "sourceTab": "本对话的文件夹",
+      "sourceGlobal": "新对话的默认文件夹",
+      "sourceHome": "主目录——还没有设置工作文件夹",
+      "sourceRecorded": "记录在本对话的转写里",
+      "clickHint": "点击更改文件夹",
+      "goneHint": "这个文件夹已不存在，点击查看选项",
+      "popoverRecordedTitle": "本对话在 {{path}} 中运行",
+      "popoverRecordedBody": "Codex 会把一段对话留在它开始的那个文件夹里，所以选择别的文件夹无法移动这一段。选择只会在那里开一段新对话，这份记录留在原处。",
+      "popoverGoneTitle": "记录中的文件夹已不存在",
+      "popoverGoneBody": "{{path}} 已不存在。继续这段对话很可能失败，因为 Codex 仍然会在那个文件夹里运行它。请在一个存在的文件夹里开始新对话。",
+      "startNewHere": "在…开始新对话",
+      "cancel": "取消"
+    },
     "workingDirDefault": "主目录",
     "clickToChangeDir": "点击更改工作目录",
     "switchModel": "切换模型",
@@ -1433,7 +1446,12 @@
     "workingTreeChangesDesc": "对话文件夹里未提交的文件，按已暂存、未暂存、未跟踪和冲突分组。",
     "workingTreeNoFolder": "没有设置工作文件夹，因此没有工作区可显示。",
     "workingTreeNotRepo": "对话所用的文件夹不是 git 仓库。",
-    "workingTreeGitMissing": "没有安装 Git，因此没有工作区可显示。"
+    "workingTreeGitMissing": "没有安装 Git，因此没有工作区可显示。",
+    "workingDir": {
+      "newConversationDesc": "在你选择的文件夹里开始新对话——当前对话仍留在它运行时的文件夹",
+      "thisConversationDesc": "选择这段对话运行的文件夹",
+      "defaultDesc": "当前没有打开的对话——这会更改下一个对话的起始文件夹"
+    }
   },
   "permission": {
     "allow": "允许",
@@ -3073,6 +3091,12 @@
       "hidden": "{{count}} 个 shell 在运行",
       "exited": "终端",
       "hint": "终端已隐藏，点一下把它叫回来。"
+    },
+    "workingDir": {
+      "tooltip": "{{path}} · {{source}}",
+      "sourceTab": "本对话的文件夹",
+      "sourceGlobal": "新对话的默认文件夹",
+      "sourceHome": "主目录"
     }
   },
   "dailyBriefing": {
@@ -5183,5 +5207,8 @@
     "prompt": "这段对话最后一次写入时，最后一条提示还没有收到回复。",
     "turn": "这段对话最后一次写入时，最后一条回答写到一半就中断了。",
     "aria": "关于已保存对话文件的说明"
+  },
+  "sessionFolder": {
+    "newConversationToast": "已在「{{folder}}」开始新对话。上一个对话仍在「{{previous}}」，并保留在历史里。"
   }
 }

@@ -2,18 +2,20 @@
 //
 // The row is a fixed 35px line because the windowed list computes offsets
 // without measuring the DOM. Everything the ledger knows about the record is
-// shown here: title, origin, command-only/archived markers, the employee handle,
-// the department it is filed under (or the remembered name of a deleted one),
-// when it ran and how many messages it holds. Selection adds a checkbox on the
+// shown here: title, the folder it ran in, origin, command-only/archived markers,
+// the employee handle, the department it is filed under (or the remembered name
+// of a deleted one), when it ran and how many messages it holds. Selection adds a checkbox on the
 // left; the write actions keep their existing hover-revealed slots.
 import { useState } from 'react'
 import {
-  Archive, Building2, ExternalLink, FolderInput, FolderOpen, PenLine, Trash2,
+  Archive, Building2, ExternalLink, Folder, FolderInput, FolderOpen, PenLine, Trash2,
 } from 'lucide-react'
 import {
   deptDisplayName, kindOf, type UiLocale,
 } from '../departments/deptUtils'
 import SessionOriginBadge from '../shared/SessionOriginBadge'
+import { useSessionStore } from '../../store'
+import { sessionFolderProvenance } from '../../lib/folderPick'
 import { formatDateTimeShort } from '../../utils/formatDate'
 import type { useT } from '../../i18n'
 import { ELLIPSIS, employeeTag, recordTitle, type ArchiveRecord } from './archiveRecord'
@@ -41,9 +43,25 @@ export default function ArchiveRow({
   onOpen, onToggleArchived, onFile, onDelete, onToggleSelected, t, locale,
 }: Props) {
   const [hovered, setHovered] = useState(false)
+  // Only shortens the provenance line; a row does not otherwise care about home.
+  const homeDir = useSessionStore(s => s.homeDir)
   const { session } = record
   const title = recordTitle(session, t('session.untitled'))
   const when = formatDateTimeShort(locale, session.timestamp)
+
+  // The label this row's own slot already prints (remembered department, the
+  // department it was worked at, or the project of an unassigned record).
+  // Provenance must not print that folder a second time.
+  const alreadyShown = record.removedDeptName
+    ?? (record.dept && record.dept.id !== record.root?.id
+      ? (kindOf(record.dept) === 'team'
+        ? `${deptDisplayName(record.dept, locale)} · ${t('dept.team')}`
+        : deptDisplayName(record.dept, locale))
+      : null)
+    ?? (!record.dept ? session.project : null)
+  // Which folder the conversation ran in. Codex records it; absent is shown as
+  // absent (nothing at all), never as home or an empty chip.
+  const folder = sessionFolderProvenance(session.cwd, homeDir, alreadyShown)
 
   return (
     <div
@@ -97,6 +115,22 @@ export default function ArchiveRow({
       }}>
         {title}
       </span>
+
+      {/* Where the conversation ran, beside what it was called: the two things
+          needed to tell two similarly named records apart. Full path on hover;
+          the row keeps its fixed height because this is one inline chip. */}
+      {folder && (
+        <span
+          title={session.cwd}
+          style={{
+            flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4,
+            fontSize: 10, color: 'var(--text-subtle)', maxWidth: 120,
+          }}
+        >
+          <Folder size={10} style={{ opacity: 0.6 }} />
+          <span style={ELLIPSIS}>{folder}</span>
+        </span>
+      )}
 
       <SessionOriginBadge origin={session.origin} />
 

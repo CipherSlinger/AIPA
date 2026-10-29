@@ -15,6 +15,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowDown, ArrowUp, GitBranch } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useChatStore, usePrefsStore, useSessionStore, useUiStore } from '../../store'
+import { resolveWorkingDir } from '../../lib/workingDir'
 import { pushEscapeHandler } from '../ui/escapeStack'
 import type { GitStatusData, GitStatusOkData } from '../../../preload'
 import GitStatusPopover from './GitStatusPopover'
@@ -39,11 +40,15 @@ function isInside(folder: string, root: string): boolean {
 
 export default function GitStatusChip() {
   const t = useT()
-  const chatDir = useChatStore(s => s.workingDir)
-  const prefDir = usePrefsStore(s => s.prefs.workingDir)
+  const globalDir = usePrefsStore(s => s.prefs.workingDir)
   const homeDir = useSessionStore(s => s.homeDir)
-  // Same folder order the terminal dock and the palette use.
-  const cwd = chatDir || prefDir || homeDir || ''
+  // The folder this conversation's next turn will run in, resolved the way the
+  // send path resolves it — active tab first, then the global default, then
+  // home. `useChatStore.workingDir` is the file browser's own location, not the
+  // conversation's, so reading it reported the working tree of a folder the
+  // assistant was not using whenever a tab override existed.
+  const activeTabCwd = useChatStore(s => s.tabs.find(tab => tab.id === s.activeTabId)?.cwd ?? '')
+  const cwd = resolveWorkingDir({ tabCwd: activeTabCwd, globalDir, homeDir }).dir
 
   const [status, setStatus] = useState<GitStatusData | null>(null)
   const [open, setOpen] = useState(false)
@@ -234,10 +239,12 @@ export default function GitStatusChip() {
     void load()
   }
 
-  // `fs:gitDiff` runs in the app-wide working folder. It can speak for this
-  // repository when that folder is the same one (or inside it); otherwise the
-  // panel reveals files instead of showing a diff from another checkout.
-  const diffCwd = prefDir || homeDir
+  // `fs:gitDiff` runs in the app-wide working folder (the main process reads
+  // `prefs.workingDir`, else home) — a tab override does not move it. It can
+  // speak for this repository when that folder is the same one (or inside it);
+  // otherwise the panel reveals files instead of showing a diff produced by
+  // another checkout.
+  const diffCwd = globalDir || homeDir
   const repoRoot = ok.root || cwd
   const diffInThisFolder = sameGitFolder(repoRoot, diffCwd) || isInside(diffCwd, repoRoot)
 

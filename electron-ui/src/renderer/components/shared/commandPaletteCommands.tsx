@@ -21,6 +21,8 @@ import { errorCodeText } from '../workflows/scheduleSummary'
 import { formatDateMedium, type AppLocale } from '../../utils/formatDate'
 import { buildAutomationDescriptors, canRunAutomation } from './automationPalette'
 import { buildTrashPaletteEntry } from '../../lib/trashPresence'
+import { planFolderPick, recordedFolderOf } from '../../lib/folderPick'
+import { pickFolderForView } from '../../lib/folderPickAction'
 import { approvalPaletteRows, dispatchApprovalFocus } from '../automation/approvalFocus'
 import { formatDuration } from '../layout/statusBarConstants'
 import { cachedGitStatus, requestGitStatusPanel } from '../layout/gitStatusPanel'
@@ -92,6 +94,15 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
       : knownTree && !knownTree.ok && knownTree.code === 'git_missing'
         ? t('command.workingTreeGitMissing')
         : t('command.workingTreeChangesDesc')
+
+  // What the folder row will do, read once when the palette is built. The
+  // action re-reads before it runs: the dialog may be answered after the user
+  // has moved to another conversation, and the plan must describe that one.
+  const chatNow = useChatStore.getState()
+  const folderPlan = planFolderPick(
+    chatNow.activeTabId,
+    recordedFolderOf(args.sessions, chatNow.currentSessionId),
+  )
 
   return [
     {
@@ -315,15 +326,19 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
     {
       id: 'change-working-dir',
       name: t('command.changeWorkingDir'),
-      description: t('command.changeWorkingDirDesc'),
+      // The row says what the pick will do before the dialog opens. A palette
+      // row that only promised "change the working directory" would be wrong
+      // for an opened conversation: its folder is recorded in the thread and
+      // a pick cannot move it — only a new conversation can start there.
+      description: folderPlan.mode === 'new_conversation'
+        ? t('command.workingDir.newConversationDesc')
+        : folderPlan.mode === 'global'
+          ? t('command.workingDir.defaultDesc')
+          : t('command.workingDir.thisConversationDesc'),
       icon: <FolderOpen size={14} />,
       action: async () => {
         onClose()
-        const p = await window.electronAPI.fsShowOpenDialog()
-        if (p) {
-          useChatStore.getState().setWorkingDir(p)
-          window.electronAPI.prefsSet('workingDir', p)
-        }
+        await pickFolderForView()
       },
       category: 'action',
     },

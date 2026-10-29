@@ -14,9 +14,10 @@
 })()
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Search, Clock, MessageSquare } from 'lucide-react'
+import { Search, Clock, Folder, MessageSquare } from 'lucide-react'
 import { useSessionStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
+import { sessionFolderProvenance } from '../../lib/folderPick'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import type { SessionListItem } from '../../types/app.types'
 
@@ -61,6 +62,8 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
   // PERF: field selector — useSessionStore() would also re-render this overlay
   // on every unrelated session-store change (selection, loading flags).
   const sessions = useSessionStore(s => s.sessions)
+  // Only for shortening the provenance line below; not a re-render trigger.
+  const homeDir = useSessionStore(s => s.homeDir)
   const sessionNotes = useUiStore(s => s.sessionNotes)
 
   // Sort by recent, limit to 15
@@ -235,6 +238,10 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
             const title = session.title || session.lastPrompt?.slice(0, 60) || session.sessionId.slice(0, 12)
             const preview = session.lastPrompt?.slice(0, 80) || ''
             const note = sessionNotes[session.sessionId]
+            // Where the conversation actually ran. Codex records it; a Claude
+            // transcript or an index that cannot tell leaves it unknown, and an
+            // unknown folder is left blank — never filled in with a guess.
+            const folder = sessionFolderProvenance(session.cwd, homeDir)
             return (
               <div
                 key={session.sessionId}
@@ -275,6 +282,27 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
                       whiteSpace: 'nowrap',
                     }}>
                       {preview}
+                    </div>
+                  )}
+                  {folder && (
+                    // Quiet provenance: which folder this conversation would
+                    // reopen into. The full path lives in the tooltip; the date
+                    // on the right keeps its own column and the keyboard order
+                    // is untouched, because this is one more line inside the
+                    // row's existing text block.
+                    <div
+                      title={session.cwd}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        minWidth: 0,
+                        fontSize: 10,
+                        color: 'var(--text-subtle)',
+                      }}
+                    >
+                      <Folder size={9} style={{ flexShrink: 0, opacity: 0.7 }} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{folder}</span>
                     </div>
                   )}
                   {note && (

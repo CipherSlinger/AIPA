@@ -15,6 +15,10 @@ import { buildCodexImageInput, canSendCodexImages } from '../components/chat/ima
 import { engineNoticeStore } from '../components/chat/engineNoticeStore'
 import { autoApprovalReviewStore } from '../components/chat/autoApprovalReviewStore'
 import { clearEngineSteps } from '../components/chat/engineStepLog'
+// The one answer to "which folder will this turn run in", shared with the
+// header, the terminal dock and the open path. A local fallback chain here is
+// how those surfaces came to disagree.
+import { resolveWorkingDir } from '../lib/workingDir'
 // parseTokenBudget used by token display utilities
 // import { parseTokenBudget } from '../utils/tokenUtils'
 // The once-registered `cli:*` listener was split by topic into ./streamJson/*
@@ -102,9 +106,16 @@ export function useStreamJson() {
 
     const flags: string[] = []
 
-    // Compute effective cwd: per-tab override > global prefs > home dir
+    // Cwd for the parts assembled before the send: the same resolver the send
+    // itself uses, so a note read for the prompt and the turn that follows it
+    // never come from two different folders. No home fallback here — nothing
+    // has asked for a folder yet, and inventing one would make the prompt
+    // describe work the turn will not do.
     const currentTabForCwd = useChatStore.getState().tabs.find(t => t.id === useChatStore.getState().activeTabId)
-    const effectiveCwdEarly = currentTabForCwd?.cwd || prefs.workingDir || ''
+    const effectiveCwdEarly = resolveWorkingDir({
+      tabCwd: currentTabForCwd?.cwd,
+      globalDir: prefs.workingDir,
+    }).dir
 
     // Resolve the persona that belongs to this conversation. The catalogue
     // (`prefs.personas`) is global; the selection is per session, which is what
@@ -332,7 +343,14 @@ export function useStreamJson() {
     // Send via cliSendMessage (CodexBridge handles OpenAI, StreamBridge handles Claude)
     const chatState = useChatStore.getState()
     const currentTab = chatState.tabs.find(tab => tab.id === chatState.activeTabId)
-    const effectiveCwd = currentTab?.cwd || prefs.workingDir || (await window.electronAPI.fsGetHome())
+    // One resolver for every surface that names this turn's folder, so the tab
+    // badge, the status bar and the spawn directory cannot tell three stories.
+    // Home is the last resort and costs an IPC round trip, so it is asked for
+    // only when neither the tab nor the preference has an answer.
+    const resolvedCwd = resolveWorkingDir({ tabCwd: currentTab?.cwd, globalDir: prefs.workingDir })
+    const effectiveCwd = resolvedCwd.source === 'none'
+      ? await window.electronAPI.fsGetHome()
+      : resolvedCwd.dir
     const sendArgs = (promptText: string, input: unknown[] | undefined) => ({
       prompt: promptText,
       ...(input ? { input } : {}),

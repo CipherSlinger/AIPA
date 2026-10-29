@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Download, ClipboardCopy, Maximize2, Minimize2, FolderOpen, FileText, FilePlus2, RefreshCw, MessageSquarePlus, X, GitBranch, Building2, Wrench, Zap, Layers } from 'lucide-react'
+import { Search, Download, ClipboardCopy, FileText, FilePlus2, RefreshCw, MessageSquarePlus, X, GitBranch, Building2, Wrench, Zap, Layers } from 'lucide-react'
 import { useChatStore, useSessionStore, usePrefsStore, useUiStore } from '../../store'
 import type { StandardChatMessage, SessionListItem } from '../../types/app.types'
 import { useT } from '../../i18n'
@@ -20,6 +20,8 @@ import RelatedConversationsButton from './RelatedConversationsButton'
 import ScheduleConversationButton from './ScheduleConversationButton'
 import CompactButton from './CompactButton'
 import WorktreeDialog from './WorktreeDialog'
+import WorkingDirChip from './WorkingDirChip'
+import { applyFolderForView } from '../../lib/folderPickAction'
 import { listSessionsShared } from '../../utils/sessionListShared'
 interface ChatHeaderProps {
   sessionTitle: string | null
@@ -173,7 +175,6 @@ export default function ChatHeader({
   const workingDir = usePrefsStore(s => s.prefs.workingDir)
   const activeTabId = useChatStore(s => s.activeTabId)
   const tabs = useChatStore(s => s.tabs)
-  const setTabCwd = useChatStore(s => s.setTabCwd)
   const currentTab = tabs.find(t => t.id === activeTabId)
   // Effective working dir: per-tab override > global prefs
   const effectiveWorkingDir = currentTab?.cwd || workingDir
@@ -245,30 +246,6 @@ export default function ChatHeader({
     setIsEditingTitle(false)
   }, [])
 
-  /** Truncate a path to show only the last N segments */
-  const truncatePath = useCallback((p: string, maxSegments = 2): string => {
-    if (!p) return ''
-    const sep = p.includes('\\') ? '\\' : '/'
-    const segments = p.split(sep).filter(Boolean)
-    if (segments.length <= maxSegments) return p
-    return '...' + sep + segments.slice(-maxSegments).join(sep)
-  }, [])
-
-  const handleChangeDir = useCallback(async () => {
-    const p = await window.electronAPI.fsShowOpenDialog()
-    if (p) {
-      if (activeTabId) {
-        // Set cwd on current tab only (per-tab override)
-        setTabCwd(activeTabId, p)
-      } else {
-        // No tabs open — fall back to global prefs
-        usePrefsStore.getState().setPrefs({ workingDir: p })
-        useChatStore.getState().setWorkingDir(p)
-        window.electronAPI.prefsSet('workingDir', p)
-      }
-    }
-  }, [activeTabId, setTabCwd])
-
   return (
     <div style={{ flexShrink: 0 }}>
     <div
@@ -338,6 +315,10 @@ export default function ChatHeader({
             : `${model?.split('-').slice(0, 3).join('-') || 'claude'}`}
         </span>
       )}
+
+      {/* Which folder the next turn will run in. It renders nothing when no
+          folder is known, so an unknown folder is never dressed up as one. */}
+      <WorkingDirChip sessionId={sessionId} />
 
       {/* Active model pill removed — model already shown in settings */}
 
@@ -812,14 +793,14 @@ export default function ChatHeader({
         <WorktreeDialog
           cwd={effectiveWorkingDir}
           onClose={() => setShowWorktree(false)}
-          onSwitchCwd={(newCwd, branch) => {
-            // Switch working directory for this tab only (per-tab cwd)
-            if (activeTabId) {
-              setTabCwd(activeTabId, newCwd)
-            } else {
-              usePrefsStore.getState().setPrefs({ workingDir: newCwd })
-              window.electronAPI.prefsSet('workingDir', newCwd)
-            }
+          onSwitchCwd={(newCwd) => {
+            // A worktree is a folder like any other, and it must mean what every
+            // other folder pick means: a draft moves there, a recorded Codex
+            // conversation cannot (its thread resumes where its rollout says),
+            // so the pick starts a new conversation in the worktree and says so.
+            // Going through the shared action rather than writing the tab here
+            // is what keeps this door from becoming the one that lies.
+            applyFolderForView(newCwd)
             setShowWorktree(false)
           }}
         />

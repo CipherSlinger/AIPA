@@ -11,6 +11,7 @@ import { cancelDeptBudgetSync, scheduleDeptBudgetSync } from './components/depar
 import { cancelDeptHandbookSync, scheduleDeptHandbookSync } from './components/departments/deptHandbookSync'
 import { populateDefaultPresetsIfEmpty } from './utils/presetPopulator'
 import { purgeTrashedWorkflows } from './lib/workflowTrash'
+import { pickFolderForView } from './lib/folderPickAction'
 import { listSessionsShared } from './utils/sessionListShared'
 import { apiErrorStore } from './components/chat/apiErrorStore'
 import { savedInterruptionStore } from './components/chat/savedInterruptionStore'
@@ -287,13 +288,12 @@ export default function App() {
       window.electronAPI.onMenuEvent('newSession', () => {
         useChatStore.getState().clearMessages()
       }),
-      window.electronAPI.onMenuEvent('openFolder', async () => {
-        const p = await window.electronAPI.fsShowOpenDialog()
-        if (p) {
-          setWorkingDir(p)
-          window.electronAPI.prefsSet('workingDir', p)
-        }
-      }),
+      // View > Open folder. It used to write the GLOBAL preference only, which
+      // now means "move the default for future conversations" — the visible
+      // conversation kept running in its own recorded folder and nothing the
+      // user was looking at changed. The pick now follows the conversation
+      // rule (folderPickAction), shared with the command palette's row.
+      window.electronAPI.onMenuEvent('openFolder', () => { void pickFolderForView() }),
       window.electronAPI.onMenuEvent('toggleSidebar', toggleSidebar),
       // View > Toggle Terminal (CmdOrCtrl+`) — the menu item existed but no
       // renderer listened, so it did nothing before this wave.

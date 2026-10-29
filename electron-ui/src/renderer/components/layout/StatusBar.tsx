@@ -15,6 +15,7 @@ import StatusBarTokenPopup from './StatusBarTokenPopup'
 import BackgroundWorkIndicator from './BackgroundWorkIndicator'
 import TerminalIndicator from './TerminalIndicator'
 import GitStatusChip from './GitStatusChip'
+import { resolveWorkingDir, workingDirLabel } from '../../lib/workingDir'
 
 // Per-model pricing tiers (inspired by Claude Code modelCost.ts)
 // Format: [inputCostPerMtok, outputCostPerMtok]
@@ -41,7 +42,6 @@ function getModelPricing(modelId: string): [number, number] | null {
 
 export default function StatusBar() {
   const showStatusBar = useUiStore(s => s.showStatusBar)
-  const workingDir = useChatStore(s => s.workingDir)
   const lastUsage = useChatStore(s => s.lastUsage)
   const lastCost = useChatStore(s => s.lastCost)
   const totalSessionCost = useChatStore(s => s.totalSessionCost)
@@ -75,8 +75,23 @@ export default function StatusBar() {
   const memoryUsage = useMemoryUsage()
 
   // Derived values
-  const dirLabel = workingDir || prefs.workingDir || '~'
-  const dirShort = dirLabel.split(/[/\\]/).pop() || dirLabel
+  // The folder a turn will actually run in, resolved the way the send path
+  // resolves it. The bar used to read the chat store's copy, which ignores a
+  // tab override — so it could name a folder the assistant was not using. When
+  // nothing is known (no home directory answered either) the segment is absent
+  // rather than `~`, which would be a folder nobody established.
+  const homeDir = useSessionStore(s => s.homeDir)
+  const tabCwd = useChatStore(s => s.tabs.find(tab => tab.id === s.activeTabId)?.cwd ?? '')
+  const workDir = resolveWorkingDir({ tabCwd, globalDir: prefs.workingDir, homeDir })
+  const dirLabel = workDir.dir
+  const dirShort = workDir.dir ? workingDirLabel(workDir.dir, homeDir) : ''
+  const dirSourceKey = workDir.dir
+    ? workDir.source === 'tab'
+      ? 'statusBar.workingDir.sourceTab'
+      : workDir.source === 'global'
+        ? 'statusBar.workingDir.sourceGlobal'
+        : 'statusBar.workingDir.sourceHome'
+    : null
   const contextPct = lastContextUsage && lastContextUsage.total > 0
     ? Math.min(100, Math.round(lastContextUsage.used / lastContextUsage.total * 100))
     : null
@@ -183,12 +198,14 @@ export default function StatusBar() {
     >
       {/* Left Zone: Working Dir */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-        <span
-          style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)', maxWidth: 120 }}
-          title={dirLabel}
-        >
-          {dirShort}
-        </span>
+        {dirLabel && dirSourceKey && (
+          <span
+            style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)', maxWidth: 120 }}
+            title={t('statusBar.workingDir.tooltip', { path: dirLabel, source: t(dirSourceKey) })}
+          >
+            {dirShort}
+          </span>
+        )}
 
         {/* Connection status indicator */}
         <span

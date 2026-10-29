@@ -48,6 +48,7 @@ import { useAwaySummary } from '../../hooks/useAwaySummary'
 import { useSpeculation } from '../../hooks/useSpeculation'
 import { useEvidenceReveal } from '../../hooks/useEvidenceReveal'
 import { personaModelOf, resolveEffectiveModel } from '../../lib/sessionModel'
+import { resolveWorkingDir } from '../../lib/workingDir'
 import {
   branchToastParams,
   decideFork,
@@ -228,7 +229,12 @@ export default function ChatPanel() {
   useAwaySummary(isStreaming)
 
   // Speculation — pre-executes prompt suggestions in an isolated sandbox (Iteration 489)
-  const speculationCwd = prefs.workingDir || ''
+  // The sandbox must run in the folder the real turn will use, so it reads the
+  // tab override through the same resolver as the send path. The global
+  // preference alone let a reopened conversation speculate in another project,
+  // and a speculation from the wrong folder is worse than none.
+  const activeTabCwd = useChatStore(s => s.tabs.find(tab => tab.id === s.activeTabId)?.cwd)
+  const speculationCwd = resolveWorkingDir({ tabCwd: activeTabCwd, globalDir: prefs.workingDir }).dir
   const { status: specStatus, result: specResult, accept: specAccept, reject: specReject, abortCurrent: specAbort } = useSpeculation(
     isStreaming,
     speculationCwd,

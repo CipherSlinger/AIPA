@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { ChevronDown, Settings } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
+import { resolveWorkingDir } from '../../lib/workingDir'
 import FloatingPortal from '../ui/FloatingPortal'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
@@ -171,10 +172,15 @@ export default function ModelPicker({ model }: ModelPickerProps) {
         // Snapshot the active conversation here so the probe runs where the
         // next turn will run, and reuses a live app-server when one exists.
         const chat = useChatStore.getState()
-        const activeTab = chat.tabs.find(tab => tab.id === chat.activeTabId)
+        // The send path's own precedence, not a copy of it: the probe has to
+        // run in the folder the next turn runs in, tab override included.
+        const cwd = resolveWorkingDir({
+          tabCwd: chat.tabs.find(tab => tab.id === chat.activeTabId)?.cwd,
+          globalDir: usePrefsStore.getState().prefs.workingDir,
+        }).dir
         try {
           const result = await window.electronAPI.codexModelList({
-            cwd: activeTab?.cwd || usePrefsStore.getState().prefs.workingDir || undefined,
+            cwd: cwd || undefined,
             sessionId: chat.streamSessionId || undefined,
           })
           const models = result?.success

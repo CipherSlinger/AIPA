@@ -31,6 +31,7 @@ import {
   type HandoffLabels,
 } from './handoffDraft'
 import SessionReuseDialogShell from './SessionReuseDialogShell'
+import { resolveWorkingDir } from '../../lib/workingDir'
 
 interface Props {
   /** The header's resolved title for the conversation being handed off. */
@@ -71,7 +72,7 @@ export default function HandoffDialog({ sessionTitle, onClose }: Props) {
   // `viewSessionId` is the conversation the user is looking at. `currentSessionId`
   // can be overwritten by a streaming bridge, so it is not a stable source id.
   const viewSessionId = useChatStore(s => s.viewSessionId)
-  const chatWorkingDir = useChatStore(s => s.workingDir)
+  const activeTabCwd = useChatStore(s => s.tabs.find(tab => tab.id === s.activeTabId)?.cwd ?? '')
   const prefsWorkingDir = usePrefsStore(s => s.prefs.workingDir)
   const personas = usePrefsStore(s => s.prefs.personas)
 
@@ -115,12 +116,16 @@ export default function HandoffDialog({ sessionTitle, onClose }: Props) {
     const session = viewSessionId
       ? sessions.find(item => item.sessionId === viewSessionId)
       : undefined
-    // `project` is deliberately not a fallback: it is the decoded folder label,
-    // not the folder (separators and dots were lost in the slug), so printing
-    // it as a working folder would name a path that does not exist. The note
-    // says "not recorded" when nothing real is known.
-    return session?.cwd || chatWorkingDir || prefsWorkingDir || ''
-  }, [viewSessionId, sessions, chatWorkingDir, prefsWorkingDir])
+    // The transcript's own record wins: it is where the work happened, even if
+    // the tab was moved afterwards. Otherwise the same folder the send path
+    // would use for this conversation — the active tab, then the default. No
+    // home fallback here: the note has always said "not recorded" rather than
+    // naming a folder nobody chose for this work.
+    // `project` is deliberately not a fallback either: it is the decoded folder
+    // label, not the folder (separators and dots were lost in the slug), so
+    // printing it as a working folder would name a path that does not exist.
+    return session?.cwd || resolveWorkingDir({ tabCwd: activeTabCwd, globalDir: prefsWorkingDir }).dir
+  }, [viewSessionId, sessions, activeTabCwd, prefsWorkingDir])
 
   const labels: HandoffLabels = useMemo(() => ({
     heading: t('chat.handoff.heading'),
@@ -194,8 +199,19 @@ export default function HandoffDialog({ sessionTitle, onClose }: Props) {
     // Order matters: the new conversation must open with the target folder
     // already active, an empty transcript, and the note waiting in the
     // composer. Nothing here dispatches a turn.
-    usePrefsStore.getState().setPrefs({ workingDir: target.directory })
-    window.electronAPI.prefsSet('workingDir', target.directory)
+    //
+    // The folder move belongs to the conversation being handed off. Writing
+    // `prefs.workingDir` here moved the default every *future* conversation
+    // starts from, silently re-pointing work that has nothing to do with this
+    // handoff. A tab is the conversation, so it takes the folder; the global
+    // preference is written only when there is no tab to move.
+    const chat = useChatStore.getState()
+    if (chat.activeTabId) {
+      chat.setTabCwd(chat.activeTabId, target.directory)
+    } else {
+      usePrefsStore.getState().setPrefs({ workingDir: target.directory })
+      window.electronAPI.prefsSet('workingDir', target.directory)
+    }
     useChatStore.getState().clearMessages()
     useUiStore.getState().prefillComposer(text)
     useUiStore.getState().setMainView('chat')

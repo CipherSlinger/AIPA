@@ -3,6 +3,7 @@ import { Gauge } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { personaModelOf, resolveEffectiveModel } from '../../lib/sessionModel'
+import { resolveWorkingDir } from '../../lib/workingDir'
 import {
   EFFORT_LEVELS,
   isEffortOverridden,
@@ -86,9 +87,14 @@ export default function EffortPicker() {
         const active = await window.electronAPI.engineGetActive()
         if (cancelled || active?.kind !== 'codex') return
         const chat = useChatStore.getState()
-        const tab = chat.tabs.find(tb => tb.id === chat.activeTabId)
+        // The probe must run where the next turn will run, so the precedence is
+        // the send path's own resolver rather than a copy that can drift.
+        const cwd = resolveWorkingDir({
+          tabCwd: chat.tabs.find(tb => tb.id === chat.activeTabId)?.cwd,
+          globalDir: usePrefsStore.getState().prefs.workingDir,
+        }).dir
         const result = await window.electronAPI.codexModelList({
-          cwd: tab?.cwd || usePrefsStore.getState().prefs.workingDir || undefined,
+          cwd: cwd || undefined,
           sessionId: chat.streamSessionId || undefined,
         })
         if (cancelled || !result?.success) return

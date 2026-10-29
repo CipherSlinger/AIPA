@@ -154,7 +154,20 @@
     "compactHint": "Compact conversation context to free up tokens (Ctrl+Shift+K)",
     "sessionPrefix": "Session: {{id}}...",
     "emptyPreview": "(empty)",
-    "workingDir": "Working directory",
+    "workingDir": {
+      "sourceTab": "This conversation's folder",
+      "sourceGlobal": "Default folder for new conversations",
+      "sourceHome": "Home directory — no working folder has been set",
+      "sourceRecorded": "Recorded in this conversation's transcript",
+      "clickHint": "Click to change the folder",
+      "goneHint": "This folder no longer exists. Click for options.",
+      "popoverRecordedTitle": "This conversation runs in {{path}}",
+      "popoverRecordedBody": "Codex keeps a conversation in the folder it started in, so picking another folder cannot move this one. A pick starts a new conversation there; this transcript stays where it is.",
+      "popoverGoneTitle": "The recorded folder is gone",
+      "popoverGoneBody": "{{path}} no longer exists. Continuing this conversation will very likely fail, because Codex still runs it in that folder. Start a new conversation in a folder that exists.",
+      "startNewHere": "Start a new conversation in…",
+      "cancel": "Cancel"
+    },
     "workingDirDefault": "Home directory",
     "clickToChangeDir": "Click to change working directory",
     "switchModel": "Switch model",
@@ -1433,7 +1446,12 @@
     "workingTreeChangesDesc": "Uncommitted files in the conversation's folder, by staged, unstaged, untracked and conflicted.",
     "workingTreeNoFolder": "No working folder is set, so there is no working tree to show.",
     "workingTreeNotRepo": "The conversation's folder is not a git repository.",
-    "workingTreeGitMissing": "Git is not installed, so there is no working tree to show."
+    "workingTreeGitMissing": "Git is not installed, so there is no working tree to show.",
+    "workingDir": {
+      "newConversationDesc": "Start a new conversation in the folder you pick — this one keeps the folder it ran in",
+      "thisConversationDesc": "Pick the folder this conversation runs in",
+      "defaultDesc": "No conversation is open — this changes the folder the next one starts in"
+    }
   },
   "permission": {
     "allow": "Allow",
@@ -3073,6 +3091,12 @@
       "hidden": "{{count}} shells running",
       "exited": "Terminal",
       "hint": "The terminal is hidden. Click to show it."
+    },
+    "workingDir": {
+      "tooltip": "{{path}} · {{source}}",
+      "sourceTab": "this conversation's folder",
+      "sourceGlobal": "default folder for new conversations",
+      "sourceHome": "home directory"
     }
   },
   "dailyBriefing": {
@@ -5183,5 +5207,8 @@
     "prompt": "When this conversation was last written, the last prompt had not received a reply.",
     "turn": "When this conversation was last written, the last answer was cut off mid-way.",
     "aria": "Note about the saved conversation file"
+  },
+  "sessionFolder": {
+    "newConversationToast": "Started a new conversation in {{folder}}. The previous one stays in {{previous}} and is still in your history."
   }
 }
