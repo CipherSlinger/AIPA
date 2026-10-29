@@ -6,7 +6,7 @@
 // `AutomationInputData` accepts and reports save errors verbatim.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, File, FolderOpen, Info } from 'lucide-react'
+import { AlertTriangle, File, FolderOpen, GitBranch, Info } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { useDepartmentStore, usePrefsStore, useUiStore } from '../../store'
 import { usePluginStore } from '../../store/pluginStore'
@@ -30,6 +30,8 @@ import {
   jobDepartmentOptionText,
   resolveJobDepartment,
 } from './jobDepartment'
+import { buildChainOptions } from './jobChain'
+import type { ChainOption } from './jobChain'
 import type {
   AutomationInputData,
   AutomationJobData,
@@ -137,6 +139,28 @@ const labelStyle: React.CSSProperties = {
   fontWeight: 600,
   color: 'var(--text-muted)',
   marginBottom: 4,
+}
+
+/**
+ * A chosen successor that is switched off.
+ *
+ * The scheduler refuses to start a disabled job from a chain (`planChain`
+ * answers `target_disabled`), because the switch is the user's current
+ * instruction and a chain must not quietly override it. The dialog says so under
+ * the select, before the choice is saved, rather than letting the user find out
+ * from a history note later.
+ */
+function ChainDisabledNote({ name }: { name: string }) {
+  const { t } = useI18n()
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-start', gap: 5,
+      fontSize: 11, color: WARNING, marginTop: 4, lineHeight: 1.5,
+    }}>
+      <AlertTriangle size={11} style={{ flexShrink: 0, marginTop: 1 }} />
+      <span>{t('automation.chain.targetDisabled', { name })}</span>
+    </div>
+  )
 }
 
 export default function AutomationDialog({
@@ -262,6 +286,18 @@ export default function AutomationDialog({
       ? (job.trigger.debounceMinutes ?? DEFAULT_WATCH_DEBOUNCE_MINUTES)
       : DEFAULT_WATCH_DEBOUNCE_MINUTES,
   )
+  // '' means "Nothing": the chain's two sides are independent, and both empty
+  // is no chain at all. A stored id is kept verbatim even when no live job uses
+  // it — main keeps such an id so a restore from Recently deleted can reconnect
+  // it, and the select below shows it as the job that no longer exists.
+  const [chainSuccess, setChainSuccess] = useState(job?.chain?.onSuccess ?? '')
+  const [chainFailure, setChainFailure] = useState(job?.chain?.onFailure ?? '')
+  // The dialog opens from Settings, a workflow page and the chat header, and all
+  // three must offer the same real list, so it reads the list itself instead of
+  // taking it as a prop. `null` means "not read yet"; an empty array is a real
+  // answer (there is no other job to chain to).
+  const [chainJobs, setChainJobs] = useState<AutomationJobData[] | null>(null)
+  const [chainJobsUnreadable, setChainJobsUnreadable] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState<SchedulePreviewState>({ kind: 'idle' })
@@ -277,11 +313,67 @@ export default function AutomationDialog({
   // saveable; the warning below the field explains that it is kept, not moved.
   const departmentResolution = resolveJobDepartment(departmentChoice, departmentOptions)
 
+  // Stable identity for the memo dependencies below; `chainJobs ?? []` would be
+  // a fresh array on every render.
+  const chainJobList = useMemo(() => chainJobs ?? [], [chainJobs])
+  // Each list is judged against the draft as it would be saved with that side
+  // chosen, so a candidate that loops only through the *other* side is disabled
+  // too. Main refuses the loop either way; this is the visible half.
+  const chainSuccessOptions = useMemo<ChainOption[]>(
+    () => buildChainOptions(chainJobList, job?.id, 'onSuccess', chainFailure),
+    [chainJobList, job?.id, chainFailure],
+  )
+  const chainFailureOptions = useMemo<ChainOption[]>(
+    () => buildChainOptions(chainJobList, job?.id, 'onFailure', chainSuccess),
+    [chainJobList, job?.id, chainSuccess],
+  )
+  // A stored id that no live job uses is kept — it may be in Recently deleted.
+  // The label is decided by what we know: still loading, unreadable, or really gone.
+  const chainMissingLabel = (value: string): string | null => {
+    if (!value || chainJobList.some(j => j.id === value)) return null
+    if (chainJobs === null) {
+      return chainJobsUnreadable
+        ? t('automation.chain.unreadableOption')
+        : t('automation.chain.loadingOption')
+    }
+    return t('automation.chain.missingOption')
+  }
+  // The scheduler will not start a switched-off job from a chain (see
+  // `planChain`), so the dialog says it here, before the choice is saved.
+  const disabledChainTarget = (value: string): AutomationJobData | undefined => {
+    if (!value) return undefined
+    const target = chainJobList.find(j => j.id === value)
+    return target && !target.enabled ? target : undefined
+  }
+  const chainSuccessDisabled = disabledChainTarget(chainSuccess)
+  const chainFailureDisabled = disabledChainTarget(chainFailure)
+  const chainSuccessMissing = chainMissingLabel(chainSuccess)
+  const chainFailureMissing = chainMissingLabel(chainFailure)
+
   useEffect(() => pushEscapeHandler(onClose), [onClose])
 
-  const errorText = useCallback((code: string): string => {
+  // One read, on open. A list that cannot be read is not an empty list: the
+  // selects then show the stored choice as unidentifiable rather than as
+  // "Nothing", and the chain is still sent back unchanged on save.
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const result = await window.electronAPI.automationList()
+        if (cancelled) return
+        setChainJobs(Array.isArray(result?.jobs) ? result.jobs : [])
+      } catch {
+        if (!cancelled) setChainJobsUnreadable(true)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  const errorText = useCallback((code: string, detail?: string): string => {
     const key = `automation.errors.${code}`
-    const translated = t(key)
+    // `detail` is a name the message needs (today: the job that would close a
+    // chain loop). Keys without that placeholder ignore it.
+    const translated = detail ? t(key, { job: detail }) : t(key)
     return translated === key ? code : translated
   }, [t])
 
@@ -411,6 +503,18 @@ export default function AutomationDialog({
       // Only the opt-out is stored; omitting it on an edit restores the default
       // catch-up behaviour every existing job already has.
       ...(missedRunPolicy === 'skip' ? { missedRunPolicy: 'skip' } : {}),
+      // Both empty means no chain: omitting the field is what clears one on an
+      // edit. Stored ids go back verbatim, a dangling one included — main keeps
+      // it on purpose, and rewriting it here would disconnect a job the user may
+      // be about to restore.
+      ...(chainSuccess || chainFailure
+        ? {
+            chain: {
+              ...(chainSuccess ? { onSuccess: chainSuccess } : {}),
+              ...(chainFailure ? { onFailure: chainFailure } : {}),
+            },
+          }
+        : {}),
       // Omitting a cleared limit is what removes it; sending 0 would block
       // every scheduled run.
       ...(spendLimitValue !== undefined ? { dailyCostLimitUsd: spendLimitValue } : {}),
@@ -442,7 +546,7 @@ export default function AutomationDialog({
           }
         }
         onClose()
-      } else setError(errorText(result.error))
+      } else setError(errorText(result.error, result.errorDetail))
     } catch (err) {
       setError(String(err))
     } finally {
@@ -743,6 +847,70 @@ export default function AutomationDialog({
                 })}
               </div>
             </div>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          {/* What follows this run. Next to the retry toggle because both answer
+              "and then what", and below the action because a successor is read in
+              the light of what this job does. */}
+          <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <GitBranch size={11} />
+            {t('automation.chain.field')}
+          </label>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <label style={labelStyle}>{t('automation.chain.onSuccess')}</label>
+              <select
+                value={chainSuccess}
+                onChange={e => setChainSuccess(e.target.value)}
+                style={INPUT_STYLE}
+              >
+                <option value="">{t('automation.chain.nothing')}</option>
+                {chainSuccessOptions.map(option => (
+                  // A loop-closing choice stays visible but unpickable: hiding it
+                  // would leave the user wondering why a job is absent, and the
+                  // label says exactly what would happen.
+                  <option key={option.id} value={option.id} disabled={option.loops}>
+                    {option.loops ? t('automation.chain.optionLoop', { name: option.name }) : option.name}
+                  </option>
+                ))}
+                {chainSuccessMissing && (
+                  // A stored id no live job uses: kept so a restore can reconnect
+                  // it, shown so the user can see that the chain points nowhere.
+                  <option value={chainSuccess}>{chainSuccessMissing}</option>
+                )}
+              </select>
+              {chainSuccessDisabled && (
+                <ChainDisabledNote name={chainSuccessDisabled.name} />
+              )}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <label style={labelStyle}>{t('automation.chain.onFailure')}</label>
+              <select
+                value={chainFailure}
+                onChange={e => setChainFailure(e.target.value)}
+                style={INPUT_STYLE}
+              >
+                <option value="">{t('automation.chain.nothing')}</option>
+                {chainFailureOptions.map(option => (
+                  <option key={option.id} value={option.id} disabled={option.loops}>
+                    {option.loops ? t('automation.chain.optionLoop', { name: option.name }) : option.name}
+                  </option>
+                ))}
+                {chainFailureMissing && (
+                  <option value={chainFailure}>{chainFailureMissing}</option>
+                )}
+              </select>
+              {chainFailureDisabled && (
+                <ChainDisabledNote name={chainFailureDisabled.name} />
+              )}
+            </div>
+          </div>
+          <div style={{ fontSize: 11, color: SECONDARY, marginTop: 4, lineHeight: 1.5 }}>
+            {/* The depth cap and the switched-off rule, said once where the choice
+                is made. The number is main's, not a copy. */}
+            {t('automation.chain.hint', { depth: limits?.chainMaxDepth ?? 4 })}
           </div>
         </div>
 

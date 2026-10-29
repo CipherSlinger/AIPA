@@ -3471,7 +3471,10 @@
       "emptyFailedSkills": "技能列表读取失败，这次搜索没有包含技能。",
       "emptyFailedJobs": "定时任务列表读取失败，这次搜索没有包含定时任务。"
     },
-    "noConversations": "没有匹配的对话——以下是你自己做过的东西。"
+    "noConversations": "没有匹配的对话——以下是你自己做过的东西。",
+    "matchInTool": "工具输出中",
+    "matchInThinking": "思考中",
+    "matchTruncated": "有截断"
   },
   "askHistory": {
     "entry": "问 AIPA…",
@@ -3635,7 +3638,9 @@
       "cost_limit_too_high": "花费上限每天不能超过 $1000。",
       "watch_path_invalid": "请填写绝对路径，例如 /Users/me/Notes 或 C:\\Notes。",
       "name_invalid": "请给副本起一个有效的名称。",
-      "missed_while_closed": "该次运行在 AIPA 关闭期间到期。"
+      "missed_while_closed": "该次运行在 AIPA 关闭期间到期。",
+      "chain_invalid": "这个接着运行的任务读不出来。换一个，或者选“不接着运行”。",
+      "chain_cycle": "这样会让这个自动化运行“{{job}}”，然后绕回它自己，形成循环。这次没有保存。"
     },
     "personaHint": "该工作流的定时运行使用此专家；工作流页面上的“运行”按钮仍使用当前对话的专家。",
     "personaMissing": "专家已删除",
@@ -3862,6 +3867,34 @@
         "moveFailed": "读不出这个任务的记录，所以它留在了原处。",
         "unknown": "没有给出原因",
         "generic": "操作未能完成：{{message}}"
+      }
+    },
+    "chain": {
+      "field": "接着运行",
+      "onSuccess": "这次运行成功时",
+      "onFailure": "这次运行失败时",
+      "nothing": "不接着运行",
+      "optionLoop": "{{name}} — 会绕回这个自动化",
+      "missingOption": "这个任务已不存在",
+      "unreadableOption": "读不出任务列表",
+      "loadingOption": "正在读取任务列表…",
+      "targetDisabled": "“{{name}}”已经关掉，链条不会启动它。",
+      "hint": "链条最多连着运行 {{depth}} 个任务，超过就停。已经关掉的任务不会被链条启动。",
+      "help": "任务结束时可以顺带启动另一个任务：成功时一个，失败时一个。链条最多连着运行 {{depth}} 个任务，而且它算没人看着的花费，同样受每小时次数和花费上限约束。",
+      "rowSuccess": "成功时接着运行：{{name}}",
+      "rowFailure": "失败时接着运行：{{name}}",
+      "rowMissingSuccess": "成功时接着运行：一个已经不存在的任务",
+      "rowMissingFailure": "失败时接着运行：一个已经不存在的任务",
+      "historyStarted": "接着启动了 {{name}}",
+      "historyStartedHint": "这次运行结束后启动了那个任务：它们是先后跑的，不是同时跑的。",
+      "noteHint": "链条点了下一个任务，但它没有启动。",
+      "note": {
+        "target_missing": "它指定的任务已经不存在了",
+        "target_disabled": "它指定的任务已经关掉",
+        "target_busy": "它指定的任务正在运行，或者这一小时跑的次数用完了",
+        "paused": "自动化当时处于暂停",
+        "depth_limit": "链条已经连着跑了 {{depth}} 个任务",
+        "target_refused": "它指定的任务没能启动"
       }
     }
   },
@@ -4278,5 +4311,13 @@
     "noMatchesWithToolOutput": "在消息与工具输出中没有找到“{{query}}”",
     "expandTooLarge": "无法为查找展开 {{count}} 项折叠内容（上限 {{limit}} 项）。请先展开需要查找的部分。",
     "expandTooLargeChars": "无法为查找展开 {{count}} 个字符（上限 {{limit}}）。请先展开需要查找的部分。"
+  },
+  "trashFilter": {
+    "placeholder": "筛选已删除的项目",
+    "inputLabel": "筛选最近删除的项目",
+    "kindGroupLabel": "按类型筛选",
+    "allKinds": "全部类型",
+    "noMatch": "没有符合条件的项目，{{count}} 项被筛掉了。",
+    "clear": "清除筛选"
   }
 }

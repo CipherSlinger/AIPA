@@ -19,6 +19,18 @@ export interface SearchResult {
   /** Epoch ms of the matched entry; only set for `matchType: 'content'`. */
   messageTimestamp?: number
   messageRole?: 'user' | 'assistant'
+  /**
+   * Where the matched text sat: the conversation's own prose, a tool call's
+   * input / output, or an assistant thinking block. Absent on title matches and
+   * on rows produced before the index learned about tool text.
+   */
+  matchOrigin?: SearchTextOrigin
+  /**
+   * The matched block was cut at the index ceiling, so the snippet ends at the
+   * real boundary of what was indexed rather than the end of the block. The
+   * row must say so; never let it read as the whole output.
+   */
+  truncated?: boolean
 }
 
 /**
@@ -47,6 +59,151 @@ export function buildSnippet(text: string, query: string, radius = 60): string {
  */
 export function contentContainsQuery(content: string, query: string, lowerQuery: string): boolean {
   return content.includes(query) || content.includes(lowerQuery) || content.toLowerCase().includes(lowerQuery)
+}
+
+/**
+ * Which part of a transcript entry a piece of searchable text came from.
+ *
+ * Search used to see only `prose`, so a command the assistant ran, a file it
+ * read or a shell error was invisible even though the transcript is full of
+ * it. The index now stores all three kinds and labels every record, so a hit
+ * can tell the user it came from tool output rather than the conversation.
+ */
+export type SearchTextOrigin = 'prose' | 'tool' | 'thinking'
+
+/** One block's contribution to search, before per-file budget merging. */
+export interface SearchTextSegment {
+  origin: SearchTextOrigin
+  text: string
+  /** `tool_result` only: the call id it belongs to, for locating its message. */
+  toolUseId?: string
+}
+
+/**
+ * How much one tool or thinking block may add to the index. Tool output
+ * dominates a transcript (a single file read can be megabytes of text);
+ * without a ceiling the index would become a second copy of the corpus. 2000
+ * characters keep a command line, a stack frame or a diff hunk searchable
+ * while bounding ten thousand such blocks to 20 M characters.
+ *
+ * Prose is deliberately not capped here: it is the part search is expected to
+ * quote back, it is small next to tool output, and excerpt extraction reads it
+ * from the same records.
+ */
+export const SEARCH_MAX_BLOCK_CHARS = 2000
+
+/** Cut at the ceiling without splitting a surrogate pair (invalid UTF-16). */
+export function capSearchText(text: string, cap: number): { text: string; truncated: boolean } {
+  if (!Number.isFinite(cap) || cap < 0 || text.length <= cap) return { text, truncated: false }
+  let cut = cap
+  const last = cut > 0 ? text.charCodeAt(cut - 1) : 0
+  if (last >= 0xd800 && last <= 0xdbff) cut -= 1
+  return { text: text.slice(0, cut), truncated: true }
+}
+
+function stringifySearchValue(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (value == null) return ''
+  if (typeof value === 'object') {
+    try { return JSON.stringify(value) } catch { return '' }
+  }
+  return String(value)
+}
+
+/** A tool result is a string, or content blocks whose text is the output. */
+function toolResultText(content: unknown): string {
+  if (typeof content === 'string') return content
+  if (!Array.isArray(content)) return stringifySearchValue(content)
+  const parts: string[] = []
+  for (const part of content) {
+    if (typeof part === 'string') { parts.push(part); continue }
+    if (!part || typeof part !== 'object') continue
+    const block = part as Record<string, unknown>
+    if (typeof block.text === 'string') parts.push(block.text)
+    else if (typeof block.content === 'string') parts.push(block.content)
+  }
+  return parts.join('\n')
+}
+
+/**
+ * Everything one entry contributes to cross-session search, split by origin.
+ * Not capped: the cap is what a block may *store*, applied by the indexer, and
+ * the on-disk fallback scan must see the whole block to find what the cap left
+ * out.
+ *
+ * Separate from `textFromBlocks` on purpose: that helper's other consumers
+ * (workflow generalization digests) want the user/assistant prose and nothing
+ * else, and silently widening it would change what they quote. This one is for
+ * the search index and the on-disk fallback scan only.
+ */
+export function searchSegmentsFromBlocks(content: unknown): SearchTextSegment[] {
+  if (typeof content === 'string') {
+    return content ? [{ origin: 'prose', text: content }] : []
+  }
+  if (!Array.isArray(content)) return []
+
+  const segments: SearchTextSegment[] = []
+  for (const raw of content) {
+    if (typeof raw === 'string') {
+      if (raw) segments.push({ origin: 'prose', text: raw })
+      continue
+    }
+    if (!raw || typeof raw !== 'object') continue
+    const block = raw as Record<string, unknown>
+
+    if (block.type === 'text') {
+      const text = typeof block.text === 'string' ? block.text : ''
+      if (text) segments.push({ origin: 'prose', text })
+      continue
+    }
+
+    if (block.type === 'thinking') {
+      // Claude's thinking blocks carry `thinking`; older shapes use `text`.
+      const text = typeof block.thinking === 'string'
+        ? block.thinking
+        : typeof block.text === 'string' ? block.text : ''
+      if (text) segments.push({ origin: 'thinking', text })
+      continue
+    }
+
+    if (block.type === 'tool_use') {
+      // The arguments are where the command, path or query lives. The tool
+      // name alone is not user content and would make every shell call match.
+      const text = stringifySearchValue(block.input)
+      if (text) segments.push({ origin: 'tool', text })
+      continue
+    }
+
+    if (block.type === 'tool_result') {
+      const text = toolResultText(block.content)
+      if (!text) continue
+      segments.push({
+        origin: 'tool',
+        text,
+        ...(typeof block.tool_use_id === 'string' ? { toolUseId: block.tool_use_id } : {}),
+      })
+    }
+  }
+  return segments
+}
+
+/**
+ * Join adjacent segments of one origin (and one tool call) the way the index
+ * stores an entry's blocks. The disk fallback scans with this so a phrase that
+ * spans two text blocks of one message stays matchable, as it was when prose
+ * was joined per entry.
+ */
+export function mergeAdjacentSegments(segments: SearchTextSegment[]): SearchTextSegment[] {
+  const out: SearchTextSegment[] = []
+  for (const segment of segments) {
+    const last = out[out.length - 1]
+    if (last && last.origin === segment.origin && last.toolUseId === segment.toolUseId) {
+      last.text += `\n${segment.text}`
+    } else {
+      out.push({ ...segment })
+    }
+  }
+  return out
 }
 
 /** Text a transcript entry contributes to search: user/assistant prose only. */

@@ -11,11 +11,18 @@ import {
   setCachedSummary,
 } from './session-index-cache'
 import { cleanPrompt, deriveTitle, isSyntheticPrompt } from './prompt-text'
-import { buildSnippet, contentContainsQuery, textFromBlocks } from './search-types'
+import {
+  buildSnippet,
+  contentContainsQuery,
+  mergeAdjacentSegments,
+  searchSegmentsFromBlocks,
+} from './search-types'
 import {
   MAX_FALLBACK_READS,
   MAX_FILE_CHARS,
   SessionSearchIndex,
+  appendSearchRecord,
+  createSearchRecordState,
   mapWithConcurrency,
   readJsonlLines,
 } from './search-index'
@@ -603,12 +610,25 @@ interface ClaudeFileHit {
   snippet: string
   messageTimestamp?: number
   messageRole?: 'user' | 'assistant'
+  /** Where the matched text sat; absent means prose. */
+  matchOrigin?: 'prose' | 'tool' | 'thinking'
+  /** The matched block was cut at the index ceiling. */
+  truncated?: boolean
 }
 
 function scanClaudeFile(content: string, query: string, lowerQuery: string): ClaudeFileHit | null {
   let title: string | undefined
   let timestamp = 0
-  let match: { snippet: string; messageTimestamp: number; messageRole: 'user' | 'assistant' } | null = null
+  let match: {
+    snippet: string
+    messageTimestamp: number
+    messageRole: 'user' | 'assistant'
+    matchOrigin: 'prose' | 'tool' | 'thinking'
+    truncated: boolean
+  } | null = null
+  // Same mapping as the indexer: a tool result's evidence is the assistant
+  // message that issued the call, not the user entry holding the output.
+  const toolUseTs = new Map<string, number>()
 
   for (const line of content.split('\n')) {
     if (!line || line.charCodeAt(0) !== 123 /* '{' */) continue
@@ -624,19 +644,39 @@ function scanClaudeFile(content: string, query: string, lowerQuery: string): Cla
         title = String(entry.title)
       }
 
-      if (!match && (entry.type === 'user' || entry.type === 'assistant')) {
-        const message = entry.message as Record<string, unknown> | undefined
-        const text = textFromBlocks(message?.content)
-        if (text.toLowerCase().includes(lowerQuery)) {
-          const matchedTs = typeof entry.timestamp === 'string'
-            ? new Date(entry.timestamp).getTime()
-            : 0
-          match = {
-            snippet: buildSnippet(text, query),
-            messageTimestamp: Number.isNaN(matchedTs) ? 0 : matchedTs,
-            messageRole: entry.type === 'user' ? 'user' : 'assistant',
-          }
+      if (entry.type !== 'user' && entry.type !== 'assistant') continue
+      const message = entry.message as Record<string, unknown> | undefined
+      const entryContent = message?.content
+      const role = entry.type === 'user' ? 'user' : 'assistant'
+      const matchedTs = typeof entry.timestamp === 'string'
+        ? new Date(entry.timestamp).getTime()
+        : 0
+      const ts = Number.isNaN(matchedTs) ? 0 : matchedTs
+
+      if (role === 'assistant' && Array.isArray(entryContent)) {
+        for (const block of entryContent) {
+          if (!block || typeof block !== 'object') continue
+          const b = block as Record<string, unknown>
+          if (b.type === 'tool_use' && typeof b.id === 'string') toolUseTs.set(b.id, ts)
         }
+      }
+      if (match) continue
+
+      // The disk path reads the entire file anyway and segments are uncapped,
+      // so a match past the index ceiling is exactly what this scan finds.
+      for (const segment of mergeAdjacentSegments(searchSegmentsFromBlocks(entryContent))) {
+        if (!segment.text.toLowerCase().includes(lowerQuery)) continue
+        const snippet = buildSnippet(segment.text, query)
+        if (!snippet) continue
+        const ownerTs = segment.toolUseId ? toolUseTs.get(segment.toolUseId) : undefined
+        match = {
+          snippet,
+          messageTimestamp: ownerTs ?? ts,
+          messageRole: ownerTs !== undefined ? 'assistant' : role,
+          matchOrigin: segment.origin,
+          truncated: false,
+        }
+        break
       }
     } catch { /* one malformed line must not hide the rest of the transcript */ }
   }
@@ -649,6 +689,8 @@ function scanClaudeFile(content: string, query: string, lowerQuery: string): Cla
       snippet: match.snippet,
       messageTimestamp: match.messageTimestamp,
       messageRole: match.messageRole,
+      matchOrigin: match.matchOrigin,
+      truncated: match.truncated,
     }
   }
   if (title && title.toLowerCase().includes(lowerQuery)) {
@@ -669,21 +711,31 @@ function scanClaudeFile(content: string, query: string, lowerQuery: string): Cla
 interface ClaudeSearchFile extends SearchIndexFile {}
 
 /**
- * Extract the searchable prose of one Claude transcript.
+ * Extract the searchable text of one Claude transcript.
  *
- * `maxChars` is the store cap (the index keeps only the file's prefix to stay
- * within budget). Excerpt extraction passes Infinity so a session quoted from
- * a long transcript still exposes its newest matching line.
+ * Prose, tool calls, tool results and thinking blocks are all indexed, each
+ * labelled with its origin. `maxChars` is the store cap (the index keeps only
+ * the file's prefix to stay within budget). Excerpt extraction passes Infinity
+ * so a session quoted from a long transcript still exposes its newest lines.
+ *
+ * Exported for the search harness: the index is otherwise only reachable
+ * through a full corpus sync.
  */
-async function extractClaudeSearchDoc(
+export async function extractClaudeSearchDoc(
   file: SearchIndexFile,
   maxChars = MAX_FILE_CHARS,
 ): Promise<SearchIndexDoc> {
   let title: string | undefined
   let timestamp = 0
-  let chars = 0
-  let partial = false
   const records: SearchIndexRecord[] = []
+  const state = createSearchRecordState()
+  // tool_use id → the assistant entry that issued it. A tool_result lives on a
+  // separate `user` entry the renderer merges into that assistant message, so
+  // the result's record must point at the assistant timestamp or the reveal
+  // jump would land on a row the parser dropped.
+  const toolUseTs = new Map<string, number>()
+  // One id per transcript entry; blocks merge into a record only within it.
+  let entryGroup = 0
 
   for await (const line of readJsonlLines(file.filePath)) {
     if (!line || line.charCodeAt(0) !== 123) continue
@@ -707,23 +759,34 @@ async function extractClaudeSearchDoc(
 
     if (entry.type !== 'user' && entry.type !== 'assistant') continue
     const message = entry.message as Record<string, unknown> | undefined
-    const text = textFromBlocks(message?.content)
-    if (!text || partial) continue
-
-    if (chars + text.length > maxChars) {
-      // Keep the metadata pass running (title and timestamp still matter), but
-      // stop growing the buffer; a miss in the prefix is verified on disk.
-      partial = true
-      continue
-    }
-
+    const content = message?.content
+    const role = entry.type === 'user' ? 'user' : 'assistant'
     const rawTs = typeof entry.timestamp === 'string' ? new Date(entry.timestamp).getTime() : 0
-    records.push({
-      ts: Number.isNaN(rawTs) ? 0 : rawTs,
-      role: entry.type === 'user' ? 'user' : 'assistant',
-      text,
-    })
-    chars += text.length
+    const ts = Number.isNaN(rawTs) ? 0 : rawTs
+
+    // Register the call ids before the budget can skip this entry: a later
+    // tool_result still has to find the message that owns it.
+    if (role === 'assistant' && Array.isArray(content)) {
+      for (const block of content) {
+        if (!block || typeof block !== 'object') continue
+        const b = block as Record<string, unknown>
+        if (b.type === 'tool_use' && typeof b.id === 'string') toolUseTs.set(b.id, ts)
+      }
+    }
+    if (state.partial) continue
+
+    const group = ++entryGroup
+    for (const segment of searchSegmentsFromBlocks(content)) {
+      // A tool result belongs to the assistant message that asked for it.
+      const ownerTs = segment.toolUseId ? toolUseTs.get(segment.toolUseId) : undefined
+      appendSearchRecord(state, records, {
+        ts: ownerTs ?? ts,
+        role: ownerTs !== undefined ? 'assistant' : role,
+        origin: segment.origin,
+        text: segment.text,
+        group,
+      }, maxChars)
+    }
   }
 
   return {
@@ -735,7 +798,8 @@ async function extractClaudeSearchDoc(
     timestamp,
     title,
     records,
-    partial,
+    partial: state.partial,
+    ...(state.truncated ? { truncated: true } : {}),
   }
 }
 
@@ -789,8 +853,13 @@ async function findClaudeSearchFile(sessionId: string): Promise<ClaudeSearchFile
 export async function readSessionProse(sessionId: string): Promise<SearchIndexRecord[]> {
   if (!isValidSessionId(sessionId)) return []
 
+  // The cache now also holds tool and thinking text. Its consumers (excerpt
+  // extraction for "ask about your history") quote the conversation itself, so
+  // they keep getting exactly what they got before this index widened.
+  const proseOnly = (records: SearchIndexRecord[]) => records.filter(r => r.origin === 'prose')
+
   const cached = claudeSearchIndex.findBySessionId(sessionId)
-  if (cached && !cached.deferred && !cached.partial) return cached.records
+  if (cached && !cached.deferred && !cached.partial) return proseOnly(cached.records)
 
   // Even a deferred document knows its path; only a not-yet-extracted session
   // needs the directory walk.
@@ -806,7 +875,7 @@ export async function readSessionProse(sessionId: string): Promise<SearchIndexRe
   if (!file) return []
 
   const doc = await extractClaudeSearchDoc(file, Number.POSITIVE_INFINITY)
-  return doc.records
+  return proseOnly(doc.records)
 }
 
 /** Match a cached document, mirroring `scanClaudeFile`'s first-match semantics. */
@@ -822,6 +891,8 @@ function matchClaudeDoc(doc: SearchIndexDoc, query: string, lowerQuery: string):
       snippet,
       messageTimestamp: record.ts,
       messageRole: record.role,
+      matchOrigin: record.origin,
+      truncated: record.truncated === true,
     }
   }
   if (doc.title && doc.title.toLowerCase().includes(lowerQuery)) {
@@ -861,6 +932,8 @@ function toClaudeResult(file: ClaudeSearchFile, hit: ClaudeFileHit): SearchResul
     ...(hit.matchType === 'content' && hit.messageTimestamp
       ? { messageTimestamp: hit.messageTimestamp, messageRole: hit.messageRole }
       : {}),
+    ...(hit.matchType === 'content' && hit.matchOrigin ? { matchOrigin: hit.matchOrigin } : {}),
+    ...(hit.matchType === 'content' && hit.truncated ? { truncated: true } : {}),
   }
 }
 
@@ -951,7 +1024,7 @@ export async function searchSessions(query: string, limit = 30): Promise<SearchR
     // A `pending` document is being extracted by a running build: the query
     // answers with what is indexed so far instead of reading it now.
     const needsDisk = candidate.doc
-      ? candidate.doc.partial && hit?.matchType !== 'content'
+      ? (candidate.doc.partial || candidate.doc.truncated === true) && hit?.matchType !== 'content'
       : candidate.state === 'deferred'
     if (needsDisk && fallbackBudget > 0) {
       fallbackBudget--

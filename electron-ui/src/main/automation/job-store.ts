@@ -12,6 +12,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { createLogger } from '../utils/logger'
 import { normalizeDeptBudgets } from './dept-budget'
+import { normalizeJobChain } from './job-chain'
 import { normalizeDepartmentId } from './job-department'
 import { normalizeJobProvenance } from './job-provenance'
 import { normalizeMissedRunPolicy } from './missed-policy'
@@ -140,6 +141,11 @@ export function normalizeJob(raw: unknown): AutomationJob | null {
     // all read as the default catch-up behaviour, so a hand-edited file can
     // never silently drop a scheduled occurrence.
     missedRunPolicy: normalizeMissedRunPolicy(job.missedRunPolicy),
+    // Each side is validated on its own and a chain with nothing left is gone.
+    // A target id that no longer matches a live job is kept: the job may be in
+    // Recently deleted, and restoring it brings the same id back. Dropping a
+    // dangling edge here would silently rewrite the user's chain on every load.
+    chain: normalizeJobChain(job.chain, job.id),
     // A disabled job or a job that no longer opted in must not carry a retry
     // into the next launch. A valid one is restored even when its due time has
     // passed (the first tick either runs it or expires it).

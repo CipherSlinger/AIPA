@@ -23,10 +23,12 @@
  * append, eviction, restore and streak rules without a store or a window.
  */
 import { normalizeChangedFiles } from './changed-files'
+import { isChainNote } from './job-chain'
 import { normalizeMemoryDigest } from './memory-digest'
 import { AUTOMATION_RETRY_POLICY } from './retry-policy'
 import { normalizeRunUsage } from './run-usage'
 import type {
+  AutomationRunChain,
   AutomationRunRecord,
   AutomationRunRecordStatus,
   AutomationRunSkipReason,
@@ -39,10 +41,39 @@ export const AUTOMATION_HISTORY_CAP = 20
 export const MAX_RUN_ERROR_CHARS = 500
 
 const MAX_SESSION_ID_CHARS = 256
+/** A job name is short; this only bounds a hand-edited history row. */
+const MAX_CHAIN_NAME_CHARS = 120
 const RECORD_STATUSES: AutomationRunRecordStatus[] = ['success', 'error', 'skipped']
 
 function finiteNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+/**
+ * The chain half of a record, or absent.
+ *
+ * `nextJobId` wins over a note: a run either started a successor or did not, and
+ * a row carrying both would be two answers to one question. An unknown note is
+ * dropped rather than carried as a label no reader can translate — and if that
+ * leaves nothing, the field is absent, which reads as "this record predates
+ * chaining", the conservative answer.
+ */
+function normalizeRunChain(raw: unknown): AutomationRunChain | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const chain = raw as Record<string, unknown>
+  const nextJobId = typeof chain.nextJobId === 'string' &&
+    chain.nextJobId.trim().length > 0 &&
+    chain.nextJobId.trim().length <= MAX_SESSION_ID_CHARS
+    ? chain.nextJobId.trim()
+    : undefined
+  if (nextJobId) {
+    const name = typeof chain.nextJobName === 'string' ? chain.nextJobName.trim() : ''
+    return {
+      nextJobId,
+      ...(name ? { nextJobName: name.slice(0, MAX_CHAIN_NAME_CHARS) } : {}),
+    }
+  }
+  return isChainNote(chain.note) ? { note: chain.note } : undefined
 }
 
 /**
@@ -84,6 +115,9 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
   // Absent stays absent — "not recorded" must survive restore, never collapse
   // into an empty list. A corrupt summary is dropped for the same reason.
   const changedFiles = normalizeChangedFiles(record.changedFiles)
+  // A skipped run started nothing, whatever the file says: an occurrence a rail
+  // refused cannot have begun a successor.
+  const chain = status === 'skipped' ? undefined : normalizeRunChain(record.chain)
 
   // Invariants the scheduler relies on, enforced again on restore so a corrupt
   // row cannot claim spend or a transcript for a run that never happened:
@@ -122,6 +156,7 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
       ...(usage ? { usage } : {}),
       ...(memory ? { memory } : {}),
       ...(changedFiles ? { changedFiles } : {}),
+      ...(chain ? { chain } : {}),
     }
   }
   const usage = normalizeRunUsage(record.usage)
@@ -139,6 +174,9 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
     ...(memory ? { memory } : {}),
     // Edits made before a failure are still real; the summary travels with them.
     ...(changedFiles ? { changedFiles } : {}),
+    // A failure can name the successor it never started, just as a success can
+    // name the one it did; the two are one field with two possible shapes.
+    ...(chain ? { chain } : {}),
   }
 }
 

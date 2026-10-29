@@ -7,7 +7,7 @@
 // `automation:changed` instead of guessing what the scheduler did.
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { AlarmClock, AlertTriangle, Building2, Clock, Copy, History, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Search, Sparkles, Trash2, Wallet, X } from 'lucide-react'
+import { AlarmClock, AlertTriangle, Building2, Clock, Copy, GitBranch, History, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Search, Sparkles, Trash2, Wallet, X } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { useChatStore, useDepartmentStore, usePrefsStore, useUiStore } from '../../store'
 import { usePluginStore } from '../../store/pluginStore'
@@ -367,6 +367,34 @@ export default function SettingsAutomations() {
     }
     return { text: t('automation.status.error'), color: 'var(--danger-text)' }
   }, [t])
+
+  /**
+   * The row's "then run" clauses: one per side of the chain.
+   *
+   * A target id is resolved against the live list at render time, so a job that
+   * was renamed shows its new name and one that was deleted shows as gone.
+   * A missing target is kept visible rather than hidden: the chain really does
+   * point at nothing, and the user is the only one who may drop the edge.
+   */
+  const chainClauses = useCallback((job: AutomationJobData): Array<{ text: string; missing: boolean; title?: string }> => {
+    const chain = job.chain
+    if (!chain) return []
+    const nameOf = (id: string) => jobs.find(other => other.id === id)?.name
+    const clauses: Array<{ text: string; missing: boolean; title?: string }> = []
+    if (chain.onSuccess) {
+      const name = nameOf(chain.onSuccess)
+      clauses.push(name
+        ? { text: t('automation.chain.rowSuccess', { name }), missing: false }
+        : { text: t('automation.chain.rowMissingSuccess'), missing: true, title: chain.onSuccess })
+    }
+    if (chain.onFailure) {
+      const name = nameOf(chain.onFailure)
+      clauses.push(name
+        ? { text: t('automation.chain.rowFailure', { name }), missing: false }
+        : { text: t('automation.chain.rowMissingFailure'), missing: true, title: chain.onFailure })
+    }
+    return clauses
+  }, [jobs, t])
 
   /** Compact duration: whole minutes once a run passes one, seconds below. */
   const durationText = useCallback((ms: number | null): string | null => {
@@ -1161,6 +1189,7 @@ export default function SettingsAutomations() {
                 expanded: historyUi.expanded,
               })
               const runRows = historyView.rows.slice().reverse()
+              const chainRow = chainClauses(job)
               return (
                 <div
                   key={job.id}
@@ -1359,6 +1388,28 @@ export default function SettingsAutomations() {
                       )}
                     </div>
 
+                    {chainRow.length > 0 && (
+                      // Configuration, not history: it sits with the action,
+                      // above the last outcome, because it is part of what this
+                      // job is. A gone target turns the clause into a warning
+                      // rather than a name.
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap',
+                        fontSize: 11, color: SECONDARY, marginTop: 3, lineHeight: 1.45,
+                      }}>
+                        <GitBranch size={11} style={{ flexShrink: 0 }} />
+                        {chainRow.map((clause, clauseIndex) => (
+                          <span
+                            key={clauseIndex}
+                            title={clause.title}
+                            style={clause.missing ? { color: WARNING } : undefined}
+                          >
+                            {clauseIndex > 0 ? ` · ${clause.text}` : clause.text}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
                     <div style={{ fontSize: 11, color: status.color, marginTop: 4, lineHeight: 1.45 }}>
                       {/* Only the held label carries a tooltip; `help` is the
                           cue that the sentence explains rather than acts. */}
@@ -1546,6 +1597,30 @@ export default function SettingsAutomations() {
                                   // like three separate scheduled runs.
                                   <span style={{ color: 'var(--accent-text)' }}>
                                     {t('automation.retry.badge', { attempt: record.retry })}
+                                  </span>
+                                )}
+                                {record.chain?.nextJobId && (
+                                  // What followed this run. The name is the one
+                                  // held at start time; the job may since have
+                                  // been renamed, which is why the id is the key.
+                                  <span
+                                    style={{ color: 'var(--accent-text)' }}
+                                    title={t('automation.chain.historyStartedHint')}
+                                  >
+                                    {t('automation.chain.historyStarted', {
+                                      name: record.chain.nextJobName ?? record.chain.nextJobId,
+                                    })}
+                                  </span>
+                                )}
+                                {record.chain?.note && (
+                                  // The chain named a successor and it did not
+                                  // start. Warning-toned: the user configured a
+                                  // follow-up that did not happen, and this is the
+                                  // only place it is recorded.
+                                  <span style={{ color: WARNING }} title={t('automation.chain.noteHint')}>
+                                    {t(`automation.chain.note.${record.chain.note}`, {
+                                      depth: limits?.chainMaxDepth ?? 4,
+                                    })}
                                   </span>
                                 )}
                                 {memory && (
@@ -1823,6 +1898,7 @@ export default function SettingsAutomations() {
         <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11.5, color: SECONDARY, lineHeight: 1.6 }}>
           <li>{t('automation.appMustRun')}</li>
           <li>{t('automation.missedRunRuleChoice')}</li>
+          <li>{t('automation.chain.help', { depth: limits?.chainMaxDepth ?? 4 })}</li>
           <li>{t('automation.pauseAll.help')}</li>
           <li>{t('automation.budget.help')}</li>
           <li>

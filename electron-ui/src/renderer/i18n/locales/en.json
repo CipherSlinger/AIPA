@@ -3471,7 +3471,10 @@
       "emptyFailedSkills": "The skills list could not be read, so skills were not searched.",
       "emptyFailedJobs": "The scheduled jobs list could not be read, so scheduled jobs were not searched."
     },
-    "noConversations": "No conversations matched — here's what you built."
+    "noConversations": "No conversations matched — here's what you built.",
+    "matchInTool": "in tool output",
+    "matchInThinking": "in thinking",
+    "matchTruncated": "cut short"
   },
   "askHistory": {
     "entry": "Ask AIPA…",
@@ -3635,7 +3638,9 @@
       "cost_limit_too_high": "The spend limit cannot exceed $1000 per day.",
       "watch_path_invalid": "Watch an absolute path — a full path like /Users/me/Notes or C:\\Notes.",
       "name_invalid": "Give the copy a valid name.",
-      "missed_while_closed": "It came due while AIPA was closed."
+      "missed_while_closed": "It came due while AIPA was closed.",
+      "chain_invalid": "That next job could not be read as a job. Choose another one, or Nothing.",
+      "chain_cycle": "That would make this automation run “{{job}}” and then come back to itself in a loop. Nothing was saved."
     },
     "personaHint": "Scheduled runs of this workflow use this expert. The workflow's own Run button still uses the current conversation's expert.",
     "personaMissing": "Expert deleted",
@@ -3862,6 +3867,34 @@
         "moveFailed": "This job's record couldn't be read, so the job was left where it was.",
         "unknown": "no reason was reported",
         "generic": "That didn't work: {{message}}"
+      }
+    },
+    "chain": {
+      "field": "Then run",
+      "onSuccess": "When this run succeeds",
+      "onFailure": "When this run fails",
+      "nothing": "Nothing",
+      "optionLoop": "{{name}} — would loop back to this automation",
+      "missingOption": "This job no longer exists",
+      "unreadableOption": "The job list could not be read",
+      "loadingOption": "Reading the job list…",
+      "targetDisabled": "“{{name}}” is switched off, so a chain will not start it.",
+      "hint": "A chain stops after {{depth}} jobs in a row. A job that is switched off is not started by a chain.",
+      "help": "A job can start one other job when it finishes: one after a success, one after a failure. A chain stops after {{depth}} jobs in a row, and it is unattended spend — the same hourly and spend limits apply.",
+      "rowSuccess": "Then, on success: {{name}}",
+      "rowFailure": "Then, on failure: {{name}}",
+      "rowMissingSuccess": "Then, on success: a job that no longer exists",
+      "rowMissingFailure": "Then, on failure: a job that no longer exists",
+      "historyStarted": "then started {{name}}",
+      "historyStartedHint": "This run started that job once it had finished. They ran one after the other, not at the same time.",
+      "noteHint": "The chain named a next job and it did not start.",
+      "note": {
+        "target_missing": "the job it named no longer exists",
+        "target_disabled": "the job it named is switched off",
+        "target_busy": "the job it named was already running, or out of runs this hour",
+        "paused": "automations were paused",
+        "depth_limit": "the chain had already run {{depth}} jobs in a row",
+        "target_refused": "the job it named did not start"
       }
     }
   },
@@ -4278,5 +4311,13 @@
     "noMatchesWithToolOutput": "No matches for “{{query}}” in messages and tool output",
     "expandTooLarge": "Can't expand {{count}} collapsed items to search (limit {{limit}}). Open the ones you need first.",
     "expandTooLargeChars": "Can't expand {{count}} characters of text to search (limit {{limit}}). Open the ones you need first."
+  },
+  "trashFilter": {
+    "placeholder": "Filter deleted items",
+    "inputLabel": "Filter recently deleted items",
+    "kindGroupLabel": "Filter by kind",
+    "allKinds": "All kinds",
+    "noMatch": "Nothing here matches the filter — {{count}} hidden.",
+    "clear": "Clear filter"
   }
 }

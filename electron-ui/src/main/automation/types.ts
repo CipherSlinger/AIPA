@@ -46,10 +46,13 @@ export type AutomationTrigger =
  * Why a run started.
  *
  * `scheduled` and `watch` are the two unattended sources, so the spend rails and
- * the hourly cap treat them identically; `manual` is the user spending on
- * purpose and is the only source those rails exempt.
+ * the hourly cap treat them identically. `chain` is the third: a run another job
+ * started when it finished is nobody standing at the keyboard either, so it
+ * meets exactly the same rails. `manual` is the user spending on purpose and is
+ * the only source those rails exempt — a chain is never manual, however loudly
+ * the user configured it.
  */
-export type AutomationRunSource = 'manual' | 'scheduled' | 'watch'
+export type AutomationRunSource = 'manual' | 'scheduled' | 'watch' | 'chain'
 
 /**
  * What a job does with an occurrence that came due while AIPA was not running.
@@ -234,6 +237,68 @@ export interface AutomationRunRecord {
    * inferring it from the message text.
    */
   skipReason?: AutomationRunSkipReason
+  /**
+   * What this run did about the job its chain named. Present only when the job
+   * had a chain and this outcome's side named a target — and never on a skip,
+   * which started nothing. Absent on every record written before chaining
+   * existed, which is also why it must stay absent rather than default to "nothing
+   * followed": those runs had no chain to follow.
+   */
+  chain?: AutomationRunChain
+}
+
+/**
+ * The jobs a finished run may start next: one for success, one for failure.
+ *
+ * Ids, never names — a job can be renamed, and a chain must not keep pointing at
+ * a label. A dangling id is kept rather than cleared: the target may be waiting
+ * in Recently deleted, and restoring it puts the same id back, so the chain
+ * reconnects by itself. Only the user may drop the edge.
+ *
+ * Loops are refused at save time (`findChainCycle` in `job-chain.ts`); the
+ * runtime depth cap is the backstop for a chain that grew past that check
+ * through a hand edit.
+ */
+export interface AutomationJobChain {
+  /** Job id to start when this job's run succeeds. */
+  onSuccess?: string
+  /** Job id to start when this job's run fails for good (no retry left). */
+  onFailure?: string
+}
+
+/**
+ * Why a chained start did not happen, as the source job's history records it.
+ *
+ * Every value says what was observed, not what was assumed: `target_missing`
+ * means no live job has that id, `target_disabled` means the user switched it
+ * off, `target_busy` means a slot or the hourly allowance was not there,
+ * `paused` means the global pause was on, `depth_limit` means the chain had
+ * already entered its maximum, and `target_refused` means the start was handed
+ * over and a rail then held it. None of them means the run failed.
+ */
+export type AutomationChainNote =
+  | 'target_missing'
+  | 'target_disabled'
+  | 'target_busy'
+  | 'paused'
+  | 'depth_limit'
+  | 'target_refused'
+
+/**
+ * What a finished run did about the job its chain named.
+ *
+ * Written on the *source* job's record at the moment the run ended, and present
+ * only when the job had a chain and this outcome's side named a target. Exactly
+ * one of `nextJobId` / `note` is set: `nextJobId` only when a run on that job
+ * really started, and a note only when it did not.
+ */
+export interface AutomationRunChain {
+  /** The successor's id, set only when a run on it really started. */
+  nextJobId?: string
+  /** The successor's name at start time; a snapshot, like every name in a record. */
+  nextJobName?: string
+  /** Why the named successor did not start. Never set together with `nextJobId`. */
+  note?: AutomationChainNote
 }
 
 /**
@@ -301,6 +366,15 @@ export interface AutomationJob {
    * cleared by a success, a manual run, a schedule change, or a rail refusal.
    */
   pendingRetry?: AutomationPendingRetry
+  /**
+   * The job(s) to start when this job's run finishes.
+   *
+   * Validated by `normalizeJobChain` on load and by `checkJobChainInput` on save;
+   * a dangling target is kept so a restore can reconnect it, and a loop is
+   * refused at save time. Runtime semantics (depth cap, disabled targets, the
+   * rails a chained run meets) live in `job-chain.ts`.
+   */
+  chain?: AutomationJobChain
   /**
    * The plugin that created this job through the `schedule` capability.
    *
@@ -610,6 +684,12 @@ export interface AutomationLimits {
     /** Wait before each retry, in minutes, in attempt order. */
     delaysMinutes: number[]
   }
+  /**
+   * How many jobs one chain may enter, successor by successor. Exposed so the
+   * dialog and the history note can state the real number instead of repeating
+   * it in copy; the value itself has one home in `job-chain.ts`.
+   */
+  chainMaxDepth: number
 }
 
 /** What the IPC handlers hand to the scheduler after validation. */
@@ -645,6 +725,12 @@ export interface AutomationInput {
    * stored, matching the opt-in shape of `retryOnFailure`.
    */
   missedRunPolicy?: AutomationMissedRunPolicy
+  /**
+   * The jobs to start when this job's run finishes. Omitted or empty clears the
+   * chain; a target that is not a live job id, or one that would close a loop,
+   * is refused rather than dropped.
+   */
+  chain?: AutomationJobChain
   /**
    * Optional scheduled-run spend limit in USD. Omitted/null clears it; the
    * scheduler stores an absent value rather than `0`.

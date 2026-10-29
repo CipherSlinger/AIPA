@@ -5,18 +5,19 @@
 // record, so it is kept in `AppPrefs.trashedWorkflows`; a skill is a real
 // folder, a conversation is one or more transcript files and a job is a record
 // in `automations.json`, so main moves or copies them under userData and records
-// them in a manifest. This section is the one place the user sees all four, and
-// it is also where the difference is spelled out: a trashed skill or
-// conversation can be restored only while its payload still exists on disk,
-// while a job — a record, not a file — is always restorable.
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Undo2, Trash2, Workflow as WorkflowIcon, Puzzle, MessageSquare, CalendarClock } from 'lucide-react'
-import { useT, useI18n } from '../../i18n'
-import { formatDateMedium } from '../../utils/formatDate'
+// them in a manifest. This file is the connected half: it reads the four lists
+// and turns each failure code into a sentence. The rows and the filter controls
+// live in TrashSectionView.tsx; the merged row shape in lib/trashRows.ts.
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useT } from '../../i18n'
 import { listSessionsShared } from '../../utils/sessionListShared'
 import { useSessionStore, useUiStore } from '../../store'
 import { sessionTrashFailureText } from '../../lib/sessionTrashText'
-import type { SessionListItem, TrashedWorkflow } from '../../types/app.types'
+import { EMPTY_TRASH_FILTER } from '../../lib/trashFilter'
+import type { TrashFilterState } from '../../lib/trashFilter'
+import { buildTrashRows } from '../../lib/trashRows'
+import type { TrashActionOutcome, TrashRow } from '../../lib/trashRows'
+import type { SessionListItem } from '../../types/app.types'
 import type {
   JobTrashErrorCode,
   SessionTrashErrorCode,
@@ -25,316 +26,17 @@ import type {
   TrashedSessionInfoData,
   TrashedSkillInfoData,
 } from '../../../preload'
-import { TRASH_RETENTION_DAYS, workflowPurgeAt } from '../../lib/workflowTrash'
+import { TRASH_RETENTION_DAYS } from '../../lib/workflowTrash'
 import { MAX_WORKFLOWS } from './workflowConstants'
-import { SectionHeader } from './EmployeesShared'
+import { TrashView } from './TrashSectionView'
 import type { EmployeeSkillsState } from './EmployeesSkillsSection'
 import type { useWorkflowCrud } from './useWorkflowCrud'
 
-export type TrashKind = 'workflow' | 'skill' | 'session' | 'job'
-
-export interface TrashRow {
-  kind: TrashKind
-  id: string
-  name: string
-  deletedAt: number
-  /** When the row leaves for good, shown as a date rather than "30 days ago". */
-  purgeAt: number
-  /** A trashed skill folder or transcript that is gone from disk cannot be restored. */
-  available: boolean
-}
-
-/** What a row needs to tell the user, localized by the caller that knows the code. */
-export type TrashActionOutcome = { ok: true } | { ok: false; message: string }
-
-/**
- * Merge the four kinds into one newest-first list. Kept pure and exported so
- * the harness can assert the ordering and that an empty holding area yields no
- * rows at all — the section renders nothing in that case, not an empty box.
- *
- * `sessionEntries` and `jobEntries` are last and optional so the two older
- * kinds keep the call shape they had before conversations and jobs joined the
- * list.
- */
-export function buildTrashRows(
-  skillEntries: TrashedSkillInfoData[],
-  workflowEntries: TrashedWorkflow[],
-  sessionEntries: TrashedSessionInfoData[] = [],
-  jobEntries: TrashedJobInfoData[] = [],
-): TrashRow[] {
-  const rows: TrashRow[] = [
-    ...workflowEntries.map(entry => ({
-      kind: 'workflow' as const,
-      id: entry.workflow.id,
-      name: entry.workflow.name,
-      deletedAt: entry.deletedAt,
-      purgeAt: workflowPurgeAt(entry),
-      available: true,
-    })),
-    ...skillEntries.map(entry => ({
-      kind: 'skill' as const,
-      id: entry.id,
-      name: entry.name,
-      deletedAt: entry.deletedAt,
-      purgeAt: entry.purgeAt,
-      available: entry.available,
-    })),
-    ...sessionEntries.map(entry => ({
-      kind: 'session' as const,
-      id: entry.id,
-      // A conversation's display name is whatever the renderer passed at delete
-      // time. When there was none the id is shown — a title is never invented.
-      name: entry.title || entry.sessionId,
-      deletedAt: entry.deletedAt,
-      purgeAt: entry.purgeAt,
-      available: entry.available,
-    })),
-    ...jobEntries.map(entry => ({
-      kind: 'job' as const,
-      // Restore and remove act on the trash row, not on the job's own id.
-      id: entry.id,
-      name: entry.job.name,
-      deletedAt: entry.deletedAt,
-      purgeAt: entry.purgeAt,
-      // A job is a record in a manifest, not a file: there is nothing on disk
-      // that can go missing, so a trashed job is always restorable.
-      available: true,
-    })),
-  ]
-  return rows.sort((a, b) => b.deletedAt - a.deletedAt)
-}
-
-function kindBadge(kind: TrashKind): { color: string; background: string; border: string } {
-  switch (kind) {
-    case 'workflow':
-      return { color: '#a5b4fc', background: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.30)' }
-    case 'skill':
-      return { color: '#c4b5fd', background: 'rgba(167,139,250,0.14)', border: 'rgba(167,139,250,0.30)' }
-    case 'session':
-      return { color: '#7dd3fc', background: 'rgba(56,189,248,0.14)', border: 'rgba(56,189,248,0.30)' }
-    case 'job':
-      return { color: '#fbbf24', background: 'rgba(251,191,36,0.14)', border: 'rgba(251,191,36,0.30)' }
-  }
-}
-
-function kindIcon(kind: TrashKind): React.ReactNode {
-  if (kind === 'workflow') return <WorkflowIcon size={13} />
-  if (kind === 'skill') return <Puzzle size={13} />
-  if (kind === 'job') return <CalendarClock size={13} />
-  return <MessageSquare size={13} />
-}
-
-function smallButtonStyle(disabled: boolean): React.CSSProperties {
-  return {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 4,
-    height: 24,
-    padding: '0 9px',
-    borderRadius: 7,
-    fontSize: 11,
-    fontWeight: 600,
-    whiteSpace: 'nowrap',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    border: '1px solid var(--border)',
-    background: 'transparent',
-    color: disabled ? 'var(--text-faint, var(--text-muted))' : 'var(--text-secondary)',
-    opacity: disabled ? 0.55 : 1,
-  }
-}
-
-function TrashRowView({ row, locale, first, onRestore, onDeleteForever }: {
-  row: TrashRow
-  locale: 'en' | 'zh-CN'
-  first: boolean
-  onRestore: (row: TrashRow) => Promise<TrashActionOutcome>
-  onDeleteForever: (row: TrashRow) => Promise<TrashActionOutcome>
-}) {
-  const t = useT()
-  const [failure, setFailure] = useState<string | null>(null)
-  const [confirming, setConfirming] = useState(false)
-  const [busy, setBusy] = useState(false)
-
-  // "Delete forever" is the one irreversible action here, so it asks twice —
-  // the same pattern the skill card uses for its delete button.
-  useEffect(() => {
-    if (!confirming) return
-    const timer = setTimeout(() => setConfirming(false), 3000)
-    return () => clearTimeout(timer)
-  }, [confirming])
-
-  const run = async (action: (row: TrashRow) => Promise<TrashActionOutcome>) => {
-    if (busy) return
-    setBusy(true)
-    setFailure(null)
-    try {
-      const outcome = await action(row)
-      // A refusal stays on screen. Reporting success when the folder was not
-      // moved would tell the user their skill is back when it is not.
-      if (!outcome.ok) setFailure(outcome.message)
-    } catch (err) {
-      setFailure(t('trash.failure.generic', { message: String(err) }))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const badge = kindBadge(row.kind)
-  const canRestore = row.available && !busy
-  const kindLabel = row.kind === 'workflow'
-    ? t('trash.kindWorkflow')
-    : row.kind === 'skill'
-      ? t('trash.kindSkill')
-      : row.kind === 'job'
-        ? t('automation.trash.kind')
-        : t('sessionTrash.kind')
-  // A skill was a folder; a conversation was a transcript file. Say which one
-  // is gone rather than reusing a sentence about folders. A job is a record,
-  // so it never reaches this line.
-  const unavailableLabel = row.kind === 'session'
-    ? t('sessionTrash.unavailable')
-    : t('trash.folderUnavailable')
-
-  return (
-    <div style={{
-      padding: '9px 12px',
-      borderTop: first ? 'none' : '1px solid var(--border)',
-      background: 'var(--bg-card, rgba(255,255,255,0.02))',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{
-          width: 26, height: 26, borderRadius: 8, flexShrink: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: badge.color, background: badge.background, border: `1px solid ${badge.border}`,
-        }}>
-          {kindIcon(row.kind)}
-        </span>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-            <span style={{
-              fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>
-              {row.name}
-            </span>
-            <span style={{
-              fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-              flexShrink: 0, borderRadius: 20, padding: '1px 6px',
-              color: badge.color, background: badge.background, border: `1px solid ${badge.border}`,
-            }}>
-              {kindLabel}
-            </span>
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-            {row.available
-              ? t('trash.removesOn', { date: formatDateMedium(locale, row.purgeAt) })
-              : unavailableLabel}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-          <button
-            onClick={() => { if (canRestore) void run(onRestore) }}
-            disabled={!canRestore}
-            title={row.available ? t('trash.restore') : unavailableLabel}
-            style={smallButtonStyle(!canRestore)}
-          >
-            <Undo2 size={11} />
-            {t('trash.restore')}
-          </button>
-          <button
-            onClick={() => {
-              if (busy) return
-              if (!confirming) { setConfirming(true); return }
-              setConfirming(false)
-              void run(onDeleteForever)
-            }}
-            disabled={busy}
-            title={confirming ? t('trash.confirmForever') : t('trash.deleteForever')}
-            style={{
-              ...smallButtonStyle(busy),
-              cursor: busy ? 'not-allowed' : 'pointer',
-              ...(confirming ? { border: '1px solid #f87171', background: '#f87171', color: '#fff' } : null),
-            }}
-          >
-            <Trash2 size={11} />
-            {confirming ? t('trash.confirmForever') : t('trash.deleteForever')}
-          </button>
-        </div>
-      </div>
-
-      {failure && (
-        <div role="alert" style={{ fontSize: 11.5, color: '#f87171', lineHeight: 1.45, marginTop: 6, marginLeft: 36 }}>
-          {failure}
-        </div>
-      )}
-    </div>
-  )
-}
-
-/**
- * Pure view: nothing when the holding area is empty, otherwise one list for
- * all kinds. Exported so the harness can render it without an app instance.
- */
-export function TrashView({ rows, retentionDays, onRestore, onDeleteForever, sectionRef }: {
-  rows: TrashRow[]
-  retentionDays: number
-  onRestore: (row: TrashRow) => Promise<TrashActionOutcome>
-  onDeleteForever: (row: TrashRow) => Promise<TrashActionOutcome>
-  /** Handed in so the connected wrapper can scroll here once the rows exist. */
-  sectionRef?: React.RefObject<HTMLElement>
-}) {
-  const t = useT()
-  const { resolvedLocale } = useI18n()
-  if (rows.length === 0) return null
-
-  const hasSkill = rows.some(row => row.kind === 'skill')
-  const hasSession = rows.some(row => row.kind === 'session')
-  const hasJob = rows.some(row => row.kind === 'job')
-
-  return (
-    <section
-      ref={sectionRef}
-      data-employees-section="trash"
-      style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border)' }}
-    >
-      <SectionHeader
-        icon={<Trash2 size={14} />}
-        title={t('trash.title')}
-        count={rows.length}
-        subtitle={t('trash.subtitle', { days: retentionDays })}
-      />
-      {hasSkill && (
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 10, marginLeft: 34, lineHeight: 1.45 }}>
-          {t('trash.skillsHint')}
-        </div>
-      )}
-      {hasSession && (
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 10, marginLeft: 34, lineHeight: 1.45 }}>
-          {t('sessionTrash.hint')}
-        </div>
-      )}
-      {hasJob && (
-        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 10, marginLeft: 34, lineHeight: 1.45 }}>
-          {t('automation.trash.hint')}
-        </div>
-      )}
-      <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-        {rows.map((row, index) => (
-          <TrashRowView
-            key={`${row.kind}:${row.id}`}
-            row={row}
-            locale={resolvedLocale}
-            first={index === 0}
-            onRestore={onRestore}
-            onDeleteForever={onDeleteForever}
-          />
-        ))}
-      </div>
-    </section>
-  )
-}
+// Re-exported so callers (and the harnesses written against the older
+// single-file section) keep importing the row shape and the view from here.
+export { TrashView }
+export { buildTrashRows }
+export type { TrashActionOutcome, TrashKind, TrashRow } from '../../lib/trashRows'
 
 /**
  * Connected wrapper: reads the skill and conversation manifests over IPC, takes
@@ -354,6 +56,10 @@ export default function TrashSection({ crud, skillState }: {
   // "Recently deleted" jump has to know the difference between "empty" and
   // "not read yet" before it scrolls — or gives up.
   const [loaded, setLoaded] = useState(false)
+  // Narrowing lives here rather than inside TrashView because the palette jump
+  // has to be able to clear it: landing on a section whose every row is filtered
+  // out would scroll to a heading and nothing else.
+  const [filter, setFilter] = useState<TrashFilterState>(EMPTY_TRASH_FILTER)
   const sectionRef = useRef<HTMLElement>(null)
   // Deleting a conversation changes the sidebar list; that is also the signal
   // that the conversation holding area changed.
@@ -597,7 +303,14 @@ export default function TrashSection({ crud, skillState }: {
   const pendingSection = useUiStore(s => s.pendingEmployeesSection)
   useEffect(() => {
     if (pendingSection !== 'trash' || !loaded) return
-    if (rows.length > 0) sectionRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    if (rows.length > 0) {
+      // A jump from the palette asks to see the holding area, so a filter the
+      // user left on is dropped first. The alternative — scrolling to a
+      // heading over an empty result — would hide the very rows the command
+      // promised to bring into view.
+      setFilter(EMPTY_TRASH_FILTER)
+      sectionRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    }
     // Cleared either way: a request must not lie in wait and jump the page
     // when some later delete happens to fill the list.
     useUiStore.getState().clearPendingEmployeesSection()
@@ -607,6 +320,8 @@ export default function TrashSection({ crud, skillState }: {
     <TrashView
       rows={rows}
       retentionDays={retentionDays}
+      filter={filter}
+      onFilterChange={setFilter}
       onRestore={handleRestore}
       onDeleteForever={handleDeleteForever}
       sectionRef={sectionRef}

@@ -23,6 +23,21 @@ interface Props {
   attribution: DeptAttribution
 }
 
+/**
+ * A quiet marker for where the match came from, sized like the engine badge so
+ * the title keeps its place. Dashed, not filled: this annotates the hit, it is
+ * not another filter.
+ */
+const matchKindStyle: React.CSSProperties = {
+  fontSize: 10,
+  color: 'var(--text-muted)',
+  border: '1px dashed var(--border)',
+  borderRadius: 4,
+  padding: '0 4px',
+  whiteSpace: 'nowrap',
+  flexShrink: 0,
+}
+
 /** Split the snippet around every case-insensitive occurrence of the query. */
 function emphasise(snippet: string, query: string): React.ReactNode[] {
   const needle = query.trim().toLowerCase()
@@ -133,6 +148,20 @@ export function SearchResultRow({ hit, query, index, selected, onHover, onOpen, 
           >
             {relativeTime(hit.timestamp, t)}
           </span>
+          {/* Where the text lived. A match in shell output or in a thinking
+              block is still a real match, but the row must not let it pass for
+              something the conversation said. Prose stays unlabelled. */}
+          {hit.matchType === 'content' && hit.matchOrigin === 'tool' && (
+            <span style={matchKindStyle}>{t('globalSearch.matchInTool')}</span>
+          )}
+          {hit.matchType === 'content' && hit.matchOrigin === 'thinking' && (
+            <span style={matchKindStyle}>{t('globalSearch.matchInThinking')}</span>
+          )}
+          {/* The block was longer than the index keeps, so the snippet stops at
+              the cut. Without this the row would read as the whole output. */}
+          {hit.matchType === 'content' && hit.truncated && (
+            <span style={matchKindStyle}>{t('globalSearch.matchTruncated')}</span>
+          )}
           <span
             style={{
               fontSize: 9,

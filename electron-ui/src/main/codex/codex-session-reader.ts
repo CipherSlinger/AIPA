@@ -16,11 +16,13 @@ import path from 'path'
 import os from 'os'
 import { isPathInside, isValidSessionId } from '../utils/validate'
 import { cleanPrompt, deriveTitle, isSyntheticPrompt } from '../sessions/prompt-text'
-import { buildSnippet, contentContainsQuery } from '../sessions/search-types'
+import { buildSnippet, contentContainsQuery, mergeAdjacentSegments, searchSegmentsFromBlocks } from '../sessions/search-types'
 import {
   MAX_FALLBACK_READS,
   MAX_FILE_CHARS,
   SessionSearchIndex,
+  appendSearchRecord,
+  createSearchRecordState,
   mapWithConcurrency,
   readJsonlLines,
 } from '../sessions/search-index'
@@ -379,18 +381,30 @@ export function forgetSessionCache(filePath: string): void {
 
 // ── Session Search ───────────────────────────────────
 
-/** Prose a normalized rollout entry contributes to search (text blocks only). */
-function normalizedEntryText(entry: NormalizedEntry): string {
-  const content = entry.message.content
-  if (typeof content === 'string') return content
-  if (!Array.isArray(content)) return ''
-  const parts: string[] = []
-  for (const block of content) {
-    if (!block || typeof block !== 'object') continue
-    const b = block as Record<string, unknown>
-    if (b.type === 'text' && typeof b.text === 'string') parts.push(b.text)
+/**
+ * call id → timestamp of the assistant entry that issued it.
+ *
+ * A rollout records a tool's output on its own `function_call_output` line,
+ * which `normalizeRollout` turns into a separate `user` entry holding only
+ * `tool_result` blocks. The renderer merges that output into the assistant
+ * message's tool card and never shows the user entry, so a hit there has to
+ * carry the issuing message's timestamp or the reveal jump lands on a row that
+ * does not exist. Mapping by `tool_use_id` is exact; nothing is inferred from
+ * file offsets or adjacency.
+ */
+function toolOwnerTimestamps(entries: NormalizedEntry[]): Map<string, number> {
+  const owners = new Map<string, number>()
+  for (const entry of entries) {
+    if (entry.type !== 'assistant' || !Array.isArray(entry.message.content)) continue
+    const parsed = entry.timestamp ? Date.parse(entry.timestamp) : 0
+    const ts = Number.isNaN(parsed) ? 0 : parsed
+    for (const block of entry.message.content) {
+      if (!block || typeof block !== 'object') continue
+      const b = block as Record<string, unknown>
+      if (b.type === 'tool_use' && typeof b.id === 'string') owners.set(b.id, ts)
+    }
   }
-  return parts.join('\n')
+  return owners
 }
 
 // ── Incremental search index ─────────────────────────
@@ -403,10 +417,12 @@ function normalizedEntryText(entry: NormalizedEntry): string {
 // rules. Uncached or truncated files still take the old disk path.
 
 /**
- * Extract the searchable prose of one rollout. `maxChars` is the index's store
+ * Extract the searchable text of one rollout. `maxChars` is the index's store
  * cap; excerpt extraction passes Infinity to see a long rollout's newest lines.
+ * Exported for the search harness: the index is otherwise only reachable
+ * through a full corpus sync.
  */
-async function extractCodexSearchDoc(
+export async function extractCodexSearchDoc(
   file: SearchIndexFile,
   maxChars = MAX_FILE_CHARS,
 ): Promise<SearchIndexDoc> {
@@ -425,23 +441,29 @@ async function extractCodexSearchDoc(
   const sessionId = summary?.sessionId || file.sessionId || path.basename(file.filePath, '.jsonl')
 
   const records: SearchIndexRecord[] = []
+  const state = createSearchRecordState()
   let newest = summary?.timestamp ?? file.mtimeMs
-  let chars = 0
-  let partial = false
-  for (const entry of normalizeRollout(lines, fallback)) {
+  const entries = normalizeRollout(lines, fallback)
+  const toolOwners = toolOwnerTimestamps(entries)
+  for (let group = 0; group < entries.length; group++) {
+    const entry = entries[group]
     const parsed = entry.timestamp ? Date.parse(entry.timestamp) : 0
     if (!Number.isNaN(parsed) && parsed > newest) newest = parsed
-    if (partial) continue
+    if (state.partial) continue
     const role = entry.type === 'user' ? 'user' : entry.type === 'assistant' ? 'assistant' : null
     if (!role) continue
-    const text = normalizedEntryText(entry)
-    if (!text) continue
-    if (chars + text.length > maxChars) {
-      partial = true
-      continue
+    // Not merged here: each block gets its own ceiling in appendSearchRecord,
+    // and the record merge below joins the ones that share a message anyway.
+    for (const segment of searchSegmentsFromBlocks(entry.message.content)) {
+      const ownerTs = segment.toolUseId ? toolOwners.get(segment.toolUseId) : undefined
+      appendSearchRecord(state, records, {
+        ts: ownerTs ?? (Number.isNaN(parsed) ? 0 : parsed),
+        role: ownerTs !== undefined ? 'assistant' : role,
+        origin: segment.origin,
+        text: segment.text,
+        group,
+      }, maxChars)
     }
-    records.push({ ts: Number.isNaN(parsed) ? 0 : parsed, role, text })
-    chars += text.length
   }
 
   return {
@@ -454,7 +476,8 @@ async function extractCodexSearchDoc(
     timestamp: newest,
     title: summary?.title,
     records,
-    partial,
+    partial: state.partial,
+    ...(state.truncated ? { truncated: true } : {}),
   }
 }
 
@@ -539,8 +562,12 @@ async function findSessionFileAsync(sessionId: string): Promise<string | null> {
 export async function readSessionProse(sessionId: string): Promise<SearchIndexRecord[]> {
   if (!isValidSessionId(sessionId)) return []
 
+  // The index now also holds tool and thinking text; excerpt extraction quotes
+  // the conversation, so it keeps receiving prose only, as before.
+  const proseOnly = (records: SearchIndexRecord[]) => records.filter(r => r.origin === 'prose')
+
   const cached = codexSearchIndex.findBySessionId(sessionId)
-  if (cached && !cached.deferred && !cached.partial) return cached.records
+  if (cached && !cached.deferred && !cached.partial) return proseOnly(cached.records)
 
   let filePath = cached?.filePath ?? null
   if (filePath && !isSessionPathSafe(filePath)) filePath = null
@@ -561,7 +588,7 @@ export async function readSessionProse(sessionId: string): Promise<SearchIndexRe
     mtimeMs: stat.mtimeMs,
     size: stat.size,
   }, Number.POSITIVE_INFINITY)
-  return doc.records
+  return proseOnly(doc.records)
 }
 
 async function collectCodexSearchFiles(): Promise<SearchIndexFile[]> {
@@ -593,15 +620,23 @@ interface CodexFileMatch {
   snippet: string
   timestamp: number
   role: 'user' | 'assistant'
+  origin: 'prose' | 'tool' | 'thinking'
+  truncated: boolean
 }
 
-/** First prose hit in a cached document, in normalized file order. */
+/** First hit in a cached document, in normalized file order. */
 function matchCodexDoc(doc: SearchIndexDoc, query: string, lowerQuery: string): CodexFileMatch | null {
   for (const record of doc.records) {
     if (!record.text.toLowerCase().includes(lowerQuery)) continue
     const snippet = buildSnippet(record.text, query)
     if (!snippet) break
-    return { snippet, timestamp: record.ts, role: record.role }
+    return {
+      snippet,
+      timestamp: record.ts,
+      role: record.role,
+      origin: record.origin,
+      truncated: record.truncated === true,
+    }
   }
   return null
 }
@@ -634,14 +669,29 @@ async function searchCodexFileOnDisk(
 
   let match: CodexFileMatch | null = null
   let newest = summary.timestamp
-  for (const entry of normalizeRollout(lines, fallback)) {
+  const entries = normalizeRollout(lines, fallback)
+  const toolOwners = toolOwnerTimestamps(entries)
+  for (const entry of entries) {
     const parsed = entry.timestamp ? Date.parse(entry.timestamp) : 0
     if (!Number.isNaN(parsed) && parsed > newest) newest = parsed
     if (match) continue
     const role = entry.type === 'user' ? 'user' : entry.type === 'assistant' ? 'assistant' : null
     if (!role) continue
-    const snippet = buildSnippet(normalizedEntryText(entry), query)
-    if (snippet) match = { snippet, timestamp: Number.isNaN(parsed) ? 0 : parsed, role }
+    // Uncapped: this scan exists to find what the index's per-block ceiling
+    // left out.
+    for (const segment of mergeAdjacentSegments(searchSegmentsFromBlocks(entry.message.content))) {
+      const snippet = buildSnippet(segment.text, query)
+      if (!snippet) continue
+      const ownerTs = segment.toolUseId ? toolOwners.get(segment.toolUseId) : undefined
+      match = {
+        snippet,
+        timestamp: ownerTs ?? (Number.isNaN(parsed) ? 0 : parsed),
+        role: ownerTs !== undefined ? 'assistant' : role,
+        origin: segment.origin,
+        truncated: false,
+      }
+      break
+    }
   }
 
   const title = indexTitles.get(summary.sessionId) || summary.title
@@ -659,6 +709,8 @@ async function searchCodexFileOnDisk(
     ...(match && match.timestamp > 0
       ? { messageTimestamp: match.timestamp, messageRole: match.role }
       : {}),
+    ...(match ? { matchOrigin: match.origin } : {}),
+    ...(match && match.truncated ? { truncated: true } : {}),
   }
 }
 
@@ -715,10 +767,11 @@ export async function searchSessions(query: string, limit = 20): Promise<SearchR
 
     let match = matchCodexDoc(doc, query, lowerQuery)
 
-    // A truncated document may hold the prose match past its stored prefix;
+    // A truncated document may hold the match past its stored prefix — a huge
+    // tool output is cut at the ceiling, and the file cap stops earlier still;
     // let the disk path answer with the full result (evidence included). It is
     // authoritative for this file either way, so do not scan the prefix again.
-    if (!match && doc.partial && fallbackBudget > 0) {
+    if (!match && (doc.partial || doc.truncated === true) && fallbackBudget > 0) {
       fallbackBudget--
       const result = await searchCodexFileOnDisk(candidate, query, lowerQuery, indexTitles, isCurrent)
       if (!isCurrent()) return []
@@ -755,6 +808,8 @@ export async function searchSessions(query: string, limit = 20): Promise<SearchR
       ...(match && match.timestamp > 0
         ? { messageTimestamp: match.timestamp, messageRole: match.role }
         : {}),
+      ...(match ? { matchOrigin: match.origin } : {}),
+      ...(match && match.truncated ? { truncated: true } : {}),
     })
   }
 

@@ -32,6 +32,8 @@ import {
   pruneDeptHoldNotices,
   shouldAnnounceDeptHold,
 } from './dept-budget'
+import { CHAIN_MAX_DEPTH, checkJobChainInput, normalizeJobChain, planChain } from './job-chain'
+import type { ChainPlan } from './job-chain'
 import { departmentIdForCreate, normalizeDepartmentId } from './job-department'
 import { normalizeJobProvenance } from './job-provenance'
 import { readAutomationStore, writeAutomationStore } from './job-store'
@@ -64,9 +66,11 @@ import type {
   AutomationDeptBudgetReport,
   AutomationInput,
   AutomationJob,
+  AutomationJobChain,
   AutomationJobView,
   AutomationLimits,
   AutomationMissedRunPolicy,
+  AutomationRunChain,
   AutomationRunOutcome,
   AutomationRunRequest,
   AutomationRunSource,
@@ -110,6 +114,9 @@ export const AUTOMATION_LIMITS: Omit<AutomationLimits, 'pausedAll'> = {
     maxRetries: AUTOMATION_RETRY_POLICY.maxRetries,
     delaysMinutes: AUTOMATION_RETRY_POLICY.delaysMs.map(ms => ms / 60_000),
   },
+  // Same rule for the chain cap: one home in `job-chain.ts`, and this is the
+  // number the dialog and the history note state.
+  chainMaxDepth: CHAIN_MAX_DEPTH,
 }
 
 interface SchedulerContext {
@@ -166,7 +173,15 @@ let deptHoldNotifiedAt = new Map<string, number>()
 
 /** Carries a stable code; the renderer maps it to a translated message. */
 class AutomationInputError extends Error {
-  constructor(public code: string) {
+  constructor(
+    public code: string,
+    /**
+     * A name the message needs, when the code alone is not the whole story —
+     * today only the job that would close a chain loop. It stays a name and not
+     * an id, because the message is shown to the user and an id means nothing.
+     */
+    public detail?: string,
+  ) {
     super(code)
   }
 }
@@ -175,6 +190,24 @@ function errorCode(err: unknown): string {
   if (err instanceof AutomationInputError) return err.code
   log.warn('Unexpected automation error:', err)
   return 'unexpected_error'
+}
+
+/**
+ * The same mapping for mutations, which may carry a `detail` the renderer
+ * substitutes into the translated message. Kept beside `errorCode` rather than
+ * replacing it: the preview and budget paths have no name to hand over, and
+ * their result shapes do not accept one.
+ */
+function errorResult(err: unknown): AutomationMutationResult {
+  if (err instanceof AutomationInputError) {
+    return {
+      ok: false,
+      error: err.code,
+      ...(err.detail ? { errorDetail: err.detail } : {}),
+    }
+  }
+  log.warn('Unexpected automation error:', err)
+  return { ok: false, error: 'unexpected_error' }
 }
 
 function validateName(value: unknown): string {
@@ -284,6 +317,30 @@ function validateDailyCostLimit(value: unknown): number | undefined {
     throw new AutomationInputError('cost_limit_invalid')
   }
   return limit
+}
+
+/**
+ * A chain as the user just configured it.
+ *
+ * Two different rules in one place, deliberately:
+ *  - an unusable value (not a string, too long) and a loop are refused with an
+ *    error, because a save is a deliberate act and dropping half of it would
+ *    leave the user believing a chain exists that does not;
+ *  - a target id that simply does not match a live job is accepted. The user may
+ *    be about to restore it from Recently deleted, and the run records a
+ *    `target_missing` note if it is still gone at fire time.
+ *
+ * Main is the authority even though the dialog also filters its picker: the
+ * renderer's list can be stale, and a hand-crafted IPC payload has no list at
+ * all.
+ */
+function validateChain(
+  value: unknown,
+  own: { id?: string; name: string },
+): AutomationJobChain | undefined {
+  const checked = checkJobChainInput(value, own, jobs)
+  if (!checked.ok) throw new AutomationInputError(checked.error.code, checked.error.detail)
+  return checked.chain
 }
 
 function validateAction(value: AutomationAction): AutomationAction {
@@ -447,17 +504,21 @@ function resolveModel(): string | undefined {
  * meaning.
  *
  * A watch-triggered run uses this too: it is unattended spend under the same
- * rails, and its "occurrence" is simply the moment the file changed.
+ * rails, and its "occurrence" is simply the moment the file changed. A chained
+ * start uses it too, and there the occurrence is the run that just finished on
+ * another job.
  */
 function recordSpendSkip(
   job: AutomationJob,
   now: number,
-  retryAttempt: number | undefined,
   code: 'budget_exceeded' | 'global_budget_exceeded' | 'dept_budget_exceeded',
+  opts: { retryAttempt?: number; chain?: boolean } = {},
 ): void {
-  const isRetry = retryAttempt !== undefined
-  // A retry is due now, not at the regular occurrence still on the calendar.
-  const skippedAt = isRetry ? now : (job.nextRunAt ?? now)
+  const isRetry = opts.retryAttempt !== undefined
+  const isChain = opts.chain === true
+  // A retry and a chained start are both due now, not at the regular occurrence
+  // still on the calendar; using that time would date the refusal in the future.
+  const skippedAt = isRetry || isChain ? now : (job.nextRunAt ?? now)
   job.lastRunAt = skippedAt
   job.lastStatus = 'skipped'
   job.lastError = code
@@ -472,15 +533,18 @@ function recordSpendSkip(
     createSkipRecord(
       skippedAt,
       code,
-      retryAttempt,
+      opts.retryAttempt,
       code === 'dept_budget_exceeded' ? 'dept-budget' : undefined,
     ),
   )
-  // The rail resolved the retry: it must not stay pending and retry again a
-  // tick later, which would be the loop the limit exists to stop.
-  job.pendingRetry = undefined
-  // A retry must not move the regular schedule; only an occurrence does.
-  if (!isRetry) job.nextRunAt = nextRunAfter(job.trigger, now)
+  // A rail refusal of a retry resolves the wait: leaving it pending would retry
+  // again a tick later, which is the loop the limit exists to stop. A chained
+  // start is not that occurrence — the target's own retry belongs to its own
+  // calendar and keeps waiting.
+  if (!isChain) job.pendingRetry = undefined
+  // Only a real occurrence moves the regular schedule. A retry is an extra
+  // attempt, and a chained start is not the target's occurrence at all.
+  if (!isRetry && !isChain) job.nextRunAt = nextRunAfter(job.trigger, now)
   persistAndBroadcast()
 }
 
@@ -515,17 +579,84 @@ function announceDeptHold(departmentId: string, jobName: string, now: number): v
   })
 }
 
+/**
+ * Ask `planChain` whether the run that just finished starts a successor.
+ *
+ * This is the live-state adapter for the pure decision: the job list, the
+ * in-flight map, the global pause and the hourly allowance are all read here,
+ * at the instant the run ended. Nothing is deferred to the next tick — the
+ * answer is only true now, because a slot that is busy now may be free then.
+ */
+function planRunChain(
+  job: AutomationJob,
+  ok: boolean,
+  opts: StartRunOptions,
+  now: number,
+): ChainPlan {
+  return planChain({
+    chain: job.chain,
+    status: ok ? 'success' : 'error',
+    retryPending: job.pendingRetry !== undefined,
+    depth: opts.chainDepth ?? 0,
+    jobs,
+    running: new Set(running.keys()),
+    pausedAll,
+    maxConcurrentRuns: AUTOMATION_LIMITS.maxConcurrentRuns,
+    hasHourlyCapacity: target => hasHourlyCapacity(target, now),
+  })
+}
+
+interface StartRunOptions {
+  manual: boolean
+  late: boolean
+  watch?: boolean
+  retryAttempt?: number
+  /**
+   * The depth this run would enter at when a chain starts it (1 = the first
+   * successor). Absent for every run a clock, a file event or the user started —
+   * its presence is also what classifies the run as `chain` for the spend rails.
+   */
+  chainDepth?: number
+  /**
+   * Reports, synchronously and before the first await, whether this start was
+   * accepted. Only a chained start passes one: the source job's record must say
+   * "started that job" only when a run really began, and a rail refusal must
+   * leave an honest note instead.
+   */
+  onChainStart?: (report: AutomationRunChain) => void
+}
+
 async function startRun(
   job: AutomationJob,
-  opts: { manual: boolean; late: boolean; watch?: boolean; retryAttempt?: number },
+  opts: StartRunOptions,
 ): Promise<void> {
-  if (!ctx || running.has(job.id)) return
+  /**
+   * Every early return a chained start can take reports before it returns, so
+   * the source's record never claims a successor that did not begin.
+   */
+  const reportChain = (report: AutomationRunChain): void => {
+    try {
+      opts.onChainStart?.(report)
+    } catch (err) {
+      // The callback only writes into a record object; a bug there must not turn
+      // an accepted start into a failed run.
+      log.warn('Could not record a chained start:', err)
+    }
+  }
+  if (!ctx || running.has(job.id)) {
+    reportChain({ note: 'target_busy' })
+    return
+  }
   const now = Date.now()
   const locale = resolveUiLanguage()
   // A manual run is the user spending now, and an ordinary occurrence is a
   // fresh chance; either supersedes a retry that was waiting for this moment.
-  // A retry start has already had its pending record cleared by the tick.
-  if (opts.manual || opts.retryAttempt === undefined) job.pendingRetry = undefined
+  // A retry start has already had its pending record cleared by the tick. A
+  // chained start is neither: it is an extra attempt on the target, so a retry
+  // the target is still waiting for keeps waiting.
+  if (opts.manual || (opts.retryAttempt === undefined && opts.chainDepth === undefined)) {
+    job.pendingRetry = undefined
+  }
 
   const prompts = resolveActionPrompts(job.action, locale)
   if (prompts === null) {
@@ -555,6 +686,9 @@ async function startRun(
       ...(opts.retryAttempt !== undefined ? { retry: opts.retryAttempt } : {}),
     })
     log.warn(`Automation "${job.name}" disabled — its workflow no longer exists`)
+    // A chained start that lands here started nothing; the source's record says
+    // so without repeating the reason, which is recorded on this job's row.
+    reportChain({ note: 'target_refused' })
     // A disabled watch job must release its watcher here rather than wait for
     // the next mutation that may never come.
     syncWatchers()
@@ -579,9 +713,12 @@ async function startRun(
       ...(opts.retryAttempt !== undefined ? { retry: opts.retryAttempt } : {}),
     })
     // A retry leaves the regular schedule alone; only an occurrence advances it.
-    if (!opts.manual && opts.retryAttempt === undefined) {
+    // A chained start is not this job's occurrence either.
+    if (!opts.manual && opts.retryAttempt === undefined && opts.chainDepth === undefined) {
       job.nextRunAt = nextRunAfter(job.trigger, now)
     }
+    // Nothing was sent, so nothing a chain named can have started.
+    reportChain({ note: 'target_refused' })
     persistAndBroadcast()
     return
   }
@@ -594,8 +731,13 @@ async function startRun(
   // whose engines reported no money is *not* treated as $0 spent — the run is
   // allowed and the row says the limit could not be checked (see spend-guard).
   // A watch-triggered run is unattended spend exactly like a scheduled one, so
-  // it is railed the same way. Only `manual` is exempt (the user spending now).
-  const source: AutomationRunSource = opts.manual ? 'manual' : opts.watch ? 'watch' : 'scheduled'
+  // it is railed the same way — and a chained run is the third of the same kind:
+  // nobody is at the keyboard when one job starts another. Only `manual` is
+  // exempt (the user spending now), and a chained start is never manual.
+  let source: AutomationRunSource = 'scheduled'
+  if (opts.manual) source = 'manual'
+  else if (opts.chainDepth !== undefined) source = 'chain'
+  else if (opts.watch) source = 'watch'
 
   // Department cap. Checked before the job's own limit and the global budget so
   // a run held by more than one rail records the broader reason — "this
@@ -615,7 +757,14 @@ async function startRun(
     // for a manual run — so no extra exemption is needed here. The per-job and
     // global rails below stay silent; this hold is the one the user set on a
     // whole department, and the one that stops a group of jobs at once.
-    recordSpendSkip(job, now, opts.retryAttempt, 'dept_budget_exceeded')
+    recordSpendSkip(job, now, 'dept_budget_exceeded', {
+      retryAttempt: opts.retryAttempt,
+      chain: opts.chainDepth !== undefined,
+    })
+    // The rail held the start, so the chained successor did not begin. The
+    // source's record names the fact without repeating the rail, which this
+    // job's own row already says.
+    reportChain({ note: 'target_refused' })
     announceDeptHold(deptBudget.budget.departmentId, job.name, now)
     log.warn(
       `Automation "${job.name}" skipped — its department's reported spend in the last `
@@ -632,7 +781,11 @@ async function startRun(
 
   const spend = checkSpendLimit(job, now, source)
   if (spend.kind === 'blocked') {
-    recordSpendSkip(job, now, opts.retryAttempt, 'budget_exceeded')
+    recordSpendSkip(job, now, 'budget_exceeded', {
+      retryAttempt: opts.retryAttempt,
+      chain: opts.chainDepth !== undefined,
+    })
+    reportChain({ note: 'target_refused' })
     log.warn(
       `Automation "${job.name}" ${opts.retryAttempt !== undefined ? `retry ${opts.retryAttempt} ` : ''}`
       + `skipped — reported spend in the last 24 h is at its ${job.dailyCostLimitUsd} USD limit`,
@@ -653,7 +806,11 @@ async function startRun(
   // Manual runs are `not_applicable` here for the same reason as above.
   const globalSpend = checkGlobalSpendLimit(jobs, globalDailyCostLimitUsd, now, source)
   if (globalSpend.kind === 'blocked') {
-    recordSpendSkip(job, now, opts.retryAttempt, 'global_budget_exceeded')
+    recordSpendSkip(job, now, 'global_budget_exceeded', {
+      retryAttempt: opts.retryAttempt,
+      chain: opts.chainDepth !== undefined,
+    })
+    reportChain({ note: 'target_refused' })
     log.warn(
       `Automation "${job.name}" ${opts.retryAttempt !== undefined ? `retry ${opts.retryAttempt} ` : ''}`
       + `skipped — reported spend across all jobs in the last 24 h is at the `
@@ -679,6 +836,11 @@ async function startRun(
   const model = pickRunModel(persona?.model, resolveModel())
 
   const startedAt = now
+  // Reported before anything is mutated: from here on a run really is in flight,
+  // and a chain's source record must say exactly that. Because this happens before
+  // the first await, the caller's record is final by the time `startRun` returns
+  // to it, and the write below already carries the truth.
+  reportChain({ nextJobId: job.id, nextJobName: job.name })
   running.set(job.id, { startedAt })
   job.lastStatus = 'running'
   job.lastError = null
@@ -687,8 +849,11 @@ async function startRun(
     .filter(t => now - t < 3_600_000)
     .slice(-MAX_REPORTED_RUNS)
   // A retry is an extra attempt for the same occurrence: advancing the regular
-  // schedule here would push the job's own cadence every time it retried.
-  if (!opts.manual && opts.retryAttempt === undefined) {
+  // schedule here would push the job's own cadence every time it retried. A
+  // chained start is the same kind of extra attempt — the target's own calendar
+  // is none of the chain's business, and moving it would silently skip the
+  // occurrence the target is actually waiting for.
+  if (!opts.manual && opts.retryAttempt === undefined && opts.chainDepth === undefined) {
     job.nextRunAt = nextRunAfter(job.trigger, now)
   }
   persistAndBroadcast()
@@ -733,23 +898,6 @@ async function startRun(
   // the outcome, not only on success. `undefined` here clears a stale figure
   // from an earlier run when this engine reported nothing.
   job.lastUsage = outcome.usage
-  job.history = appendRunRecord(job.history, {
-    startedAt,
-    status: outcome.ok ? 'success' : 'error',
-    durationMs,
-    sessionId,
-    error,
-    late: opts.late,
-    ...(opts.retryAttempt !== undefined ? { retry: opts.retryAttempt } : {}),
-    ...(outcome.usage ? { usage: outcome.usage } : {}),
-    // A failed run still saw the snapshot it fetched, so the digest is carried
-    // on either outcome. A runner that returned before fetching one has none.
-    ...(outcome.memory ? { memory: outcome.memory } : {}),
-    // Live-captured tool-driven file edits. Absent only when the runner had no
-    // engine conversation, which is also the case where nothing was observed;
-    // a present-but-empty summary is the honest "no file edits seen".
-    ...(outcome.changedFiles ? { changedFiles: outcome.changedFiles } : {}),
-  })
   // Success ends the occurrence; a failure under the policy schedules the next
   // bounded attempt. `nextRetryAfterFailure` returns nothing for a default-off
   // job, a manual run, an exhausted budget, or when the regular occurrence
@@ -768,9 +916,67 @@ async function startRun(
         now: finishedAt,
         nextRunAt: job.nextRunAt,
       })
+  // The chain is decided after the retry, because "this failure is settled" is
+  // exactly "no retry is waiting": a retry that finally works fires onSuccess and
+  // must not also fire onFailure for the same occurrence.
+  const chainPlan = planRunChain(job, outcome.ok, opts, finishedAt)
+  // A placeholder until the successor reports back (below): "the next job did not
+  // start" is true of every plan, and the report replaces it with the successor's
+  // name or with the reason. It is never a claim that something ran.
+  const chainRecord: AutomationRunChain | undefined = chainPlan.kind === 'none'
+    ? undefined
+    : chainPlan.kind === 'note'
+      ? { note: chainPlan.note }
+      : { note: 'target_refused' }
+  job.history = appendRunRecord(job.history, {
+    startedAt,
+    status: outcome.ok ? 'success' : 'error',
+    durationMs,
+    sessionId,
+    error,
+    late: opts.late,
+    ...(opts.retryAttempt !== undefined ? { retry: opts.retryAttempt } : {}),
+    ...(outcome.usage ? { usage: outcome.usage } : {}),
+    // A failed run still saw the snapshot it fetched, so the digest is carried
+    // on either outcome. A runner that returned before fetching one has none.
+    ...(outcome.memory ? { memory: outcome.memory } : {}),
+    // Live-captured tool-driven file edits. Absent only when the runner had no
+    // engine conversation, which is also the case where nothing was observed;
+    // a present-but-empty summary is the honest "no file edits seen".
+    ...(outcome.changedFiles ? { changedFiles: outcome.changedFiles } : {}),
+    ...(chainRecord ? { chain: chainRecord } : {}),
+  })
   const totals = addToLifetimeTotals(job, outcome.usage)
   job.totalTokens = totals.totalTokens
   job.totalCostUsd = totals.totalCostUsd
+  // Start the successor only now, after this record carries the run's spend.
+  // `startRun` runs synchronously until it awaits the run itself, so the report
+  // below has already landed in `chainRecord` — the same object that is in the
+  // history array — before this function returns. A successor's own first write
+  // therefore carries the source's finished record, not a half-written version.
+  if (chainPlan.kind === 'start' && chainRecord) {
+    const target = jobs.find(j => j.id === chainPlan.targetId)
+    if (!target) {
+      // The plan found it a moment ago and nothing has run in between, but a
+      // missing target is still not a successor.
+      chainRecord.note = 'target_missing'
+    } else {
+      void startRun(target, {
+        manual: false,
+        late: false,
+        chainDepth: chainPlan.depth,
+        onChainStart: report => {
+          if (report.nextJobId) {
+            delete chainRecord.note
+            chainRecord.nextJobId = report.nextJobId
+            if (report.nextJobName) chainRecord.nextJobName = report.nextJobName
+          } else if (report.note) {
+            chainRecord.note = report.note
+          }
+        },
+      })
+    }
+  }
   persistAndBroadcast()
   log.info(`Automation "${job.name}" finished: ${job.lastStatus}${outcome.sessionId ? ` (session ${outcome.sessionId})` : ''}`)
   // `raiseAttention` owns the one delivery decision for every surface: pet
@@ -1209,7 +1415,17 @@ export function previewAutomationSchedule(trigger: AutomationTrigger): Automatio
 
 export type AutomationMutationResult =
   | { ok: true; job: AutomationJobView }
-  | { ok: false; error: string }
+  | {
+      ok: false
+      error: string
+      /**
+       * A value the message needs, when the code alone is not the whole story.
+       * Today only `chain_cycle` sets it, naming the job that would close the
+       * loop — a refusal that says "a loop" without saying where is a message
+       * the user cannot act on.
+       */
+      errorDetail?: string
+    }
 
 export function createAutomationJob(input: AutomationInput): AutomationMutationResult {
   return createJob(input)
@@ -1268,6 +1484,12 @@ function createJob(input: AutomationInput, originPluginId?: string): AutomationM
     // point back to, and `createAutomationJobForPlugin` is meant to stay
     // byte-identical to the jobs it made before this field existed.
     const provenance = originPluginId ? {} : normalizeJobProvenance(input)
+    // A plugin cannot chain one job to another either: a chain is the user's
+    // instruction about their own jobs, and the plugin door never had a way to
+    // express one. Dropped by policy here as well as by the input type, like
+    // `departmentId`. Nothing can point at a job that does not exist yet, so no
+    // loop check is needed on create.
+    const chain = originPluginId ? undefined : validateChain(input?.chain, { name })
     const enabled = input?.enabled !== false
     const job: AutomationJob = {
       id: makeJobId(now),
@@ -1280,6 +1502,7 @@ function createJob(input: AutomationInput, originPluginId?: string): AutomationM
       ...(quietOnSuccess ? { quietOnSuccess } : {}),
       ...(retryOnFailure ? { retryOnFailure } : {}),
       ...(missedRunPolicy ? { missedRunPolicy } : {}),
+      ...(chain ? { chain } : {}),
       ...(dailyCostLimitUsd !== undefined ? { dailyCostLimitUsd } : {}),
       ...(originPluginId ? { originPluginId } : {}),
       ...provenance,
@@ -1304,7 +1527,7 @@ function createJob(input: AutomationInput, originPluginId?: string): AutomationM
     log.info(`Automation "${name}" created`)
     return { ok: true, job: toView(job) }
   } catch (err) {
-    return { ok: false, error: errorCode(err) }
+    return errorResult(err)
   }
 }
 
@@ -1356,6 +1579,10 @@ export function cloneAutomationJob(id: string, name?: string): AutomationMutatio
     // An explicit name is held to the same rule as any other name; an empty one
     // is "not provided" so the generated copy name applies.
     const explicitName = typeof name === 'string' ? name.trim() : ''
+    // The chain is configuration, not history: the copy follows the same
+    // successors. Ids again, so a later rename on either side leaves it intact.
+    // A copy has its own id, so the source's targets can never be self-edges here.
+    const chain = source.chain ? normalizeJobChain(source.chain) : undefined
     const job: AutomationJob = {
       id: makeJobId(now),
       name: explicitName ? validateName(explicitName) : copyNameFor(source.name),
@@ -1371,6 +1598,7 @@ export function cloneAutomationJob(id: string, name?: string): AutomationMutatio
       ...(source.quietOnSuccess === true ? { quietOnSuccess: true } : {}),
       ...(source.retryOnFailure === true ? { retryOnFailure: true } : {}),
       ...(source.missedRunPolicy === 'skip' ? { missedRunPolicy: 'skip' } : {}),
+      ...(chain ? { chain } : {}),
       ...(source.dailyCostLimitUsd !== undefined
         ? { dailyCostLimitUsd: source.dailyCostLimitUsd }
         : {}),
@@ -1400,7 +1628,7 @@ export function cloneAutomationJob(id: string, name?: string): AutomationMutatio
     log.info(`Automation "${job.name}" created as a copy of "${source.name}" (off)`)
     return { ok: true, job: toView(job) }
   } catch (err) {
-    return { ok: false, error: errorCode(err) }
+    return errorResult(err)
   }
 }
 
@@ -1417,6 +1645,10 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     const retryOnFailure = validateRetryOnFailure(input?.retryOnFailure)
     const missedRunPolicy = validateMissedRunPolicy(input?.missedRunPolicy)
     const dailyCostLimitUsd = validateDailyCostLimit(input?.dailyCostLimitUsd)
+    // Refused before anything is mutated, so a loop leaves the job exactly as it
+    // was — including a chain it already had. The name used is the new one: the
+    // refusal should name the job the user is looking at.
+    const chain = validateChain(input?.chain, { id, name })
     const enabled = input?.enabled !== false
 
     const previousTrigger = JSON.stringify(job.trigger)
@@ -1441,6 +1673,9 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     // Same opt-in shape: switching back to "run" removes the field, so the job
     // reads exactly like one that never made the choice.
     job.missedRunPolicy = missedRunPolicy
+    // Assignment, like the fields above: clearing both selects removes the chain
+    // instead of leaving an empty object behind.
+    job.chain = chain
     // Same rule for the spend rail: an empty field removes the limit rather than
     // storing 0, which would block every scheduled run forever.
     job.dailyCostLimitUsd = dailyCostLimitUsd
@@ -1466,7 +1701,7 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     persistAndBroadcast()
     return { ok: true, job: toView(job) }
   } catch (err) {
-    return { ok: false, error: errorCode(err) }
+    return errorResult(err)
   }
 }
 

@@ -27,15 +27,30 @@ import path from 'path'
 import readline from 'readline'
 import { once } from 'events'
 import { AIPA_CACHE_DIR } from './session-index-cache'
+import { SEARCH_MAX_BLOCK_CHARS, capSearchText } from './search-types'
+import type { SearchTextOrigin } from './search-types'
 
 /** Bump when a stored field's meaning changes; old files are then ignored. */
-export const SEARCH_INDEX_VERSION = 1
+export const SEARCH_INDEX_VERSION = 2
 
 /** Total characters of indexed prose. ~64 MB of JS string data. */
 export const MAX_INDEX_CHARS = 32 * 1024 * 1024
 
 /** Per-file prose cap; longer transcripts are stored truncated (partial). */
 export const MAX_FILE_CHARS = 2 * 1024 * 1024
+
+/**
+ * Per-file ceiling for tool and thinking text. Prose is never cut by this: one
+ * transcript whose shell output alone runs to megabytes would otherwise use
+ * the whole corpus budget and evict a hundred ordinary conversations.
+ *
+ * 6000 is three full per-block ceilings. On this machine's ~4240 transcripts
+ * that is ~25 M characters of tool text, which together with the ~5.6 M of
+ * prose still fits MAX_INDEX_CHARS — so widening the index does not push old
+ * conversations out of it. A file that hits the ceiling is marked truncated,
+ * and a miss in what was stored is verified on disk.
+ */
+export const MAX_FILE_NON_PROSE_CHARS = 6000
 
 /**
  * How many uncached files a single query may read from disk. Deferred files are
@@ -64,10 +79,17 @@ export interface SearchIndexFile {
 }
 
 export interface SearchIndexRecord {
-  /** Epoch ms of the matched entry; 0 when the line carried no timestamp. */
+  /** Epoch ms of the entry that owns this text; 0 when it carried no timestamp. */
   ts: number
   role: 'user' | 'assistant'
   text: string
+  /**
+   * Which part of the entry `text` came from. v1 stored prose only, so a v1
+   * cache cannot be read as a v2 one — hence the version bump.
+   */
+  origin: SearchTextOrigin
+  /** This record's text was cut at the block ceiling; it is not the whole block. */
+  truncated?: boolean
 }
 
 export interface SearchIndexDoc {
@@ -85,6 +107,12 @@ export interface SearchIndexDoc {
   records: SearchIndexRecord[]
   /** Records cover only the start of the file; a miss must be verified on disk. */
   partial?: boolean
+  /**
+   * Some block text was cut or skipped for budget while every entry is still
+   * represented. Prose is unaffected, so excerpt extraction may reuse the
+   * cached records; search must verify a miss on disk.
+   */
+  truncated?: boolean
   /** Not in memory (over budget); search must read it on demand. */
   deferred?: boolean
 }
@@ -111,6 +139,107 @@ export interface SearchIndexStats {
 }
 
 export type SearchDocExtractor = (file: SearchIndexFile) => Promise<SearchIndexDoc | null>
+
+/**
+ * Running totals while one transcript is extracted. Both readers use the same
+ * arithmetic so a Claude transcript and a Codex rollout are budgeted alike.
+ */
+export interface SearchRecordState {
+  /** Characters stored in `records` so far (prose + non-prose). */
+  chars: number
+  /** Characters contributed by tool and thinking text so far. */
+  nonProseChars: number
+  /** Records stop before the end of the file (file cap reached). */
+  partial: boolean
+  /** Some block text was cut or skipped; a miss must be verified on disk. */
+  truncated: boolean
+  /**
+   * Entry the previous block came from. Blocks merge only within one entry, so
+   * a record never concatenates text from two transcript rows: a snippet taken
+   * from it would otherwise show a sentence from the assistant and one from a
+   * tool result as if they were adjacent.
+   */
+  lastGroup?: number
+}
+
+export function createSearchRecordState(): SearchRecordState {
+  return { chars: 0, nonProseChars: 0, partial: false, truncated: false }
+}
+
+/**
+ * Append one capped block to a document, enforcing the per-file budgets.
+ *
+ * `maxChars` is the store cap (Infinity when an excerpt extractor lifts it);
+ * the non-prose ceiling is per file and never cuts prose, so a transcript with
+ * megabytes of shell output still keeps every user/assistant message intact.
+ * Neighbouring blocks of the same origin/entry merge into one record, which is
+ * what the old prose-only index did for text blocks.
+ */
+export function appendSearchRecord(
+  state: SearchRecordState,
+  records: SearchIndexRecord[],
+  block: {
+    ts: number
+    role: 'user' | 'assistant'
+    origin: SearchTextOrigin
+    text: string
+    truncated?: boolean
+    /** Entry index; blocks of one entry may merge, different entries never do. */
+    group?: number
+  },
+  maxChars: number,
+): void {
+  if (state.partial || !block.text) return
+
+  let text = block.text
+  let truncated = block.truncated === true
+  if (block.origin !== 'prose') {
+    // Per block first, then per file: one oversized read must not consume the
+    // whole transcript's allowance.
+    const perBlock = capSearchText(text, SEARCH_MAX_BLOCK_CHARS)
+    text = perBlock.text
+    truncated = truncated || perBlock.truncated
+
+    const room = MAX_FILE_NON_PROSE_CHARS - state.nonProseChars
+    if (room <= 0) {
+      // The transcript has spent its tool/thinking allowance. Later blocks are
+      // not indexed at all; the flag is what keeps that from being silent.
+      state.truncated = true
+      return
+    }
+    if (text.length > room) {
+      const capped = capSearchText(text, room)
+      text = capped.text
+      truncated = true
+    }
+    state.nonProseChars += text.length
+  }
+  if (truncated) state.truncated = true
+
+  if (state.chars + text.length > maxChars) {
+    // Keep the metadata pass running, but stop growing the buffer; a miss in
+    // the prefix is verified on disk.
+    state.partial = true
+    return
+  }
+
+  const sameEntry = block.group === undefined || block.group === state.lastGroup
+  state.lastGroup = block.group
+  const last = records[records.length - 1]
+  if (sameEntry && last && last.ts === block.ts && last.role === block.role && last.origin === block.origin) {
+    last.text += `\n${text}`
+    if (truncated) last.truncated = true
+  } else {
+    records.push({
+      ts: block.ts,
+      role: block.role,
+      origin: block.origin,
+      text,
+      ...(truncated ? { truncated: true } : {}),
+    })
+  }
+  state.chars += text.length
+}
 
 function charsOf(doc: SearchIndexDoc): number {
   let n = 0
@@ -190,7 +319,17 @@ function docFromJson(raw: unknown, engine: string): SearchIndexDoc | null {
     if (typeof r.text !== 'string' || !r.text) continue
     if (typeof r.ts !== 'number') continue
     if (r.role !== 'user' && r.role !== 'assistant') continue
-    records.push({ ts: r.ts, role: r.role, text: r.text })
+    // A record without a known origin cannot be labelled in the result row, so
+    // it is dropped rather than guessed as prose. The version header already
+    // rejects v1 caches; this guards a hand-edited or half-written file.
+    if (r.origin !== 'prose' && r.origin !== 'tool' && r.origin !== 'thinking') continue
+    records.push({
+      ts: r.ts,
+      role: r.role,
+      text: r.text,
+      origin: r.origin,
+      ...(r.truncated === true ? { truncated: true } : {}),
+    })
   }
 
   return {
@@ -204,6 +343,7 @@ function docFromJson(raw: unknown, engine: string): SearchIndexDoc | null {
     title: typeof d.title === 'string' ? d.title : undefined,
     records,
     partial: d.partial === true,
+    truncated: d.truncated === true,
     deferred: d.deferred === true,
   }
 }
@@ -440,6 +580,7 @@ export class SessionSearchIndex {
       this.totalChars -= charsOf(victim)
       victim.records = []
       victim.partial = false
+      victim.truncated = false
       victim.deferred = true
     }
   }

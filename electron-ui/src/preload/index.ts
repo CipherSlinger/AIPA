@@ -388,6 +388,15 @@ export interface SessionSearchResultData {
   engine: 'claude' | 'codex'
   messageTimestamp?: number
   messageRole?: 'user' | 'assistant'
+  /**
+   * Where the matched text was: the conversation's prose, a tool call's
+   * arguments or output, or an assistant thinking block. The row must say so —
+   * a match found in shell output is not the same finding as a sentence the
+   * user or assistant wrote. Absent on title matches.
+   */
+  matchOrigin?: 'prose' | 'tool' | 'thinking'
+  /** The matched block was cut at the index ceiling; the snippet ends there. */
+  truncated?: boolean
 }
 
 /**
@@ -759,6 +768,36 @@ export interface AutomationRunChangedFilesData {
   editCalls: number
 }
 
+/** Mirrors main's `AutomationJobChain`: job ids to start after a run. */
+export interface AutomationJobChainData {
+  /** Job id to start when this job's run succeeds. */
+  onSuccess?: string
+  /** Job id to start when this job's run fails for good. */
+  onFailure?: string
+}
+
+/**
+ * Mirrors main's `AutomationChainNote`: why a chain named a target that did not
+ * start. Each one is an observation, never a failure of the run that recorded it.
+ */
+export type AutomationChainNoteData =
+  | 'target_missing'
+  | 'target_disabled'
+  | 'target_busy'
+  | 'paused'
+  | 'depth_limit'
+  | 'target_refused'
+
+/**
+ * Mirrors main's `AutomationRunChain`. Exactly one of `nextJobId` / `note` is
+ * set: a successor that really started, or the reason none did.
+ */
+export interface AutomationRunChainData {
+  nextJobId?: string
+  nextJobName?: string
+  note?: AutomationChainNoteData
+}
+
 /** Mirrors main's `AutomationRunRecord`; `running` never appears in history. */
 export interface AutomationRunRecordData {
   /** Epoch ms when the run started (or the occurrence a skip replaced). */
@@ -795,6 +834,11 @@ export interface AutomationRunRecordData {
    * Present-but-empty is "no file-editing tool calls seen", not "not recorded".
    */
   changedFiles?: AutomationRunChangedFilesData
+  /**
+   * What this run did about the job its chain named. Absent on records written
+   * before chaining existed and on every skip (a refused run started nothing).
+   */
+  chain?: AutomationRunChainData
 }
 
 /** A retry of a failed occurrence, waiting for its due time. Mirrors main. */
@@ -994,6 +1038,12 @@ export interface AutomationJobData {
   missedRunPolicy?: AutomationMissedRunPolicyData
   /** The retry currently waiting for its due time, if any. */
   pendingRetry?: AutomationPendingRetryData
+  /**
+   * The jobs to start when this job's run finishes. A target id that no live
+   * job uses is kept, not cleared: it may be waiting in Recently deleted, and
+   * the row must be able to say the chain points at a job that no longer exists.
+   */
+  chain?: AutomationJobChainData
   /** Scheduled-run spend limit in USD over a rolling 24 h; absent means none. */
   dailyCostLimitUsd?: number
   createdAt: number
@@ -1109,6 +1159,8 @@ export interface AutomationLimitsData {
     maxRetries: number
     delaysMinutes: number[]
   }
+  /** How many jobs one chain may enter, successor by successor. */
+  chainMaxDepth: number
 }
 
 export interface AutomationInputData {
@@ -1132,6 +1184,12 @@ export interface AutomationInputData {
    * The choice only covers a time that came due while AIPA was closed.
    */
   missedRunPolicy?: AutomationMissedRunPolicyData
+  /**
+   * The jobs to start when this job's run finishes. Omitted or empty clears the
+   * chain. A target that is not a live job id, or that would close a loop, is
+   * refused with an error code rather than silently dropped.
+   */
+  chain?: AutomationJobChainData
   /** Omitted clears the scheduled-run spend limit; 0 is not a limit. */
   dailyCostLimitUsd?: number
   /**
@@ -1191,7 +1249,16 @@ export interface PluginAutomationDeleteResultData {
 
 export type AutomationMutationData =
   | { ok: true; job: AutomationJobData }
-  | { ok: false; error: string }
+  | {
+      ok: false
+      error: string
+      /**
+       * A name the message needs — today the job that would close a chain loop.
+       * The dialog substitutes it into `automation.errors.<code>`; absent when
+       * the code says everything.
+       */
+      errorDetail?: string
+    }
 
 export type AutomationPauseData =
   | { ok: true; pausedAll: boolean }
