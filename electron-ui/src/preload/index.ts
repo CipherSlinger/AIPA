@@ -2765,12 +2765,48 @@ const electronAPI = {
       filePath: string; name: string; description: string;
       type: string; content: string; scope: string; projectHash?: string; mtime: number
     }[]>,
+  /**
+   * Read one memory file with the identity of the bytes returned.
+   *
+   * `sha256` is a compare-and-swap token for `memoryWrite`: the editor sends
+   * back the hash it opened, and the write refuses if the file moved since.
+   */
   memoryRead: (filePath: string) =>
-    ipcRenderer.invoke('memory:read', { filePath }) as Promise<string>,
-  memoryWrite: (filePath: string, content: string) =>
-    ipcRenderer.invoke('memory:write', { filePath, content }) as Promise<{ success: boolean }>,
+    ipcRenderer.invoke('memory:read', { filePath }) as Promise<
+      | { ok: true; content: string; sha256: string; size: number; mtime: number }
+      | { ok: false; code: 'not_found' | 'outside_roots' | 'too_large' | 'read_failed'; message: string }
+    >,
+  /**
+   * Write one memory file. Omitting `expectedSha256` means "overwrite
+   * unconditionally" and is reserved for a first create or a user who has
+   * explicitly chosen to overwrite an outside edit.
+   */
+  memoryWrite: (filePath: string, content: string, expectedSha256?: string) =>
+    ipcRenderer.invoke('memory:write', { filePath, content, expectedSha256 }) as Promise<
+      | { ok: true; sha256: string; size: number; mtime: number }
+      | {
+          ok: false
+          code: 'outside_roots' | 'too_large' | 'invalid_content' | 'changed_on_disk' | 'write_failed'
+          message: string
+          sha256?: string
+          mtime?: number
+        }
+    >,
+  /**
+   * Create a new memory file. A slug that already exists is refused with
+   * `memory_exists` and never overwritten; the UI opens the file in the way.
+   */
   memoryCreate: (args: { name: string; description: string; type: string; body: string; scope: 'global' | 'project'; projectHash?: string }) =>
-    ipcRenderer.invoke('memory:create', args) as Promise<{ success: boolean; filePath: string }>,
+    ipcRenderer.invoke('memory:create', args) as Promise<
+      | { ok: true; filePath: string }
+      | {
+          ok: false
+          code: 'outside_roots' | 'invalid_name' | 'memory_exists' | 'too_large' | 'invalid_content' | 'write_failed'
+          message: string
+          filePath?: string
+          name?: string
+        }
+    >,
   memoryDelete: (filePath: string) =>
     ipcRenderer.invoke('memory:delete', { filePath }) as Promise<{ success: boolean }>,
   /**

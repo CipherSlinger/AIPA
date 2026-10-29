@@ -16,6 +16,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
+import { createHash } from 'crypto'
 import { createLogger } from '../utils/logger'
 import { isPathInside } from '../utils/validate'
 
@@ -398,28 +399,233 @@ function isValidProjectHash(hash: string): boolean {
   return !!hash && !hash.includes('/') && !hash.includes('\\') && hash !== '.' && hash !== '..'
 }
 
-export function readMemoryFile(filePath: string): string {
-  return fs.readFileSync(resolveMemoryPath(filePath), 'utf-8')
+// ── Structured read / write (memory console editor) ──────────────────────
+//
+// The editor needs three facts the old string-returning channel could not
+// carry: which bytes were read (so it can notice a file changing underneath
+// it), whether the file exists at all, and whether it is too large to load.
+// Returning data instead of throwing keeps "refused" distinct from "failed".
+
+/**
+ * Ceiling on a single memory file the console will read or write.
+ *
+ * Memory files are notes, not documents; 25× the largest real one is still
+ * small enough to keep the main process responsive, and a file past this cap
+ * is refused by name rather than truncated into a half-editable draft.
+ */
+export const MAX_MEMORY_FILE_BYTES = 256 * 1024
+
+export type MemoryReadCode = 'not_found' | 'outside_roots' | 'too_large' | 'read_failed'
+export type MemoryWriteCode =
+  | 'outside_roots' | 'too_large' | 'invalid_content' | 'changed_on_disk' | 'write_failed'
+export type MemoryCreateCode =
+  | 'outside_roots' | 'invalid_name' | 'memory_exists' | 'too_large'
+  | 'invalid_content' | 'write_failed'
+
+export interface MemoryReadSuccess {
+  ok: true
+  content: string
+  /** Hex SHA-256 over the exact UTF-8 bytes returned in `content`. */
+  sha256: string
+  size: number
+  mtime: number
+}
+
+export interface MemoryReadFailure {
+  ok: false
+  code: MemoryReadCode
+  message: string
+}
+
+export type MemoryReadResult = MemoryReadSuccess | MemoryReadFailure
+
+export interface MemoryWriteSuccess {
+  ok: true
+  sha256: string
+  size: number
+  mtime: number
+}
+
+export interface MemoryWriteFailure {
+  ok: false
+  code: MemoryWriteCode
+  message: string
+  /** Current on-disk state, present for `changed_on_disk` when it was readable. */
+  sha256?: string
+  mtime?: number
+}
+
+export type MemoryWriteResult = MemoryWriteSuccess | MemoryWriteFailure
+
+export type MemoryCreateResult =
+  | { ok: true; filePath: string }
+  | {
+      ok: false
+      code: MemoryCreateCode
+      message: string
+      /** The file the slug collided with, for `memory_exists`. */
+      filePath?: string
+      /** The existing file's display name, so the UI can name the obstacle. */
+      name?: string
+    }
+
+function sha256Of(content: string): string {
+  return createHash('sha256').update(content, 'utf-8').digest('hex')
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
+}
+
+/**
+ * Read one memory file together with the identity of the bytes read.
+ *
+ * The path gate is the same `resolveMemoryPath` every other channel uses; a
+ * path outside it is refused as `outside_roots`, never silently re-rooted.
+ */
+export function readMemoryFile(filePath: string): MemoryReadResult {
+  let safe: string
+  try {
+    safe = resolveMemoryPath(filePath)
+  } catch (err) {
+    return { ok: false, code: 'outside_roots', message: errorMessage(err) }
+  }
+
+  let st: fs.Stats
+  try {
+    st = fs.statSync(safe)
+  } catch (err) {
+    if (isMissingError(err)) return { ok: false, code: 'not_found', message: 'Memory file not found' }
+    return { ok: false, code: 'read_failed', message: errorMessage(err) }
+  }
+  if (!st.isFile()) {
+    // A directory carrying a `.md` name is readable by neither the viewer nor
+    // the editor; say the read failed rather than pretending it is empty.
+    return { ok: false, code: 'read_failed', message: 'Not a regular file' }
+  }
+  if (st.size > MAX_MEMORY_FILE_BYTES) {
+    return {
+      ok: false,
+      code: 'too_large',
+      message: `Memory file is larger than ${MAX_MEMORY_FILE_BYTES} bytes`,
+    }
+  }
+
+  let content: string
+  try {
+    content = fs.readFileSync(safe, 'utf-8')
+  } catch (err) {
+    return { ok: false, code: 'read_failed', message: errorMessage(err) }
+  }
+  const size = Buffer.byteLength(content, 'utf-8')
+  // The file can grow between stat and read; the cap is about what we carry,
+  // not what the directory reported a moment ago.
+  if (size > MAX_MEMORY_FILE_BYTES) {
+    return {
+      ok: false,
+      code: 'too_large',
+      message: `Memory file is larger than ${MAX_MEMORY_FILE_BYTES} bytes`,
+    }
+  }
+  return { ok: true, content, sha256: sha256Of(content), size, mtime: st.mtimeMs }
 }
 
 function buildMemoryFileContent(name: string, description: string, type: string, body: string): string {
   return `---\nname: ${name}\ndescription: ${description}\ntype: ${type}\n---\n${body}`
 }
 
+/**
+ * Write one memory file atomically.
+ *
+ * `expectedSha256` is a compare-and-swap token: when the caller opened the
+ * file it recorded the hash it saw, and the write is refused if the file has
+ * changed since. Without it the caller is asserting it already showed the
+ * user the current bytes (a first create, or an explicit "overwrite anyway"),
+ * so the write is unconditional. A refused write touches nothing — the
+ * temporary file is only created after the conflict check passes.
+ */
 export function writeMemoryFile(
   filePath: string,
-  content: string,
-): void {
-  const safe = resolveMemoryPath(filePath)
+  content: unknown,
+  expectedSha256?: string,
+): MemoryWriteResult {
+  if (typeof content !== 'string') {
+    return { ok: false, code: 'invalid_content', message: 'Memory content must be a string' }
+  }
+
+  let safe: string
+  try {
+    safe = resolveMemoryPath(filePath)
+  } catch (err) {
+    return { ok: false, code: 'outside_roots', message: errorMessage(err) }
+  }
+
+  const size = Buffer.byteLength(content, 'utf-8')
+  if (size > MAX_MEMORY_FILE_BYTES) {
+    return {
+      ok: false,
+      code: 'too_large',
+      message: `Memory file is larger than ${MAX_MEMORY_FILE_BYTES} bytes`,
+    }
+  }
+
+  if (typeof expectedSha256 === 'string') {
+    let currentSha: string | undefined
+    let currentMtime: number | undefined
+    let found = false
+    try {
+      const st = fs.statSync(safe)
+      if (st.isFile()) {
+        found = true
+        currentMtime = st.mtimeMs
+        currentSha = sha256Of(fs.readFileSync(safe, 'utf-8'))
+      }
+    } catch (err) {
+      if (!isMissingError(err)) {
+        return { ok: false, code: 'write_failed', message: errorMessage(err) }
+      }
+    }
+    // A file that vanished since it was opened is also a conflict: blindly
+    // recreating it would undo whatever removed or moved it.
+    if (!found || currentSha !== expectedSha256) {
+      return {
+        ok: false,
+        code: 'changed_on_disk',
+        message: 'Memory file changed on disk since it was opened',
+        sha256: currentSha,
+        mtime: currentMtime,
+      }
+    }
+  }
+
   const dir = path.dirname(safe)
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   const tmp = safe + '.tmp.' + Date.now()
-  fs.writeFileSync(tmp, content, 'utf-8')
-  fs.renameSync(tmp, safe)
+  try {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(tmp, content, 'utf-8')
+    fs.renameSync(tmp, safe)
+  } catch (err) {
+    // A failure between write and rename must not leave a stray `.tmp` file
+    // that looks like memory to a later directory scan.
+    try { fs.unlinkSync(tmp) } catch { /* already gone or never created */ }
+    return { ok: false, code: 'write_failed', message: errorMessage(err) }
+  }
   invalidateMemoryCache(safe)
   log.info('writeMemoryFile:', safe)
+
+  let mtime = 0
+  try { mtime = fs.statSync(safe).mtimeMs } catch { /* the write succeeded; mtime is optional */ }
+  return { ok: true, sha256: sha256Of(content), size, mtime }
 }
 
+/**
+ * Create a new memory file and never overwrite an existing one.
+ *
+ * The old version wrote straight over a same-slug file, which made two
+ * different memories with one sanitized name silently become one. Here the
+ * collision is reported with the path and display name of the file in the
+ * way, and the caller offers to open it instead.
+ */
 export function createMemoryFile(
   name: string,
   description: string,
@@ -427,23 +633,54 @@ export function createMemoryFile(
   body: string,
   scope: 'global' | 'project',
   projectHash?: string,
-): string {
+): MemoryCreateResult {
   let dir: string
   if (scope === 'global') {
     dir = getGlobalMemoryDir()
   } else if (projectHash && isValidProjectHash(projectHash)) {
     dir = path.join(getClaudeDir(), 'projects', projectHash, 'memory')
   } else {
-    dir = getGlobalMemoryDir()
+    // A project-scoped create without a usable project is refused rather than
+    // redirected: writing it to global would be a different file than asked for.
+    return { ok: false, code: 'outside_roots', message: 'Invalid project scope for a new memory file' }
   }
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
 
   // Sanitize name to filename
   const slug = name.toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 50)
+  if (!slug) {
+    return { ok: false, code: 'invalid_name', message: 'A memory file needs a name' }
+  }
+
   const filePath = path.join(dir, `${slug}.md`)
+  if (fs.existsSync(filePath)) {
+    let existingName = path.basename(filePath, '.md')
+    const parsed = parseMemoryFileDetailed(filePath, scope, projectHash)
+    if (parsed.memory?.name) existingName = parsed.memory.name
+    return {
+      ok: false,
+      code: 'memory_exists',
+      message: `A memory file named "${existingName}" already exists`,
+      filePath,
+      name: existingName,
+    }
+  }
+
+  // Create the project's memory directory before the write's path gate runs:
+  // the gate resolves roots from existing directories, and a brand-new project
+  // would otherwise reject the file it is about to create.
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+
   const content = buildMemoryFileContent(name, description, type, body)
-  writeMemoryFile(filePath, content)
-  return filePath
+  const written = writeMemoryFile(filePath, content)
+  if (!written.ok) {
+    const code: MemoryCreateCode =
+      written.code === 'too_large' ? 'too_large'
+      : written.code === 'invalid_content' ? 'invalid_content'
+      : written.code === 'outside_roots' ? 'outside_roots'
+      : 'write_failed'
+    return { ok: false, code, message: written.message }
+  }
+  return { ok: true, filePath }
 }
 
 export function deleteMemoryFile(filePath: string): void {

@@ -720,7 +720,18 @@
     "saveFailed": "保存失败: {{error}}",
     "saveCanceled": "已取消保存",
     "openInFileManager": "在文件管理器中打开",
-    "fileNotFound": "文件或路径不存在"
+    "fileNotFound": "文件或路径不存在",
+    "terminal": {
+      "send": "发送到终端",
+      "disabled": {
+        "emptyCommand": "这个代码块是空的，没有可输入的内容。",
+        "multiLine": "这个代码块有 {{count}} 行；逐行输入会在输入过程中就执行前面的行。请改用「运行」。"
+      },
+      "typedToast": "已输入到 {{title}}，还没有执行任何东西——在终端里按回车才会运行。",
+      "queuedToast": "{{title}} 还在启动；命令已排队，等 shell 就绪后会输入进去。在你按回车之前不会运行。",
+      "separateRunInProgress": "这个代码块还有一次独立的「运行」在进行中。",
+      "notSentNoCwd": "没有设置工作文件夹，因此什么都没输入。"
+    }
   },
   "copy": {
     "moreOptions": "更多复制选项",
@@ -1355,7 +1366,16 @@
     "manageSnippets": "管理文字片段",
     "manageSnippetsDesc": "创建和编辑 ::关键词 展开的文字",
     "snippetCopied": "已复制 ::{{keyword}} 的内容",
-    "snippetCopyFailed": "无法复制片段内容"
+    "snippetCopyFailed": "无法复制片段内容",
+    "newTerminalTab": "新建终端标签页",
+    "newTerminalTabDesc": "在对话的工作文件夹里打开一个 shell。",
+    "clearActiveTerminal": "清空当前终端",
+    "clearActiveTerminalDesc": "清空当前终端的屏幕；shell 继续运行。",
+    "clearActiveTerminalNoTab": "没有可以清空的终端标签页。",
+    "clearActiveTerminalNotMounted": "终端刚刚打开，还没有屏幕可清。",
+    "closeAllTerminals": "关闭所有终端",
+    "closeAllTerminalsDesc": "关闭所有终端标签页并停止里面的 shell。有 shell 还在运行时会先询问。",
+    "noTerminalTabs": "没有可以关闭的终端标签页。"
   },
   "permission": {
     "allow": "允许",
@@ -2342,6 +2362,47 @@
       "read": "读取失败",
       "parse": "格式无效",
       "scan": "目录无法读取"
+    },
+    "editor": {
+      "dirty": "有未保存的修改",
+      "loading": "正在读取文件…",
+      "readFailed": "读不了这个文件：{{message}}",
+      "notFound": "这个文件在磁盘上已经不存在了。",
+      "tooLargeRead": "这个文件太大，AIPA 无法编辑。",
+      "outsideRoots": "这个文件不在 AIPA 可以编辑的记忆目录里。",
+      "changedOnDisk": "自你打开之后，这个文件在 AIPA 之外被改过。什么都没有写入。",
+      "currentSha": "磁盘上现在是：{{sha}}…",
+      "goneOnDisk": "文件已经不在磁盘上了。",
+      "reload": "从磁盘重新读取",
+      "reloadConfirm": "从磁盘重新读取？你未保存的草稿会被丢弃。",
+      "overwrite": "仍然覆盖",
+      "discardConfirm": "要丢弃未保存的修改吗？",
+      "saveFailed": "保存不了：{{message}}",
+      "saveBlocked": {
+        "saving": "正在保存…",
+        "unchanged": "没有要保存的修改",
+        "tooLarge": "太大，无法保存（{{size}} / {{max}} 字节）"
+      },
+      "newTitle": "新建记忆文件",
+      "newWhere": "会以带文件头的 Markdown 文件存进 ~/.claude/memory/。",
+      "nameLabel": "名称",
+      "namePlaceholder": "例如：部署偏好",
+      "descriptionLabel": "说明",
+      "descriptionPlaceholder": "显示在文件名旁边的一行说明",
+      "typeLabel": "类型",
+      "bodyLabel": "正文",
+      "bodyPlaceholder": "要 AIPA 记住什么？",
+      "createExists": "已经有一个叫「{{name}}」的记忆文件，什么也没有写入。",
+      "openExisting": "打开它",
+      "keepEditing": "继续编辑",
+      "createNeedsName": "填一个名称才能创建这个文件",
+      "createTooLarge": "这个文件超过了 256 KiB 的上限。",
+      "createFailed": "创建不了这个文件：{{message}}",
+      "invalidName": "这个名称里没有任何能组成文件名的字符。",
+      "creating": "正在创建…",
+      "newButton": "新建记忆文件",
+      "charCount_one": "{{count}} 个字符",
+      "charCount_other": "{{count}} 个字符"
     }
   },
   "workflow": {

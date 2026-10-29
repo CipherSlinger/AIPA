@@ -36,6 +36,12 @@ import MemoryItemCard from './MemoryItemCard'
 import MemorySearchResults from './MemorySearchResults'
 import DreamConsolidationTab from './DreamConsolidationTab'
 import { HighlightedText, scrollToFirstHighlight } from './MemoryHighlight'
+import MemoryFileCard, {
+  MEMDIR_TYPE_COLORS,
+  MEMDIR_TYPE_I18N_KEYS,
+  type MemdirFile,
+} from './MemoryFileCard'
+import MemoryCreateForm from './MemoryCreateForm'
 import { assembleMemoryContextForTurn, type MemoryUnreadableEntry } from '../../hooks/promptMemory'
 import {
   findHighlightRanges,
@@ -303,33 +309,6 @@ function ProjectMemoryTab({ focus }: { focus?: TabFocus }) {
 
 // ─── Memdir (Structured Memory) viewer ───────────────────────────────────────
 
-interface MemdirFile {
-  filePath: string
-  name: string
-  description: string
-  type: 'user' | 'feedback' | 'project' | 'reference' | 'unknown'
-  content: string
-  scope: 'global' | 'project'
-  projectHash?: string
-  mtime: number
-}
-
-const MEMDIR_TYPE_COLORS: Record<string, string> = {
-  user: '#6366f1',
-  feedback: '#fbbf24',
-  project: '#4ade80',
-  reference: '#a78bfa',
-  unknown: 'var(--text-muted)',
-}
-
-const MEMDIR_TYPE_I18N_KEYS: Record<string, string> = {
-  user: 'memory.filterUser',
-  feedback: 'memory.filterFeedback',
-  project: 'memory.filterProject',
-  reference: 'memory.filterReference',
-  unknown: 'memory.memdirTypeUnknown',
-}
-
 type MemdirTypeFilter = 'all' | 'user' | 'feedback' | 'project' | 'reference'
 
 /** How many unreadable paths the collapsed list shows before summarising. */
@@ -464,7 +443,34 @@ function MemdirTab({ focus }: { focus?: TabFocus }) {
   const [unreadable, setUnreadable] = useState<MemoryUnreadableEntry[]>([])
   const [homeDir, setHomeDir] = useState('')
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [showCreate, setShowCreate] = useState(false)
+  const [editRequest, setEditRequest] = useState<{ filePath: string; nonce: number } | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
+
+  /**
+   * Refetch only the parsed list, without the whole-tab spinner. A successful
+   * save or create has already changed one row; flashing every other row back
+   * to a loading state would make the save look like a reload.
+   */
+  const refreshFiles = useCallback(async () => {
+    try {
+      const result = await window.electronAPI.memoryList('all')
+      setFiles(result as MemdirFile[])
+      setLoadError(null)
+    } catch (err) {
+      setLoadError(String(err))
+    }
+  }, [])
+
+  const openFileInEditor = useCallback((filePath: string) => {
+    setShowCreate(false)
+    setTypeFilter('all')
+    setExpanded(filePath)
+    setEditRequest(prev => ({ filePath, nonce: (prev?.nonce ?? 0) + 1 }))
+    // A file that collided with a create can be newer than the last listing;
+    // refetch so its card exists to open, rather than expanding nothing.
+    if (!files.some(f => f.filePath === filePath)) void refreshFiles()
+  }, [files, refreshFiles])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -550,6 +556,12 @@ function MemdirTab({ focus }: { focus?: TabFocus }) {
           }}>
             {t('settingsMemory.loadingError', { error: loadError })}
           </div>
+        ) : showCreate ? (
+          <MemoryCreateForm
+            onCreated={() => { setShowCreate(false); void refreshFiles() }}
+            onOpenExisting={openFileInEditor}
+            onCancel={() => setShowCreate(false)}
+          />
         ) : (
           <div style={{
             flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -558,6 +570,18 @@ function MemdirTab({ focus }: { focus?: TabFocus }) {
             <Brain size={28} style={{ opacity: 0.3 }} />
             <span style={{ fontSize: 12 }}>{t('memory.memdirEmpty')}</span>
             <span style={{ fontSize: 10, opacity: 0.7 }}>{t('memory.memdirEmptyHint')}</span>
+            <button
+              onClick={() => setShowCreate(true)}
+              style={{
+                marginTop: 4, display: 'flex', alignItems: 'center', gap: 4,
+                background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.40)',
+                borderRadius: 8, padding: '6px 12px', fontSize: 11, fontWeight: 600,
+                color: 'var(--accent-text)', cursor: 'pointer',
+              }}
+            >
+              <Plus size={12} />
+              {t('memory.editor.newButton')}
+            </button>
           </div>
         )}
         <style>{'@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }'}</style>
@@ -575,11 +599,36 @@ function MemdirTab({ focus }: { focus?: TabFocus }) {
         <span style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'monospace', flex: 1 }}>
           {'~/.claude/memory/ \u00b7 '}{files.length}{' '}{files.length === 1 ? 'file' : 'files'}
         </span>
+        {/* Creating a file must not require first deleting every file: the
+            form used to exist only in the empty state. */}
+        <button onClick={() => setShowCreate(v => !v)} title={t('memory.editor.newButton')}
+          aria-expanded={showCreate}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: showCreate ? 'var(--accent-text)' : 'var(--text-muted)', padding: 2, display: 'flex', alignItems: 'center' }}>
+          <Plus size={13} />
+        </button>
         <button onClick={load} title={t('memory.projectRefresh')}
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2, display: 'flex', alignItems: 'center' }}>
           <RefreshCw size={12} />
         </button>
       </div>
+
+      {showCreate && (
+        <div style={{ flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
+          <MemoryCreateForm
+            onCreated={(filePath) => {
+              setShowCreate(false)
+              // Land on the new file, open but not in edit mode: the form has
+              // just taken the content, and reopening a raw editor over it
+              // would invite a second edit of the same bytes.
+              setTypeFilter('all')
+              setExpanded(filePath)
+              void refreshFiles()
+            }}
+            onOpenExisting={openFileInEditor}
+            onCancel={() => setShowCreate(false)}
+          />
+        </div>
+      )}
 
       <UnreadableMemoryPanel entries={unreadable} homeDir={homeDir} />
 
@@ -632,94 +681,29 @@ function MemdirTab({ focus }: { focus?: TabFocus }) {
 
       {/* File list */}
       <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '6px 8px', scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
-        {filteredFiles.length === 0 && files.length > 0 ? (
+        {filteredFiles.length === 0 && files.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60%', color: 'var(--text-muted)', gap: 8, textAlign: 'center' }}>
             <Brain size={24} style={{ opacity: 0.3 }} />
             <span style={{ fontSize: 12 }}>{t('memory.filterAll')} · {t(MEMDIR_TYPE_I18N_KEYS[typeFilter] || 'memory.filterAll')}</span>
           </div>
-        ) : filteredFiles.map(f => {
-          const typeColor = MEMDIR_TYPE_COLORS[f.type] || MEMDIR_TYPE_COLORS.unknown
-          const isOpen = expanded === f.filePath
-          const ageDays = f.mtime > 0 ? (Date.now() - f.mtime) / 86400000 : 0
-          const decayDot =
-            ageDays < 7  ? '#4ade80' :
-            ageDays < 30 ? '#fbbf24' :
-            ageDays < 90 ? '#fb923c' : '#f87171'
-          const decayLabelKey =
-            ageDays < 7  ? 'memory.fresh' :
-            ageDays < 30 ? 'memory.aging' :
-            ageDays < 90 ? 'memory.old'  : 'memory.stale'
-          const ageDaysRounded = Math.floor(ageDays)
-          const ageLabel = f.mtime > 0
-            ? (ageDaysRounded < 1 ? t('memory.justNow') : `${ageDaysRounded}d ago`)
-            : ''
-          return (
-            <div key={f.filePath} data-memdir-file={encodeURIComponent(f.filePath)} style={{
-              background: 'var(--bg-primary)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-              border: '1px solid var(--border)', borderLeft: `3px solid ${typeColor}`, borderRadius: 10, marginBottom: 6,
-              overflow: 'hidden', transition: 'all 0.15s ease',
-            }}>
-              {/* File header row */}
-              <div
-                onClick={() => setExpanded(isOpen ? null : f.filePath)}
-                style={{ padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-hover)' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
-              >
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: typeColor, flexShrink: 0, boxShadow: `0 0 6px ${typeColor}80` }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {f.name}
-                  </div>
-                  {f.description && (
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {f.description}
-                    </div>
-                  )}
-                </div>
-                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-primary)', background: `${typeColor}1e`, borderRadius: 8, padding: '1px 6px', flexShrink: 0 }}>
-                  {f.type}
-                </span>
-                <span style={{ fontSize: 9, color: 'var(--text-muted)', background: 'var(--border)', borderRadius: 6, padding: '1px 6px', flexShrink: 0 }}>
-                  {f.scope === 'global' ? t('memory.memdirGlobal') : t('memory.memdirProject')}
-                </span>
-                {f.mtime > 0 && (
-                  <span style={{
-                    display: 'flex', alignItems: 'center', gap: 3,
-                    fontSize: 9, fontWeight: 600,
-                    color: 'var(--text-primary)',
-                    background: `${decayDot}18`,
-                    border: `1px solid ${decayDot}44`,
-                    borderRadius: 8, padding: '1px 5px', flexShrink: 0,
-                  }}
-                  title={ageLabel}
-                  >
-                    <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: decayDot, flexShrink: 0 }} />
-                    {t(decayLabelKey)}
-                  </span>
-                )}
-                <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}>{'\u25be'}</span>
-              </div>
-              {isOpen && (
-                <div style={{ padding: '0 12px 10px', borderTop: '1px solid var(--border)' }}>
-                  <pre style={{
-                    margin: '8px 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 11, lineHeight: 1.6,
-                    color: 'var(--text-secondary)', fontFamily: 'monospace',
-                    background: 'var(--bg-hover)', borderRadius: 6, padding: '8px 10px',
-                    border: '1px solid var(--border)',
-                  }}>
-                    {focus?.query && f.content
-                      ? <HighlightedText text={f.content} ranges={findHighlightRanges(f.content, focus.query)} />
-                      : (f.content || <span style={{ color: 'var(--text-muted)' }}>(empty)</span>)}
-                  </pre>
-                  <div style={{ marginTop: 6, fontSize: 9, color: 'var(--text-muted)', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                    {f.filePath}
-                  </div>
-                </div>
-              )}
-            </div>
-          )
-        })}
+        )}
+        {/* Filtered-out cards stay mounted behind display:none. Unmounting them
+            would throw away an open editor and its draft, and a filter is a
+            view toggle, not a decision to discard anything. */}
+        {files.map(f => (
+          <div key={f.filePath} style={{
+            display: typeFilter === 'all' || f.type === typeFilter ? undefined : 'none',
+          }}>
+            <MemoryFileCard
+              file={f}
+              expanded={expanded === f.filePath}
+              query={focus?.query}
+              editNonce={editRequest?.filePath === f.filePath ? editRequest.nonce : undefined}
+              onToggle={() => setExpanded(expanded === f.filePath ? null : f.filePath)}
+              onSaved={() => { void refreshFiles() }}
+            />
+          </div>
+        ))}
       </div>
 
       {/* Footer */}

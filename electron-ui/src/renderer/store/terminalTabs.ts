@@ -32,6 +32,15 @@ export interface TerminalTabsState {
   activeId: string | null
 }
 
+/**
+ * Text handed to a tab whose PTY has not answered yet, keyed by tab id.
+ *
+ * Tab ids are `terminal-N` and are reused after a close, so every entry is
+ * dropped when its tab closes, exits or fails: a command typed for a dead
+ * shell must never be handed to a later tab that happens to share the id.
+ */
+export type TerminalInputQueues = Record<string, string[]>
+
 export const TERMINAL_MIN_HEIGHT = 120
 export const TERMINAL_DEFAULT_HEIGHT = 280
 /** The dock may never own more than this share of the window. */
@@ -204,4 +213,59 @@ export function retitleTab(
 /** Shell label for a failed spawn that never reported one. */
 export function fallbackShellLabel(platform?: string): string {
   return platform === 'win32' ? 'cmd.exe' : 'shell'
+}
+
+/** A tab whose PTY exists or is still being created, i.e. can take input. */
+export function isLiveTerminalTab(tab: TerminalTab): boolean {
+  return tab.status === 'running' || tab.status === 'starting'
+}
+
+/** True while closing every tab would kill a shell the user may be using. */
+export function shouldConfirmCloseAll(tabs: TerminalTab[]): boolean {
+  return tabs.some(isLiveTerminalTab)
+}
+
+/** Empty or missing text is not input; callers get the same queue back. */
+export function enqueueTerminalInput(
+  queues: TerminalInputQueues,
+  tabId: string,
+  text: string,
+): TerminalInputQueues {
+  if (!tabId || !text) return queues
+  const existing = queues[tabId]
+  return { ...queues, [tabId]: existing ? [...existing, text] : [text] }
+}
+
+/**
+ * Take everything queued for one tab, in enqueue order, and clear that entry.
+ *
+ * PTY input is a character stream with no line boundary until the user presses
+ * Enter, so several commands handed to the same not-yet-ready shell share its
+ * one prompt line; a space keeps the result readable. Nothing that would
+ * submit the line is appended here — or anywhere else in this path.
+ */
+export function takeTerminalInput(
+  queues: TerminalInputQueues,
+  tabId: string,
+): { queues: TerminalInputQueues; text: string | null } {
+  const entries = queues[tabId]
+  if (!entries || entries.length === 0) return { queues, text: null }
+  const next = { ...queues }
+  delete next[tabId]
+  return { queues: next, text: entries.join(' ') }
+}
+
+/** Forget one tab's queued input; used on close, exit and spawn failure. */
+export function dropTerminalInput(
+  queues: TerminalInputQueues,
+  tabId: string,
+): TerminalInputQueues {
+  if (!queues[tabId]) return queues
+  const next = { ...queues }
+  delete next[tabId]
+  return next
+}
+
+export function dropAllTerminalInput(queues: TerminalInputQueues): TerminalInputQueues {
+  return Object.keys(queues).length === 0 ? queues : {}
 }

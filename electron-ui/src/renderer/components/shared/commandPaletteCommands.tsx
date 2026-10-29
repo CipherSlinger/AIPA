@@ -8,10 +8,11 @@ import {
   Sun, Moon, Languages, Copy, Pin, StickyNote, ArrowUpDown,
   FileText, Stethoscope, Pencil, BarChart2, Shield,
   Database, DollarSign, SkipBack, RefreshCw, ExternalLink, Hourglass, ListChecks,
-  Type, TerminalSquare,
+  Type, TerminalSquare, Eraser,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
 import { useTerminalStore } from '../../store/terminalStore'
+import { clearTerminal } from '../terminal/terminalRegistry'
 import type { SidebarTab, NavItem } from '../../store'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
 import type { SessionListItem } from '../../types/app.types'
@@ -67,6 +68,17 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
   // promise a feature that is not there.
   const { askHistoryAvailable = null } = args
 
+  // Same folder the dock's + button uses: the conversation's folder first, then
+  // the global preference, then home. Read imperatively rather than subscribed:
+  // the palette is rebuilt when it opens, and every action re-reads live state.
+  const terminalCwd = () =>
+    useChatStore.getState().workingDir
+    || usePrefsStore.getState().prefs.workingDir
+    || useSessionStore.getState().homeDir
+    || ''
+  const terminalState = useTerminalStore.getState()
+  const hasActiveTerminal = terminalState.tabs.length > 0 && terminalState.activeId !== null
+
   return [
     {
       id: 'new-conversation',
@@ -119,6 +131,73 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
       icon: <TerminalSquare size={14} />,
       shortcut: 'Ctrl+`',
       action: () => { useTerminalStore.getState().toggleOpen(); onClose() },
+      category: 'action',
+    },
+    {
+      id: 'new-terminal-tab',
+      name: t('command.newTerminalTab'),
+      description: terminalCwd() ? t('command.newTerminalTabDesc') : t('terminal.dock.noCwd'),
+      icon: <Plus size={14} />,
+      action: () => {
+        onClose()
+        const cwd = terminalCwd()
+        if (!cwd) {
+          addToast('info', t('terminal.dock.noCwd'))
+          return
+        }
+        // The dock's own + and this row must open the same kind of shell: both
+        // go through the store action rather than constructing a tab here.
+        const store = useTerminalStore.getState()
+        store.setOpen(true)
+        store.addTab({ cwd })
+      },
+      category: 'action',
+    },
+    {
+      id: 'clear-active-terminal',
+      name: t('command.clearActiveTerminal'),
+      description: hasActiveTerminal
+        ? t('command.clearActiveTerminalDesc')
+        : t('command.clearActiveTerminalNoTab'),
+      icon: <Eraser size={14} />,
+      action: () => {
+        onClose()
+        const store = useTerminalStore.getState()
+        if (!store.activeId || store.tabs.length === 0) {
+          addToast('info', t('command.clearActiveTerminalNoTab'))
+          return
+        }
+        // Bring the dock forward so the screen that gets cleared is the one the
+        // user is looking at.
+        store.setOpen(true)
+        if (!clearTerminal(store.activeId)) {
+          // The tab exists but its xterm has not mounted yet (the dock was just
+          // opened), so there is no scrollback to clear. Say so — a silent
+          // no-op would read as "cleared".
+          addToast('info', t('command.clearActiveTerminalNotMounted'))
+        }
+      },
+      category: 'action',
+    },
+    {
+      id: 'close-all-terminals',
+      name: t('command.closeAllTerminals'),
+      description: terminalState.tabs.length === 0
+        ? t('command.noTerminalTabs')
+        : t('command.closeAllTerminalsDesc'),
+      icon: <Trash2 size={14} />,
+      action: () => {
+        onClose()
+        const store = useTerminalStore.getState()
+        if (store.tabs.length === 0) {
+          addToast('info', t('command.noTerminalTabs'))
+          return
+        }
+        // Exactly what the dock's X calls. While a shell is alive the store
+        // raises the dock's confirmation (and opens the dock so it is visible);
+        // the palette has no path to close a live shell without that answer.
+        store.requestCloseAll()
+      },
       category: 'action',
     },
     {

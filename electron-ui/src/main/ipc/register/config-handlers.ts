@@ -244,33 +244,39 @@ export function registerConfigHandlers(): void {
       return []
     }
   })
-  safeHandle('memory:read', (_e, { filePath }: { filePath: string }) => {
-    try {
-      return readMemoryFile(filePath)
-    } catch (err) {
-      log.warn('memory:read error:', String(err))
-      return { error: String(err) }
-    }
+  // Read/write/create answer with their own ok/code envelope rather than an
+  // exception string: the editor has to tell "changed on disk" from "too
+  // large" from "failed", and a raw IPC rejection carries none of that.
+  safeHandle('memory:read', (_e, { filePath }: { filePath?: unknown }) => {
+    const result = readMemoryFile(typeof filePath === 'string' ? filePath : '')
+    if (!result.ok) log.warn('memory:read refused:', result.code)
+    return result
   })
-  safeHandle('memory:write', (_e, { filePath, content }: { filePath: string; content: string }) => {
-    try {
-      writeMemoryFile(filePath, content)
-      return { success: true }
-    } catch (err) {
-      log.warn('memory:write error:', String(err))
-      return { success: false, error: String(err) }
-    }
+  safeHandle('memory:write', (_e, {
+    filePath, content, expectedSha256,
+  }: { filePath?: unknown; content?: unknown; expectedSha256?: unknown }) => {
+    const result = writeMemoryFile(
+      typeof filePath === 'string' ? filePath : '',
+      content,
+      typeof expectedSha256 === 'string' ? expectedSha256 : undefined,
+    )
+    if (!result.ok) log.warn('memory:write refused:', result.code)
+    return result
   })
-  safeHandle('memory:create', (_e, { name, description, type, body, scope, projectHash }: {
-    name: string; description: string; type: string; body: string; scope: 'global' | 'project'; projectHash?: string
+  safeHandle('memory:create', (_e, args: {
+    name?: unknown; description?: unknown; type?: unknown; body?: unknown
+    scope?: unknown; projectHash?: unknown
   }) => {
-    try {
-      const filePath = createMemoryFile(name, description, type, body, scope, projectHash)
-      return { success: true, filePath }
-    } catch (err) {
-      log.warn('memory:create error:', String(err))
-      return { success: false, error: String(err) }
-    }
+    const result = createMemoryFile(
+      typeof args?.name === 'string' ? args.name : '',
+      typeof args?.description === 'string' ? args.description : '',
+      typeof args?.type === 'string' ? args.type : 'reference',
+      typeof args?.body === 'string' ? args.body : '',
+      args?.scope === 'project' ? 'project' : 'global',
+      typeof args?.projectHash === 'string' ? args.projectHash : undefined,
+    )
+    if (!result.ok) log.warn('memory:create refused:', result.code)
+    return result
   })
   safeHandle('memory:delete', (_e, { filePath }: { filePath: string }) => {
     try {

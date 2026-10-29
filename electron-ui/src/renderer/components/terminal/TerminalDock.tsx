@@ -76,10 +76,10 @@ export default function TerminalDock({ visible }: { visible: boolean }) {
   const activeTab = tabs.find(tab => tab.id === activeId) || null
 
   const [viewportHeight, setViewportHeight] = useState(() => window.innerHeight)
-  const [confirmCloseAll, setConfirmCloseAll] = useState(false)
+  const closeAllPending = useTerminalStore(s => s.closeAllPending)
   const autoStartedRef = useRef(false)
   const dragRef = useRef<{ startY: number; startHeight: number } | null>(null)
-  const dialogRef = useFocusTrap(confirmCloseAll)
+  const dialogRef = useFocusTrap(closeAllPending)
 
   useEffect(() => {
     const onWindowResize = () => setViewportHeight(window.innerHeight)
@@ -115,22 +115,11 @@ export default function TerminalDock({ visible }: { visible: boolean }) {
     useTerminalStore.getState().addTab({ cwd })
   }
 
-  // Close all destroys the shells; hiding does not. So this always asks while
-  // anything is running, then empties the list — each tab's unmount is what
-  // calls ptyDestroy — and leaves the dock open on its empty state.
-  const requestCloseAll = () => {
-    if (tabs.length === 0) return
-    if (runningCount > 0) {
-      setConfirmCloseAll(true)
-      return
-    }
-    useTerminalStore.getState().closeAll()
-  }
-
-  const closeAllConfirmed = () => {
-    setConfirmCloseAll(false)
-    useTerminalStore.getState().closeAll()
-  }
+  // Close all destroys the shells; hiding does not. The store decides whether
+  // the question is needed and raises `closeAllPending`, because the command
+  // palette uses the same action: a second entry point must not be able to
+  // skip the confirmation the dock shows.
+  const requestCloseAll = () => useTerminalStore.getState().requestCloseAll()
 
   const onResizeStart = (event: React.PointerEvent<HTMLDivElement>) => {
     event.preventDefault()
@@ -410,7 +399,7 @@ export default function TerminalDock({ visible }: { visible: boolean }) {
         ))}
       </div>
 
-      {confirmCloseAll && createPortal(
+      {closeAllPending && createPortal(
         <div
           style={{
             position: 'fixed', inset: 0, zIndex: 9999,
@@ -419,7 +408,7 @@ export default function TerminalDock({ visible }: { visible: boolean }) {
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
           }}
-          onClick={() => setConfirmCloseAll(false)}
+          onClick={() => useTerminalStore.getState().cancelCloseAll()}
         >
           <div
             ref={dialogRef}
@@ -449,7 +438,7 @@ export default function TerminalDock({ visible }: { visible: boolean }) {
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button
                 type="button"
-                onClick={() => setConfirmCloseAll(false)}
+                onClick={() => useTerminalStore.getState().cancelCloseAll()}
                 style={{
                   padding: '6px 14px', fontSize: 12, borderRadius: 7,
                   border: '1px solid var(--border)', background: 'var(--bg-hover)',
@@ -460,7 +449,7 @@ export default function TerminalDock({ visible }: { visible: boolean }) {
               </button>
               <button
                 type="button"
-                onClick={closeAllConfirmed}
+                onClick={() => useTerminalStore.getState().confirmCloseAll()}
                 style={{
                   padding: '6px 14px', fontSize: 12, borderRadius: 7,
                   border: '1px solid rgba(239,68,68,0.35)',

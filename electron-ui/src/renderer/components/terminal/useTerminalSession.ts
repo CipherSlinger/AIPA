@@ -159,6 +159,11 @@ export function useTerminalSession(
       session.resize(term.cols, term.rows)
       const pending = pendingInputRef.current.splice(0)
       for (const chunk of pending) session.write(chunk)
+      // A command handed over before the PTY answered is typed in now, without
+      // a submit. Taking it clears the entry, so a later tab reusing this id
+      // cannot receive it again.
+      const queued = useTerminalStore.getState().flushQueuedInput(tabId)
+      if (queued) session.write(queued)
     }
     void start()
 

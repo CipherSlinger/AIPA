@@ -720,7 +720,18 @@
     "saveFailed": "Failed to save: {{error}}",
     "saveCanceled": "Save canceled",
     "openInFileManager": "Open in file manager",
-    "fileNotFound": "File or path does not exist"
+    "fileNotFound": "File or path does not exist",
+    "terminal": {
+      "send": "Send to terminal",
+      "disabled": {
+        "emptyCommand": "This block is empty — there is nothing to type.",
+        "multiLine": "This block has {{count}} lines; typing it would run the early lines as they arrive. Use Run instead."
+      },
+      "typedToast": "Typed into {{title}}. Nothing has run yet — press Enter in the terminal to run it.",
+      "queuedToast": "{{title}} is still starting; the command is queued and will be typed in once the shell is ready. Nothing runs until you press Enter.",
+      "separateRunInProgress": "A separate Run of this block is still in progress.",
+      "notSentNoCwd": "No working folder is set, so nothing was typed."
+    }
   },
   "copy": {
     "moreOptions": "More copy options",
@@ -1355,7 +1366,16 @@
     "manageSnippets": "Manage text snippets",
     "manageSnippetsDesc": "Create and edit ::keyword text expansions",
     "snippetCopied": "Copied the text of ::{{keyword}}",
-    "snippetCopyFailed": "Could not copy the snippet text"
+    "snippetCopyFailed": "Could not copy the snippet text",
+    "newTerminalTab": "New terminal tab",
+    "newTerminalTabDesc": "Open a shell in the conversation's working folder.",
+    "clearActiveTerminal": "Clear active terminal",
+    "clearActiveTerminalDesc": "Clear the active terminal's screen; the shell keeps running.",
+    "clearActiveTerminalNoTab": "There is no active terminal tab to clear.",
+    "clearActiveTerminalNotMounted": "The terminal was just opened, so there was no screen to clear.",
+    "closeAllTerminals": "Close all terminals",
+    "closeAllTerminalsDesc": "Close every terminal tab and stop the shells inside. Asks first while one is still running.",
+    "noTerminalTabs": "There are no terminal tabs to close."
   },
   "permission": {
     "allow": "Allow",
@@ -2342,6 +2362,47 @@
       "read": "read failed",
       "parse": "invalid format",
       "scan": "folder unreadable"
+    },
+    "editor": {
+      "dirty": "Unsaved changes",
+      "loading": "Reading file…",
+      "readFailed": "Could not read this file: {{message}}",
+      "notFound": "This file no longer exists on disk.",
+      "tooLargeRead": "This file is too large to edit in AIPA.",
+      "outsideRoots": "This file is outside the memory folders AIPA may edit.",
+      "changedOnDisk": "自你打开之后，这个文件在 AIPA 之外被改过。什么都没有写入。",
+      "currentSha": "On disk now: {{sha}}…",
+      "goneOnDisk": "The file is no longer on disk.",
+      "reload": "Reload from disk",
+      "reloadConfirm": "Reload from disk? Your unsaved draft will be discarded.",
+      "overwrite": "Overwrite anyway",
+      "discardConfirm": "Discard your unsaved changes?",
+      "saveFailed": "Could not save: {{message}}",
+      "saveBlocked": {
+        "saving": "Saving…",
+        "unchanged": "No changes to save",
+        "tooLarge": "Too large to save ({{size}} / {{max}} bytes)"
+      },
+      "newTitle": "New memory file",
+      "newWhere": "Saved to ~/.claude/memory/ as a Markdown file with frontmatter.",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Deployment preferences",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "One line shown beside the file name",
+      "typeLabel": "Type",
+      "bodyLabel": "Body",
+      "bodyPlaceholder": "What should AIPA remember?",
+      "createExists": "A memory file named “{{name}}” already exists. Nothing was written.",
+      "openExisting": "Open it",
+      "keepEditing": "Keep editing",
+      "createNeedsName": "Enter a name to create this file",
+      "createTooLarge": "This file is larger than the 256 KiB limit.",
+      "createFailed": "Could not create the file: {{message}}",
+      "invalidName": "The name has no characters that can form a file name.",
+      "creating": "Creating…",
+      "newButton": "New memory file",
+      "charCount_one": "{{count}} character",
+      "charCount_other": "{{count}} characters"
     }
   },
   "workflow": {

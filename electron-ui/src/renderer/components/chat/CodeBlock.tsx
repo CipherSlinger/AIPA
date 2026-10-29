@@ -9,6 +9,9 @@ import { CODE_COLLAPSE_THRESHOLD } from './messageContentConstants'
 import RunConfirmDialog from './RunConfirmDialog'
 import { useBlockRun, formatElapsed, type BlockRunState } from './useBlockRun'
 import { SHELL_OUTPUT_CAP } from './shellOutput'
+import { prepareTerminalCommand } from './terminalSend'
+import SendToTerminalButton from './SendToTerminalButton'
+import { useTerminalStore } from '../../store/terminalStore'
 
 // Languages that support live preview
 const PREVIEWABLE_LANGS = new Set(['html', 'svg', 'css', 'javascript', 'js', 'jsx', 'htm'])
@@ -549,6 +552,16 @@ export default function CodeBlockWithHeader({
   const workingDir = usePrefsStore(s => s.prefs.workingDir)
   const run = useBlockRun(codeText)
   const isRunning = run.state.status === 'running'
+  const prepared = prepareTerminalCommand(codeText)
+  const sendIssue = prepared.issue ?? (workingDir ? null : 'noWorkingDir')
+  const sendDisabled = sendIssue !== null
+  const sendReason = sendIssue === 'empty'
+    ? t('codeAction.terminal.disabled.emptyCommand')
+    : sendIssue === 'multiLine'
+      ? t('codeAction.terminal.disabled.multiLine', { count: prepared.lineCount })
+      : sendIssue === 'noWorkingDir'
+        ? t('codeAction.noWorkingDir')
+        : ''
 
   // The confirmation dialog is the consent boundary. No working directory means
   // there is nothing truthful to show in it, so explain instead of opening it.
@@ -564,6 +577,30 @@ export default function CodeBlockWithHeader({
     setShowRunConfirm(false)
     void run.start(workingDir || undefined)
   }, [run, workingDir])
+
+  // Send stays enabled while Run is going: they are independent mechanisms (one
+  // writes to a PTY, the other goes through the sandboxed shell:exec runner), so
+  // refusing would hide a safe action. The toast says a separate run is still in
+  // progress, because "typed in" and "ran it" must never read as the same thing.
+  // Exactly one store call per press; the store owns opening the dock, picking
+  // or creating the tab, and writing without a submit.
+  const handleSendToTerminal = useCallback(() => {
+    if (sendDisabled || !workingDir) return
+    const outcome = useTerminalStore.getState().typeIntoTerminal({
+      cwd: workingDir,
+      text: prepared.command,
+    })
+    if (outcome.status === 'no-cwd') {
+      addToast('error', t('codeAction.terminal.notSentNoCwd'))
+      return
+    }
+    const sentence = outcome.status === 'typed'
+      ? t('codeAction.terminal.typedToast', { title: outcome.title })
+      : t('codeAction.terminal.queuedToast', { title: outcome.title })
+    addToast('info', isRunning
+      ? `${sentence} ${t('codeAction.terminal.separateRunInProgress')}`
+      : sentence)
+  }, [sendDisabled, workingDir, prepared.command, isRunning, addToast, t])
 
   return (
     <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--code-border)', margin: '4px 0', boxShadow: 'var(--code-shadow)' }}>
@@ -600,6 +637,13 @@ export default function CodeBlockWithHeader({
               onRun={handleRunRequest}
               disabled={isRunning}
               running={isRunning}
+            />
+          )}
+          {isShellLang && (
+            <SendToTerminalButton
+              onSend={handleSendToTerminal}
+              disabled={sendDisabled}
+              reason={sendReason}
             />
           )}
           <SaveButton code={codeText} langName={langName} />
