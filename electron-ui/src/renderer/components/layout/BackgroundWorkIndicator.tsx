@@ -9,6 +9,11 @@
 // visible, in a warning tone rather than the neutral clock, until the user has
 // looked at the list. A failed list read still clears everything rather than
 // leaving a stale count on screen.
+//
+// Wave 61 adds jobs held by a department's daily cap. A hold is the last signal
+// because the user set the limit themselves: the work is stopped, not broken,
+// so it never outranks a failure. The panel offers the one deliberate way past
+// the cap, Run now, which is a manual run and therefore exempt from it.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Clock } from 'lucide-react'
@@ -22,6 +27,7 @@ import {
   markFailuresSeen,
   resolveFailuresSeenAt,
 } from './automationFailures'
+import { deriveHeldJobs } from '../automation/jobHold'
 
 interface AutomationSnapshot {
   jobs: AutomationJobData[]
@@ -136,6 +142,11 @@ export default function BackgroundWorkIndicator() {
   const unseen = useMemo(() => deriveUnseenFailures(jobs, seenAt), [jobs, seenAt])
   // What the open panel lists: derived from the watermark as it was at open.
   const openFailures = useMemo(() => deriveUnseenFailures(jobs, openSince), [jobs, openSince])
+  // Jobs stopped by a department's own daily cap. Derived once here from the
+  // same snapshot as everything else, so the segment's count and the rows the
+  // panel lists can never disagree, and nothing flickers while the panel fills.
+  const held = useMemo(() => deriveHeldJobs(jobs), [jobs])
+  const heldCount = held.rows.length + held.hidden
   const nextUp = useMemo(() => {
     // While everything is paused the stored nextRunAt is frozen; printing it
     // would promise a run that cannot start. A disabled job is never "next".
@@ -152,6 +163,7 @@ export default function BackgroundWorkIndicator() {
   // list with it.
   const failureCount = Math.max(unseen.total, open ? openFailures.total : 0)
   const visible = running.length > 0 || retrying.length > 0 || failureCount > 0
+    || heldCount > 0
 
   // The panel closes only when it has nothing left to list. Closing on "the
   // segment hid" would slam it shut the instant opening it cleared the badge —
@@ -159,7 +171,7 @@ export default function BackgroundWorkIndicator() {
   // group alone does not keep it open: the segment is hidden then, and a panel
   // anchored to a hidden trigger has nowhere to point.
   const panelEmpty = running.length === 0 && retrying.length === 0
-    && openFailures.total === 0
+    && openFailures.total === 0 && heldCount === 0
   useEffect(() => {
     if (!open) return
     if (!panelEmpty) return
@@ -169,21 +181,32 @@ export default function BackgroundWorkIndicator() {
 
   if (!visible) return null
 
-  // Priority: a run in flight, then a waiting retry, then failures. The segment's
-  // text follows that order; the panel lists everything regardless.
+  // Priority: a run in flight, then a waiting retry, then failures, then a held
+  // job. Held is last because the user set the limit themselves: the work is
+  // stopped, not broken, so however many jobs are held it never outranks a
+  // failure. The segment's text follows that order; the panel lists everything
+  // regardless.
   const failuresOnly = running.length === 0 && retrying.length === 0
+    && failureCount > 0
+  const heldOnly = running.length === 0 && retrying.length === 0
+    && failureCount === 0 && heldCount > 0
   const visibleLabel = running.length > 0
     ? t('statusBar.background.running', { count: running.length })
     : retrying.length > 0
       ? t('statusBar.background.retry', { count: retrying.length })
-      : t('statusBar.background.failures', { count: failureCount })
+      : failureCount > 0
+        ? t('statusBar.background.failures', { count: failureCount })
+        : t('statusBar.background.held', { count: heldCount })
   // The accessible name keeps the visible words ("Running 2") and adds the
   // action, so label-in-name still holds for voice control. Whenever failures
   // are waiting the action sentence says they need attention, whatever the
-  // segment's own label had to prioritise.
+  // segment's own label had to prioritise. A hold is informational, so its
+  // sentence is used only when held is what the segment actually says.
   const ariaLabel = failureCount > 0
     ? t('statusBar.background.failuresAria', { label: visibleLabel })
-    : t('statusBar.background.aria', { label: visibleLabel })
+    : heldOnly
+      ? t('statusBar.background.heldAria', { label: visibleLabel })
+      : t('statusBar.background.aria', { label: visibleLabel })
 
   const toggle = () => {
     if (open) {
@@ -224,7 +247,7 @@ export default function BackgroundWorkIndicator() {
           background: hover || open ? 'var(--border)' : 'transparent',
           color: running.length > 0
             ? 'var(--text-secondary)'
-            : failuresOnly ? 'var(--warning-text)' : 'var(--text-muted)',
+            : failuresOnly || heldOnly ? 'var(--warning-text)' : 'var(--text-muted)',
           transition: 'all 0.15s ease',
         }}
       >
@@ -258,6 +281,7 @@ export default function BackgroundWorkIndicator() {
         <BackgroundWorkPopover
           running={running}
           retrying={retrying}
+          held={held}
           failures={openFailures.rows}
           hiddenFailures={openFailures.hiddenCount}
           nextUp={nextUp}

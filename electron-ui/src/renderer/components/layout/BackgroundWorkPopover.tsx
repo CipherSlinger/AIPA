@@ -1,6 +1,6 @@
 // BackgroundWorkPopover — the list behind the status bar's background-work
 // segment (wave 24, extended with unseen failures in wave 27, retryable rows in
-// wave 28).
+// wave 28, and jobs held by a department cap in wave 61).
 //
 // Groups appear only when they have rows. Failures come first: they are the
 // group that is still owed an answer, and the segment may be showing a running
@@ -15,23 +15,38 @@
 // the main action's accessible name has to stay the row's own text (job, time,
 // reason). "Ask AIPA" drafts the question in a new conversation; it never sends.
 //
+// A held row is its own group, immediately after failures and before the state
+// groups. It is separate because nothing broke: a department cap refused the
+// scheduled occurrence, and the row's job is to name the cap and offer the one
+// deliberate way past it. Run now is manual and therefore exempt from that cap,
+// which is why the row can start a job the scheduler just stopped.
+//
 // `now` comes from the parent, which ticks only while this panel is open.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import { AlertTriangle, ArrowUpRight, Loader2, Pause, RotateCcw, Sparkles } from 'lucide-react'
+import {
+  AlertTriangle, ArrowUpRight, Building2, Clock, Loader2, Pause, RotateCcw, Sparkles,
+} from 'lucide-react'
 import { useI18n } from '../../i18n'
-import { useChatStore, useUiStore } from '../../store'
+import { useChatStore, useDepartmentStore, useUiStore } from '../../store'
 import { formatDuration } from './statusBarConstants'
 import { errorCodeText, relativeTimeText } from '../workflows/scheduleSummary'
 import { failureStreakText, type UnseenFailure } from './automationFailures'
 import { buildInvestigatePrompt } from '../automation/investigatePrompt'
+import { buildJobDepartmentOptions, resolveJobDepartment } from '../automation/jobDepartment'
+import type { HeldJobs, JobHold } from '../automation/jobHold'
 import type { Translate } from '../automation/scheduleText'
 import type { AutomationJobData } from '../../../preload'
 
 interface BackgroundWorkPopoverProps {
   running: AutomationJobData[]
   retrying: AutomationJobData[]
+  /**
+   * Jobs a department's daily cap refused, already capped by the indicator so
+   * this panel stays presentational and cannot disagree with the segment.
+   */
+  held: HeldJobs
   /** Failed runs newer than the watermark captured when this panel opened. */
   failures: UnseenFailure[]
   /** How many more are beyond the listed rows. */
@@ -322,9 +337,118 @@ function FailureRow({
   )
 }
 
+interface HeldRowProps {
+  hold: JobHold
+  time: string
+  department: string
+  departmentTitle: string | undefined
+  title: string
+  onClick: () => void
+  /** Start this job by hand, bypassing the cap that held it. */
+  onRunNow: () => void
+  runAria: string
+  runTitle: string
+  runBusyTitle: string
+  /** A run for this job is in flight right now. */
+  running: boolean
+  /** This row has already asked for a start and is waiting on the IPC reply. */
+  starting: boolean
+  alwaysShowAction: boolean
+}
+
+/**
+ * A held job was stopped by a limit the user set, not by anything breaking.
+ * The row therefore carries a clock in the warning tone rather than the failure
+ * triangle: it should be noticed, but it is not an alarm to dismiss. The
+ * department line names whose cap stopped it; a deleted node or an unfiled job
+ * says so in words, never as a bare id.
+ *
+ * Like a failure row, the actions are siblings inside a group. The main button
+ * keeps the row's own text as its accessible name, and Run now names its job.
+ */
+function HeldRow({
+  hold, time, department, departmentTitle, title, onClick,
+  onRunNow, runAria, runTitle, runBusyTitle, running, starting, alwaysShowAction,
+}: HeldRowProps) {
+  const [hovered, setHovered] = useState(false)
+  const [focused, setFocused] = useState(false)
+  const active = hovered || focused
+  // The same two reasons a failure row's action is inert: the job may already
+  // be running, or this row's start may still be awaiting its IPC reply.
+  const locked = running || starting
+  const actionVisible = active || alwaysShowAction || locked
+
+  return (
+    <div
+      role="group"
+      aria-label={hold.job.name}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocusCapture={() => setFocused(true)}
+      onBlurCapture={event => {
+        // Moving between the row's own buttons is not leaving the row.
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false)
+      }}
+      style={{ ...ROW_GROUP, background: active ? 'var(--bg-hover)' : 'transparent' }}
+    >
+      <button type="button" onClick={onClick} title={title} style={ROW_MAIN}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%' }}>
+          {/* Amber clock, not the failure triangle: a hold is a schedule that
+              stopped, not work that went wrong. */}
+          <Clock size={9} style={{ flexShrink: 0, color: 'var(--warning-text)' }} />
+          <span style={ELLIPSIS}>{hold.job.name}</span>
+          <span style={{
+            flexShrink: 0, color: 'var(--text-muted)',
+            fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"',
+          }}>
+            {time}
+          </span>
+        </span>
+        <span
+          title={departmentTitle}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4, width: '100%',
+            fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4,
+          }}
+        >
+          <Building2 size={9} style={{ flexShrink: 0 }} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {department}
+          </span>
+        </span>
+      </button>
+      <button
+        type="button"
+        aria-label={runAria}
+        title={running ? runBusyTitle : runTitle}
+        aria-disabled={locked}
+        aria-busy={starting || undefined}
+        onClick={() => { if (!locked) onRunNow() }}
+        onMouseEnter={event => {
+          if (!locked) event.currentTarget.style.color = 'var(--text-primary)'
+        }}
+        onMouseLeave={event => {
+          event.currentTarget.style.color = locked ? 'var(--text-muted)' : 'var(--text-secondary)'
+        }}
+        style={{
+          ...ICON_ACTION,
+          color: locked ? 'var(--text-muted)' : 'var(--text-secondary)',
+          cursor: locked ? 'default' : 'pointer',
+          opacity: !actionVisible ? 0 : locked && !starting ? 0.4 : 1,
+        }}
+      >
+        {starting
+          ? <Loader2 size={13} style={{ animation: 'spin 0.9s linear infinite' }} />
+          : <RotateCcw size={13} />}
+      </button>
+    </div>
+  )
+}
+
 export default function BackgroundWorkPopover({
   running,
   retrying,
+  held,
   failures,
   hiddenFailures,
   nextUp,
@@ -335,6 +459,14 @@ export default function BackgroundWorkPopover({
 }: BackgroundWorkPopoverProps) {
   const { t, resolvedLocale } = useI18n()
   const addToast = useUiStore(state => state.addToast)
+  const departments = useDepartmentStore(state => state.departments)
+  // One ordered mapping per tree or language change: held rows resolve their
+  // department against exactly the tree Settings shows, so a deleted node reads
+  // as deleted here too rather than being guessed from an id.
+  const departmentOptions = useMemo(
+    () => buildJobDepartmentOptions(departments, resolvedLocale),
+    [departments, resolvedLocale],
+  )
   const panelRef = useRef<HTMLDivElement>(null)
   // Jobs whose start request is still awaiting the IPC reply. Keyed by job, not
   // by row: the same job can occupy two failure rows, and both must show the
@@ -364,24 +496,32 @@ export default function BackgroundWorkPopover({
     }
   }, [])
 
-  const runAgain = async (failure: UnseenFailure) => {
+  /**
+   * Start one job by hand from this panel.
+   *
+   * A failure row reruns the job that failed; a held row starts the job the cap
+   * refused, which is allowed because a manual run is exempt from that cap.
+   * Both share this one path so their guards, refusals and feedback cannot
+   * drift apart.
+   */
+  const startRun = async (jobId: string, jobName: string) => {
     const api = window.electronAPI
     if (!api?.automationRunNow) {
       // Preload missing or stale: say so instead of leaving the click silent.
       addToast('error', t('statusBar.background.runRefused', {
-        name: failure.jobName,
+        name: jobName,
         reason: t('automation.errors.unexpected_error'),
       }))
       return
     }
-    if (startingRef.current.has(failure.jobId)) return
-    startingRef.current.add(failure.jobId)
+    if (startingRef.current.has(jobId)) return
+    startingRef.current.add(jobId)
     setStartingJobs(new Set(startingRef.current))
     try {
-      const result = await api.automationRunNow(failure.jobId)
+      const result = await api.automationRunNow(jobId)
       if (!result.ok) {
         // A refusal is not a generic failure: say which one it was.
-        addToast('warning', refusalText(result.error, failure.jobName, t))
+        addToast('warning', refusalText(result.error, jobName, t))
         return
       }
       // A manual run can be accepted and still not start — its workflow was
@@ -391,25 +531,27 @@ export default function BackgroundWorkPopover({
       if (!result.job.running) {
         addToast('warning', refusalText(
           result.job.lastError ?? 'unexpected_error',
-          failure.jobName,
+          jobName,
           t,
         ))
         return
       }
       // The scheduler broadcasts `automation:changed`; the indicator reloads on
       // that event, so nothing here polls for the run's progress.
-      addToast('success', t('statusBar.background.runStarted', { name: failure.jobName }))
+      addToast('success', t('statusBar.background.runStarted', { name: jobName }))
     } catch (err) {
       console.error('[AIPA] Could not start an automation from the background panel', err)
       addToast('error', t('statusBar.background.runRefused', {
-        name: failure.jobName,
+        name: jobName,
         reason: t('automation.errors.unexpected_error'),
       }))
     } finally {
-      startingRef.current.delete(failure.jobId)
+      startingRef.current.delete(jobId)
       setStartingJobs(new Set(startingRef.current))
     }
   }
+
+  const runAgain = (failure: UnseenFailure) => startRun(failure.jobId, failure.jobName)
 
   const openAutomations = () => {
     onClose()
@@ -603,6 +745,61 @@ export default function BackgroundWorkPopover({
               onMouseLeave={event => { event.currentTarget.style.color = 'var(--text-muted)' }}
             >
               <span>{t('statusBar.background.moreFailures', { count: hiddenFailures })}</span>
+            </button>
+          )}
+        </Group>
+      )}
+
+      {held.rows.length > 0 && (
+        <Group title={t('statusBar.background.heldJobs')}>
+          {held.rows.map(hold => {
+            // Resolve against the same tree Settings uses. A node that no
+            // longer exists and a job filed nowhere are distinct states, and
+            // both are said in words rather than as a raw id.
+            const department = resolveJobDepartment(hold.departmentId, departmentOptions)
+            const departmentText = department.state === 'found'
+              ? department.label
+              : department.state === 'stale'
+                ? t('automation.department.missingOption')
+                : t('automation.department.none')
+            const departmentTitle = department.state === 'found'
+              ? t('automation.department.rowTitle', { path: department.path })
+              : department.state === 'stale'
+                ? t('automation.department.missingHint')
+                : t('automation.department.hint')
+            return (
+              <HeldRow
+                key={`${hold.job.id}:${hold.at}`}
+                hold={hold}
+                time={relativeTimeText(hold.at, t, now)}
+                department={departmentText}
+                departmentTitle={departmentTitle}
+                title={openSettingsLabel}
+                onClick={openAutomations}
+                onRunNow={() => { void startRun(hold.job.id, hold.job.name) }}
+                runAria={t('statusBar.background.runHeldAria', { name: hold.job.name })}
+                // The cap is why the run stopped and Run now is why it may
+                // start: that exemption belongs in the tooltip, not the row.
+                runTitle={t('statusBar.background.runHeldTitle', { name: hold.job.name })}
+                runBusyTitle={t('statusBar.background.runHeldWhileRunning', { name: hold.job.name })}
+                running={runningJobIds.has(hold.job.id)}
+                starting={startingJobs.has(hold.job.id)}
+                alwaysShowAction={!hoverCapable}
+              />
+            )
+          })}
+          {held.hidden > 0 && (
+            // Same count-and-link shape as the failures group: the panel caps
+            // the list, and Settings owns the whole set.
+            <button
+              type="button"
+              onClick={openAutomations}
+              title={openSettingsLabel}
+              style={{ ...ROW, color: 'var(--text-muted)', fontSize: 10 }}
+              onMouseEnter={event => { event.currentTarget.style.color = 'var(--text-primary)' }}
+              onMouseLeave={event => { event.currentTarget.style.color = 'var(--text-muted)' }}
+            >
+              <span>{t('statusBar.background.moreHeld', { count: held.hidden })}</span>
             </button>
           )}
         </Group>

@@ -34,6 +34,7 @@ import {
 } from '../automation/jobSort'
 import { buildInvestigatePrompt } from '../automation/investigatePrompt'
 import { buildJobDepartmentOptions, resolveJobDepartment } from '../automation/jobDepartment'
+import { isHeldJob } from '../automation/jobHold'
 import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from '../automation/automationStyles'
 import { RUN_HISTORY_CAP, viewRunHistory } from './runHistoryView'
 import { fileKindMarker, viewRunFiles } from './runFilesView'
@@ -569,7 +570,7 @@ export default function SettingsAutomations() {
     }
   }
 
-  const statusLine = (job: AutomationJobData): { text: string; color: string } => {
+  const statusLine = (job: AutomationJobData): { text: string; color: string; title?: string } => {
     if (job.running || job.lastStatus === 'running') {
       return { text: t('automation.status.running'), color: 'var(--accent-text)' }
     }
@@ -579,6 +580,20 @@ export default function SettingsAutomations() {
     const when = t('automation.lastRun', { time: timeText(job.lastRunAt) })
     const late = job.lastRunLate ? ` · ${t('automation.ranLate')}` : ''
     if (job.lastStatus === 'success') return { text: `${t('automation.status.success')} · ${when}${late}`, color: 'var(--success-text)' }
+    // A department's daily cap refusing the newest occurrence is a hold, not a
+    // failure: nothing ran and nothing broke, so it keeps the warning tone and
+    // says who stopped it. The shared predicate reads the newest history record,
+    // so a genuinely newer success or error is never masked; here it can only
+    // outrank the generic skipped label, which would otherwise blame the hourly
+    // cap. The tooltip carries the way out — Run now is manual, and the cap is
+    // set on the department's Brief.
+    if (isHeldJob(job)) {
+      return {
+        text: `${t('dept.jobs.statusHeld')} · ${when}`,
+        color: WARNING,
+        title: t('dept.jobs.statusHeldTip'),
+      }
+    }
     if (job.lastStatus === 'skipped') {
       // A spend stop is still a skip, not a failure of the work; name the rail
       // that stopped it so it is not mistaken for the hourly cap. The global
@@ -1215,7 +1230,11 @@ export default function SettingsAutomations() {
                     </div>
 
                     <div style={{ fontSize: 11, color: status.color, marginTop: 4, lineHeight: 1.45 }}>
-                      <span>{status.text}</span>
+                      {/* Only the held label carries a tooltip; `help` is the
+                          cue that the sentence explains rather than acts. */}
+                      <span title={status.title} style={status.title ? { cursor: 'help' } : undefined}>
+                        {status.text}
+                      </span>
                       {job.failureStreak >= 2 && (
                         // Only an unattended job that keeps failing owes its owner
                         // this sentence; a single failure is already on the line.

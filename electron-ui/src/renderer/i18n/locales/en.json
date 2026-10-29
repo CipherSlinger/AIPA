@@ -2575,7 +2575,14 @@
       "runTooMany": "Too many runs are in progress to start {{name}}. Try again in a moment.",
       "runWorkflowMissing": "{{name}} can't run: its workflow no longer exists. Fix it in Settings → Automations.",
       "runNothingToRun": "{{name}} has nothing to run: its workflow produced no prompt.",
-      "runRefused": "Could not start {{name}}: {{reason}}"
+      "runRefused": "Could not start {{name}}: {{reason}}",
+      "held": "{{count}} held",
+      "heldAria": "{{label}} — held by a department spending limit. Open details.",
+      "heldJobs": "Held by limit",
+      "moreHeld": "and {{count}} more",
+      "runHeldAria": "Run {{name}} now",
+      "runHeldTitle": "Run {{name}} now. Manual runs are exempt from the department's spending limit.",
+      "runHeldWhileRunning": "{{name}} is running now — wait for it to finish."
     }
   },
   "dailyBriefing": {

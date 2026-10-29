@@ -2575,7 +2575,14 @@
       "runTooMany": "正在运行的任务太多，暂时无法启动「{{name}}」，请稍后再试。",
       "runWorkflowMissing": "「{{name}}」无法运行：它使用的工作流已不存在。请在“设置 → 定时任务”中修复。",
       "runNothingToRun": "「{{name}}」没有可运行的内容：它的工作流没有生成提示词。",
-      "runRefused": "无法启动「{{name}}」：{{reason}}"
+      "runRefused": "无法启动「{{name}}」：{{reason}}",
+      "held": "{{count}} 个被限额拦下",
+      "heldAria": "{{label}} — 被部门支出上限拦下。打开详情。",
+      "heldJobs": "被限额拦下",
+      "moreHeld": "还有 {{count}} 个",
+      "runHeldAria": "立即运行「{{name}}」",
+      "runHeldTitle": "立即运行「{{name}}」。手动运行不受部门支出上限限制。",
+      "runHeldWhileRunning": "「{{name}}」正在运行，等这次跑完。"
     }
   },
   "dailyBriefing": {
