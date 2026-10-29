@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useCallback, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useCallback, useRef, useState, useSyncExternalStore } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { ChatMessage, StandardChatMessage, HookCallbackMessage, ElicitationMessage } from '../../types/app.types'
 import Message from './Message'
@@ -16,6 +16,7 @@ import { useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { ArrowUp, Lock, Unlock } from 'lucide-react'
 import { useBuildItems, useMessageListMaps } from './messageListUtils'
+import { savedInterruptionStore, selectSavedInterruption } from './savedInterruptionStore'
 import { useMessageListScroll } from './useMessageListScroll'
 import { useMessageNavigation } from './useMessageNavigation'
 import { useEngineSteps } from './useEngineSteps'
@@ -116,8 +117,18 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   // Keyboard message navigation (extracted to useMessageNavigation — Iteration 403)
   // Pinned messages strip (extracted to PinnedMessagesStrip — Iteration 403)
 
+  // What the saved file looked like when this session was opened. The store is
+  // filled once by the load path, keyed by session id; a late answer for
+  // another session (or a live turn that moved on) selects as null.
+  const interruptionState = useSyncExternalStore(
+    savedInterruptionStore.subscribe,
+    savedInterruptionStore.getSnapshot,
+    savedInterruptionStore.getSnapshot,
+  )
+  const savedInterruption = selectSavedInterruption(interruptionState, sessionId ?? null)
+
   // Pre-computed data (single combined pass, Iteration perf)
-  const items = useBuildItems(messages, t, lastTurnOutcome, engineSteps)
+  const items = useBuildItems(messages, t, lastTurnOutcome, engineSteps, savedInterruption)
   const { showAvatarMap, showTimestampMap, lastUserMsgId, assistantReplyMap } = useMessageListMaps(messages)
 
   // PERF: keep the latest messages reachable from stable callbacks without
@@ -146,6 +157,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       if (item.type === 'responseTime') return 22
       if (item.type === 'compactSep') return 36
       if (item.type === 'turnEnded') return 24
+      if (item.type === 'interruption') return 32
       // Collapsed quiet rows are a single line; `measureElement` corrects this
       // when a "N engine steps" group is expanded.
       if (item.type === 'engineSteps') return 22
@@ -403,7 +415,7 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
               />
             )
           }
-          if (item.type === 'dateSep' || item.type === 'timeGap' || item.type === 'responseTime' || item.type === 'compactSep' || item.type === 'turnEnded') {
+          if (item.type === 'dateSep' || item.type === 'timeGap' || item.type === 'responseTime' || item.type === 'compactSep' || item.type === 'turnEnded' || item.type === 'interruption') {
             return (
               <VirtualSeparatorRow
                 key={item.type === 'dateSep' ? `sep-${item.label}` : `${item.type}-${virtualRow.index}`}

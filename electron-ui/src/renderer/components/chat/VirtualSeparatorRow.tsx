@@ -16,7 +16,7 @@ type VirtualSeparatorRowProps = {
   measureElement: Virtualizer<HTMLDivElement, Element>['measureElement']
 } & (
   | {
-      type: 'dateSep' | 'timeGap' | 'responseTime' | 'compactSep' | 'turnEnded'
+      type: 'dateSep' | 'timeGap' | 'responseTime' | 'compactSep' | 'turnEnded' | 'interruption'
       label: string
     }
   | {
@@ -132,6 +132,7 @@ function EngineStepsRow({ steps, rowKey, expanded, onToggle, virtualRow, measure
 
 export default function VirtualSeparatorRow(props: VirtualSeparatorRowProps) {
   const { virtualRow, measureElement } = props
+  const t = useT()
   const baseStyle: React.CSSProperties = {
     position: 'absolute',
     top: 0,
@@ -265,6 +266,41 @@ export default function VirtualSeparatorRow(props: VirtualSeparatorRowProps) {
             fontSize: 11,
             color: 'var(--text-muted)',
             fontStyle: 'italic',
+          }}>
+            {label}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  if (type === 'interruption') {
+    // The saved file's last write, not a live event and not an error. Same
+    // quiet treatment as a stopped turn, but it may wrap: the sentence names
+    // the file's state at the moment it was written.
+    return (
+      <div
+        key={`interruption-${virtualRow.index}`}
+        data-index={virtualRow.index}
+        data-interruption=""
+        ref={measureElement}
+        role="note"
+        aria-label={`${t('interruption.aria')}: ${label}`}
+        style={baseStyle}
+      >
+        <div className="chat-column" style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '4px 20px',
+        }}>
+          <span style={{
+            fontSize: 11,
+            color: 'var(--text-muted)',
+            fontStyle: 'italic',
+            lineHeight: 1.5,
+            textAlign: 'center',
+            wordBreak: 'break-word',
           }}>
             {label}
           </span>

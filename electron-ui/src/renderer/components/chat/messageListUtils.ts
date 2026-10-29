@@ -3,6 +3,7 @@ import { ChatMessage } from '../../types/app.types'
 import { turnEndNoticeKey } from './codexErrorText'
 import type { EngineStep } from './engineStepText'
 import { groupEngineSteps, placeEngineStepGroups } from './engineStepText'
+import { interruptionNoticeKey, type SavedInterruptionResult } from './savedInterruptionStore'
 
 // ── Date separator logic ──
 export function formatDateLabel(ts: number, t: (key: string) => string): string {
@@ -45,6 +46,8 @@ export type ListItem =
   | { type: 'responseTime'; label: string }
   | { type: 'compactSep'; label: string }
   | { type: 'turnEnded'; label: string }
+  /** What the saved transcript's last write looked like when it was opened. */
+  | { type: 'interruption'; label: string }
   /** Collapsed quiet rows for Codex item kinds without a rich card. */
   | { type: 'engineSteps'; key: string; steps: EngineStep[] }
 
@@ -67,6 +70,7 @@ export function buildListItems(
   t: (key: string, p?: Record<string, string | number>) => string,
   turnOutcome: 'interrupted' | 'unknown' | null = null,
   engineSteps: readonly EngineStep[] = NO_ENGINE_STEPS,
+  savedInterruption: SavedInterruptionResult | null = null,
 ): ListItem[] {
   const result: ListItem[] = []
   const messageTimestamps = messages.map(msg => msg.timestamp || 0)
@@ -118,6 +122,11 @@ export function buildListItems(
   // after its transcript, not a red error and not a success badge.
   const noticeKey = turnOutcome ? turnEndNoticeKey(turnOutcome) : null
   if (noticeKey) result.push({ type: 'turnEnded', label: t(noticeKey) })
+  // One line, last, stating what the file on disk held when this conversation
+  // was opened. It is deliberately the same muted style as a stopped turn:
+  // information, not an error verdict.
+  const interruptionKey = interruptionNoticeKey(savedInterruption)
+  if (interruptionKey) result.push({ type: 'interruption', label: t(interruptionKey) })
   return result
 }
 
@@ -131,10 +140,11 @@ export function useBuildItems(
   t: (key: string, p?: Record<string, string | number>) => string,
   turnOutcome: 'interrupted' | 'unknown' | null = null,
   engineSteps: readonly EngineStep[] = NO_ENGINE_STEPS,
+  savedInterruption: SavedInterruptionResult | null = null,
 ): ListItem[] {
   return useMemo(
-    () => buildListItems(messages, t, turnOutcome, engineSteps),
-    [messages, t, turnOutcome, engineSteps],
+    () => buildListItems(messages, t, turnOutcome, engineSteps, savedInterruption),
+    [messages, t, turnOutcome, engineSteps, savedInterruption],
   )
 }
 

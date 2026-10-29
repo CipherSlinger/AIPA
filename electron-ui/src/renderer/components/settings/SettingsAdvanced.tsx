@@ -4,6 +4,7 @@ import { usePrefsStore } from '../../store'
 import { useT } from '../../i18n'
 import { AlertTriangle, Plus, Trash2 } from 'lucide-react'
 import type { PermissionMode } from '../../types/app.types'
+import HotkeyStatus from './HotkeyStatus'
 
 const MAX_CHARS = 2000
 
@@ -575,6 +576,9 @@ export default function SettingsAdvanced() {
           </div>
         ))}
       </div>
+
+      {/* ── Section 4: Global hotkeys (what the OS accepted this session) ── */}
+      <HotkeyStatus />
 
     </div>
   )

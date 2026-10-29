@@ -11,6 +11,7 @@ import type { SessionListItem } from '../../types/app.types'
 import { parseSessionMessages } from '../sessions/sessionUtils'
 import { readSessionModelOverride } from '../../lib/sessionModel'
 import { readSessionEffortOverride } from '../../lib/sessionEffort'
+import { savedInterruptionStore } from '../chat/savedInterruptionStore'
 
 /**
  * @param origin where the user is opening from. Only the department views get the
@@ -26,6 +27,10 @@ export async function openSessionCore(
   useUiStore.getState().setMainView('chat')
   useUiStore.getState().closeSettingsModal()
   useUiStore.getState().setFromDepartment(origin === 'department')
+  // Any previous line described a different file. Retire it before the new
+  // load can answer, so a slow detect can never leave a stale sentence under
+  // the wrong conversation.
+  savedInterruptionStore.clear()
   const raw = await window.electronAPI.sessionLoad(session.sessionId)
   const chatMessages = parseSessionMessages(raw)
   useChatStore.getState().clearMessages()
@@ -48,6 +53,22 @@ export async function openSessionCore(
   const effortOverride = readSessionEffortOverride(session.sessionId)
   if (effortOverride) useChatStore.getState().setSessionEffortOverride(effortOverride)
   useUiStore.getState().clearUnreadForSession(session.sessionId)
+  // Ask once, at load, what the saved transcript's last write looked like. A
+  // crash or a closed window leaves no result event, so without this an
+  // interrupted conversation looks exactly like a finished one. The answer is
+  // a statement about the file, keyed by its session id; a failed or refused
+  // call records nothing (absent is not zero, and a failed check is not an
+  // interruption either). Codex sessions have no JSONL file and answer 'none'.
+  const loadedSessionId = session.sessionId
+  void window.electronAPI.sessionDetectInterruption(loadedSessionId)
+    .then((result) => {
+      const chat = useChatStore.getState()
+      // The user may have moved on, or started a live turn, while the file was
+      // being read. Never let a late answer describe a different view.
+      if (chat.viewSessionId !== loadedSessionId || chat.isStreaming) return
+      savedInterruptionStore.setFromLoad(loadedSessionId, result)
+    })
+    .catch(() => { /* a failed check shows nothing */ })
   // An unassigned session keeps whatever directory the user is already in.
   if (deptDirectory) {
     usePrefsStore.getState().setPrefs({ workingDir: deptDirectory })

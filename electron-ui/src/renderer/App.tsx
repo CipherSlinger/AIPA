@@ -12,6 +12,8 @@ import { cancelDeptHandbookSync, scheduleDeptHandbookSync } from './components/d
 import { populateDefaultPresetsIfEmpty } from './utils/presetPopulator'
 import { purgeTrashedWorkflows } from './lib/workflowTrash'
 import { listSessionsShared } from './utils/sessionListShared'
+import { apiErrorStore } from './components/chat/apiErrorStore'
+import { savedInterruptionStore } from './components/chat/savedInterruptionStore'
 import { useI18n, useT } from './i18n'
 import './styles/globals.css'
 import 'highlight.js/styles/github-dark.css'
@@ -226,16 +228,35 @@ export default function App() {
     return () => { cancelled = true }
   }, [])
 
-  // Listen for CLI notification events and surface them as info toasts
+  // CLI push notices. `cli:apiError` is emitted only by the legacy StreamBridge
+  // (Codex uses `cli:turnError` / `cli:result`), so the banner cannot double-claim.
   useEffect(() => {
-    if (!window.electronAPI?.onNotification) return
-    const unsub = window.electronAPI.onNotification((data) => {
-      const text = data.title
-        ? `${data.title}: ${data.message}`
-        : data.message
+    const unsubNotification = window.electronAPI?.onNotification?.((data) => {
+      const text = data.title ? `${data.title}: ${data.message}` : data.message
       if (text) useUiStore.getState().addToast('info', text)
     })
-    return () => unsub?.()
+    const unsubApiError = window.electronAPI?.onApiError?.((data) => {
+      apiErrorStore.push(data)
+    })
+    return () => { unsubNotification?.(); unsubApiError?.() }
+  }, [])
+
+  // Banner and saved-file-observation lifetimes follow the boundaries they
+  // describe — send and turn end — not a sender or a render.
+  useEffect(() => {
+    let prevStreaming = useChatStore.getState().isStreaming
+    let prevView = useChatStore.getState().viewSessionId
+    return useChatStore.subscribe((state) => {
+      if (state.viewSessionId !== prevView) {
+        prevView = state.viewSessionId
+        apiErrorStore.reset()
+      }
+      if (state.isStreaming === prevStreaming) return
+      prevStreaming = state.isStreaming
+      // A new prompt starts a turn; any turn end spends the file observation.
+      if (state.isStreaming) apiErrorStore.beginTurn()
+      else { apiErrorStore.endTurn(); savedInterruptionStore.clear() }
+    })
   }, [])
 
   // Listen for CLI system.init events to sync active model and MCP server state

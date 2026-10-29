@@ -15,6 +15,7 @@ import { useChatPanelShortcuts } from './useChatPanelShortcuts'
 import { useChatPanelEvents } from './useChatPanelEvents'
 import ChatHeader from './ChatHeader'
 import ChatInput from './ChatInput'
+import EngineApiErrorBanner from './EngineApiErrorBanner'
 import MessageList from './MessageList'
 import SessionOriginLine from './SessionOriginLine'
 import MadeFromConversation from '../provenance/MadeFromConversation'
@@ -483,6 +484,11 @@ export default function ChatPanel() {
 
       {/* Token usage progress bar */}
       <TokenUsageBar />
+
+      {/* The fallback engine's own API-error report. A banner, not a toast:
+          an authentication message must stay readable, and it must never be
+          mistaken for the turn's own failure verdict. */}
+      <EngineApiErrorBanner />
 
       {/* Find in this conversation (wave 70B). Docked to the top of the
           transcript in normal flow, with no card shadow: it belongs to the

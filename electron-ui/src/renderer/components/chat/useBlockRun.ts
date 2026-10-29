@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useT } from '../../i18n'
 import { createShellOutputCollector, type ShellOutputCollector } from './shellOutput'
+import { formatElapsed } from './runFollowThrough'
+
+// Re-exported for existing callers; the implementation lives in the pure
+// follow-through module so the composer draft can share the exact wording.
+export { formatElapsed }
 
 /**
  * State machine behind the Run button on a shell code block.
@@ -58,16 +63,6 @@ function createRunId(): string {
     return `run-${cryptoApi.randomUUID()}`
   }
   return `run-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
-}
-
-/** `3s`, `1m 05s` — short enough for the status row. */
-export function formatElapsed(ms: number): string {
-  const totalSeconds = Math.max(0, Math.round(ms / 1000))
-  const minutes = Math.floor(totalSeconds / 60)
-  const seconds = totalSeconds % 60
-  return minutes > 0
-    ? `${minutes}m ${String(seconds).padStart(2, '0')}s`
-    : `${seconds}s`
 }
 
 export interface BlockRunController {

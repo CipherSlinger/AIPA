@@ -706,7 +706,40 @@
       "noOutput": "没有输出。",
       "hide": "收起输出",
       "show": "显示输出",
-      "truncated": "只显示最后 {{chars}} 个字符。"
+      "truncated": "只显示最后 {{chars}} 个字符。",
+      "runAgain": "再运行一次",
+      "copyOutput": "复制输出",
+      "copyEmpty": "没有可复制的输出。",
+      "copiedOutput": "已复制命令输出。",
+      "copiedTruncated": "已复制最后 {{chars}} 个字符——输出开头的内容此前已被丢弃。",
+      "copyFailed": "无法复制输出：{{error}}",
+      "askAipa": "问问 AIPA",
+      "draftInserted": "草稿已放进输入框——没有发送。改好之后由你来发送。",
+      "draft": {
+        "header": "帮我看看这条在 AIPA 的代码块里运行过的命令：",
+        "commandLabel": "命令：",
+        "commandEmpty": "（命令为空）",
+        "commandTruncated": "命令超过 {{chars}} 个字符，这里只显示前 {{chars}} 个字符。",
+        "folder": "目录：{{cwd}}",
+        "folderUnknown": "目录：未记录",
+        "result": "结果：{{status}}",
+        "elapsed": "耗时：{{time}}",
+        "outputLabel": "输出：",
+        "outputTruncated": "输出已被截断，这里显示最后 {{chars}} 个字符。",
+        "outputEmpty": "没有输出。",
+        "outputNoneStarted": "命令从未启动，因此没有输出。",
+        "reasonTruncated": "{{reason}}（错误信息超过 {{chars}} 个字符，只显示前 {{chars}} 个）",
+        "status": {
+          "exited": "退出码 {{code}}",
+          "signal": "因信号 {{signal}} 结束",
+          "noExitCode": "结束，但没有退出码",
+          "timedOut": "运行 {{seconds}} 秒后超时",
+          "stoppedWithCode": "被你停下（退出码 {{code}}）",
+          "stopped": "被你停下",
+          "couldNotStart": "无法启动：{{reason}}",
+          "unreported": "运行结束，但没有收到结果"
+        }
+      }
     },
     "runInTerminal": "在终端中运行",
     "save": "保存",
@@ -1164,6 +1197,26 @@
         "intervalLabel": "频率",
         "enableHintWeekly": "AIPA 启动后不久会自己写一份备份，一周最多一次，不会拖慢窗口。一周从本地时间周一零点起算。如果在那之前就退出，下次启动时会写。"
       }
+    },
+    "hotkeys": {
+      "title": "全局快捷键",
+      "description": "AIPA 在启动时只注册一次这些组合键，并在这里报告操作系统接受了哪些。刷新只是重新读取这个结果，不会再试一次。",
+      "summonLabel": "唤起 AIPA",
+      "clipboardLabel": "剪贴板快捷操作",
+      "menuRowLabel": "View → {{label}}",
+      "menuRowGenericLabel": "View → 显示 AIPA",
+      "stateAvailable": "可用",
+      "stateUnavailable": "本次运行不可用",
+      "stateUnknown": "无法读取",
+      "summonClaimedDetail": "本次运行已由 AIPA 注册成功。AIPA 在后台时也能用。",
+      "summonFallbackDetail": "{{refused}} 已被其他应用占用，所以 AIPA 改用 {{chord}}。",
+      "summonNoneDetail": "AIPA 尝试过的组合键（{{tried}}）都被拒绝了——每一个都已被其他应用占用。请改用应用菜单里的 View → {{menuLabel}}。",
+      "summonNotAttemptedDetail": "AIPA 本次运行尚未报告唤起快捷键的注册结果，因此这里是未知。",
+      "clipboardClaimedDetail": "本次运行已由 AIPA 注册成功。在其他应用里也能读取剪贴板并打开对话。",
+      "clipboardRefusedDetail": "操作系统拒绝了 {{chord}}，因为另一个应用占用了它。本次运行期间剪贴板快捷操作不会从其他应用触发——被拒绝的是这个组合键，不是这项功能。",
+      "menuAvailableDetail": "只要 AIPA 在运行，这个菜单项就一直可用。它会把窗口带到前台，不依赖全局组合键。",
+      "statusUnknownDetail": "AIPA 无法读取快捷键状态，所以这里没有任何一项被确认可用。可以点“刷新”再试。",
+      "focusOnlyNote": "快捷键速查表里的其他快捷键只在 AIPA 获得焦点时生效。上面这些是 AIPA 唯一会从其他应用那里占用的组合键。"
     }
   },
   "outputStyle": {
@@ -1658,7 +1711,9 @@
     "messageContextMenu": "消息右键菜单",
     "searchPlaceholder": "筛选快捷键...",
     "pressEscToClose": "按 Esc 关闭",
-    "quickCapture": "唤起 AIPA 并聚焦输入框——AIPA 在后台时也生效（若这个组合键被占用，会依次退到 Ctrl + Shift + Space、Ctrl + Alt + A）"
+    "quickCapture": "唤起 AIPA 并聚焦输入框——AIPA 在后台时也生效（若这个组合键被占用，会依次退到 Ctrl + Shift + Space、Ctrl + Alt + A）",
+    "notAvailableThisSession": "本次运行不可用",
+    "notAvailableThisSessionTitle": "操作系统拒绝了这个组合键——另一个应用占用了它。"
   },
   "plan": {
     "executionPlan": "执行计划",
@@ -5115,5 +5170,18 @@
     "gitMissing": "没有安装 Git，或者它不在 PATH 上。",
     "cwdInvalid": "{{folder}} 不是一个可读的、位于允许范围内的文件夹。",
     "failed": "git status 失败：{{message}}"
+  },
+  "engineApiError": {
+    "title": "引擎报告了一个 API 错误",
+    "note": "这是引擎自己的报告。本轮是否失败由本轮的结果决定，这条提示不决定。",
+    "type": "类型：{{code}}",
+    "clipped": "消息在此处已截断。",
+    "repeats": "引擎报告了 {{count}} 次。",
+    "aria": "引擎报告的 API 错误"
+  },
+  "interruption": {
+    "prompt": "这段对话最后一次写入时，最后一条提示还没有收到回复。",
+    "turn": "这段对话最后一次写入时，最后一条回答写到一半就中断了。",
+    "aria": "关于已保存对话文件的说明"
   }
 }

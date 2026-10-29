@@ -29,6 +29,31 @@ export interface SessionListItemData {
   origin?: SessionOriginData
 }
 
+/**
+ * One global shortcut registration attempt. `main/window/shortcut-status.ts`
+ * is the authority; this mirror only keeps the IPC surface typed.
+ */
+export interface ShortcutAttemptData {
+  chord: string
+  claimed: boolean
+}
+
+/** Honest report of what the OS accepted at launch (no retries). */
+export interface ShortcutStatusData {
+  summon: {
+    chord: string | null
+    attempts: ShortcutAttemptData[]
+  }
+  clipboard: {
+    chord: string
+    registered: boolean
+  }
+  menuFallback: {
+    label: string
+    available: true
+  }
+}
+
 export interface SystemInitData {
   sessionId: string
   tools: string[]
@@ -2694,6 +2719,9 @@ const electronAPI = {
     ipcRenderer.invoke('session:trash:remove', id) as Promise<SessionTrashActionResultData>,
 
   // ── Window ──────────────────────────────
+  // Reports what the OS accepted at launch — a refused chord stays refused.
+  windowShortcutStatus: () =>
+    ipcRenderer.invoke('window:shortcutStatus') as Promise<ShortcutStatusData>,
   windowSetTitleBarOverlay: (opts: { color: string; symbolColor: string }) =>
     ipcRenderer.invoke('window:setTitleBarOverlay', opts),
   windowFlashFrame: (flash: boolean) =>

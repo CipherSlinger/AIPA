@@ -706,7 +706,40 @@
       "noOutput": "No output.",
       "hide": "Hide output",
       "show": "Show output",
-      "truncated": "Showing the last {{chars}} characters."
+      "truncated": "Showing the last {{chars}} characters.",
+      "runAgain": "Run again",
+      "copyOutput": "Copy output",
+      "copyEmpty": "There is no output to copy.",
+      "copiedOutput": "Command output copied.",
+      "copiedTruncated": "Copied the last {{chars}} characters — the start of the output was already dropped.",
+      "copyFailed": "Could not copy the output: {{error}}",
+      "askAipa": "Ask AIPA",
+      "draftInserted": "Draft added to the composer — nothing was sent. Edit it and send when you are ready.",
+      "draft": {
+        "header": "Help me understand this command run from a code block in AIPA:",
+        "commandLabel": "Command:",
+        "commandEmpty": "(the command was empty)",
+        "commandTruncated": "The command was longer than {{chars}} characters; only the first {{chars}} characters are shown.",
+        "folder": "Folder: {{cwd}}",
+        "folderUnknown": "Folder: not recorded",
+        "result": "Result: {{status}}",
+        "elapsed": "Elapsed: {{time}}",
+        "outputLabel": "Output:",
+        "outputTruncated": "Output was truncated, showing the last {{chars}} characters.",
+        "outputEmpty": "No output.",
+        "outputNoneStarted": "The command never started, so there is no output.",
+        "reasonTruncated": "{{reason}} (the error message was longer than {{chars}} characters; only the first {{chars}} are shown)",
+        "status": {
+          "exited": "exit code {{code}}",
+          "signal": "ended after signal {{signal}}",
+          "noExitCode": "ended without an exit code",
+          "timedOut": "timed out after {{seconds}} s",
+          "stoppedWithCode": "stopped by you (exit code {{code}})",
+          "stopped": "stopped by you",
+          "couldNotStart": "could not start: {{reason}}",
+          "unreported": "the run ended without a report"
+        }
+      }
     },
     "runInTerminal": "Run in Terminal",
     "save": "Save",
@@ -1164,6 +1197,26 @@
         "intervalLabel": "How often",
         "enableHintWeekly": "AIPA writes a backup by itself shortly after it starts, at most once a week, and never holds up the window. A week is counted from Monday midnight, local time. Quitting before that happens means the next launch writes it."
       }
+    },
+    "hotkeys": {
+      "title": "Global hotkeys",
+      "description": "AIPA claims these chords once at startup and reports what the operating system accepted. Refreshing re-reads that result — it does not try again.",
+      "summonLabel": "Summon AIPA",
+      "clipboardLabel": "Clipboard quick action",
+      "menuRowLabel": "View → {{label}}",
+      "menuRowGenericLabel": "View → Show AIPA",
+      "stateAvailable": "Available",
+      "stateUnavailable": "Not available in this session",
+      "stateUnknown": "Could not read",
+      "summonClaimedDetail": "Claimed by AIPA for this session. It works while AIPA is in the background.",
+      "summonFallbackDetail": "{{refused}} was refused because another application owns it, so AIPA is using {{chord}} instead.",
+      "summonNoneDetail": "Every chord AIPA tried ({{tried}}) was refused — another application owns each one. Use View → {{menuLabel}} from the app menu instead.",
+      "summonNotAttemptedDetail": "AIPA has not reported a summon registration in this session, so this is unknown.",
+      "clipboardClaimedDetail": "Claimed by AIPA for this session. It reads the clipboard and opens the chat from another application.",
+      "clipboardRefusedDetail": "The operating system refused {{chord}} because another application owns it. The clipboard quick action will not fire from other applications this session — the chord was refused, not the feature.",
+      "menuAvailableDetail": "Always available from the app menu while AIPA is running. It brings the window forward and does not depend on a global chord.",
+      "statusUnknownDetail": "AIPA could not read its shortcut status, so nothing here is confirmed available. Try Refresh.",
+      "focusOnlyNote": "Every other shortcut in the cheatsheet only works while AIPA is focused. The chords above are the only ones AIPA claims from other applications."
     }
   },
   "outputStyle": {
@@ -1658,7 +1711,9 @@
     "messageContextMenu": "Message context menu",
     "searchPlaceholder": "Filter shortcuts...",
     "pressEscToClose": "Press Esc to close",
-    "quickCapture": "Summon AIPA and focus the composer — works while AIPA is in the background (if that chord is taken, it falls back to Ctrl + Shift + Space, then Ctrl + Alt + A)"
+    "quickCapture": "Summon AIPA and focus the composer — works while AIPA is in the background (if that chord is taken, it falls back to Ctrl + Shift + Space, then Ctrl + Alt + A)",
+    "notAvailableThisSession": "not available this session",
+    "notAvailableThisSessionTitle": "The operating system refused this chord — another application owns it."
   },
   "plan": {
     "executionPlan": "Execution Plan",
@@ -5115,5 +5170,18 @@
     "gitMissing": "Git is not installed, or it is not on PATH.",
     "cwdInvalid": "{{folder}} can't be read as a folder within the allowed roots.",
     "failed": "git status failed: {{message}}"
+  },
+  "engineApiError": {
+    "title": "The engine reported an API error",
+    "note": "This is the engine's own report. The turn's result is what decides whether the turn failed — this banner does not.",
+    "type": "Type: {{code}}",
+    "clipped": "The message was shortened here.",
+    "repeats": "The engine reported this {{count}} times.",
+    "aria": "API error reported by the engine"
+  },
+  "interruption": {
+    "prompt": "When this conversation was last written, the last prompt had not received a reply.",
+    "turn": "When this conversation was last written, the last answer was cut off mid-way.",
+    "aria": "Note about the saved conversation file"
   }
 }

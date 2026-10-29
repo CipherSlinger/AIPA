@@ -16,6 +16,12 @@ import { listSessions } from './sessions/session-reader'
 import { saveNow as saveSessionIndexNow } from './sessions/session-index-cache'
 import { getPref, setPref } from './config/config-manager'
 import { claimSummonChord, summonWindowActions, type SummonChord } from './window/summon'
+import {
+  CLIPBOARD_QUICK_ACTION_CHORD,
+  recordClipboardRegistration,
+  recordSummonRegistration,
+  showAipaMenuLabel,
+} from './window/shortcut-status'
 import { createLogger } from './utils/logger'
 
 const log = createLogger('main')
@@ -478,7 +484,7 @@ function rebuildAppMenu(recentSessionItems: Electron.MenuItemConstructorOptions[
         // and a menu accelerator only fires while AIPA itself is focused — it
         // would double-fire with the global registration whenever the app is in
         // front. This row is the fallback when another app owns every chord.
-        { label: isZh ? '显示 AIPA' : 'Show AIPA', click: () => showMainWindow() },
+        { label: showAipaMenuLabel(isZh), click: () => showMainWindow() },
         { type: 'separator' },
         { label: 'Toggle Sidebar', accelerator: 'CmdOrCtrl+B', click: () => mainWindow?.webContents.send('menu:toggleSidebar') },
         { label: 'Toggle Terminal', accelerator: 'CmdOrCtrl+`', click: () => mainWindow?.webContents.send('menu:toggleTerminal') },
@@ -646,7 +652,7 @@ function rebuildTrayMenu(options: { reuseSessionCache?: boolean } = {}): void {
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: isZh ? '显示 AIPA' : 'Show AIPA',
+      label: showAipaMenuLabel(isZh),
       click: () => {
         mainWindow?.show()
         mainWindow?.focus()
@@ -785,6 +791,9 @@ function registerSummonShortcut(): void {
 
   const { chord, attempts } = claimSummonChord(candidate => globalShortcut.register(candidate, onTrigger))
   summonShortcutChord = chord
+  // The status snapshot is built from this exact result — not from a second
+  // guess at which chord won. Settings may only report what was recorded here.
+  recordSummonRegistration({ chord, attempts })
 
   if (chord) {
     log.info(`Global summon shortcut registered: ${chord}`)
@@ -792,7 +801,7 @@ function registerSummonShortcut(): void {
     log.warn(
       `No global summon shortcut could be registered; tried ${attempts.map(a => a.chord).join(', ')}. ` +
       'globalShortcut.register refused each one — another application almost certainly owns it. ' +
-      'View > Show AIPA in the app menu still brings the window forward.',
+      `View > ${showAipaMenuLabel(false)} in the app menu still brings the window forward.`,
     )
     notifySummonUnavailable()
   }
@@ -801,8 +810,8 @@ function registerSummonShortcut(): void {
 function registerGlobalHotkey(): void {
   registerSummonShortcut()
 
-  // Ctrl+Shift+G: Quick clipboard action — reads clipboard, opens AIPA, sends to chat
-  const clipboardRegistered = globalShortcut.register('Ctrl+Shift+G', () => {
+  // Quick clipboard action — reads clipboard, opens AIPA, sends to chat
+  const clipboardRegistered = globalShortcut.register(CLIPBOARD_QUICK_ACTION_CHORD, () => {
     const clipboardText = clipboard.readText().trim()
     mainWindow?.show()
     mainWindow?.focus()
@@ -810,10 +819,12 @@ function registerGlobalHotkey(): void {
       mainWindow?.webContents.send('menu:clipboardQuickAction', clipboardText)
     }
   })
+  // Same boolean the OS returned; the status snapshot never re-derives it.
+  recordClipboardRegistration(clipboardRegistered)
   if (clipboardRegistered) {
-    log.info('Global hotkey registered: Ctrl+Shift+G (clipboard quick action)')
+    log.info(`Global hotkey registered: ${CLIPBOARD_QUICK_ACTION_CHORD} (clipboard quick action)`)
   } else {
-    log.warn('Failed to register global hotkey: Ctrl+Shift+G')
+    log.warn(`Failed to register global hotkey: ${CLIPBOARD_QUICK_ACTION_CHORD}`)
   }
 }
 

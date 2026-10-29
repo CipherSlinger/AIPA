@@ -3,6 +3,13 @@ import { createPortal } from 'react-dom'
 import { X, Search } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
+import {
+  formatChord,
+  isShortcutStatusSnapshot,
+  shortcutAvailability,
+  type GlobalShortcutKind,
+  type ShortcutStatusSnapshot,
+} from '../../lib/hotkeyStatus'
 
 // ── Keyframe injection (idempotent) ───────────────────────────────────────────
 ;(function ensureSCKeyframes() {
@@ -21,14 +28,25 @@ interface Props {
   onClose: () => void
 }
 
+interface ShortcutItem {
+  keys: string
+  actionKey: string
+  /** Global rows can carry the registration result reported by main. */
+  statusSource?: GlobalShortcutKind
+}
+interface ShortcutSection {
+  sectionKey: string
+  items: ShortcutItem[]
+}
+
 // Keys reference i18n path under shortcutCheatsheet.*
-const SHORTCUTS = [
+const SHORTCUTS: ShortcutSection[] = [
   { sectionKey: 'global', items: [
     // The global summon chord is claimed in main, in priority order; the action
     // text names the fallbacks because the OS may hand back a different chord
     // than the one printed here.
-    { keys: 'Ctrl + Alt + Space', actionKey: 'quickCapture' },
-    { keys: 'Ctrl + Shift + G', actionKey: 'clipboardQuickAction' },
+    { keys: 'Ctrl + Alt + Space', actionKey: 'quickCapture', statusSource: 'summon' },
+    { keys: 'Ctrl + Shift + G', actionKey: 'clipboardQuickAction', statusSource: 'clipboard' },
   ]},
   { sectionKey: 'general', items: [
     { keys: 'Ctrl + N', actionKey: 'newConversation' },
@@ -94,6 +112,22 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
   const focusTrapRef = useFocusTrap(true)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [searchFilter, setSearchFilter] = useState('')
+  // The cheatsheet is mounted outside Settings, so this is read lazily when it
+  // opens. A missing channel or a failed call leaves it null: the global rows
+  // then carry no marker rather than asserting availability either way.
+  const [shortcutStatus, setShortcutStatus] = useState<ShortcutStatusSnapshot | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const api = window.electronAPI
+    if (!api || typeof api.windowShortcutStatus !== 'function') return
+    api.windowShortcutStatus()
+      .then(next => {
+        if (!cancelled && isShortcutStatusSnapshot(next)) setShortcutStatus(next)
+      })
+      .catch(() => { /* unknown — no marker is shown */ })
+    return () => { cancelled = true }
+  }, [])
 
   // Filter shortcuts based on search query
   const filteredSections = useMemo(() => {
@@ -222,36 +256,54 @@ export default function ShortcutCheatsheet({ onClose }: Props) {
             }}>
               {t(`shortcutCheatsheet.${section.sectionKey}`)}
             </div>
-            {section.items.map((item, idx) => (
-              <div
-                key={item.keys}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '6px 0',
-                  borderBottom: '1px solid var(--border)',
-                }}
-              >
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t(`shortcutCheatsheet.${item.actionKey}`)}</span>
-                <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-                  <kbd
-                    style={{
-                      background: 'var(--border)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 5,
-                      padding: '1px 5px',
-                      fontSize: 11,
-                      fontFamily: 'monospace',
-                      color: 'var(--text-secondary)',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {item.keys}
-                  </kbd>
+            {section.items.map(item => {
+              const availability = item.statusSource
+                ? shortcutAvailability(shortcutStatus, item.statusSource)
+                : 'unknown'
+              // Show the chord that actually won when the snapshot knows it;
+              // the printed default is only a fallback for the unknown case.
+              const displayKeys = item.statusSource === 'summon' && shortcutStatus?.summon.chord
+                ? formatChord(shortcutStatus.summon.chord)
+                : item.keys
+              return (
+                <div
+                  key={item.keys}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '6px 0',
+                    borderBottom: '1px solid var(--border)',
+                  }}
+                >
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t(`shortcutCheatsheet.${item.actionKey}`)}</span>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {availability === 'unavailable' && (
+                      <span
+                        title={t('shortcutCheatsheet.notAvailableThisSessionTitle')}
+                        style={{ fontSize: 9, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}
+                      >
+                        {t('shortcutCheatsheet.notAvailableThisSession')}
+                      </span>
+                    )}
+                    <kbd
+                      style={{
+                        background: 'var(--border)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 5,
+                        padding: '1px 5px',
+                        fontSize: 11,
+                        fontFamily: 'monospace',
+                        color: 'var(--text-secondary)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {displayKeys}
+                    </kbd>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         ))}
 

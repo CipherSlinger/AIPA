@@ -2,13 +2,14 @@
 // Sub-components: CopyButton, WrapToggleButton, CollapsiblePre, CodeBlockWithHeader, PreviewButton
 // Iteration 510: Added RunButton + SaveButton for actionable code blocks
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Copy, Check, ChevronDown, ChevronUp, WrapText, Play, X, Download, Loader2, Square } from 'lucide-react'
+import { Copy, Check, ChevronDown, ChevronUp, WrapText, Play, X, Download, Loader2, Square, RotateCcw, MessageCircle } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore, useUiStore } from '../../store'
 import { CODE_COLLAPSE_THRESHOLD } from './messageContentConstants'
 import RunConfirmDialog from './RunConfirmDialog'
 import { useBlockRun, formatElapsed, type BlockRunState } from './useBlockRun'
 import { SHELL_OUTPUT_CAP } from './shellOutput'
+import { buildRunDraft, planOutputCopy } from './runFollowThrough'
 import { prepareTerminalCommand } from './terminalSend'
 import SendToTerminalButton from './SendToTerminalButton'
 import { useTerminalStore } from '../../store/terminalStore'
@@ -209,17 +210,26 @@ function RunOutputPanel({
   elapsedMs,
   onStop,
   onToggleOutput,
+  onRunAgain,
+  onCopyOutput,
+  onAskAipa,
 }: {
   run: BlockRunState
   elapsedMs: number
   onStop: () => void
   onToggleOutput: () => void
+  onRunAgain: () => void
+  onCopyOutput: () => void
+  onAskAipa: () => void
 }) {
   const t = useT()
   const outputRef = useRef<HTMLPreElement>(null)
   const stickToBottom = useRef(true)
   const running = run.status === 'running'
   const showOutput = running || run.outputVisible
+  // The pre shows "No output." when there is none; Copy has nothing to write,
+  // so it says why instead of reporting a successful copy of an empty string.
+  const copyable = run.output.length > 0
 
   // Follow the tail while the command runs, but stop following as soon as the
   // user scrolls up to read something earlier.
@@ -288,6 +298,8 @@ function RunOutputPanel({
         style={{
           display: 'flex',
           alignItems: 'center',
+          flexWrap: 'wrap',
+          rowGap: 4,
           gap: 8,
           padding: '5px 12px',
           background: 'var(--code-header-bg)',
@@ -338,14 +350,55 @@ function RunOutputPanel({
             {run.stopping ? t('codeAction.run.stopping') : t('codeAction.run.stop')}
           </button>
         ) : (
-          <button
-            onClick={onToggleOutput}
-            aria-expanded={run.outputVisible}
-            aria-label={run.outputVisible ? t('codeAction.run.hide') : t('codeAction.run.show')}
-            style={controlStyle}
-          >
-            {run.outputVisible ? t('codeAction.run.hide') : t('codeAction.run.show')}
-          </button>
+          <>
+            {/*
+              A second run is still a run the user authorizes: this opens the
+              same confirmation dialog as the header's Run (CodeBlock passes
+              handleRunRequest, whose first act is setShowRunConfirm(true)).
+              It is absent while the command runs — Stop already owns that slot.
+            */}
+            <button
+              onClick={onRunAgain}
+              aria-label={t('codeAction.run.runAgain')}
+              title={t('codeAction.run.runAgain')}
+              style={controlStyle}
+            >
+              <RotateCcw size={9} />
+              {t('codeAction.run.runAgain')}
+            </button>
+            <button
+              onClick={onCopyOutput}
+              disabled={!copyable}
+              aria-disabled={!copyable}
+              aria-label={copyable ? t('codeAction.run.copyOutput') : t('codeAction.run.copyEmpty')}
+              title={copyable ? t('codeAction.run.copyOutput') : t('codeAction.run.copyEmpty')}
+              style={{
+                ...controlStyle,
+                cursor: copyable ? 'pointer' : 'default',
+                opacity: copyable ? 1 : 0.6,
+              }}
+            >
+              <Copy size={9} />
+              {t('codeAction.run.copyOutput')}
+            </button>
+            <button
+              onClick={onAskAipa}
+              aria-label={t('codeAction.run.askAipa')}
+              title={t('codeAction.run.askAipa')}
+              style={controlStyle}
+            >
+              <MessageCircle size={9} />
+              {t('codeAction.run.askAipa')}
+            </button>
+            <button
+              onClick={onToggleOutput}
+              aria-expanded={run.outputVisible}
+              aria-label={run.outputVisible ? t('codeAction.run.hide') : t('codeAction.run.show')}
+              style={controlStyle}
+            >
+              {run.outputVisible ? t('codeAction.run.hide') : t('codeAction.run.show')}
+            </button>
+          </>
         )}
       </div>
       {showOutput && (
@@ -578,6 +631,44 @@ export default function CodeBlockWithHeader({
     void run.start(workingDir || undefined)
   }, [run, workingDir])
 
+  // Copy writes exactly the stripped tail the panel shows. When the collector
+  // already dropped the start of the output, the toast says so rather than
+  // letting a short clipboard look like the whole story.
+  const handleCopyOutput = useCallback(() => {
+    const plan = planOutputCopy(run.state)
+    if (!plan.copyable) {
+      addToast('info', t('codeAction.run.copyEmpty'))
+      return
+    }
+    const clipboard = typeof navigator !== 'undefined' ? navigator.clipboard : undefined
+    if (!clipboard || typeof clipboard.writeText !== 'function') {
+      addToast('error', t('codeAction.run.copyFailed', { error: t('codeAction.run.unknownError') }))
+      return
+    }
+    clipboard.writeText(plan.text).then(() => {
+      addToast('success', plan.truncated
+        ? t('codeAction.run.copiedTruncated', { chars: plan.chars.toLocaleString() })
+        : t('codeAction.run.copiedOutput'))
+    }).catch((err: unknown) => {
+      addToast('error', t('codeAction.run.copyFailed', {
+        error: err instanceof Error ? err.message : String(err),
+      }))
+    })
+  }, [run.state, addToast, t])
+
+  // The draft is put in the composer and never sent: ChatInput appends the
+  // detail to what the user already typed, so they can edit before sending.
+  const handleAskAipa = useCallback(() => {
+    const draft = buildRunDraft(run.state, {
+      command: codeText,
+      cwd: workingDir || null,
+      t,
+    })
+    if (!draft) return
+    window.dispatchEvent(new CustomEvent('aipa:insertText', { detail: draft }))
+    addToast('info', t('codeAction.run.draftInserted'))
+  }, [run.state, codeText, workingDir, addToast, t])
+
   // Send stays enabled while Run is going: they are independent mechanisms (one
   // writes to a PTY, the other goes through the sandboxed shell:exec runner), so
   // refusing would hide a safe action. The toast says a separate run is still in
@@ -726,6 +817,9 @@ export default function CodeBlockWithHeader({
           elapsedMs={run.elapsedMs}
           onStop={run.stop}
           onToggleOutput={run.toggleOutput}
+          onRunAgain={handleRunRequest}
+          onCopyOutput={handleCopyOutput}
+          onAskAipa={handleAskAipa}
         />
       )}
       {showPreview && isPreviewable && (

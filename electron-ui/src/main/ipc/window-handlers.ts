@@ -2,8 +2,15 @@ import { ipcMain, BrowserWindow, desktopCapturer, powerSaveBlocker, dialog, app 
 import { createLogger } from '../utils/logger'
 import { getPref } from '../config/config-manager'
 import { shouldSuppressNativeNotification } from '../clawd-attention'
+import { shortcutStatusSnapshot } from '../window/shortcut-status'
 
 const log = createLogger('ipc:window')
+
+/** The UI language, for labels the renderer shows verbatim (menu items). */
+function isZhLocale(): boolean {
+  const lang = (getPref as any)('language') || app.getLocale()
+  return typeof lang === 'string' && lang.toLowerCase().startsWith('zh')
+}
 
 // ── Screen-capture consent ──
 //
@@ -24,8 +31,7 @@ let pendingConsent: Promise<boolean> | null = null
 
 async function requestCaptureConsent(win: BrowserWindow): Promise<boolean> {
   if (pendingConsent) return pendingConsent
-  const lang = (getPref as any)('language') || app.getLocale()
-  const isZh = typeof lang === 'string' && lang.toLowerCase().startsWith('zh')
+  const isZh = isZhLocale()
   const options: Electron.MessageBoxOptions = {
     type: 'question',
     buttons: isZh ? ['允许截图', '取消'] : ['Allow screenshot', 'Cancel'],
@@ -58,6 +64,11 @@ async function requestCaptureConsent(win: BrowserWindow): Promise<boolean> {
 }
 
 export function registerWindowHandlers(win: BrowserWindow): void {
+  // What the OS actually accepted at launch. Registration runs once and is not
+  // retried here: calling this channel reports the recorded result, so Settings
+  // can never turn a refused chord into an "available" row.
+  ipcMain.handle('window:shortcutStatus', () => shortcutStatusSnapshot({ isZh: isZhLocale() }))
+
   ipcMain.handle('window:setTitleBarOverlay', (_e, opts: { color: string; symbolColor: string }) => {
     win.setTitleBarOverlay(opts)
   })
