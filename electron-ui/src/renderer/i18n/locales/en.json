@@ -166,7 +166,13 @@
       "popoverGoneTitle": "The recorded folder is gone",
       "popoverGoneBody": "{{path}} no longer exists. Continuing this conversation will very likely fail, because Codex still runs it in that folder. Start a new conversation in a folder that exists.",
       "startNewHere": "Start a new conversation in…",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "popoverDraftTitle": "Where should this conversation run?",
+      "popoverDraftBody": "Pick a folder a conversation has already run in, or browse for another. This conversation has no record yet, so it moves with the pick.",
+      "recentHeading": "Recent folders",
+      "browse": "Browse…",
+      "recentRowNewConversation": "Start a new conversation in {{label}}",
+      "recentRowUseForDraft": "Run this conversation in {{label}}"
     },
     "workingDirDefault": "Home directory",
     "clickToChangeDir": "Click to change working directory",
@@ -1451,6 +1457,10 @@
       "newConversationDesc": "Start a new conversation in the folder you pick — this one keeps the folder it ran in",
       "thisConversationDesc": "Pick the folder this conversation runs in",
       "defaultDesc": "No conversation is open — this changes the folder the next one starts in"
+    },
+    "recentFolder": {
+      "startIn": "Start a new conversation in {{folder}}",
+      "description": "{{path}} · last used {{when}}"
     }
   },
   "permission": {
@@ -5181,8 +5191,6 @@
     "untrackedRow": "{{path}} is untracked — nothing to diff yet",
     "untrackedNoDiff": "Untracked files have no diff until they are added. AIPA did not read the file.",
     "showInFolder": "Show in folder",
-    "revealOnly": "The diff viewer runs in the app-wide working folder, which is not this repository. The file's folder was opened instead.",
-    "revealFailed": "The diff viewer runs in the app-wide working folder, which is not this repository. The file's folder could not be opened either — the path is in the row above.",
     "lettersTitle": "Index: {{index}} · worktree: {{worktree}}",
     "detached": "detached",
     "unknownBranch": "unknown branch",
@@ -5193,7 +5201,11 @@
     "notARepo": "{{folder}} is not a git repository.",
     "gitMissing": "Git is not installed, or it is not on PATH.",
     "cwdInvalid": "{{folder}} can't be read as a folder within the allowed roots.",
-    "failed": "git status failed: {{message}}"
+    "failed": "git status failed: {{message}}",
+    "revealOnly": "The diff viewer runs in the app-wide working folder, which is not this repository. The file's folder was opened instead.",
+    "revealFailed": "The diff viewer runs in the app-wide working folder, which is not this repository. The file's folder could not be opened either — the path is in the row above.",
+    "diffRefusedReveal": "AIPA was not allowed to read a diff in this conversation's folder, so the file's folder was opened instead.",
+    "diffRefusedRevealFailed": "AIPA was not allowed to read a diff in this conversation's folder, and the file's folder could not be opened either — the path is in the row above."
   },
   "engineApiError": {
     "title": "The engine reported an API error",
@@ -5210,5 +5222,9 @@
   },
   "sessionFolder": {
     "newConversationToast": "Started a new conversation in {{folder}}. The previous one stays in {{previous}} and is still in your history."
+  },
+  "quickSwitcher": {
+    "placeholderWithFolders": "Search sessions and folders...",
+    "matchedFolder": "matched folder"
   }
 }

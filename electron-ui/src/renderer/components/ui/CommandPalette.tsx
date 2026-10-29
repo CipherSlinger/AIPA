@@ -30,6 +30,7 @@ import {
   buildApprovalCommands,
   buildTrashCommands,
   buildRunActivityCommands,
+  buildRecentFolderCommands,
   type PaletteCommand,
 } from '../shared/commandPaletteCommands'
 import { normalizeTrashedWorkflows } from '../../lib/workflowTrash'
@@ -176,6 +177,10 @@ export default function CommandPalette({
       ...buildSessionCommands(args),
       ...buildAutomationCommands({ t, onClose, addToast, jobs: automationJobs, resolvedLocale }),
       ...buildRunActivityCommands({ t, onClose, jobs: automationJobs }),
+      // Ahead of the generic actions: starting over in a folder you just used
+      // is the most specific thing the palette can do, and its rows are only
+      // there when a conversation actually recorded a folder.
+      ...buildRecentFolderCommands({ t, onClose, sessions }),
       ...buildActionCommands(args),
       ...buildTrashCommands({ t, onClose, trashCount }),
       ...buildSlashCommands(args),

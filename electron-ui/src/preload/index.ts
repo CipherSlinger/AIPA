@@ -1752,6 +1752,21 @@ export interface GitStatusErrorData {
 export type GitStatusData = GitStatusOkData | GitStatusErrorData
 
 /**
+ * `fs:gitDiff` answer. A string is the diff. A failure says why, using the
+ * `fs:gitStatus` codes plus `file_invalid` for a refused file path — so a
+ * refusal (`cwd_invalid`, `file_invalid`) is distinguishable from git itself
+ * failing (`failed`, `not_a_repo`, `git_missing`). An empty tree with no
+ * changes also answers with an empty string: that is a real result.
+ */
+export interface GitDiffErrorData {
+  ok: false
+  code: GitStatusCode | 'file_invalid'
+  message: string
+}
+
+export type GitDiffData = string | GitDiffErrorData
+
+/**
  * `TurnStatus` normalized for the renderer. `unknown` means the notification
  * carried no status (or one this build cannot name) — it is never success.
  */
@@ -2432,8 +2447,14 @@ const electronAPI = {
   fsListCommands: (workingDir: string) => ipcRenderer.invoke('fs:listCommands', workingDir),
   fsPathExists: (filePath: string) =>
     ipcRenderer.invoke('fs:pathExists', { filePath }) as Promise<boolean>,
-  fsGitDiff: (filePath?: string) =>
-    ipcRenderer.invoke('fs:gitDiff', { filePath }) as Promise<string | { error: string }>,
+  /**
+   * `git diff HEAD` in `cwd` — the conversation's folder — limited to
+   * `filePath` when given. A folder outside the allowed roots is refused with
+   * `cwd_invalid`; it is never replaced by the app-wide folder. Without `cwd`
+   * the app-wide folder is used.
+   */
+  fsGitDiff: (filePath?: string, cwd?: string) =>
+    ipcRenderer.invoke('fs:gitDiff', { filePath, cwd }) as Promise<GitDiffData>,
   /**
    * `git status --porcelain=v1 -b` for `cwd` (or the app-wide working folder
    * when omitted). A folder outside the allowed roots is rejected with

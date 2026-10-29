@@ -7,6 +7,12 @@ import path from 'path'
 import os from 'os'
 import { execFileSync } from 'child_process'
 import { readGitStatus, type GitStatusResult } from '../fs/git-status'
+import {
+  planGitDiff,
+  classifyGitDiffError,
+  GIT_DIFF_TIMEOUT_MS,
+  GIT_DIFF_MAX_BUFFER,
+} from '../fs/git-diff'
 
 const log = createLogger('ipc:fs')
 
@@ -170,29 +176,45 @@ export function registerFsHandlers(): void {
     }
   })
 
-  // Git diff (Iteration 521: code changes view)
-  ipcMain.handle('fs:gitDiff', (_e, { filePath }: { filePath?: string } = {}) => {
+  // Git diff (Iteration 521: code changes view; wave 88A: per-conversation folder)
+  //
+  // The renderer may name the folder this diff belongs to. Both the folder and
+  // the file path go through `planGitDiff`, which applies the same
+  // `safePath`/allowed-roots gate as `fs:gitStatus` and refuses an unknown
+  // folder instead of quietly running in the app-wide one — the wrong
+  // checkout's diff is indistinguishable from the right one. Without `cwd`
+  // the app-wide folder is still used, exactly as before.
+  //
+  // Paths reach git as argv entries (`execFileSync`, no shell). The 5 s timeout
+  // and 100 KiB buffer are unchanged, and so is the rule that git's exit code 1
+  // (differences exist) is an answer read from stdout, not an error. The exit
+  // status has to be 1 for that, though: the old `if (err.stdout)` also caught
+  // an empty Buffer, so `git diff` outside a repository (exit 129, stdout "")
+  // came back as "no diff" instead of "not a repository".
+  ipcMain.handle('fs:gitDiff', (_e, request: { filePath?: string; cwd?: string } = {}) => {
+    const workingDir = (getPref('workingDir') as string) || os.homedir()
+    const plan = planGitDiff(request, workingDir)
+    if (!plan.ok) {
+      log.debug('fs:gitDiff refused:', plan.code, plan.message)
+      return plan
+    }
     try {
-      const workingDir = getPref('workingDir') as string || os.homedir()
-      // Validate the renderer-supplied path before handing it to git, and pass
-      // it as an argv entry (execFileSync) so no shell parsing is involved.
-      let safeFilePath: string | undefined
-      if (filePath) {
-        const resolved = path.isAbsolute(filePath) ? filePath : path.resolve(workingDir, filePath)
-        safeFilePath = safePath(resolved, getAllowedFsRoots(workingDir))
-      }
-      const args = safeFilePath ? ['diff', 'HEAD', '--', safeFilePath] : ['diff', 'HEAD']
-      const output = execFileSync('git', args, {
-        cwd: workingDir,
-        timeout: 5000,
-        maxBuffer: 100 * 1024,
+      const output = execFileSync('git', plan.args, {
+        cwd: plan.folder,
+        timeout: GIT_DIFF_TIMEOUT_MS,
+        maxBuffer: GIT_DIFF_MAX_BUFFER,
+        // git's stderr is folded into the structured failure by
+        // `classifyGitDiffError`; echoing it (a failing `git diff` prints its
+        // whole usage) would be a second, untranslated copy on the console.
+        // `windowsHide` keeps a console window from flashing, as in git-status.
+        stdio: ['ignore', 'pipe', 'pipe'],
+        windowsHide: true,
       })
       return output.toString('utf-8')
     } catch (err: any) {
-      // git diff exits with code 1 when there are differences — that's normal
-      if (err.stdout) return err.stdout.toString('utf-8')
+      if (err?.status === 1 && err.stdout != null) return err.stdout.toString('utf-8')
       log.debug('fs:gitDiff error:', String(err))
-      return { error: String(err.message || err) }
+      return classifyGitDiffError(err)
     }
   })
 

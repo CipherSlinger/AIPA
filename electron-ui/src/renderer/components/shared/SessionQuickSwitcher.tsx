@@ -35,6 +35,22 @@ function fuzzyMatch(text: string, query: string): boolean {
   return qi === lowerQuery.length
 }
 
+/**
+ * Does the conversation's recorded folder answer this query?
+ *
+ * A substring, not a fuzzy match: fuzzy over a long path lights up rows whose
+ * letters happen to appear somewhere in it, while the reader typed a folder
+ * they remember. Separators fold because Windows records `C:\work\proj` and
+ * people type `work/proj`; both name the same place. Case folds for the same
+ * reason a folder comparison does.
+ */
+function folderMatchesQuery(cwd: string | null | undefined, query: string): boolean {
+  const dir = typeof cwd === 'string' ? cwd.trim() : ''
+  const needle = query.trim().replace(/\\/g, '/').toLowerCase()
+  if (!dir || !needle) return false
+  return dir.replace(/\\/g, '/').toLowerCase().includes(needle)
+}
+
 function relativeTime(timestamp: number): string {
   const now = Date.now()
   const diff = now - timestamp
@@ -71,14 +87,29 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
     return [...sessions].sort((a, b) => b.timestamp - a.timestamp).slice(0, 15)
   }, [sessions])
 
-  // Filter by fuzzy search
+  // Whether any listed conversation records where it ran. The placeholder only
+  // mentions folders when one exists: a hint that promises a search dimension
+  // the list does not have would be a promise the list cannot keep.
+  const hasRecordedFolder = useMemo(
+    () => sortedSessions.some(s => typeof s.cwd === 'string' && s.cwd.trim() !== ''),
+    [sortedSessions],
+  )
+
+  // Filter by fuzzy search over the text the row shows — plus the recorded
+  // folder, which the row shows too but which was the one visible field the
+  // filter ignored. The folder is matched as a path (not fuzzily), so the
+  // same query cannot light up unrelated rows.
   const filtered = useMemo(() => {
-    if (!query.trim()) return sortedSessions
+    const q = query.trim()
+    if (!q) return sortedSessions
     return sortedSessions.filter(s => {
       const title = s.title || ''
       const prompt = s.lastPrompt || ''
       const note = sessionNotes[s.sessionId] || ''
-      return fuzzyMatch(title, query) || fuzzyMatch(prompt, query) || fuzzyMatch(note, query)
+      return fuzzyMatch(title, q)
+        || fuzzyMatch(prompt, q)
+        || fuzzyMatch(note, q)
+        || folderMatchesQuery(s.cwd, q)
     })
   }, [sortedSessions, query, sessionNotes])
 
@@ -184,7 +215,9 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
             onChange={e => setQuery(e.target.value)}
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
-            placeholder={t('session.quickSwitcherPlaceholder')}
+            placeholder={hasRecordedFolder
+              ? t('quickSwitcher.placeholderWithFolders')
+              : t('session.quickSwitcherPlaceholder')}
             style={{
               flex: 1,
               background: 'transparent',
@@ -236,12 +269,22 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
           )}
           {filtered.map((session, index) => {
             const title = session.title || session.lastPrompt?.slice(0, 60) || session.sessionId.slice(0, 12)
-            const preview = session.lastPrompt?.slice(0, 80) || ''
+            const prompt = session.lastPrompt || ''
+            const preview = prompt.slice(0, 80)
             const note = sessionNotes[session.sessionId]
             // Where the conversation actually ran. Codex records it; a Claude
             // transcript or an index that cannot tell leaves it unknown, and an
             // unknown folder is left blank — never filled in with a guess.
             const folder = sessionFolderProvenance(session.cwd, homeDir)
+            const q = query.trim()
+            const folderMatched = folderMatchesQuery(session.cwd, q)
+            // A row can enter the list only because of its folder. Say so on
+            // the folder line: a row that matches nothing visible reads as a
+            // bug, and the hint is the one thing that explains itself.
+            const folderOnlyMatch = folderMatched
+              && !fuzzyMatch(title, q)
+              && !fuzzyMatch(prompt, q)
+              && !fuzzyMatch(note || '', q)
             return (
               <div
                 key={session.sessionId}
@@ -292,17 +335,30 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
                     // row's existing text block.
                     <div
                       title={session.cwd}
+                      data-folder-match={folderOnlyMatch ? 'true' : undefined}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: 4,
                         minWidth: 0,
                         fontSize: 10,
-                        color: 'var(--text-subtle)',
+                        // The folder is emphasised only when this row is here
+                        // because of it; otherwise every list row would glow.
+                        color: folderOnlyMatch ? '#818cf8' : 'var(--text-subtle)',
                       }}
                     >
                       <Folder size={9} style={{ flexShrink: 0, opacity: 0.7 }} />
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{folder}</span>
+                      <span style={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        fontWeight: folderOnlyMatch ? 500 : 400,
+                      }}>{folder}</span>
+                      {folderOnlyMatch && (
+                        <span style={{ flexShrink: 0, opacity: 0.8 }}>
+                          · {t('quickSwitcher.matchedFolder')}
+                        </span>
+                      )}
                     </div>
                   )}
                   {note && (

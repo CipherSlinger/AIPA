@@ -9,28 +9,23 @@
 // itself groups them. A file staged and then edited again belongs to two
 // groups, because it genuinely has two kinds of change.
 //
-// Diffs reuse the sidebar's DiffViewer, fed by the existing `fs:gitDiff`
-// channel. That channel is bound to the app-wide working folder, so the chip
-// tells this panel whether it can speak for this repository; when it cannot,
-// clicking a row reveals the file instead of showing a diff from the wrong
-// checkout.
+// Diffs reuse the sidebar's DiffViewer, fed by `fs:gitDiff` in this
+// conversation's own folder (wave 88A). The channel used to run only in the
+// app-wide folder, so a tab-scoped conversation had to be told it could not
+// have a diff; it now names its folder and gets the right checkout. A folder
+// main refuses to read still falls back to revealing the file, and says so.
 
 import { useCallback, useMemo, useRef, useState, useEffect } from 'react'
 import { ArrowUp, ArrowDown, ExternalLink, GitBranch } from 'lucide-react'
 import { useT } from '../../i18n'
 import DiffViewer from '../sidebar/DiffViewer'
-import type { GitStatusFileData, GitStatusOkData } from '../../../preload'
+import type { GitDiffData, GitStatusFileData, GitStatusOkData } from '../../../preload'
+import { diffRefusedForFolder } from './gitStatusPanel'
 
 interface GitStatusPopoverProps {
-  /** The folder the conversation is using. */
+  /** The folder the conversation is using. Diffs run here, not app-wide. */
   cwd: string
   status: GitStatusOkData
-  /**
-   * False when `fs:gitDiff` would run in a different checkout. The row then
-   * opens the file's folder; it never renders a diff that belongs to another
-   * repository.
-   */
-  diffInThisFolder: boolean
   refreshing: boolean
   onClose: () => void
 }
@@ -70,7 +65,6 @@ function lettersOf(file: GitStatusFileData): string {
 export default function GitStatusPopover({
   cwd,
   status,
-  diffInThisFolder,
   refreshing,
   onClose,
 }: GitStatusPopoverProps) {
@@ -109,22 +103,50 @@ export default function GitStatusPopover({
 
   const root = status.root || cwd
 
-  const loadDiff = useCallback(async (file: GitStatusFileData) => {
+  // The documented fallback: open the file's folder and repeat what the shell
+  // actually answered. Collapsing the row is part of it — there is nothing
+  // under an open row that the note is not already saying.
+  const reveal = useCallback((key: string, file: GitStatusFileData) => {
+    setRevealed(null)
+    setExpanded(prev => (prev === key ? null : prev))
+    void window.electronAPI.shellShowItemInFolder(joinPath(root, file.path))
+      .then(result => setRevealed({ key, ok: result?.success !== false }))
+      .catch(() => setRevealed({ key, ok: false }))
+  }, [root])
+
+  const loadDiff = useCallback(async (file: GitStatusFileData, key: string) => {
     setDiffs(prev => ({ ...prev, [file.path]: { loading: true, content: null, error: null } }))
+    let result: GitDiffData
     try {
-      // The existing channel runs `git diff HEAD -- <path>` in the app-wide
-      // working folder. `diffInThisFolder` is the guard that this folder is
-      // that checkout (or inside it).
-      const result = await window.electronAPI.fsGitDiff(joinPath(root, file.path))
-      if (typeof result === 'string') {
-        setDiffs(prev => ({ ...prev, [file.path]: { loading: false, content: result, error: null } }))
-      } else {
-        setDiffs(prev => ({ ...prev, [file.path]: { loading: false, content: null, error: result.error } }))
-      }
+      // `cwd` is the conversation's folder, so git runs in the checkout these
+      // rows were read from — not in whatever folder the window last used. The
+      // row's path is absolute, but main resolves a relative one against this
+      // same folder.
+      result = await window.electronAPI.fsGitDiff(joinPath(root, file.path), cwd)
     } catch (err) {
       setDiffs(prev => ({ ...prev, [file.path]: { loading: false, content: null, error: String(err) } }))
+      return
     }
-  }, [root])
+    if (diffRefusedForFolder(result)) {
+      // Main would not read this folder, so there is no diff to be had. Fall
+      // back to the folder and let the note say which of the two things
+      // happened; the cleared entry means a later click asks again instead of
+      // replaying a verdict about a folder that may have changed.
+      setDiffs(prev => {
+        const next = { ...prev }
+        delete next[file.path]
+        return next
+      })
+      reveal(key, file)
+      return
+    }
+    if (typeof result === 'string') {
+      setDiffs(prev => ({ ...prev, [file.path]: { loading: false, content: result, error: null } }))
+    } else {
+      // A real git failure keeps its diagnosis in the row.
+      setDiffs(prev => ({ ...prev, [file.path]: { loading: false, content: null, error: result.message } }))
+    }
+  }, [root, cwd, reveal])
 
   const onRow = useCallback((file: GitStatusFileData, group: GroupKey) => {
     const key = `${group}:${file.path}`
@@ -133,21 +155,10 @@ export default function GitStatusPopover({
       setExpanded(prev => (prev === key ? null : key))
       return
     }
-    if (!diffInThisFolder) {
-      // No diff is available for this checkout, so open the file's folder.
-      // This is the documented fallback, not a second best diff. The note
-      // repeats what the shell actually answered.
-      setExpanded(null)
-      setRevealed(null)
-      void window.electronAPI.shellShowItemInFolder(joinPath(root, file.path))
-        .then(result => setRevealed({ key, ok: result?.success !== false }))
-        .catch(() => setRevealed({ key, ok: false }))
-      return
-    }
     const wasOpen = expanded === key
     setExpanded(wasOpen ? null : key)
-    if (!wasOpen && !diffs[file.path]) void loadDiff(file)
-  }, [diffInThisFolder, diffs, expanded, loadDiff, root])
+    if (!wasOpen && !diffs[file.path]) void loadDiff(file, key)
+  }, [diffs, expanded, loadDiff])
 
   const title = status.detached
     ? (status.headSha
@@ -299,7 +310,7 @@ export default function GitStatusPopover({
 
                     {revealed?.key === key && (
                       <div style={{ fontSize: 10, color: 'var(--text-muted)', padding: '2px 8px 6px 34px', lineHeight: 1.45 }}>
-                        {t(revealed.ok ? 'gitStatus.revealOnly' : 'gitStatus.revealFailed')}
+                        {t(revealed.ok ? 'gitStatus.diffRefusedReveal' : 'gitStatus.diffRefusedRevealFailed')}
                       </div>
                     )}
 

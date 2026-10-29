@@ -6,7 +6,7 @@
 // palette may have to reveal a hidden status bar first, and the chip only
 // mounts after that, so an event alone could be dispatched to no listener.
 
-import type { GitStatusData, GitStatusErrorData } from '../../../preload'
+import type { GitDiffData, GitStatusData, GitStatusErrorData } from '../../../preload'
 
 export const GIT_STATUS_OPEN_EVENT = 'aipa:openGitStatus'
 
@@ -33,9 +33,17 @@ export function gitFolderKey(folder: string): string {
   return folder.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase()
 }
 
-export function sameGitFolder(a: string, b: string): boolean {
-  if (!a || !b) return false
-  return gitFolderKey(a) === gitFolderKey(b)
+/**
+ * Was this diff refused because main would not read that folder at all?
+ *
+ * Only a refusal earns the "reveal the file instead" fallback. A git failure
+ * (timeout, git missing) is a failure of this one request and must be shown as
+ * such; treating it as a refusal would replace the diagnosis with a click that
+ * explains nothing. `cwd_invalid` is the same code `fs:gitStatus` uses, so the
+ * two surfaces agree about what "not this folder" means.
+ */
+export function diffRefusedForFolder(result: GitDiffData): boolean {
+  return typeof result !== 'string' && result.ok === false && result.code === 'cwd_invalid'
 }
 
 // The palette is rebuilt when it opens and cannot run `git` itself. The chip

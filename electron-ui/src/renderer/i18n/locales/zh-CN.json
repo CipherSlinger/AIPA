@@ -166,7 +166,13 @@
       "popoverGoneTitle": "记录中的文件夹已不存在",
       "popoverGoneBody": "{{path}} 已不存在。继续这段对话很可能失败，因为 Codex 仍然会在那个文件夹里运行它。请在一个存在的文件夹里开始新对话。",
       "startNewHere": "在…开始新对话",
-      "cancel": "取消"
+      "cancel": "取消",
+      "popoverDraftTitle": "这段对话在哪里运行？",
+      "popoverDraftBody": "选一个已经有对话跑过的文件夹，或者浏览别的。这段对话还没有记录，所以会跟着这次选择移动。",
+      "recentHeading": "最近的文件夹",
+      "browse": "浏览…",
+      "recentRowNewConversation": "在 {{label}} 里开始新对话",
+      "recentRowUseForDraft": "在 {{label}} 里运行这段对话"
     },
     "workingDirDefault": "主目录",
     "clickToChangeDir": "点击更改工作目录",
@@ -1451,6 +1457,10 @@
       "newConversationDesc": "在你选择的文件夹里开始新对话——当前对话仍留在它运行时的文件夹",
       "thisConversationDesc": "选择这段对话运行的文件夹",
       "defaultDesc": "当前没有打开的对话——这会更改下一个对话的起始文件夹"
+    },
+    "recentFolder": {
+      "startIn": "在「{{folder}}」开始新对话",
+      "description": "{{path}} · 上次使用于 {{when}}"
     }
   },
   "permission": {
@@ -5181,8 +5191,6 @@
     "untrackedRow": "{{path}} 尚未被跟踪——还没有可看的差异",
     "untrackedNoDiff": "未跟踪的文件在被添加之前没有差异。AIPA 没有读取这个文件。",
     "showInFolder": "在文件夹中显示",
-    "revealOnly": "差异查看器运行在应用全局的工作文件夹里，那不是这个仓库。因此改为打开文件所在的文件夹。",
-    "revealFailed": "差异查看器运行在应用全局的工作文件夹里，那不是这个仓库。文件所在的文件夹也没能打开——路径就在上面那一行。",
     "lettersTitle": "索引：{{index}} · 工作区：{{worktree}}",
     "detached": "分离头指针",
     "unknownBranch": "未知分支",
@@ -5193,7 +5201,11 @@
     "notARepo": "{{folder}} 不是 git 仓库。",
     "gitMissing": "没有安装 Git，或者它不在 PATH 上。",
     "cwdInvalid": "{{folder}} 不是一个可读的、位于允许范围内的文件夹。",
-    "failed": "git status 失败：{{message}}"
+    "failed": "git status 失败：{{message}}",
+    "revealOnly": "差异查看器运行在应用全局的工作文件夹里，那不是这个仓库。因此改为打开文件所在的文件夹。",
+    "revealFailed": "差异查看器运行在应用全局的工作文件夹里，那不是这个仓库。文件所在的文件夹也没能打开——路径就在上面那一行。",
+    "diffRefusedReveal": "AIPA 不被允许在这个对话的文件夹里读取差异，因此改为打开文件所在的文件夹。",
+    "diffRefusedRevealFailed": "AIPA 不被允许在这个对话的文件夹里读取差异，文件所在的文件夹也没能打开——路径就在上面那一行。"
   },
   "engineApiError": {
     "title": "引擎报告了一个 API 错误",
@@ -5210,5 +5222,9 @@
   },
   "sessionFolder": {
     "newConversationToast": "已在「{{folder}}」开始新对话。上一个对话仍在「{{previous}}」，并保留在历史里。"
+  },
+  "quickSwitcher": {
+    "placeholderWithFolders": "搜索会话和文件夹...",
+    "matchedFolder": "匹配文件夹"
   }
 }

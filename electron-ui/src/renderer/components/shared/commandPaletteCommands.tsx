@@ -515,6 +515,12 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
   ]
 }
 
+// The recent-folder rows live next door: this file is already past the
+// decomposition line, and the newest group has no business growing it. It is
+// re-exported here so the palette keeps one import surface for every group.
+export { buildRecentFolderCommands } from './recentFolderCommands'
+export type { RecentFolderCommandBuilderArgs } from './recentFolderCommands'
+
 export function buildSlashCommands(args: Pick<CommandBuilderArgs, 't' | 'onClose' | 'onNewConversation' | 'onSendSlashCommand'>): PaletteCommand[] {
   const { t, onClose, onNewConversation, onSendSlashCommand } = args
   return [

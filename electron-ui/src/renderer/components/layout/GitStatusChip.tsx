@@ -22,21 +22,12 @@ import GitStatusPopover from './GitStatusPopover'
 import {
   GIT_STATUS_OPEN_EVENT,
   consumeGitStatusRequest,
-  gitFolderKey,
   gitStatusErrorText,
   rememberGitStatus,
-  sameGitFolder,
 } from './gitStatusPanel'
 
 /** A burst of watcher events must not become a burst of git processes. */
 const FS_REFRESH_MIN_MS = 2000
-
-function isInside(folder: string, root: string): boolean {
-  if (!folder || !root) return false
-  const f = gitFolderKey(folder)
-  const r = gitFolderKey(root)
-  return r !== '' && f.startsWith(`${r}/`)
-}
 
 export default function GitStatusChip() {
   const t = useT()
@@ -239,14 +230,10 @@ export default function GitStatusChip() {
     void load()
   }
 
-  // `fs:gitDiff` runs in the app-wide working folder (the main process reads
-  // `prefs.workingDir`, else home) — a tab override does not move it. It can
-  // speak for this repository when that folder is the same one (or inside it);
-  // otherwise the panel reveals files instead of showing a diff produced by
-  // another checkout.
-  const diffCwd = globalDir || homeDir
-  const repoRoot = ok.root || cwd
-  const diffInThisFolder = sameGitFolder(repoRoot, diffCwd) || isInside(diffCwd, repoRoot)
+  // No "can a diff be shown here?" precomputation any more (wave 88A): the
+  // panel hands `cwd` to `fs:gitDiff`, so the diff runs in this conversation's
+  // folder. If main refuses that folder the row falls back to revealing the
+  // file — decided by the answer, not by comparing folders in the renderer.
 
   return (
     <div ref={rootRef} style={{ position: 'relative', flexShrink: 0 }}>
@@ -314,7 +301,6 @@ export default function GitStatusChip() {
         <GitStatusPopover
           cwd={cwd}
           status={ok}
-          diffInThisFolder={diffInThisFolder}
           refreshing={refreshing}
           onClose={() => close(false)}
         />

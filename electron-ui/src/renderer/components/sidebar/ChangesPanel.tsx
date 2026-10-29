@@ -2,7 +2,9 @@
 import React, { useState, useCallback } from 'react'
 import { GitBranch, ChevronDown, ChevronRight, FileCode, ExternalLink } from 'lucide-react'
 import { useChatStore } from '../../store/chatStore'
+import { usePrefsStore, useSessionStore } from '../../store'
 import { useT } from '../../i18n'
+import { resolveWorkingDir } from '../../lib/workingDir'
 import DiffViewer from './DiffViewer'
 
 interface FileDiffState {
@@ -48,6 +50,16 @@ export default function ChangesPanel() {
   const t = useT()
   const changedFiles = useChatStore(s => s.changedFiles)
 
+  // These files were reported by the agent running in *this conversation's*
+  // folder, so that is the folder their diffs must be read in. Without it the
+  // panel asked for a diff in the app-wide folder — a different checkout, or
+  // no repository at all, for a conversation scoped to its own tab. `''` keeps
+  // the old fallback for a window that does not know a folder yet.
+  const tabCwd = useChatStore(s => s.tabs.find(tab => tab.id === s.activeTabId)?.cwd ?? '')
+  const globalDir = usePrefsStore(s => s.prefs.workingDir)
+  const homeDir = useSessionStore(s => s.homeDir)
+  const diffCwd = resolveWorkingDir({ tabCwd, globalDir, homeDir }).dir || undefined
+
   // Deduplicate by filePath for badge count, but keep all entries for grouping
   const uniquePaths = Array.from(new Set(changedFiles.map(f => f.filePath)))
 
@@ -67,34 +79,36 @@ export default function ChangesPanel() {
     if (!isOpen && !fileDiffs[filePath]) {
       setFileDiffs(prev => ({ ...prev, [filePath]: { loading: true, content: null, error: null } }))
       try {
-        const result = await window.electronAPI.fsGitDiff(filePath)
+        // The conversation's folder, so a tab-scoped conversation reads its own
+        // checkout. The answer is a diff string or a structured failure.
+        const result = await window.electronAPI.fsGitDiff(filePath, diffCwd)
         if (typeof result === 'string') {
           setFileDiffs(prev => ({ ...prev, [filePath]: { loading: false, content: result, error: null } }))
         } else {
-          setFileDiffs(prev => ({ ...prev, [filePath]: { loading: false, content: null, error: result.error } }))
+          setFileDiffs(prev => ({ ...prev, [filePath]: { loading: false, content: null, error: result.message } }))
         }
       } catch (err) {
         setFileDiffs(prev => ({ ...prev, [filePath]: { loading: false, content: null, error: String(err) } }))
       }
     }
-  }, [expandedFiles, fileDiffs])
+  }, [expandedFiles, fileDiffs, diffCwd])
 
   const handleViewAllChanges = useCallback(async () => {
     setShowAllDiff(true)
     if (!allDiffState.content && !allDiffState.loading) {
       setAllDiffState({ loading: true, content: null, error: null })
       try {
-        const result = await window.electronAPI.fsGitDiff()
+        const result = await window.electronAPI.fsGitDiff(undefined, diffCwd)
         if (typeof result === 'string') {
           setAllDiffState({ loading: false, content: result, error: null })
         } else {
-          setAllDiffState({ loading: false, content: null, error: result.error })
+          setAllDiffState({ loading: false, content: null, error: result.message })
         }
       } catch (err) {
         setAllDiffState({ loading: false, content: null, error: String(err) })
       }
     }
-  }, [allDiffState])
+  }, [allDiffState, diffCwd])
 
   // Group changed files by turnIndex
   const byTurn: Record<number, typeof changedFiles> = {}
