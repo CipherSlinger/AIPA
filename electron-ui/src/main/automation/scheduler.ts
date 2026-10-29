@@ -64,10 +64,13 @@ import type { WatchHandlers } from './watcher'
 import { workflowPrompts } from './workflow-plan'
 import type { MainWorkflow, UiLocale } from './workflow-plan'
 import {
+  AUTOMATION_ALERT_STREAK,
   MAX_AUTOMATION_JOBS,
+  normalizeAlertPolicy,
 } from './types'
 import type {
   AutomationAction,
+  AutomationAlertPolicy,
   AutomationDeptBudget,
   AutomationDeptBudgetReport,
   AutomationInput,
@@ -76,8 +79,10 @@ import type {
   AutomationJobView,
   AutomationLimits,
   AutomationMissedRunPolicy,
+  AutomationRunAnnouncement,
   AutomationRunChain,
   AutomationRunOutcome,
+  AutomationRunRecord,
   AutomationRunRequest,
   AutomationRunSource,
   AutomationSkillDigest,
@@ -290,6 +295,15 @@ function validatePersonaId(value: unknown): string | undefined {
  */
 function validateQuietOnSuccess(value: unknown): boolean | undefined {
   return value === true ? true : undefined
+}
+
+/**
+ * A job's failure-alert policy. Only a deliberate `'after_streak'` is stored;
+ * anything else is the default "announce every failure", so a malformed value
+ * can never make an unattended failure quieter than the user asked for.
+ */
+function validateAlertPolicy(value: unknown): AutomationAlertPolicy | undefined {
+  return normalizeAlertPolicy(value)
 }
 
 /**
@@ -1094,7 +1108,7 @@ async function startRun(
     : chainPlan.kind === 'note'
       ? { note: chainPlan.note }
       : { note: 'target_refused' }
-  job.history = appendRunRecord(job.history, {
+  const runRecord: AutomationRunRecord = {
     startedAt,
     status: outcome.ok ? 'success' : 'error',
     durationMs,
@@ -1124,7 +1138,19 @@ async function startRun(
     // holding instead of denying is that this is answerable afterwards.
     ...(outcome.approvals ? { approvals: outcome.approvals } : {}),
     ...(chainRecord ? { chain: chainRecord } : {}),
-  })
+  }
+  job.history = appendRunRecord(job.history, runRecord)
+  // Read the streak from the history that now contains this run, through the
+  // same `countFailureStreak` the settings row and `AutomationJobView` use — not
+  // a second counter. `'after_streak'` therefore holds exactly the first failure
+  // (streak 1) and announces the second (streak 2); a skip is ignored by that
+  // function, and a success between failures ends the streak for the next run.
+  // A failed retry is an ordinary error record, so the existing rule makes it
+  // advance the same streak: one occurrence's second attempt may be what reaches
+  // two, exactly as the history row reads. A chained run is a run of the target
+  // job, so this function is called with that job and its own policy and history.
+  const announcement = resolveRunAnnouncement(job, outcome.ok, countFailureStreak(job.history))
+  runRecord.announcement = announcement
   const totals = addToLifetimeTotals(job, outcome.usage)
   job.totalTokens = totals.totalTokens
   job.totalCostUsd = totals.totalCostUsd
@@ -1161,7 +1187,28 @@ async function startRun(
   // `raiseAttention` owns the one delivery decision for every surface: pet
   // bubble, native notification, or nothing. The scheduler must not show a
   // notification of its own, or a single run could be announced twice.
-  raiseAutomationAttention(job, outcome)
+  raiseAutomationAttention(job, outcome, announcement)
+}
+
+/**
+ * Whether this finished run is announced, held back by its job's policy, or
+ * silenced as a quiet success.
+ *
+ * The decision is made once, after the record is in history, and the same value
+ * is written on the record and used to raise. That is what keeps the history
+ * honest and prevents a double announcement: a `held` run is never raised, and
+ * a run that raises says `raised`. `quietOnSuccess` only ever answers a success;
+ * it cannot combine with `'after_streak'` to suppress the same failure twice,
+ * and a success is never described as `held`.
+ */
+function resolveRunAnnouncement(
+  job: AutomationJob,
+  ok: boolean,
+  failureStreak: number,
+): AutomationRunAnnouncement {
+  if (ok) return job.quietOnSuccess === true ? 'quiet' : 'raised'
+  if (job.alertPolicy === 'after_streak' && failureStreak < AUTOMATION_ALERT_STREAK) return 'held'
+  return 'raised'
 }
 
 /**
@@ -1173,13 +1220,19 @@ async function startRun(
  * pet click or native-notification click opens the conversation the run
  * produced. When there is no openable session, the stable job id keeps repeated
  * raises deduped and the click only brings the app forward.
+ *
+ * `announcement` is the decision written on the run record: only `raised`
+ * reaches this function. Quiet successes and policy-held failures are decisions
+ * not to raise at all — no bubble, no OS notice and no dedupe entry — not a
+ * muted attention kind. The record, history and usage were already persisted,
+ * so only the announcement is skipped.
  */
-function raiseAutomationAttention(job: AutomationJob, outcome: AutomationRunOutcome): void {
-  // Quiet mode is a decision not to raise at all — no bubble, no OS notice and
-  // no dedupe entry — not a muted attention kind. The run's record, history and
-  // usage were already persisted above, so only the announcement is skipped.
-  // Checked for success only: a failure must stay loud, whatever this flag says.
-  if (outcome.ok && job.quietOnSuccess) return
+function raiseAutomationAttention(
+  job: AutomationJob,
+  outcome: AutomationRunOutcome,
+  announcement: AutomationRunAnnouncement,
+): void {
+  if (announcement !== 'raised') return
   const sessionId = outcome.sessionId ?? null
   if (outcome.ok) {
     raiseAttention({
@@ -1672,15 +1725,18 @@ export function createAutomationJob(input: AutomationInput): AutomationMutationR
  * cap, spend limits, global pause, retries, history, memory digest) applies to
  * it exactly as it would to a job the user typed in Settings.
  *
- * One field is deliberately unavailable: `departmentId`. A plugin request has
- * no department in its shape, and `createJob` drops one if it still reaches
- * here, so a plugin can never file its job under a department it does not own.
+ * Two fields are deliberately unavailable: `departmentId` and `alertPolicy`.
+ * A plugin request has no department in its shape, and `createJob` drops one if
+ * it still reaches here, so a plugin can never file its job under a department
+ * it does not own. The alert policy is the user's answer to "how often may this
+ * job call me", and a plugin has no business answering it either.
  */
 export function createAutomationJobForPlugin(
   pluginId: string,
-  // The type says it too: this door takes no department field at all. The
-  // runtime policy in `createJob` drops one even if a caller bypasses the type.
-  input: Omit<AutomationInput, 'departmentId'>,
+  // The type says it too: this door takes no department or alert-policy field
+  // at all. The runtime policy in `createJob` drops one even if a caller
+  // bypasses the type.
+  input: Omit<AutomationInput, 'departmentId' | 'alertPolicy'>,
 ): AutomationMutationResult {
   if (typeof pluginId !== 'string' || !pluginId.trim()) {
     return { ok: false, error: 'plugin_unknown' }
@@ -1709,6 +1765,10 @@ function createJob(input: AutomationInput, originPluginId?: string): AutomationM
     // marker of that door, and the create policy drops any value smuggled in.
     const departmentId = departmentIdForCreate(input?.departmentId, !!originPluginId)
     const quietOnSuccess = validateQuietOnSuccess(input?.quietOnSuccess)
+    // Like the department, this is a user-facing choice a plugin request has no
+    // shape for: a plugin may not decide how loudly its job calls the user, so
+    // the plugin door drops a value even if one reaches `createJob` at runtime.
+    const alertPolicy = originPluginId ? undefined : validateAlertPolicy(input?.alertPolicy)
     const retryOnFailure = validateRetryOnFailure(input?.retryOnFailure)
     const missedRunPolicy = validateMissedRunPolicy(input?.missedRunPolicy)
     const dailyCostLimitUsd = validateDailyCostLimit(input?.dailyCostLimitUsd)
@@ -1735,6 +1795,7 @@ function createJob(input: AutomationInput, originPluginId?: string): AutomationM
       ...(effort ? { effort } : {}),
       ...(departmentId ? { departmentId } : {}),
       ...(quietOnSuccess ? { quietOnSuccess } : {}),
+      ...(alertPolicy ? { alertPolicy } : {}),
       ...(retryOnFailure ? { retryOnFailure } : {}),
       ...(missedRunPolicy ? { missedRunPolicy } : {}),
       ...(chain ? { chain } : {}),
@@ -1834,6 +1895,9 @@ export function cloneAutomationJob(id: string, name?: string): AutomationMutatio
       // department until the user says otherwise.
       ...(source.departmentId ? { departmentId: source.departmentId } : {}),
       ...(source.quietOnSuccess === true ? { quietOnSuccess: true } : {}),
+      // The alert policy is configuration like quiet mode: the copy speaks at
+      // the same threshold, while an original on the default keeps the default.
+      ...(source.alertPolicy === 'after_streak' ? { alertPolicy: 'after_streak' as const } : {}),
       ...(source.retryOnFailure === true ? { retryOnFailure: true } : {}),
       ...(source.missedRunPolicy === 'skip' ? { missedRunPolicy: 'skip' } : {}),
       ...(chain ? { chain } : {}),
@@ -1881,6 +1945,7 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     const effort = normalizeJobEffort(input?.effort)
     const departmentId = normalizeDepartmentId(input?.departmentId)
     const quietOnSuccess = validateQuietOnSuccess(input?.quietOnSuccess)
+    const alertPolicy = validateAlertPolicy(input?.alertPolicy)
     const retryOnFailure = validateRetryOnFailure(input?.retryOnFailure)
     const missedRunPolicy = validateMissedRunPolicy(input?.missedRunPolicy)
     const dailyCostLimitUsd = validateDailyCostLimit(input?.dailyCostLimitUsd)
@@ -1911,6 +1976,10 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     // default is "announce", and an absent flag keeps a legacy job reading
     // exactly as it did before this setting existed.
     job.quietOnSuccess = quietOnSuccess
+    // Assignment, like effort: choosing "every failure" clears a previous
+    // `'after_streak'` instead of storing `'always'`, so the default keeps the
+    // absent shape every legacy job has.
+    job.alertPolicy = alertPolicy
     // Same rule for retries: absent means "never retry", which spends nothing.
     job.retryOnFailure = retryOnFailure
     // Same opt-in shape: switching back to "run" removes the field, so the job

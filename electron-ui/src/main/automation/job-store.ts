@@ -23,6 +23,7 @@ import { normalizeRunHistory } from './run-history'
 import { normalizeCost, normalizeRunUsage, normalizeTokenCount } from './run-usage'
 import { isSkillActionShape } from './skill-ref'
 import { normalizeDailyCostLimit } from './spend-guard'
+import { normalizeAlertPolicy } from './types'
 import { normalizeWatchDebounceMinutes } from './watcher'
 import type {
   AutomationAction,
@@ -149,6 +150,10 @@ export function normalizeJob(raw: unknown): AutomationJob | null {
     // (announce success), so a job saved before this field existed keeps
     // behaving exactly as it did.
     quietOnSuccess: job.quietOnSuccess === true ? true : undefined,
+    // Only a deliberate `'after_streak'` is restored; absent, `'always'` and a
+    // corrupt value all read as the default "announce every failure", which is
+    // exactly the shape every job saved before this field existed already has.
+    alertPolicy: normalizeAlertPolicy(job.alertPolicy),
     // Default off: only a genuine opt-in is restored, so a job saved before
     // this setting existed can never start spending on retries after an update.
     retryOnFailure: retryOnFailure ? true : undefined,

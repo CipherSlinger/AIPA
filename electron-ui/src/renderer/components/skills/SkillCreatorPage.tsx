@@ -1,11 +1,23 @@
 // SkillCreatorPage — full-page form for creating a new skill (Iteration 535)
 // Renders in the main view area when mainView === 'skill-creator'
-import React, { useState, useCallback, useRef, useEffect } from 'react'
-import { ArrowLeft, Puzzle, CheckCircle, AlertCircle } from 'lucide-react'
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import { ArrowLeft, Puzzle, CheckCircle, AlertCircle, FolderOpen, RefreshCw } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useUiStore } from '../../store'
+import {
+  buildSkillFile,
+  sanitizeSkillDirName,
+  SKILL_DESCRIPTION_MAX,
+} from '../../../main/skills/skillMd'
 
-type CreationState = 'idle' | 'creating' | 'success' | 'error'
+type CreationState = 'idle' | 'creating' | 'success' | 'error' | 'conflict'
+
+interface ExistingSkill {
+  /** Absolute folder main reported; empty if the refusal somehow omitted it. */
+  dirPath: string
+  /** `name:` from the existing SKILL.md, when it could be read. */
+  name?: string
+}
 
 export default function SkillCreatorPage() {
   const t = useT()
@@ -13,8 +25,11 @@ export default function SkillCreatorPage() {
 
   const [skillName, setSkillName] = useState('')
   const [skillDesc, setSkillDesc] = useState('')
+  const [skillInstructions, setSkillInstructions] = useState('')
   const [creationState, setCreationState] = useState<CreationState>('idle')
   const [errorMsg, setErrorMsg] = useState('')
+  const [existing, setExisting] = useState<ExistingSkill | null>(null)
+  const [isReplacing, setIsReplacing] = useState(false)
   const [submitHovered, setSubmitHovered] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
 
@@ -23,45 +38,69 @@ export default function SkillCreatorPage() {
     nameRef.current?.focus()
   }, [])
 
+  // The same normalizer main uses for the real folder, and the same builder
+  // that produces the bytes: the preview below cannot promise a destination or
+  // a file that the install would not actually write.
+  const installSlug = sanitizeSkillDirName(skillName)
+  const installPath = installSlug ? `~/.claude/skills/${installSlug}` : ''
+  const built = useMemo(
+    () => buildSkillFile({
+      name: skillName,
+      description: skillDesc,
+      instructions: skillInstructions,
+    }),
+    [skillName, skillDesc, skillInstructions],
+  )
+  const descriptionLength = skillDesc.replace(/\s*\n\s*/g, ' ').trim().length
+  const descriptionOverLimit = descriptionLength > SKILL_DESCRIPTION_MAX
+
+  /** Editing after a refusal or a conflict must clear the old answer. */
+  const clearOutcome = useCallback(() => {
+    if (creationState === 'error' || creationState === 'conflict') {
+      setCreationState('idle')
+      setErrorMsg('')
+      setExisting(null)
+    }
+  }, [creationState])
+
   const handleCancel = useCallback(() => {
     useUiStore.getState().setActiveNavItem('workflows')
   }, [])
 
-  const handleCreate = useCallback(async () => {
+  const submit = useCallback(async (replace: boolean) => {
     const trimmedName = skillName.trim()
-    const trimmedDesc = skillDesc.trim()
-
-    if (!trimmedName) {
+    if (!trimmedName || !skillDesc.trim() || !skillInstructions.trim() || !installSlug) {
       nameRef.current?.focus()
       return
     }
-    if (!trimmedDesc) return
 
     setCreationState('creating')
+    setIsReplacing(replace)
     setErrorMsg('')
-
-    // Build SKILL.md content with YAML frontmatter
-    const skillContent = `---
-name: "${trimmedName}"
-description: "${trimmedDesc.replace(/"/g, '\\"').split('\n')[0].slice(0, 120)}"
----
-
-${trimmedDesc}
-`
 
     try {
       const result = await window.electronAPI.skillsInstall({
         name: trimmedName,
-        content: skillContent,
+        content: built.content,
+        replace,
       })
 
       if (result?.success) {
         setCreationState('success')
+        setExisting(null)
         addToast('success', t('skill.createSuccess'))
         // Auto-navigate back to chat after brief success display
         setTimeout(() => {
           useUiStore.getState().setActiveNavItem('workflows')
         }, 1500)
+      } else if (result?.code === 'skill_exists') {
+        // Not an error: the same folder already holds a skill. Offer to look at
+        // it, or to overwrite it deliberately. Nothing was written.
+        setCreationState('conflict')
+        setExisting({
+          dirPath: result.dirPath ?? '',
+          ...(result.name ? { name: result.name } : {}),
+        })
       } else {
         setCreationState('error')
         setErrorMsg(result?.error || t('skill.createFailed'))
@@ -69,8 +108,27 @@ ${trimmedDesc}
     } catch (err) {
       setCreationState('error')
       setErrorMsg(String(err))
+    } finally {
+      setIsReplacing(false)
     }
-  }, [skillName, skillDesc, addToast, t])
+  }, [skillName, skillDesc, skillInstructions, installSlug, built.content, addToast, t])
+
+  const handleCreate = useCallback(() => {
+    if (creationState === 'conflict') return
+    void submit(false)
+  }, [creationState, submit])
+
+  const handleReplace = useCallback(() => {
+    void submit(true)
+  }, [submit])
+
+  const handleOpenExisting = useCallback(() => {
+    if (!existing?.dirPath) return
+    // The same hand-off the global search uses: the Employees page opens the
+    // skill once its list has loaded, so a folder that vanished opens nothing
+    // rather than a blank detail page.
+    useUiStore.getState().openSkillDetail(existing.dirPath)
+  }, [existing])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -82,7 +140,45 @@ ${trimmedDesc}
   const isCreating = creationState === 'creating'
   const isSuccess = creationState === 'success'
   const isError = creationState === 'error'
-  const canCreate = skillName.trim().length > 0 && skillDesc.trim().length > 0 && !isCreating && !isSuccess
+  const isConflict = creationState === 'conflict'
+  const canCreate = skillName.trim().length > 0
+    && skillDesc.trim().length > 0
+    && skillInstructions.trim().length > 0
+    && installSlug.length > 0
+    && !isCreating
+    && !isSuccess
+
+  const cardStyle: React.CSSProperties = {
+    background: 'var(--popup-bg)',
+    border: '1px solid var(--border)',
+    borderRadius: 12,
+    padding: '16px 20px',
+    marginBottom: 12,
+  }
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: 10,
+    fontWeight: 700,
+    color: 'var(--text-muted)',
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: '0.07em',
+  }
+  const textareaBase: React.CSSProperties = {
+    width: '100%',
+    padding: '12px 14px',
+    borderRadius: 8,
+    border: '1px solid var(--border)',
+    background: 'var(--bg-primary)',
+    color: 'var(--text-primary)',
+    fontSize: 12,
+    outline: 'none',
+    resize: 'vertical',
+    lineHeight: 1.5,
+    boxSizing: 'border-box',
+    transition: 'all 0.15s ease',
+    opacity: isCreating ? 0.6 : 1,
+  }
 
   return (
     <div style={{
@@ -154,22 +250,8 @@ ${trimmedDesc}
           {!isSuccess && (
             <>
               {/* Skill Name section */}
-              <div style={{
-                background: 'var(--popup-bg)',
-                border: '1px solid var(--border)',
-                borderRadius: 12,
-                padding: '16px 20px',
-                marginBottom: 12,
-              }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: 'var(--text-muted)',
-                  marginBottom: 10,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.07em',
-                }}>
+              <div style={cardStyle}>
+                <label style={labelStyle}>
                   {t('skill.nameLabel')}
                   <span style={{ color: '#818cf8', marginLeft: 4 }}>*</span>
                 </label>
@@ -177,7 +259,7 @@ ${trimmedDesc}
                   ref={nameRef}
                   type="text"
                   value={skillName}
-                  onChange={(e) => setSkillName(e.target.value)}
+                  onChange={(e) => { setSkillName(e.target.value); clearOutcome() }}
                   onKeyDown={handleKeyDown}
                   placeholder={t('skill.namePlaceholder')}
                   disabled={isCreating}
@@ -204,57 +286,178 @@ ${trimmedDesc}
                 </div>
               </div>
 
-              {/* Description / System Prompt section */}
-              <div style={{
-                background: 'var(--popup-bg)',
-                border: '1px solid var(--border)',
-                borderRadius: 12,
-                padding: '16px 20px',
-                marginBottom: 12,
-              }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: 'var(--text-muted)',
-                  marginBottom: 10,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.07em',
-                }}>
+              {/* Description — frontmatter metadata only */}
+              <div style={cardStyle}>
+                <label style={labelStyle}>
                   {t('skill.descLabel')}
                   <span style={{ color: '#818cf8', marginLeft: 4 }}>*</span>
                 </label>
                 <textarea
                   value={skillDesc}
-                  onChange={(e) => setSkillDesc(e.target.value)}
+                  onChange={(e) => { setSkillDesc(e.target.value); clearOutcome() }}
                   onKeyDown={handleKeyDown}
                   placeholder={t('skill.descPlaceholder')}
                   disabled={isCreating}
+                  rows={3}
+                  style={{ ...textareaBase, minHeight: 70 }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 4 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    {t('skill.descHint')}
+                  </div>
+                  <div style={{
+                    fontSize: 11,
+                    whiteSpace: 'nowrap',
+                    color: descriptionOverLimit ? '#fbbf24' : 'var(--text-muted)',
+                    fontVariantNumeric: 'tabular-nums',
+                    fontFeatureSettings: '"tnum"',
+                  }}>
+                    {descriptionLength}/{SKILL_DESCRIPTION_MAX}
+                  </div>
+                </div>
+                {descriptionOverLimit && (
+                  <div style={{ fontSize: 11, color: '#fbbf24', marginTop: 6, lineHeight: 1.5 }}>
+                    {t('skill.descOverLimit', { max: SKILL_DESCRIPTION_MAX })}
+                  </div>
+                )}
+              </div>
+
+              {/* Instructions — the body of SKILL.md */}
+              <div style={cardStyle}>
+                <label style={labelStyle}>
+                  {t('skill.instructionsLabel')}
+                  <span style={{ color: '#818cf8', marginLeft: 4 }}>*</span>
+                </label>
+                <textarea
+                  value={skillInstructions}
+                  onChange={(e) => { setSkillInstructions(e.target.value); clearOutcome() }}
+                  onKeyDown={handleKeyDown}
+                  placeholder={t('skill.instructionsPlaceholder')}
+                  disabled={isCreating}
                   rows={10}
                   style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    borderRadius: 8,
-                    border: '1px solid var(--border)',
-                    background: 'var(--bg-primary)',
+                    ...textareaBase,
                     color: '#a5b4fc',
-                    fontSize: 12,
                     fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", monospace',
-                    outline: 'none',
-                    resize: 'vertical',
-                    lineHeight: 1.5,
-                    boxSizing: 'border-box',
-                    transition: 'all 0.15s ease',
-                    opacity: isCreating ? 0.6 : 1,
-                    minHeight: 160,
+                    minHeight: 180,
                   }}
                   onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
                   onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
                 />
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                  {t('skill.descHint')}
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.5 }}>
+                  {t('skill.instructionsHint')}
                 </div>
+                {!skillInstructions.trim() && (
+                  <div style={{ fontSize: 11, color: '#fbbf24', marginTop: 4, lineHeight: 1.5 }}>
+                    {t('skill.instructionsRequired')}
+                  </div>
+                )}
               </div>
+
+              {/* The exact file and destination */}
+              <div style={cardStyle}>
+                <label style={labelStyle}>{t('skill.previewTitle')}</label>
+                <div style={{
+                  fontSize: 11,
+                  color: 'var(--text-muted)',
+                  marginBottom: 8,
+                  fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", monospace',
+                  wordBreak: 'break-all',
+                }}>
+                  {installSlug
+                    ? t('skill.previewPath', { path: installPath })
+                    : t('skill.previewNoName')}
+                </div>
+                <pre style={{
+                  margin: 0,
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg-primary)',
+                  color: 'var(--text-secondary)',
+                  fontSize: 11,
+                  lineHeight: 1.5,
+                  fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", monospace',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  maxHeight: 260,
+                  overflow: 'auto',
+                }}>{built.content}</pre>
+              </div>
+
+              {/* This folder is taken */}
+              {isConflict && existing && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 8,
+                  padding: '12px 14px',
+                  borderRadius: 8,
+                  background: 'rgba(245,158,11,0.10)',
+                  border: '1px solid rgba(245,158,11,0.30)',
+                  color: 'var(--text-primary)',
+                  fontSize: 12,
+                  marginBottom: 12,
+                }}>
+                  <AlertCircle size={15} style={{ flexShrink: 0, marginTop: 1, color: '#fbbf24' }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                      {t('skill.existsTitle')}
+                    </div>
+                    <div style={{ color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                      {t('skill.existsBody', {
+                        path: existing.dirPath || installPath,
+                      })}
+                    </div>
+                    {existing.name && (
+                      <div style={{ color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                        {t('skill.existsName', { name: existing.name })}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                      {existing.dirPath && (
+                        <button
+                          onClick={handleOpenExisting}
+                          disabled={isCreating}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 5,
+                            padding: '6px 12px', borderRadius: 6,
+                            border: '1px solid var(--border)',
+                            background: 'var(--bg-hover)',
+                            color: 'var(--text-primary)',
+                            fontSize: 12, fontWeight: 600,
+                            cursor: isCreating ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          <FolderOpen size={13} />
+                          {t('skill.existsOpen')}
+                        </button>
+                      )}
+                      <button
+                        onClick={handleReplace}
+                        disabled={isCreating}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 5,
+                          padding: '6px 12px', borderRadius: 6,
+                          border: '1px solid rgba(245,158,11,0.45)',
+                          background: 'rgba(245,158,11,0.16)',
+                          color: '#fbbf24',
+                          fontSize: 12, fontWeight: 600,
+                          cursor: isCreating ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        <RefreshCw size={13} />
+                        {isCreating && isReplacing ? t('skill.replacing') : t('skill.existsReplace')}
+                      </button>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
+                      {t('skill.existsReplaceWarning')}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Error message */}
               {isError && errorMsg && (
@@ -309,8 +512,8 @@ ${trimmedDesc}
                 </button>
                 <button
                   onClick={handleCreate}
-                  disabled={!canCreate}
-                  onMouseEnter={() => { if (canCreate) setSubmitHovered(true) }}
+                  disabled={!canCreate || isConflict}
+                  onMouseEnter={() => { if (canCreate && !isConflict) setSubmitHovered(true) }}
                   onMouseLeave={() => setSubmitHovered(false)}
                   style={{
                     padding: '9px 20px',
@@ -320,11 +523,11 @@ ${trimmedDesc}
                     color: 'var(--text-primary)',
                     fontSize: 13,
                     fontWeight: 600,
-                    cursor: canCreate ? 'pointer' : 'not-allowed',
+                    cursor: canCreate && !isConflict ? 'pointer' : 'not-allowed',
                     transition: 'all 0.15s ease',
-                    opacity: canCreate ? 1 : 0.4,
-                    transform: submitHovered && canCreate ? 'translateY(-1px)' : 'translateY(0)',
-                    boxShadow: submitHovered && canCreate ? '0 4px 16px rgba(99,102,241,0.35)' : 'none',
+                    opacity: canCreate && !isConflict ? 1 : 0.4,
+                    transform: submitHovered && canCreate && !isConflict ? 'translateY(-1px)' : 'translateY(0)',
+                    boxShadow: submitHovered && canCreate && !isConflict ? '0 4px 16px rgba(99,102,241,0.35)' : 'none',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,
@@ -339,7 +542,7 @@ ${trimmedDesc}
                         animation: 'spin 0.8s linear infinite',
                         flexShrink: 0,
                       }} />
-                      {t('skill.creating')}
+                      {isReplacing ? t('skill.replacing') : t('skill.creating')}
                     </>
                   ) : (
                     t('skill.confirmCreate')

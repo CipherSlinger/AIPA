@@ -2009,16 +2009,31 @@
     "createTitle": "Create Skill",
     "nameLabel": "Skill Name",
     "namePlaceholder": "e.g. Code Reviewer, Meeting Summarizer...",
-    "descLabel": "Description / System Prompt",
-    "descPlaceholder": "Describe what this skill does and how it should behave. This becomes the skill's system prompt.",
-    "descHint": "This text defines the skill's behavior and becomes its system prompt.",
+    "descLabel": "Description",
+    "descPlaceholder": "A one-line summary shown in the skills list",
+    "descHint": "Frontmatter only — this is the line the skills list and search show. The instructions below are what the skill actually does.",
     "confirmCreate": "Create",
     "cancelCreate": "Cancel",
     "creating": "Creating...",
     "createSuccess": "Skill created successfully",
     "createFailed": "Failed to create skill",
     "redirecting": "Returning to chat...",
-    "submitHint": "Ctrl+Enter to create"
+    "submitHint": "Ctrl+Enter to create",
+    "descOverLimit": "Only the first {{max}} characters are written to the file. The rest of this description is not saved.",
+    "instructionsLabel": "Instructions",
+    "instructionsPlaceholder": "What should this skill do? Describe the steps the assistant should follow.",
+    "instructionsHint": "This becomes the body of SKILL.md — the text the assistant follows when the skill runs. It is separate from the description above.",
+    "instructionsRequired": "Add instructions. A skill with only a description has nothing for the assistant to follow.",
+    "previewTitle": "SKILL.md preview",
+    "previewPath": "Installs to {{path}}/SKILL.md",
+    "previewNoName": "Name the skill to see the folder it will install into.",
+    "existsTitle": "A skill with this folder already exists",
+    "existsBody": "{{path}} already holds a SKILL.md. Nothing was written.",
+    "existsName": "The existing skill is “{{name}}”.",
+    "existsOpen": "Open it",
+    "existsReplace": "Replace it",
+    "existsReplaceWarning": "Replacing overwrites the existing SKILL.md. The skill trash only covers deletes, so this cannot be undone from here.",
+    "replacing": "Replacing..."
   },
   "followUp": {
     "explainCode": "Explain this code",
@@ -3901,7 +3916,8 @@
       "retryOnFailure": "Retry failed runs",
       "dayOfMonth": "Day of month",
       "missedRunPolicy": "If a time was missed while AIPA was closed",
-      "effort": "Effort"
+      "effort": "Effort",
+      "alertPolicy": "Alert me"
     },
     "action": {
       "workflow": "Run a workflow",
@@ -4329,6 +4345,14 @@
         "openJob": "Open {{name}} in Settings → Automations",
         "session": "session {{id}}"
       }
+    },
+    "alertPolicy": {
+      "always": "Every failure (default)",
+      "afterStreak": "Only after two failures in a row",
+      "hint": "The first failure is still recorded and still shows on the job row and in the run history; it simply doesn't notify you.",
+      "row": "alert: after 2 failures in a row",
+      "held": "alert held until a second failure",
+      "heldHint": "This failure was recorded, counted and shown, but the alert policy holds the announcement until two failures in a row."
     }
   },
   "speculation": {

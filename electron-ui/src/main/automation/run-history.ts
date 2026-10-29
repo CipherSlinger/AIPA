@@ -31,6 +31,7 @@ import { normalizeRunApprovals } from './run-approvals'
 import { normalizeSkillDigest } from './skill-ref'
 import { normalizeRunUsage } from './run-usage'
 import type {
+  AutomationRunAnnouncement,
   AutomationRunChain,
   AutomationRunRecord,
   AutomationRunRecordStatus,
@@ -55,6 +56,14 @@ const RECORD_STATUSES: AutomationRunRecordStatus[] = ['success', 'error', 'skipp
  * must not be able to make a run claim an origin the app can never produce.
  */
 const RECORD_SOURCES: AutomationRunSource[] = ['manual', 'scheduled', 'watch', 'chain']
+/**
+ * The three announcement outcomes a record may name.
+ *
+ * Restored by status below, because not every combination is possible: `held`
+ * is a failure answer, `quiet` is a success answer, and neither may be carried
+ * by the other status. A skip has no announcement at all.
+ */
+const RECORD_ANNOUNCEMENTS: AutomationRunAnnouncement[] = ['raised', 'held', 'quiet']
 
 function finiteNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
@@ -126,6 +135,16 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
     record.retry <= AUTOMATION_RETRY_POLICY.maxRetries
     ? record.retry
     : undefined
+  // What the run did about notifying the user. Restored only when it is one of
+  // the three outcomes; absent stays absent, because every record written
+  // before this field existed has exactly that shape. The status checks below
+  // drop a value the status could not have produced (a `held` success, a
+  // `quiet` failure) rather than letting one row describe two contradictory
+  // facts.
+  const announcement = typeof record.announcement === 'string' &&
+    RECORD_ANNOUNCEMENTS.includes(record.announcement as AutomationRunAnnouncement)
+    ? record.announcement as AutomationRunAnnouncement
+    : undefined
   // A malformed descriptor is dropped, not the record: the run still happened,
   // and a record written before this field existed has no descriptor at all.
   const memory = normalizeMemoryDigest(record.memory)
@@ -185,6 +204,9 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
       late: record.late === true,
       ...(source ? { source } : {}),
       ...(retry !== undefined ? { retry } : {}),
+      // A success can only have been raised or quiet. A `held` here would claim
+      // a failure policy silenced something that did not fail.
+      ...(announcement === 'raised' || announcement === 'quiet' ? { announcement } : {}),
       ...(usage ? { usage } : {}),
       ...(memory ? { memory } : {}),
       ...(handbook ? { handbook } : {}),
@@ -204,6 +226,9 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
     late: record.late === true,
     ...(source ? { source } : {}),
     ...(retry !== undefined ? { retry } : {}),
+    // A failure can only have been raised or held. `quiet` is a success state,
+    // never a silent failure.
+    ...(announcement === 'raised' || announcement === 'held' ? { announcement } : {}),
     ...(usage ? { usage } : {}),
     // A failed run saw a snapshot too; keeping it here is what makes the
     // history explain a failure that happened after the memory read.

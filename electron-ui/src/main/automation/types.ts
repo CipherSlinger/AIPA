@@ -124,6 +124,52 @@ export type AutomationRunStatus = 'success' | 'error' | 'skipped' | 'running'
 export type AutomationRunRecordStatus = Exclude<AutomationRunStatus, 'running'>
 
 /**
+ * When a failed run is allowed to call the user.
+ *
+ * Absent means `'always'` — every failure announces, which is what every job
+ * did before this choice existed. `'after_streak'` withholds the announcement
+ * for a first failure and raises once the failure streak reaches
+ * `AUTOMATION_ALERT_STREAK`; the failure itself is never hidden from the row or
+ * the run history. Only the announcement is withheld.
+ */
+export type AutomationAlertPolicy = 'always' | 'after_streak'
+
+/**
+ * The failure streak at which an `'after_streak'` job starts announcing.
+ *
+ * One home for the threshold so the scheduler, the picker and its copy cannot
+ * drift: this is "two failures in a row", not a per-surface guess.
+ */
+export const AUTOMATION_ALERT_STREAK = 2
+
+/**
+ * What a finished run did about notifying the user.
+ *
+ * `raised` is the ordinary announcement (a success when quiet mode is off, or
+ * a failure the policy lets through). `quiet` is a success silenced by
+ * `quietOnSuccess`. `held` is a failure whose alert was withheld by
+ * `alertPolicy: 'after_streak'` because it was the first of the streak — the
+ * run still happened, still spent, and still shows on the row.
+ *
+ * Absent means "not recorded": a record written before this field existed, or
+ * a structural failure that returned before the announcement decision. It must
+ * never be read as "held", which is a deliberate policy answer.
+ */
+export type AutomationRunAnnouncement = 'raised' | 'held' | 'quiet'
+
+/**
+ * The one validator for a stored alert policy.
+ *
+ * Only the deliberate `'after_streak'` is kept; `'always'`, absent and every
+ * unknown value normalise to absent, which is the default and the shape every
+ * existing automations.json already has. Storing `'always'` would make a
+ * cleared choice indistinguishable from one that was never made.
+ */
+export function normalizeAlertPolicy(value: unknown): AutomationAlertPolicy | undefined {
+  return value === 'after_streak' ? 'after_streak' : undefined
+}
+
+/**
  * Tier labels a run's memory snapshot can name, in prompt order.
  *
  * These are the public labels, not the assembler's internal keys, because they
@@ -355,6 +401,13 @@ export interface AutomationRunRecord {
   /** True when this run fired after its scheduled minute (app was closed). */
   late: boolean
   /**
+   * What this run did about notifying the user. Absent on records written
+   * before this field existed and on structural failures that returned before
+   * the announcement decision; a skipped run never carries one. See
+   * `AutomationRunAnnouncement`.
+   */
+  announcement?: AutomationRunAnnouncement
+  /**
    * How this run came due, recorded at the moment it started.
    *
    * Kept on the record because a cross-job reader cannot reconstruct it: a
@@ -538,6 +591,15 @@ export interface AutomationJob {
    * itself is unaffected: its record, history and usage are still persisted.
    */
   quietOnSuccess?: boolean
+  /**
+   * When a failed run should call the user. Absent means `'always'` — the
+   * behaviour every existing job has — and only a deliberate `'after_streak'`
+   * is stored. That policy holds the first failure's announcement until the
+   * failure streak reaches `AUTOMATION_ALERT_STREAK`; the failure itself is
+   * still recorded, still updates the row, and still counts toward the streak.
+   * This is independent of `quietOnSuccess`, which can only silence a success.
+   */
+  alertPolicy?: AutomationAlertPolicy
   /**
    * Opt-in retry of failed unattended runs. Absent/false — the default for
    * every existing and new job — never retries: a retry spends again and
@@ -932,6 +994,12 @@ export interface AutomationInput {
    * (announce success); the scheduler stores it only when true.
    */
   quietOnSuccess?: boolean
+  /**
+   * When a failed run should call the user. Omitted (and `'always'`) is the
+   * default; only `'after_streak'` is stored, so an edit that omits the field
+   * returns the job to announcing every failure.
+   */
+  alertPolicy?: AutomationAlertPolicy
   /**
    * Opt-in retry of failed scheduled runs. Omitted/false is the default and
    * stores no flag; manual runs are never retried regardless.

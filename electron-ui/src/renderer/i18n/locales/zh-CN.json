@@ -2009,16 +2009,31 @@
     "createTitle": "创建技能",
     "nameLabel": "技能名称",
     "namePlaceholder": "例：代码审查、会议总结...",
-    "descLabel": "描述 / 系统提示词",
-    "descPlaceholder": "描述该技能的功能和行为方式，这将成为技能的系统提示词。",
-    "descHint": "此文本定义技能的行为，将作为其系统提示词。",
+    "descLabel": "说明",
+    "descPlaceholder": "一行摘要，显示在技能列表里",
+    "descHint": "只写进文件头——技能列表和搜索显示的就是这一行。下面的指令才是技能真正要做的事。",
     "confirmCreate": "创建",
     "cancelCreate": "取消",
     "creating": "创建中...",
     "createSuccess": "技能创建成功",
     "createFailed": "技能创建失败",
     "redirecting": "正在返回聊天...",
-    "submitHint": "Ctrl+Enter 快速创建"
+    "submitHint": "Ctrl+Enter 快速创建",
+    "descOverLimit": "只有前 {{max}} 个字符会写进文件，这段说明剩下的部分不会保存。",
+    "instructionsLabel": "指令",
+    "instructionsPlaceholder": "这个技能要做什么？写出助手应当遵循的步骤。",
+    "instructionsHint": "这段文字会成为 SKILL.md 的正文——技能运行时助手照着做的内容。它和上面的说明是两回事。",
+    "instructionsRequired": "请补充指令。只有说明没有指令，助手没有可执行的内容。",
+    "previewTitle": "SKILL.md 预览",
+    "previewPath": "安装到 {{path}}/SKILL.md",
+    "previewNoName": "先给技能起个名字，才能看到它会装进哪个文件夹。",
+    "existsTitle": "这个文件夹里已经有技能了",
+    "existsBody": "{{path}} 里已经有一个 SKILL.md，这次什么都没有写入。",
+    "existsName": "原有的技能是“{{name}}”。",
+    "existsOpen": "打开它",
+    "existsReplace": "替换它",
+    "existsReplaceWarning": "替换会覆盖原有的 SKILL.md。技能回收站只保管删除，所以从这里做的替换无法撤销。",
+    "replacing": "正在替换…"
   },
   "followUp": {
     "explainCode": "解释这段代码",
@@ -3901,7 +3916,8 @@
       "retryOnFailure": "失败时自动重试",
       "dayOfMonth": "每月几号",
       "missedRunPolicy": "AIPA 关闭期间错过的运行",
-      "effort": "思考强度"
+      "effort": "思考强度",
+      "alertPolicy": "提醒我"
     },
     "action": {
       "workflow": "运行工作流",
@@ -4329,6 +4345,14 @@
         "openJob": "在「设置 → 定时任务」中打开 {{name}}",
         "session": "会话 {{id}}"
       }
+    },
+    "alertPolicy": {
+      "always": "每次失败都提醒（默认）",
+      "afterStreak": "连续两次失败后才提醒",
+      "hint": "第一次失败仍会记录，也会显示在任务行和运行记录里，只是不会通知你。",
+      "row": "连续 2 次失败才提醒",
+      "held": "提醒暂缓，直到第二次失败",
+      "heldHint": "这次失败已经记录、计入连续失败并显示出来，但提醒策略会等到连续两次失败才通知你。"
     }
   },
   "speculation": {

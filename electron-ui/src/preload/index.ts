@@ -772,6 +772,15 @@ export type AutomationRunSourceData = 'manual' | 'scheduled' | 'watch' | 'chain'
 export type AutomationMissedRunPolicyData = 'run' | 'skip'
 
 /**
+ * Mirrors main's `AutomationAlertPolicy`; absent means `'always'`.
+ *
+ * `'after_streak'` holds the first failure's announcement until the failure
+ * streak reaches two. The failure itself is still recorded and still shows on
+ * the job row and in the run history.
+ */
+export type AutomationAlertPolicyData = 'always' | 'after_streak'
+
+/**
  * Mirrors main's `AutomationEffort` (`src/main/automation/job-effort.ts`, the
  * one list). A type cannot cross the process boundary, so the union is repeated
  * here like every other automation field; the *values* the dialog offers come
@@ -986,6 +995,13 @@ export interface AutomationRunRecordData {
   error: string | null
   /** True when this run fired after its scheduled minute (app was closed). */
   late: boolean
+  /**
+   * What this run did about notifying the user. `held` is a failure whose alert
+   * the job's `alertPolicy: 'after_streak'` withheld until a second failure;
+   * `quiet` is a success silenced by quiet mode. Absent on legacy records and
+   * on skips, and never to be read as `held`.
+   */
+  announcement?: 'raised' | 'held' | 'quiet'
   /**
    * How this run came due, as main recorded it at start time. Absent on every
    * record written before the field existed, and on a run repaired after a
@@ -1258,6 +1274,12 @@ export interface AutomationJobData {
    * announced and cannot be silenced by this flag.
    */
   quietOnSuccess?: boolean
+  /**
+   * When a failed run calls the user: absent/`'always'` announces every
+   * failure, `'after_streak'` holds the first until a second one follows. Only
+   * the announcement is withheld; the run is still recorded and still shown.
+   */
+  alertPolicy?: AutomationAlertPolicyData
   /** Opt-in retry of failed scheduled runs; absent/false never retries. */
   retryOnFailure?: boolean
   /**
@@ -1426,6 +1448,11 @@ export interface AutomationInputData {
   departmentId?: string
   /** Omitting this is the default (announce success); failures stay loud. */
   quietOnSuccess?: boolean
+  /**
+   * Omitted/`'always'` announces every failure (the default); `'after_streak'`
+   * holds the first failure's alert until a second one follows.
+   */
+  alertPolicy?: AutomationAlertPolicyData
   /** Omitted/false never retries; a retry spends again and is opt-in only. */
   retryOnFailure?: boolean
   /**
@@ -2449,7 +2476,21 @@ const electronAPI = {
   skillsList: (workingDir?: string) =>
     ipcRenderer.invoke('skills:list', workingDir) as Promise<SkillInfoData[]>,
   skillsRead: (dirPath: string) => ipcRenderer.invoke('skills:read', dirPath),
-  skillsInstall: (args: { name: string; content: string }) => ipcRenderer.invoke('skills:install', args),
+  // Omitting `replace` refuses to overwrite an existing folder (`skill_exists`
+  // plus that folder's path and best-effort name). The create form previews the
+  // same path `sanitizeSkillDirName` will create, and only re-sends with
+  // `replace: true` after the user explicitly chooses to replace.
+  skillsInstall: (args: { name: string; content: string; replace?: boolean }) =>
+    ipcRenderer.invoke('skills:install', args) as Promise<
+      | { success: true; dirPath: string }
+      | {
+          success: false
+          code: 'skill_exists' | 'invalid_name' | 'outside_skills' | 'write_failed'
+          error: string
+          dirPath?: string
+          name?: string
+        }
+    >,
   // Deleting now moves the skill folder into the trash; the renderer offers
   // "Recently deleted" to restore it for the retention window.
   skillsDelete: (dirPath: string) =>

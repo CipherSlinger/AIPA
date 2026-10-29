@@ -1517,6 +1517,17 @@ export default function SettingsAutomations() {
                           {`· ${t('automation.effort.row', { level: t(`effort.${job.effort}`) })}`}
                         </span>
                       )}
+                      {job.alertPolicy === 'after_streak' && (
+                        // Only the non-default policy earns a clause: a job that
+                        // announces every failure (the default) stays silent
+                        // here, exactly like the effort override above.
+                        <span
+                          title={t('automation.alertPolicy.hint')}
+                          style={{ fontSize: 11, color: SECONDARY }}
+                        >
+                          {`· ${t('automation.alertPolicy.row')}`}
+                        </span>
+                      )}
                     </div>
 
                     {/* Where this job was drafted from. A job made in Settings,
@@ -1832,6 +1843,18 @@ export default function SettingsAutomations() {
                                   // like three separate scheduled runs.
                                   <span style={{ color: 'var(--accent-text)' }}>
                                     {t('automation.retry.badge', { attempt: record.retry })}
+                                  </span>
+                                )}
+                                {record.announcement === 'held' && (
+                                  // A first failure whose alert the policy held.
+                                  // It is written in words, not a bare colour: a
+                                  // reader must not mistake it for a quiet success
+                                  // or for a run that announced nothing.
+                                  <span
+                                    style={{ color: WARNING }}
+                                    title={t('automation.alertPolicy.heldHint')}
+                                  >
+                                    {t('automation.alertPolicy.held')}
                                   </span>
                                 )}
                                 {(record.approvals ?? []).map((approval, approvalIndex) => {

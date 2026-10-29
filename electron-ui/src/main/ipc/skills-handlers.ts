@@ -2,7 +2,8 @@ import { ipcMain } from 'electron'
 import { createLogger } from '../utils/logger'
 import { isPathInside } from '../utils/validate'
 import { canonicalSkillPath, resolveSkillRoots } from '../automation/skill-action'
-import { parseSkillMd, type ParsedSkillMd } from '../skills/skillMd'
+import { parseSkillMd, sanitizeSkillDirName, type ParsedSkillMd } from '../skills/skillMd'
+import { installSkill } from '../skills/skillInstall'
 import {
   listTrashedSkills,
   moveSkillToTrash,
@@ -13,38 +14,14 @@ import {
 } from '../trash/skill-trash'
 import fs from 'fs'
 import path from 'path'
-import os from 'os'
 
 const log = createLogger('ipc:skills')
 
-/**
- * The directory name for an installed skill. This function is the authority:
- * the renderer mirrors it character for character
- * (src/renderer/lib/sessionReuse.ts -> skillInstallSlug) so that the path it
- * previews is the path that gets created.
- *
- * A title written entirely in a non-Latin script sanitizes to nothing usable
- * ("技能" -> "-"), which used to produce a folder of hyphens. A deterministic
- * hash of the original title is stable across the preview and the install, so
- * the two agree even though a readable transliteration is not something we can
- * honestly promise.
- */
-export function sanitizeSkillDirName(raw: string): string {
-  const slug = raw
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]+/g, '-')
-    .replace(/-{2,}/g, '-')
-    .replace(/^-+|-+$/g, '')
-  if (/[a-z0-9]/.test(slug)) return slug.slice(0, 48)
-
-  let hash = 0x811c9dc5
-  for (let i = 0; i < raw.length; i++) {
-    hash ^= raw.charCodeAt(i)
-    hash = Math.imul(hash, 0x01000193)
-  }
-  return `session-${(hash >>> 0).toString(16).padStart(8, '0')}`
-}
+// Kept as a re-export for callers that import it from this handler. The rule
+// itself lives in `skills/skillMd.ts`, which the renderer can import without
+// pulling Electron into the browser bundle; the creator page previews its path
+// with that same function.
+export { sanitizeSkillDirName }
 
 interface SkillInfo {
   name: string
@@ -180,16 +157,27 @@ export function registerSkillsHandlers(): void {
     }
   })
 
-  ipcMain.handle('skills:install', (_e, { name, content }: { name: string; content: string }) => {
+  /**
+   * The installer refuses to replace an existing SKILL.md unless the caller
+   * asks for it explicitly with `replace: true`; the form turns that refusal
+   * into "open it" / "replace it" rather than a generic error. A successful
+   * write goes through a temp file and a rename (see skills/skillInstall.ts),
+   * so a crash cannot leave a half-written skill behind.
+   */
+  ipcMain.handle('skills:install', (_e, args?: { name?: unknown; content?: unknown; replace?: unknown }) => {
     try {
-      const safeName = sanitizeSkillDirName(name)
-      const skillDir = path.join(os.homedir(), '.claude', 'skills', safeName)
-      fs.mkdirSync(skillDir, { recursive: true })
-      fs.writeFileSync(path.join(skillDir, 'SKILL.md'), content, 'utf-8')
-      return { success: true, dirPath: skillDir }
+      const result = installSkill({
+        name: typeof args?.name === 'string' ? args.name : '',
+        content: typeof args?.content === 'string' ? args.content : '',
+        replace: args?.replace === true,
+      })
+      if (!result.success) log.warn('skills:install refused:', result.code, result.error)
+      return result
     } catch (err) {
+      // Resolve, never throw: an IPC rejection reaches the renderer as
+      // "Error invoking remote method …", which a user cannot act on.
       log.warn('skills:install error:', String(err))
-      return { error: String(err) }
+      return { success: false, code: 'write_failed', error: String(err) } as const
     }
   })
 
