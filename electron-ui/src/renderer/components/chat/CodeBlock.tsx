@@ -2,12 +2,14 @@
 // Sub-components: CopyButton, WrapToggleButton, CollapsiblePre, CodeBlockWithHeader, PreviewButton
 // Iteration 510: Added RunButton + SaveButton for actionable code blocks
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Copy, Check, ChevronDown, ChevronUp, WrapText, Play, X, Download, Loader2, Square, RotateCcw, MessageCircle } from 'lucide-react'
+import { Copy, Check, ChevronDown, ChevronUp, WrapText, Play, X, Download, Loader2, Square, RotateCcw, MessageCircle, FolderOpen } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore, useUiStore } from '../../store'
+import { grantOutcome, pickFolderToGrant } from '../../lib/grantFolder'
 import { CODE_COLLAPSE_THRESHOLD } from './messageContentConstants'
 import RunConfirmDialog from './RunConfirmDialog'
 import { useBlockRun, formatElapsed, type BlockRunState } from './useBlockRun'
+import { blockGrantOffer, blockGrantOutcome } from './blockRunGrant'
 import { SHELL_OUTPUT_CAP } from './shellOutput'
 import { buildRunDraft, planOutputCopy } from './runFollowThrough'
 import { prepareTerminalCommand } from './terminalSend'
@@ -213,6 +215,10 @@ function RunOutputPanel({
   onRunAgain,
   onCopyOutput,
   onAskAipa,
+  grantOffer,
+  granting,
+  grantElsewhere,
+  onGrantFolder,
 }: {
   run: BlockRunState
   elapsedMs: number
@@ -221,6 +227,13 @@ function RunOutputPanel({
   onRunAgain: () => void
   onCopyOutput: () => void
   onAskAipa: () => void
+  /** Present only when this failure is a folder refusal that named its folder. */
+  grantOffer: { folder: string } | null
+  /** True while the OS dialog is open; the button cannot be pressed twice. */
+  granting: boolean
+  /** The different folder the user confirmed, if that was the dialog's answer. */
+  grantElsewhere: string | null
+  onGrantFolder: () => void
 }) {
   const t = useT()
   const outputRef = useRef<HTMLPreElement>(null)
@@ -330,6 +343,38 @@ function RunOutputPanel({
         {run.truncated && (
           <span style={{ fontSize: 10, color: 'var(--code-text-muted)' }}>
             {t('codeAction.run.truncated', { chars: SHELL_OUTPUT_CAP.toLocaleString() })}
+          </span>
+        )}
+        {/*
+          The last surface that could only fail: the label is the consent for
+          both halves of the action (grant, then run the same command in the
+          same folder). It is only rendered from the offer predicate, so a
+          missing folder or an invalid command never shows it.
+        */}
+        {grantOffer && (
+          <button
+            type="button"
+            onClick={onGrantFolder}
+            disabled={granting}
+            aria-disabled={granting}
+            aria-busy={granting || undefined}
+            title={t('codeAction.run.grant.action')}
+            style={{
+              ...controlStyle,
+              cursor: granting ? 'default' : 'pointer',
+              opacity: granting ? 0.65 : 1,
+            }}
+          >
+            <FolderOpen size={9} />
+            {t('codeAction.run.grant.action')}
+          </button>
+        )}
+        {grantOffer && grantElsewhere && (
+          <span style={{ fontSize: 10, color: 'var(--code-text-muted)', lineHeight: 1.5 }}>
+            {t('codeAction.run.grant.elsewhere', {
+              picked: grantElsewhere,
+              cwd: grantOffer.folder,
+            })}
           </span>
         )}
         <span style={{ flex: 1 }} />
@@ -605,6 +650,21 @@ export default function CodeBlockWithHeader({
   const workingDir = usePrefsStore(s => s.prefs.workingDir)
   const run = useBlockRun(codeText)
   const isRunning = run.state.status === 'running'
+  // Only a `cwd_not_allowed` failure with a named folder offers the grant
+  // button; every other code is a different problem with a different answer.
+  const grantOffer = blockGrantOffer(run.state)
+  const [grantingFolder, setGrantingFolder] = useState(false)
+  // The different folder the dialog returned, if any. It is reported beside
+  // the refusal but never causes a run.
+  const [grantElsewhere, setGrantElsewhere] = useState<string | null>(null)
+  // A native dialog can outlive this block; after it returns, a block that is
+  // gone must not start a process into nothing.
+  const grantingRef = useRef(false)
+  const mountedRef = useRef(true)
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
   const prepared = prepareTerminalCommand(codeText)
   const sendIssue = prepared.issue ?? (workingDir ? null : 'noWorkingDir')
   const sendDisabled = sendIssue !== null
@@ -628,8 +688,44 @@ export default function CodeBlockWithHeader({
 
   const handleRunConfirm = useCallback(() => {
     setShowRunConfirm(false)
+    // A fresh run replaces the refusal, so a sentence about an earlier
+    // different-folder pick no longer describes anything on screen.
+    setGrantElsewhere(null)
     void run.start(workingDir || undefined)
   }, [run, workingDir])
+
+  // The folder refusal's one way forward. The button says "allow and run", so
+  // the dialog's answer decides both halves: same folder means the cause is
+  // gone and the same command runs in that same folder once; a different
+  // folder granted AIPA a folder but not this one, and nothing runs.
+  const handleGrantFolder = useCallback(async () => {
+    if (!grantOffer || grantingRef.current) return
+    grantingRef.current = true
+    setGrantingFolder(true)
+    setGrantElsewhere(null)
+    try {
+      let picked: string | null
+      try {
+        picked = await pickFolderToGrant(grantOffer.folder)
+      } catch {
+        return
+      }
+      const outcome = blockGrantOutcome(grantOutcome(grantOffer.folder, picked))
+      if (!mountedRef.current) return
+      if (outcome === 'allow_and_run') {
+        // The hook owns the command and this offer owns the folder; neither is
+        // re-read from the composer, so the retry is exactly the refused run.
+        void run.start(grantOffer.folder)
+        return
+      }
+      if (outcome === 'granted_elsewhere' && picked) {
+        setGrantElsewhere(picked)
+      }
+    } finally {
+      grantingRef.current = false
+      if (mountedRef.current) setGrantingFolder(false)
+    }
+  }, [grantOffer, run])
 
   // Copy writes exactly the stripped tail the panel shows. When the collector
   // already dropped the start of the output, the toast says so rather than
@@ -820,6 +916,10 @@ export default function CodeBlockWithHeader({
           onRunAgain={handleRunRequest}
           onCopyOutput={handleCopyOutput}
           onAskAipa={handleAskAipa}
+          grantOffer={grantOffer}
+          granting={grantingFolder}
+          grantElsewhere={grantElsewhere}
+          onGrantFolder={() => { void handleGrantFolder() }}
         />
       )}
       {showPreview && isPreviewable && (

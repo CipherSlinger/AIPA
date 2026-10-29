@@ -51,6 +51,16 @@ export interface SearchEmptyInputs {
   entityPending: boolean
   /** A building-block list matched this query. */
   hasEntityHits: boolean
+  /**
+   * The query whose scan was widened back with the bar's own action, or ''.
+   * Keyed by the query so the note disappears as soon as the user searches for
+   * something else instead of lingering over unrelated rows.
+   */
+  scanClearedFor: string
+  /** The query in the box right now, trimmed. */
+  trimmedQuery: string
+  /** Whether the scan is still narrowed, so a widening note cannot stand. */
+  scanPinned: boolean
 }
 
 export interface SearchEmptyFlags {
@@ -69,6 +79,11 @@ export interface SearchEmptyFlags {
   showScopedEmpty: boolean
   /** No conversations matched, but a building-block list did. */
   showNoConversations: boolean
+  /**
+   * The scan was widened back for this exact query, and nothing has narrowed it
+   * since. Shown once, then dropped by typing or by the next press.
+   */
+  showScanCleared: boolean
 }
 
 export function deriveSearchEmptyFlags(input: SearchEmptyInputs): SearchEmptyFlags {
@@ -115,6 +130,14 @@ export function deriveSearchEmptyFlags(input: SearchEmptyInputs): SearchEmptyFla
   const showEmpty = searchable && !input.entityPending && !input.hasEntityHits
   const showNoConversations = searchable && input.entityPending === false && input.hasEntityHits
 
+  // Said once, for the query it was pressed for, and only while the scan really
+  // is the whole history again — a reply that still echoes a narrowing, or a
+  // pin left standing, would make the sentence false.
+  const showScanCleared = input.scanClearedFor !== ''
+    && input.scanClearedFor === input.trimmedQuery
+    && !input.scanPinned
+    && input.filteredBy === null
+
   return {
     showIdle,
     showLoading,
@@ -126,5 +149,6 @@ export function deriveSearchEmptyFlags(input: SearchEmptyInputs): SearchEmptyFla
     showEmpty,
     showScopedEmpty,
     showNoConversations,
+    showScanCleared,
   }
 }

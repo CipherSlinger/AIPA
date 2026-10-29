@@ -47,6 +47,11 @@ import {
   type SearchFolderFilter,
   type SearchFolderOptions,
 } from './searchFolderFilter'
+import {
+  shouldOfferFolderScan,
+  type FolderScanScope,
+  type ScannedFolderState,
+} from './searchFolderScan'
 import { workingDirLabel } from '../../lib/workingDir'
 import { useT } from '../../i18n'
 
@@ -71,6 +76,21 @@ interface Props {
   homeDir: string | null
   /** Rows the folder choice hides among the rows the other chips left. */
   folderHidden: number
+  /**
+   * The conversations recorded in the chosen folder, resolved from this
+   * machine's session listing before the scope cap. `null` when no folder is
+   * chosen. The strip uses this to announce a scan's size and its cap before
+   * the press; it never sends the ids itself.
+   */
+  folderScope: FolderScanScope | null
+  /**
+   * The folder the running scan was narrowed to, from the press-time pin. Kept
+   * even when the folder has left the option list, so the line can name it
+   * instead of leaving an anonymous narrowing.
+   */
+  scannedFolder: ScannedFolderState | null
+  /** The deliberate action that re-searches inside the chosen folder only. */
+  onScanWithFolder: () => void
   /** Rows currently loaded. */
   loaded: number
   /** Distinct hits the query's scan knows; at the ceiling this is the ceiling. */
@@ -241,6 +261,9 @@ export function SearchMatchFilterBar({
   folderOptions,
   homeDir,
   folderHidden,
+  folderScope,
+  scannedFolder,
+  onScanWithFolder,
   loaded,
   total,
   hasMore,
@@ -291,6 +314,16 @@ export function SearchMatchFilterBar({
     : folderFilter.kind === 'none'
       ? t('globalSearch.folder.noneHint')
       : t('globalSearch.folder.selectTitle')
+  // A folder is a corpus main can be asked to scan; "All" and "No folder
+  // recorded" are not. The action is offered only while the loaded rows are a
+  // partial answer and the scan does not already carry this exact folder.
+  const folderSelected = folderFilter.kind === 'folder'
+  const offerFolderScan = shouldOfferFolderScan(
+    partial,
+    folderFilter,
+    scannedFolder?.key ?? null,
+    folderScope?.total ?? null,
+  )
   // Only an explicit press may restart the search with the narrowings pushed
   // into it. The department chip is part of the same decision, so it is passed
   // in — a selected department with no conversations is a scope worth no scan.
@@ -317,6 +350,12 @@ export function SearchMatchFilterBar({
   // had, and the active line must use the pin's name rather than an empty one.
   const deptName = dept?.label ?? ''
   const scannedDeptName = scannedDept?.label ?? ''
+  const scannedFolderName = scannedFolder?.label ?? ''
+  // The two pins are mutually exclusive: both mean "search only these
+  // conversations", and two would describe a corpus neither owns. Reading the
+  // folder only when no department pin is set keeps that true even if a future
+  // caller ever set both.
+  const folderNarrowed = scannedDept === null && scannedFolder !== null
 
   return (
     <div style={ROW_STYLE}>
@@ -427,6 +466,28 @@ export function SearchMatchFilterBar({
                 {t('globalSearch.folder.clear')}
               </button>
             )}
+            {/* Beside the folder control, because it is the one deliberate way
+                to make this folder speak for more than the loaded page. It is
+                not reachable from the select: changing the view never scans. */}
+            {folderSelected && offerFolderScan && (
+              <button
+                type="button"
+                onClick={onScanWithFolder}
+                onKeyDown={stopPillActivation}
+                style={{
+                  ...PILL_STYLE,
+                  color: 'var(--accent-text)',
+                  borderColor: 'rgba(99,102,241,0.35)',
+                }}
+              >
+                {t(
+                  pushesOrigins
+                    ? 'globalSearch.folderScan.buttonBoth'
+                    : 'globalSearch.folderScan.buttonFolder',
+                  { folder: folderLabel, origin: filterLabel },
+                )}
+              </button>
+            )}
           </>
         )}
         {/* One click back to everything: an active narrowing must always be
@@ -450,25 +511,36 @@ export function SearchMatchFilterBar({
         )}
       </div>
       {/* The scan itself was narrowed at the source — by an origin, a
-          department, or both. This is not a view over the loaded rows: main
-          kept only these conversations/origins before its ceiling, so every
-          count below describes that narrowed set. The action that widens it
-          back is a real button, and pressing any chip above is not it. */}
+          department, a folder, or a combination. This is not a view over the
+          loaded rows: main kept only these conversations/origins before its
+          ceiling, so every count below describes that narrowed set. The action
+          that widens it back is a real button, and pressing any chip above is
+          not it. */}
       {echo && (echo.origins !== null || echo.sessionCount !== null) && (
         <div style={NOTE_STYLE}>
           <div role="status">
             {t(
               echoNarrowsBoth(echo)
-                ? 'globalSearch.deptScan.activeBoth'
+                ? (folderNarrowed
+                    ? 'globalSearch.folderScan.activeBoth'
+                    : 'globalSearch.deptScan.activeBoth')
                 : echo.sessionCount !== null
-                  ? 'globalSearch.deptScan.activeDept'
+                  ? (folderNarrowed
+                      ? 'globalSearch.folderScan.activeFolder'
+                      : 'globalSearch.deptScan.activeDept')
                   : 'globalSearch.match.scanActive',
-              { origin: scanLabels, dept: scannedDeptName },
+              {
+                origin: scanLabels,
+                dept: scannedDeptName,
+                folder: scannedFolderName,
+                count: echo.sessionCount ?? 0,
+              },
             )}
           </div>
           {/* Title matches have no origin at all, so an origin narrowing
-              excludes them. A department narrowing does not: a title match in
-              a conversation filed there is still that conversation's name. */}
+              excludes them. A department or folder narrowing does not: a title
+              match in a conversation from that corpus is still that
+              conversation's name. */}
           {echo.origins !== null && <div>{t('globalSearch.match.scanTitleNote')}</div>}
           {/* The corpus is pinned, so a deleted node does not silently mix
               corpora — but the line must stop presenting it as live. */}
@@ -478,12 +550,19 @@ export function SearchMatchFilterBar({
           {/* The cap was reported before the press; repeating it here keeps the
               counts honest for as long as the narrowed scan is on screen. The
               pin knows about the renderer's trim (main never saw those ids);
-              the echo would report a trim main applied itself. */}
-          {(scannedDept?.truncated || echo.sessionTruncated) && (
+              the echo would report a trim main applied itself. The count is
+              the echo's, never the request's. */}
+          {(scannedDept?.truncated || scannedFolder?.truncated || echo.sessionTruncated) && (
             <div>
-              {t('globalSearch.deptScan.activeTruncated', {
-                count: echo.sessionCount ?? scannedDept?.carried ?? 0,
-              })}
+              {t(
+                folderNarrowed
+                  ? 'globalSearch.folderScan.activeTruncated'
+                  : 'globalSearch.deptScan.activeTruncated',
+                {
+                  count: echo.sessionCount ?? scannedFolder?.carried ?? scannedDept?.carried ?? 0,
+                  folder: scannedFolderName,
+                },
+              )}
             </div>
           )}
           <button
@@ -507,6 +586,37 @@ export function SearchMatchFilterBar({
       {emptyDeptScope && (
         <div role="status" style={NOTE_STYLE}>
           {t('globalSearch.deptScan.emptyDeptScope', { dept: deptName })}
+        </div>
+      )}
+      {/* The chosen folder resolves to no conversation at all in this machine's
+          listing. A folder-wide scan would read nothing, so nothing is spent —
+          and it must not silently fall back to the whole history. */}
+      {folderSelected && folderScope?.total === 0 && (
+        <div role="status" style={NOTE_STYLE}>
+          {t('globalSearch.folderScan.emptyScope', { folder: folderLabel })}
+        </div>
+      )}
+      {/* The folder action lives beside the control; this line says what the
+          press would ask main to read, and states the cap before it starts. */}
+      {folderSelected && offerFolderScan && (
+        <div style={NOTE_STYLE}>
+          <div>
+            {t(
+              pushesOrigins
+                ? 'globalSearch.folderScan.hintBoth'
+                : 'globalSearch.folderScan.hintFolder',
+              { loaded, origin: filterLabel, folder: folderLabel },
+            )}
+          </div>
+          {folderScope?.truncated && (
+            <div>
+              {t('globalSearch.folderScan.capped', {
+                folder: folderLabel,
+                total: folderScope.total,
+                cap: MAX_SCOPE_SESSIONS,
+              })}
+            </div>
+          )}
         </div>
       )}
       {/* Partial loaded set and at least one real chip: offer the one deliberate
@@ -593,20 +703,35 @@ export function SearchMatchFilterBar({
       )}
       {showWindowNote && (
         <div role="status" style={NOTE_STYLE}>
-          {/* Once the department is part of the scan, "earlier {{origin}}
-              matches were scanned" would describe half of the narrowing. The
-              sentence names every side the scan actually kept. */}
+          {/* Once a department or folder is part of the scan, "earlier
+              {{origin}} matches were scanned" would describe half of the
+              narrowing. The sentence names every side the scan actually
+              kept. */}
           {t(
             echo?.sessionCount != null
               ? echo.origins !== null
-                ? (hasMore
-                    ? 'globalSearch.deptScan.narrowedBothMore'
-                    : 'globalSearch.deptScan.narrowedBothCeiling')
-                : (hasMore
-                    ? 'globalSearch.deptScan.narrowedDeptMore'
-                    : 'globalSearch.deptScan.narrowedDeptCeiling')
+                ? (folderNarrowed
+                    ? (hasMore
+                        ? 'globalSearch.folderScan.narrowedBothMore'
+                        : 'globalSearch.folderScan.narrowedBothCeiling')
+                    : (hasMore
+                        ? 'globalSearch.deptScan.narrowedBothMore'
+                        : 'globalSearch.deptScan.narrowedBothCeiling'))
+                : (folderNarrowed
+                    ? (hasMore
+                        ? 'globalSearch.folderScan.narrowedFolderMore'
+                        : 'globalSearch.folderScan.narrowedFolderCeiling')
+                    : (hasMore
+                        ? 'globalSearch.deptScan.narrowedDeptMore'
+                        : 'globalSearch.deptScan.narrowedDeptCeiling'))
               : pagingNarrowedKey(hasMore, scoped),
-            { loaded, ceiling: total, origin: filterLabel, dept: scannedDeptName },
+            {
+              loaded,
+              ceiling: total,
+              origin: filterLabel,
+              dept: scannedDeptName,
+              folder: scannedFolderName,
+            },
           )}
         </div>
       )}

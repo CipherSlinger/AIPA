@@ -80,7 +80,15 @@ export function MemoryReceiptLine({ receipt }: Props) {
   const line = clauses.join(' · ')
   const reasons = [receipt?.failed, dept?.kind === 'unreadable' ? dept.reason : undefined]
     .filter((reason): reason is string => typeof reason === 'string' && reason.trim() !== '')
-  const blockText = [receipt?.text, dept?.kind === 'told' ? receipt?.department?.text : undefined]
+  // A failed assembly applied nothing, whatever the stored receipt still says:
+  // `summarizeMemoryReceipt` zeroes the block and the sources in that case, and
+  // reading the raw `text` here would put the block back — offering an expand
+  // toggle under a sentence that says the turn ran without memory. Only the
+  // handbook half may still expand, because it is a separate, truthful record.
+  const blockText = [
+    summary.kind === 'failed' ? undefined : receipt?.text,
+    dept?.kind === 'told' ? receipt?.department?.text : undefined,
+  ]
     .filter((block): block is string => typeof block === 'string' && block !== '')
     .join('\n\n')
   // A receipt with provenance but no text is still worth expanding so the user

@@ -28,6 +28,18 @@ export interface BlockRunState {
   signal: string | null
   stoppedReason: BlockStopReason | null
   failureMessage: string | null
+  /**
+   * The invoke failure's code, kept beside the sentence. Only `shell:exec`
+   * answering `ok: false` carries one; a failure reported later by the process
+   * itself (spawn error, or an unknown thrown value) keeps `null`.
+   */
+  failureCode: string | null
+  /**
+   * The folder this attempt asked main to run in. Kept for the refusal that
+   * names a folder, so a grant dialog can be seeded with it and the retry can
+   * reuse it without consulting the current working-directory preference.
+   */
+  failureCwd: string | null
   stopping: boolean
   startedAt: number | null
   finishedAt: number | null
@@ -47,6 +59,8 @@ function initialState(): BlockRunState {
     signal: null,
     stoppedReason: null,
     failureMessage: null,
+    failureCode: null,
+    failureCwd: null,
     stopping: false,
     startedAt: null,
     finishedAt: null,
@@ -148,6 +162,10 @@ export function useBlockRun(command: string): BlockRunController {
       signal: event.signal,
       stoppedReason: event.aborted ? 'user' : event.timedOut ? 'timeout' : null,
       failureMessage: event.error ?? null,
+      // An exit is not an invoke refusal: there is no code and no folder to
+      // grant, and this run did start.
+      failureCode: null,
+      failureCwd: null,
       stopping: false,
       finishedAt: Date.now(),
       durationMs: event.durationMs,
@@ -156,7 +174,11 @@ export function useBlockRun(command: string): BlockRunController {
     }))
   }, [detach])
 
-  const failToStart = useCallback((message: string) => {
+  const failToStart = useCallback((
+    message: string,
+    code?: string | null,
+    attemptedCwd?: string | null,
+  ) => {
     if (finishedRef.current) return
     finishedRef.current = true
     activeRef.current = false
@@ -164,6 +186,7 @@ export function useBlockRun(command: string): BlockRunController {
     runIdRef.current = null
     detach()
     const snap = collectorRef.current?.flush() ?? null
+    const folder = typeof attemptedCwd === 'string' ? attemptedCwd.trim() : ''
     setState(previous => ({
       ...previous,
       status: 'failed',
@@ -171,6 +194,10 @@ export function useBlockRun(command: string): BlockRunController {
       truncated: Boolean(snap?.truncated),
       droppedChars: snap?.droppedChars ?? 0,
       failureMessage: message,
+      // A blank folder is not a folder: an absent path stays null rather than
+      // becoming the empty string a "grant this" button might mistake for one.
+      failureCode: code ?? null,
+      failureCwd: folder || null,
       stopping: false,
       finishedAt: Date.now(),
       durationMs: previous.startedAt ? Date.now() - previous.startedAt : null,
@@ -238,7 +265,9 @@ export function useBlockRun(command: string): BlockRunController {
       result = await api.shellExec({ runId, command: command.trim(), cwd })
     } catch (err) {
       if (generation !== generationRef.current || !mountedRef.current) return
-      failToStart(err instanceof Error ? err.message : String(err))
+      // A thrown invoke is not a refusal with a code; the folder is kept only
+      // as the folder that attempt used, never as something to grant.
+      failToStart(err instanceof Error ? err.message : String(err), null, cwd)
       return
     }
     if (generation !== generationRef.current) {
@@ -248,7 +277,10 @@ export function useBlockRun(command: string): BlockRunController {
       return
     }
     if (!result.ok && !finishedRef.current) {
-      failToStart(result.error)
+      // The one failure that carries a code: main refused the request before
+      // any process existed, and the code plus the attempted folder are what a
+      // grant button would need.
+      failToStart(result.error, result.code, cwd)
       return
     }
     if (result.ok && stopRequestedRef.current) {

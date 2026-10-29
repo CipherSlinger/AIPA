@@ -758,6 +758,10 @@
           "couldNotStart": "could not start: {{reason}}",
           "unreported": "the run ended without a report"
         }
+      },
+      "grant": {
+        "action": "Allow AIPA to read this folder and run",
+        "elsewhere": "{{picked}} is now readable, but this command still runs in {{cwd}}, which is still not allowed."
       }
     },
     "runInTerminal": "Run in Terminal",
@@ -4154,6 +4158,25 @@
       "emptyLoadedOne": "The folder filter is hiding the only remaining loaded match",
       "emptyLoaded": "The folder filter is hiding all {{count}} remaining loaded matches",
       "emptyHint": "Clear the folder filter to see them. A folder choice also leaves out hits whose folder is not known."
+    },
+    "folderScan": {
+      "hintFolder": "The folder filter applies only to the {{loaded}} matches loaded so far. Searching again reads only conversations that ran in {{folder}}; other folders are left out.",
+      "hintBoth": "The folder filter and the {{origin}} chip apply only to the {{loaded}} matches loaded so far. Searching again reads only {{origin}} matches from conversations that ran in {{folder}}; other folders are left out.",
+      "buttonFolder": "Search only in {{folder}}",
+      "buttonBoth": "Search only in {{folder}} for {{origin}} matches",
+      "capped": "{{folder}} has {{total}} conversations in this machine's listing; the scan can carry the first {{cap}}.",
+      "emptyScope": "{{folder}} has no conversations in this machine's listing, so a folder-wide scan would read nothing. Nothing is searched, and nothing falls back to the whole history.",
+      "activeFolder": "This scan searched only conversations in {{folder}} — {{count}} of them. Other folders were not searched, and the counts below describe this scan.",
+      "activeBoth": "This scan searched only {{origin}} matches in conversations in {{folder}} — {{count}} of them. Other folders were not searched, and the counts below describe this scan.",
+      "activeTruncated": "More conversations in {{folder}} qualified than the scan could carry; it searched the first {{count}}.",
+      "narrowedFolderMore": "Filters and order apply only to the {{loaded}} matches loaded so far; earlier matches in {{folder}} were scanned but are not loaded yet.",
+      "narrowedFolderCeiling": "The scan kept only matches from {{folder}} and stopped at the newest {{ceiling}}; older matches there were not collected.",
+      "narrowedBothMore": "Filters and order apply only to the {{loaded}} matches loaded so far; earlier {{origin}} matches in {{folder}} were scanned but are not loaded yet.",
+      "narrowedBothCeiling": "The scan kept only {{origin}} matches in {{folder}} and stopped at the newest {{ceiling}}; older matches there were not collected.",
+      "emptyFolderTitle": "No matches in {{folder}}",
+      "emptyFolderHint": "This scan looked only at the {{count}} conversations that ran in {{folder}}. Matches in other folders exist but were not part of it.",
+      "emptyBothTitle": "No {{origin}} matches in {{folder}}",
+      "emptyBothHint": "This scan looked only at {{origin}} matches in the {{count}} conversations that ran in {{folder}}. Matches in other folders exist but were not part of it."
     }
   },
   "askHistory": {

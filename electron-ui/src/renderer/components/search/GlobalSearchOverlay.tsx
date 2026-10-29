@@ -15,14 +15,17 @@
 // `./overlay/` are composed from. The invariants the scoped-scan waves
 // established live where they are enforced:
 //
-//   - SCAN NARROWING: only `scanWithCurrentNarrowing` and `scanWholeHistory`
-//     (below) set `scanOrigins` / `scanDept`. The filter bar receives them as
+//   - SCAN NARROWING: only `scanWithCurrentNarrowing`, `scanWithFolder` and
+//     `scanWholeHistory` set `scanOrigins` / `scanDept` / `scanFolder`, and they
+//     live in `useSearchScanNarrowing`. The filter bar receives them as
 //     callbacks; no chip, order or select handler can reach them, so a filter
-//     change never starts a scan behind the user's back.
-//   - SCAN KEY: `useGlobalSessionSearch` keys its scan on query + origins +
-//     department id list (`searchScanKey`). The pinned array is passed as-is,
-//     not `[...ids]`, so a new identity every render cannot look like a new
-//     narrowing and restart the scan.
+//     change never starts a scan behind the user's back. The department and
+//     folder pins are mutually exclusive: both mean "search only these
+//     conversations".
+//   - SCAN KEY: `useGlobalSessionSearch` keys its scan on query + origins + the
+//     pinned session id list (`searchScanKey`). The pinned array is passed
+//     as-is, not `[...ids]`, so a new identity every render cannot look like a
+//     new narrowing and restart the scan.
 //   - COUNTS: every count below is over the loaded set. `SearchPager` gets
 //     `loaded`/`total` unchanged and lets `pagingCountKey` choose "of", "of at
 //     least" or "all".
@@ -69,8 +72,6 @@ import {
 } from './searchOriginFilter'
 import {
   isLoadedSetPartial,
-  nextPageSize,
-  type ScanOrigin,
   type SearchMatchFilter,
   type SearchSortOrder,
 } from './searchMatchFilter'
@@ -94,16 +95,12 @@ import {
   resolveListAskIds,
   type ListScope,
 } from './searchAskScope'
-import {
-  narrowingFromEcho,
-  pinDeptScanScope,
-  scanDeptState,
-  type DeptScanPin,
-} from './searchDeptScan'
+import { describeScanNarrowing, useSearchScanNarrowing } from './useSearchScanNarrowing'
 import { ASK_MIN_QUERY, type AskSource } from './overlay/askHistory'
 import { useAskHistory } from './overlay/useAskHistory'
 import { handleOverlayKeyDown } from './overlay/keyboard'
 import { deriveSearchEmptyFlags } from './searchEmptyFlags'
+import { derivePagingNotices } from './searchPagingNotices'
 import { useSearchFilterPipeline } from './useSearchFilterPipeline'
 import { AskAnswerView } from './overlay/AskAnswerView'
 import { AskMoreCharsHint } from './overlay/AskMoreCharsHint'
@@ -231,21 +228,9 @@ export default function GlobalSearchOverlay() {
   // Newest first is what the main process returns; oldest first is a client-side
   // reversal of the same window, never a second scan.
   const [sortOrder, setSortOrder] = useState<SearchSortOrder>('newest')
-  // Origins the scan itself is narrowed to, or null for the whole history. Set
-  // only by the bar's explicit scoped-scan action and cleared by its "search
-  // the whole history again" action. Changing a chip never touches it: a filter
-  // change must never start a scan behind the user's back.
-  const [scanOrigins, setScanOrigins] = useState<ScanOrigin[] | null>(null)
-  // The department the scan itself is narrowed to, frozen at the press: the
-  // exact session ids, plus the name and totals the bar announced. A snapshot
-  // rather than the live resolution, so a filing change, a session that starts
-  // or a node deleted mid-scan cannot retarget the ordering a page will slice.
-  // Set only by the same explicit action as `scanOrigins`.
-  const [scanDept, setScanDept] = useState<DeptScanPin | null>(null)
-  // The query for which the scan was last widened back to the whole history.
-  // Keyed by the query so the note disappears as soon as the user searches for
-  // something else instead of lingering over unrelated rows.
-  const [scanClearedFor, setScanClearedFor] = useState('')
+  // The scan's three pins and the deliberate presses that set them live in
+  // `useSearchScanNarrowing`; the call sits below, once the department scope and
+  // the live reply's echo are both known.
   // The org node whose subtree the current rows are narrowed to, or null for
   // every department. Like the origin filter, this is a client view over rows
   // already returned — it never starts a new search.
@@ -333,6 +318,34 @@ export default function GlobalSearchOverlay() {
       : null),
     [sessions, departments, deptFilter, homeDir, filings],
   )
+  // The three pins, the live folder scope and the deliberate presses that own
+  // them live in one place — see `useSearchScanNarrowing`. Nothing else in this
+  // file writes a pin, so a chip click, a select change or an order change can
+  // never turn into a scan. The hook is called here because the search below
+  // reads its pins; how the reply describes that narrowing is derived after the
+  // reply arrives, in `describeScanNarrowing`.
+  const {
+    scanOrigins,
+    scanDept,
+    scanFolder,
+    scanClearedFor,
+    folderScope,
+    scannedFolder,
+    scannedDept,
+    scanWithCurrentNarrowing,
+    scanWithFolder,
+    clearScanPins,
+  } = useSearchScanNarrowing({
+    sessions,
+    platform,
+    homeDir,
+    matchFilter,
+    folderFilter,
+    deptFilter,
+    deptFilterLabel,
+    deptScope,
+    departments,
+  })
   // The live chip as the filter bar describes it. `total` is what the subtree
   // holds before the scope cap, so the bar can say "640, the scan carries 500"
   // before anything runs — and can say "none" without pretending otherwise.
@@ -346,14 +359,6 @@ export default function GlobalSearchOverlay() {
         }
       : null),
     [deptFilter, deptScope, deptFilterLabel],
-  )
-  // The pin named the way the scan-active line needs it. `gone` is computed
-  // from the live tree, so a node deleted while its narrowed scan is on screen
-  // is reported instead of being presented as current.
-  const liveDeptIds = useMemo(() => new Set(departments.map(dept => dept.id)), [departments])
-  const scannedDept = useMemo(
-    () => scanDeptState(scanDept, liveDeptIds),
-    [scanDept, liveDeptIds],
   )
   // What a list-scoped ask would send: the archive's exact ids, narrowed by the
   // department subtree when one is also selected. Preserving the list order
@@ -427,8 +432,9 @@ export default function GlobalSearchOverlay() {
     scanOrigins,
     // The pinned array, not a fresh `[...ids]`: the hook keys its scan on the
     // id list, and a new identity every render would look like a new narrowing
-    // and restart the scan under the user.
-    scanDept ? scanDept.ids : null,
+    // and restart the scan under the user. At most one pin is ever set, so this
+    // is one corpus rather than a union of two.
+    scanDept ? scanDept.ids : scanFolder ? scanFolder.ids : null,
   )
 
   // Every client-side narrowing, in order, in one place — see the hook's header
@@ -465,34 +471,17 @@ export default function GlobalSearchOverlay() {
     setOpen(false)
   }, [markDismissed, setOpen])
 
-  // The two deliberate ways to change what the scan collects. Both are buttons
-  // in the filter bar; nothing else in this file may set `scanOrigins` or
-  // `scanDept`, so a chip click or an order change cannot turn into a scan.
-  //
-  // One action, whatever the chips say: the origin chip (if one is active) and
-  // the department's sessions, using the same resolution a scoped ask uses. The
-  // bar names exactly which narrowings will be pushed before this runs.
-  const scanWithCurrentNarrowing = useCallback(() => {
-    setScanClearedFor('')
-    setScanOrigins(matchFilter === 'all' ? null : [matchFilter])
-    setScanDept(
-      deptFilter && deptScope
-        ? pinDeptScanScope(deptFilter, deptFilterLabel, deptScope)
-        : null,
-    )
-  }, [matchFilter, deptFilter, deptScope, deptFilterLabel])
   // Widening also clears the chips: the rows that follow are the whole history,
-  // and leaving "prose only" or a department selected over them would describe
-  // a scan that is no longer narrowed. The department pin is dropped with them
-  // so no later page can slice the old department's corpus.
+  // and leaving "prose only", a department or a folder selected over them would
+  // describe a scan that is no longer narrowed. Both pins are dropped by the
+  // hook so no later page can slice an old corpus.
   const scanWholeHistory = useCallback(() => {
-    setScanOrigins(null)
-    setScanDept(null)
+    clearScanPins(query.trim())
     setMatchFilter('all')
     setDeptFilter(null)
     setDeptPinned(false)
-    setScanClearedFor(query.trim())
-  }, [query])
+    setFolderFilter(ALL_FOLDERS_FILTER)
+  }, [clearScanPins, query])
 
   // Put the caret at the end of the question, selecting nothing. Used by both
   // the follow-up chip and the answer card's "Follow up" action, so the user
@@ -726,6 +715,7 @@ export default function GlobalSearchOverlay() {
     showEmpty,
     showScopedEmpty,
     showNoConversations,
+    showScanCleared,
   } = deriveSearchEmptyFlags({
     status,
     trimmedLength: trimmed.length,
@@ -744,40 +734,39 @@ export default function GlobalSearchOverlay() {
     filteredBy,
     entityPending,
     hasEntityHits,
+    scanClearedFor,
+    trimmedQuery: trimmed,
+    scanPinned: scanOrigins !== null || scanDept !== null || scanFolder !== null,
   })
 
   // The translated pill label, reused inside the empty-state copy below so no
   // sentence has to hard-code a second name for the same bucket. The coverage
   // lines inside the bar translate their own copies.
   const matchFilterLabel = t(`globalSearch.match.${matchFilter}`)
-  // What the reply says it kept. The scoped-empty copy names those narrowings
-  // and nothing else: "no matches anywhere in the history" is a claim a
-  // department-scoped scan never earned.
-  const scopedEcho = narrowingFromEcho(filteredBy)
-  const scopedOriginLabels = (scopedEcho?.origins ?? [])
-    .map(origin => t(`globalSearch.match.${origin}`))
-    .join(' + ')
+  // What the reply says it kept, and how that narrowing is named. The
+  // scoped-empty copy names those narrowings and nothing else: "no matches
+  // anywhere in the history" is a claim a department- or folder-scoped scan
+  // never earned.
+  const { scopedEcho, scopedOriginLabels, scopedFolder } = describeScanNarrowing({
+    filteredBy,
+    scanDept,
+    scannedFolder,
+    translate: t,
+  })
   // The loaded rows are only part of what the query knows: either more pages
   // can be fetched, or the scan's own ceiling stopped it. Every count below is
   // over the loaded set, and the copy says so when this is true.
   const partialLoaded = isLoadedSetPartial(hasMore, ceilingReached)
-  // Shown once after the scan was widened back to the whole history. Keyed by
-  // the query it was pressed for, so typing a new one drops it.
-  const scanCleared = scanClearedFor !== ''
-    && scanClearedFor === trimmed
-    && scanOrigins === null
-    && scanDept === null
-    && filteredBy === null
-  // How many rows the next page would actually add (the last page can be short).
-  const nextCount = nextPageSize(results.length, totalHits)
-  // Built here, not in the hook, because it must be translated. It changes only
-  // when a page lands, which is what the polite live region announces.
-  const pageAnnouncement = lastPage
-    ? t(
-        lastPage.added === 1 ? 'globalSearch.paging.announceOne' : 'globalSearch.paging.announce',
-        { added: lastPage.added, loaded: lastPage.loaded },
-      )
-    : ''
+  // Shown once after the scan was widened back to the whole history; part of the
+  // same ordered "which notice may claim the screen" chain as the empty states.
+  const scanCleared = showScanCleared
+  // The footer's count, and the sentence the live region says when a page lands.
+  const { nextCount, announcement: pageAnnouncement } = derivePagingNotices({
+    lastPage,
+    loaded: results.length,
+    total: totalHits,
+    translate: t,
+  })
 
   return (
     <div
@@ -842,9 +831,16 @@ export default function GlobalSearchOverlay() {
               // new query's rows for a frame.
               setOriginFilter(current => originFilterForQuery(query, e.target.value, current))
               // A folder choice described the old rows; a new query's loaded
-              // hits may all have run elsewhere, so it starts at All. This only
-              // touches the filter — the query text is whatever the user typed.
-              setFolderFilter(current => folderFilterForQuery(query, e.target.value, current))
+              // hits may all have run elsewhere, so it starts at All. While the
+              // scan itself carries a folder, the control keeps naming that
+              // folder — otherwise the visible filter would deny the corpus the
+              // reply is still narrowed to. This only touches the filter — the
+              // query text is whatever the user typed.
+              setFolderFilter(current => (
+                scanFolder !== null
+                  ? current
+                  : folderFilterForQuery(query, e.target.value, current)
+              ))
               // A pinned filter was chosen from a department page, not over
               // these rows, so typing must not drop it; a manual choice still
               // resets with the query. While the scan itself carries a
@@ -1075,6 +1071,9 @@ export default function GlobalSearchOverlay() {
             folderOptions={folderOptions}
             homeDir={homeDir}
             folderHidden={folderFiltered.hidden}
+            folderScope={folderScope}
+            scannedFolder={scannedFolder}
+            onScanWithFolder={scanWithFolder}
             loaded={results.length}
             total={totalHits}
             hasMore={hasMore}
@@ -1191,28 +1190,38 @@ export default function GlobalSearchOverlay() {
                   <div style={EMPTY_STYLE}>
                     <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                       {t(
-                        scopedEcho?.sessionCount != null
-                          ? scopedEcho.origins !== null
-                            ? 'globalSearch.deptScan.emptyBothTitle'
-                            : 'globalSearch.deptScan.emptyDeptTitle'
-                          : 'globalSearch.match.scanEmptyTitle',
+                        scopedFolder
+                          ? scopedEcho!.origins !== null
+                            ? 'globalSearch.folderScan.emptyBothTitle'
+                            : 'globalSearch.folderScan.emptyFolderTitle'
+                          : scopedEcho?.sessionCount != null
+                            ? scopedEcho.origins !== null
+                              ? 'globalSearch.deptScan.emptyBothTitle'
+                              : 'globalSearch.deptScan.emptyDeptTitle'
+                            : 'globalSearch.match.scanEmptyTitle',
                         {
                           origin: scopedOriginLabels,
                           dept: scannedDept?.label ?? '',
+                          folder: scannedFolder?.label ?? '',
                           count: scopedEcho?.sessionCount ?? 0,
                         },
                       )}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
                       {t(
-                        scopedEcho?.sessionCount != null
-                          ? scopedEcho.origins !== null
-                            ? 'globalSearch.deptScan.emptyBothHint'
-                            : 'globalSearch.deptScan.emptyDeptHint'
-                          : 'globalSearch.match.scanEmptyHint',
+                        scopedFolder
+                          ? scopedEcho!.origins !== null
+                            ? 'globalSearch.folderScan.emptyBothHint'
+                            : 'globalSearch.folderScan.emptyFolderHint'
+                          : scopedEcho?.sessionCount != null
+                            ? scopedEcho.origins !== null
+                              ? 'globalSearch.deptScan.emptyBothHint'
+                              : 'globalSearch.deptScan.emptyDeptHint'
+                            : 'globalSearch.match.scanEmptyHint',
                         {
                           origin: scopedOriginLabels,
                           dept: scannedDept?.label ?? '',
+                          folder: scannedFolder?.label ?? '',
                           count: scopedEcho?.sessionCount ?? 0,
                         },
                       )}

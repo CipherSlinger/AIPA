@@ -758,6 +758,10 @@
           "couldNotStart": "无法启动：{{reason}}",
           "unreported": "运行结束，但没有收到结果"
         }
+      },
+      "grant": {
+        "action": "允许 AIPA 读取这个文件夹并运行",
+        "elsewhere": "{{picked}} 现在可以读取了，但这条命令仍然要在 {{cwd}} 里运行，而那个文件夹仍然不被允许。"
       }
     },
     "runInTerminal": "在终端中运行",
@@ -4154,6 +4158,25 @@
       "emptyLoadedOne": "文件夹筛选挡住了已加载结果里唯一剩下的一条",
       "emptyLoaded": "文件夹筛选挡住了已加载结果里剩下的全部 {{count}} 条",
       "emptyHint": "清除文件夹筛选即可看到。选了某个文件夹时，文件夹未知的结果也不会显示。"
+    },
+    "folderScan": {
+      "hintFolder": "文件夹筛选只作用于已加载的 {{loaded}} 条。按它重新搜索会只读在「{{folder}}」里运行过的对话，别的文件夹不在其中。",
+      "hintBoth": "文件夹筛选和{{origin}}筛选只作用于已加载的 {{loaded}} 条。按它们重新搜索会只读「{{folder}}」里这些对话的{{origin}}匹配，别的文件夹不在其中。",
+      "buttonFolder": "只搜索「{{folder}}」",
+      "buttonBoth": "在「{{folder}}」里只搜{{origin}}匹配",
+      "capped": "本机列表里「{{folder}}」下共有 {{total}} 个对话；这次扫描最多只能带上前 {{cap}} 个。",
+      "emptyScope": "本机列表里「{{folder}}」下没有任何对话，按文件夹扫描不会读到东西。所以不搜索，也不会退回到全部历史。",
+      "activeFolder": "这次扫描只看了在「{{folder}}」里运行过的对话——共 {{count}} 个。别的文件夹没有被搜索，下面的计数描述这次扫描。",
+      "activeBoth": "这次扫描只看了「{{folder}}」里这些对话的{{origin}}匹配——共 {{count}} 个对话。别的文件夹没有被搜索，下面的计数描述这次扫描。",
+      "activeTruncated": "「{{folder}}」里符合条件的对话超过了扫描能带上的数量；这次只搜了前 {{count}} 个。",
+      "narrowedFolderMore": "筛选和排序只作用于已加载的 {{loaded}} 条；「{{folder}}」里更早的匹配已经扫描过，只是还没加载。",
+      "narrowedFolderCeiling": "扫描只保留「{{folder}}」里的匹配，并且在最新 {{ceiling}} 条处停下；那里更早的匹配没有取回。",
+      "narrowedBothMore": "筛选和排序只作用于已加载的 {{loaded}} 条；「{{folder}}」里更早的{{origin}}匹配已经扫描过，只是还没加载。",
+      "narrowedBothCeiling": "扫描只保留「{{folder}}」里的{{origin}}匹配，并且在最新 {{ceiling}} 条处停下；那里更早的匹配没有取回。",
+      "emptyFolderTitle": "「{{folder}}」里没有任何匹配",
+      "emptyFolderHint": "这次扫描只看了在「{{folder}}」里运行过的 {{count}} 个对话。别的文件夹里有匹配，但不属于这次扫描。",
+      "emptyBothTitle": "「{{folder}}」里没有{{origin}}匹配",
+      "emptyBothHint": "这次扫描只看了「{{folder}}」里这些对话的{{origin}}匹配（共 {{count}} 个对话）。别的文件夹里有匹配，但不属于这次扫描。"
     }
   },
   "askHistory": {

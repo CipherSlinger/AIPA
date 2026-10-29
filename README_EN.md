@@ -207,6 +207,26 @@ Session handoffs land where they point: auto-resume, the welcome screen's contin
 - **Six preload keys that nothing could call are gone**: `onHookEvent`, `onCustomTitle`, `windowIsAlwaysOnTop`, `providerSetActive`, `providerGetActive` and `providerAbort` were forwarded to the renderer and had no reader, along with four main-process handlers behind them and a complete `cli:customTitle` chain — a bridge sink, a stream-bridge emitter case and a renderer listener that no producer ever reached. The split audit now records additions *and* removals channel by channel, so an unexplained disappearance still fails the build check.
 - **What looks dead but is not is written down**: a handful of channels are referenced only by their own harnesses; they are listed rather than deleted, so a later cleanup has the evidence it needs instead of a guess.
 
+### 🗂 A folder can be searched, not just filtered
+
+- **"Search only in this folder" is a real press, not a select**: the folder control on the search strip is a view over the page that was already loaded, so a folder whose older conversations sit past the scan ceiling looks empty even though they exist. The new action hands that folder's session ids to main *before* its ceiling — the same allowlist channel the department scan uses — so the rows on screen and the corpus that was scanned are the same conversations.
+- **The list is frozen at the press, and the copy says what it will cost**: a rebuilt session listing must not retarget a scan that is already running, and a fresh array identity would look like a new narrowing and restart it, so the ids are copied once. The strip announces the size before the press, states the 500-conversation cap when it bites, and refuses a folder the listing resolves to no conversation at all — an empty folder is one press that would read nothing, not a reason to fall back to the whole history. A department and a folder both mean "search only these conversations", so at most one is pinned; widening back to everything clears both pins and the folder view together.
+- **Every sentence reads the reply, not the request**: the active line, the truncation note and the scoped-empty copy all take their narrowing from the reply's `filteredBy` echo and the press-time pin. A scan that failed, was refused, or was answered before the pin changed can therefore never be described as narrowed, and "no matches" is only ever said about the corpus main says it kept.
+
+### 🖥 A refused run can be allowed without leaving the conversation
+
+- **The shell gate's refusal now has a next step**: when a code block's command is refused because its folder is outside what AIPA may read, the failure offers one button: allow AIPA to read this folder and run. The label is the consent for both halves of the action, so the folder dialog decides what happens — confirming the same folder grants it and re-runs that exact command in that folder once; confirming a different folder grants *that* folder and runs nothing, with a quiet line saying so; cancelling changes nothing. The command and folder come from the refusal, never from the composer, so the retry is exactly the run that was just refused.
+- **One dialog, one retry, nothing after unmount**: a re-entry guard makes a double click one press, the button reports itself busy while the OS dialog is open, and a block unmounted while the dialog was up starts no process into nothing. The policy is a pure module (`blockRunGrant.ts`) that reads only the failure code and the folder it named, so a refusal of any other kind — bad command, missing folder, a registry refusal — keeps its own answer and never grows this button.
+
+### 🧾 A receipt may not show a body it disclaims
+
+- **A failed memory assembly no longer expands a stale block**: the receipt line prints "this turn ran without memory" and zeroes the block and its sources, but the expandable `<pre>` was reading the receipt's raw text, so an old block could be reopened under a sentence that said nothing was given. The body is now read through the same guard as the summary; only the department handbook may still expand in that case, because it is a separate and still-true record.
+
+### 🧱 The coordinator split again, and nothing was relaxed
+
+- **The search coordinator went back under its ceiling by splitting, not by raising it**: the folder facet pushed `GlobalSearchOverlay.tsx` to 1 469 lines against a 1 400-line ceiling. The three scan pins and the presses that own them moved into `useSearchScanNarrowing.ts` — which also derives the live folder scope and the pinned names — the next-page count and the "a page landed" announcement moved into `searchPagingNotices.ts`, and the "may this widening note claim the screen" question joined the existing empty-state chain. The coordinator is 1 397 lines.
+- **The invariant harness now follows the code instead of the filename**: "only the deliberate actions write a pin" is still asserted exactly — three presses write `scanOrigins`, three write `scanDept`, and no rendered file writes either — and so are "the fourth scan argument is one corpus, not a union of two" and "the next-page count is the loaded set". The setter inventory, the dynamic translation templates and the literal key counts in those checks moved with the code they describe.
+
 ---
 
 ## 🤖 One Cockpit, Two Engines
