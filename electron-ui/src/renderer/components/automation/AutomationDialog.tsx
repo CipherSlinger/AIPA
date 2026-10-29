@@ -9,6 +9,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, File, FolderOpen, GitBranch, Info } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { useDepartmentStore, usePrefsStore, useUiStore } from '../../store'
+// The one effort list, owned by the main process. This module imports nothing,
+// so loading it here is safe; a second literal list would let the dialog offer a
+// level the store's whitelist drops.
+import { AUTOMATION_EFFORT_LEVELS } from '../../../main/automation/job-effort'
 import { usePluginStore } from '../../store/pluginStore'
 import { getPluginDisplayName } from '../plugins/pluginIcons'
 import type { Persona } from '../../types/app.types'
@@ -52,6 +56,12 @@ export interface WorkflowOption {
  * selection, which follows the workflow's expert.
  */
 export const ASSISTANT_PERSONA_ID = '__assistant__'
+
+/**
+ * The effort select's "no override" value. Not a level and never sent: main
+ * stores an absent field, which reads the app preference when a run starts.
+ */
+const FOLLOW_APP_EFFORT = 'default'
 
 // Stable empty array: an absent pref must not create a new reference per render.
 const EMPTY_PERSONAS: Persona[] = []
@@ -178,6 +188,9 @@ export default function AutomationDialog({
   const addToast = useUiStore(s => s.addToast)
   const editing = job !== null
   const personas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
+  // Shown in the "app default" option so the user reads the level a run would
+  // actually send today instead of a bare word.
+  const globalEffort = usePrefsStore(s => s.prefs.effortLevel)
   const plugins = usePluginStore(s => s.plugins)
   const departments = useDepartmentStore(s => s.departments)
 
@@ -229,6 +242,12 @@ export default function AutomationDialog({
     // assistant — the only run it could have had before this field existed.
     return defaultActionKind === 'prompt' ? ASSISTANT_PERSONA_ID : ''
   })
+  // Three states, like the expert field: FOLLOW_APP_EFFORT follows the app
+  // preference at each run, `'auto'` is an explicit "let the engine decide", and
+  // any other level is an explicit level. A stored level is kept verbatim; an
+  // absent one opens as "follow the app", never as the level that happens to be
+  // set today — otherwise opening and saving a dialog would silently pin it.
+  const [effortChoice, setEffortChoice] = useState<string>(job?.effort ?? FOLLOW_APP_EFFORT)
   // Kept as text so the empty state means "no limit" rather than 0. A number
   // state would make clearing the field indistinguishable from a $0 limit,
   // which would block every scheduled run.
@@ -487,9 +506,13 @@ export default function AutomationDialog({
     setError(null)
     // '' is not an id: omit it so the main process stores "follow the workflow".
     const personaId = personaChoice === '' ? undefined : personaChoice
+    // "Follow the app default" is an absent field, not a level. An explicit
+    // `'auto'` is sent as itself: it must outrank a non-auto app default.
+    const effort = effortChoice === FOLLOW_APP_EFFORT ? undefined : effortChoice
     const input: AutomationInputData = {
       name: name.trim(), enabled, trigger, action,
       ...(personaId ? { personaId } : {}),
+      ...(effort ? { effort: effort as AutomationInputData['effort'] } : {}),
       // A stale id is sent back unchanged unless the user picked another node
       // or "No department". Omitting the field is how an edit clears it, so
       // this must never be filled from a guess or from `action.cwd`.
@@ -757,6 +780,32 @@ export default function AutomationDialog({
               {t('automation.expert.overrideHint')}
             </div>
           )}
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={labelStyle}>{t('automation.field.effort')}</label>
+          <select
+            value={effortChoice}
+            onChange={e => setEffortChoice(e.target.value)}
+            style={INPUT_STYLE}
+          >
+            {/* The app's current level is named here, so "default" is concrete:
+                a user can see that the nightly job will run at High without
+                opening Settings. The value itself is not stored. */}
+            <option value={FOLLOW_APP_EFFORT}>
+              {t('automation.effort.followDefault', {
+                level: t(`effort.${globalEffort || 'auto'}`),
+              })}
+            </option>
+            {AUTOMATION_EFFORT_LEVELS.map(level => (
+              <option key={level} value={level}>
+                {t(`effort.${level}`)}
+              </option>
+            ))}
+          </select>
+          <div style={{ fontSize: 11, color: SECONDARY, marginTop: 4, lineHeight: 1.5 }}>
+            {t('automation.effort.hint')}
+          </div>
         </div>
 
         <div style={{ marginBottom: 12 }}>

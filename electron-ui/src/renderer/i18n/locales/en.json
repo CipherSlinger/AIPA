@@ -433,7 +433,20 @@
         "toldCut": "Department handbook ({{dept}}) · cut to {{chars}} of {{sourceChars}} characters",
         "unreadable": "Couldn't read the department handbook ({{dept}}) — this turn ran without it."
       },
-      "expandHintTurn": "Show the exact context this turn was given"
+      "expandHintTurn": "Show the exact context this turn was given",
+      "source": {
+        "alreadySent": "This block was already sent with this message. Forgetting a file below only changes future turns.",
+        "chars": "{{chars}} chars",
+        "truncated": "cut to fit",
+        "omitted": "left out by the budget",
+        "forget": "Forget",
+        "cancel": "Cancel",
+        "confirm": "Delete this memory file? Future turns won't include it; this turn already went out with it.",
+        "deleted": "Deleted. Future turns won't include it; this turn already went out with it.",
+        "refused": "Couldn't delete it: {{reason}}",
+        "openConsole": "Open memory console",
+        "notForgettable": "Not a memory-folder file, so it can't be forgotten here"
+      }
     }
   },
   "sessionReuse": {
@@ -2529,7 +2542,19 @@
     "pickerTitle": "Effort Level",
     "pickerHint": "Controls AI reasoning depth",
     "preventSleep": "Prevent Sleep While Streaming",
-    "preventSleepHint": "Keep the system awake while the AI is generating a response"
+    "preventSleepHint": "Keep the system awake while the AI is generating a response",
+    "sessionSwitched": "Effort for this conversation set to {{level}}",
+    "globalSwitched": "Default effort set to {{level}} — new conversations start here",
+    "followsGlobal": "This conversation now follows the global default ({{level}})",
+    "sessionHint": "This changes only this conversation — it now runs at {{level}}.",
+    "followsDefaultHint": "This conversation follows the global default ({{level}}). A pick here changes only this conversation.",
+    "globalHint": "No conversation is open, so this changes the default new conversations start from.",
+    "followGlobalOption": "Follow the default ({{level}})",
+    "followGlobalOptionHint": "Drop this conversation's own pick. It follows the global default again, even if that default changes later.",
+    "overrideTitle": "This conversation uses {{level}}; the global default is {{global}}",
+    "sessionTitle": "Effort in this conversation: {{level}}",
+    "globalTitle": "Default effort: {{level}}",
+    "sessionTag": "this chat"
   },
   "diagnostics": {
     "title": "System Diagnostics",
@@ -3721,7 +3746,8 @@
       "quietOnSuccess": "Quiet on success",
       "retryOnFailure": "Retry failed runs",
       "dayOfMonth": "Day of month",
-      "missedRunPolicy": "If a time was missed while AIPA was closed"
+      "missedRunPolicy": "If a time was missed while AIPA was closed",
+      "effort": "Effort"
     },
     "action": {
       "workflow": "Run a workflow",
@@ -4032,6 +4058,11 @@
         "depth_limit": "the chain had already run {{depth}} jobs in a row",
         "target_refused": "the job it named did not start"
       }
+    },
+    "effort": {
+      "followDefault": "App default ({{level}})",
+      "hint": "This job's runs use this effort. “App default” follows the current setting each time a run starts, not the one saved with the job; Auto lets the engine decide. Raise it for a job that needs deep reasoning, lower it for a nightly chore.",
+      "row": "Effort: {{level}}"
     }
   },
   "speculation": {

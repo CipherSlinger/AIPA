@@ -14,6 +14,7 @@ import { createLogger } from '../utils/logger'
 import { normalizeDeptBudgets } from './dept-budget'
 import { normalizeJobChain } from './job-chain'
 import { normalizeDepartmentId } from './job-department'
+import { normalizeJobEffort } from './job-effort'
 import { normalizeJobProvenance } from './job-provenance'
 import { normalizeMissedRunPolicy } from './missed-policy'
 import { normalizePendingRetry } from './retry-policy'
@@ -125,6 +126,12 @@ export function normalizeJob(raw: unknown): AutomationJob | null {
     personaId: typeof job.personaId === 'string' && job.personaId.trim()
       ? job.personaId.trim()
       : undefined,
+    // The job's own effort, kept only when it is one of the shared levels.
+    // Absent stays absent — that is "follow the app default at run time", and
+    // writing anything here would freeze today's default into the job. A
+    // hand-edited or corrupt value is dropped, not folded into `'auto'`: "let
+    // the engine decide" is a promise the user can make, not one to invent.
+    effort: normalizeJobEffort(job.effort),
     // An id only: the org tree is a renderer-side record, so a hand-edited or
     // synced file can only be checked for shape here. A malformed value is
     // dropped without discarding the job; a well-formed but unknown id is kept,

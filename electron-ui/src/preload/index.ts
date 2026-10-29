@@ -702,6 +702,14 @@ export type AutomationRunStatusData = 'success' | 'error' | 'skipped' | 'running
 /** Mirrors main's `AutomationMissedRunPolicy`; absent means `'run'`. */
 export type AutomationMissedRunPolicyData = 'run' | 'skip'
 
+/**
+ * Mirrors main's `AutomationEffort` (`src/main/automation/job-effort.ts`, the
+ * one list). A type cannot cross the process boundary, so the union is repeated
+ * here like every other automation field; the *values* the dialog offers come
+ * from main's `effortLevels`, so the two can never disagree about what exists.
+ */
+export type AutomationEffortData = 'auto' | 'low' | 'medium' | 'high' | 'max'
+
 /** Mirrors main's `RunUsage`; cost stays absent when the engine reported none. */
 export interface AutomationRunUsageData {
   inputTokens: number
@@ -738,6 +746,18 @@ export interface MemoryUnreadableData {
   scope: 'global' | 'project'
   reason: 'stat' | 'read' | 'parse' | 'scan'
   projectHash?: string
+}
+
+/** Mirrors main's `MemorySourceEntry`: what one block line was built from. */
+export interface MemorySourceData {
+  path?: string
+  label?: string
+  tier: string
+  chars: number
+  truncated: boolean
+  omitted: boolean
+  deletable: boolean
+  console: boolean
 }
 
 /** Mirrors main's `AutomationChangedFileKind`. */
@@ -1015,6 +1035,12 @@ export interface AutomationJobData {
    */
   personaId?: string
   /**
+   * This job's own thinking effort; absent means "follow `prefs.effortLevel` as
+   * it stands when the run starts". `'auto'` is an explicit "let the engine
+   * decide", which is not the same as absent while the app default is a level.
+   */
+  effort?: AutomationEffortData
+  /**
    * The org node this job is filed under, as an id only. The org tree lives in
    * this renderer, so main checks only the shape; whether the id still resolves
    * is a renderer question, and an unresolvable one must stay visible. This is
@@ -1161,6 +1187,11 @@ export interface AutomationLimitsData {
   }
   /** How many jobs one chain may enter, successor by successor. */
   chainMaxDepth: number
+  /**
+   * The effort levels a job may store, in menu order. Main's one list; the
+   * dialog builds its picker from this rather than restating it.
+   */
+  effortLevels: AutomationEffortData[]
 }
 
 export interface AutomationInputData {
@@ -1170,6 +1201,12 @@ export interface AutomationInputData {
   action: AutomationActionData
   /** Empty/omitted follows the workflow; absent is not a persona id ''. */
   personaId?: string
+  /**
+   * Omitted means "follow the app default at run time" and is also how an edit
+   * clears a previous override. A value outside the shared levels is dropped by
+   * main rather than rejecting the save.
+   */
+  effort?: AutomationEffortData
   /**
    * Org node the job is filed under, as an id. Omitted/empty clears the filing;
    * the renderer never infers it from the working directory. Attribution only.
@@ -2293,6 +2330,7 @@ const electronAPI = {
       used: Record<string, number>
       truncated: string[]
       unreadable: MemoryUnreadableData[]
+      sources: MemorySourceData[]
     }>,
 
   // ── Dream consolidation (background memory passes) ───────────────────────

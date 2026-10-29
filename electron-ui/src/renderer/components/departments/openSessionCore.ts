@@ -10,6 +10,7 @@ import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
 import { parseSessionMessages } from '../sessions/sessionUtils'
 import { readSessionModelOverride } from '../../lib/sessionModel'
+import { readSessionEffortOverride } from '../../lib/sessionEffort'
 
 /**
  * @param origin where the user is opening from. Only the department views get the
@@ -40,6 +41,12 @@ export async function openSessionCore(
   // this the reopened conversation would silently fall back to the persona.
   const modelOverride = readSessionModelOverride(session.sessionId)
   if (modelOverride) useChatStore.getState().setSessionModelOverride(modelOverride)
+  // Effort is per conversation for the same reason: the reopened conversation
+  // must run on the level it was last given, not on today's global default.
+  // Restoring from Recently deleted lands here too, and the record is still
+  // keyed by the same id — the conversation that comes back is the same one.
+  const effortOverride = readSessionEffortOverride(session.sessionId)
+  if (effortOverride) useChatStore.getState().setSessionEffortOverride(effortOverride)
   useUiStore.getState().clearUnreadForSession(session.sessionId)
   // An unassigned session keeps whatever directory the user is already in.
   if (deptDirectory) {

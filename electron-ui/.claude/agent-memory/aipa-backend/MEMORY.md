@@ -11,3 +11,4 @@
 - [Claude CLI ephemeral flag](claude-cli-ephemeral-flag.md) — `--no-session-persistence` works in session mode with piped stdio; PTY-only failure is a false alarm
 - [Dept cap "frees at" forecast](dept-budget-frees-forecast.md) — rail holds at `>= cap` with float epsilon; forecast keys on `unreportedRuns`, not `unmeasured`
 - [Trash holding area](trash-holding-area.md) — undoable skill/workflow/conversation/job deletes, 30-day window, `*:trash:*` surface, refusal codes, harness namespace rule
+- [Automation job effort](automation-job-effort.md) — one level list in `job-effort.ts`, absent = global at run time, explicit auto sends nothing; no `src/shared` because of rootDir

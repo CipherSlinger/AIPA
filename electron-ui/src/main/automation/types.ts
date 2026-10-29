@@ -7,6 +7,7 @@
  * must survive a restart and its runs must be readable afterwards.
  */
 
+import type { AutomationEffort } from './job-effort'
 import type { RunUsage } from './run-usage'
 
 /**
@@ -329,6 +330,17 @@ export interface AutomationJob {
    * `ASSISTANT_PERSONA_ID` means an explicit plain-assistant override.
    */
   personaId?: string
+  /**
+   * This job's own thinking effort, overriding the app preference.
+   *
+   * Absent means "follow `prefs.effortLevel` as it stands when the run starts" —
+   * not as it stood when the job was saved. That difference is the point: a user
+   * who raises effort for one hard conversation should not thereby raise it for
+   * nine nightly jobs, and a job that never chose a level should track the app
+   * the way a chat turn does. `'auto'` is a real override meaning "let the engine
+   * decide", never the same as absent while the app default is a fixed level.
+   */
+  effort?: AutomationEffort
   /**
    * The org node this job is filed under, stored as an id only.
    *
@@ -690,6 +702,12 @@ export interface AutomationLimits {
    * it in copy; the value itself has one home in `job-chain.ts`.
    */
   chainMaxDepth: number
+  /**
+   * The effort levels a job may store, in menu order. Exposed so the dialog
+   * builds its picker from the same list the store validates against instead of
+   * carrying a second copy that could drift.
+   */
+  effortLevels: AutomationEffort[]
 }
 
 /** What the IPC handlers hand to the scheduler after validation. */
@@ -703,6 +721,12 @@ export interface AutomationInput {
    * never a persona whose id is ''), so the scheduler stores it as absent.
    */
   personaId?: string
+  /**
+   * Per-job thinking effort. Omitted means "follow the app default at run time";
+   * a value outside the shared enum is dropped rather than stored. An edit that
+   * omits the field clears a previous override, like `personaId`.
+   */
+  effort?: AutomationEffort
   /**
    * The org node the job is filed under, as an id. Omitted/empty clears it;
    * main can only check the shape because the tree lives in the renderer.
@@ -755,6 +779,15 @@ export interface AutomationRunRequest {
   prompts: string[]
   cwd: string
   model?: string
+  /**
+   * Reasoning effort for the run's turns: the job's own level, else the app
+   * preference read at start time. Absent when the choice is `'auto'` or the app
+   * default is, because no engine takes a turn-level "auto" — the same rule the
+   * chat path follows. Codex drops it again when the model advertises no such
+   * level; the legacy Claude CLI has no per-turn effort channel, exactly as in
+   * chat.
+   */
+  effort?: AutomationEffort
   /**
    * The expert this run adopts: the job's override first, then its workflow's
    * binding. Present only when the chosen persona still exists; a job with no

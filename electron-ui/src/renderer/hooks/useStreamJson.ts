@@ -8,6 +8,7 @@ import { useAutoCompact } from './useAutoCompact'
 import { useAutoMemory } from './useAutoMemory'
 import { assembleMemoryContextForTurn } from './promptMemory'
 import { assembleTurnMemoryForSend, mergeTurnReceipt } from '../lib/memoryReceipt'
+import { effortSendField, resolveEffectiveEffort } from '../lib/sessionEffort'
 import { buildDeptHandbookTurn } from '../lib/deptHandbook'
 import { composeSystemPromptParts, resolvePersonaTurnSettings } from './promptAssembly'
 import { listSessionsShared } from '../utils/sessionListShared'
@@ -338,6 +339,14 @@ export function useStreamJson() {
       (key) => getT()(key),
       useChatStore.getState().sessionModelOverride,
     )
+    // Effort is per conversation too: the level picked in this conversation
+    // wins, and only a conversation without a pick follows the global default.
+    // Resolved here, at the turn boundary, for the same reason as the persona:
+    // the picker may have moved on since the hook was created.
+    const effectiveEffort = resolveEffectiveEffort(
+      prefs.effortLevel,
+      useChatStore.getState().sessionEffortOverride,
+    )
 
     // Image delivery is decided here, at the turn boundary, from the same
     // engine probe the composer uses. A credentials change between attaching
@@ -555,10 +564,10 @@ export function useStreamJson() {
       sessionId: currentSessionId ?? undefined,
       activeBridgeId: activeBridgeIdRef.current ?? undefined,
       model: personaTurn.model,
-      // Effort is a global preference (no per-session override); 'auto' means
-      // "let the engine decide", so it is not sent at all. The main process
-      // drops it again if the model that will run does not advertise it.
-      ...(prefs.effortLevel && prefs.effortLevel !== 'auto' ? { effort: prefs.effortLevel } : {}),
+      // This conversation's resolved level; 'auto' means "let the engine
+      // decide", so it is not sent at all. The main process drops it again if
+      // the model that will run does not advertise it.
+      ...effortSendField(effectiveEffort),
       env: {
         // Provide both keys — CodexBridge uses OPENAI_API_KEY, legacy StreamBridge uses ANTHROPIC_API_KEY
         ...(getActiveApiKey() ? { OPENAI_API_KEY: getActiveApiKey(), ANTHROPIC_API_KEY: getActiveApiKey() } : {}),

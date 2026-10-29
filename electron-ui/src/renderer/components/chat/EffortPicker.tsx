@@ -3,10 +3,16 @@ import { Gauge } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { personaModelOf, resolveEffectiveModel } from '../../lib/sessionModel'
+import {
+  EFFORT_LEVELS,
+  isEffortOverridden,
+  normalizeEffort,
+  planEffortPick,
+  resolveEffectiveEffort,
+  type EffortLevel,
+} from '../../lib/sessionEffort'
 
-type EffortLevel = 'auto' | 'low' | 'medium' | 'high' | 'max'
-
-const EFFORT_OPTIONS: EffortLevel[] = ['auto', 'low', 'medium', 'high', 'max']
+const EFFORT_OPTIONS: readonly EffortLevel[] = EFFORT_LEVELS
 
 const EFFORT_COLORS: Record<EffortLevel, string> = {
   auto: '#818cf8',   // blue
@@ -56,7 +62,16 @@ export default function EffortPicker() {
   const [triggerHovered, setTriggerHovered] = useState(false)
   const [catalogue, setCatalogue] = useState<EffortCatalogue | null>(null)
   const ref = useRef<HTMLDivElement>(null)
-  const currentEffort = (prefs.effortLevel || 'auto') as EffortLevel
+  const sessionEffortOverride = useChatStore(s => s.sessionEffortOverride)
+  // What a turn will actually send: this conversation's pick, else the global
+  // default. Showing `prefs.effortLevel` here made the button look effective
+  // while an overridden conversation kept running on its own level.
+  const currentEffort = resolveEffectiveEffort(prefs.effortLevel, sessionEffortOverride)
+  const globalEffort = normalizeEffort(prefs.effortLevel)
+  // A conversation is "open" once a turn exists or the view has an id. On the
+  // welcome screen there is nothing to scope a pick to, so it is the default.
+  const hasConversation = useChatStore(s => !!s.currentSessionId || s.messages.length > 0)
+  const differsFromDefault = isEffortOverridden(prefs.effortLevel, sessionEffortOverride)
 
   // Ask Codex which efforts the model that will run supports. Loaded once per
   // menu open (the main process caches `model/list` for five minutes). Any
@@ -129,14 +144,49 @@ export default function EffortPicker() {
   }, [show])
 
   const handleSelect = (level: EffortLevel) => {
-    setPrefs({ effortLevel: level })
-    window.electronAPI.prefsSet('effortLevel', level)
-    addToast('info', t('effort.switched', { level: t(`effort.${level}`) }))
     setShow(false)
+    const globalLevel = normalizeEffort(usePrefsStore.getState().prefs.effortLevel)
+    // The rule (and the "auto means delete the record" promise) lives in the
+    // pure module, so the harness can exercise the pick the menu really makes.
+    const plan = planEffortPick(hasConversation, level, globalLevel)
+
+    if (plan.scope === 'session') {
+      // In a conversation the pick belongs to this conversation. `'auto'` is
+      // planned as an absent override, not as today's default frozen in place.
+      useChatStore.getState().setSessionEffortOverride(plan.override)
+      addToast('info', plan.override
+        ? t('effort.sessionSwitched', { level: t(`effort.${level}`) })
+        : t('effort.followsGlobal', { level: t(`effort.${globalLevel}`) }))
+      return
+    }
+
+    // Nothing open to scope it to: this changes the default every new
+    // conversation starts from.
+    setPrefs({ effortLevel: plan.level })
+    window.electronAPI.prefsSet('effortLevel', plan.level)
+    addToast('info', t('effort.globalSwitched', { level: t(`effort.${plan.level}`) }))
   }
 
   const color = EFFORT_COLORS[currentEffort]
   const isNonDefault = currentEffort !== 'auto'
+  // `'auto'` in a conversation means "follow the default", so the row must say
+  // which level that is — otherwise picking "Auto" while the default is High
+  // would look like it selected Auto and then quietly run High.
+  const autoOptionLabel = hasConversation && globalEffort !== 'auto'
+    ? t('effort.followGlobalOption', { level: t(`effort.${globalEffort}`) })
+    : t('effort.auto')
+  const autoOptionHint = hasConversation
+    ? t('effort.followGlobalOptionHint', { level: t(`effort.${globalEffort}`) })
+    : t('effort.autoHint')
+
+  const triggerTitle = hasConversation
+    ? differsFromDefault
+      ? t('effort.overrideTitle', {
+          level: t(`effort.${currentEffort}`),
+          global: t(`effort.${globalEffort}`),
+        })
+      : t('effort.sessionTitle', { level: t(`effort.${currentEffort}`) })
+    : t('effort.globalTitle', { level: t(`effort.${currentEffort}`) })
 
   // Build trigger button colors from design tokens
   const triggerBg = isNonDefault
@@ -151,7 +201,7 @@ export default function EffortPicker() {
     <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
       <button
         onClick={() => setShow(!show)}
-        title={t('effort.pickerTitle') + ': ' + t(`effort.${currentEffort}`)}
+        title={triggerTitle}
         aria-label={t('effort.pickerTitle')}
         aria-expanded={show}
         onMouseEnter={() => setTriggerHovered(true)}
@@ -176,6 +226,14 @@ export default function EffortPicker() {
         <Gauge size={9} />
         <span style={{ fontWeight: 600 }}>{EFFORT_ABBREVIATIONS[currentEffort]}</span>
         {t(`effort.${currentEffort}`)}
+        {/* Same marker the model picker uses for an explicit per-session pick:
+            a conversation that runs on something other than the default says
+            so without the menu being opened. */}
+        {differsFromDefault && (
+          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.02em', opacity: 0.75 }}>
+            {t('effort.sessionTag')}
+          </span>
+        )}
       </button>
       {show && (
         <div
@@ -209,8 +267,15 @@ export default function EffortPicker() {
           }}>
             {t('effort.pickerTitle')}
           </div>
+          {/* Say which promise this menu is keeping: a pick here changes this
+              conversation, or — with nothing open — the default for new ones.
+              The two are different and the menu must not blur them. */}
           <div style={{ padding: '0 10px 6px', fontSize: 10, color: 'var(--text-muted)' }}>
-            {t('effort.pickerHint')}
+            {hasConversation
+              ? differsFromDefault
+                ? t('effort.sessionHint', { level: t(`effort.${currentEffort}`) })
+                : t('effort.followsDefaultHint', { level: t(`effort.${globalEffort}`) })
+              : t('effort.globalHint')}
           </div>
           {EFFORT_OPTIONS.map(level => {
             const isSelected = level === currentEffort
@@ -222,8 +287,8 @@ export default function EffortPicker() {
                 level={level}
                 isSelected={isSelected}
                 lvlColor={lvlColor}
-                label={t(`effort.${level}`)}
-                hint={t(`effort.${level}Hint`)}
+                label={level === 'auto' ? autoOptionLabel : t(`effort.${level}`)}
+                hint={level === 'auto' ? autoOptionHint : t(`effort.${level}Hint`)}
                 unavailableReason={unsupported && catalogue
                   ? t('codex.effort.unsupported', { model: catalogue.model })
                   : undefined}

@@ -455,6 +455,24 @@ export function deleteMemoryFile(filePath: string): void {
 }
 
 /**
+ * Whether `deleteMemoryFile` would accept this path, without touching disk.
+ *
+ * The per-turn receipt names its sources and offers to forget file-backed
+ * ones; it must advertise exactly the paths the delete channel will honour.
+ * Sharing `resolveMemoryPath` keeps the two answers from drifting — a path
+ * outside `~/.claude/memory` or `~/.claude/projects/<hash>/memory` is refused
+ * here for the same reason it is refused there.
+ */
+export function isMemoryFilePath(filePath: string): boolean {
+  try {
+    resolveMemoryPath(filePath)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
  * Resolve a file written by the background consolidation pass.
  *
  * The normal memory writer resolves roots by listing existing project

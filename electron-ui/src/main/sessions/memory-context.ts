@@ -30,8 +30,10 @@
  */
 import * as fs from 'fs'
 import * as os from 'os'
+import * as path from 'path'
 import { getRawPref } from '../config/config-manager'
 import {
+  isMemoryFilePath,
   listMemoryFilesDetailed,
   MAX_MEMORY_UNREADABLE,
   type MemoryFile,
@@ -110,6 +112,48 @@ const TIER_META: Record<TierKey, TierMeta> = {
 
 const TRUNCATION_MARKER = '\n… [truncated to fit the memory budget]'
 
+/**
+ * Cap on per-source entries. A project memdir could hold thousands of files;
+ * the receipt rides in every conversation row and is persisted with it, so the
+ * provenance has to stay as bounded as the diagnostics do.
+ */
+export const MAX_MEMORY_SOURCES = 200
+
+/**
+ * One thing that contributed to the emitted block.
+ *
+ * This is metadata *about* `MemoryContextResult.text`, never part of it — the
+ * prompt stays byte-identical, because telling the model which file a line came
+ * from would invite it to reason about the storage layout instead of the
+ * content. The fields are deliberately enough to let the transcript name a
+ * source and offer to forget a file, and no more.
+ */
+export interface MemorySourceEntry {
+  /** Absolute path, present only when the source is a memory file. */
+  path?: string
+  /** Display label for a source that is not a file (a personal-store note). */
+  label?: string
+  /** The tier key that carried it. */
+  tier: TierKey
+  /** Characters this source contributed to the emitted block, 0 when omitted. */
+  chars: number
+  /** True when a cap shortened this source's own body (or the tier's tail). */
+  truncated: boolean
+  /** True when this source existed but its whole tier was dropped by the budget. */
+  omitted: boolean
+  /**
+   * True only for a path `memory:delete` would accept. Documents under
+   * `.claude/MEMORY.md` and consolidation files (owned by the dream pass log)
+   * are deliberately not deletable through the memory delete channel.
+   */
+  deletable: boolean
+  /**
+   * True when the existing memory console can address this source. The receipt
+   * links there instead of inventing a second delete path.
+   */
+  console: boolean
+}
+
 export interface MemoryContextResult {
   /** The block to append to the system prompt, or '' when no tier had content. */
   text: string
@@ -132,6 +176,12 @@ export interface MemoryContextResult {
    * skipped and might mistake it for memory content.
    */
   unreadable: MemoryUnreadable[]
+  /**
+   * What each tier was built from, in prompt order. Metadata only: the sum of
+   * non-omitted `chars` never exceeds `used` for the tier it belongs to, and
+   * `text` is unchanged by its presence.
+   */
+  sources: MemorySourceEntry[]
 }
 
 /**
@@ -174,42 +224,90 @@ function collapseWhitespace(text: string): string {
  * The formatted text is exactly what it was before this signal existed; only
  * the digest consumes `capped`.
  */
+interface TierSegment {
+  /** Set only for a file-backed source. */
+  path?: string
+  /** Set only for a non-file source. */
+  label?: string
+  /** Character range in the tier's formatted text, end-exclusive. */
+  start: number
+  end: number
+  /** True when a per-file cap cut this source's own body. */
+  capped: boolean
+  /** True when the memory console can address this source. */
+  console: boolean
+}
+
 interface FormattedTier {
   text: string
   capped: boolean
+  /** The same text, sliced by contributor. Sum of lengths + separators = text.length. */
+  segments: TierSegment[]
 }
 
-function formatStructured(files: MemoryFile[]): FormattedTier {
+function formatStructured(
+  files: MemoryFile[],
+  options: { console: boolean },
+): FormattedTier {
   let capped = false
-  const text = files
-    .slice()
-    .sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name))
-    .map((f) => {
-      const flat = collapseWhitespace(f.content)
-      if (flat.length > PER_FILE_CHARS) capped = true
-      const body = flat.slice(0, PER_FILE_CHARS)
-      const head = `- [${f.type || 'unknown'}] ${f.name || '(unnamed)'}`
-      const description = f.description ? ` — ${collapseWhitespace(f.description)}` : ''
-      return `${head}${description}: ${body}`
+  const pieces: string[] = []
+  const segments: TierSegment[] = []
+  let cursor = 0
+  for (const f of files.slice().sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name))) {
+    const flat = collapseWhitespace(f.content)
+    const cut = flat.length > PER_FILE_CHARS
+    if (cut) capped = true
+    const body = flat.slice(0, PER_FILE_CHARS)
+    const head = `- [${f.type || 'unknown'}] ${f.name || '(unnamed)'}`
+    const description = f.description ? ` — ${collapseWhitespace(f.description)}` : ''
+    const piece = `${head}${description}: ${body}`
+    // The '\n' between pieces belongs to no source; account for it before the
+    // segment starts so ranges remain contiguous within the joined text.
+    if (pieces.length > 0) cursor += 1
+    segments.push({
+      path: f.filePath,
+      start: cursor,
+      end: cursor + piece.length,
+      capped: cut,
+      // A consolidation file is owned by the dream pass log, which the memory
+      // console's consolidation tab can address; ordinary structured files are
+      // forgettable here and need no link.
+      console: options.console || isConsolidationFile(f.filePath),
     })
-    .join('\n')
-  return { text, capped }
+    pieces.push(piece)
+    cursor += piece.length
+  }
+  return { text: pieces.join('\n'), capped, segments }
 }
 
 function formatPersonal(memories: PersonalMemoryLike[]): FormattedTier {
-  if (memories.length === 0) return { text: '', capped: false }
+  if (memories.length === 0) return { text: '', capped: false, segments: [] }
   const pinned = memories.filter((m) => m.pinned)
   const unpinned = memories
     .filter((m) => !m.pinned)
     .sort((a, b) => b.updatedAt - a.updatedAt)
   const recent = unpinned.slice(0, PERSONAL_MAX_ITEMS)
-  const text = [...pinned, ...recent]
-    .map((m) => {
-      const kind = m.memoryType || m.category || 'context'
-      return `- [${kind}]${m.pinned ? ' (pinned)' : ''} ${collapseWhitespace(m.content)}`
+  const pieces: string[] = []
+  const segments: TierSegment[] = []
+  let cursor = 0
+  for (const m of [...pinned, ...recent]) {
+    const kind = m.memoryType || m.category || 'context'
+    const content = collapseWhitespace(m.content)
+    const piece = `- [${kind}]${m.pinned ? ' (pinned)' : ''} ${content}`
+    if (pieces.length > 0) cursor += 1
+    // A personal note has no path (it lives in electron-store); the label is
+    // what the transcript can show instead of pretending it is a file.
+    segments.push({
+      label: `${kind}${m.pinned ? ' (pinned)' : ''}: ${content.length > 60 ? `${content.slice(0, 60)}…` : content}`,
+      start: cursor,
+      end: cursor + piece.length,
+      capped: false,
+      console: true,
     })
-    .join('\n')
-  return { text, capped: unpinned.length > recent.length }
+    pieces.push(piece)
+    cursor += piece.length
+  }
+  return { text: pieces.join('\n'), capped: unpinned.length > recent.length, segments }
 }
 
 interface DocRead {
@@ -245,6 +343,68 @@ function truncateToBudget(text: string, allowed: number): { text: string; trunca
 }
 
 /**
+ * Consolidation files belong to the dream pass log. Deleting one through
+ * `memory:delete` would remove the file but leave its pass record claiming it
+ * wrote something, so the receipt marks it as console-managed instead.
+ */
+function isConsolidationFile(filePath: string): boolean {
+  const base = path.basename(filePath)
+  return base.startsWith('dream-') && base.endsWith('.md')
+}
+
+/**
+ * Turn per-tier segments into receipt sources, charging only the slice that
+ * actually survived the budget.
+ *
+ * `fitted` is null when the whole tier was dropped: every source is then
+ * reported as omitted with zero characters rather than pretending it reached
+ * the model. When a tier was truncated, the trailing marker occupies real
+ * characters but is not content, so it is excluded from every source range.
+ */
+function toSourceEntries(
+  tier: TierKey,
+  segments: TierSegment[],
+  fitted: { text: string; truncated: boolean } | null,
+): MemorySourceEntry[] {
+  return segments.map((segment) => {
+    const base = {
+      ...(segment.path ? { path: segment.path } : {}),
+      ...(segment.label ? { label: segment.label } : {}),
+      tier,
+    }
+    // `isMemoryFilePath` is the same predicate the delete channel applies;
+    // consolidation files are excluded because the dream log owns them.
+    const filePath = segment.path
+    const deletable = !!filePath && isMemoryFilePath(filePath) && !isConsolidationFile(filePath)
+    if (!fitted) {
+      return {
+        ...base,
+        chars: 0,
+        truncated: false,
+        omitted: true,
+        // The file still exists and will be considered next turn, so the row
+        // may offer to forget it even though this turn dropped it.
+        deletable,
+        console: segment.console,
+      }
+    }
+    const contentLength = fitted.truncated
+      ? Math.max(0, fitted.text.length - TRUNCATION_MARKER.length)
+      : fitted.text.length
+    const visibleEnd = Math.min(segment.end, contentLength)
+    const visibleStart = Math.min(segment.start, contentLength)
+    return {
+      ...base,
+      chars: Math.max(0, visibleEnd - visibleStart),
+      truncated: segment.capped || visibleEnd < segment.end,
+      omitted: false,
+      deletable,
+      console: segment.console,
+    }
+  })
+}
+
+/**
  * Read the tiers from disk and assemble the labelled prompt block.
  *
  * Reads are best-effort: a missing file or an unreadable memory directory
@@ -275,9 +435,13 @@ export async function assembleMemoryContext(input: {
     structured = []
   }
 
-  const globalStructured = formatStructured(structured.filter((f) => f.scope === 'global'))
+  const globalStructured = formatStructured(
+    structured.filter((f) => f.scope === 'global'),
+    { console: false },
+  )
   const projectStructured = formatStructured(
     structured.filter((f) => f.scope === 'project' && f.projectHash === projectSlug),
+    { console: false },
   )
   const personal = formatPersonal(personalMemories)
 
@@ -285,6 +449,11 @@ export async function assembleMemoryContext(input: {
   const projectDocPath = cwd ? joinPath(cwd, '.claude', 'MEMORY.md') : ''
   const globalDoc: DocRead = globalDocPath ? readDoc(globalDocPath) : { text: '' }
   const projectDoc: DocRead = projectDocPath ? readDoc(projectDocPath) : { text: '' }
+
+  // A document tier is one file: its segment spans the whole (already trimmed)
+  // text. The path is real only when the file actually produced content.
+  const docSegment = (path: string, text: string): TierSegment[] =>
+    text ? [{ path, start: 0, end: text.length, capped: false, console: false }] : []
 
   // Diagnostics never enter `raw`: they are for the run record and the Memory
   // panel, not for the model.
@@ -302,6 +471,14 @@ export async function assembleMemoryContext(input: {
     personal: personal.text,
   }
 
+  const segments: Record<TierKey, TierSegment[]> = {
+    globalDoc: docSegment(globalDocPath, globalDoc.text),
+    projectDoc: docSegment(projectDocPath, projectDoc.text),
+    globalStructured: globalStructured.segments,
+    projectStructured: projectStructured.segments,
+    personal: personal.segments,
+  }
+
   // Caps applied while formatting a tier, before the block budget runs.
   const capped = new Set<TierKey>()
   if (globalStructured.capped) capped.add('globalStructured')
@@ -313,6 +490,7 @@ export async function assembleMemoryContext(input: {
   const allocated = new Map<TierKey, string>()
   const omitted: TierKey[] = []
   const truncated: TierKey[] = []
+  const tierSources = new Map<TierKey, MemorySourceEntry[]>()
   let remaining = budgetChars - FRAMING_ALLOWANCE
 
   for (const key of ALLOCATION_PRIORITY) {
@@ -322,16 +500,32 @@ export async function assembleMemoryContext(input: {
     const fitted = truncateToBudget(text, allowed)
     if (!fitted) {
       omitted.push(key)
+      // The sources existed and were read, but reached no prompt. Report them
+      // as omitted instead of silently dropping the provenance.
+      tierSources.set(key, toSourceEntries(key, segments[key], null))
       continue
     }
     if (fitted.truncated || capped.has(key)) truncated.push(key)
     allocated.set(key, fitted.text)
+    tierSources.set(key, toSourceEntries(key, segments[key], fitted))
     remaining -= fitted.text.length
+  }
+
+  // Prompt order, not allocation order: the transcript lists sources in the
+  // same order their tiers appear in the block. Stop at the cap instead of
+  // building an unbounded list and trimming it afterwards.
+  const sources: MemorySourceEntry[] = []
+  for (const key of TIER_ORDER) {
+    for (const entry of tierSources.get(key) ?? []) {
+      if (sources.length >= MAX_MEMORY_SOURCES) break
+      sources.push(entry)
+    }
+    if (sources.length >= MAX_MEMORY_SOURCES) break
   }
 
   const applied = TIER_ORDER.filter((key) => allocated.has(key))
   if (applied.length === 0) {
-    return { text: '', applied, omitted, used: {}, truncated, unreadable }
+    return { text: '', applied, omitted, used: {}, truncated, unreadable, sources }
   }
 
   const blocks = applied.map((key) => {
@@ -357,6 +551,7 @@ export async function assembleMemoryContext(input: {
     used,
     truncated,
     unreadable,
+    sources,
   }
 }
 

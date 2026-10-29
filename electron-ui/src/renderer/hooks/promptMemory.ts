@@ -113,6 +113,18 @@ export interface MemoryUnreadableEntry {
   projectHash?: string
 }
 
+/** Mirrors main's `MemorySourceEntry`: provenance for one line of the block. */
+export interface MemorySourceEntry {
+  path?: string
+  label?: string
+  tier: string
+  chars: number
+  truncated: boolean
+  omitted: boolean
+  deletable: boolean
+  console: boolean
+}
+
 export interface MemoryContextResult {
   /** The block to append to the system prompt, or '' when no tier had content. */
   text: string
@@ -124,6 +136,8 @@ export interface MemoryContextResult {
   used: Partial<Record<TierKey, number>>
   /** Memory paths that existed but could not be read. Never enters `text`. */
   unreadable: MemoryUnreadableEntry[]
+  /** Optional: the local offline fallback cannot name its sources. */
+  sources?: MemorySourceEntry[]
 }
 
 /**
@@ -380,6 +394,9 @@ export async function assembleMemoryContextForTurn(input: {
           unreadable: Array.isArray(remote.unreadable)
             ? remote.unreadable as MemoryUnreadableEntry[]
             : [],
+          sources: Array.isArray(remote.sources)
+            ? remote.sources as MemorySourceEntry[]
+            : undefined,
         }
       }
     } catch {

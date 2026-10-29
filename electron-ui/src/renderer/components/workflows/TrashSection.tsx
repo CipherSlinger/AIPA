@@ -16,6 +16,7 @@ import { sessionTrashFailureText } from '../../lib/sessionTrashText'
 import { EMPTY_TRASH_FILTER } from '../../lib/trashFilter'
 import type { TrashFilterState } from '../../lib/trashFilter'
 import { buildTrashRows } from '../../lib/trashRows'
+import { dropSessionEffortOverride } from '../../lib/sessionEffort'
 import type { TrashActionOutcome, TrashRow } from '../../lib/trashRows'
 import type { SessionListItem } from '../../types/app.types'
 import type {
@@ -206,6 +207,10 @@ export default function TrashSection({ crud, skillState }: {
     try {
       const result = await window.electronAPI.sessionsTrashRemove(row.id)
       if (result.ok) {
+        // The conversation is gone for good, so its per-session effort record
+        // goes with it. Leaving it would let a future conversation that happens
+        // to reuse this id inherit a level its user never chose.
+        if (row.sessionId) dropSessionEffortOverride(row.sessionId)
         await refreshSessions()
         return { ok: true }
       }

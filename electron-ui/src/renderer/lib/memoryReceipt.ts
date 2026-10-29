@@ -22,6 +22,36 @@
 import type { MemoryContextResult, MemoryUnreadableEntry } from '../hooks/promptMemory'
 import type { DeptHandbookReceipt } from './deptHandbook'
 
+/**
+ * Provenance for one line of the block: which file (or personal-store note)
+ * the text came from, and how much of it actually reached the prompt.
+ *
+ * This is metadata about `text`, not part of it. Receipts written before this
+ * field existed simply have no sources, and must keep rendering exactly as they
+ * did.
+ */
+export interface MemorySourceSummary {
+  /** Absolute path, present only when the source is a memory file. */
+  path?: string
+  /** Label for a non-file source (a personal-store note). */
+  label?: string
+  tier: string
+  chars: number
+  truncated: boolean
+  omitted: boolean
+  /** True only when `memory:delete` is expected to accept `path`. */
+  deletable: boolean
+  /** True when the memory console can address this source. */
+  console: boolean
+}
+
+/**
+ * Bound on persisted provenance. The assembler caps at the same number; a
+ * receipt is attached to every turn row, so it may not grow with the user's
+ * memory directory.
+ */
+export const MAX_RECEIPT_SOURCES = 200
+
 /** What one turn was handed as context: memory tiers, and a department handbook. */
 export interface MemoryTurnReceipt {
   /** Tier ids that made it into the block, in the assembler's own order. */
@@ -36,6 +66,11 @@ export interface MemoryTurnReceipt {
   text: string
   /** Paths that existed but could not be read. Never part of `text`. */
   unreadable: MemoryUnreadableEntry[]
+  /**
+   * What the block was built from, when the assembler could name it. Optional:
+   * every receipt written before this existed lacks it and still renders.
+   */
+  sources?: MemorySourceSummary[]
   /** The thrown message when assembly failed; the turn ran without memory. */
   failed?: string
   /**
@@ -71,6 +106,132 @@ export function mergeTurnReceipt(
     unreadable: [],
   }
   return department ? { ...base, department } : base
+}
+
+/**
+ * Validate one provenance entry, or drop it.
+ *
+ * Entries are validated individually so one malformed source cannot hide the
+ * rest of the rows, but a source that cannot be addressed unambiguously (no
+ * path, no label, or both) is not guessed at.
+ */
+function normalizeMemorySource(value: unknown): MemorySourceSummary | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const raw = value as Record<string, unknown>
+  if (typeof raw.tier !== 'string' || raw.tier.trim() === '') return null
+  if (typeof raw.chars !== 'number' || !Number.isFinite(raw.chars) || raw.chars < 0) return null
+  if (typeof raw.truncated !== 'boolean' || typeof raw.omitted !== 'boolean') return null
+  if (typeof raw.deletable !== 'boolean' || typeof raw.console !== 'boolean') return null
+
+  const filePath = typeof raw.path === 'string' && raw.path.trim() !== '' ? raw.path : undefined
+  const label = typeof raw.label === 'string' && raw.label.trim() !== '' ? raw.label : undefined
+  // A source is either a file or a labelled record; never both and never
+  // neither, because the row would have nothing concrete to name.
+  if (Boolean(filePath) === Boolean(label)) return null
+
+  // Deletion is only offered for a markdown file inside a `memory/` directory
+  // in one of the two structured tiers. This is not the security boundary —
+  // `memory:delete` enforces the real roots — but it stops a hand-edited
+  // transcript from putting a Forget button on `~/.claude/MEMORY.md`.
+  const deletable = raw.deletable === true
+    && filePath !== undefined
+    && (raw.tier === 'globalStructured' || raw.tier === 'projectStructured')
+    && /(^|[/\\])memory[/\\][^/\\]+\.md$/.test(filePath)
+
+  return {
+    ...(filePath ? { path: filePath } : {}),
+    ...(label ? { label } : {}),
+    tier: raw.tier,
+    chars: raw.chars,
+    truncated: raw.truncated,
+    omitted: raw.omitted,
+    deletable,
+    console: raw.console,
+  }
+}
+
+/**
+ * Validate the provenance list against the receipt it describes.
+ *
+ * Two invariants keep the rows honest: every source must belong to a tier the
+ * receipt actually names, and the characters claimed by non-omitted sources
+ * may never exceed the block's own length. A receipt that breaks the latter is
+ * stale or edited, so it loses its provenance rather than gaining invented
+ * rows.
+ */
+function summarizeSources(
+  value: unknown,
+  tiers: Set<string>,
+  blockChars: number,
+): MemorySourceSummary[] {
+  if (!Array.isArray(value)) return []
+  const sources: MemorySourceSummary[] = []
+  for (const item of value.slice(0, MAX_RECEIPT_SOURCES)) {
+    const source = normalizeMemorySource(item)
+    if (!source) continue
+    if (tiers.size > 0 && !tiers.has(source.tier)) continue
+    // An omitted source reached no prompt; it cannot claim characters.
+    if (source.omitted && source.chars !== 0) continue
+    sources.push(source)
+  }
+  const contributed = sources.reduce((sum, source) => sum + (source.omitted ? 0 : source.chars), 0)
+  if (contributed > blockChars) return []
+  return sources
+}
+
+/** A source the row may offer to forget: it has a path the delete channel accepts. */
+export function canForgetSource(source: MemorySourceSummary): boolean {
+  return source.deletable === true
+    && typeof source.path === 'string'
+    && source.path.trim() !== ''
+}
+
+/** Result of one forget attempt, kept separate from the row's transient state. */
+export interface MemorySourceForgetResult {
+  ok: boolean
+  /** Why the delete was refused; present only when `ok` is false. */
+  error?: string
+}
+
+/**
+ * Delete exactly one reported memory file through the existing delete channel.
+ *
+ * The caller supplies the channel call (`memory:delete` in the app) so the
+ * confirm/refusal behaviour is testable without Electron. Only a source the
+ * assembler reported as deletable is ever addressed — this function is not a
+ * general file-delete primitive.
+ */
+export async function forgetMemorySource(
+  source: MemorySourceSummary,
+  options: { deleteFile: (filePath: string) => Promise<{ success: boolean; error?: string }> },
+): Promise<MemorySourceForgetResult> {
+  if (!canForgetSource(source) || typeof source.path !== 'string') {
+    return { ok: false, error: 'not a deletable memory file' }
+  }
+  try {
+    const result = await options.deleteFile(source.path)
+    if (result && result.success === true) return { ok: true }
+    const reason = result && typeof result.error === 'string' && result.error.trim() !== ''
+      ? result.error
+      : 'delete refused'
+    return { ok: false, error: reason }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) }
+  }
+}
+
+/** The row's state for one source after a forget attempt. */
+export interface MemorySourceForgetState {
+  /** True once the file is gone; the row stays visible and stops offering Forget. */
+  deleted: boolean
+  /** Why the delete was refused; the row continues to offer Forget. */
+  error?: string
+}
+
+export function forgetStateAfter(result: MemorySourceForgetResult): MemorySourceForgetState {
+  return result.ok
+    ? { deleted: true }
+    : { deleted: false, error: result.error ?? 'delete refused' }
 }
 
 /**
@@ -123,6 +284,14 @@ export async function assembleTurnMemoryForSend(input: {
     }
   }
 
+  // Provenance rides alongside the block; a malformed list is dropped without
+  // touching the text the model actually receives.
+  const sources = summarizeSources(
+    (result as { sources?: unknown })?.sources,
+    new Set([...applied, ...omitted]),
+    text.length,
+  )
+
   const receipt: MemoryTurnReceipt = {
     applied,
     omitted,
@@ -130,6 +299,7 @@ export async function assembleTurnMemoryForSend(input: {
     chars: text.length,
     text,
     unreadable,
+    ...(sources.length > 0 ? { sources } : {}),
   }
 
   // Nothing was applied, dropped, read or failed: there is no block, and a
@@ -164,6 +334,8 @@ export interface MemoryReceiptSummary {
   omitted: string[]
   unreadableCount: number
   chars: number
+  /** Per-source provenance, in prompt order; empty for old receipts. */
+  sources: MemorySourceSummary[]
   /** The handbook half, when it has something to disclose; otherwise null. */
   department: DeptHandbookSummary | null
 }
@@ -245,6 +417,7 @@ function emptySummary(): MemoryReceiptSummary {
     omitted: [],
     unreadableCount: 0,
     chars: 0,
+    sources: [],
     department: null,
   }
 }
@@ -275,6 +448,7 @@ function summarizeMemoryPart(raw: Record<string, unknown>): MemoryReceiptSummary
       omitted: [],
       unreadableCount: 0,
       chars: 0,
+      sources: [],
       department: null,
     }
   }
@@ -294,6 +468,7 @@ function summarizeMemoryPart(raw: Record<string, unknown>): MemoryReceiptSummary
       omitted: [],
       unreadableCount: 0,
       chars: 0,
+      sources: [],
       department: null,
     }
   }
@@ -304,6 +479,7 @@ function summarizeMemoryPart(raw: Record<string, unknown>): MemoryReceiptSummary
     omitted,
     unreadableCount,
     chars: raw.chars as number,
+    sources: summarizeSources(raw.sources, new Set([...applied, ...omitted]), raw.chars as number),
     department: null,
   }
 }

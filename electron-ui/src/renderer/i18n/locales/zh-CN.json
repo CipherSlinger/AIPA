@@ -433,7 +433,20 @@
         "toldCut": "部门手册（{{dept}}）· 只发了前 {{chars}} 个字符，实际 {{sourceChars}} 个",
         "unreadable": "部门手册（{{dept}}）没读出来——这一轮是在没有它的情况下运行的。"
       },
-      "expandHintTurn": "查看这一轮实际收到的上下文"
+      "expandHintTurn": "查看这一轮实际收到的上下文",
+      "source": {
+        "alreadySent": "这一块已经随这条消息发出去了。删掉下面的文件只影响以后的轮次。",
+        "chars": "{{chars}} 个字符",
+        "truncated": "被截短了",
+        "omitted": "被预算挤掉了",
+        "forget": "忘掉",
+        "cancel": "取消",
+        "confirm": "删掉这个记忆文件？以后几轮不会再带上它；这一轮已经发出去了。",
+        "deleted": "已删除。以后几轮不会再带上它；这一轮已经发出去了。",
+        "refused": "没能删掉：{{reason}}",
+        "openConsole": "打开记忆管理",
+        "notForgettable": "不是记忆目录里的文件，这里删不掉"
+      }
     }
   },
   "sessionReuse": {
@@ -2529,7 +2542,19 @@
     "pickerTitle": "思考深度",
     "pickerHint": "控制 AI 推理深度",
     "preventSleep": "流式输出时阻止休眠",
-    "preventSleepHint": "AI 生成回复时保持系统唤醒状态"
+    "preventSleepHint": "AI 生成回复时保持系统唤醒状态",
+    "sessionSwitched": "这个对话的思考深度已设为{{level}}",
+    "globalSwitched": "全局默认思考深度已设为{{level}}，新对话都会用它",
+    "followsGlobal": "这个对话改为跟随全局默认（{{level}}）",
+    "sessionHint": "这里改的只是这一个对话，它现在用{{level}}。",
+    "followsDefaultHint": "这个对话跟随全局默认（{{level}}）。在这里选只影响这一个对话。",
+    "globalHint": "还没有打开的对话，这里改的是全局默认，新对话都从这里开始。",
+    "followGlobalOption": "跟随全局默认（{{level}}）",
+    "followGlobalOptionHint": "取消这个对话自己的选择，重新跟随全局默认；以后默认变了，它也跟着变。",
+    "overrideTitle": "这个对话用{{level}}，全局默认是{{global}}",
+    "sessionTitle": "这个对话的思考深度：{{level}}",
+    "globalTitle": "全局默认思考深度：{{level}}",
+    "sessionTag": "本对话"
   },
   "diagnostics": {
     "title": "系统诊断",
@@ -3721,7 +3746,8 @@
       "quietOnSuccess": "成功时静默",
       "retryOnFailure": "失败时自动重试",
       "dayOfMonth": "每月几号",
-      "missedRunPolicy": "AIPA 关闭期间错过的运行"
+      "missedRunPolicy": "AIPA 关闭期间错过的运行",
+      "effort": "思考强度"
     },
     "action": {
       "workflow": "运行工作流",
@@ -4032,6 +4058,11 @@
         "depth_limit": "链条已经连着跑了 {{depth}} 个任务",
         "target_refused": "它指定的任务没能启动"
       }
+    },
+    "effort": {
+      "followDefault": "应用默认（{{level}}）",
+      "hint": "这个任务的每次运行都用这里选的强度。「应用默认」在每次启动时读当前设置，而不是保存任务时的那个；Auto 交给引擎自己决定。需要深入思考的任务调高，每晚跑的小事调低。",
+      "row": "强度：{{level}}"
     }
   },
   "speculation": {

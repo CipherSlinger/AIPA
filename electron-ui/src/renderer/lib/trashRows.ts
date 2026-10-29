@@ -30,6 +30,12 @@ export interface TrashRow {
   purgeAt: number
   /** A trashed skill folder or transcript that is gone from disk cannot be restored. */
   available: boolean
+  /**
+   * Conversations only: the session id the transcript belonged to. The row id
+   * is the trash entry, which is not the conversation; this is what a
+   * per-session record (the effort override) is keyed by.
+   */
+  sessionId?: string
 }
 
 /** What a row needs to tell the user, localized by the caller that knows the code. */
@@ -76,6 +82,7 @@ export function buildTrashRows(
       deletedAt: entry.deletedAt,
       purgeAt: entry.purgeAt,
       available: entry.available,
+      sessionId: entry.sessionId,
     })),
     ...jobEntries.map(entry => ({
       kind: 'job' as const,

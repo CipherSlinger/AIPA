@@ -226,7 +226,17 @@ function createCodexRun(req: AutomationRunRequest, bridgeId: string, model: stri
         // Same argument construction as a manual chat turn — in particular it
         // injects the API key saved in Settings, which a bare `env: {}` omits.
         const args = buildCodexTurnArgs(
-          { prompt, cwd: req.cwd, model },
+          {
+            prompt,
+            cwd: req.cwd,
+            model,
+            // The job's own level, or the app default the scheduler read when
+            // this run started. Absent for `'auto'`, exactly like a chat turn.
+            // The bridge validates it against the model's catalogue and drops
+            // it if unadvertised, so an unsupported level degrades to the
+            // engine's default instead of failing the run.
+            ...(req.effort ? { effort: req.effort } : {}),
+          },
           {
             // A background run writes files when the user asked for it, but
             // only inside the workspace, and never asks for anything it cannot
@@ -372,6 +382,12 @@ function createClaudeRun(
           if (isFirst) {
             // Session mode (acceptEdits is not bypassPermissions), persistence
             // on: that is what produces a session the archive can list.
+            //
+            // No effort is passed here on purpose: the legacy CLI path has never
+            // carried one (`CliSendMessageArgs` has no field for it, and the chat
+            // renderer's `effort` is dropped by the legacy handler too). Adding a
+            // flag here would make a scheduled run behave differently from the
+            // identical chat turn, which is the one thing this runner must not do.
             return bridge.sendMessage({
               prompt,
               cwd: req.cwd,

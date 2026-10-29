@@ -35,6 +35,8 @@ import {
 import { CHAIN_MAX_DEPTH, checkJobChainInput, normalizeJobChain, planChain } from './job-chain'
 import type { ChainPlan } from './job-chain'
 import { departmentIdForCreate, normalizeDepartmentId } from './job-department'
+import { AUTOMATION_EFFORT_LEVELS, normalizeJobEffort, resolveRunEffort } from './job-effort'
+import type { AutomationEffort } from './job-effort'
 import { normalizeJobProvenance } from './job-provenance'
 import { readAutomationStore, writeAutomationStore } from './job-store'
 import { MISSED_RUN_GRACE_MS, normalizeMissedRunPolicy, shouldSkipMissedRun } from './missed-policy'
@@ -117,6 +119,10 @@ export const AUTOMATION_LIMITS: Omit<AutomationLimits, 'pausedAll'> = {
   // Same rule for the chain cap: one home in `job-chain.ts`, and this is the
   // number the dialog and the history note state.
   chainMaxDepth: CHAIN_MAX_DEPTH,
+  // And for effort: the list is defined in `job-effort.ts`, which the dialog
+  // imports itself; this copy travels so any surface reading only the limits
+  // still names the real levels.
+  effortLevels: [...AUTOMATION_EFFORT_LEVELS],
 }
 
 interface SchedulerContext {
@@ -490,6 +496,26 @@ function resolveModel(): string | undefined {
 }
 
 /**
+ * The effort an unattended run sends.
+ *
+ * Read here, at the moment the run starts, rather than captured when the job was
+ * saved: "follow the app default" is a promise about the run, and freezing the
+ * old pref into every job would mean a job that never chose a level stops
+ * tracking the app the moment it is created. The job's own value, when it has
+ * one, always wins — including an explicit `'auto'`, which deliberately ignores a
+ * non-auto global. `resolveRunEffort` holds that rule and the `'auto'` → absent
+ * mapping; this function only supplies the global.
+ *
+ * `effortLevel` is a renderer-owned chat pref and so is not in the typed
+ * StoreSchema — it arrives through `prefs:set` like `workflows` does. Read it raw
+ * and let `resolveRunEffort` validate: an absent or corrupt value means "no
+ * effort", which is exactly what chat sends for an unspecified level.
+ */
+function resolveEffort(job: AutomationJob): AutomationEffort | undefined {
+  return resolveRunEffort(job.effort, getRawPref('effortLevel'))
+}
+
+/**
  * Refuse a scheduled run and record why.
  *
  * Shared by every spend rail — per-job, global and department — so they can
@@ -834,6 +860,9 @@ async function startRun(
   // Persona model > global model, so a 3 a.m. run costs what the chosen expert
   // costs rather than whatever the chat picker happens to be set to.
   const model = pickRunModel(persona?.model, resolveModel())
+  // Resolved from this job — for a chained start `job` is the successor, so a
+  // chain never lends its own effort to the job it starts.
+  const effort = resolveEffort(job)
 
   const startedAt = now
   // Reported before anything is mutated: from here on a run really is in flight,
@@ -867,6 +896,9 @@ async function startRun(
       // Same preference the chat path reads, so a scheduled run costs and
       // behaves like a manual one instead of falling back to Codex's default.
       ...(model ? { model } : {}),
+      // Absent when the job follows an app default of `'auto'` or chose `'auto'`
+      // itself, which keeps such a run byte-identical to the pre-effort shape.
+      ...(effort ? { effort } : {}),
       // Absent together when the workflow binds no persona (or its persona was
       // deleted), which keeps the run identical to the pre-persona behaviour.
       ...(persona
@@ -1471,6 +1503,10 @@ function createJob(input: AutomationInput, originPluginId?: string): AutomationM
     const trigger = validateTrigger(input?.trigger)
     const action = validateAction(input?.action)
     const personaId = validatePersonaId(input?.personaId)
+    // Omitted, or a value outside the shared levels, stores nothing — which is
+    // "follow the app default". A hand-crafted payload cannot make a job name a
+    // level the engine could never be given.
+    const effort = normalizeJobEffort(input?.effort)
     // A plugin-owned job can never carry a department: `originPluginId` is the
     // marker of that door, and the create policy drops any value smuggled in.
     const departmentId = departmentIdForCreate(input?.departmentId, !!originPluginId)
@@ -1498,6 +1534,7 @@ function createJob(input: AutomationInput, originPluginId?: string): AutomationM
       trigger,
       action,
       ...(personaId ? { personaId } : {}),
+      ...(effort ? { effort } : {}),
       ...(departmentId ? { departmentId } : {}),
       ...(quietOnSuccess ? { quietOnSuccess } : {}),
       ...(retryOnFailure ? { retryOnFailure } : {}),
@@ -1592,6 +1629,9 @@ export function cloneAutomationJob(id: string, name?: string): AutomationMutatio
       // Assignment is conditional so a field the original never set stays
       // absent rather than becoming an explicit false/empty override.
       ...(source.personaId ? { personaId: source.personaId } : {}),
+      // Configuration like the expert: the copy runs at the same effort, and an
+      // original that follows the app default keeps following it.
+      ...(source.effort ? { effort: source.effort } : {}),
       // The filing is configuration, not history: a copy belongs to the same
       // department until the user says otherwise.
       ...(source.departmentId ? { departmentId: source.departmentId } : {}),
@@ -1640,6 +1680,7 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     const trigger = validateTrigger(input?.trigger)
     const action = validateAction(input?.action)
     const personaId = validatePersonaId(input?.personaId)
+    const effort = normalizeJobEffort(input?.effort)
     const departmentId = normalizeDepartmentId(input?.departmentId)
     const quietOnSuccess = validateQuietOnSuccess(input?.quietOnSuccess)
     const retryOnFailure = validateRetryOnFailure(input?.retryOnFailure)
@@ -1660,6 +1701,10 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     // Assignment (not omission) is deliberate: clearing the field must remove a
     // previous override, falling back to the workflow binding.
     job.personaId = personaId
+    // Same rule: an explicit level replaces the override, and omitting the field
+    // removes it so the job follows the app default again instead of being
+    // frozen at whatever was saved.
+    job.effort = effort
     // Same rule: a provided id re-files the job, an omitted or empty one clears
     // the filing. A stale id the dialog sends back unchanged is still an id, so
     // saving an unrelated edit never silently un-files the job.

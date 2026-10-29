@@ -1332,6 +1332,19 @@ export default function SettingsAutomations() {
                           {`· ${t('automation.missedPolicy.row')}`}
                         </span>
                       )}
+                      {job.effort !== undefined && (
+                        // The same quiet-clause shape as quiet mode and the
+                        // missed-run choice: a per-job override the schedule
+                        // line can state without a second badge. Shown for an
+                        // explicit 'auto' too — that is a deliberate choice that
+                        // outranks the app default, not the default itself.
+                        <span
+                          title={t('automation.effort.hint')}
+                          style={{ fontSize: 11, color: SECONDARY }}
+                        >
+                          {`· ${t('automation.effort.row', { level: t(`effort.${job.effort}`) })}`}
+                        </span>
+                      )}
                     </div>
 
                     {/* Where this job was drafted from. A job made in Settings,

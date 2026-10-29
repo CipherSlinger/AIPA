@@ -3,6 +3,7 @@
 import { create } from 'zustand'
 import { ChatMessage, ElicitationMessage, HistoryAskNotice, HookCallbackMessage, PermissionMessage, PlanMessage, StandardChatMessage } from '../types/app.types'
 import { sessionModelStorageKey } from '../lib/sessionModel'
+import { type EffortLevel, writeSessionEffortOverride } from '../lib/sessionEffort'
 import type { ThreadStatusChip } from '../components/chat/threadStatusText'
 import type { ThreadGoalView } from '../utils/threadGoal'
 import type { MemoryTurnReceipt } from '../lib/memoryReceipt'
@@ -31,6 +32,8 @@ export interface TabSnapshot {
   sessionPersonaId: string | undefined
   /** Explicit model pick for this conversation; outranks the persona's model. */
   sessionModelOverride: string | undefined
+  /** Explicit effort pick for this conversation; undefined follows the global default. */
+  sessionEffortOverride: EffortLevel | undefined
   /** The desk a brand-new conversation was started from; see the flat field. */
   draftDepartmentId: string | undefined
 }
@@ -440,6 +443,12 @@ interface ChatState {
   sessionModelOverride: string | undefined
   setSessionModelOverride: (modelId: string | undefined) => void
 
+  // Per-session effort: an explicit pick beats the global default, exactly as
+  // an explicit model pick beats the persona. `undefined` (and `'auto'`, which
+  // resolves to the same thing) means "follow the global default".
+  sessionEffortOverride: EffortLevel | undefined
+  setSessionEffortOverride: (level: EffortLevel | undefined) => void
+
   /**
    * The department desk a brand-new conversation was started from.
    *
@@ -599,6 +608,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   contextBeforeCompact: null,
   sessionPersonaId: undefined,
   sessionModelOverride: undefined,
+  sessionEffortOverride: undefined,
   draftDepartmentId: undefined,
   isPlanMode: false,
   changedFiles: [],
@@ -805,6 +815,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setSessionId: (id) => {
     const personaId = get().sessionPersonaId
     const modelOverride = get().sessionModelOverride
+    const effortOverride = get().sessionEffortOverride
     set((s) => ({
       currentSessionId: id,
       viewSessionId: id,
@@ -830,6 +841,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
       try {
         localStorage.setItem(sessionModelStorageKey(id), modelOverride)
       } catch { /* localStorage unavailable — the live session still works */ }
+    }
+    // Effort picked in a draft (no id yet) is recorded under the id the first
+    // turn ends up with, so reopening the conversation keeps the choice. Only a
+    // concrete level is written: 'auto' means "follow the default" and must stay
+    // an absent record.
+    if (id && effortOverride) {
+      writeSessionEffortOverride(id, effortOverride)
     }
   },
   setWorkingDir: (dir) => set({ workingDir: dir }),
@@ -910,6 +928,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
       modelUsage: {},
       sessionPersonaId: undefined,
       sessionModelOverride: undefined,
+      // The view's effort pick dies with the view. The persisted record stays
+      // keyed by its session id: a deleted conversation that comes back from
+      // Recently deleted is the same conversation and keeps it.
+      sessionEffortOverride: undefined,
       // The wiped view's desk assertion dies with it. The next conversation
       // must be started from a department again to claim one.
       draftDepartmentId: undefined,
@@ -1280,6 +1302,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
+  setSessionEffortOverride: (level) => {
+    // `'auto'` and `undefined` mean the same thing here: follow the global
+    // default. Storing 'auto' would look like an override that pins nothing.
+    const next = level === 'auto' ? undefined : level
+    set({ sessionEffortOverride: next })
+    // A draft has no id yet; `setSessionId` writes the pending pick once the
+    // first turn assigns one (same mechanism as the persona and model records).
+    const sessionId = get().currentSessionId
+    if (sessionId) writeSessionEffortOverride(sessionId, next)
+  },
+
   setSessionModelOverride: (modelId) => {
     set({ sessionModelOverride: modelId })
     // A new conversation has no id yet; `setSessionId` writes the pending pick
@@ -1417,6 +1450,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         modelUsage: {},
         sessionPersonaId: undefined,
         sessionModelOverride: undefined,
+        sessionEffortOverride: undefined,
         // An opened conversation has a row, so membership comes from the org
         // tree; it must not inherit a draft desk left in this tab.
         draftDepartmentId: undefined,
@@ -1489,6 +1523,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         modelUsage: {},
         sessionPersonaId: undefined,
         sessionModelOverride: undefined,
+        sessionEffortOverride: undefined,
         draftDepartmentId: undefined,
         isPlanMode: false,
         turnDiff: null,
@@ -1521,6 +1556,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             modelUsage: sole.snapshot.modelUsage,
             sessionPersonaId: sole.snapshot.sessionPersonaId,
             sessionModelOverride: sole.snapshot.sessionModelOverride,
+            sessionEffortOverride: sole.snapshot.sessionEffortOverride,
             draftDepartmentId: sole.snapshot.draftDepartmentId,
             // A turn diff belongs to the conversation that produced it; the
             // snapshot does not carry one, so the reopened tab starts clean.
@@ -1565,6 +1601,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           modelUsage: newActive.snapshot.modelUsage,
           sessionPersonaId: newActive.snapshot.sessionPersonaId,
           sessionModelOverride: newActive.snapshot.sessionModelOverride,
+          sessionEffortOverride: newActive.snapshot.sessionEffortOverride,
           draftDepartmentId: newActive.snapshot.draftDepartmentId,
           turnDiff: null,
           threadSettings: null,
@@ -1605,6 +1642,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             modelUsage: state.modelUsage,
             sessionPersonaId: state.sessionPersonaId,
             sessionModelOverride: state.sessionModelOverride,
+            sessionEffortOverride: state.sessionEffortOverride,
             draftDepartmentId: state.draftDepartmentId,
           },
         }
@@ -1634,6 +1672,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         modelUsage: targetTab.snapshot.modelUsage,
         sessionPersonaId: targetTab.snapshot.sessionPersonaId,
         sessionModelOverride: targetTab.snapshot.sessionModelOverride,
+        sessionEffortOverride: targetTab.snapshot.sessionEffortOverride,
         draftDepartmentId: targetTab.snapshot.draftDepartmentId,
         turnDiff: null,
         threadSettings: null,
