@@ -1682,6 +1682,50 @@ export interface FsStatPathResultData {
   error: string | null
 }
 
+// ── Working tree (wave 85B) ─────────────────────────────────────────────────
+// Mirrors src/main/fs/git-status.ts. This is `git status`, not a live index:
+// the renderer re-reads it when the panel opens and when the window regains
+// focus.
+
+export interface GitStatusFileData {
+  /** Relative to `root`; the new path for a rename or copy. */
+  path: string
+  index: string
+  worktree: string
+  /** Previous path for a rename/copy, parsed from `old -> new`. */
+  origPath?: string
+}
+
+export interface GitStatusOkData {
+  ok: true
+  /** Null means detached or unreadable — never a guess of `main`. */
+  branch: string | null
+  detached: boolean
+  /** Short sha when detached and readable. */
+  headSha?: string
+  /** Omitted when there is no upstream, or it is gone. */
+  upstream?: string
+  ahead: number
+  behind: number
+  files: GitStatusFileData[]
+  /** True when `files` is shorter than `total`. */
+  truncated: boolean
+  /** Entries before the UI cap. */
+  total: number
+  /** Repository root the paths are relative to. */
+  root?: string
+}
+
+export type GitStatusCode = 'not_a_repo' | 'git_missing' | 'cwd_invalid' | 'failed'
+
+export interface GitStatusErrorData {
+  ok: false
+  code: GitStatusCode
+  message: string
+}
+
+export type GitStatusData = GitStatusOkData | GitStatusErrorData
+
 /**
  * `TurnStatus` normalized for the renderer. `unknown` means the notification
  * carried no status (or one this build cannot name) — it is never success.
@@ -2365,8 +2409,13 @@ const electronAPI = {
     ipcRenderer.invoke('fs:pathExists', { filePath }) as Promise<boolean>,
   fsGitDiff: (filePath?: string) =>
     ipcRenderer.invoke('fs:gitDiff', { filePath }) as Promise<string | { error: string }>,
-  fsGitStatus: () =>
-    ipcRenderer.invoke('fs:gitStatus') as Promise<string | { error: string }>,
+  /**
+   * `git status --porcelain=v1 -b` for `cwd` (or the app-wide working folder
+   * when omitted). A folder outside the allowed roots is rejected with
+   * `cwd_invalid`; it is never reported as a clean tree.
+   */
+  fsGitStatus: (cwd?: string) =>
+    ipcRenderer.invoke('fs:gitStatus', { cwd }) as Promise<GitStatusData>,
   /**
    * Replace the directory set this browser instance wants watched. Main
    * refcounts them, so two mounted browsers share one watcher. Passing `[]`

@@ -8,7 +8,7 @@ import {
   Sun, Moon, Languages, Copy, Pin, StickyNote, ArrowUpDown,
   FileText, Stethoscope, Pencil, BarChart2, Shield,
   Database, DollarSign, SkipBack, RefreshCw, ExternalLink, Hourglass, ListChecks,
-  Type, TerminalSquare, Eraser,
+  Type, TerminalSquare, Eraser, GitBranch,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
 import { useTerminalStore } from '../../store/terminalStore'
@@ -23,6 +23,7 @@ import { buildAutomationDescriptors, canRunAutomation } from './automationPalett
 import { buildTrashPaletteEntry } from '../../lib/trashPresence'
 import { approvalPaletteRows, dispatchApprovalFocus } from '../automation/approvalFocus'
 import { formatDuration } from '../layout/statusBarConstants'
+import { cachedGitStatus, requestGitStatusPanel } from '../layout/gitStatusPanel'
 import type { Translate } from '../automation/scheduleText'
 import type { AutomationJobData } from '../../../preload'
 
@@ -78,6 +79,19 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
     || ''
   const terminalState = useTerminalStore.getState()
   const hasActiveTerminal = terminalState.tabs.length > 0 && terminalState.activeId !== null
+
+  // The palette cannot run git itself. The chip records what it last read, so
+  // a folder already known not to be a repository can say so in the row
+  // instead of only promising a panel that will never open.
+  const workingTreeFolder = terminalCwd()
+  const knownTree = cachedGitStatus(workingTreeFolder)
+  const workingTreeDescription = !workingTreeFolder
+    ? t('command.workingTreeNoFolder')
+    : knownTree && !knownTree.ok && knownTree.code === 'not_a_repo'
+      ? t('command.workingTreeNotRepo')
+      : knownTree && !knownTree.ok && knownTree.code === 'git_missing'
+        ? t('command.workingTreeGitMissing')
+        : t('command.workingTreeChangesDesc')
 
   return [
     {
@@ -197,6 +211,27 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
         // raises the dock's confirmation (and opens the dock so it is visible);
         // the palette has no path to close a live shell without that answer.
         store.requestCloseAll()
+      },
+      category: 'action',
+    },
+    {
+      id: 'working-tree-changes',
+      name: t('command.workingTreeChanges'),
+      description: workingTreeDescription,
+      icon: <GitBranch size={14} />,
+      action: () => {
+        onClose()
+        const folder = terminalCwd()
+        if (!folder) {
+          addToast('info', t('command.workingTreeNoFolder'))
+          return
+        }
+        // The panel lives in the status bar. If the user hid it, reveal it
+        // first: the request is remembered as pending, so the chip that mounts
+        // as a result still opens the panel. A click that shows nothing would
+        // be worse than this one visible side effect.
+        if (!useUiStore.getState().showStatusBar) useUiStore.getState().toggleStatusBar()
+        requestGitStatusPanel()
       },
       category: 'action',
     },

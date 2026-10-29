@@ -1375,7 +1375,12 @@
     "clearActiveTerminalNotMounted": "The terminal was just opened, so there was no screen to clear.",
     "closeAllTerminals": "Close all terminals",
     "closeAllTerminalsDesc": "Close every terminal tab and stop the shells inside. Asks first while one is still running.",
-    "noTerminalTabs": "There are no terminal tabs to close."
+    "noTerminalTabs": "There are no terminal tabs to close.",
+    "workingTreeChanges": "Working tree changes",
+    "workingTreeChangesDesc": "Uncommitted files in the conversation's folder, by staged, unstaged, untracked and conflicted.",
+    "workingTreeNoFolder": "No working folder is set, so there is no working tree to show.",
+    "workingTreeNotRepo": "The conversation's folder is not a git repository.",
+    "workingTreeGitMissing": "Git is not installed, so there is no working tree to show."
   },
   "permission": {
     "allow": "Allow",
@@ -1652,7 +1657,8 @@
     "jumpUserMessage": "Jump to prev/next user message",
     "messageContextMenu": "Message context menu",
     "searchPlaceholder": "Filter shortcuts...",
-    "pressEscToClose": "Press Esc to close"
+    "pressEscToClose": "Press Esc to close",
+    "quickCapture": "Summon AIPA and focus the composer — works while AIPA is in the background (if that chord is taken, it falls back to Ctrl + Shift + Space, then Ctrl + Alt + A)"
   },
   "plan": {
     "executionPlan": "Execution Plan",
@@ -2402,8 +2408,24 @@
       "creating": "Creating…",
       "newButton": "New memory file",
       "charCount_one": "{{count}} character",
-      "charCount_other": "{{count}} characters"
-    }
+      "charCount_other": "{{count}} characters",
+      "scopeLabel": "Save to",
+      "scopeGlobal": "All projects (global)",
+      "scopeProject": "A project",
+      "projectLabel": "Project",
+      "noProjects": "No project is available yet — start a conversation in a folder first. Project memory is stored per working directory.",
+      "createNeedsProject": "Choose a project to create this file in",
+      "newWhereProject": "Saved to ~/.claude/projects/<project>/memory/ as a Markdown file with frontmatter.",
+      "projectUnknown": "No session names this project folder; its folder id is {{hash}}."
+    },
+    "projects": {
+      "filterLabel": "Filter by project",
+      "filterAll": "All projects ({{count}})",
+      "filterEntry": "{{label}} ({{count}})"
+    },
+    "memdirEmptyProject": "No memory files in {{label}}.",
+    "memdirEmptyGlobal": "There are no global memory files.",
+    "memdirEmptyType": "No {{type}} memories here."
   },
   "workflow": {
     "title": "Workflows",
@@ -4807,7 +4829,8 @@
       "openAria": "Open the conversation started by {{name}}",
       "showInFolder": "Show in folder",
       "showInFolderAria": "Show the exported file in its folder"
-    }
+    },
+    "globalShortcutUnavailable": "The global hotkey for AIPA could not be registered — another application already owns every chord AIPA tried. You can still bring AIPA forward from the menu: View → Show AIPA."
   },
   "sessionOrigin": {
     "automationTitle": "Scheduled run — {{name}}",
@@ -5055,5 +5078,42 @@
     "refusalLine": "{{name}}: {{reason}}",
     "refusalNoReason": "{{name}}: no reason was reported",
     "listStale": "The sidebar could not be refreshed — conversations that came back may not be listed yet."
+  },
+  "gitStatus": {
+    "title": "Working tree",
+    "subtitle": "git status for {{folder}}. Read when this panel opens and when the window regains focus — this is a snapshot, not a live index.",
+    "snapshot": "snapshot",
+    "refreshing": "refreshing…",
+    "close": "Close working tree",
+    "footnote": "This list is a snapshot of git status. Staging, committing and discarding stay in git.",
+    "headerBranch": "On {{branch}}",
+    "headerDetached": "Detached HEAD at {{sha}}",
+    "headerDetachedUnknown": "Detached HEAD — no branch, and the commit could not be read",
+    "tracking": "Tracking {{upstream}}",
+    "aheadTitle": "{{count}} commit(s) ahead of {{upstream}}",
+    "behindTitle": "{{count}} commit(s) behind {{upstream}}",
+    "staged": "Staged",
+    "unstaged": "Unstaged",
+    "untracked": "Untracked",
+    "conflicted": "Conflicted",
+    "noFiles": "Nothing is changed in this folder.",
+    "moreFiles": "Showing the first {{shown}} of {{total}} changed files.",
+    "openDiff": "Show the diff for {{path}}",
+    "untrackedRow": "{{path}} is untracked — nothing to diff yet",
+    "untrackedNoDiff": "Untracked files have no diff until they are added. AIPA did not read the file.",
+    "showInFolder": "Show in folder",
+    "revealOnly": "The diff viewer runs in the app-wide working folder, which is not this repository. The file's folder was opened instead.",
+    "revealFailed": "The diff viewer runs in the app-wide working folder, which is not this repository. The file's folder could not be opened either — the path is in the row above.",
+    "lettersTitle": "Index: {{index}} · worktree: {{worktree}}",
+    "detached": "detached",
+    "unknownBranch": "unknown branch",
+    "detachedTitle": "Detached HEAD at {{sha}} — not on a branch. Open the working tree.",
+    "detachedUnknownTitle": "Detached HEAD — not on a branch, and the commit could not be read.",
+    "cleanTitle": "On {{branch}}, nothing uncommitted. Open the working tree.",
+    "dirtyTitle": "{{count}} uncommitted on {{branch}}. Open the working tree.",
+    "notARepo": "{{folder}} is not a git repository.",
+    "gitMissing": "Git is not installed, or it is not on PATH.",
+    "cwdInvalid": "{{folder}} can't be read as a folder within the allowed roots.",
+    "failed": "git status failed: {{message}}"
   }
 }

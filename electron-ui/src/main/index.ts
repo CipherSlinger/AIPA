@@ -15,6 +15,7 @@ import { ptyManager } from './pty/pty-manager'
 import { listSessions } from './sessions/session-reader'
 import { saveNow as saveSessionIndexNow } from './sessions/session-index-cache'
 import { getPref, setPref } from './config/config-manager'
+import { claimSummonChord, summonWindowActions, type SummonChord } from './window/summon'
 import { createLogger } from './utils/logger'
 
 const log = createLogger('main')
@@ -473,6 +474,12 @@ function rebuildAppMenu(recentSessionItems: Electron.MenuItemConstructorOptions[
     {
       label: 'View',
       submenu: [
+        // Deliberately no accelerator: the summon chord is registered globally,
+        // and a menu accelerator only fires while AIPA itself is focused — it
+        // would double-fire with the global registration whenever the app is in
+        // front. This row is the fallback when another app owns every chord.
+        { label: isZh ? '显示 AIPA' : 'Show AIPA', click: () => showMainWindow() },
+        { type: 'separator' },
         { label: 'Toggle Sidebar', accelerator: 'CmdOrCtrl+B', click: () => mainWindow?.webContents.send('menu:toggleSidebar') },
         { label: 'Toggle Terminal', accelerator: 'CmdOrCtrl+`', click: () => mainWindow?.webContents.send('menu:toggleTerminal') },
         { label: 'Command Palette', accelerator: 'CmdOrCtrl+Shift+P', click: () => mainWindow?.webContents.send('menu:commandPalette') },
@@ -706,21 +713,93 @@ function rebuildTrayMenu(options: { reuseSessionCache?: boolean } = {}): void {
   if (!options.reuseSessionCache) updateTrayTooltip()
 }
 
-function registerGlobalHotkey(): void {
-  // Ctrl+Shift+Space to toggle AIPA window from anywhere
-  const registered = globalShortcut.register('Ctrl+Shift+Space', () => {
-    if (mainWindow?.isVisible() && mainWindow.isFocused()) {
-      mainWindow.hide()
-    } else {
-      mainWindow?.show()
-      mainWindow?.focus()
-    }
+/**
+ * The chord actually claimed for "summon AIPA", or null when every candidate
+ * was refused. The value is the truth: nothing in the app may advertise a
+ * chord that is not in this variable.
+ */
+let summonShortcutChord: SummonChord | null = null
+/** Registration runs from `whenReady`; a re-evaluated module must not re-claim. */
+let summonShortcutAttempted = false
+/** The unavailable notice is a once-per-launch message, not a per-window one. */
+let summonUnavailableNoticeSent = false
+
+/**
+ * Bring the main window forward without toggling it. A hidden window has to be
+ * shown, a minimized one restored, and only then focused — `focus()` on a
+ * hidden or minimized window does not put it in front on Windows.
+ */
+function bringMainWindowForward(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  const actions = summonWindowActions({
+    visible: mainWindow.isVisible(),
+    minimized: mainWindow.isMinimized(),
   })
-  if (registered) {
-    log.info('Global hotkey registered: Ctrl+Shift+Space')
-  } else {
-    log.warn('Failed to register global hotkey: Ctrl+Shift+Space')
+  for (const action of actions) {
+    if (action === 'show') mainWindow.show()
+    else if (action === 'restore') mainWindow.restore()
+    else mainWindow.focus()
   }
+}
+
+/**
+ * Tell the renderer, once, that no global chord could be claimed. Deferred to
+ * `did-finish-load` when the page is still loading: `App` attaches its
+ * `menu:*` listener during the first React commit, which is before the load
+ * event, so sending earlier would drop the notice on the floor.
+ */
+function notifySummonUnavailable(): void {
+  if (summonUnavailableNoticeSent) return
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  summonUnavailableNoticeSent = true
+  const send = () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return
+    mainWindow.webContents.send('menu:globalShortcutUnavailable')
+  }
+  if (mainWindow.webContents.isLoading()) mainWindow.webContents.once('did-finish-load', send)
+  else send()
+}
+
+/**
+ * Register the global summon hotkey.
+ *
+ * Each candidate is claimed in priority order; the first the OS answers yes to
+ * wins. A chord owned by another application is not silently replaced by
+ * "nothing configured": the fallbacks exist precisely so a collision costs a
+ * different chord rather than the whole feature. When even the last one is
+ * refused, the renderer is told so it can point at View → Show AIPA instead of
+ * a hotkey that does nothing.
+ */
+function registerSummonShortcut(): void {
+  if (summonShortcutAttempted) return
+  summonShortcutAttempted = true
+
+  const onTrigger = () => {
+    bringMainWindowForward()
+    // Only after the window is on screen. A capture request reaching a hidden
+    // window would focus a composer the user cannot see, and the request would
+    // be spent before they ever look at it.
+    if (!mainWindow || mainWindow.isDestroyed() || !mainWindow.isVisible()) return
+    mainWindow.webContents.send('menu:quickCapture')
+  }
+
+  const { chord, attempts } = claimSummonChord(candidate => globalShortcut.register(candidate, onTrigger))
+  summonShortcutChord = chord
+
+  if (chord) {
+    log.info(`Global summon shortcut registered: ${chord}`)
+  } else {
+    log.warn(
+      `No global summon shortcut could be registered; tried ${attempts.map(a => a.chord).join(', ')}. ` +
+      'globalShortcut.register refused each one — another application almost certainly owns it. ' +
+      'View > Show AIPA in the app menu still brings the window forward.',
+    )
+    notifySummonUnavailable()
+  }
+}
+
+function registerGlobalHotkey(): void {
+  registerSummonShortcut()
 
   // Ctrl+Shift+G: Quick clipboard action — reads clipboard, opens AIPA, sends to chat
   const clipboardRegistered = globalShortcut.register('Ctrl+Shift+G', () => {
@@ -935,5 +1014,14 @@ app.on('before-quit', () => {
   ptyManager.destroyAll()
   abortAllPluginAi()
   endAllPluginEdits()
+  globalShortcut.unregisterAll()
+})
+
+// `before-quit` covers a normal quit; `will-quit` is the last point at which
+// the OS still lets us release accelerators, and catches quit paths that do not
+// go through `before-quit`. Releasing twice is harmless — unregistering a chord
+// that is not held is a no-op.
+app.on('will-quit', () => {
+  log.debug(`Releasing global shortcuts (summon chord: ${summonShortcutChord ?? 'none'})`)
   globalShortcut.unregisterAll()
 })

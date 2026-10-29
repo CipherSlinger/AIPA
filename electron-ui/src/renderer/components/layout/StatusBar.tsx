@@ -14,6 +14,7 @@ import { useMemoryUsage } from '../../hooks/useMemoryUsage'
 import StatusBarTokenPopup from './StatusBarTokenPopup'
 import BackgroundWorkIndicator from './BackgroundWorkIndicator'
 import TerminalIndicator from './TerminalIndicator'
+import GitStatusChip from './GitStatusChip'
 
 // Per-model pricing tiers (inspired by Claude Code modelCost.ts)
 // Format: [inputCostPerMtok, outputCostPerMtok]
@@ -431,6 +432,10 @@ export default function StatusBar() {
             scheduled-work indicator for the same reason: something the user
             started is still running behind a closed panel. */}
         <TerminalIndicator />
+        {/* What is uncommitted in the conversation's folder. Renders nothing
+            when there is no repository to speak about; a clean repository
+            still shows its branch. */}
+        <GitStatusChip />
       </div>
 
       <Separator />

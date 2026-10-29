@@ -24,7 +24,10 @@ interface Props {
 // Keys reference i18n path under shortcutCheatsheet.*
 const SHORTCUTS = [
   { sectionKey: 'global', items: [
-    { keys: 'Ctrl + Shift + Space', actionKey: 'toggleWindow' },
+    // The global summon chord is claimed in main, in priority order; the action
+    // text names the fallbacks because the OS may hand back a different chord
+    // than the one printed here.
+    { keys: 'Ctrl + Alt + Space', actionKey: 'quickCapture' },
     { keys: 'Ctrl + Shift + G', actionKey: 'clipboardQuickAction' },
   ]},
   { sectionKey: 'general', items: [

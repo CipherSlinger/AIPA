@@ -10,6 +10,11 @@ import React, { useState } from 'react'
 import { useT } from '../../i18n'
 import { MEMORY_TYPES } from './memoryConstants'
 import { MAX_MEMORY_EDITOR_BYTES, utf8ByteLength } from './memoryEditor'
+import {
+  createScopeIssue,
+  type MemoryCreateScope,
+  type MemoryProjectOption,
+} from './memoryProjects'
 
 const TYPE_LABEL_KEYS: Record<string, string> = {
   user: 'memory.typeUser',
@@ -19,25 +24,49 @@ const TYPE_LABEL_KEYS: Record<string, string> = {
 }
 
 interface MemoryCreateFormProps {
+  /** Projects a create may target; already narrowed to hashes main accepts. */
+  projects: MemoryProjectOption[]
+  /** The project currently filtered, when there is one. */
+  defaultProjectHash?: string
   onCreated: (filePath: string) => void
   /** Open the file a create collided with, straight in the card's editor. */
   onOpenExisting: (filePath: string) => void
   onCancel: () => void
 }
 
-export default function MemoryCreateForm({ onCreated, onOpenExisting, onCancel }: MemoryCreateFormProps) {
+export default function MemoryCreateForm({
+  projects,
+  defaultProjectHash,
+  onCreated,
+  onOpenExisting,
+  onCancel,
+}: MemoryCreateFormProps) {
   const t = useT()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [type, setType] = useState<string>('user')
   const [body, setBody] = useState('')
+  // Begin in the project the console is filtered to; otherwise create globally.
+  const [scope, setScope] = useState<MemoryCreateScope>(() =>
+    defaultProjectHash && projects.some(p => p.hash === defaultProjectHash) ? 'project' : 'global')
+  const [projectHash, setProjectHash] = useState(defaultProjectHash ?? '')
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [collision, setCollision] = useState<{ filePath: string; name: string } | null>(null)
 
+  // A selection from a previous list can go stale; fall back to the first
+  // project the picker still offers, so Create never posts a hash the picker
+  // no longer lists.
+  const effectiveProjectHash =
+    projectHash && projects.some(p => p.hash === projectHash)
+      ? projectHash
+      : projects[0]?.hash ?? ''
+  const selectedProject = projects.find(p => p.hash === effectiveProjectHash)
+  const scopeIssue = createScopeIssue(scope, effectiveProjectHash, projects)
+
   const nameMissing = !name.trim()
   const bodyTooLarge = utf8ByteLength(body) > MAX_MEMORY_EDITOR_BYTES
-  const createDisabled = creating || nameMissing || bodyTooLarge
+  const createDisabled = creating || nameMissing || bodyTooLarge || scopeIssue !== null
 
   const submit = async () => {
     if (createDisabled) return
@@ -50,7 +79,10 @@ export default function MemoryCreateForm({ onCreated, onOpenExisting, onCancel }
         description: description.trim(),
         type,
         body,
-        scope: 'global',
+        scope,
+        // Project scope carries the real folder id; main refuses a project
+        // create without one rather than redirecting it to global.
+        ...(scope === 'project' ? { projectHash: effectiveProjectHash } : {}),
       })
       if (res.ok) {
         onCreated(res.filePath)
@@ -92,8 +124,64 @@ export default function MemoryCreateForm({ onCreated, onOpenExisting, onCancel }
         {t('memory.editor.newTitle')}
       </div>
       <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-        {t('memory.editor.newWhere')}
+        {t(scope === 'project' ? 'memory.editor.newWhereProject' : 'memory.editor.newWhere')}
       </div>
+
+      {/* Scope is picked before the file, because it decides which file this
+          is. Project scope carries a real folder id; global never pretends to. */}
+      <div>
+        <label style={labelStyle}>{t('memory.editor.scopeLabel')}</label>
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setScope('global')}
+            style={{
+              background: scope === 'global' ? 'rgba(99,102,241,0.20)' : 'var(--bg-hover)',
+              color: scope === 'global' ? 'var(--accent-text)' : 'var(--text-muted)',
+              border: scope === 'global' ? '1px solid rgba(99,102,241,0.40)' : '1px solid var(--border)',
+              borderRadius: 20, padding: '2px 10px', fontSize: 10, cursor: 'pointer',
+            }}
+          >
+            {t('memory.editor.scopeGlobal')}
+          </button>
+          <button
+            onClick={() => setScope('project')}
+            style={{
+              background: scope === 'project' ? 'rgba(99,102,241,0.20)' : 'var(--bg-hover)',
+              color: scope === 'project' ? 'var(--accent-text)' : 'var(--text-muted)',
+              border: scope === 'project' ? '1px solid rgba(99,102,241,0.40)' : '1px solid var(--border)',
+              borderRadius: 20, padding: '2px 10px', fontSize: 10, cursor: 'pointer',
+            }}
+          >
+            {t('memory.editor.scopeProject')}
+          </button>
+        </div>
+      </div>
+
+      {scope === 'project' && (
+        <div>
+          <label style={labelStyle}>{t('memory.editor.projectLabel')}</label>
+          {projects.length === 0 ? (
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              {t('memory.editor.noProjects')}
+            </div>
+          ) : (
+            <select
+              value={effectiveProjectHash}
+              onChange={e => setProjectHash(e.target.value)}
+              style={inputStyle}
+            >
+              {projects.map(project => (
+                <option key={project.hash} value={project.hash}>{project.label}</option>
+              ))}
+            </select>
+          )}
+          {selectedProject && !selectedProject.known && (
+            <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.5 }}>
+              {t('memory.editor.projectUnknown', { hash: selectedProject.hash })}
+            </div>
+          )}
+        </div>
+      )}
 
       <div>
         <label style={labelStyle}>{t('memory.editor.nameLabel')}</label>
@@ -189,17 +277,22 @@ export default function MemoryCreateForm({ onCreated, onOpenExisting, onCancel }
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-        {nameMissing && (
+        {scopeIssue !== null && (
+          <span style={{ flex: 1, fontSize: 10, color: 'var(--text-muted)' }}>
+            {t('memory.editor.createNeedsProject')}
+          </span>
+        )}
+        {scopeIssue === null && nameMissing && (
           <span style={{ flex: 1, fontSize: 10, color: 'var(--text-muted)' }}>
             {t('memory.editor.createNeedsName')}
           </span>
         )}
-        {!nameMissing && bodyTooLarge && (
+        {scopeIssue === null && !nameMissing && bodyTooLarge && (
           <span style={{ flex: 1, fontSize: 10, color: 'var(--danger-text)' }}>
             {t('memory.editor.createTooLarge')}
           </span>
         )}
-        {!nameMissing && !bodyTooLarge && <span style={{ flex: 1 }} />}
+        {scopeIssue === null && !nameMissing && !bodyTooLarge && <span style={{ flex: 1 }} />}
         <button
           onClick={onCancel}
           style={{

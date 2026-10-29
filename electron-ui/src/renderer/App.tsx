@@ -23,6 +23,13 @@ const SessionQuickSwitcher = lazy(() => import('./components/shared/SessionQuick
 const ShortcutCheatsheet = lazy(() => import('./components/shared/ShortcutCheatsheet'))
 const GlobalSearchOverlay = lazy(() => import('./components/search/GlobalSearchOverlay'))
 
+/**
+ * The global-hotkey failure is a fact about this launch, not about this
+ * listener: a remount must not raise the same toast twice. Module scope
+ * survives the effect's teardown, which a per-render ref does not.
+ */
+let globalShortcutUnavailableToastShown = false
+
 export default function App() {
   const prefs = usePrefsStore(s => s.prefs)
   // The org tree lives in its own store; `prefs` never holds it.
@@ -322,6 +329,27 @@ export default function App() {
       // Menu: Help > Keyboard Shortcuts (Ctrl+/)
       window.electronAPI.onMenuEvent('keyboardShortcuts', () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' }))
+      }),
+      // Global summon chord (registered in main): land on the chat surface with
+      // the composer focused. This is the Ctrl+L path — switch the view, park
+      // the focus request in the store — so the caret lands at the end of the
+      // existing draft through ChatInput.focusComposer instead of a second
+      // focus path drifting away from the one Ctrl+L uses. Nothing is cleared:
+      // the draft is the user's, and the hotkey means "let me type", not
+      // "start over". Skip the nav call while already in chat, because
+      // setActiveNavItem('chat') also resets sidebar state and unread badges.
+      window.electronAPI.onMenuEvent('quickCapture', () => {
+        const ui = useUiStore.getState()
+        if (ui.mainView !== 'chat') ui.setActiveNavItem('chat')
+        ui.requestInputFocus()
+      }),
+      // Main tried every summon chord and the OS refused them all. Say that
+      // plainly, once, and point at the menu row that still works — a warning
+      // toast, not a modal, because the app remains fully usable.
+      window.electronAPI.onMenuEvent('globalShortcutUnavailable', () => {
+        if (globalShortcutUnavailableToastShown) return
+        globalShortcutUnavailableToastShown = true
+        useUiStore.getState().addToast('warning', t('toast.globalShortcutUnavailable'), 10000)
       }),
     ]
     return () => cleanups.forEach((fn) => fn?.())

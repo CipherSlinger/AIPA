@@ -1375,7 +1375,12 @@
     "clearActiveTerminalNotMounted": "终端刚刚打开，还没有屏幕可清。",
     "closeAllTerminals": "关闭所有终端",
     "closeAllTerminalsDesc": "关闭所有终端标签页并停止里面的 shell。有 shell 还在运行时会先询问。",
-    "noTerminalTabs": "没有可以关闭的终端标签页。"
+    "noTerminalTabs": "没有可以关闭的终端标签页。",
+    "workingTreeChanges": "工作区改动",
+    "workingTreeChangesDesc": "对话文件夹里未提交的文件，按已暂存、未暂存、未跟踪和冲突分组。",
+    "workingTreeNoFolder": "没有设置工作文件夹，因此没有工作区可显示。",
+    "workingTreeNotRepo": "对话所用的文件夹不是 git 仓库。",
+    "workingTreeGitMissing": "没有安装 Git，因此没有工作区可显示。"
   },
   "permission": {
     "allow": "允许",
@@ -1652,7 +1657,8 @@
     "jumpUserMessage": "跳转到上/下一条用户消息",
     "messageContextMenu": "消息右键菜单",
     "searchPlaceholder": "筛选快捷键...",
-    "pressEscToClose": "按 Esc 关闭"
+    "pressEscToClose": "按 Esc 关闭",
+    "quickCapture": "唤起 AIPA 并聚焦输入框——AIPA 在后台时也生效（若这个组合键被占用，会依次退到 Ctrl + Shift + Space、Ctrl + Alt + A）"
   },
   "plan": {
     "executionPlan": "执行计划",
@@ -2402,8 +2408,24 @@
       "creating": "正在创建…",
       "newButton": "新建记忆文件",
       "charCount_one": "{{count}} 个字符",
-      "charCount_other": "{{count}} 个字符"
-    }
+      "charCount_other": "{{count}} 个字符",
+      "scopeLabel": "保存到",
+      "scopeGlobal": "所有项目（全局）",
+      "scopeProject": "某个项目",
+      "projectLabel": "项目",
+      "noProjects": "还没有可用的项目——先在某个文件夹里开始一次对话。项目记忆按工作目录分别存放。",
+      "createNeedsProject": "选一个项目才能在这里创建文件",
+      "newWhereProject": "会以带文件头的 Markdown 文件存进 ~/.claude/projects/<project>/memory/。",
+      "projectUnknown": "没有任何会话对应这个项目文件夹，它的文件夹 id 是 {{hash}}。"
+    },
+    "projects": {
+      "filterLabel": "按项目筛选",
+      "filterAll": "所有项目（{{count}}）",
+      "filterEntry": "{{label}}（{{count}}）"
+    },
+    "memdirEmptyProject": "「{{label}}」里没有记忆文件。",
+    "memdirEmptyGlobal": "没有全局记忆文件。",
+    "memdirEmptyType": "这里没有{{type}}记忆。"
   },
   "workflow": {
     "title": "工作流",
@@ -4807,7 +4829,8 @@
       "openAria": "打开 {{name}} 发起的对话",
       "showInFolder": "在文件夹中显示",
       "showInFolderAria": "在文件夹中显示导出的文件"
-    }
+    },
+    "globalShortcutUnavailable": "AIPA 的全局快捷键没能注册成功——AIPA 尝试过的组合键都已被其他应用占用。你仍然可以从菜单唤起 AIPA：View → 显示 AIPA。"
   },
   "sessionOrigin": {
     "automationTitle": "定时任务 · {{name}}",
@@ -5055,5 +5078,42 @@
     "refusalLine": "{{name}}：{{reason}}",
     "refusalNoReason": "{{name}}：没有说明原因",
     "listStale": "侧边栏没能刷新，恢复的对话可能还没出现在列表里。"
+  },
+  "gitStatus": {
+    "title": "工作区",
+    "subtitle": "{{folder}} 的 git status。打开此面板和窗口重新获得焦点时读取——这是快照，不是实时索引。",
+    "snapshot": "快照",
+    "refreshing": "刷新中…",
+    "close": "关闭工作区",
+    "footnote": "这份列表是 git status 的快照。暂存、提交和丢弃仍然在 git 里完成。",
+    "headerBranch": "位于 {{branch}}",
+    "headerDetached": "分离头指针，位于 {{sha}}",
+    "headerDetachedUnknown": "分离头指针——不在任何分支上，且读不到提交",
+    "tracking": "跟踪 {{upstream}}",
+    "aheadTitle": "领先 {{upstream}} {{count}} 个提交",
+    "behindTitle": "落后 {{upstream}} {{count}} 个提交",
+    "staged": "已暂存",
+    "unstaged": "未暂存",
+    "untracked": "未跟踪",
+    "conflicted": "冲突",
+    "noFiles": "这个文件夹里没有改动。",
+    "moreFiles": "显示前 {{shown}} 个，共 {{total}} 个改动文件。",
+    "openDiff": "查看 {{path}} 的差异",
+    "untrackedRow": "{{path}} 尚未被跟踪——还没有可看的差异",
+    "untrackedNoDiff": "未跟踪的文件在被添加之前没有差异。AIPA 没有读取这个文件。",
+    "showInFolder": "在文件夹中显示",
+    "revealOnly": "差异查看器运行在应用全局的工作文件夹里，那不是这个仓库。因此改为打开文件所在的文件夹。",
+    "revealFailed": "差异查看器运行在应用全局的工作文件夹里，那不是这个仓库。文件所在的文件夹也没能打开——路径就在上面那一行。",
+    "lettersTitle": "索引：{{index}} · 工作区：{{worktree}}",
+    "detached": "分离头指针",
+    "unknownBranch": "未知分支",
+    "detachedTitle": "分离头指针，位于 {{sha}}——不在任何分支上。打开工作区。",
+    "detachedUnknownTitle": "分离头指针——不在任何分支上，且读不到提交。",
+    "cleanTitle": "位于 {{branch}}，没有未提交的改动。打开工作区。",
+    "dirtyTitle": "{{branch}} 上有 {{count}} 处未提交的改动。打开工作区。",
+    "notARepo": "{{folder}} 不是 git 仓库。",
+    "gitMissing": "没有安装 Git，或者它不在 PATH 上。",
+    "cwdInvalid": "{{folder}} 不是一个可读的、位于允许范围内的文件夹。",
+    "failed": "git status 失败：{{message}}"
   }
 }

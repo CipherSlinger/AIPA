@@ -61,6 +61,12 @@ interface MemoryFileCardProps {
   onSaved: () => void
   /** Bumped when the console wants this exact file opened in edit mode. */
   editNonce?: number
+  /**
+   * Readable project name from the session list. Absent for global files; for
+   * an unnamed project the caller passes the hash and `projectLabelKnown=false`.
+   */
+  projectLabel?: string
+  projectLabelKnown?: boolean
 }
 
 export default function MemoryFileCard({
@@ -70,6 +76,8 @@ export default function MemoryFileCard({
   onToggle,
   onSaved,
   editNonce,
+  projectLabel,
+  projectLabelKnown,
 }: MemoryFileCardProps) {
   const t = useT()
   const [raw, setRaw] = useState<string | null>(null)
@@ -262,6 +270,14 @@ export default function MemoryFileCard({
     : readError ? t('memory.editor.readFailed', { message: readError.message })
     : null
 
+  // Unknown project: show the folder id, and say that is what it is. Never a
+  // path reconstructed from the slug.
+  const projectTitle = file.scope === 'project' && projectLabel
+    ? (projectLabelKnown === false
+        ? t('memory.editor.projectUnknown', { hash: file.projectHash ?? projectLabel })
+        : projectLabel)
+    : undefined
+
   return (
     <div data-memdir-file={encodeURIComponent(file.filePath)} style={{
       background: 'var(--bg-primary)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
@@ -271,6 +287,7 @@ export default function MemoryFileCard({
       {/* File header row */}
       <div
         onClick={handleToggle}
+        title={projectTitle}
         style={{ padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
         onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-hover)' }}
         onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
@@ -292,6 +309,22 @@ export default function MemoryFileCard({
         <span style={{ fontSize: 9, color: 'var(--text-muted)', background: 'var(--border)', borderRadius: 6, padding: '1px 6px', flexShrink: 0 }}>
           {file.scope === 'global' ? t('memory.memdirGlobal') : t('memory.memdirProject')}
         </span>
+        {file.scope === 'project' && projectLabel && (
+          // The scope chip says "Project"; this says which one. Without it a
+          // list holding several projects prints the same word on every row.
+          <span
+            data-memdir-project={projectLabel}
+            title={projectTitle}
+            style={{
+              maxWidth: 170, fontSize: 9, color: 'var(--text-secondary)',
+              background: 'var(--bg-hover)', border: '1px solid var(--border)',
+              borderRadius: 6, padding: '1px 6px', flexShrink: 0,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}
+          >
+            {projectLabel}
+          </span>
+        )}
         {file.mtime > 0 && (
           <span style={{
             display: 'flex', alignItems: 'center', gap: 3,
@@ -315,6 +348,11 @@ export default function MemoryFileCard({
 
       {expanded && (
         <div style={{ padding: '0 12px 10px', borderTop: '1px solid var(--border)' }}>
+          {file.scope === 'project' && projectLabel && (
+            <div style={{ marginTop: 6, fontSize: 9, color: 'var(--text-muted)' }}>
+              {t('memory.memdirProject')}: <span title={projectTitle}>{projectLabel}</span>
+            </div>
+          )}
           {editing ? (
             <div style={{ marginTop: 8 }}>
               <textarea
