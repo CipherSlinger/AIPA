@@ -8,6 +8,7 @@ import { useAppEventBridge } from './hooks/useAppEventBridge'
 import { useContextHealth } from './hooks/useContextHealth'
 import { cancelDeptBudgetSync, scheduleDeptBudgetSync } from './components/departments/deptBudgetSync'
 import { populateDefaultPresetsIfEmpty } from './utils/presetPopulator'
+import { purgeTrashedWorkflows } from './lib/workflowTrash'
 import { listSessionsShared } from './utils/sessionListShared'
 import { useT } from './i18n'
 import './styles/globals.css'
@@ -87,6 +88,20 @@ export default function App() {
           ...all,
           apiKey: all.apiKey || env.apiKey || '',
         })
+
+        // Expired "Recently deleted" entries leave at launch, not only when the
+        // Employees page happens to be opened: a user who never returns there
+        // should still have a bounded holding area.
+        const purgedTrash = purgeTrashedWorkflows(all.trashedWorkflows)
+        if (purgedTrash.removed > 0) {
+          all.trashedWorkflows = purgedTrash.entries
+          setPrefs({ trashedWorkflows: purgedTrash.entries })
+          window.electronAPI.prefsSet('trashedWorkflows', purgedTrash.entries)
+        }
+        // Skill folders live in userData; main owns their retention window and
+        // this is just the earliest convenient nudge. Failure is harmless —
+        // the next launch or the Employees page tries again.
+        window.electronAPI.skillsTrashPurge().catch(() => { /* best effort */ })
 
         // Auto-populate default personas and workflows on first launch (Iteration 405)
         populateDefaultPresetsIfEmpty(all)

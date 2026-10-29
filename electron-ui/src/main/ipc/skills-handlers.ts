@@ -3,6 +3,14 @@ import { createLogger } from '../utils/logger'
 import { getPref } from '../config/config-manager'
 import { getAllowedFsRoots, isPathInside, safePath } from '../utils/validate'
 import { parseSkillMd, type ParsedSkillMd } from '../skills/skillMd'
+import {
+  listTrashedSkills,
+  moveSkillToTrash,
+  purgeTrashedSkills,
+  removeTrashedSkill,
+  restoreTrashedSkill,
+  type SkillTrashFailure,
+} from '../trash/skill-trash'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
@@ -195,22 +203,79 @@ export function registerSkillsHandlers(): void {
     }
   })
 
+  /**
+   * Deleting a skill is no longer permanent: the folder is moved into the
+   * trash (see src/main/trash/skill-trash.ts) and can be restored for 30 days.
+   * It used to be `rm -rf`'d on the spot, so one misclick destroyed a folder
+   * the user may have written by hand. The folder and manifest move together;
+   * the containment check (a child of `~/.claude/skills`, never the root) now
+   * lives in `moveSkillToTrash` so the trash cannot be used to move arbitrary
+   * directories either.
+   */
   ipcMain.handle('skills:delete', (_e, dirPath: string) => {
     try {
-      // Only allow deleting a child of the personal skills directory — never
-      // the directory itself, and never a sibling like ~/.claude/skills-evil.
-      const personalDir = path.join(os.homedir(), '.claude', 'skills')
-      const resolved = path.resolve(dirPath)
-      if (!isPathInside(personalDir, resolved)) {
-        return { error: 'Can only delete personal skills' }
+      const result = moveSkillToTrash(dirPath)
+      if (!result.ok) {
+        log.warn('skills:delete refused:', result.code, result.error)
+        return { success: false, error: result.error, code: result.code }
       }
-      if (fs.existsSync(resolved)) {
-        fs.rmSync(resolved, { recursive: true, force: true })
-      }
-      return { success: true }
+      return { success: true, entry: result.entry }
     } catch (err) {
+      // Resolve, never throw: an IPC rejection reaches the renderer as
+      // "Error invoking remote method …", which a user cannot act on.
       log.warn('skills:delete error:', String(err))
-      return { error: String(err) }
+      return { success: false, error: String(err), code: 'move_failed' }
+    }
+  })
+
+  // ── Recently deleted skills ──────────────
+  // Every handler resolves with a result object (never throws) and returns the
+  // failure reason, so the panel can say why a restore was refused instead of
+  // showing a remote-method error or a silent no-op.
+
+  ipcMain.handle('skills:trash:list', () => {
+    try {
+      return listTrashedSkills()
+    } catch (err) {
+      log.warn('skills:trash:list error:', String(err))
+      return { ok: false, code: 'write_failed', error: String(err) } satisfies SkillTrashFailure
+    }
+  })
+
+  ipcMain.handle('skills:trash:restore', (_e, id: string) => {
+    try {
+      if (typeof id !== 'string' || !id.trim()) {
+        return { ok: false, code: 'not_found', error: 'No item was given' } satisfies SkillTrashFailure
+      }
+      const result = restoreTrashedSkill(id)
+      if (!result.ok) log.warn('skills:trash:restore refused:', result.code, result.error)
+      return result
+    } catch (err) {
+      log.warn('skills:trash:restore error:', String(err))
+      return { ok: false, code: 'move_failed', error: String(err) } satisfies SkillTrashFailure
+    }
+  })
+
+  ipcMain.handle('skills:trash:purge', () => {
+    try {
+      return purgeTrashedSkills()
+    } catch (err) {
+      log.warn('skills:trash:purge error:', String(err))
+      return { ok: false, code: 'delete_failed', error: String(err) } satisfies SkillTrashFailure
+    }
+  })
+
+  ipcMain.handle('skills:trash:remove', (_e, id: string) => {
+    try {
+      if (typeof id !== 'string' || !id.trim()) {
+        return { ok: false, code: 'not_found', error: 'No item was given' } satisfies SkillTrashFailure
+      }
+      const result = removeTrashedSkill(id)
+      if (!result.ok) log.warn('skills:trash:remove refused:', result.code, result.error)
+      return result
+    } catch (err) {
+      log.warn('skills:trash:remove error:', String(err))
+      return { ok: false, code: 'delete_failed', error: String(err) } satisfies SkillTrashFailure
     }
   })
 }

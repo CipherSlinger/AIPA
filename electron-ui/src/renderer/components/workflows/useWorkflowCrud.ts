@@ -1,9 +1,16 @@
 import { useState, useMemo, useCallback } from 'react'
 import { usePrefsStore, useUiStore } from '../../store'
-import { Workflow, WorkflowStep } from '../../types/app.types'
+import { TrashedWorkflow, Workflow, WorkflowStep } from '../../types/app.types'
 import { useT } from '../../i18n'
 import { MAX_WORKFLOWS, MAX_NAME_LENGTH, MAX_DESC_LENGTH, PRESET_WORKFLOWS, PRESET_TEAMWORK_WORKFLOWS, stepHasContent } from './workflowConstants'
 import { runWorkflowIntoQueue } from './runWorkflow'
+import {
+  MAX_TRASHED_WORKFLOWS,
+  TRASH_RETENTION_DAYS,
+  addTrashedWorkflow,
+  normalizeTrashedWorkflows,
+  WorkflowTrashResult,
+} from '../../lib/workflowTrash'
 
 export function useWorkflowCrud() {
   const t = useT()
@@ -11,7 +18,16 @@ export function useWorkflowCrud() {
   const setPrefs = usePrefsStore(s => s.setPrefs)
   const addToast = useUiStore(s => s.addToast)
 
-  const workflows: Workflow[] = prefs.workflows || []
+  // Memoized for their identity: every callback below takes one of them as a
+  // dependency, and a fresh `|| []` on every render would recreate all of them
+  // (and re-run their consumers) for nothing.
+  const workflows: Workflow[] = useMemo(() => prefs.workflows || [], [prefs.workflows])
+  // The holding area is a pref of its own, never mixed into `workflows`: a
+  // trashed workflow must not appear in the grid, the search or a run.
+  const trashedWorkflows: TrashedWorkflow[] = useMemo(
+    () => normalizeTrashedWorkflows(prefs.trashedWorkflows),
+    [prefs.trashedWorkflows],
+  )
 
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -36,6 +52,11 @@ export function useWorkflowCrud() {
   const saveWorkflows = useCallback((updated: Workflow[]) => {
     setPrefs({ workflows: updated })
     window.electronAPI.prefsSet('workflows', updated)
+  }, [setPrefs])
+
+  const saveTrashed = useCallback((updated: TrashedWorkflow[]) => {
+    setPrefs({ trashedWorkflows: updated })
+    window.electronAPI.prefsSet('trashedWorkflows', updated)
   }, [setPrefs])
 
   const runWorkflow = useCallback((wf: Workflow) => {
@@ -71,15 +92,53 @@ export function useWorkflowCrud() {
   }, [newName, newDesc, newIcon, newSteps, workflows, saveWorkflows, addToast, t])
 
   const deleteWorkflow = useCallback((id: string) => {
+    const removed = workflows.find(w => w.id === id)
+    if (!removed) return
     saveWorkflows(workflows.filter(w => w.id !== id))
+    // Keep the record so a mistaken delete is reversible for the retention
+    // window. It is a copy in the holding area, not a second live workflow.
+    const held = addTrashedWorkflow(prefs.trashedWorkflows, removed)
+    saveTrashed(held.entries)
     if (expandedId === id) setExpandedId(null)
-    // Clean up per-workflow localStorage keys
+    // Clean up per-workflow localStorage keys even though the record is
+    // restorable: a restored workflow must come back with a fresh canvas, not
+    // one whose positions belonged to a deleted run.
     localStorage.removeItem(`aipa:canvas-vp:${id}`)
     localStorage.removeItem(`aipa:canvas-collapsed:${id}`)
     localStorage.removeItem(`aipa:canvas-pos:${id}`)
     localStorage.removeItem(`aipa:canvas-dir:${id}`)
-    addToast('info', t('workflow.deleted'))
-  }, [workflows, saveWorkflows, expandedId, addToast, t])
+    addToast('info', t('workflow.deletedTrash', { days: TRASH_RETENTION_DAYS }))
+    if (held.dropped) {
+      // The cap pushed the oldest entry out for good; saying nothing would make
+      // that disappearance look like a bug.
+      addToast('info', t('workflow.trashCapped', { count: MAX_TRASHED_WORKFLOWS }))
+    }
+  }, [workflows, prefs.trashedWorkflows, saveWorkflows, saveTrashed, expandedId, addToast, t])
+
+  /**
+   * Put a trashed workflow back in the grid. Refuses rather than overwriting
+   * when the list is full; an id that was reused in the meantime is given a
+   * fresh one, so a restore can never replace a newer workflow.
+   */
+  const restoreTrashedWorkflow = useCallback((id: string): WorkflowTrashResult => {
+    const entry = trashedWorkflows.find(item => item.workflow.id === id)
+    if (!entry) return { ok: false, code: 'not_found' }
+    if (workflows.length >= MAX_WORKFLOWS) return { ok: false, code: 'workflow_limit' }
+    const idTaken = workflows.some(w => w.id === entry.workflow.id)
+    const restored: Workflow = idTaken
+      ? { ...entry.workflow, id: `wf-${Date.now()}-${Math.random().toString(36).slice(2, 6)}` }
+      : entry.workflow
+    saveWorkflows([restored, ...workflows])
+    saveTrashed(trashedWorkflows.filter(item => item.workflow.id !== id))
+    addToast('success', t('workflow.restored'))
+    return { ok: true }
+  }, [trashedWorkflows, workflows, saveWorkflows, saveTrashed, addToast, t])
+
+  /** Delete one holding-area entry for good (the workflow record is already gone). */
+  const removeTrashedWorkflow = useCallback((id: string) => {
+    saveTrashed(trashedWorkflows.filter(item => item.workflow.id !== id))
+    addToast('info', t('workflow.trashRemoved'))
+  }, [trashedWorkflows, saveTrashed, addToast, t])
 
   const duplicateWorkflow = useCallback((wf: Workflow) => {
     if (workflows.length >= MAX_WORKFLOWS) {
@@ -171,6 +230,7 @@ export function useWorkflowCrud() {
 
   return {
     workflows,
+    trashedWorkflows,
     filteredWorkflows,
     searchQuery,
     setSearchQuery,
@@ -196,6 +256,8 @@ export function useWorkflowCrud() {
     createWorkflow,
     importWorkflows,
     deleteWorkflow,
+    restoreTrashedWorkflow,
+    removeTrashedWorkflow,
     duplicateWorkflow,
     startEdit,
     saveEdit,

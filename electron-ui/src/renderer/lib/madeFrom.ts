@@ -1,21 +1,23 @@
 /**
  * "What was made from this conversation" — the reverse of `provenance.ts`.
  *
- * A workflow or a skill records the conversation it was drafted from; this
- * derivation walks the same two lists the other way, so a long conversation can
- * list the artefacts it produced instead of making the user remember their
- * names. Pure, so the matching rules and the ordering are testable without a
- * DOM, and so the chat strip cannot drift from what the detail pages record.
+ * A workflow, a skill or a scheduled job records the conversation it was
+ * drafted from; this derivation walks the same three lists the other way, so a
+ * long conversation can list the artefacts it produced instead of making the
+ * user remember their names. `provenance.ts` remains the forward direction —
+ * one artefact saying which conversation it came from. Pure, so the matching
+ * rules and the ordering are testable without a DOM, and so the chat strip
+ * cannot drift from what the detail pages record.
  */
 
 /** How many artefact pills the chat strip shows before it says "+N more". */
 export const MADE_FROM_ROWS = 4
 
-export type MadeFromKind = 'workflow' | 'skill'
+export type MadeFromKind = 'workflow' | 'skill' | 'job'
 
 export interface MadeFromRow {
   kind: MadeFromKind
-  /** `workflow.id` or `skill.dirPath`: exactly what the row's action needs. */
+  /** `workflow.id`, `skill.dirPath` or the job id: what the row's action needs. */
   id: string
   /** The artefact's own name, never the conversation title. */
   name: string
@@ -39,6 +41,17 @@ export interface MadeFromWorkflow {
   sourceDraftedAt?: string | null
 }
 
+/**
+ * The scheduled-job fields this derivation reads; `automationList()` entries
+ * satisfy it. A job keeps the same three provenance fields a workflow does.
+ */
+export interface MadeFromJob {
+  id?: string | null
+  name?: string | null
+  sourceConversation?: string | null
+  sourceDraftedAt?: string | null
+}
+
 export interface MadeFromInput {
   /**
    * The skills list, or `null` when it has not been read or the read failed.
@@ -47,6 +60,13 @@ export interface MadeFromInput {
    */
   skills: readonly MadeFromSkill[] | null | undefined
   workflows: readonly MadeFromWorkflow[] | null | undefined
+  /**
+   * The scheduled-jobs list (`automationList().jobs`), with the same three
+   * states and the same meaning as `skills`. Absent is a third unchecked
+   * source, not an empty one: a caller that never looked may not be answered
+   * "no jobs".
+   */
+  jobs?: readonly MadeFromJob[] | null
   sessionId?: string | null
 }
 
@@ -57,6 +77,8 @@ export interface MadeFromResult {
   total: number
   /** Skills were not checked; the strip may not claim they do not exist. */
   skillsUnknown: boolean
+  /** Jobs were not checked; the strip may not claim they do not exist. */
+  jobsUnknown: boolean
 }
 
 /**
@@ -93,10 +115,10 @@ function compareRows(a: MadeFromRow, b: MadeFromRow): number {
 /**
  * The artefacts drafted from one conversation.
  *
- * The conversation id is matched exactly (after trimming): session ids are
- * opaque tokens, not prose, so two ids that differ only by case are two
- * different conversations and folding the case would attach a stranger's
- * workflow to this chat.
+ * The conversation id is matched exactly (after trimming) on all three lists:
+ * session ids are opaque tokens, not prose, so two ids that differ only by case
+ * are two different conversations and folding the case would attach a
+ * stranger's workflow, skill or job to this chat.
  *
  * A row without a usable id is dropped rather than shown disabled — the strip
  * exists to take you somewhere, and there is nowhere to go.
@@ -107,10 +129,11 @@ export function deriveMadeFrom(
 ): MadeFromResult {
   const sessionId = asText(input.sessionId)
   const skillsUnknown = input.skills === null || input.skills === undefined
+  const jobsUnknown = input.jobs === null || input.jobs === undefined
   if (!sessionId) {
     // No conversation means no claim at all, including no "skills unchecked"
     // note: the chat does not even mount the strip in this state.
-    return { rows: [], total: 0, skillsUnknown: false }
+    return { rows: [], total: 0, skillsUnknown: false, jobsUnknown: false }
   }
 
   const matches: MadeFromRow[] = []
@@ -141,11 +164,24 @@ export function deriveMadeFrom(
     })
   }
 
+  for (const job of input.jobs ?? []) {
+    const id = asText(job.id)
+    if (!id) continue
+    if (asText(job.sourceConversation) !== sessionId) continue
+    matches.push({
+      kind: 'job',
+      id,
+      name: asText(job.name) || id,
+      date: asText(job.sourceDraftedAt) || null,
+    })
+  }
+
   matches.sort(compareRows)
 
   // `skills/list` can return one directory twice when two scanned roots resolve
   // to it (the skills page dedupes the same way). One artefact is one row: a
-  // second copy would also hand React a duplicate key.
+  // second copy would also hand React a duplicate key. The kind is part of the
+  // key, so a job and a workflow that happen to share an id stay two rows.
   const seen = new Set<string>()
   const unique = matches.filter(row => {
     const key = `${row.kind}:${row.id}`
@@ -161,5 +197,6 @@ export function deriveMadeFrom(
     rows: unique.slice(0, max),
     total: unique.length,
     skillsUnknown,
+    jobsUnknown,
   }
 }

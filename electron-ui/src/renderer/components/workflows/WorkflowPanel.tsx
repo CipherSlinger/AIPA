@@ -10,6 +10,7 @@ import { PRESET_WORKFLOWS } from './workflowConstants'
 import WorkflowCard from './WorkflowCard'
 import WorkflowPersonasSection from './WorkflowPersonasSection'
 import { EmployeesSkillsSection, useEmployeeSkills } from './EmployeesSkillsSection'
+import TrashSection from './TrashSection'
 import SkillDetail from '../skills/SkillDetail'
 import { SectionHeader, ToolbarButton, AddCard, PresetCard, SubLabel, EMPLOYEE_GRID } from './EmployeesShared'
 
@@ -132,6 +133,10 @@ export default function WorkflowPanel() {
         <div data-employees-section="workflows">
           <WorkflowsSection crud={crud} />
         </div>
+
+        {/* Renders nothing at all when the holding area is empty, so the
+            divider it draws only appears when there is something below. */}
+        <TrashSection crud={crud} skillState={skillState} />
       </div>
       <style>{`
         .wf-panel-scroll::-webkit-scrollbar { width: 6px; }

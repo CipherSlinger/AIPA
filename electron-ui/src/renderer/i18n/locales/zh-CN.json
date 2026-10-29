@@ -410,7 +410,9 @@
       "openWorkflow": "打开工作流“{{name}}”",
       "openSkill": "打开技能“{{name}}”",
       "retry": "重新读取技能",
-      "moreTitle": "展开这段对话产出的另外 {{count}} 个"
+      "moreTitle": "展开这段对话产出的另外 {{count}} 个",
+      "openJob": "打开定时任务“{{name}}”",
+      "jobsUnknown": "定时任务列表读取失败"
     },
     "memoryReceipt": {
       "told": "已告知 · {{tiers}}",
@@ -1914,7 +1916,8 @@
       "untitled": "提炼自一段对话，{{date}}",
       "untitledNoDate": "提炼自一段对话",
       "gone": "该对话已不在你的历史记录中"
-    }
+    },
+    "deletedToTrash": "技能已移入“最近删除”——可在 {{days}} 天内恢复"
   },
   "skill": {
     "createTitle": "创建技能",
@@ -2353,7 +2356,11 @@
     "schedulePausedLine": "已暂停 · {{schedule}}",
     "scheduleAllPaused": "{{count}} 个定时任务 · 全部已暂停",
     "scheduleCount": "{{count}} 个定时任务",
-    "scheduleMultipleLine": "{{count}} 个定时任务 · 下次：{{time}}"
+    "scheduleMultipleLine": "{{count}} 个定时任务 · 下次：{{time}}",
+    "deletedTrash": "工作流已删除——可在“最近删除”中恢复，期限 {{days}} 天",
+    "trashCapped": "“最近删除”只保留 {{count}} 项——最旧的一项已被永久移除",
+    "restored": "工作流已恢复",
+    "trashRemoved": "工作流已永久删除"
   },
   "snippet": {
     "title": "文本片段",
@@ -4192,5 +4199,25 @@
     "untitled": "提炼自一段对话，{{date}}",
     "untitledNoDate": "提炼自一段对话",
     "gone": "该对话已不在你的历史记录中"
+  },
+  "trash": {
+    "title": "最近删除",
+    "subtitle": "可恢复 {{days}} 天，之后永久移除。",
+    "skillsHint": "被删除的技能是磁盘上的一个文件夹——只要该文件夹还在，就能恢复。",
+    "kindWorkflow": "工作流",
+    "kindSkill": "技能",
+    "removesOn": "将于 {{date}} 移除",
+    "folderUnavailable": "该文件夹已不在磁盘上",
+    "restore": "恢复",
+    "deleteForever": "永久删除",
+    "confirmForever": "再点一次以删除",
+    "failure": {
+      "folderExists": "无法恢复——该路径下已存在同名文件夹。请先重命名或移走它，再试一次。",
+      "folderGone": "无法恢复——该文件夹已从磁盘上消失。",
+      "notFound": "无法恢复——这一项已不在最近删除中。",
+      "workflowLimit": "无法恢复——工作流列表已满（{{count}} 个）。请先删除一个工作流。",
+      "unknown": "没有给出原因",
+      "generic": "操作未能完成：{{message}}"
+    }
   }
 }

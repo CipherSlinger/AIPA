@@ -330,6 +330,13 @@ export interface AppPrefs {
   displayName?: string  // user's display name for personalized greeting (max 30 chars)
   memories?: MemoryItem[]  // persistent AI memory items (max 200, persisted via electron-store)
   workflows?: Workflow[]   // prompt chain workflows (max 50, persisted via electron-store)
+  /**
+   * Recently deleted workflows — a holding area, not a second workflow list.
+   * Nothing here renders in the workflow grid or runs; entries exist only so
+   * `deleteWorkflow` can be undone. The area is capped and an entry older than
+   * TRASH_RETENTION_DAYS (see lib/workflowTrash.ts) is purged at app launch.
+   */
+  trashedWorkflows?: TrashedWorkflow[]
   scheduledPrompts?: ScheduledPrompt[]  // scheduled/recurring prompts (max 30, persisted via electron-store)
   promptHistory?: PromptHistoryItem[]   // prompt send history for analytics (max 200, persisted via electron-store)
   textSnippets?: TextSnippet[]          // user-defined text snippets triggered by ::keyword (max 50)
@@ -508,6 +515,17 @@ export interface Workflow {
   createdAt: number       // epoch ms
   updatedAt: number       // epoch ms
   runCount: number        // how many times this workflow has been run
+}
+
+/**
+ * A workflow kept in the "Recently deleted" holding area.
+ *
+ * `deletedAt` is an instant, not a display date: the purge compares it with
+ * the retention window, and the row derives "removes on <date>" from it.
+ */
+export interface TrashedWorkflow {
+  workflow: Workflow
+  deletedAt: number
 }
 
 export type ScheduleRepeat = 'once' | 'daily' | 'weekly' | 'monthly'

@@ -123,6 +123,53 @@ export interface SkillInfoData {
   createdAt?: string
 }
 
+/** A record in the skill trash manifest, as returned by delete/restore/remove. */
+export interface TrashedSkillEntryData {
+  id: string
+  name: string
+  originalPath: string
+  trashedPath: string
+  deletedAt: number
+}
+
+/** One entry of `skills:trash:list` — a deleted skill waiting in the holding area. */
+export interface TrashedSkillInfoData extends TrashedSkillEntryData {
+  /** False once the folder is gone from disk; restore is then impossible. */
+  available: boolean
+  /** Epoch ms when the entry leaves for good. */
+  purgeAt: number
+}
+
+export type SkillTrashErrorCode =
+  | 'not_found'
+  | 'outside_skills'
+  | 'outside_trash'
+  | 'skill_missing'
+  | 'folder_missing'
+  | 'original_exists'
+  | 'move_failed'
+  | 'write_failed'
+  | 'delete_failed'
+
+/**
+ * Every trash operation resolves with a reason rather than a bare boolean, so
+ * a refused restore ("a folder already exists at that path") can be shown to
+ * the user instead of a remote-method error.
+ */
+export type SkillTrashFailureData = { ok: false; code: SkillTrashErrorCode; error: string }
+
+export type SkillTrashListResultData =
+  | { ok: true; entries: TrashedSkillInfoData[]; retentionDays: number }
+  | SkillTrashFailureData
+
+export type SkillTrashActionResultData =
+  | { ok: true; entry: TrashedSkillEntryData }
+  | SkillTrashFailureData
+
+export type SkillTrashPurgeResultData =
+  | { ok: true; removed: number; failed: number }
+  | SkillTrashFailureData
+
 /** One entry of a Codex hook run (`HookRunSummary.entries`). */
 export interface CodexHookRunEntryData {
   kind: string
@@ -1930,7 +1977,21 @@ const electronAPI = {
     ipcRenderer.invoke('skills:list', workingDir) as Promise<SkillInfoData[]>,
   skillsRead: (dirPath: string) => ipcRenderer.invoke('skills:read', dirPath),
   skillsInstall: (args: { name: string; content: string }) => ipcRenderer.invoke('skills:install', args),
-  skillsDelete: (dirPath: string) => ipcRenderer.invoke('skills:delete', dirPath),
+  // Deleting now moves the skill folder into the trash; the renderer offers
+  // "Recently deleted" to restore it for the retention window.
+  skillsDelete: (dirPath: string) =>
+    ipcRenderer.invoke('skills:delete', dirPath) as Promise<
+      | { success: true; entry: TrashedSkillEntryData }
+      | { success: false; error: string; code: SkillTrashErrorCode }
+    >,
+  skillsTrashList: () =>
+    ipcRenderer.invoke('skills:trash:list') as Promise<SkillTrashListResultData>,
+  skillsTrashRestore: (id: string) =>
+    ipcRenderer.invoke('skills:trash:restore', id) as Promise<SkillTrashActionResultData>,
+  skillsTrashPurge: () =>
+    ipcRenderer.invoke('skills:trash:purge') as Promise<SkillTrashPurgeResultData>,
+  skillsTrashRemove: (id: string) =>
+    ipcRenderer.invoke('skills:trash:remove', id) as Promise<SkillTrashActionResultData>,
 
   // ── Window ──────────────────────────────
   windowSetTitleBarOverlay: (opts: { color: string; symbolColor: string }) =>

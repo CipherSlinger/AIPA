@@ -7,6 +7,7 @@ import { useUiStore, useChatStore, useSessionStore } from '../../store'
 import type { SkillInfo } from '../skills/skillsShared'
 import { MARKETPLACE_SKILLS, type MarketplaceSkill } from '../../utils/skillMarketplace'
 import { SectionHeader, ToolbarButton, AddCard, PresetCard, SubLabel, cardStyle, EMPLOYEE_GRID } from './EmployeesShared'
+import { TRASH_RETENTION_DAYS } from '../../lib/workflowTrash'
 import SkillDraftSourceDialog from '../skills/SkillDraftSourceDialog'
 import SaveConversationSkillDialog from '../chat/SaveConversationSkillDialog'
 
@@ -85,7 +86,9 @@ export function useEmployeeSkills() {
     try {
       const result = await window.electronAPI.skillsDelete(dirPath)
       if (result?.success) {
-        useUiStore.getState().addToast('success', t('skills.skillDeleted'))
+        // The folder was moved, not erased; say where it went so the user
+        // knows it is still recoverable instead of assuming it is gone.
+        useUiStore.getState().addToast('success', t('skills.deletedToTrash', { days: TRASH_RETENTION_DAYS }))
         await refresh()
         return true
       }
