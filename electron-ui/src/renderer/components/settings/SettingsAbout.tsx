@@ -3,6 +3,13 @@ import { ExternalLink, Keyboard, Activity, Download, Upload, Loader } from 'luci
 import { useI18n } from '../../i18n'
 import { useUiStore } from '../../store'
 import DiagnosticsPanel from './DiagnosticsPanel'
+import AutoBackupPanel from './AutoBackupPanel'
+import {
+  backupErrorText,
+  presentImportReport,
+  summarizeBackupCounts,
+  type BackupReportLine,
+} from './backupReport'
 
 declare const __BUILD_DATE__: string
 declare const __COMMIT_HASH__: string
@@ -37,35 +44,6 @@ const dividerStyle: React.CSSProperties = {
   margin: '8px 0',
 }
 
-/**
- * How each restored section is named in the report. The unit keys carry both a
- * singular and a plural form so "1 workflow" never reads as "1 workflows";
- * Chinese uses the same wording for both forms.
- */
-const REPORT_UNITS: { countKey: string; unitKey: string }[] = [
-  { countKey: 'settings', unitKey: 'backup.unit.settings' },
-  { countKey: 'personas', unitKey: 'backup.unit.personas' },
-  { countKey: 'workflows', unitKey: 'backup.unit.workflows' },
-  { countKey: 'notes', unitKey: 'backup.unit.notes' },
-  { countKey: 'memories', unitKey: 'backup.unit.memories' },
-  { countKey: 'snippets', unitKey: 'backup.unit.snippets' },
-  { countKey: 'quickReplies', unitKey: 'backup.unit.quickReplies' },
-  { countKey: 'templates', unitKey: 'backup.unit.templates' },
-  { countKey: 'tagNames', unitKey: 'backup.unit.tags' },
-  { countKey: 'jobs', unitKey: 'backup.unit.jobs' },
-  { countKey: 'jobTrash', unitKey: 'backup.unit.trashedJobs' },
-  { countKey: 'skills', unitKey: 'backup.unit.skills' },
-  { countKey: 'trashedSkills', unitKey: 'backup.unit.trashedSkills' },
-  { countKey: 'memoryFiles', unitKey: 'backup.unit.memoryFiles' },
-  { countKey: 'sessionTrash', unitKey: 'backup.unit.trashedConversations' },
-  { countKey: 'skippedFiles', unitKey: 'backup.unit.files' },
-]
-
-interface BackupReportLine {
-  tone: 'ok' | 'muted' | 'warn'
-  text: string
-}
-
 interface BackupReport {
   kind: 'export' | 'import'
   lines: BackupReportLine[]
@@ -80,27 +58,11 @@ export default function SettingsAbout({ onResetDefaults, onShowShortcuts }: Sett
   const [report, setReport] = useState<BackupReport | null>(null)
   const addToast = useUiStore(s => s.addToast)
 
-  const unit = (unitKey: string, count: number) =>
-    t(count === 1 ? `${unitKey}.one` : `${unitKey}.other`, { n: String(count) })
+  const summarize = (counts: Record<string, number> | undefined, keys: string[]): string =>
+    summarizeBackupCounts(counts, keys, t)
 
-  const summarize = (counts: Record<string, number> | undefined, keys: string[]): string => {
-    if (!counts) return ''
-    const parts: string[] = []
-    for (const entry of REPORT_UNITS) {
-      if (!keys.includes(entry.countKey)) continue
-      const count = counts[entry.countKey] || 0
-      if (count > 0) parts.push(unit(entry.unitKey, count))
-    }
-    return parts.join(', ')
-  }
-
-  const errorText = (code: string | undefined, fallback: string | undefined): string => {
-    if (code === 'invalid_format') return t('backup.invalidFormat')
-    if (code === 'unsupported_version') return t('backup.error.newerVersion')
-    if (code === 'write_failed') return t('backup.error.writeFailed')
-    if (code === 'read_failed') return t('backup.error.readFailed')
-    return fallback || code || t('backup.error.readFailed')
-  }
+  const errorText = (code: string | undefined, fallback: string | undefined): string =>
+    backupErrorText(code, fallback, t)
 
   const handleBackup = async () => {
     setBackupLoading(true)
@@ -135,43 +97,10 @@ export default function SettingsAbout({ onResetDefaults, onShowShortcuts }: Sett
     try {
       const result = await window.electronAPI.backupImport()
       if (result.success) {
-        const written = result.written || {}
-        const skipped = result.skippedExisting || {}
-        const failed = result.failed || {}
-        const writtenKeys = Object.keys(written).filter(key => (written[key] || 0) > 0 && key !== 'skillFiles' && key !== 'trashedSkillFiles')
-        const skippedKeys = Object.keys(skipped).filter(key => (skipped[key] || 0) > 0)
-        const writtenSummary = summarize(written, writtenKeys)
-        const skippedSummary = summarize(skipped, skippedKeys)
-        const failedTotal = Object.values(failed).reduce((sum, value) => sum + value, 0)
-        const lines: BackupReportLine[] = [
-          writtenSummary
-            ? { tone: 'ok', text: t('backup.report.restored', { items: writtenSummary }) }
-            : { tone: 'muted', text: t('backup.report.nothingWritten') },
-        ]
-        if (skippedSummary) {
-          lines.push({ tone: 'muted', text: t('backup.report.skippedExisting', { items: skippedSummary }) })
-        }
-        if (failedTotal > 0) {
-          lines.push({ tone: 'warn', text: t('backup.report.failed', { n: String(failedTotal) }) })
-        }
-        if ((result.refused || []).length > 0) {
-          lines.push({ tone: 'warn', text: t('backup.report.refused', { n: String(result.refused?.length || 0) }) })
-        }
-        for (const warning of result.warnings || []) {
-          if (warning.code === 'older_version') {
-            lines.push({ tone: 'warn', text: t('backup.report.olderVersion', { version: String(warning.version ?? 1) }) })
-          } else if (warning.code === 'no_jobs_section') {
-            lines.push({ tone: 'muted', text: t('backup.report.noJobs') })
-          } else if (warning.code === 'session_payloads_missing') {
-            lines.push({ tone: 'warn', text: t('backup.report.sessionPayloads', { n: String(warning.count ?? 0) }) })
-          } else if (warning.code === 'skipped_files') {
-            lines.push({ tone: 'warn', text: t('backup.report.importSkippedFiles', { n: String(warning.count ?? 0) }) })
-          }
-        }
-        lines.push({ tone: 'muted', text: t('backup.report.conversationsAbsent') })
-        setReport({ kind: 'import', lines, canReload: Object.values(written).some(count => count > 0) })
-        addToast('success', writtenSummary
-          ? t('backup.importSuccess', { items: writtenSummary })
+        const presented = presentImportReport(result, t)
+        setReport({ kind: 'import', lines: presented.lines, canReload: presented.canReload })
+        addToast('success', presented.writtenSummary
+          ? t('backup.importSuccess', { items: presented.writtenSummary })
           : t('backup.report.nothingWritten'))
       } else if (result.error) {
         addToast('error', errorText(result.errorCode || result.error, result.error))
@@ -392,6 +321,7 @@ export default function SettingsAbout({ onResetDefaults, onShowShortcuts }: Sett
             )}
           </div>
         )}
+        <AutoBackupPanel />
       </div>
 
       {/* System Diagnostics */}

@@ -7,7 +7,7 @@ import {
   Brain, Workflow, Play, NotebookPen, ClipboardPaste, Radio, Archive,
   Sun, Moon, Languages, Copy, Pin, StickyNote, ArrowUpDown,
   FileText, Stethoscope, Pencil, BarChart2, Shield,
-  Database, DollarSign, SkipBack, RefreshCw, ExternalLink,
+  Database, DollarSign, SkipBack, RefreshCw, ExternalLink, Hourglass,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
 import type { SidebarTab, NavItem } from '../../store'
@@ -18,6 +18,8 @@ import { errorCodeText } from '../workflows/scheduleSummary'
 import { formatDateMedium, type AppLocale } from '../../utils/formatDate'
 import { buildAutomationDescriptors, canRunAutomation } from './automationPalette'
 import { buildTrashPaletteEntry } from '../../lib/trashPresence'
+import { approvalPaletteRows, dispatchApprovalFocus } from '../automation/approvalFocus'
+import { formatDuration } from '../layout/statusBarConstants'
 import type { Translate } from '../automation/scheduleText'
 import type { AutomationJobData } from '../../../preload'
 
@@ -28,7 +30,7 @@ export interface PaletteCommand {
   icon?: React.ReactNode
   shortcut?: string
   action: () => void
-  category: 'action' | 'slash' | 'session' | 'model' | 'persona' | 'workflow' | 'automation'
+  category: 'action' | 'slash' | 'session' | 'model' | 'persona' | 'workflow' | 'automation' | 'approval'
 }
 
 interface CommandBuilderArgs {
@@ -648,6 +650,47 @@ export function buildTrashCommands({ t, onClose, trashCount }: TrashCommandBuild
     },
     category: 'action',
   }]
+}
+
+export interface ApprovalCommandBuilderArgs {
+  t: Translate
+  onClose: () => void
+  /**
+   * The same probe the automation rows use. `null` means it could not answer,
+   * which must leave the group out entirely rather than print an empty heading.
+   */
+  jobs: AutomationJobData[] | null
+}
+
+/**
+ * Live permission waits as palette rows (wave 77C).
+ *
+ * One row per held request, not per job: answering is per request id, and a
+ * row that named a job would hide that. The row opens the background-work
+ * panel focused on that request — the palette cannot answer it, and must not
+ * pretend to. Nothing here offers an "always allow": a request is answered
+ * once, by the panel's own two buttons.
+ */
+export function buildApprovalCommands({
+  t, onClose, jobs,
+}: ApprovalCommandBuilderArgs): PaletteCommand[] {
+  const waits = approvalPaletteRows(jobs)
+  if (waits.length === 0) return []
+
+  const now = Date.now()
+  return waits.map(({ job, wait }) => ({
+    id: `approval-${job.id}-${wait.requestId}`,
+    name: job.name,
+    description: t('command.waitingApprovals.description', {
+      time: formatDuration(Math.max(0, now - wait.since)),
+    }),
+    icon: <Hourglass size={14} />,
+    category: 'approval' as const,
+    action: () => {
+      onClose()
+      dispatchApprovalFocus({ jobId: job.id, requestId: wait.requestId })
+    },
+  }))
 }
 
 export interface AutomationCommandBuilderArgs {

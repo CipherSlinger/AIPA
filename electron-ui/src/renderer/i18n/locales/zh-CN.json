@@ -1085,6 +1085,52 @@
       "trustNote": "Codex 会列出未信任或已修改的钩子，但绝不会运行它们。要信任某个钩子，请把 [hooks.state.'<key>'] 以及 enabled = true、trusted_hash = \"<currentHash>\" 写入 Codex 配置，然后重启 Codex。AIPA 无法代你完成：协议里没有信任请求。",
       "keyLabel": "键名",
       "hashLabel": "哈希"
+    },
+    "backup": {
+      "auto": {
+        "cancel": "取消",
+        "contains": "每一份文件都包含你的设置、角色、工作流、笔记、记忆、文本片段、定时任务、技能、记忆文档和最近删除清单。对话本身、API Key 和插件数据不包含在内。",
+        "delete": "删除",
+        "deleteAria": "删除备份“{{name}}”",
+        "deleteCannotUndo": "文件会从磁盘删除，无法撤销。",
+        "deleteConfirm": "永久删除这个文件？",
+        "deleteFailed": "无法删除文件（{{error}}）。",
+        "deleteForever": "永久删除",
+        "deleted": "已删除 {{name}}。",
+        "disabled": "自动备份已关闭。「立即备份」仍然可用。",
+        "empty": "还没有备份文件。",
+        "enableHint": "AIPA 启动后不久会自己写一份备份，一天最多一次，不会拖慢窗口。如果在那之前就退出，下次启动时会写。",
+        "errorCollect": "无法读取你的数据",
+        "errorUnknown": "未知错误",
+        "errorWrite": "无法写入文件",
+        "lastAttemptFailed": "上次尝试（{{date}}）失败：{{error}}。这次没有写入文件，下次要等下个周期。",
+        "lastSuccess": "上次自动备份：{{date}}",
+        "leftAlone": "这个文件夹里不是 AIPA 创建的文件：{{n}} 个，永远不会删除。",
+        "listTitle": "这台电脑上的备份",
+        "loadFailed": "无法读取备份列表；下面显示的可能是旧内容。",
+        "location": "备份文件保存在这台电脑的 {{dir}}。",
+        "missing": "这份备份已经不在备份文件夹里了，列表是旧的。",
+        "never": "还没有自动备份。",
+        "notNow": "一份备份是写入那一刻的副本，不是你今天的数据：那天之后做的修改不在里面。",
+        "notOurs": "这个文件不是备份文件夹里的 AIPA 备份。",
+        "pruneFailed": "有 {{n}} 份旧备份没能删除。",
+        "pruned": "按保留规则删除了旧备份：{{n}} 份。",
+        "restore": "恢复",
+        "restoreAria": "从备份“{{name}}”恢复",
+        "restoreFailed": "无法从这份备份恢复。",
+        "restoreHint": "恢复是把这份文件合并进现在的数据，从不覆盖：已经存在的条目会保留，并计入跳过数。",
+        "retentionLabel": "保留",
+        "retentionNote": "只会删除 AIPA 自己命名的文件；这个文件夹里的其他内容一律不动，手动存到别处的备份也不会被碰。",
+        "retentionOption": "最近 {{n}} 份备份",
+        "runFailed": "备份失败（{{error}}），没有写入任何文件。",
+        "runNow": "立即备份",
+        "runSkipped": "当前周期已有备份，没有写入新文件。",
+        "runSuccess": "备份已保存：{{name}}（{{size}} KB）。",
+        "running": "正在写入备份…",
+        "saveFailed": "无法保存自动备份设置。",
+        "size": "{{size}} KB",
+        "title": "自动备份"
+      }
     }
   },
   "outputStyle": {
@@ -1277,7 +1323,11 @@
     "skillsDesc": "列出可用的 Claude 技能",
     "rewindDesc": "回退到对话中的某条消息",
     "openTrash": "最近删除",
-    "openTrashDesc": "{{count}} 项已删除的内容——可以随时恢复"
+    "openTrashDesc": "{{count}} 项已删除的内容——可以随时恢复",
+    "waitingApprovals": {
+      "group": "在等你答复",
+      "description": "已等 {{time}}——打开这个请求"
+    }
   },
   "permission": {
     "allow": "允许",
@@ -2701,7 +2751,8 @@
       "waitingDenyAria": "拒绝 {{name}} 的这个请求",
       "waitingApproved": "已允许，{{name}} 继续。",
       "waitingDenied": "已拒绝，{{name}} 不带这一项继续。",
-      "waitingGone": "这个请求已经不在等了——已经被答复，或者超时了。"
+      "waitingGone": "这个请求已经不在等了——已经被答复，或者超时了。",
+      "focusGone": "这个请求已经不在等了：已经被答复、超时了，或者它所属的运行已经结束。"
     }
   },
   "dailyBriefing": {
@@ -3668,7 +3719,15 @@
       "scopeLoadedOne": "只看{{origin}}：已加载的结果里还有 1 条被挡住。",
       "scopeLoaded": "只看{{origin}}：已加载的结果里还有 {{count}} 条被挡住。",
       "emptyLoadedTitle": "已加载的 {{loaded}} 条里没有{{origin}}匹配",
-      "emptyLoadedHint": "只检查了已经加载的这些结果。更早的匹配还没有加载，这个筛选说明不了它们。"
+      "emptyLoadedHint": "只检查了已经加载的这些结果。更早的匹配还没有加载，这个筛选说明不了它们。",
+      "scanWithFilter": "用这个筛选重新搜索",
+      "scanWithFilterHint": "这个筛选只作用于已加载的 {{loaded}} 条。按它重新搜索会重扫全部历史，并在源头只保留{{origin}}匹配；有多少条要等扫完才知道。",
+      "scanActive": "扫描本身已收窄为只看{{origin}}匹配——下面的计数描述这次扫描，不是全部历史。",
+      "scanTitleNote": "收窄的扫描不包含标题匹配：对话的名字既不是正文，也不是工具输出或思考。",
+      "scanClear": "重新搜索全部历史",
+      "scanCleared": "现在重新搜索全部历史，源头不再筛掉任何匹配。",
+      "scanEmptyTitle": "整个历史里没有{{origin}}匹配",
+      "scanEmptyHint": "这次扫描只在全部历史里找{{origin}}匹配。别处有匹配，但不属于这次扫描。"
     },
     "sort": {
       "groupLabel": "排序",
@@ -3689,7 +3748,9 @@
       "announceOne": "又加载了 1 条匹配，现在显示 {{loaded}} 条。",
       "narrowedMore": "筛选和排序只作用于已加载的 {{loaded}} 条；更早的匹配还没加载，也没有被筛过。",
       "narrowedCeiling": "只扫描了最新 {{ceiling}} 条匹配，筛选和排序到不了更早的那些。",
-      "footerNarrowed": "已显示 {{visible}} / {{loaded}} 条"
+      "footerNarrowed": "已显示 {{visible}} / {{loaded}} 条",
+      "narrowedScopedMore": "筛选和排序只作用于已加载的 {{loaded}} 条；更早的{{origin}}匹配已经扫描过，只是还没加载。",
+      "narrowedScopedCeiling": "扫描只保留{{origin}}匹配，并且在最新 {{ceiling}} 条处停下；更早的{{origin}}匹配没有取回。"
     },
     "originFilterEmptyLoadedOne": "这个筛选挡住了已加载的唯一一条结果",
     "originFilterEmptyLoaded": "这个筛选挡住了已加载的全部 {{count}} 条结果"
@@ -4154,7 +4215,14 @@
         "runBusy": "权限请求被拒——这次运行已经有一个在等",
         "runEnded": "权限请求被拒——运行先结束了",
         "interrupted": "等待你答复时中断"
-      }
+      },
+      "answeredByYou": "这个请求是你答复的。"
+    },
+    "repeatedAsking": {
+      "note": "最近有 {{count}} 次被拒绝或超时——最近一次问的是：“{{subject}}”",
+      "hint": "拒绝是一个决定，不是出错。通常该改的是任务本身：收窄工作目录、换一种沙箱，或者换一条不需要那种反复来问的工具的指令。",
+      "review": "查看任务",
+      "reviewAria": "查看 {{name}} 的设置"
     }
   },
   "speculation": {

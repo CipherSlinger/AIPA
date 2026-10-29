@@ -50,6 +50,7 @@ import {
   nextPageSize,
   pagingCountKey,
   sortSearchResults,
+  type ScanOrigin,
   type SearchMatchFilter,
   type SearchSortOrder,
 } from './searchMatchFilter'
@@ -332,6 +333,15 @@ export default function GlobalSearchOverlay() {
   // Newest first is what the main process returns; oldest first is a client-side
   // reversal of the same window, never a second scan.
   const [sortOrder, setSortOrder] = useState<SearchSortOrder>('newest')
+  // Origins the scan itself is narrowed to, or null for the whole history. Set
+  // only by the bar's explicit "search with this filter" action and cleared by
+  // its "search the whole history again" action. Changing a chip never touches
+  // it: a filter change must never start a scan behind the user's back.
+  const [scanOrigins, setScanOrigins] = useState<ScanOrigin[] | null>(null)
+  // The query for which the scan was last widened back to the whole history.
+  // Keyed by the query so the note disappears as soon as the user searches for
+  // something else instead of lingering over unrelated rows.
+  const [scanClearedFor, setScanClearedFor] = useState('')
   // The org node whose subtree the current rows are narrowed to, or null for
   // every department. Like the origin filter, this is a client view over rows
   // already returned — it never starts a new search.
@@ -426,12 +436,13 @@ export default function GlobalSearchOverlay() {
     total: totalHits,
     hasMore,
     ceilingReached,
+    filteredBy,
     loadingMore,
     loadMoreFailed,
     loadMore,
     lastPage,
     runId,
-  } = useGlobalSessionSearch(query, askState === 'idle')
+  } = useGlobalSessionSearch(query, askState === 'idle', scanOrigins)
 
   // Search hits carry no origin of their own; the session listing does. A hit
   // that is not listed stays unknown and shows no badge.
@@ -531,6 +542,23 @@ export default function GlobalSearchOverlay() {
     dismissedRef.current = true
     setOpen(false)
   }, [setOpen])
+
+  // The two deliberate ways to change what the scan collects. Both are buttons
+  // in the filter bar; nothing else in this file may set `scanOrigins`, so a
+  // chip click or an order change cannot turn into a scan.
+  const scanWithMatchFilter = useCallback(() => {
+    if (matchFilter === 'all') return
+    setScanClearedFor('')
+    setScanOrigins([matchFilter])
+  }, [matchFilter])
+  // Widening also clears the chip: the rows that follow are the whole history,
+  // and leaving "prose only" selected over them would describe a scan that is
+  // no longer narrowed.
+  const scanWholeHistory = useCallback(() => {
+    setScanOrigins(null)
+    setMatchFilter('all')
+    setScanClearedFor(query.trim())
+  }, [query])
 
   // Put the caret at the end of the question, selecting nothing. Used by both
   // the follow-up chip and the answer card's "Follow up" action, so the user
@@ -1041,9 +1069,17 @@ export default function GlobalSearchOverlay() {
   // is still being read, or when one of them did match, the transcript copy
   // must not make it on their behalf.
   const entityPending = entityQuery !== '' && (skillStatus === 'loading' || jobStatus === 'loading')
+  // The scan itself was narrowed and found nothing. Saying "no matches" here
+  // would speak for the whole history, which this scan never searched: other
+  // origins may well match, and the user chose to leave them out.
+  const showScopedEmpty = status === 'ready'
+    && results.length === 0
+    && filteredBy !== null
+    && searchedQuery.length >= 2
   const showEmpty = status === 'ready'
     && results.length === 0
     && searchedQuery.length >= 2
+    && filteredBy === null
     && !listScope
     && !entityPending
     && !hasEntityHits
@@ -1052,6 +1088,7 @@ export default function GlobalSearchOverlay() {
   const showNoConversations = status === 'ready'
     && results.length === 0
     && searchedQuery.length >= 2
+    && filteredBy === null
     && !listScope
     && hasEntityHits
 
@@ -1063,6 +1100,12 @@ export default function GlobalSearchOverlay() {
   // can be fetched, or the scan's own ceiling stopped it. Every count below is
   // over the loaded set, and the copy says so when this is true.
   const partialLoaded = isLoadedSetPartial(hasMore, ceilingReached)
+  // Shown once after the scan was widened back to the whole history. Keyed by
+  // the query it was pressed for, so typing a new one drops it.
+  const scanCleared = scanClearedFor !== ''
+    && scanClearedFor === trimmed
+    && scanOrigins === null
+    && filteredBy === null
   // How many rows the next page would actually add (the last page can be short).
   const nextCount = nextPageSize(results.length, totalHits)
   // Built here, not in the hook, because it must be translated. It changes only
@@ -1405,6 +1448,11 @@ export default function GlobalSearchOverlay() {
             total={totalHits}
             hasMore={hasMore}
             ceilingReached={ceilingReached}
+            scannedOrigins={scanOrigins}
+            scanEcho={filteredBy}
+            onScanWithFilter={scanWithMatchFilter}
+            onScanWholeHistory={scanWholeHistory}
+            scanCleared={scanCleared}
           />
         )}
 
@@ -1871,6 +1919,36 @@ export default function GlobalSearchOverlay() {
                 {showLoading && results.length === 0 && (
                   <div style={EMPTY_STYLE}>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('globalSearch.loading')}</div>
+                  </div>
+                )}
+
+                {/* The scan was narrowed at the source and found nothing. The
+                    phrase may exist in matches the user excluded, so this must
+                    not read as "nothing anywhere". The way back is one press. */}
+                {showScopedEmpty && !showLoading && (
+                  <div style={EMPTY_STYLE}>
+                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                      {t('globalSearch.match.scanEmptyTitle', {
+                        origin: (filteredBy?.origins ?? [])
+                          .map(origin => t(`globalSearch.match.${origin}`))
+                          .join(' + '),
+                      })}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                      {t('globalSearch.match.scanEmptyHint', {
+                        origin: (filteredBy?.origins ?? [])
+                          .map(origin => t(`globalSearch.match.${origin}`))
+                          .join(' + '),
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={scanWholeHistory}
+                      onKeyDown={stopPillActivation}
+                      style={{ ...GHOST_BUTTON_STYLE, marginTop: 12 }}
+                    >
+                      {t('globalSearch.match.scanClear')}
+                    </button>
                   </div>
                 )}
 

@@ -71,6 +71,42 @@ export function contentContainsQuery(content: string, query: string, lowerQuery:
  */
 export type SearchTextOrigin = 'prose' | 'tool' | 'thinking'
 
+/**
+ * How one scan may narrow the corpus before it collects hits.
+ *
+ * Search used to narrow only what had already been returned: an origin filter
+ * re-partitioned the loaded page, and a match outside that page was invisible.
+ * The filter now travels into the scan, so the result limit and the ceiling
+ * count hits the caller asked for rather than hits it will later discard.
+ *
+ * Both fields follow one rule: `null` means "no narrowing", an ARRAY or SET
+ * means "exactly these". An empty list is therefore an empty scope that matches
+ * nothing — it must never fall back to the whole history, because the caller
+ * asked one question and "everything" would answer a different one.
+ */
+export interface SearchScanFilter {
+  /**
+   * Origins to keep, or `null` to keep every origin. A positive list also
+   * excludes title hits: a conversation's name has no origin, and no caller who
+   * asked for tool output meant to be shown title matches.
+   */
+  origins: readonly SearchTextOrigin[] | null
+  /** Session ids the scan may report, or `null` for the whole history. */
+  sessionIds: ReadonlySet<string> | null
+}
+
+/**
+ * Whether a matched block of `origin` survives the scan filter. Title hits do
+ * not come through here: they are gated separately by `origins !== null`.
+ */
+export function searchOriginAllowed(
+  filter: SearchScanFilter | null | undefined,
+  origin: SearchTextOrigin,
+): boolean {
+  if (!filter || filter.origins === null) return true
+  return filter.origins.includes(origin)
+}
+
 /** One block's contribution to search, before per-file budget merging. */
 export interface SearchTextSegment {
   origin: SearchTextOrigin

@@ -610,6 +610,27 @@ export function collectBackup(options: CollectBackupOptions): { document: Backup
   return { document, counts }
 }
 
+export interface BuiltBackupDocument {
+  document: BackupDocument
+  counts: BackupCounts
+  /** The exact bytes the manual export writes and an automatic backup saves. */
+  json: string
+  sizeBytes: number
+}
+
+/**
+ * The single builder behind every backup file.
+ *
+ * The Export button and the automatic writer both call this, so a scheduled
+ * backup can never carry a different shape, a different `_meta.contains`
+ * sentence or a different serialization from a hand-made one.
+ */
+export function buildBackupDocument(options: CollectBackupOptions): BuiltBackupDocument {
+  const { document, counts } = collectBackup(options)
+  const json = JSON.stringify(document, null, 2)
+  return { document, counts, json, sizeBytes: Buffer.byteLength(json, 'utf-8') }
+}
+
 // ── Restore ──────────────────────────────────────────────────────────
 
 export type BackupImportErrorCode =

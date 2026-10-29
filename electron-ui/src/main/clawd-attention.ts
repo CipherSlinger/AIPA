@@ -1039,11 +1039,55 @@ function openItem(item: AttentionItem): void {
     return
   }
 
+  // A scheduled run's held permission request has no conversation to open —
+  // the run's transcript may not exist yet. The background-work panel is the
+  // only place it can be answered, so the click opens that panel on the exact
+  // request. The renderer says so itself when the request settled in between.
+  const heldJobId = automationApprovalJobId(item)
+  const heldRequestId = item.requestIds.values().next().value
+  if (heldJobId && typeof heldRequestId === 'string' && heldRequestId) {
+    openHeldApproval(win, heldJobId, heldRequestId)
+    return
+  }
+
   // Nothing openable (e.g. a failure before the thread id existed): at least
   // bring the app forward so the in-app state is visible.
   if (win.isMinimized()) win.restore()
   if (!win.isVisible()) win.show()
   win.focus()
+}
+
+/**
+ * The job behind an unattended run's held request, read from its attention
+ * bridge (`automation:<jobId>`, written by the scheduler's `onApprovalWait`).
+ *
+ * Chat approvals carry a bridge id of their own and open a conversation, so
+ * only the automation prefix routes here. A `failed` item also uses that
+ * prefix; the kind check keeps it out.
+ */
+function automationApprovalJobId(item: AttentionItem): string | null {
+  if (item.kind !== 'approval' || !item.bridgeId) return null
+  const prefix = 'automation:'
+  if (!item.bridgeId.startsWith(prefix)) return null
+  const jobId = item.bridgeId.slice(prefix.length)
+  return jobId || null
+}
+
+/**
+ * Open the background-work panel on one held request.
+ *
+ * There is no IPC channel of its own: `menu:*` is already the app's one-way
+ * hand-off to the renderer, and `onMenuEvent` in the preload is generic. The
+ * payload names the job *and* the request, because the panel answers exactly
+ * one request id and never a job-wide "always allow".
+ */
+function openHeldApproval(win: BrowserWindow, jobId: string, requestId: string): void {
+  bringForward(win)
+  const deliver = (): void => {
+    if (!win.isDestroyed()) win.webContents.send('menu:focusApproval', { jobId, requestId })
+  }
+  if (win.webContents.isLoading()) win.webContents.once('did-finish-load', deliver)
+  else deliver()
 }
 
 /**

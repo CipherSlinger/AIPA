@@ -58,16 +58,52 @@ export function pagingCountKey(hasMore: boolean, ceilingReached: boolean): Pagin
 /**
  * Which sentence explains that a filter/order cannot speak for the unseen
  * matches: more can be fetched, or the scan never went further.
+ *
+ * Once the scan itself was narrowed, "earlier matches have not been filtered"
+ * is no longer true — they were filtered at the source and simply not loaded.
+ * The scoped copies say that instead of repeating a limitation the user has
+ * already removed.
  */
 export type PagingNarrowedKey =
   | 'globalSearch.paging.narrowedMore'
   | 'globalSearch.paging.narrowedCeiling'
+  | 'globalSearch.paging.narrowedScopedMore'
+  | 'globalSearch.paging.narrowedScopedCeiling'
 
-export function pagingNarrowedKey(hasMore: boolean): PagingNarrowedKey {
+export function pagingNarrowedKey(hasMore: boolean, scopedScan = false): PagingNarrowedKey {
+  if (scopedScan) {
+    return hasMore ? 'globalSearch.paging.narrowedScopedMore' : 'globalSearch.paging.narrowedScopedCeiling'
+  }
   return hasMore ? 'globalSearch.paging.narrowedMore' : 'globalSearch.paging.narrowedCeiling'
 }
 
 export type SearchMatchFilter = 'all' | 'prose' | 'tool' | 'thinking'
+
+/**
+ * An origin a scan can be narrowed to. Distinct from `SearchMatchFilter`, which
+ * also has `all`: a scan narrowing is always a positive list, and `all` is
+ * expressed by not narrowing at all (null).
+ */
+export type ScanOrigin = 'prose' | 'tool' | 'thinking'
+
+/**
+ * Whether the filter bar should offer the explicit "search with this filter"
+ * action.
+ *
+ * Only when the loaded rows are a partial answer and the active chip is a real
+ * origin: with everything loaded, the filter already speaks for the whole
+ * result set, and `all` is not a narrowing. The action is refused while the
+ * scan is already narrowed to exactly this origin — pressing it again would
+ * only re-run a scan that is already narrow.
+ */
+export function shouldOfferScopedScan(
+  partial: boolean,
+  filter: SearchMatchFilter,
+  scannedOrigins: readonly ScanOrigin[] | null,
+): boolean {
+  if (!partial || filter === 'all') return false
+  return !(scannedOrigins?.length === 1 && scannedOrigins[0] === filter)
+}
 
 export const SEARCH_MATCH_FILTERS: readonly SearchMatchFilter[] = [
   'all',

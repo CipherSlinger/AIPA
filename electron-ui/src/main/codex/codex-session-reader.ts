@@ -16,7 +16,13 @@ import path from 'path'
 import os from 'os'
 import { isPathInside, isValidSessionId } from '../utils/validate'
 import { cleanPrompt, deriveTitle, isSyntheticPrompt } from '../sessions/prompt-text'
-import { buildSnippet, contentContainsQuery, mergeAdjacentSegments, searchSegmentsFromBlocks } from '../sessions/search-types'
+import {
+  buildSnippet,
+  contentContainsQuery,
+  mergeAdjacentSegments,
+  searchOriginAllowed,
+  searchSegmentsFromBlocks,
+} from '../sessions/search-types'
 import {
   MAX_FALLBACK_READS,
   MAX_FILE_CHARS,
@@ -27,7 +33,7 @@ import {
   readJsonlLines,
 } from '../sessions/search-index'
 import type { SearchIndexDoc, SearchIndexFile, SearchIndexRecord, SearchIndexStats } from '../sessions/search-index'
-import type { SearchResult } from '../sessions/search-types'
+import type { SearchResult, SearchScanFilter } from '../sessions/search-types'
 
 // ── Constants ────────────────────────────────────────
 
@@ -625,8 +631,14 @@ interface CodexFileMatch {
 }
 
 /** First hit in a cached document, in normalized file order. */
-function matchCodexDoc(doc: SearchIndexDoc, query: string, lowerQuery: string): CodexFileMatch | null {
+function matchCodexDoc(
+  doc: SearchIndexDoc,
+  query: string,
+  lowerQuery: string,
+  filter: SearchScanFilter | null = null,
+): CodexFileMatch | null {
   for (const record of doc.records) {
+    if (!searchOriginAllowed(filter, record.origin)) continue
     if (!record.text.toLowerCase().includes(lowerQuery)) continue
     const snippet = buildSnippet(record.text, query)
     if (!snippet) break
@@ -651,6 +663,7 @@ async function searchCodexFileOnDisk(
   lowerQuery: string,
   indexTitles: Map<string, string>,
   isCurrent: () => boolean,
+  filter: SearchScanFilter | null = null,
 ): Promise<SearchResult | null> {
   let content: string
   try {
@@ -680,6 +693,9 @@ async function searchCodexFileOnDisk(
     // Uncapped: this scan exists to find what the index's per-block ceiling
     // left out.
     for (const segment of mergeAdjacentSegments(searchSegmentsFromBlocks(entry.message.content))) {
+      // The filter runs inside the scan so a limit counts the caller's kind of
+      // hit, not the first hits in file order.
+      if (!searchOriginAllowed(filter, segment.origin)) continue
       const snippet = buildSnippet(segment.text, query)
       if (!snippet) continue
       const ownerTs = segment.toolUseId ? toolOwners.get(segment.toolUseId) : undefined
@@ -695,7 +711,11 @@ async function searchCodexFileOnDisk(
   }
 
   const title = indexTitles.get(summary.sessionId) || summary.title
-  const titleMatched = !!title && title.toLowerCase().includes(lowerQuery)
+  // A title has no origin, so an origin narrowing excludes it (see the cached
+  // path above).
+  const titleMatched = filter?.origins === undefined || filter?.origins === null
+    ? !!title && title.toLowerCase().includes(lowerQuery)
+    : false
   if (!match && !titleMatched) return null
 
   return {
@@ -725,7 +745,11 @@ let codexSearchEpoch = 0
  * query time so a rename is visible immediately. Uncached files fall back to
  * `searchCodexFileOnDisk`, which is the previous implementation unchanged.
  */
-export async function searchSessions(query: string, limit = 20): Promise<SearchResult[]> {
+export async function searchSessions(
+  query: string,
+  limit = 20,
+  filter: SearchScanFilter | null = null,
+): Promise<SearchResult[]> {
   if (!query || query.length < 2) return []
 
   const epoch = ++codexSearchEpoch
@@ -754,18 +778,24 @@ export async function searchSessions(query: string, limit = 20): Promise<SearchR
     if (!isCurrent() || results.length >= limit) break
     const doc = candidate.doc
 
+    // The allowlist is checked against the id the row will report. A rollout
+    // whose filename carries no uuid is only known after it is parsed, so it is
+    // read and then dropped if its own id is out of scope.
+    const candidateId = doc ? doc.sessionId : candidate.sessionId
+    if (filter?.sessionIds && candidateId && !filter.sessionIds.has(candidateId)) continue
+
     if (!doc) {
       // Only an evicted document is read from disk. A pending one belongs to a
       // build still in flight; the query answers with the partial index.
       if (candidate.state !== 'deferred' || fallbackBudget <= 0) continue
       fallbackBudget--
-      const result = await searchCodexFileOnDisk(candidate, query, lowerQuery, indexTitles, isCurrent)
+      const result = await searchCodexFileOnDisk(candidate, query, lowerQuery, indexTitles, isCurrent, filter)
       if (!isCurrent()) return []
-      if (result) results.push(result)
+      if (result && (!filter?.sessionIds || filter.sessionIds.has(result.sessionId))) results.push(result)
       continue
     }
 
-    let match = matchCodexDoc(doc, query, lowerQuery)
+    let match = matchCodexDoc(doc, query, lowerQuery, filter)
 
     // A truncated document may hold the match past its stored prefix — a huge
     // tool output is cut at the ceiling, and the file cap stops earlier still;
@@ -773,14 +803,17 @@ export async function searchSessions(query: string, limit = 20): Promise<SearchR
     // authoritative for this file either way, so do not scan the prefix again.
     if (!match && (doc.partial || doc.truncated === true) && fallbackBudget > 0) {
       fallbackBudget--
-      const result = await searchCodexFileOnDisk(candidate, query, lowerQuery, indexTitles, isCurrent)
+      const result = await searchCodexFileOnDisk(candidate, query, lowerQuery, indexTitles, isCurrent, filter)
       if (!isCurrent()) return []
-      if (result) results.push(result)
+      if (result && (!filter?.sessionIds || filter.sessionIds.has(result.sessionId))) results.push(result)
       continue
     }
 
     const title = indexTitles.get(doc.sessionId) || doc.title
-    const titleMatched = !!title && title.toLowerCase().includes(lowerQuery)
+    // A title has no origin; an origin narrowing cannot include it.
+    const titleMatched = filter?.origins === undefined || filter?.origins === null
+      ? !!title && title.toLowerCase().includes(lowerQuery)
+      : false
     if (!match && !titleMatched) continue
 
     // The old scan only read a file after its raw bytes passed the content

@@ -15,6 +15,10 @@ import type { SessionListItem } from '../types/app.types'
 import { openSessionCore } from '../components/departments/openSessionCore'
 import { deptByNormDir, deptBySlug, findDeptForSession } from '../components/departments/deptUtils'
 import { listSessionsShared } from '../utils/sessionListShared'
+import {
+  dispatchApprovalFocus,
+  parseApprovalFocus,
+} from '../components/automation/approvalFocus'
 
 /** The directory its department owns; '' leaves the user's working dir alone. */
 function departmentDirectoryFor(session: SessionListItem): string {
@@ -116,12 +120,29 @@ export function useAppEventBridge() {
       )
     })
 
+    // Clicking a held approval on the pet bubble or in an OS notification. The
+    // main process sends the same `menu:*` hand-off it uses for sessions; this
+    // listener turns it into the one event the background-work panel listens
+    // for. A hidden status bar has no panel to open, so Settings -> Automations
+    // — the page that also says "waiting for your answer" — is the fallback
+    // rather than a click that silently does nothing.
+    const offFocusApproval = window.electronAPI.onMenuEvent('focusApproval', payload => {
+      const target = parseApprovalFocus(payload)
+      if (!target) return
+      if (!useUiStore.getState().showStatusBar) {
+        useUiStore.getState().openSettingsAt('automations')
+        return
+      }
+      dispatchApprovalFocus(target)
+    })
+
     window.addEventListener('aipa:openSession', onOpenSession)
     window.addEventListener('aipa:globalSearchFocus', onSearchFocus)
     return () => {
       window.removeEventListener('aipa:openSession', onOpenSession)
       window.removeEventListener('aipa:globalSearchFocus', onSearchFocus)
       offPluginConversation()
+      offFocusApproval()
     }
   }, [])
 }

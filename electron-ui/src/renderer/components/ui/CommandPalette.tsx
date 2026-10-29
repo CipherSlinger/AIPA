@@ -26,6 +26,7 @@ import {
   buildSessionCommands,
   buildWorkflowCommands,
   buildAutomationCommands,
+  buildApprovalCommands,
   buildTrashCommands,
   type PaletteCommand,
 } from '../shared/commandPaletteCommands'
@@ -41,8 +42,9 @@ interface Props {
 }
 
 // Category display config. `automation` is absent because its header is
-// localized through `automation.title`, the same string the Settings tab uses.
-const CATEGORY_LABELS: Record<Exclude<PaletteCommand['category'], 'automation'>, string> = {
+// localized through `automation.title`, the same string the Settings tab uses;
+// `approval` is localized too, because "waiting for you" must read as an ask.
+const CATEGORY_LABELS: Record<Exclude<PaletteCommand['category'], 'automation' | 'approval'>, string> = {
   action: 'Actions',
   session: 'Recent Sessions',
   model: 'Models',
@@ -51,8 +53,10 @@ const CATEGORY_LABELS: Record<Exclude<PaletteCommand['category'], 'automation'>,
   workflow: 'Workflows',
 }
 
+// A live wait is the only row in this list where the app is stopped and the
+// user is what it is waiting for, so it leads.
 const CATEGORY_ORDER: PaletteCommand['category'][] = [
-  'session', 'automation', 'action', 'slash', 'workflow', 'model', 'persona',
+  'approval', 'session', 'automation', 'action', 'slash', 'workflow', 'model', 'persona',
 ]
 
 export default function CommandPalette({
@@ -137,6 +141,7 @@ export default function CommandPalette({
       addToQueue, addToast, sessions, query, askHistoryAvailable, resolvedLocale,
     }
     return [
+      ...buildApprovalCommands({ t, onClose, jobs: automationJobs }),
       ...buildSessionCommands(args),
       ...buildAutomationCommands({ t, onClose, addToast, jobs: automationJobs, resolvedLocale }),
       ...buildActionCommands(args),
@@ -238,6 +243,15 @@ export default function CommandPalette({
         break
     }
   }, [filtered.length, executeSelected, onClose])
+
+  // Category label for the grouped header and the search-mode badge. Two
+  // categories are localized in place; the rest keep the static labels above.
+  const categoryLabel = (category: PaletteCommand['category']): string =>
+    category === 'automation'
+      ? t('automation.title')
+      : category === 'approval'
+        ? t('command.waitingApprovals.group')
+        : CATEGORY_LABELS[category]
 
   // Render a single command row
   const renderItem = (cmd: PaletteCommand, index: number) => {
@@ -343,7 +357,7 @@ export default function CommandPalette({
               padding: '1px 5px',
             }}
           >
-            {cmd.category === 'automation' ? t('automation.title') : cmd.category}
+            {categoryLabel(cmd.category)}
           </span>
         )}
       </div>
@@ -494,7 +508,7 @@ export default function CommandPalette({
                   color: 'var(--text-muted)',
                 }}
               >
-                {category === 'automation' ? t('automation.title') : CATEGORY_LABELS[category]}
+                {categoryLabel(category)}
               </div>
               {items.map(cmd => {
                 const globalIndex = flatItems.indexOf(cmd)

@@ -59,6 +59,7 @@ import {
   waitingApprovalKey,
   type WaitingApprovalRow,
 } from '../automation/runApproval'
+import type { ApprovalFocusState, ApprovalFocusTarget } from '../automation/approvalFocus'
 import type { Translate } from '../automation/scheduleText'
 import DeptBudgetFrees from '../departments/DeptBudgetFrees'
 import { budgetHolding } from '../departments/deptBudget.data'
@@ -94,6 +95,14 @@ interface BackgroundWorkPopoverProps {
    */
   runningJobIds: ReadonlySet<string>
   now: number
+  /**
+   * The request an attention click or a palette row asked for. The matching
+   * row is scrolled into view and focused, so its Approve button is the next
+   * Tab stop rather than something the reader has to hunt for.
+   */
+  focus: ApprovalFocusTarget | null
+  /** Whether that request is still here, still being checked, or already gone. */
+  focusState: ApprovalFocusState
   onClose: () => void
 }
 
@@ -166,7 +175,15 @@ const APPROVAL_SUBJECT: CSSProperties = {
   userSelect: 'text',
 }
 
-/** One of the two answers to a held request. */
+/**
+ * One of the two answers to a held request.
+ *
+ * There are exactly two, and there is deliberately no third. No "always allow",
+ * no "allow for this job", no remembered rule: every answer names one request
+ * id and dies with it. A job that keeps being refused is handled by pointing
+ * its owner at the job's own settings (see `approvalPattern.ts`), never by
+ * teaching the app to say yes on their behalf.
+ */
 function ApprovalButton({
   tone, label, ariaLabel, busy, onClick,
 }: {
@@ -546,6 +563,8 @@ export default function BackgroundWorkPopover({
   pausedAll,
   runningJobIds,
   now,
+  focus,
+  focusState,
   onClose,
 }: BackgroundWorkPopoverProps) {
   const { t, resolvedLocale } = useI18n()
@@ -617,6 +636,9 @@ export default function BackgroundWorkPopover({
   }, [budgetReports, heldDepartmentKey])
 
   const panelRef = useRef<HTMLDivElement>(null)
+  // The held row an alert pointed at; the effect above scrolls it in and
+  // focuses it whenever it (re)appears in the list.
+  const focusedRowRef = useRef<HTMLDivElement>(null)
   // Jobs whose start request is still awaiting the IPC reply. Keyed by job, not
   // by row: the same job can occupy two failure rows, and both must show the
   // same spinner and refuse a second click.
@@ -644,6 +666,19 @@ export default function BackgroundWorkPopover({
   useEffect(() => {
     panelRef.current?.focus()
   }, [])
+
+  // A request named by an alert or a palette row gets the keyboard instead of
+  // the panel. The row is a plain focusable container, so Enter does nothing
+  // until the reader Tabs onto Approve or Deny — the answer is reachable
+  // without a mouse and is never fired by the click that brought them here.
+  const focusKey = focus ? waitingApprovalKey(focus.jobId, focus.requestId) : ''
+  useEffect(() => {
+    if (!focus) return
+    const row = focusedRowRef.current
+    if (!row) return
+    row.scrollIntoView({ block: 'nearest' })
+    row.focus()
+  }, [focus, focusKey, focusState])
 
   // A changed held count means the number in the label no longer describes the
   // set behind it; the confirming click must not survive that.
@@ -1004,6 +1039,14 @@ export default function BackgroundWorkPopover({
         flexDirection: 'column',
         gap: 2,
         outline: 'none',
+        // Anchored to the bottom edge and grown upwards, so when several jobs
+        // hold requests the top of the panel — where those requests are listed
+        // — can end up above the window. A click that names a request scrolls
+        // its row into view, and that only works if the panel itself is a
+        // scrollport rather than an unbounded stack.
+        maxHeight: '70vh',
+        overflowY: 'auto',
+        overscrollBehavior: 'contain',
       }}
     >
       {/* Reuses wave 22's pause wording; the banner explains the exceptions
@@ -1022,6 +1065,24 @@ export default function BackgroundWorkPopover({
         </div>
       )}
 
+      {/* The click named a request that settled before this panel could show
+          it. Saying so is the honest answer: a row that no longer exists must
+          not be drawn from a stale list, and silence would read as a broken
+          notification. */}
+      {focusState === 'gone' && (
+        <div
+          role="status"
+          style={{
+            display: 'flex', alignItems: 'flex-start', gap: 5,
+            padding: '5px 6px 4px',
+            fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.45,
+          }}
+        >
+          <Clock size={10} style={{ flexShrink: 0, marginTop: 2 }} />
+          <span>{t('statusBar.background.focusGone')}</span>
+        </div>
+      )}
+
       {waiting.length > 0 && (
         // First, above failures: these are the only rows where the app is
         // stopped and the user is the thing it is waiting for. A failure can be
@@ -1030,13 +1091,17 @@ export default function BackgroundWorkPopover({
           {waiting.map(({ job, wait }) => {
             const key = waitingApprovalKey(job.id, wait.requestId)
             const busy = answering.has(key)
+            const focused = focusState === 'focused' && key === focusKey
             return (
               <div
                 key={key}
+                ref={focused ? focusedRowRef : undefined}
+                tabIndex={focused ? -1 : undefined}
                 style={{
                   display: 'flex', flexDirection: 'column', gap: 3,
                   padding: '3px 6px 5px',
                   borderBottom: '1px solid var(--border)',
+                  outline: 'none',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>

@@ -1085,6 +1085,52 @@
       "trustNote": "Codex lists an untrusted or modified hook but never runs it. To trust one, write [hooks.state.'<key>'] with enabled = true and trusted_hash = \"<currentHash>\" into Codex's config, then restart Codex. AIPA cannot do this for you: the protocol has no trust request.",
       "keyLabel": "key",
       "hashLabel": "hash"
+    },
+    "backup": {
+      "auto": {
+        "cancel": "Cancel",
+        "contains": "Each file holds your settings, personas, workflows, notes, memories, snippets, scheduled jobs, skills, memory documents and the Recently deleted lists. Conversations themselves, API keys and plugin data are not included.",
+        "delete": "Delete",
+        "deleteAria": "Delete the backup “{{name}}”",
+        "deleteCannotUndo": "The file is removed from disk. This cannot be undone.",
+        "deleteConfirm": "Delete this file forever?",
+        "deleteFailed": "Could not delete the file ({{error}}).",
+        "deleteForever": "Delete forever",
+        "deleted": "Deleted {{name}}.",
+        "disabled": "Automatic backups are off. Back up now still works.",
+        "empty": "No backup files yet.",
+        "enableHint": "AIPA writes a backup by itself shortly after it starts, at most once a day, and never holds up the window. Quitting before that happens means the next launch writes it.",
+        "errorCollect": "your data could not be read",
+        "errorUnknown": "unknown error",
+        "errorWrite": "the file could not be written",
+        "lastAttemptFailed": "Last attempt ({{date}}) failed: {{error}}. No file was written; the next attempt is in the next interval.",
+        "lastSuccess": "Last automatic backup: {{date}}",
+        "leftAlone": "Files in this folder that AIPA did not create: {{n}}. They are never deleted.",
+        "listTitle": "Backups on this computer",
+        "loadFailed": "The backup list could not be read; what is shown below may be out of date.",
+        "location": "Backups are stored on this computer in {{dir}}.",
+        "missing": "That backup is no longer in the backup folder. The list was out of date.",
+        "never": "No automatic backup has been made yet.",
+        "notNow": "A backup is a copy of what existed when it was written, not of your data today: changes made after that date are not in it.",
+        "notOurs": "That file is not an AIPA backup in the backup folder.",
+        "pruneFailed": "Old backups that could not be removed: {{n}}.",
+        "pruned": "Old backups removed by the retention rule: {{n}}.",
+        "restore": "Restore",
+        "restoreAria": "Restore from the backup “{{name}}”",
+        "restoreFailed": "This backup could not be restored.",
+        "restoreHint": "Restore merges this file into what is here now. It never replaces: anything that already exists wins and is counted as skipped.",
+        "retentionLabel": "Keep",
+        "retentionNote": "Only files AIPA named itself are ever deleted; anything else in this folder is left alone. A manual backup saved somewhere else is not touched either.",
+        "retentionOption": "The latest {{n}} backups",
+        "runFailed": "The backup failed ({{error}}). Nothing was written.",
+        "runNow": "Back up now",
+        "runSkipped": "A backup for this interval already exists; nothing new was written.",
+        "runSuccess": "Backup saved: {{name}} ({{size}} KB).",
+        "running": "Writing backup…",
+        "saveFailed": "The automatic backup setting could not be saved.",
+        "size": "{{size}} KB",
+        "title": "Automatic backups"
+      }
     }
   },
   "outputStyle": {
@@ -1277,7 +1323,11 @@
     "skillsDesc": "List available Claude skills",
     "rewindDesc": "Rewind to a previous message in the conversation",
     "openTrash": "Recently deleted",
-    "openTrashDesc": "{{count}} deleted item(s) — restore any of them"
+    "openTrashDesc": "{{count}} deleted item(s) — restore any of them",
+    "waitingApprovals": {
+      "group": "Waiting for your answer",
+      "description": "Waiting {{time}} — open the request"
+    }
   },
   "permission": {
     "allow": "Allow",
@@ -2701,7 +2751,8 @@
       "waitingDenyAria": "Deny this request for {{name}}",
       "waitingApproved": "Approved. {{name}} continues.",
       "waitingDenied": "Denied. {{name}} continues without it.",
-      "waitingGone": "That request is no longer waiting — it was answered or timed out."
+      "waitingGone": "That request is no longer waiting — it was answered or timed out.",
+      "focusGone": "That request is no longer waiting: it was answered, timed out, or its run ended."
     }
   },
   "dailyBriefing": {
@@ -3668,7 +3719,15 @@
       "scopeLoadedOne": "{{origin}} only — 1 other loaded match is hidden.",
       "scopeLoaded": "{{origin}} only — {{count}} other loaded matches are hidden.",
       "emptyLoadedTitle": "No {{origin}} matches among the {{loaded}} loaded",
-      "emptyLoadedHint": "Only the matches loaded so far were checked. Earlier matches have not been loaded, so this filter cannot speak for them."
+      "emptyLoadedHint": "Only the matches loaded so far were checked. Earlier matches have not been loaded, so this filter cannot speak for them.",
+      "scanWithFilter": "Search with this filter",
+      "scanWithFilterHint": "This filter is applied to the {{loaded}} matches loaded so far. Searching with it restarts the whole history and keeps only {{origin}} matches at the source; how many exist is not known until it finishes.",
+      "scanActive": "The scan itself is narrowed to {{origin}} matches — the counts below describe that scan, not the whole history.",
+      "scanTitleNote": "Title matches are not part of a narrowed scan: a conversation's name is neither prose, tool output nor thinking.",
+      "scanClear": "Search the whole history again",
+      "scanCleared": "The whole history is searched again — nothing is filtered out at the source.",
+      "scanEmptyTitle": "No {{origin}} matches anywhere in the history",
+      "scanEmptyHint": "This scan looked for {{origin}} matches in the whole history only. Matches elsewhere exist but were not part of it."
     },
     "sort": {
       "groupLabel": "Order",
@@ -3689,7 +3748,9 @@
       "announceOne": "1 more match loaded — {{loaded}} now shown.",
       "narrowedMore": "Filters and order apply only to the {{loaded}} matches loaded so far. Earlier matches are not loaded yet, so they have not been filtered.",
       "narrowedCeiling": "Only the newest {{ceiling}} matches were scanned. Filters and order cannot reach older matches.",
-      "footerNarrowed": "{{visible}} of {{loaded}} loaded shown"
+      "footerNarrowed": "{{visible}} of {{loaded}} loaded shown",
+      "narrowedScopedMore": "Filters and order apply only to the {{loaded}} matches loaded so far; earlier {{origin}} matches were scanned but are not loaded yet.",
+      "narrowedScopedCeiling": "The scan kept only {{origin}} matches and stopped at the newest {{ceiling}}; older {{origin}} matches were not collected."
     },
     "originFilterEmptyLoadedOne": "The filter is hiding the only loaded match",
     "originFilterEmptyLoaded": "The filter is hiding all {{count}} loaded matches"
@@ -4154,7 +4215,14 @@
         "runBusy": "permission denied — the run already had one waiting",
         "runEnded": "permission denied — the run ended first",
         "interrupted": "interrupted while waiting for your answer"
-      }
+      },
+      "answeredByYou": "You answered this request."
+    },
+    "repeatedAsking": {
+      "note": "Denied or timed out {{count}} times recently — last ask: “{{subject}}”",
+      "hint": "A denial is a decision, not a failure. What usually helps is the job itself: a narrower folder, a different sandbox, or an instruction that does not need the tool that keeps asking.",
+      "review": "Review job",
+      "reviewAria": "Review the settings of {{name}}"
     }
   },
   "speculation": {

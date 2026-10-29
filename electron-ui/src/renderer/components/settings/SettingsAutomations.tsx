@@ -6,8 +6,8 @@
 // page only reflects state and sends CRUD requests, then waits for
 // `automation:changed` instead of guessing what the scheduler did.
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { AlarmClock, AlertTriangle, Building2, Clock, Copy, GitBranch, History, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Search, Sparkles, Trash2, Wallet, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { AlarmClock, AlertTriangle, Building2, Check, Clock, Copy, GitBranch, History, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Search, Sparkles, Trash2, Wallet, X } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { useChatStore, useDepartmentStore, usePrefsStore, useUiStore } from '../../store'
 import { usePluginStore } from '../../store/pluginStore'
@@ -35,7 +35,13 @@ import {
 import { buildInvestigatePrompt } from '../automation/investigatePrompt'
 import { buildJobDepartmentOptions, resolveJobDepartment } from '../automation/jobDepartment'
 import { isHeldJob } from '../automation/jobHold'
-import { RUN_APPROVAL_TIMEOUT_MINUTES, approvalClause } from '../automation/runApproval'
+import {
+  RUN_APPROVAL_TIMEOUT_MINUTES,
+  approvalClause,
+  approvalTone,
+  approvalTooltip,
+} from '../automation/runApproval'
+import { deriveRepeatedAsking } from '../automation/approvalPattern'
 import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from '../automation/automationStyles'
 import { RUN_HISTORY_CAP, viewRunHistory } from './runHistoryView'
 import { fileKindMarker, viewRunFiles } from './runFilesView'
@@ -59,19 +65,24 @@ type RunHistoryUi = { expanded: boolean; failuresOnly: boolean }
 const RUN_HISTORY_UI_DEFAULT: RunHistoryUi = { expanded: false, failuresOnly: false }
 
 /**
- * The tone of one held-request clause in the run history.
+ * The tone and glyph of one held-request clause in the run history.
  *
  * An approval is a success; a denial the user gave is their own decision and
  * stays neutral, so it is not dressed up as a fault. A deadline, a cap refusal
  * or a lost run is a warning, and a run interrupted mid-wait is a failure.
+ * The glyph repeats that in a form colour alone cannot carry: a timeout shows a
+ * clock, a denial an X, so the two are distinguishable without hue.
  */
-function approvalClauseColor(
+function approvalClauseMark(
   outcome: AutomationRunApprovalData['outcome'],
-): string | undefined {
-  if (outcome === 'approved') return 'var(--success-text)'
-  if (outcome === 'denied') return undefined
-  if (outcome === 'interrupted') return 'var(--danger-text)'
-  return WARNING
+): { color?: string; icon: ReactNode } {
+  switch (approvalTone(outcome)) {
+    case 'approved': return { color: 'var(--success-text)', icon: <Check size={9} aria-hidden /> }
+    case 'denied': return { icon: <X size={9} aria-hidden /> }
+    case 'expired': return { color: WARNING, icon: <Clock size={9} aria-hidden /> }
+    case 'refused': return { color: WARNING, icon: <AlertTriangle size={9} aria-hidden /> }
+    case 'interrupted': return { color: 'var(--danger-text)', icon: <AlertTriangle size={9} aria-hidden /> }
+  }
 }
 
 /** The quiet text control under a run list ("Show all" / "Show fewer"). */
@@ -1253,6 +1264,9 @@ export default function SettingsAutomations() {
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {sortedJobs.map((job, index) => {
               const status = statusLine(job)
+              // A job whose requests keep being refused is pointed at its own
+              // configuration, never told it is broken (see `approvalPattern`).
+              const repeatedAsking = deriveRepeatedAsking(job)
               const usage = usageLine(job)
               const spendLimit = spendLimitLine(job)
               const expert = jobExpert(job)
@@ -1549,6 +1563,34 @@ export default function SettingsAutomations() {
                       )}
                     </div>
 
+                    {repeatedAsking && (
+                      // Quiet on purpose: a refusal is a decision, not a fault,
+                      // so this is neither warning-coloured nor next to the
+                      // failure streak. It names the last ask and offers the one
+                      // honest next step — open the job — instead of teaching
+                      // the user to approve the same request every night.
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap',
+                        fontSize: 11, color: SECONDARY, marginTop: 3, lineHeight: 1.45,
+                      }}>
+                        <Clock size={11} style={{ flexShrink: 0 }} />
+                        <span title={t('automation.repeatedAsking.hint')}>
+                          {t('automation.repeatedAsking.note', {
+                            count: repeatedAsking.refusals,
+                            subject: clipText(repeatedAsking.latestSubject),
+                          })}
+                        </span>
+                        <button
+                          type="button"
+                          style={QUIET_LINK}
+                          aria-label={t('automation.repeatedAsking.reviewAria', { name: job.name })}
+                          onClick={() => setDialog(job)}
+                        >
+                          {t('automation.repeatedAsking.review')}
+                        </button>
+                      </div>
+                    )}
+
                     {job.pendingRetry && (
                       // The row must say a retry is already waiting, not just
                       // that the last run failed; the time is the promise the
@@ -1718,20 +1760,29 @@ export default function SettingsAutomations() {
                                     {t('automation.retry.badge', { attempt: record.retry })}
                                   </span>
                                 )}
-                                {(record.approvals ?? []).map((approval, approvalIndex) => (
+                                {(record.approvals ?? []).map((approval, approvalIndex) => {
                                   // Who answered, how, after how long. One span
                                   // per request: a run may have held several over
                                   // its life. The verbatim ask is in the tooltip
                                   // rather than in the row, which already carries
-                                  // time, status, duration and spend.
-                                  <span
-                                    key={`${approval.askedAt}-${approvalIndex}`}
-                                    style={{ color: approvalClauseColor(approval.outcome) }}
-                                    title={`${t('automation.runApproval.subjectHint')}\n${approval.subject}`}
-                                  >
-                                    {approvalClause(approval, t, durationText)}
-                                  </span>
-                                ))}
+                                  // time, status, duration and spend; the glyph
+                                  // makes a timeout readable apart from a denial
+                                  // without relying on colour.
+                                  const mark = approvalClauseMark(approval.outcome)
+                                  return (
+                                    <span
+                                      key={`${approval.askedAt}-${approvalIndex}`}
+                                      title={approvalTooltip(approval, t)}
+                                      style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 3,
+                                        color: mark.color,
+                                      }}
+                                    >
+                                      {mark.icon}
+                                      {approvalClause(approval, t, durationText)}
+                                    </span>
+                                  )
+                                })}
                                 {record.chain?.nextJobId && (
                                   // What followed this run. The name is the one
                                   // held at start time; the job may since have

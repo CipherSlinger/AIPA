@@ -9275,3 +9275,49 @@ Status: SUCCESS — `npm run check`: 0 errors, 112 warnings; main, preload and r
 - [x] Harness: 15 checks, including held-not-denied, per-request approval, deny/timeout distinction, cap, run lifetime, launch repair, storage round-trip
 - [x] `approvalPolicy: 'never'` and `permissionMode: 'acceptEdits'` unchanged
 - [x] No persisted permission rule and no always-allow channel
+
+## Iteration 7 (wave 77A) — Rolling automatic backups (Backend)
+_Date: 2026-10-29 | Sprint Backend_
+
+### Summary
+The manual export from wave 73 now runs on its own. Twenty seconds after the window exists,
+and at most once per daily window (local midnight to midnight; weekly is supported by the
+policy module but not exposed), the main process builds the same versioned document through
+the same `buildBackupDocument` the Export button uses, writes it atomically to
+`<userData>/backups/aipa-backup-<local YYYY-MM-DD-HHmm>.json`, and prunes to the newest N
+(default 7, choices 3/7/14/30). The attempt stamp lives in `<userData>/auto-backup-state.json`,
+so ten restarts in one day write one file and a failed attempt waits for the next window
+instead of hammering the disk. Retention deletes only names that match the pattern, parse to
+a real local date, are regular files and resolve inside the backups folder; anything else is
+counted and left alone. Settings → About gains a Backups block: toggle, retention picker,
+Back up now, the list (date, size, file name, exclusions, merge and snapshot wording), and
+per-row Restore/Delete. Restore runs the existing merge import on a name main itself validated
+— no path ever comes from the renderer — so the merge policy and the traversal refusals are
+the same code, not a second implementation.
+
+### Files Changed
+- `src/main/backup/auto-backup.ts` — new: pure policy (window gate, local file names, retention plan, normalization); clock injected, no Electron
+- `src/main/backup/auto-backup-writer.ts` — new: atomic write, listing, resolve/read/delete, prune, state file
+- `src/main/backup/auto-backup-service.ts` — new: 20 s first attempt + 15 min gated tick, `runNow`, `onChange`
+- `src/main/backup/backup-data.ts` — new `buildBackupDocument` (single builder for manual and automatic)
+- `src/main/ipc/backup-handlers.ts` — `backup:list/runNow/setPolicy/delete/restore`, `backup:changed`, service start
+- `src/main/ipc/index.ts` — pass `send` into `registerBackupHandlers`
+- `src/preload/index.ts` — appended the five invoke methods + `onBackupChanged` next to the existing backup block
+- `src/renderer/components/settings/backupReport.ts` — new: shared restore-report wording (manual and automatic restores)
+- `src/renderer/components/settings/AutoBackupPanel.tsx` — new: toggle, retention, Back up now, list, restore/delete
+- `src/renderer/components/settings/SettingsAbout.tsx` — renders the panel; uses the shared report presenter
+- `.scratch/i18n-fragments/wave77a-auto-backup.json` — 41 keys, en/zh parity, no collisions
+- `.scratch/wave77a-auto-backup-harness/` — build.js + run.js
+
+### API Changes
+- New IPC channels: `backup:list`, `backup:runNow`, `backup:setPolicy`, `backup:delete`, `backup:restore`; push `backup:changed`
+- Spec: `.claude/agents-cowork/todo/api-spec-auto-backup-2026-10-29.md`
+
+### Build
+Status: SUCCESS — `npm run check`: 0 errors, 112 pre-existing warnings; main, preload and renderer built.
+
+### Acceptance Criteria
+- [x] Harness: 26 checks — fake-calendar window gate (daily/weekly, ten restarts, clock set back), byte-identical document, retention/foreign-file protection, restore merge + traversal refusal, failure recording, IPC/UI wiring, i18n parity and key coverage
+- [x] Automatic backups default on, daily, keep 7; state in a stamp file, not prefs
+- [x] Restore from a listed backup reuses `importBackup`; renderer supplies a name only
+- [x] No write outside the harness scratch directories

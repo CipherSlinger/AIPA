@@ -413,6 +413,22 @@ export interface SessionSearchPageData {
   total: number
   hasMore: boolean
   ceilingReached: boolean
+  /**
+   * Present only when the scan itself was narrowed. The counts above describe
+   * that narrowed set; a caller that renders them without reading this would
+   * describe a filtered total as if it covered the whole history.
+   */
+  filteredBy?: SessionSearchFilterEchoData
+}
+
+/** What a call to `session:searchPage` asked the scan to keep. */
+export interface SessionSearchFilterEchoData {
+  /** An empty array means the narrowing matched nothing at all. */
+  origins: Array<'prose' | 'tool' | 'thinking'>
+  /** Session ids the scan was limited to, or null for the whole history. */
+  sessionCount: number | null
+  /** More ids than the scope cap arrived and were dropped before scanning. */
+  sessionTruncated: boolean
 }
 
 /**
@@ -1953,11 +1969,20 @@ const electronAPI = {
    * already holds; main slices the same ordered scan, so a continuation costs
    * a slice rather than a fresh corpus walk.
    */
-  sessionSearchPage: (query: string, page?: { offset?: number; limit?: number }) =>
+  sessionSearchPage: (query: string, page?: {
+    offset?: number
+    limit?: number
+    /** Narrow the scan itself to these origins; `[]` matches nothing. */
+    origins?: Array<'prose' | 'tool' | 'thinking'>
+    /** Narrow the scan to these sessions; `[]` is an empty scope, not "all". */
+    sessionIds?: string[]
+  }) =>
     ipcRenderer.invoke('session:searchPage', {
       query,
       offset: page?.offset,
       limit: page?.limit,
+      origins: page?.origins,
+      sessionIds: page?.sessionIds,
     }) as Promise<SessionSearchPageData>,
   /**
    * Other local conversations that share words with the given prose. The
@@ -2418,6 +2443,56 @@ const electronAPI = {
       warnings?: { code: string; count?: number; version?: number }[];
       sectionsPresent?: { automations: boolean; skills: boolean; memoryFiles: boolean; sessionTrash: boolean }
     }>,
+
+  // ── Automatic backups (wave 77A) ──────
+  // The same versioned document the manual export writes, saved on a rolling
+  // schedule under <userData>/backups. Restore runs the same merge import.
+  backupList: () =>
+    ipcRenderer.invoke('backup:list') as Promise<{
+      success?: boolean; error?: string;
+      dir?: string;
+      policy?: { enabled: boolean; interval: 'daily' | 'weekly'; retention: number };
+      lastAttemptAt?: number | null; lastSuccessAt?: number | null;
+      lastResult?: {
+        ok: boolean; at: number; fileName?: string; sizeBytes?: number;
+        pruned: number; leftAlone: number; pruneFailures: number;
+        error?: 'collect_failed' | 'write_failed'
+      } | null;
+      backups?: { name: string; sizeBytes: number; createdAt: number }[];
+      foreignCount?: number
+    }>,
+  backupRunNow: () =>
+    ipcRenderer.invoke('backup:runNow') as Promise<{
+      ok: boolean; skipped?: boolean;
+      reason?: 'disabled' | 'never' | 'new_window' | 'already_in_window';
+      fileName?: string; sizeBytes?: number; createdAt?: number;
+      pruned: number; leftAlone: number; pruneFailures: number;
+      error?: 'collect_failed' | 'write_failed'
+    }>,
+  backupSetPolicy: (patch: { enabled?: boolean; retention?: number; interval?: 'daily' | 'weekly' }) =>
+    ipcRenderer.invoke('backup:setPolicy', patch) as Promise<{
+      success?: boolean; error?: string;
+      policy?: { enabled: boolean; interval: 'daily' | 'weekly'; retention: number }
+    }>,
+  backupDelete: (name: string) =>
+    ipcRenderer.invoke('backup:delete', { name }) as Promise<{
+      success?: boolean; error?: 'not_ours' | 'not_found' | 'delete_failed'
+    }>,
+  backupRestore: (name: string) =>
+    ipcRenderer.invoke('backup:restore', { name }) as Promise<{
+      success?: boolean; error?: string; errorCode?: string;
+      backupVersion?: number; backupDate?: string; olderVersion?: boolean;
+      written?: Record<string, number>; skippedExisting?: Record<string, number>;
+      failed?: Record<string, number>;
+      refused?: { section: string; path: string; reason: string }[];
+      warnings?: { code: string; count?: number; version?: number }[];
+      sectionsPresent?: { automations: boolean; skills: boolean; memoryFiles: boolean; sessionTrash: boolean }
+    }>,
+  onBackupChanged: (cb: () => void): Unsubscribe => {
+    const handler = () => cb()
+    ipcRenderer.on('backup:changed', handler)
+    return () => { ipcRenderer.removeListener('backup:changed', handler) }
+  },
 
   // ── Providers (multi-model support) ────
   providerListConfigs: () => ipcRenderer.invoke('provider:listConfigs'),

@@ -74,6 +74,38 @@ export function approvalOutcomeText(
 }
 
 /**
+ * How one request ended, as a surface needs to *mark* it.
+ *
+ * Colour alone cannot separate a timeout from a denial for a reader who cannot
+ * tell amber from grey, so every history clause also carries a glyph chosen by
+ * this tone. `expired` is its own tone precisely because "nobody answered in
+ * time" and "you said no" are different facts, and the row must not merge them.
+ */
+export type ApprovalTone = 'approved' | 'denied' | 'expired' | 'refused' | 'interrupted'
+
+export function approvalTone(outcome: AutomationRunApprovalOutcomeData): ApprovalTone {
+  switch (outcome) {
+    case 'approved': return 'approved'
+    case 'denied': return 'denied'
+    case 'timeout': return 'expired'
+    case 'interrupted': return 'interrupted'
+    // queue-full / run-busy / run-ended: the run refused itself structurally.
+    default: return 'refused'
+  }
+}
+
+/**
+ * The tooltip for one history clause: the ask exactly as it was put, plus who
+ * answered when a person did. The subject is never summarized — approving or
+ * refusing is only possible against the real text.
+ */
+export function approvalTooltip(approval: AutomationRunApprovalData, t: Translate): string {
+  const lines = [t('automation.runApproval.subjectHint'), approval.subject]
+  if (approval.answeredBy === 'user') lines.push(t('automation.runApproval.answeredByYou'))
+  return lines.join('\n')
+}
+
+/**
  * The history clause for one held request: who answered, how, after how long.
  *
  * The clause is short because a run history row already carries time, status,

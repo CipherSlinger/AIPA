@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { SessionSearchResultData } from '../../../preload/index'
-import { GLOBAL_SEARCH_RESULT_LIMIT } from './searchMatchFilter'
+import type { SessionSearchFilterEchoData, SessionSearchResultData } from '../../../preload/index'
+import { GLOBAL_SEARCH_RESULT_LIMIT, type ScanOrigin } from './searchMatchFilter'
 
 export type GlobalSearchStatus = 'idle' | 'loading' | 'ready'
 
@@ -19,6 +19,20 @@ export interface LoadedPage {
 }
 
 /**
+ * Identifies one scan: its query and the narrowing it asked for. A page may
+ * only continue a scan it was started for — a filter pushed into the scan or a
+ * new query makes the previous ordering irrelevant, and appending a slice of it
+ * would mix two scans in one list.
+ */
+function scanKey(
+  query: string,
+  origins: readonly ScanOrigin[] | null,
+  sessionIds: readonly string[] | null,
+): string {
+  return `${query}\u0000${origins ? origins.join(',') : '*'}\u0000${sessionIds ? sessionIds.join(',') : '*'}`
+}
+
+/**
  * Debounced `session:searchPage`, with a sequence guard so a slow scan started
  * for an earlier keystroke can never overwrite the results of a later one. The
  * main process cancels superseded scans too; the guard here is the renderer
@@ -30,19 +44,33 @@ export interface LoadedPage {
  * scan and silently empty the ask's digest, so the overlay disables this hook
  * while the turn is running. Re-enabling runs the current query immediately.
  *
+ * `scanOrigins` / `scanSessionIds` push a filter into the scan itself. They are
+ * deliberately inputs to this hook rather than derived from the chip state:
+ * changing a chip never changes them, so a chip click cannot start a scan. Only
+ * the caller's explicit action sets them. `null` is the unfiltered scan; an
+ * empty array is a scope that matches nothing.
+ *
  * Paging: the first page and every later page are slices of the same
  * main-side ordered scan, so `loadMore` appends rows in exactly the order the
  * first page began. `total`, `hasMore` and `ceilingReached` all come from main
  * — a full page is never read as "there must be more", because the scan stops
- * at its own ceiling, not at the page boundary.
+ * at its own ceiling, not at the page boundary. `filteredBy` is main's echo of
+ * what the scan kept; non-null means every count above describes a narrowed
+ * set.
  */
-export function useGlobalSessionSearch(query: string, enabled = true) {
+export function useGlobalSessionSearch(
+  query: string,
+  enabled = true,
+  scanOrigins: readonly ScanOrigin[] | null = null,
+  scanSessionIds: readonly string[] | null = null,
+) {
   const [results, setResults] = useState<SessionSearchResultData[]>([])
   const [status, setStatus] = useState<GlobalSearchStatus>('idle')
   const [searchedQuery, setSearchedQuery] = useState('')
   const [total, setTotal] = useState(0)
   const [hasMore, setHasMore] = useState(false)
   const [ceilingReached, setCeilingReached] = useState(false)
+  const [filteredBy, setFilteredBy] = useState<SessionSearchFilterEchoData | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
   const [loadMoreFailed, setLoadMoreFailed] = useState(false)
   const [lastPage, setLastPage] = useState<LoadedPage | null>(null)
@@ -56,8 +84,15 @@ export function useGlobalSessionSearch(query: string, enabled = true) {
   // re-render the pager button on every keystroke's result landing).
   const resultsRef = useRef<SessionSearchResultData[]>([])
   resultsRef.current = results
-  const pageStateRef = useRef({ query: '', hasMore: false })
-  pageStateRef.current = { query: searchedQuery, hasMore }
+  const pageStateRef = useRef({ query: '', key: '', hasMore: false })
+  pageStateRef.current = {
+    query: searchedQuery,
+    key: scanKey(searchedQuery, scanOrigins, scanSessionIds),
+    hasMore,
+  }
+  // The scan the rows on screen belong to. A continuation that no longer
+  // matches is refused instead of appending a slice of a different filter.
+  const loadedKeyRef = useRef('')
   // Set synchronously: two clicks in one tick would otherwise both read the
   // same offset before React commits `loadingMore`.
   const loadingMoreRef = useRef(false)
@@ -77,10 +112,12 @@ export function useGlobalSessionSearch(query: string, enabled = true) {
       setTotal(0)
       setHasMore(false)
       setCeilingReached(false)
+      setFilteredBy(null)
       setLoadingMore(false)
       loadingMoreRef.current = false
       setLoadMoreFailed(false)
       setLastPage(null)
+      loadedKeyRef.current = ''
       return
     }
 
@@ -92,13 +129,19 @@ export function useGlobalSessionSearch(query: string, enabled = true) {
     setTotal(0)
     setHasMore(false)
     setCeilingReached(false)
+    setFilteredBy(null)
     setLoadingMore(false)
     loadingMoreRef.current = false
     setLoadMoreFailed(false)
     setLastPage(null)
+    loadedKeyRef.current = ''
     // Selection belongs to the previous result set; a new run starts at the
     // best row once its rows arrive.
     setRunId(n => n + 1)
+
+    const origins = scanOrigins ? [...scanOrigins] : undefined
+    const sessionIds = scanSessionIds ? [...scanSessionIds] : undefined
+    const key = scanKey(trimmed, scanOrigins, scanSessionIds)
 
     const timer = setTimeout(async () => {
       try {
@@ -107,14 +150,18 @@ export function useGlobalSessionSearch(query: string, enabled = true) {
         const page = await api.sessionSearchPage(trimmed, {
           offset: 0,
           limit: GLOBAL_SEARCH_RESULT_LIMIT,
+          origins,
+          sessionIds,
         })
         if (mine !== sequence.current) return
         setResults(Array.isArray(page?.results) ? page.results : [])
         setTotal(Number(page?.total) || 0)
         setHasMore(Boolean(page?.hasMore))
         setCeilingReached(Boolean(page?.ceilingReached))
+        setFilteredBy(page?.filteredBy ?? null)
         setSearchedQuery(trimmed)
         setStatus('ready')
+        loadedKeyRef.current = key
       } catch (err) {
         if (mine !== sequence.current) return
         console.warn('[AIPA] Global search failed', err)
@@ -122,18 +169,21 @@ export function useGlobalSessionSearch(query: string, enabled = true) {
         setTotal(0)
         setHasMore(false)
         setCeilingReached(false)
+        setFilteredBy(null)
         setSearchedQuery(trimmed)
         setStatus('ready')
+        loadedKeyRef.current = ''
       }
     }, DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [query, enabled])
+  }, [query, enabled, scanOrigins, scanSessionIds])
 
   const loadMore = useCallback(() => {
     const state = pageStateRef.current
     const trimmed = state.query
     if (trimmed.length < 2 || !state.hasMore || loadingMoreRef.current) return
+    if (state.key !== loadedKeyRef.current) return
     const offset = resultsRef.current.length
     const mine = sequence.current
     loadingMoreRef.current = true
@@ -147,6 +197,8 @@ export function useGlobalSessionSearch(query: string, enabled = true) {
         const page = await api.sessionSearchPage(trimmed, {
           offset,
           limit: GLOBAL_SEARCH_RESULT_LIMIT,
+          origins: scanOrigins ? [...scanOrigins] : undefined,
+          sessionIds: scanSessionIds ? [...scanSessionIds] : undefined,
         })
         if (mine !== sequence.current) return
         const incoming = Array.isArray(page?.results) ? page.results : []
@@ -161,6 +213,7 @@ export function useGlobalSessionSearch(query: string, enabled = true) {
         setTotal(Number(page?.total) || loaded)
         setHasMore(Boolean(page?.hasMore))
         setCeilingReached(Boolean(page?.ceilingReached))
+        setFilteredBy(page?.filteredBy ?? null)
         setLastPage({ added: fresh.length, loaded })
       } catch (err) {
         if (mine !== sequence.current) return
@@ -174,7 +227,7 @@ export function useGlobalSessionSearch(query: string, enabled = true) {
         }
       }
     })()
-  }, [])
+  }, [scanOrigins, scanSessionIds])
 
   return {
     results,
@@ -183,6 +236,7 @@ export function useGlobalSessionSearch(query: string, enabled = true) {
     total,
     hasMore,
     ceilingReached,
+    filteredBy,
     loadingMore,
     loadMoreFailed,
     loadMore,

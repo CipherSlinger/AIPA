@@ -15,6 +15,7 @@ import {
   buildSnippet,
   contentContainsQuery,
   mergeAdjacentSegments,
+  searchOriginAllowed,
   searchSegmentsFromBlocks,
 } from './search-types'
 import {
@@ -27,7 +28,7 @@ import {
   readJsonlLines,
 } from './search-index'
 import type { SearchIndexDoc, SearchIndexFile, SearchIndexRecord, SearchIndexStats } from './search-index'
-import type { SearchResult } from './search-types'
+import type { SearchResult, SearchScanFilter } from './search-types'
 
 export type { SearchResult } from './search-types'
 
@@ -616,7 +617,12 @@ interface ClaudeFileHit {
   truncated?: boolean
 }
 
-function scanClaudeFile(content: string, query: string, lowerQuery: string): ClaudeFileHit | null {
+function scanClaudeFile(
+  content: string,
+  query: string,
+  lowerQuery: string,
+  filter: SearchScanFilter | null = null,
+): ClaudeFileHit | null {
   let title: string | undefined
   let timestamp = 0
   let match: {
@@ -665,6 +671,10 @@ function scanClaudeFile(content: string, query: string, lowerQuery: string): Cla
       // The disk path reads the entire file anyway and segments are uncapped,
       // so a match past the index ceiling is exactly what this scan finds.
       for (const segment of mergeAdjacentSegments(searchSegmentsFromBlocks(entryContent))) {
+        // Filtering here, inside the scan, is what lets the result limit count
+        // matches the caller asked for instead of the first matches it will
+        // later discard.
+        if (!searchOriginAllowed(filter, segment.origin)) continue
         if (!segment.text.toLowerCase().includes(lowerQuery)) continue
         const snippet = buildSnippet(segment.text, query)
         if (!snippet) continue
@@ -693,8 +703,12 @@ function scanClaudeFile(content: string, query: string, lowerQuery: string): Cla
       truncated: match.truncated,
     }
   }
-  if (title && title.toLowerCase().includes(lowerQuery)) {
-    return { title, timestamp, matchType: 'title', snippet: title }
+  // A title has no origin, so an origin narrowing cannot include it: "tool
+  // output only" must not be answered with a conversation whose name matches.
+  if (filter?.origins === null || filter?.origins === undefined) {
+    if (title && title.toLowerCase().includes(lowerQuery)) {
+      return { title, timestamp, matchType: 'title', snippet: title }
+    }
   }
   return null
 }
@@ -879,8 +893,14 @@ export async function readSessionProse(sessionId: string): Promise<SearchIndexRe
 }
 
 /** Match a cached document, mirroring `scanClaudeFile`'s first-match semantics. */
-function matchClaudeDoc(doc: SearchIndexDoc, query: string, lowerQuery: string): ClaudeFileHit | null {
+function matchClaudeDoc(
+  doc: SearchIndexDoc,
+  query: string,
+  lowerQuery: string,
+  filter: SearchScanFilter | null = null,
+): ClaudeFileHit | null {
   for (const record of doc.records) {
+    if (!searchOriginAllowed(filter, record.origin)) continue
     if (!record.text.toLowerCase().includes(lowerQuery)) continue
     const snippet = buildSnippet(record.text, query)
     if (!snippet) break
@@ -895,8 +915,12 @@ function matchClaudeDoc(doc: SearchIndexDoc, query: string, lowerQuery: string):
       truncated: record.truncated === true,
     }
   }
-  if (doc.title && doc.title.toLowerCase().includes(lowerQuery)) {
-    return { title: doc.title, timestamp: doc.timestamp, matchType: 'title', snippet: doc.title }
+  // Title hits have no origin; an origin narrowing excludes them (see
+  // `scanClaudeFile`).
+  if (filter?.origins === null || filter?.origins === undefined) {
+    if (doc.title && doc.title.toLowerCase().includes(lowerQuery)) {
+      return { title: doc.title, timestamp: doc.timestamp, matchType: 'title', snippet: doc.title }
+    }
   }
   return null
 }
@@ -907,6 +931,7 @@ async function searchClaudeFileOnDisk(
   query: string,
   lowerQuery: string,
   isCurrent: () => boolean,
+  filter: SearchScanFilter | null = null,
 ): Promise<ClaudeFileHit | null> {
   if (!(await fileContainsQuery(file.filePath, query, lowerQuery, isCurrent))) return null
   if (!isCurrent()) return null
@@ -917,7 +942,7 @@ async function searchClaudeFileOnDisk(
     return null
   }
   if (!isCurrent()) return null
-  return scanClaudeFile(content, query, lowerQuery)
+  return scanClaudeFile(content, query, lowerQuery, filter)
 }
 
 function toClaudeResult(file: ClaudeSearchFile, hit: ClaudeFileHit): SearchResult {
@@ -995,8 +1020,16 @@ let claudeSearchEpoch = 0
  * async, and the match itself is an in-memory scan over the incremental index.
  * Files not indexed (cold start, budget eviction, truncated prefix) are read
  * with the previous streaming/parse path so their evidence fields stay intact.
+ *
+ * `filter` narrows the scan itself: a record whose origin is not in the list is
+ * skipped before it can count toward `limit`, so a limit of 200 holds 200 hits
+ * of the requested kind, not the first 200 that later get discarded.
  */
-export async function searchSessions(query: string, limit = 30): Promise<SearchResult[]> {
+export async function searchSessions(
+  query: string,
+  limit = 30,
+  filter: SearchScanFilter | null = null,
+): Promise<SearchResult[]> {
   if (!query || query.length < 2 || !fs.existsSync(PROJECTS_DIR)) return []
 
   const epoch = ++claudeSearchEpoch
@@ -1007,6 +1040,10 @@ export async function searchSessions(query: string, limit = 30): Promise<SearchR
   if (!isCurrent()) return []
   files.sort((a, b) => b.mtimeMs - a.mtimeMs)
 
+  // The index is shared across queries and `sync` evicts every document whose
+  // file is not in the list it is given, so the allowlist is applied to the
+  // candidates here rather than to `files`: narrowing the list would make the
+  // next unrestricted query rebuild the corpus.
   const candidates = await claudeSearchIndex.sync(files)
   if (!isCurrent()) return []
 
@@ -1015,8 +1052,9 @@ export async function searchSessions(query: string, limit = 30): Promise<SearchR
 
   for (const candidate of candidates) {
     if (!isCurrent() || results.length >= limit) break
+    if (filter?.sessionIds && !filter.sessionIds.has(candidate.sessionId)) continue
 
-    let hit = candidate.doc ? matchClaudeDoc(candidate.doc, query, lowerQuery) : null
+    let hit = candidate.doc ? matchClaudeDoc(candidate.doc, query, lowerQuery, filter) : null
 
     // A partial document may hold the match past its stored prefix. A deferred
     // document was evicted for budget and was never in memory. Either way the
@@ -1028,7 +1066,7 @@ export async function searchSessions(query: string, limit = 30): Promise<SearchR
       : candidate.state === 'deferred'
     if (needsDisk && fallbackBudget > 0) {
       fallbackBudget--
-      const diskHit = await searchClaudeFileOnDisk(candidate, query, lowerQuery, isCurrent)
+      const diskHit = await searchClaudeFileOnDisk(candidate, query, lowerQuery, isCurrent, filter)
       if (!isCurrent()) return []
       hit = diskHit ?? hit
     }

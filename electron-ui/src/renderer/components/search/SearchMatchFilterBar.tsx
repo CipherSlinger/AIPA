@@ -14,10 +14,13 @@ import {
   SEARCH_SORT_ORDERS,
   isLoadedSetPartial,
   pagingNarrowedKey,
+  shouldOfferScopedScan,
   type MatchFilterCounts,
+  type ScanOrigin,
   type SearchMatchFilter,
   type SearchSortOrder,
 } from './searchMatchFilter'
+import type { SessionSearchFilterEchoData } from '../../../preload/index'
 import { useT } from '../../i18n'
 
 interface Props {
@@ -37,6 +40,22 @@ interface Props {
   hasMore: boolean
   /** The scan stopped at its own ceiling, so older hits were never collected. */
   ceilingReached: boolean
+  /**
+   * Origins the current scan was narrowed to, or null when it searched every
+   * origin. The chips never set this: only `onScanWithFilter` does.
+   */
+  scannedOrigins: readonly ScanOrigin[] | null
+  /**
+   * Main's echo of what the scan actually kept. The status line reads this
+   * rather than `scannedOrigins`, so it describes the reply and not a request
+   * that may have failed.
+   */
+  scanEcho: SessionSearchFilterEchoData | null
+  /** The only two actions that may restart the search. Neither is a chip. */
+  onScanWithFilter: () => void
+  onScanWholeHistory: () => void
+  /** The user just widened the scan back to the whole history. */
+  scanCleared: boolean
 }
 
 const ROW_STYLE: React.CSSProperties = {
@@ -137,6 +156,11 @@ export function SearchMatchFilterBar({
   total,
   hasMore,
   ceilingReached,
+  scannedOrigins,
+  scanEcho,
+  onScanWithFilter,
+  onScanWholeHistory,
+  scanCleared,
 }: Props) {
   const t = useT()
   // The translated pill name, reused inside the coverage and empty-state copy
@@ -147,7 +171,15 @@ export function SearchMatchFilterBar({
   // the whole answer — and say which kind of partial it is, because "more can
   // be loaded" and "the scan never went further" are different promises.
   const partial = isLoadedSetPartial(hasMore, ceilingReached)
+  const scoped = scannedOrigins !== null
   const showWindowNote = partial && (filter !== 'all' || order === 'oldest')
+  // Only an explicit press may restart the search with a filter pushed into it.
+  const offerScopedScan = shouldOfferScopedScan(partial, filter, scannedOrigins)
+  // The scan's own narrowing, named the way the chips name it. Read from the
+  // reply so a requested scope that never ran cannot be shown as active.
+  const scanLabels = (scanEcho?.origins ?? [])
+    .map(origin => t(`globalSearch.match.${origin}`))
+    .join(' + ')
 
   return (
     <div style={ROW_STYLE}>
@@ -207,8 +239,11 @@ export function SearchMatchFilterBar({
           })}
         </div>
         {/* One click back to everything: an active narrowing must always be
-            removable from the place that states it. */}
-        {filter !== 'all' && (
+            removable from the place that states it. While the scan itself is
+            narrowed, this chip-clear would only widen the view over rows that
+            are still a narrowed scan — the widen action below is the honest
+            clear, and it is the one that re-searches the whole history. */}
+        {filter !== 'all' && !scanEcho && (
           <button
             type="button"
             onClick={() => onFilterChange('all')}
@@ -223,6 +258,59 @@ export function SearchMatchFilterBar({
           </button>
         )}
       </div>
+      {/* The scan itself was narrowed at the source. This is not a view over
+          the loaded rows: main kept only these origins before its ceiling, so
+          every count below describes that narrowed set. The action that widens
+          it back is a real button, and pressing any chip above is not it. */}
+      {scanEcho && (
+        <div style={NOTE_STYLE}>
+          <div role="status">
+            {t('globalSearch.match.scanActive', { origin: scanLabels })}
+          </div>
+          <div>{t('globalSearch.match.scanTitleNote')}</div>
+          <button
+            type="button"
+            onClick={onScanWholeHistory}
+            onKeyDown={stopPillActivation}
+            style={{
+              ...PILL_STYLE,
+              color: 'var(--accent-text)',
+              borderColor: 'rgba(99,102,241,0.35)',
+              marginTop: 4,
+            }}
+          >
+            {t('globalSearch.match.scanClear')}
+          </button>
+        </div>
+      )}
+      {/* Partial loaded set and an active chip: offer the one deliberate action
+          that pushes that chip into the scan. No chip click reaches this path —
+          the chips above only call `onFilterChange`. */}
+      {offerScopedScan && (
+        <div style={NOTE_STYLE}>
+          <div>{t('globalSearch.match.scanWithFilterHint', { origin: filterLabel, loaded })}</div>
+          <button
+            type="button"
+            onClick={onScanWithFilter}
+            onKeyDown={stopPillActivation}
+            style={{
+              ...PILL_STYLE,
+              color: 'var(--accent-text)',
+              borderColor: 'rgba(99,102,241,0.35)',
+              marginTop: 4,
+            }}
+          >
+            {t('globalSearch.match.scanWithFilter')}
+          </button>
+        </div>
+      )}
+      {/* A widened scan is worth saying once: the rows that follow are no
+          longer a slice of a narrowed search. */}
+      {!scanEcho && !offerScopedScan && scanCleared && (
+        <div role="status" style={NOTE_STYLE}>
+          {t('globalSearch.match.scanCleared')}
+        </div>
+      )}
       {/* Coverage, not decoration: "tool output only" is a claim that matches
           elsewhere are being kept out. Without this line an empty list would
           read as "the phrase does not exist". When only part of the answer is
@@ -240,7 +328,7 @@ export function SearchMatchFilterBar({
       )}
       {showWindowNote && (
         <div role="status" style={NOTE_STYLE}>
-          {t(pagingNarrowedKey(hasMore), { loaded, ceiling: total })}
+          {t(pagingNarrowedKey(hasMore, scoped), { loaded, ceiling: total, origin: filterLabel })}
         </div>
       )}
     </div>

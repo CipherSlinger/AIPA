@@ -367,7 +367,7 @@ export function registerAllHandlers(
     registerSkillsHandlers()
     registerProviderHandlers(win, send)
     registerDiagnosticsHandlers()
-    registerBackupHandlers()
+    registerBackupHandlers(send)
     registerSpeculationHandlers()
     registerClawdHandlers()
     registerRecruitHandlers(send)
@@ -2140,6 +2140,12 @@ function registerSessionHandlers(): void {
   // (`ceilingReached` — older matches exist but were never collected). The
   // scan runs once per query and pages are slices of that one ordering, so a
   // later page never re-reads the corpus.
+  //
+  // `origins` and `sessionIds` (both validated in the pager) narrow the scan
+  // itself rather than the page it returned, so the ceiling counts hits the
+  // caller asked for. A narrowed reply echoes `filteredBy`; an unsupported
+  // origin is refused with `SEARCH_INVALID_ORIGINS` and never degrades to a
+  // full scan.
   ipcMain.handle('session:searchPage', async (_e: Electron.IpcMainInvokeEvent, input: unknown) => {
     try {
       return await searchPage(input)

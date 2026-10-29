@@ -15,7 +15,7 @@
 // so it never outranks a failure. The panel offers the one deliberate way past
 // the cap, Run now, which is a manual run and therefore exempt from it.
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Clock, Hourglass } from 'lucide-react'
 import { useT } from '../../i18n'
 import { pushEscapeHandler } from '../ui/escapeStack'
@@ -29,6 +29,12 @@ import {
 } from './automationFailures'
 import { deriveHeldJobs } from '../automation/jobHold'
 import { deriveWaitingApprovals } from '../automation/runApproval'
+import {
+  APPROVAL_FOCUS_EVENT,
+  approvalFocusState,
+  parseApprovalFocus,
+  type ApprovalFocusTarget,
+} from '../automation/approvalFocus'
 
 interface AutomationSnapshot {
   jobs: AutomationJobData[]
@@ -51,6 +57,16 @@ export default function BackgroundWorkIndicator() {
   // when the panel opens and is *not* advanced when the badge is cleared, so the
   // rows the badge announced survive their own acknowledgement.
   const [openSince, setOpenSince] = useState<number | null>(null)
+  // The request an attention click or a palette row asked for. `focusChecked`
+  // says a list read started *after* that ask has landed, so "gone" is only
+  // ever claimed on fresh evidence rather than on a stale snapshot.
+  const [focusTarget, setFocusTarget] = useState<ApprovalFocusTarget | null>(null)
+  const [focusChecked, setFocusChecked] = useState(false)
+  const focusWantedRef = useRef(false)
+  // Mirrors for handlers that live outside a render: the latest watermark the
+  // failures were counted against, and a way to re-read the job list.
+  const seenAtRef = useRef<number | null>(null)
+  const reloadRef = useRef<() => void>(() => {})
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
 
@@ -59,6 +75,14 @@ export default function BackgroundWorkIndicator() {
     if (!api?.automationList) return
     let alive = true
     let seq = 0
+    // A read that cannot answer drops the focus request: the panel must not
+    // keep guessing about the user's request, and "could not read" is not "gone".
+    const abandonFocus = () => {
+      if (!focusWantedRef.current) return
+      focusWantedRef.current = false
+      setFocusTarget(null)
+      setFocusChecked(false)
+    }
     const load = async () => {
       const request = ++seq
       try {
@@ -67,6 +91,7 @@ export default function BackgroundWorkIndicator() {
         if (!Array.isArray(result?.jobs)) {
           // A malformed payload is treated like a failed read, not as "no jobs".
           setSnapshot(null)
+          abandonFocus()
           return
         }
         setSnapshot({ jobs: result.jobs, limits: result.limits ?? null })
@@ -74,16 +99,60 @@ export default function BackgroundWorkIndicator() {
         // good read. A failed read must never write a watermark over history it
         // did not see: that would silently mark those failures as shown.
         setSeenAt(resolveFailuresSeenAt(result.jobs, appWatermarkStorage(), Date.now()))
+        if (focusWantedRef.current) {
+          focusWantedRef.current = false
+          setFocusChecked(true)
+        }
       } catch (err) {
         // Keeping the previous snapshot here would claim work that may have
         // already finished; the segment simply hides instead.
         console.error('[AIPA] Could not load background automations', err)
-        if (alive && request === seq) setSnapshot(null)
+        if (alive && request === seq) {
+          setSnapshot(null)
+          abandonFocus()
+        }
       }
     }
+    reloadRef.current = () => { void load() }
     void load()
     const unsubscribe = api.onAutomationChanged(() => { void load() })
-    return () => { alive = false; unsubscribe() }
+    return () => {
+      alive = false
+      reloadRef.current = () => {}
+      unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => { seenAtRef.current = seenAt }, [seenAt])
+
+  // Closing the panel also drops whatever request it was pointed at: a later
+  // open must not inherit a stale focus and announce "gone" for no reason.
+  const closePanel = useCallback((refocusTrigger: boolean) => {
+    setOpen(false)
+    setOpenSince(null)
+    setFocusTarget(null)
+    setFocusChecked(false)
+    focusWantedRef.current = false
+    if (refocusTrigger) triggerRef.current?.focus()
+  }, [])
+
+  // An attention click (pet bubble or OS notification) or a palette row asks
+  // for one request. The list is re-read before the panel decides whether that
+  // request is still there; the event may arrive while the panel is shut.
+  useEffect(() => {
+    const onFocusApproval = (event: Event) => {
+      const target = parseApprovalFocus((event as CustomEvent).detail)
+      if (!target) return
+      focusWantedRef.current = true
+      setFocusTarget(target)
+      setFocusChecked(false)
+      setNow(Date.now())
+      setOpen(true)
+      setOpenSince(seenAtRef.current)
+      reloadRef.current()
+    }
+    window.addEventListener(APPROVAL_FOCUS_EVENT, onFocusApproval)
+    return () => window.removeEventListener(APPROVAL_FOCUS_EVENT, onFocusApproval)
   }, [])
 
   // Only the open panel prints elapsed times, so the clock runs only while it
@@ -100,19 +169,14 @@ export default function BackgroundWorkIndicator() {
     if (!open) return
     const onMouseDown = (event: MouseEvent) => {
       if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        setOpen(false)
-        setOpenSince(null)
+        closePanel(false)
       }
     }
     // AppShell's capture handler exists only outside the chat view, so this
     // listener keeps Escape working in every view. The escape-stack entry runs
     // first there, letting that handler consume the key instead of closing
     // Settings or navigating away behind the open panel.
-    const close = () => {
-      setOpen(false)
-      setOpenSince(null)
-      triggerRef.current?.focus()
-    }
+    const close = () => closePanel(true)
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
       event.stopPropagation()
@@ -126,7 +190,7 @@ export default function BackgroundWorkIndicator() {
       window.removeEventListener('keydown', onKeyDown, true)
       release()
     }
-  }, [open])
+  }, [open, closePanel])
 
   const jobs = useMemo(() => snapshot?.jobs ?? [], [snapshot])
   // Runs whose live turn is holding one permission request for the user. They
@@ -182,22 +246,29 @@ export default function BackgroundWorkIndicator() {
   const failureCount = Math.max(unseen.total, open ? openFailures.total : 0)
   const visible = waiting.length > 0 || running.length > 0 || retrying.length > 0
     || failureCount > 0 || heldCount > 0
+  // What the click pointed at, as far as a read started after it can tell.
+  const focusState = approvalFocusState(focusTarget, waiting, focusChecked)
+  // The panel must open even when the segment has nothing else to say: the
+  // request it was asked to show may already be gone, and that answer — "it is
+  // no longer waiting" — is itself what the click owed the user.
+  const focusHoldsPanel = focusState === 'pending' || focusState === 'gone'
 
   // The panel closes only when it has nothing left to list. Closing on "the
   // segment hid" would slam it shut the instant opening it cleared the badge —
   // which is exactly what happens when failures are the only signal. The next-up
   // group alone does not keep it open: the segment is hidden then, and a panel
-  // anchored to a hidden trigger has nowhere to point.
+  // anchored to a hidden trigger has nowhere to point. A focus request being
+  // checked or already gone is a message, so it holds the panel open too.
   const panelEmpty = waiting.length === 0 && running.length === 0
     && retrying.length === 0 && openFailures.total === 0 && heldCount === 0
+    && !focusHoldsPanel
   useEffect(() => {
     if (!open) return
     if (!panelEmpty) return
-    setOpen(false)
-    setOpenSince(null)
-  }, [open, panelEmpty])
+    closePanel(false)
+  }, [open, panelEmpty, closePanel])
 
-  if (!visible) return null
+  if (!visible && !(open && focusHoldsPanel)) return null
 
   // Priority: a held request first (the run cannot move without an answer),
   // then a run in flight, then a waiting retry, then failures, then a held job.
@@ -235,9 +306,7 @@ export default function BackgroundWorkIndicator() {
 
   const toggle = () => {
     if (open) {
-      setOpen(false)
-      setOpenSince(null)
-      triggerRef.current?.focus()
+      closePanel(true)
       return
     }
     setNow(Date.now())
@@ -254,7 +323,10 @@ export default function BackgroundWorkIndicator() {
 
   return (
     <div ref={rootRef} style={{ position: 'relative', flexShrink: 0, marginLeft: 'auto' }}>
-      <button
+      {/* A panel opened by an alert may outlive the segment (the request was
+          the only reason it showed), so the trigger is what hides, not the
+          root. */}
+      {visible && <button
         ref={triggerRef}
         type="button"
         onClick={toggle}
@@ -309,7 +381,7 @@ export default function BackgroundWorkIndicator() {
             <span>{visibleLabel}</span>
           </>
         )}
-      </button>
+      </button>}
       {open && (
         <BackgroundWorkPopover
           waiting={waiting}
@@ -322,10 +394,9 @@ export default function BackgroundWorkIndicator() {
           pausedAll={snapshot?.limits?.pausedAll === true}
           runningJobIds={runningJobIds}
           now={now}
-          onClose={() => {
-            setOpen(false)
-            setOpenSince(null)
-          }}
+          focus={focusTarget}
+          focusState={focusState}
+          onClose={() => closePanel(false)}
         />
       )}
     </div>
