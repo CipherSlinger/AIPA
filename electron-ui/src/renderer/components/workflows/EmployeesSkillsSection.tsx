@@ -11,6 +11,7 @@ import { TRASH_RETENTION_DAYS, UNDO_TOAST_MS } from '../../lib/workflowTrash'
 import type { SkillTrashErrorCode } from '../../../preload'
 import SkillDraftSourceDialog from '../skills/SkillDraftSourceDialog'
 import SaveConversationSkillDialog from '../chat/SaveConversationSkillDialog'
+import { resolveInstallOutcome } from '../skills/installOutcome'
 
 const SOURCE_STYLE: Record<string, { color: string; bg: string; border: string }> = {
   personal: { color: '#a5b4fc', bg: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.30)' },
@@ -66,18 +67,42 @@ export function useEmployeeSkills() {
     useUiStore.getState().addToast('success', t('skills.skillActivated'))
   }, [t])
 
+  /**
+   * Install an employee preset. This surface never sends the replace flag: the
+   * small preset card has no room for the explicit Replace button the
+   * marketplace and the conversation dialog show, so a folder that already
+   * holds a skill is simply announced and marked installed. Overwriting from
+   * here would be the silent replacement the installer was changed to refuse.
+   */
   const installSkill = useCallback(async (skill: MarketplaceSkill) => {
     setInstallingId(skill.id)
     try {
       const result = await window.electronAPI.skillsInstall({ name: skill.id, content: skill.skillContent })
-      if (result?.success) {
-        useUiStore.getState().addToast('success', t('skills.installSuccess'))
+      const outcome = resolveInstallOutcome(result)
+      if (outcome.kind === 'installed') {
+        useUiStore.getState().addToast('success', t(outcome.messageKey))
+        await refresh()
+      } else if (outcome.kind === 'exists') {
+        // Not an error and not a replacement: the preset is already on disk.
+        // Mark it so it leaves the available strip even before the list scan
+        // returns, then let the scan keep every other card truthful.
+        setInstalledNames(prev => new Set([
+          ...prev,
+          skill.id.toLowerCase(),
+          skill.name.toLowerCase(),
+          ...(outcome.name ? [outcome.name.toLowerCase()] : []),
+        ]))
+        useUiStore.getState().addToast(
+          'info',
+          t('skills.installOutcome.alreadyInstalled', { name: outcome.name || skill.name }),
+        )
         await refresh()
       } else {
-        useUiStore.getState().addToast('error', result?.error || t('skills.installFailed'))
+        useUiStore.getState().addToast('error', t(outcome.messageKey))
       }
     } catch (err) {
-      useUiStore.getState().addToast('error', String(err))
+      console.error('Skill install failed:', err)
+      useUiStore.getState().addToast('error', t('skills.installFailed'))
     } finally {
       setInstallingId(null)
     }

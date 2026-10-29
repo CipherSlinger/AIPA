@@ -5,22 +5,22 @@
 // timing and execution live in the main process (`src/main/automation/`); this
 // page only reflects state and sends CRUD requests, then waits for
 // `automation:changed` instead of guessing what the scheduler did.
+//
+// The page shell keeps the state and the mutations; the pieces it renders live
+// in `./settingsAutomations/`: the pause/budget/filter chrome, one job row, its
+// action column, its run-history disclosure and the per-run file panel. The
+// split is a move, not a rewrite — the markup, wording and handler semantics
+// are the pre-split ones.
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { AlarmClock, AlertTriangle, Building2, Check, Clock, Copy, GitBranch, History, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Search, Sparkles, Trash2, Wallet, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AlarmClock, Clock, Plus } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { useChatStore, useDepartmentStore, usePrefsStore, useUiStore } from '../../store'
 import { usePluginStore } from '../../store/pluginStore'
-import { getPluginDisplayName } from '../plugins/pluginIcons'
 import SettingsGroup from './SettingsGroup'
-import { INPUT_STYLE } from './settingsConstants'
-import Toggle from '../ui/Toggle'
-import { formatTokens } from '../../utils/formatUtils'
-import AutomationDialog, { ASSISTANT_PERSONA_ID, type WorkflowOption } from '../automation/AutomationDialog'
-import { scheduleText, watchWarningText } from '../automation/scheduleText'
-import { nextRunText } from '../automation/nextRunText'
+import AutomationDialog, { type WorkflowOption } from '../automation/AutomationDialog'
+import { scheduleText } from '../automation/scheduleText'
 import {
-  JOB_FILTER_STATUSES,
   countJobsByStatus,
   hasActiveFilters,
   matchesJob,
@@ -29,119 +29,35 @@ import {
   type JobFilterStatus,
   type JobSearchContext,
 } from '../automation/jobFilter'
-import {
-  JOB_SORT_MODES,
-  sortJobs,
-  type JobSortMode,
-} from '../automation/jobSort'
+import { sortJobs, type JobSortMode } from '../automation/jobSort'
 import { buildInvestigatePrompt } from '../automation/investigatePrompt'
-import { buildJobDepartmentOptions, resolveJobDepartment } from '../automation/jobDepartment'
-import { isHeldJob } from '../automation/jobHold'
-import {
-  RUN_APPROVAL_TIMEOUT_MINUTES,
-  approvalClause,
-  approvalTone,
-  approvalTooltip,
-} from '../automation/runApproval'
-import { deriveRepeatedAsking } from '../automation/approvalPattern'
-import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from '../automation/automationStyles'
-import { RUN_HISTORY_CAP, viewRunHistory } from './runHistoryView'
-import { fileKindMarker, viewRunFiles } from './runFilesView'
-import ProvenanceLine from '../provenance/ProvenanceLine'
-import { workflowProvenance } from '../../lib/provenance'
+import { buildJobDepartmentOptions } from '../automation/jobDepartment'
+import { SECONDARY, primaryButtonStyle } from '../automation/automationStyles'
 import type {
-  AutomationHandbookDigestData,
   AutomationJobData,
   AutomationLimitsData,
-  AutomationMemoryDigestData,
-  AutomationRunApprovalData,
-  AutomationRunRecordData,
   JobTrashErrorCode,
   SkillInfoData,
 } from '../../../preload'
 import { TRASH_RETENTION_DAYS, UNDO_TOAST_MS } from '../../lib/workflowTrash'
 import type { Persona } from '../../types/app.types'
-
-/** Which runs a job's history disclosure is currently showing, and how. */
-type RunHistoryUi = { expanded: boolean; failuresOnly: boolean }
-
-const RUN_HISTORY_UI_DEFAULT: RunHistoryUi = { expanded: false, failuresOnly: false }
-
-/**
- * The tone and glyph of one held-request clause in the run history.
- *
- * An approval is a success; a denial the user gave is their own decision and
- * stays neutral, so it is not dressed up as a fault. A deadline, a cap refusal
- * or a lost run is a warning, and a run interrupted mid-wait is a failure.
- * The glyph repeats that in a form colour alone cannot carry: a timeout shows a
- * clock, a denial an X, so the two are distinguishable without hue.
- */
-function approvalClauseMark(
-  outcome: AutomationRunApprovalData['outcome'],
-): { color?: string; icon: ReactNode } {
-  switch (approvalTone(outcome)) {
-    case 'approved': return { color: 'var(--success-text)', icon: <Check size={9} aria-hidden /> }
-    case 'denied': return { icon: <X size={9} aria-hidden /> }
-    case 'expired': return { color: WARNING, icon: <Clock size={9} aria-hidden /> }
-    case 'refused': return { color: WARNING, icon: <AlertTriangle size={9} aria-hidden /> }
-    case 'interrupted': return { color: 'var(--danger-text)', icon: <AlertTriangle size={9} aria-hidden /> }
-  }
-}
-
-/** The quiet text control under a run list ("Show all" / "Show fewer"). */
-const QUIET_LINK: CSSProperties = {
-  background: 'none', border: 'none', padding: 0, margin: '4px 0 0',
-  font: 'inherit', fontSize: 11, color: 'var(--accent-text)', cursor: 'pointer',
-}
-
-/**
- * The run-level file disclosure. It sits inline in the existing run row, so it
- * carries no margin or block padding of its own; the expanded panel below the
- * row supplies the quieter treatment.
- */
-const RUN_FILES_LINK: CSSProperties = {
-  background: 'none', border: 'none', padding: 0, margin: 0,
-  font: 'inherit', fontSize: 11, color: 'var(--accent-text)', cursor: 'pointer',
-}
-
-/**
- * The filter row's reset, in the archive's quiet underlined style. It shares
- * the row with 24px fields and chips, so it carries no vertical margin of its
- * own; the empty-state call site adds spacing instead.
- */
-const FILTER_LINK: CSSProperties = {
-  background: 'none', border: 'none', padding: 0,
-  font: 'inherit', fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer',
-  textDecoration: 'underline', textUnderlineOffset: 3,
-}
-
-/** The expert a row should name: a person, the plain assistant, or a broken binding. */
-type JobExpert =
-  | { kind: 'persona'; persona: Persona; override: boolean }
-  | { kind: 'assistant'; override: boolean }
-  | { kind: 'missing'; override: boolean }
-
-/**
- * Money as the engine reported it. Costs stay compact: a settings row has room
- * for `$0.03`, and very small amounts keep a third digit instead of rounding
- * away to `$0.00`.
- */
-function costText(usd: number): string {
-  // A reported $0 is a real report (some engines say the turn was free), and
-  // "<$0.001" would read as a small charge rather than none.
-  if (usd === 0) return '$0'
-  if (usd < 0.001) return '<$0.001'
-  if (usd < 0.01) return `$${usd.toFixed(3)}`
-  return `$${usd.toFixed(2)}`
-}
-
-/**
- * One history row keeps the error beside its outcome, but a raw engine message
- * can be arbitrarily long; the full text stays on the row's title.
- */
-function clipText(text: string): string {
-  return text.length > 80 ? `${text.slice(0, 79)}…` : text
-}
+import {
+  jobExpertFor,
+  workflowNameOf,
+} from './settingsAutomations/automationRowFacts'
+import { errorText as errorTextFor } from './settingsAutomations/automationStatusText'
+import {
+  AutomationBudgetCard,
+  AutomationErrorBanner,
+  AutomationFilterRow,
+  AutomationListState,
+  AutomationPauseCard,
+} from './settingsAutomations/PageChrome'
+import { AutomationJobRow } from './settingsAutomations/AutomationJobRow'
+import {
+  RUN_HISTORY_UI_DEFAULT,
+  type RunHistoryUi,
+} from './settingsAutomations/AutomationRunHistory'
 
 export default function SettingsAutomations() {
   const { t, resolvedLocale } = useI18n()
@@ -245,59 +161,6 @@ export default function SettingsAutomations() {
     return () => { cancelled = true }
   }, [workingDir])
 
-  const workflowName = useCallback((id: string) => {
-    return (workflows || []).find(w => w.id === id)?.name
-  }, [workflows])
-
-  /**
-   * The display name of the skill a job runs, or null when the scan has not
-   * returned or no longer lists it. Null is not "missing": only the pair not
-   * being in a *read* list means the folder is gone, and the row says that
-   * through `actionMissing`.
-   */
-  const skillName = useCallback((source: 'personal' | 'project', dir: string) => {
-    if (!skills) return null
-    return skills.find(skill => skill.source === source && skill.skillDir === dir)?.name ?? null
-  }, [skills])
-
-  /**
-   * A job's origin plugin, as a badge label. An uninstalled plugin is not an
-   * error: the job outlives it, so the raw id stands in and the tooltip says
-   * the name is gone. The lookup never affects the row's controls — a
-   * plugin-made job is edited and deleted like any other.
-   */
-  const pluginOrigin = useCallback((id: string): { name: string; installed: boolean } => {
-    const plugin = plugins.find(p => p.manifest.id === id)
-    return plugin
-      ? { name: getPluginDisplayName(plugin.manifest, resolvedLocale), installed: true }
-      : { name: id, installed: false }
-  }, [plugins, resolvedLocale])
-
-  /**
-   * The expert that will actually run this job: its own override first, then
-   * the workflow's binding. `missing` stays truthful for a deleted persona in
-   * either place, and `override` lets the row say which of the two it is.
-   * Null means no chip: nothing is bound, so the plain assistant runs.
-   */
-  const jobExpert = useCallback((job: AutomationJobData): JobExpert | null => {
-    const overrideId = typeof job.personaId === 'string' ? job.personaId.trim() : ''
-    if (overrideId) {
-      if (overrideId === ASSISTANT_PERSONA_ID) return { kind: 'assistant', override: true }
-      const persona = (personas || []).find(p => p.id === overrideId)
-      return persona
-        ? { kind: 'persona', persona, override: true }
-        : { kind: 'missing', override: true }
-    }
-    const action = job.action
-    if (action.kind !== 'workflow') return null
-    const workflow = (workflows || []).find(w => w.id === action.workflowId)
-    if (!workflow?.personaId) return null
-    const persona = (personas || []).find(p => p.id === workflow.personaId)
-    return persona
-      ? { kind: 'persona', persona, override: false }
-      : { kind: 'missing', override: false }
-  }, [workflows, personas])
-
   // The org tree is renderer state. One ordered list per tree change keeps each
   // row's id → node lookup cheap, and every row resolves against the same tree.
   const departmentOptions = useMemo(
@@ -311,13 +174,13 @@ export default function SettingsAutomations() {
    * The schedule sentence is localized and the workflow/persona names live in
    * other stores, so they are resolved here and handed over as plain strings.
    * The predicate stays React-free and the filter row cannot drift from the
-   * row's own wording: both call the same `scheduleText` / `jobExpert`.
+   * row's own wording: both call the same `scheduleText` / `jobExpertFor`.
    */
   const searchContextFor = useCallback((job: AutomationJobData): JobSearchContext => {
-    const expert = jobExpert(job)
+    const expert = jobExpertFor(job, workflows, personas)
     return {
       workflowName: job.action.kind === 'workflow'
-        ? workflowName(job.action.workflowId) ?? null
+        ? workflowNameOf(workflows, job.action.workflowId) ?? null
         : null,
       scheduleSentence: scheduleText(t, job.trigger),
       personaName: expert?.kind === 'persona' ? expert.persona.name : null,
@@ -326,7 +189,7 @@ export default function SettingsAutomations() {
       // journal, so the job remains findable by the name the user typed.
       ...skillSearchFields(job.action, skills),
     }
-  }, [jobExpert, workflowName, t, skills])
+  }, [workflows, personas, t, skills])
 
   const filterQuery = useMemo(
     () => ({ text: filterText, statuses: filterStatuses }),
@@ -391,15 +254,6 @@ export default function SettingsAutomations() {
     return () => clearTimeout(timer)
   }, [highlightJobId])
 
-  const timeText = (ts: number): string => new Date(ts).toLocaleString(resolvedLocale)
-
-  const errorText = useCallback((code: string | null): string => {
-    if (!code) return ''
-    const key = `automation.errors.${code}`
-    const translated = t(key)
-    return translated === key ? code : translated
-  }, [t])
-
   /**
    * Why a delete or a restore was refused, in the user's words.
    *
@@ -421,179 +275,6 @@ export default function SettingsAutomations() {
       default: return t('automation.trash.failure.generic', {
         message: error || t('automation.trash.failure.unknown'),
       })
-    }
-  }, [t])
-
-  /** One past run's outcome, in the same words the status line uses. */
-  const runStatus = useCallback((record: AutomationRunRecordData): { text: string; color: string } => {
-    if (record.status === 'success') return { text: t('automation.status.success'), color: 'var(--success-text)' }
-    if (record.status === 'skipped') {
-      // The generic skip label names the hourly cap; a spend-stop must say so
-      // instead, or the row would blame the wrong rail. The global budget gets
-      // its own words: the job's own limit may not even be set. A miss the job
-      // chose to skip says so too, or it would read as the hourly cap firing.
-      const text = record.error === 'global_budget_exceeded'
-        ? t('automation.status.globalBudgetSkipped')
-        : record.error === 'budget_exceeded'
-          ? t('automation.status.budgetSkipped')
-          : record.error === 'missed_while_closed'
-            ? t('automation.status.missedSkipped')
-            : t('automation.status.skipped')
-      return { text, color: WARNING }
-    }
-    return { text: t('automation.status.error'), color: 'var(--danger-text)' }
-  }, [t])
-
-  /**
-   * The row's "then run" clauses: one per side of the chain.
-   *
-   * A target id is resolved against the live list at render time, so a job that
-   * was renamed shows its new name and one that was deleted shows as gone.
-   * A missing target is kept visible rather than hidden: the chain really does
-   * point at nothing, and the user is the only one who may drop the edge.
-   */
-  const chainClauses = useCallback((job: AutomationJobData): Array<{ text: string; missing: boolean; title?: string }> => {
-    const chain = job.chain
-    if (!chain) return []
-    const nameOf = (id: string) => jobs.find(other => other.id === id)?.name
-    const clauses: Array<{ text: string; missing: boolean; title?: string }> = []
-    if (chain.onSuccess) {
-      const name = nameOf(chain.onSuccess)
-      clauses.push(name
-        ? { text: t('automation.chain.rowSuccess', { name }), missing: false }
-        : { text: t('automation.chain.rowMissingSuccess'), missing: true, title: chain.onSuccess })
-    }
-    if (chain.onFailure) {
-      const name = nameOf(chain.onFailure)
-      clauses.push(name
-        ? { text: t('automation.chain.rowFailure', { name }), missing: false }
-        : { text: t('automation.chain.rowMissingFailure'), missing: true, title: chain.onFailure })
-    }
-    return clauses
-  }, [jobs, t])
-
-  /** Compact duration: whole minutes once a run passes one, seconds below. */
-  const durationText = useCallback((ms: number | null): string | null => {
-    if (ms === null) return null
-    if (ms < 60_000) {
-      const seconds = ms / 1000
-      return t('automation.history.seconds', {
-        seconds: seconds < 10 ? seconds.toFixed(1).replace(/\.0$/, '') : String(Math.round(seconds)),
-      })
-    }
-    return t('automation.history.minutes', { minutes: Math.round(ms / 60_000) })
-  }, [t])
-
-  /**
-   * The memory snapshot a run saw, as one compact fact: which tiers, how many
-   * characters, whether a budget clipped it. A failed read gets its own words
-   * because "no memory" and "memory unavailable" are different answers to the
-   * same post-mortem question. Returns null for legacy records and skips, which
-   * have no digest — the row must say nothing rather than invent one.
-   */
-  const memoryLine = useCallback((memory: AutomationMemoryDigestData | undefined): {
-    text: string
-    title: string
-    color?: string
-    /** A successful snapshot that still skipped some files, shown separately. */
-    unreadable?: { text: string; title: string }
-  } | null => {
-    if (!memory) return null
-    if (memory.state === 'failed') {
-      return {
-        text: t('automation.memory.unavailable'),
-        title: t('automation.memory.unavailableHint'),
-        color: WARNING,
-      }
-    }
-    // A failed whole-read keeps "memory unavailable" precedence; this clause is
-    // only for a run that continued with the files it could load.
-    const unreadable = memory.unreadable > 0
-      ? {
-          text: t('automation.memory.unreadable', { count: memory.unreadable }),
-          title: t('automation.memory.unreadableHint'),
-        }
-      : undefined
-    if (memory.tiers.length === 0 && memory.chars === 0) {
-      return { text: t('automation.memory.empty'), title: t('automation.memory.emptyHint'), unreadable }
-    }
-    const tiers = memory.tiers.map(tier => t(`automation.memory.tier.${tier}`)).join(' · ')
-    const chars = t('automation.memory.chars', { count: formatTokens(memory.chars) })
-    return {
-      text: tiers ? t('automation.memory.summary', { tiers, chars }) : chars,
-      title: t('automation.memory.title'),
-      unreadable,
-    }
-  }, [t])
-
-  /**
-   * The department handbook an unattended run carried — or the reason it
-   * carried none.
-   *
-   * The chat path shows this on the turn itself; a scheduled run has nobody
-   * watching, so the run row is the only place the fact can surface. Silence
-   * is reserved for a record written before the digest existed: every run this
-   * build records says *something*, because "no handbook" and "we never looked"
-   * are different answers to the same question.
-   */
-  const handbookLine = useCallback((handbook: AutomationHandbookDigestData | undefined): {
-    text: string
-    title: string
-    color?: string
-    /** The block was cut at the ceiling; shown as its own clause. */
-    truncated?: { text: string; title: string }
-    /** The snapshot was old; the handbook was still used. */
-    stale?: { text: string; title: string }
-  } | null => {
-    if (!handbook) return null
-
-    if (handbook.state === 'no-department') {
-      return {
-        text: t('automation.handbook.noDepartment'),
-        title: t('automation.handbook.noDepartmentHint'),
-      }
-    }
-    if (handbook.state === 'no-snapshot') {
-      return {
-        text: t('automation.handbook.noSnapshot'),
-        title: t('automation.handbook.noSnapshotHint'),
-      }
-    }
-    if (handbook.state === 'unknown-department') {
-      // Warning-toned: the job is filed under a desk whose rules did not
-      // travel, and the user would otherwise never learn the run ran without
-      // them.
-      return {
-        text: t('automation.handbook.unknownDepartment'),
-        title: t('automation.handbook.unknownDepartmentHint'),
-        color: WARNING,
-      }
-    }
-    if (handbook.state === 'empty') {
-      return {
-        text: t('automation.handbook.empty', { name: handbook.departmentName ?? handbook.departmentId ?? '' }),
-        title: t('automation.handbook.emptyHint'),
-      }
-    }
-
-    const chars = t('automation.handbook.chars', { count: formatTokens(handbook.chars) })
-    return {
-      text: t('automation.handbook.used', { name: handbook.departmentName ?? '', chars }),
-      title: t('automation.handbook.usedTitle'),
-      truncated: handbook.truncated
-        ? {
-            text: t('automation.handbook.truncated', { count: formatTokens(handbook.sourceChars) }),
-            title: t('automation.handbook.truncatedHint', { count: formatTokens(handbook.sourceChars) }),
-          }
-        : undefined,
-      stale: handbook.stale && handbook.ageDays !== undefined
-        ? {
-            text: handbook.ageDays === 1
-              ? t('automation.handbook.staleOne')
-              : t('automation.handbook.staleMany', { days: handbook.ageDays }),
-            title: t('automation.handbook.staleHint'),
-          }
-        : undefined,
     }
   }, [t])
 
@@ -654,7 +335,7 @@ export default function SettingsAutomations() {
     setPauseBusy(true)
     try {
       const result = await window.electronAPI.automationSetPausedAll(!pausedAll)
-      if (!result.ok) setError(t('automation.pauseAll.failed', { error: errorText(result.error) }))
+      if (!result.ok) setError(t('automation.pauseAll.failed', { error: errorTextFor(t, result.error) }))
     } catch (err) {
       setError(t('automation.pauseAll.failed', { error: String(err) }))
     } finally {
@@ -696,7 +377,7 @@ export default function SettingsAutomations() {
           ? String(result.globalDailyCostLimitUsd)
           : '')
       } else {
-        setBudgetError(errorText(result.error))
+        setBudgetError(errorTextFor(t, result.error))
       }
     } catch (err) {
       setBudgetError(t('automation.budget.failed', { error: String(err) }))
@@ -705,44 +386,12 @@ export default function SettingsAutomations() {
     }
   }
 
-  /**
-   * The shared window's readout.
-   *
-   * Same honesty rules as the per-job row: an unmeasured window says so instead
-   * of printing $0, and a lower bound is prefixed with `≥` because some run in
-   * the window reported no money or an evicted record may sit inside it.
-   */
-  const budgetReadout = ((): { text: string; notes: string[]; color: string } | null => {
-    if (!globalSpend) return null
-    const limitText = globalLimit !== undefined ? costText(globalLimit) : null
-    if (globalSpend.measuredUsd !== undefined) {
-      const lowerBound = globalSpend.partial || globalSpend.unreportedRuns > 0
-      const spent = `${lowerBound ? '≥ ' : ''}${costText(globalSpend.measuredUsd)}`
-      const notes: string[] = []
-      if (globalSpend.unreportedRuns > 0) notes.push(t('automation.budget.lowerBoundNote'))
-      if (globalSpend.partial) notes.push(t('automation.budget.partialNote'))
-      return {
-        text: limitText
-          ? t('automation.budget.readoutWithLimit', { spent, limit: limitText })
-          : t('automation.budget.readout', { spent }),
-        notes,
-        color: globalLimit !== undefined && globalSpend.measuredUsd + 1e-9 >= globalLimit
-          ? WARNING
-          : SECONDARY,
-      }
-    }
-    if (globalSpend.unmeasured) {
-      return { text: t('automation.budget.unmeasured'), notes: [], color: WARNING }
-    }
-    return { text: t('automation.budget.noRuns'), notes: [], color: SECONDARY }
-  })()
-
   const toggleJob = async (job: AutomationJobData, enabled: boolean) => {
     setError(null)
     setBusyId(job.id)
     try {
       const result = await window.electronAPI.automationSetEnabled(job.id, enabled)
-      if (!result.ok) setError(t('automation.errors.toggleFailed', { error: errorText(result.error) }))
+      if (!result.ok) setError(t('automation.errors.toggleFailed', { error: errorTextFor(t, result.error) }))
     } catch (err) {
       setError(t('automation.errors.toggleFailed', { error: String(err) }))
     } finally {
@@ -755,7 +404,7 @@ export default function SettingsAutomations() {
     setBusyId(job.id)
     try {
       const result = await window.electronAPI.automationRunNow(job.id)
-      if (!result.ok) setError(t('automation.errors.runFailed', { error: errorText(result.error) }))
+      if (!result.ok) setError(t('automation.errors.runFailed', { error: errorTextFor(t, result.error) }))
     } catch (err) {
       setError(t('automation.errors.runFailed', { error: String(err) }))
     } finally {
@@ -778,7 +427,7 @@ export default function SettingsAutomations() {
     try {
       const result = await window.electronAPI.automationClone(job.id)
       if (!result.ok) {
-        setError(t('automation.duplicate.failed', { error: errorText(result.error) }))
+        setError(t('automation.duplicate.failed', { error: errorTextFor(t, result.error) }))
         return
       }
       // The copy carries the action's identity, so a duplicated skill job must
@@ -851,160 +500,6 @@ export default function SettingsAutomations() {
     }
   }
 
-  const statusLine = (job: AutomationJobData): { text: string; color: string; title?: string } => {
-    // A live run holding a request is still running, but "Running" would hide
-    // the one fact the user can act on. The timestamp is when the run asked;
-    // the tooltip carries the verbatim ask and the deadline.
-    if (job.running && job.waitingApproval) {
-      const wait = job.waitingApproval
-      return {
-        text: t('automation.status.waitingApproval', { time: timeText(wait.since) }),
-        color: WARNING,
-        title: [
-          t('automation.status.waitingApprovalHint', { minutes: RUN_APPROVAL_TIMEOUT_MINUTES }),
-          t('automation.runApproval.subjectHint'),
-          wait.subject,
-        ].join('\n'),
-      }
-    }
-    if (job.running || job.lastStatus === 'running') {
-      return { text: t('automation.status.running'), color: 'var(--accent-text)' }
-    }
-    if (!job.lastStatus || job.lastRunAt === null) {
-      return { text: t('automation.neverRun'), color: SECONDARY }
-    }
-    const when = t('automation.lastRun', { time: timeText(job.lastRunAt) })
-    const late = job.lastRunLate ? ` · ${t('automation.ranLate')}` : ''
-    if (job.lastStatus === 'success') return { text: `${t('automation.status.success')} · ${when}${late}`, color: 'var(--success-text)' }
-    // A department's daily cap refusing the newest occurrence is a hold, not a
-    // failure: nothing ran and nothing broke, so it keeps the warning tone and
-    // says who stopped it. The shared predicate reads the newest history record,
-    // so a genuinely newer success or error is never masked; here it can only
-    // outrank the generic skipped label, which would otherwise blame the hourly
-    // cap. The tooltip carries the way out — Run now is manual, and the cap is
-    // set on the department's Brief.
-    if (isHeldJob(job)) {
-      return {
-        text: `${t('dept.jobs.statusHeld')} · ${when}`,
-        color: WARNING,
-        title: t('dept.jobs.statusHeldTip'),
-      }
-    }
-    if (job.lastStatus === 'skipped') {
-      // A spend stop is still a skip, not a failure of the work; name the rail
-      // that stopped it so it is not mistaken for the hourly cap. The global
-      // daily budget is a different rail from the job's own limit, and a miss
-      // the user chose to skip is not a rail at all.
-      const text = job.lastError === 'global_budget_exceeded'
-        ? t('automation.status.globalBudgetSkipped')
-        : job.lastError === 'budget_exceeded'
-          ? t('automation.status.budgetSkipped')
-          : job.lastError === 'missed_while_closed'
-            ? t('automation.status.missedSkipped')
-            : t('automation.status.skipped')
-      return { text: `${text} · ${when}`, color: WARNING }
-    }
-    const detail = errorText(job.lastError)
-    return {
-      text: `${t('automation.status.error')}${detail ? `: ${detail}` : ''} · ${when}${late}`,
-      color: 'var(--danger-text)',
-    }
-  }
-
-  /**
-   * Spend appended to the status line.
-   *
-   * Codex reports tokens but no money, so the cost segment is omitted rather
-   * than rendered as `$0`. Only an actual run (success or failure) has spend:
-   * a skipped or interrupted job leaves the previous figure out of this line.
-   */
-  const usageLine = (job: AutomationJobData): { text: string; title: string } | null => {
-    if (job.lastStatus !== 'success' && job.lastStatus !== 'error') return null
-    const usage = job.lastUsage
-    // Cache reads stay out of the headline count: they are reported separately
-    // and would dwarf the conversation tokens in a compact figure.
-    const runTokens = usage ? usage.inputTokens + usage.outputTokens : 0
-    const runCost = usage?.costUsd !== undefined && usage.costUsd > 0 ? usage.costUsd : 0
-    const totalCost = job.totalCostUsd !== undefined && job.totalCostUsd > 0 ? job.totalCostUsd : 0
-    if (runTokens === 0 && runCost === 0 && totalCost === 0) return null
-
-    const parts: string[] = []
-    if (runTokens > 0) parts.push(t('automation.usage.tokens', { count: formatTokens(runTokens) }))
-    if (runCost > 0) parts.push(costText(runCost))
-    // The first run's lifetime total is its own cost; repeating it would add a
-    // segment that says nothing. After that, the running total earns its place.
-    if (totalCost > 0 && totalCost > runCost + 1e-9) {
-      parts.push(t('automation.usage.totalCost', { cost: costText(totalCost) }))
-    }
-
-    const detail: string[] = []
-    if (usage) {
-      if (usage.inputTokens > 0) {
-        detail.push(t('automation.usage.tooltip.input', { count: formatTokens(usage.inputTokens) }))
-      }
-      if (usage.outputTokens > 0) {
-        detail.push(t('automation.usage.tooltip.output', { count: formatTokens(usage.outputTokens) }))
-      }
-      if (usage.cachedInputTokens !== undefined && usage.cachedInputTokens > 0) {
-        detail.push(t('automation.usage.tooltip.cached', { count: formatTokens(usage.cachedInputTokens) }))
-      }
-    }
-    const lifetime: string[] = []
-    if (job.totalTokens !== undefined && job.totalTokens > 0) {
-      lifetime.push(t('automation.usage.tooltip.totalTokens', { count: formatTokens(job.totalTokens) }))
-    }
-    if (totalCost > 0) {
-      lifetime.push(t('automation.usage.tooltip.totalCost', { cost: costText(totalCost) }))
-    }
-    const title = [...(detail.length > 0 ? [detail.join(' · ')] : []), ...lifetime].join('\n')
-    return { text: parts.join(' · '), title }
-  }
-
-  /**
-   * The spend rail on the row, shown only for a job that has one.
-   *
-   * The figure is the sum of costs the engines actually reported for runs
-   * started in the rolling 24 hours. A window with no reported cost says so
-   * instead of printing $0: Codex reports no money, and a limit that looks
-   * satisfied while it cannot see the spend would be a lie.
-   */
-  const spendLimitLine = (job: AutomationJobData): { text: string; color: string; title: string } | null => {
-    const limit = job.dailyCostLimitUsd
-    if (limit === undefined) return null
-    const limitText = costText(limit)
-    const window = job.spendWindow
-    const windowTitle = t('automation.spend.windowTitle')
-    if (!window) {
-      // Old job data without the derived window (e.g. a window from a moment
-      // ago); the limit itself is still worth naming.
-      return { text: t('automation.spend.limitOnly', { limit: limitText }), color: SECONDARY, title: windowTitle }
-    }
-    if (window.reportedCostUsd !== undefined) {
-      // Unreported runs and evicted history both make the sum a lower bound;
-      // the row marks it rather than presenting it as the whole truth.
-      const lowerBound = window.partial || window.unreportedRuns > 0
-      const spent = `${lowerBound ? '≥ ' : ''}${costText(window.reportedCostUsd)}`
-      const notes = [windowTitle]
-      if (window.unreportedRuns > 0) {
-        notes.push(t('automation.spend.lowerBoundHint', { count: window.unreportedRuns }))
-      }
-      if (window.partial) notes.push(t('automation.spend.partialHint'))
-      return {
-        text: t('automation.spend.window', { spent, limit: limitText }),
-        color: window.reportedCostUsd + 1e-9 >= limit ? WARNING : SECONDARY,
-        title: notes.join('\n'),
-      }
-    }
-    if (window.unmeasured) {
-      return {
-        text: t('automation.spend.unmeasured', { limit: limitText }),
-        color: WARNING,
-        title: windowTitle,
-      }
-    }
-    return { text: t('automation.spend.noRuns', { limit: limitText }), color: SECONDARY, title: windowTitle }
-  }
-
   return (
     <div className="settings-group-columns">
       <SettingsGroup title={t('automation.title')} icon={<AlarmClock size={13} />} groupKey="automations">
@@ -1018,1186 +513,99 @@ export default function SettingsAutomations() {
           </button>
         </div>
 
-        {/* One switch for every schedule. Quiet by design: it sits below the
-            page description, not above the job list, and its copy says how
-            many jobs it touches so the consequence is explicit. */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          marginBottom: 10, padding: '7px 9px', borderRadius: 6,
-          border: '1px solid var(--border)',
-          background: pausedAll ? 'var(--bg-hover)' : 'transparent',
-        }}>
-          <Pause size={13} style={{ flexShrink: 0, color: pausedAll ? 'var(--accent-text)' : SECONDARY }} />
-          <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: SECONDARY, lineHeight: 1.45 }}>
-            {pausedAll
-              ? t('automation.pauseAll.activeHint', { count: enabledCount })
-              : t('automation.pauseAll.idleHint', { count: enabledCount })}
-          </div>
-          <button
-            style={{ ...(pausedAll ? primaryButtonStyle : smallButtonStyle), opacity: pauseBusy ? 0.5 : 1 }}
-            disabled={pauseBusy}
-            onClick={togglePausedAll}
-          >
-            {pausedAll ? <Play size={11} /> : <Pause size={11} />}
-            {pausedAll ? t('automation.pauseAll.resume') : t('automation.pauseAll.pause')}
-          </button>
-        </div>
+        <AutomationPauseCard
+          t={t}
+          pausedAll={pausedAll}
+          enabledCount={enabledCount}
+          pauseBusy={pauseBusy}
+          onToggle={togglePausedAll}
+        />
 
-        {pausedAll && (
-          // The banner answers "why did nothing run?" without requiring the
-          // user to notice a switch. It also states the two exceptions the
-          // scheduler guarantees: manual runs work and in-flight runs finish.
-          <div style={{
-            display: 'flex', alignItems: 'flex-start', gap: 7,
-            marginBottom: 10, padding: '7px 10px', borderRadius: 6,
-            background: 'var(--bg-hover)', border: '1px solid var(--border)',
-            fontSize: 11.5, color: SECONDARY, lineHeight: 1.5,
-          }}>
-            <Pause size={13} style={{ flexShrink: 0, marginTop: 1, color: 'var(--accent-text)' }} />
-            <span>{t('automation.pauseAll.banner')}</span>
-          </div>
-        )}
+        <AutomationBudgetCard
+          t={t}
+          budgetText={budgetText}
+          budgetBusy={budgetBusy}
+          budgetError={budgetError}
+          globalLimit={globalLimit}
+          globalSpend={globalSpend}
+          onChange={value => { setBudgetDraft(value); setBudgetError(null) }}
+          onSave={() => { void saveGlobalBudget(false) }}
+          onClear={() => { void saveGlobalBudget(true) }}
+        />
 
-        {/* One daily cap across every job. It sits beside Pause-all because it
-            is the other switch over the whole store rather than a property of a
-            job; the per-job fields still exist and still apply on top of it. */}
-        <div style={{
-          marginBottom: 10, padding: '7px 9px', borderRadius: 6,
-          border: '1px solid var(--border)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <Wallet size={13} style={{ flexShrink: 0, color: SECONDARY }} />
-            <div style={{ flex: 1, minWidth: 140, fontSize: 11.5, color: SECONDARY, lineHeight: 1.45 }}>
-              <div>{t('automation.budget.label')}</div>
-              {budgetReadout && (
-                <div style={{ marginTop: 2, fontSize: 11, color: budgetReadout.color }}>
-                  {budgetReadout.text}
-                  {budgetReadout.notes.length > 0 && (
-                    // Named inline, not only in a tooltip: a total that may be
-                    // low must not look exact on a settings page the user only
-                    // glances at.
-                    <div style={{ fontSize: 10.5, color: SECONDARY }}>
-                      {budgetReadout.notes.join(' · ')}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={budgetText}
-              onChange={e => { setBudgetDraft(e.target.value); setBudgetError(null) }}
-              placeholder={t('automation.budget.placeholder')}
-              aria-label={t('automation.budget.label')}
-              disabled={budgetBusy}
-              style={{ ...INPUT_STYLE, width: 96, fontSize: 12, padding: '4px 8px' }}
-            />
-            <button
-              style={{ ...smallButtonStyle, opacity: budgetBusy ? 0.5 : 1 }}
-              disabled={budgetBusy}
-              onClick={() => saveGlobalBudget(false)}
-            >
-              {t('automation.budget.save')}
-            </button>
-            {globalLimit !== undefined && (
-              <button
-                style={{ ...smallButtonStyle, opacity: budgetBusy ? 0.5 : 1 }}
-                disabled={budgetBusy}
-                onClick={() => saveGlobalBudget(true)}
-              >
-                {t('automation.budget.clear')}
-              </button>
-            )}
-          </div>
-          <div style={{ fontSize: 10.5, color: SECONDARY, marginTop: 4, lineHeight: 1.45 }}>
-            {t('automation.budget.hint')}
-          </div>
-          {budgetError && (
-            <div style={{ fontSize: 11, color: 'var(--danger-text)', marginTop: 4 }}>
-              {budgetError}
-            </div>
-          )}
-        </div>
-
-        {error && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            marginBottom: 10, padding: '6px 9px', borderRadius: 6,
-            background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.35)',
-            color: 'var(--danger-text)', fontSize: 11,
-          }}>
-            <AlertTriangle size={12} />
-            <span>{error}</span>
-          </div>
-        )}
+        <AutomationErrorBanner error={error} />
 
         {/* The filter row lives outside the list's conditional so typing can
             empty the list without unmounting (and blurring) the field. It is
             plain uncontrolled-by-prefs state: no storage, no store. */}
         {!loading && jobs.length > 0 && (
-          <div style={{
-            display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6,
-            marginBottom: 10,
-          }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 5, flex: '1 1 160px',
-              minWidth: 140, maxWidth: 280,
-              height: 24, boxSizing: 'border-box', padding: '0 9px', borderRadius: 8,
-              border: '1px solid var(--border)', background: 'var(--bg-hover)',
-              transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
-            }}>
-              <Search size={11} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-              <input
-                value={filterText}
-                onChange={e => setFilterText(e.target.value)}
-                onKeyDown={event => {
-                  // Escape is the field's own reset, not the page's: with a
-                  // value present it clears the text and keeps the caret here;
-                  // with nothing to clear it does nothing.
-                  if (event.key === 'Escape' && filterText !== '') {
-                    event.preventDefault()
-                    setFilterText('')
-                  }
-                }}
-                placeholder={t('automation.filter.placeholder')}
-                aria-label={t('automation.filter.placeholder')}
-                spellCheck={false}
-                autoCorrect="off"
-                autoCapitalize="off"
-                onFocus={e => {
-                  const bar = e.currentTarget.parentElement
-                  if (bar) {
-                    bar.style.boxShadow = '0 0 0 2px var(--accent-bg)'
-                    bar.style.borderColor = 'var(--accent-border)'
-                  }
-                }}
-                onBlur={e => {
-                  const bar = e.currentTarget.parentElement
-                  if (bar) {
-                    bar.style.boxShadow = 'none'
-                    bar.style.borderColor = 'var(--border)'
-                  }
-                }}
-                style={{
-                  flex: 1, minWidth: 0, background: 'none', border: 'none',
-                  color: 'var(--text-primary)', fontSize: 11,
-                }}
-              />
-              {filterText && (
-                <button
-                  type="button"
-                  onClick={() => setFilterText('')}
-                  aria-label={t('automation.filter.clearSearch')}
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'var(--text-muted)', display: 'flex', padding: 0,
-                  }}
-                >
-                  <X size={10} />
-                </button>
-              )}
-            </div>
-
-            {/* All four chips are always present with their counts, even at
-                zero, so the row does not reflow as jobs start, fail, or are
-                switched off. A zero-count chip is disabled: filtering to it
-                could only produce the empty state, and its count already says
-                why. The counts follow the text query but not the chip
-                selection, so a chip advertises what toggling it would reveal. */}
-            <span
-              role="group"
-              aria-label={t('automation.filter.status.group')}
-              style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}
-            >
-              {JOB_FILTER_STATUSES.map(status => {
-                const active = filterStatuses.includes(status)
-                const count = statusCounts[status]
-                const unavailable = count === 0 && !active
-                return (
-                  <button
-                    key={status}
-                    type="button"
-                    aria-pressed={active}
-                    disabled={unavailable}
-                    onClick={() => setFilterStatuses(prev => prev.includes(status)
-                      ? prev.filter(value => value !== status)
-                      : [...prev, status])}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                      height: 24, boxSizing: 'border-box', padding: '0 9px',
-                      borderRadius: 999, fontSize: 11, lineHeight: '16px',
-                      cursor: unavailable ? 'default' : 'pointer',
-                      border: `1px solid ${active ? 'var(--accent-border)' : 'var(--border)'}`,
-                      background: active ? 'var(--accent-bg)' : 'transparent',
-                      color: active ? 'var(--accent-text)' : SECONDARY,
-                      fontWeight: active ? 600 : 400,
-                      opacity: unavailable ? 0.45 : 1,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {t(`automation.filter.status.${status}`)}
-                    <span style={{ fontSize: 10, opacity: 0.7, fontVariantNumeric: 'tabular-nums' }}>
-                      {count}
-                    </span>
-                  </button>
-                )
-              })}
-            </span>
-
-            {/* A native select, not four more chips: ordering is exactly one
-                choice out of four, the element already gives keyboard and
-                screen-reader semantics for free, and a dropdown stays as quiet
-                as the chips instead of adding another row of pressable
-                controls. It is styled to the same 24px height and muted text
-                as its neighbours; the accessible name is separate from the
-                current value so "Next run" reads as an order, not a filter. */}
-            <select
-              value={sortMode}
-              onChange={event => setSortMode(event.target.value as JobSortMode)}
-              aria-label={t('automation.sort.label')}
-              title={t('automation.sort.label')}
-              style={{
-                height: 24, boxSizing: 'border-box', padding: '0 8px',
-                borderRadius: 8, border: '1px solid var(--border)',
-                background: 'transparent', color: SECONDARY, fontSize: 11,
-                cursor: 'pointer', maxWidth: 170,
-              }}
-            >
-              {JOB_SORT_MODES.map(mode => (
-                <option key={mode} value={mode}>{t(`automation.sort.${mode}`)}</option>
-              ))}
-            </select>
-
-            {filtersActive && (
-              <button type="button" onClick={clearFilters} style={FILTER_LINK}>
-                {t('automation.filter.clear')}
-              </button>
-            )}
-
-            <span
-              role="status"
-              aria-live="polite"
-              style={{
-                marginLeft: 'auto', fontSize: 10.5, color: SECONDARY,
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
-              {t('automation.filter.count', {
-                shown: filteredJobs.length,
-                total: jobs.length,
-              })}
-            </span>
-          </div>
+          <AutomationFilterRow
+            t={t}
+            filterText={filterText}
+            onFilterText={setFilterText}
+            filterStatuses={filterStatuses}
+            onToggleStatus={status => setFilterStatuses(prev => prev.includes(status)
+              ? prev.filter(value => value !== status)
+              : [...prev, status])}
+            statusCounts={statusCounts}
+            sortMode={sortMode}
+            onSortMode={setSortMode}
+            filtersActive={filtersActive}
+            onClear={clearFilters}
+            shown={filteredJobs.length}
+            total={jobs.length}
+          />
         )}
 
-        {loading ? (
-          <div style={{ fontSize: 12, color: SECONDARY, padding: '10px 0' }}>{t('common.loading')}</div>
-        ) : jobs.length === 0 ? (
-          <div style={{ fontSize: 12, color: SECONDARY, padding: '10px 0', lineHeight: 1.5 }}>
-            {t('automation.empty')}
-          </div>
-        ) : filteredJobs.length === 0 ? (
-          // One line, with the reset beside it: a filter that matches nothing
-          // must not look like an empty account.
-          <div style={{
-            display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8,
-            fontSize: 11.5, color: SECONDARY, padding: '10px 0', lineHeight: 1.5,
-          }}>
-            <span>
-              {filterText.trim()
-                ? t('automation.filter.emptyQuery', { query: filterText.trim() })
-                : t('automation.filter.empty')}
-            </span>
-            <button type="button" onClick={clearFilters} style={FILTER_LINK}>
-              {t('automation.filter.clear')}
-            </button>
-          </div>
-        ) : (
+        <AutomationListState
+          t={t}
+          loading={loading}
+          total={jobs.length}
+          filteredCount={filteredJobs.length}
+          filterText={filterText}
+          onClear={clearFilters}
+        />
+
+        {sortedJobs.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {sortedJobs.map((job, index) => {
-              const status = statusLine(job)
-              // A job whose requests keep being refused is pointed at its own
-              // configuration, never told it is broken (see `approvalPattern`).
-              const repeatedAsking = deriveRepeatedAsking(job)
-              const usage = usageLine(job)
-              const spendLimit = spendLimitLine(job)
-              const expert = jobExpert(job)
-              // A plugin-made job keeps its origin across restarts, so the badge
-              // is read from the job itself, not from a session-local guess. A
-              // plugin that has since been uninstalled leaves the id behind,
-              // which is still enough to keep the row honest and working.
-              const origin = job.originPluginId ? pluginOrigin(job.originPluginId) : null
-              // `none` (no id) is the documented legacy state and shows no chip.
-              // `stale` (an id whose node is gone) is a distinct visible state —
-              // it must not look like "no department", and must never be moved.
-              const department = resolveJobDepartment(job.departmentId, departmentOptions)
-              // Normalized through the same helper a workflow uses, so the job
-              // and the workflow drafted from one conversation word their origin
-              // identically. An empty object means a hand-made/pre-field job.
-              const provenance = workflowProvenance(
-                job.sourceConversation,
-                job.sourceTitle,
-                job.sourceDraftedAt ?? '',
-              )
-              const busy = busyId === job.id || job.running
-              // A watch job runs on an event, so its schedule line names the
-              // path instead of a time, and a lost path is the row's warning.
-              const watch = job.trigger.kind === 'watch'
-              const watchWarning = watchWarningText(job, t)
-              // What the row says about the next occurrence: off, waiting on a
-              // path, no occurrence, due/overdue, or a real future time. The
-              // helper owns every one of those distinctions so this row does
-              // not print a stale timestamp as if it were upcoming.
-              const nextRun = nextRunText(job, t, resolvedLocale)
-              // The pure view selects which records are visible (five, every
-              // one, or every failure); it returns them in stored order, so the
-              // disclosure's long-standing newest-first presentation is made
-              // here, once. A job that has never run keeps the disclosure
-              // unmounted rather than opening onto an empty table.
-              const historyUi = runHistoryUi[job.id] ?? RUN_HISTORY_UI_DEFAULT
-              const historyView = viewRunHistory(job.history, {
-                failuresOnly: historyUi.failuresOnly,
-                expanded: historyUi.expanded,
-              })
-              const runRows = historyView.rows.slice().reverse()
-              const chainRow = chainClauses(job)
-              return (
-                <div
-                  key={job.id}
-                  ref={el => { jobRowRefs.current[job.id] = el }}
-                  data-automation-job={job.id}
-                  data-automation-job-focused={highlightJobId === job.id ? 'true' : undefined}
-                  style={{
-                    display: 'flex', gap: 10, alignItems: 'flex-start',
-                    padding: '10px 0',
-                    borderTop: index === 0 ? 'none' : '1px solid var(--border)',
-                    opacity: job.enabled ? 1 : 0.62,
-                    // A brief tint marks the row the search opened; the
-                    // transition fades it without a second state change.
-                    background: highlightJobId === job.id ? 'var(--accent-bg)' : 'transparent',
-                    boxShadow: highlightJobId === job.id
-                      ? 'inset 0 0 0 1px var(--accent-border)'
-                      : 'inset 0 0 0 1px transparent',
-                    borderRadius: 6,
-                    transition: 'background-color 0.6s ease, box-shadow 0.6s ease',
-                  }}
-                >
-                  <div style={{ paddingTop: 1 }}>
-                    <Toggle
-                      value={job.enabled}
-                      onChange={v => toggleJob(job, v)}
-                      disabled={busyId === job.id}
-                      aria-label={t('automation.enabled')}
-                    />
-                  </div>
-
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {job.name}
-                      </span>
-                      {origin && (
-                        // Named on the row, not only in the editor: the point is
-                        // to tell at a glance that this schedule was not created
-                        // by the user. It stays a chip, so Edit and Delete beside
-                        // it look no different from any other job's.
-                        <span
-                          title={origin.installed
-                            ? t('automation.pluginOrigin.hint', { plugin: origin.name })
-                            : t('automation.pluginOrigin.missing')}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 4,
-                            fontSize: 11, padding: '0 6px', borderRadius: 8,
-                            color: 'var(--accent-text)', background: 'rgba(99,102,241,0.12)',
-                            border: '1px solid rgba(99,102,241,0.35)',
-                          }}
-                        >
-                          <Puzzle size={10} style={{ flexShrink: 0 }} />
-                          {t('automation.pluginOrigin.badge', { plugin: origin.name })}
-                        </span>
-                      )}
-                      {department.state === 'found' && (
-                        // A compact chip, like the plugin origin: the department
-                        // is a filing, and the tooltip carries the full path plus
-                        // the reminder that it is not where the job runs.
-                        <span
-                          title={t('automation.department.rowTitle', { path: department.path })}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 4,
-                            fontSize: 11, padding: '0 6px', borderRadius: 8,
-                            color: SECONDARY, background: 'var(--bg-hover)',
-                            border: '1px solid var(--border)',
-                          }}
-                        >
-                          <Building2 size={10} style={{ flexShrink: 0 }} />
-                          {department.label}
-                        </span>
-                      )}
-                      {department.state === 'stale' && (
-                        // Not "no department": the job still carries an id, but
-                        // the node is gone. The warning colour and the sentence
-                        // are the only honest way to show a filing that cannot
-                        // resolve yet must not be cleared behind the user's back.
-                        <span
-                          title={t('automation.department.rowMissingTitle', { id: department.id })}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 4,
-                            fontSize: 11, padding: '0 6px', borderRadius: 8,
-                            color: WARNING, background: 'var(--bg-hover)',
-                            border: '1px solid var(--border)',
-                          }}
-                        >
-                          <AlertTriangle size={10} style={{ flexShrink: 0 }} />
-                          {t('automation.department.missingOption')}
-                        </span>
-                      )}
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4, flexWrap: 'wrap',
-                        maxWidth: '100%', overflowWrap: 'anywhere',
-                        fontSize: 11, color: watchWarning ? WARNING : SECONDARY,
-                      }}>
-                        {/* A clock beside "when the path changes" would promise
-                            a time that does not exist. */}
-                        {watch ? <RefreshCw size={11} /> : <Clock size={11} />}
-                        {scheduleText(t, job.trigger)}
-                        {/* One quiet clause on the schedule line instead of a
-                            second line: the row already carries the action,
-                            expert, last outcome, spend and history. Under the
-                            global pause an enabled job's timestamp is frozen,
-                            so it is omitted; a disabled job still says it is
-                            off, because that is a fact about the job itself. */}
-                        {(!pausedAll || !job.enabled) && (
-                          <span style={{ color: nextRun.overdue ? WARNING : SECONDARY }}>
-                            {` · ${nextRun.text}`}
-                          </span>
-                        )}
-                      </span>
-                      {pausedAll && job.enabled && (
-                        // An enabled job under the global pause must not look
-                        // like one that is about to fire. The switch stays on;
-                        // this chip is what distinguishes the global state from
-                        // every job being individually paused.
-                        <span
-                          title={t('automation.pauseAll.banner')}
-                          style={{
-                            fontSize: 11, padding: '0 6px', borderRadius: 8,
-                            color: SECONDARY, background: 'var(--bg-hover)',
-                            border: '1px solid var(--border)',
-                          }}
-                        >
-                          {t('automation.pauseAll.row')}
-                        </span>
-                      )}
-                      {job.quietOnSuccess === true && (
-                        // A quiet clause beside the schedule, not another badge:
-                        // it says why a success will not call the user.
-                        <span style={{ fontSize: 11, color: SECONDARY }}>
-                          {`· ${t('automation.quietOnSuccess.row')}`}
-                        </span>
-                      )}
-                      {!watch && job.missedRunPolicy === 'skip' && (
-                        // A short clause, like quiet mode: the row otherwise
-                        // gives no sign that a time missed while closed will
-                        // not be caught up.
-                        <span style={{ fontSize: 11, color: SECONDARY }}>
-                          {`· ${t('automation.missedPolicy.row')}`}
-                        </span>
-                      )}
-                      {job.effort !== undefined && (
-                        // The same quiet-clause shape as quiet mode and the
-                        // missed-run choice: a per-job override the schedule
-                        // line can state without a second badge. Shown for an
-                        // explicit 'auto' too — that is a deliberate choice that
-                        // outranks the app default, not the default itself.
-                        <span
-                          title={t('automation.effort.hint')}
-                          style={{ fontSize: 11, color: SECONDARY }}
-                        >
-                          {`· ${t('automation.effort.row', { level: t(`effort.${job.effort}`) })}`}
-                        </span>
-                      )}
-                      {job.alertPolicy === 'after_streak' && (
-                        // Only the non-default policy earns a clause: a job that
-                        // announces every failure (the default) stays silent
-                        // here, exactly like the effort override above.
-                        <span
-                          title={t('automation.alertPolicy.hint')}
-                          style={{ fontSize: 11, color: SECONDARY }}
-                        >
-                          {`· ${t('automation.alertPolicy.row')}`}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Where this job was drafted from. A job made in Settings,
-                        and every job saved before the field existed, carries no
-                        conversation id — the shared line then renders nothing
-                        at all rather than "unknown source". */}
-                    <div style={{ marginTop: 2 }}>
-                      <ProvenanceLine
-                        sessionId={provenance.sourceConversation}
-                        title={provenance.sourceTitle}
-                        date={provenance.sourceDraftedAt}
-                      />
-                    </div>
-
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
-                      fontSize: 11, color: SECONDARY, marginTop: 3, lineHeight: 1.45,
-                    }}>
-                      <span>
-                        {job.action.kind === 'workflow'
-                          ? t('automation.workflowAction', {
-                              name: workflowName(job.action.workflowId) ?? t('automation.workflowMissingShort'),
-                            })
-                          : job.action.kind === 'skill'
-                            // Falling back to the folder name is deliberate: it
-                            // is the identity the job stores, so it is true even
-                            // when the scan has not returned or the skill is gone.
-                            ? t('automation.skillAction', {
-                                name: skillName(job.action.skillSource, job.action.skillDir) ??
-                                  (job.action.skillDir || 'SKILL.md'),
-                              })
-                            : t('automation.promptAction', { text: job.action.prompt })}
-                      </span>
-                      {expert && (
-                        // The expert behind a background job is the point of the
-                        // binding, so it sits on the row rather than behind Edit.
-                        // A short suffix separates this job's override from the
-                        // workflow's own binding, which can differ after a re-bind.
-                        <span
-                          title={expert.override
-                            ? t('automation.expert.overrideHint')
-                            : t('automation.personaHint')}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 4,
-                            padding: '1px 7px', borderRadius: 9, fontWeight: 600,
-                            color: expert.kind === 'missing' ? WARNING : 'var(--accent-text)',
-                            background: 'var(--bg-hover)',
-                            border: '1px solid var(--border)',
-                          }}
-                        >
-                          {expert.kind === 'missing'
-                            ? t('automation.personaMissing')
-                            : expert.kind === 'assistant'
-                              ? t('automation.expert.assistant')
-                              : `${expert.persona.emoji} ${expert.persona.name}`.trim()}
-                          {expert.override && (
-                            <span style={{ color: SECONDARY, fontWeight: 500 }}>
-                              {`· ${t('automation.expert.overrideMark')}`}
-                            </span>
-                          )}
-                        </span>
-                      )}
-                    </div>
-
-                    {chainRow.length > 0 && (
-                      // Configuration, not history: it sits with the action,
-                      // above the last outcome, because it is part of what this
-                      // job is. A gone target turns the clause into a warning
-                      // rather than a name.
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap',
-                        fontSize: 11, color: SECONDARY, marginTop: 3, lineHeight: 1.45,
-                      }}>
-                        <GitBranch size={11} style={{ flexShrink: 0 }} />
-                        {chainRow.map((clause, clauseIndex) => (
-                          <span
-                            key={clauseIndex}
-                            title={clause.title}
-                            style={clause.missing ? { color: WARNING } : undefined}
-                          >
-                            {clauseIndex > 0 ? ` · ${clause.text}` : clause.text}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    <div style={{ fontSize: 11, color: status.color, marginTop: 4, lineHeight: 1.45 }}>
-                      {/* Only the held label carries a tooltip; `help` is the
-                          cue that the sentence explains rather than acts. */}
-                      <span title={status.title} style={status.title ? { cursor: 'help' } : undefined}>
-                        {status.text}
-                      </span>
-                      {job.failureStreak >= 2 && (
-                        // Only an unattended job that keeps failing owes its owner
-                        // this sentence; a single failure is already on the line.
-                        <span style={{ color: 'var(--danger-text)' }}>
-                          {` · ${t('automation.failureStreak', { count: job.failureStreak })}`}
-                        </span>
-                      )}
-                      {usage && (
-                        // Muted so the spend reads as an aside to the outcome,
-                        // not a second status. The tooltip carries the parts a
-                        // compact row has no room for.
-                        <span style={{ color: SECONDARY }} title={usage.title}>{` · ${usage.text}`}</span>
-                      )}
-                    </div>
-
-                    {repeatedAsking && (
-                      // Quiet on purpose: a refusal is a decision, not a fault,
-                      // so this is neither warning-coloured nor next to the
-                      // failure streak. It names the last ask and offers the one
-                      // honest next step — open the job — instead of teaching
-                      // the user to approve the same request every night.
-                      <div style={{
-                        display: 'flex', alignItems: 'flex-start', gap: 4, flexWrap: 'wrap',
-                        rowGap: 2,
-                        fontSize: 11.5, color: SECONDARY, marginTop: 4, lineHeight: 1.5,
-                      }}>
-                        <Clock size={11} style={{ flexShrink: 0, marginTop: 3 }} />
-                        {/* The quoted ask may be long: it wraps here instead of
-                            widening the row, and the full text stays in the
-                            tooltip the note already carries. */}
-                        <span style={{ minWidth: 0, overflowWrap: 'anywhere' }} title={t('automation.repeatedAsking.hint')}>
-                          {t('automation.repeatedAsking.note', {
-                            count: repeatedAsking.refusals,
-                            subject: clipText(repeatedAsking.latestSubject),
-                          })}
-                        </span>
-                        <button
-                          type="button"
-                          style={{
-                            ...QUIET_LINK,
-                            // A two-pixel-high link gave the focus ring almost
-                            // nothing to sit on; the padding is hit area only.
-                            margin: '0 0 0 2px', padding: '1px 4px', borderRadius: 4,
-                          }}
-                          aria-label={t('automation.repeatedAsking.reviewAria', { name: job.name })}
-                          onClick={() => setDialog(job)}
-                        >
-                          {t('automation.repeatedAsking.review')}
-                        </button>
-                      </div>
-                    )}
-
-                    {job.pendingRetry && (
-                      // The row must say a retry is already waiting, not just
-                      // that the last run failed; the time is the promise the
-                      // scheduler will keep on its next tick.
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: 4,
-                        fontSize: 11, color: WARNING, marginTop: 3, lineHeight: 1.45,
-                      }}>
-                        <RotateCcw size={11} style={{ flexShrink: 0 }} />
-                        <span>
-                          {t('automation.retry.pending', {
-                            attempt: job.pendingRetry.attempt,
-                            count: limits?.retry?.maxRetries ?? 2,
-                            time: timeText(job.pendingRetry.dueAt),
-                          })}
-                        </span>
-                      </div>
-                    )}
-
-                    {spendLimit && (
-                      // The limit's own line, separate from the last run's spend:
-                      // it answers "how close am I to the rail", not "what did
-                      // this run cost". Warning colour means the rail is at or
-                      // over the limit, or could not be evaluated.
-                      <div
-                        style={{ fontSize: 11, color: spendLimit.color, marginTop: 3, lineHeight: 1.45 }}
-                        title={spendLimit.title}
-                      >
-                        {spendLimit.text}
-                      </div>
-                    )}
-
-                    {watchWarning && (
-                      // The watcher was never attached, so the job will not
-                      // fire. The sentence above already says what it watches;
-                      // this says it is not watching it.
-                      <div style={{
-                        display: 'flex', alignItems: 'flex-start', gap: 5,
-                        fontSize: 11, color: WARNING, marginTop: 4, lineHeight: 1.5,
-                      }}>
-                        <AlertTriangle size={11} style={{ flexShrink: 0, marginTop: 2 }} />
-                        <span>{watchWarning}</span>
-                      </div>
-                    )}
-
-                    {job.actionMissing && (
-                      // Icon hugs the first line; centring it against a wrapped
-                      // three-line warning leaves a hole beside the opening words.
-                      <div style={{
-                        display: 'flex', alignItems: 'flex-start', gap: 5,
-                        fontSize: 11, color: WARNING, marginTop: 4, lineHeight: 1.5,
-                      }}>
-                        <AlertTriangle size={11} style={{ flexShrink: 0, marginTop: 2 }} />
-                        <span>
-                          {job.action.kind === 'skill'
-                            ? t('automation.skillMissing')
-                            : t('automation.workflowMissing')}
-                        </span>
-                      </div>
-                    )}
-
-                    {job.history.length > 0 && (
-                      // Native <details> gives a collapsed-by-default, keyboard
-                      // operable disclosure without local state; the row grows
-                      // only when the user asks it to. Closing it forgets the
-                      // per-job view, so reopening starts from five rows again.
-                      <details
-                        style={{ marginTop: 3 }}
-                        onToggle={event => {
-                          if (!event.currentTarget.open) resetRunHistoryUi(job.id)
-                        }}
-                      >
-                        <summary style={{
-                          width: 'fit-content', cursor: 'pointer',
-                          fontSize: 11, color: SECONDARY, lineHeight: 1.45,
-                        }}>
-                          {/* Keep the native disclosure marker: it is the one
-                              affordance that says "this expands" without CSS. */}
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            <History size={11} />
-                            {t('automation.history.summary', {
-                              count: Math.min(job.history.length, RUN_HISTORY_CAP),
-                            })}
-                          </span>
-                        </summary>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                          {/* A chip, not a second disclosure: it narrows the
-                              list already on screen. The count stays visible
-                              at zero so the empty state below is reachable and
-                              the user can see there is nothing to find. */}
-                          <button
-                            type="button"
-                            aria-pressed={historyUi.failuresOnly}
-                            onClick={() => patchRunHistoryUi(job.id, {
-                              failuresOnly: !historyUi.failuresOnly,
-                            })}
-                            title={t('automation.history.failuresHint')}
-                            style={{
-                              display: 'inline-flex', alignItems: 'center', gap: 4,
-                              fontSize: 11, padding: '0 6px', borderRadius: 8, cursor: 'pointer',
-                              color: historyUi.failuresOnly ? 'var(--accent-text)' : SECONDARY,
-                              background: historyUi.failuresOnly
-                                ? 'rgba(99,102,241,0.12)'
-                                : 'var(--bg-hover)',
-                              border: `1px solid ${historyUi.failuresOnly
-                                ? 'rgba(99,102,241,0.35)'
-                                : 'var(--border)'}`,
-                            }}
-                          >
-                            <AlertTriangle size={10} style={{ flexShrink: 0 }} />
-                            {t('automation.history.failures', { count: historyView.failureCount })}
-                          </button>
-                        </div>
-                        {historyView.isEmpty && (
-                          // An explicit line, never a gap under the filter:
-                          // "nothing failed" is an answer, not a missing list.
-                          <div style={{
-                            fontSize: 11, color: SECONDARY, marginTop: 3, lineHeight: 1.45,
-                          }}>
-                            {t('automation.history.failuresEmpty')}
-                          </div>
-                        )}
-                        <ol
-                          aria-label={t('automation.history.listLabel')}
-                          style={{
-                            margin: '3px 0 0', padding: 0, listStyle: 'none',
-                            display: 'flex', flexDirection: 'column', gap: 2,
-                          }}
-                        >
-                          {runRows.map((record, runIndex) => {
-                            const state = runStatus(record)
-                            const duration = durationText(record.durationMs)
-                            const runUsage = record.usage
-                            const tokens = runUsage ? runUsage.inputTokens + runUsage.outputTokens : 0
-                            const cost = runUsage?.costUsd !== undefined && runUsage.costUsd > 0
-                              ? costText(runUsage.costUsd)
-                              : null
-                            // A skip's status already says why it did not run;
-                            // only a failure carries an extra explanation.
-                            const detail = record.status === 'error' && record.error ? errorText(record.error) : ''
-                            const memory = memoryLine(record.memory)
-                            // Only a real snapshot can be truncated; a failed
-                            // read has nothing to clip and must not imply one.
-                            const memoryTruncated = record.memory?.state === 'ok' && record.memory.truncated
-                            const handbook = handbookLine(record.handbook)
-                            const fileView = viewRunFiles(record.changedFiles)
-                            const filesKey = `${job.id}:${record.startedAt}:${runIndex}`
-                            const filesOpen = runFilesOpen[filesKey] === true
-                            const fileLabel = fileView.coverage === 'captured'
-                              ? fileView.totalFiles === 1
-                                ? t('automation.files.countOne')
-                                : t('automation.files.countMany', { count: fileView.totalFiles })
-                              : t('automation.files.none')
-                            const sessionId = record.sessionId
-                            return (
-                              <li
-                                key={`${record.startedAt}-${runIndex}`}
-                                style={{
-                                  display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap',
-                                  fontSize: 11, color: SECONDARY, lineHeight: 1.45,
-                                }}
-                              >
-                                <span>{timeText(record.startedAt)}</span>
-                                <span style={{ color: state.color }} title={detail || undefined}>
-                                  {state.text}{detail ? `: ${clipText(detail)}` : ''}
-                                </span>
-                                {record.retry !== undefined && (
-                                  // Without this, a night with three attempts looks
-                                  // like three separate scheduled runs.
-                                  <span style={{ color: 'var(--accent-text)' }}>
-                                    {t('automation.retry.badge', { attempt: record.retry })}
-                                  </span>
-                                )}
-                                {record.announcement === 'held' && (
-                                  // A first failure whose alert the policy held.
-                                  // It is written in words, not a bare colour: a
-                                  // reader must not mistake it for a quiet success
-                                  // or for a run that announced nothing.
-                                  <span
-                                    style={{ color: WARNING }}
-                                    title={t('automation.alertPolicy.heldHint')}
-                                  >
-                                    {t('automation.alertPolicy.held')}
-                                  </span>
-                                )}
-                                {(record.approvals ?? []).map((approval, approvalIndex) => {
-                                  // Who answered, how, after how long. One span
-                                  // per request: a run may have held several over
-                                  // its life. The verbatim ask is in the tooltip
-                                  // rather than in the row, which already carries
-                                  // time, status, duration and spend; the glyph
-                                  // makes a timeout readable apart from a denial
-                                  // without relying on colour.
-                                  const mark = approvalClauseMark(approval.outcome)
-                                  return (
-                                    <span
-                                      key={`${approval.askedAt}-${approvalIndex}`}
-                                      title={approvalTooltip(approval, t)}
-                                      style={{
-                                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                                        color: mark.color, lineHeight: 1.5,
-                                      }}
-                                    >
-                                      {/* The glyph keeps its size while the
-                                          sentence wraps on a narrow row. */}
-                                      <span style={{ display: 'inline-flex', flexShrink: 0 }}>{mark.icon}</span>
-                                      <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
-                                        {approvalClause(approval, t, durationText)}
-                                      </span>
-                                    </span>
-                                  )
-                                })}
-                                {record.chain?.nextJobId && (
-                                  // What followed this run. The name is the one
-                                  // held at start time; the job may since have
-                                  // been renamed, which is why the id is the key.
-                                  <span
-                                    style={{ color: 'var(--accent-text)' }}
-                                    title={t('automation.chain.historyStartedHint')}
-                                  >
-                                    {t('automation.chain.historyStarted', {
-                                      name: record.chain.nextJobName ?? record.chain.nextJobId,
-                                    })}
-                                  </span>
-                                )}
-                                {record.chain?.note && (
-                                  // The chain named a successor and it did not
-                                  // start. Warning-toned: the user configured a
-                                  // follow-up that did not happen, and this is the
-                                  // only place it is recorded.
-                                  <span style={{ color: WARNING }} title={t('automation.chain.noteHint')}>
-                                    {t(`automation.chain.note.${record.chain.note}`, {
-                                      depth: limits?.chainMaxDepth ?? 4,
-                                    })}
-                                  </span>
-                                )}
-                                {memory && (
-                                  // Shape only — tiers and size. A failed read is
-                                  // the case the user most needs to see, so it
-                                  // gets its own words and warning colour.
-                                  <span
-                                    style={memory.color ? { color: memory.color } : undefined}
-                                    title={memory.title}
-                                  >
-                                    {memory.text}
-                                  </span>
-                                )}
-                                {memory?.unreadable && (
-                                  // Warning-toned because the run lost part of
-                                  // memory, even though it did continue.
-                                  <span style={{ color: WARNING }} title={memory.unreadable.title}>
-                                    {memory.unreadable.text}
-                                  </span>
-                                )}
-                                {memoryTruncated && (
-                                  <span title={t('automation.memory.truncatedHint')}>
-                                    {t('automation.memory.truncated')}
-                                  </span>
-                                )}
-                                {handbook && (
-                                  // The desk's standing rules, in the same quiet
-                                  // shape as the memory clause above. Absences
-                                  // are printed with their reason rather than
-                                  // skipped — a run that lost its rules must be
-                                  // explainable after the fact.
-                                  <span
-                                    style={handbook.color ? { color: handbook.color } : undefined}
-                                    title={handbook.title}
-                                  >
-                                    {handbook.text}
-                                  </span>
-                                )}
-                                {handbook?.truncated && (
-                                  <span title={handbook.truncated.title}>
-                                    {handbook.truncated.text}
-                                  </span>
-                                )}
-                                {handbook?.stale && (
-                                  <span title={handbook.stale.title}>
-                                    {handbook.stale.text}
-                                  </span>
-                                )}
-                                {fileView.coverage !== 'unrecorded' && (
-                                  // Present-but-empty is a real answer ("no
-                                  // file-editing calls seen"), so it stays
-                                  // visible; an unrecorded run keeps the row
-                                  // silent rather than implying an empty set.
-                                  <button
-                                    type="button"
-                                    onClick={() => setRunFilesOpen(prev => ({
-                                      ...prev,
-                                      [filesKey]: !prev[filesKey],
-                                    }))}
-                                    aria-expanded={filesOpen}
-                                    aria-label={fileView.coverage === 'captured'
-                                      ? t('automation.files.aria', { time: timeText(record.startedAt) })
-                                      : t('automation.files.none')}
-                                    title={t('automation.files.coverageNote')}
-                                    style={RUN_FILES_LINK}
-                                  >
-                                    {fileLabel}
-                                  </button>
-                                )}
-                                {duration && <span>{duration}</span>}
-                                {tokens > 0 && <span>{t('automation.usage.tokens', { count: formatTokens(tokens) })}</span>}
-                                {cost && <span>{cost}</span>}
-                                {record.late && <span>{t('automation.ranLate')}</span>}
-                                {sessionId && (
-                                  <button
-                                    type="button"
-                                    onClick={() => openRun(sessionId)}
-                                    aria-label={t('automation.history.openAria', { time: timeText(record.startedAt) })}
-                                    style={{
-                                      background: 'none', border: 'none', padding: 0,
-                                      font: 'inherit', fontSize: 11,
-                                      color: 'var(--accent-text)', cursor: 'pointer',
-                                    }}
-                                  >
-                                    {t('automation.history.open')}
-                                  </button>
-                                )}
-                                {filesOpen && fileView.coverage !== 'unrecorded' && (
-                                  // One quiet panel inside the existing row, not
-                                  // a second card. The coverage sentence is
-                                  // always present here — the path list must
-                                  // never read as the run's complete effect on
-                                  // disk.
-                                  <div style={{
-                                    flexBasis: '100%', minWidth: 0,
-                                    margin: '2px 0 4px', paddingLeft: 10,
-                                    borderLeft: '2px solid var(--border)',
-                                    display: 'flex', flexDirection: 'column', gap: 3,
-                                    lineHeight: 1.5,
-                                  }}>
-                                    <div style={{ fontSize: 10, color: SECONDARY }}>
-                                      {t('automation.files.coverageNote')}
-                                    </div>
-                                    {fileView.coverage === 'captured' ? (
-                                      <>
-                                        <div style={{ fontSize: 10, color: SECONDARY }}>
-                                          {t('automation.files.listLabel')}
-                                          {fileView.editCalls > 0
-                                            ? ` · ${t('automation.files.editCalls', { count: fileView.editCalls })}`
-                                            : ''}
-                                        </div>
-                                        <ul
-                                          aria-label={t('automation.files.listLabel')}
-                                          style={{
-                                            margin: 0, padding: 0, listStyle: 'none',
-                                            display: 'flex', flexDirection: 'column',
-                                            gap: 2, minWidth: 0,
-                                          }}
-                                        >
-                                          {fileView.files.map(file => (
-                                            <li
-                                              key={file.path}
-                                              title={file.state === 'edited'
-                                                ? t('automation.files.editedHint')
-                                                : t('automation.files.attemptedHint')}
-                                              style={{
-                                                display: 'flex', alignItems: 'baseline',
-                                                gap: 6, minWidth: 0, fontSize: 11,
-                                              }}
-                                            >
-                                              <span aria-hidden="true" style={{
-                                                width: 8, flexShrink: 0, textAlign: 'center',
-                                                fontFamily: 'monospace',
-                                                color: file.kind === 'add'
-                                                  ? 'var(--success-text)'
-                                                  : file.kind === 'delete'
-                                                    ? 'var(--danger-text)'
-                                                    : file.kind === 'update'
-                                                      ? 'var(--accent-text)'
-                                                      : SECONDARY,
-                                              }}>
-                                                {fileKindMarker(file.kind)}
-                                              </span>
-                                              <span style={{
-                                                fontFamily: 'monospace',
-                                                color: 'var(--text-secondary)',
-                                                overflowWrap: 'anywhere', minWidth: 0,
-                                              }}>
-                                                {file.path}
-                                              </span>
-                                              {file.state === 'attempted' && (
-                                                // A call the engine never
-                                                // confirmed. It stays visible but
-                                                // is never counted as an edit.
-                                                <span style={{ flexShrink: 0, fontSize: 10, color: WARNING }}>
-                                                  {t('automation.files.attempted')}
-                                                </span>
-                                              )}
-                                            </li>
-                                          ))}
-                                        </ul>
-                                        {fileView.omitted > 0 && (
-                                          <div style={{ fontSize: 10, color: SECONDARY }}>
-                                            {t('automation.files.more', { count: fileView.omitted })}
-                                          </div>
-                                        )}
-                                      </>
-                                    ) : (
-                                      // The capture ran; an empty list is an
-                                      // answer, and its limits are still stated
-                                      // above rather than left implicit.
-                                      <div style={{ fontSize: 10, color: SECONDARY }}>
-                                        {t('automation.files.noneNote')}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </li>
-                            )
-                          })}
-                        </ol>
-                        {historyView.canShowAll && (
-                          // Only the newest five were listed; this reveals
-                          // every remembered run below them, still newest
-                          // first. The filter never needs it: it lists every
-                          // failure already.
-                          <button
-                            type="button"
-                            onClick={() => patchRunHistoryUi(job.id, { expanded: true })}
-                            style={QUIET_LINK}
-                          >
-                            {t('automation.history.showAll', { count: historyView.totalCount })}
-                          </button>
-                        )}
-                        {historyView.canShowFewer && (
-                          <button
-                            type="button"
-                            onClick={() => patchRunHistoryUi(job.id, { expanded: false })}
-                            style={QUIET_LINK}
-                          >
-                            {t('automation.history.showFewer')}
-                          </button>
-                        )}
-                      </details>
-                    )}
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                    {confirmingId === job.id ? (
-                      // Deleting now leaves the job in Recently deleted, but a
-                      // scheduled job disappearing is still worth a second
-                      // look: the confirmation replaces the row's actions
-                      // instead of opening a dialog on top of the page.
-                      <>
-                        <button
-                          style={{ ...smallButtonStyle, borderColor: 'rgba(248,113,113,0.5)', color: 'var(--danger-text)' }}
-                          onClick={() => removeJob(job)}
-                        >
-                          <Trash2 size={11} />
-                          {t('automation.delete')}
-                        </button>
-                        <button style={smallButtonStyle} onClick={() => setConfirmingId(null)}>
-                          {t('automation.cancel')}
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        {job.lastStatus === 'error' && !job.running && (
-                          // Offered only in a failed state: the point is to turn
-                          // the failure the row is already showing into a
-                          // question. The label stays short so five actions fit;
-                          // the aria-label names the job, because five rows with
-                          // the same words are indistinguishable by ear.
-                          <button
-                            style={{ ...smallButtonStyle, color: 'var(--accent-text)' }}
-                            onClick={() => askInvestigate(job)}
-                            aria-label={t('automation.investigate.aria', { name: job.name })}
-                            title={t('automation.investigate.title')}
-                            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
-                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--accent-text)' }}
-                          >
-                            <Sparkles size={11} />
-                            {t('automation.investigate.ask')}
-                          </button>
-                        )}
-                        <button
-                          style={{ ...smallButtonStyle, opacity: busy ? 0.5 : 1 }}
-                          disabled={busy}
-                          onClick={() => runNow(job)}
-                          onMouseEnter={e => { if (!busy) e.currentTarget.style.color = 'var(--text-primary)' }}
-                          onMouseLeave={e => { e.currentTarget.style.color = SECONDARY }}
-                        >
-                          <Play size={11} />
-                          {t('automation.runNow')}
-                        </button>
-                        <button
-                          style={{ ...smallButtonStyle, opacity: busy ? 0.5 : 1 }}
-                          disabled={busy}
-                          onClick={() => setDialog(job)}
-                          onMouseEnter={e => { if (!busy) e.currentTarget.style.color = 'var(--text-primary)' }}
-                          onMouseLeave={e => { e.currentTarget.style.color = SECONDARY }}
-                        >
-                          <Pencil size={11} />
-                          {t('automation.edit')}
-                        </button>
-                        <button
-                          style={{ ...smallButtonStyle, opacity: busyId === job.id ? 0.5 : 1 }}
-                          disabled={busyId === job.id}
-                          onClick={() => duplicateJob(job)}
-                          title={t('automation.duplicateJobHint')}
-                          onMouseEnter={e => { if (busyId !== job.id) e.currentTarget.style.color = 'var(--text-primary)' }}
-                          onMouseLeave={e => { e.currentTarget.style.color = SECONDARY }}
-                        >
-                          <Copy size={11} />
-                          {t('automation.duplicateJob')}
-                        </button>
-                        <button
-                          style={smallButtonStyle}
-                          disabled={busyId === job.id}
-                          onClick={() => setConfirmingId(job.id)}
-                          onMouseEnter={e => { e.currentTarget.style.color = 'var(--danger-text)' }}
-                          onMouseLeave={e => { e.currentTarget.style.color = SECONDARY }}
-                        >
-                          <Trash2 size={11} />
-                          {t('automation.delete')}
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+            {sortedJobs.map((job, index) => (
+              <AutomationJobRow
+                key={job.id}
+                t={t}
+                locale={resolvedLocale}
+                job={job}
+                jobs={jobs}
+                index={index}
+                highlighted={highlightJobId === job.id}
+                registerRow={el => { jobRowRefs.current[job.id] = el }}
+                pausedAll={pausedAll}
+                workflows={workflows}
+                personas={personas}
+                plugins={plugins}
+                skills={skills}
+                departmentOptions={departmentOptions}
+                limits={limits}
+                busyId={busyId}
+                confirming={confirmingId === job.id}
+                historyUi={runHistoryUi[job.id] ?? RUN_HISTORY_UI_DEFAULT}
+                runFilesOpen={runFilesOpen}
+                onToggle={enabled => { void toggleJob(job, enabled) }}
+                onRunNow={() => { void runNow(job) }}
+                onDuplicate={() => { void duplicateJob(job) }}
+                onDelete={() => { void removeJob(job) }}
+                onAskInvestigate={() => askInvestigate(job)}
+                onEdit={() => setDialog(job)}
+                onConfirmDelete={() => setConfirmingId(job.id)}
+                onCancelDelete={() => setConfirmingId(null)}
+                onOpenRun={openRun}
+                onPatchHistoryUi={patch => patchRunHistoryUi(job.id, patch)}
+                onResetHistoryUi={() => resetRunHistoryUi(job.id)}
+                onToggleRunFiles={key => setRunFilesOpen(prev => ({
+                  ...prev,
+                  [key]: !prev[key],
+                }))}
+              />
+            ))}
           </div>
         )}
       </SettingsGroup>

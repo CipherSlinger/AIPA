@@ -511,7 +511,9 @@
       "skillStepsHeading": "Instructions",
       "skillContextHeading": "Files and commands from the original session",
       "skillContextFile": "Read or changed `{{path}}`",
-      "skillContextCommand": "Ran `{{command}}`"
+      "skillContextCommand": "Ran `{{command}}`",
+      "saved": "Skill \"{{name}}\" saved",
+      "replaced": "Skill \"{{name}}\" replaced"
     }
   },
   "welcome": {
@@ -2003,6 +2005,39 @@
       "scheduleHint": "Open a new automation pre-filled with this skill. Nothing is saved until you press Save.",
       "blockedEmpty": "This SKILL.md has no instructions after its header, so every run would stop with nothing_to_run. Add instructions first, then schedule it.",
       "blockedUnreadable": "This SKILL.md could not be read, so a scheduled run would stop with skill_unreadable. Fix the file first, then schedule it."
+    },
+    "installOutcome": {
+      "replaced": "Skill replaced",
+      "invalidName": "That name cannot become a skill folder. Use at least one letter or digit.",
+      "outsideSkills": "A skill folder must sit directly inside the skills directory.",
+      "alreadyInstalled": "{{name}} is already installed"
+    },
+    "edit": {
+      "edit": "Edit",
+      "editHint": "Edit the instructions and the description. Frontmatter keys this app does not recognise are kept as they are.",
+      "unreadable": "This skill's SKILL.md could not be read, so it cannot be edited.",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "dirty": "Unsaved changes",
+      "discardTitle": "Discard your changes?",
+      "discardBody": "Your edits to this skill have not been saved. Leaving now loses them.",
+      "discard": "Discard changes",
+      "keepEditing": "Keep editing",
+      "descriptionLabel": "Description",
+      "bodyLabel": "Instructions",
+      "previewTitle": "SKILL.md preview",
+      "previewPath": "Saves to {{path}}/SKILL.md",
+      "unparsable": "This file's frontmatter cannot be parsed, so saving is blocked. The body below is still editable. An editor that silently rewrites frontmatter it does not understand would be worse than no editor.",
+      "changedTitle": "This file changed on disk",
+      "changedBody": "It was last written at {{time}}, after you started editing. Nothing has been written.",
+      "reload": "Reload from disk",
+      "reloadWarning": "Reloading discards your draft and shows the file as it is now.",
+      "overwrite": "Overwrite anyway",
+      "overwriting": "Overwriting...",
+      "overwriteWarning": "Overwrite replaces the file on disk with your draft. Frontmatter keys this app can still read are preserved; a file with unreadable frontmatter is refused.",
+      "saveFailed": "Could not save: {{error}}",
+      "saved": "Skill saved"
     }
   },
   "skill": {

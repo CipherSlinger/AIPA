@@ -36,6 +36,10 @@ import {
   applySkillDraft,
   skillDraftNotes,
 } from '../../lib/generalizeSkill'
+import {
+  INSTALL_REPLACE_WARNING_KEY,
+  resolveInstallOutcome,
+} from '../skills/installOutcome'
 import SessionReuseDialogShell from './SessionReuseDialogShell'
 
 interface Props {
@@ -62,6 +66,12 @@ interface AppliedSkill {
 interface GeneralFailure {
   error: SessionGeneralizeError
   reason?: string
+}
+
+/** Filled from a `skill_exists` refusal; the dialog stays open while it shows. */
+interface InstallConflict {
+  dirPath?: string
+  name?: string
 }
 
 const labelStyle: React.CSSProperties = {
@@ -180,6 +190,8 @@ export default function SaveConversationSkillDialog({
   const [tab, setTab] = useState<'edit' | 'preview'>('edit')
   const [installing, setInstalling] = useState(false)
   const [error, setError] = useState('')
+  const [errorDetail, setErrorDetail] = useState('')
+  const [conflict, setConflict] = useState<InstallConflict | null>(null)
   const [pending, setPending] = useState(false)
   const [applied, setApplied] = useState<AppliedSkill | null>(null)
   const [failure, setFailure] = useState<GeneralFailure | null>(null)
@@ -314,7 +326,9 @@ export default function SaveConversationSkillDialog({
     void window.electronAPI?.sessionGeneralizeSkillCancel?.()
   }, [])
 
-  const handleInstall = useCallback(async () => {
+  // `replace` is only true from the Replace button in the conflict band below;
+  // the footer Install button and a retry both send false.
+  const submit = useCallback(async (replace: boolean) => {
     if (!name.trim()) {
       addToast('warning', t('sessionReuse.skill.missingName'))
       return
@@ -329,23 +343,60 @@ export default function SaveConversationSkillDialog({
     }
     setInstalling(true)
     setError('')
+    setErrorDetail('')
     try {
       const result = await window.electronAPI.skillsInstall({
         name: installSlug,
         content: assembleSkillContent(installSlug, description, body, provenance),
+        replace,
       })
-      if (result?.success) {
-        addToast('success', t('sessionReuse.skill.installed', { name: installSlug }))
+      const outcome = resolveInstallOutcome(result, { replaceRequested: replace })
+      if (outcome.kind === 'installed') {
+        setConflict(null)
+        addToast(
+          'success',
+          t(outcome.replaced ? 'sessionReuse.skill.replaced' : 'sessionReuse.skill.saved', {
+            name: installSlug,
+          }),
+        )
         onClose()
+      } else if (outcome.kind === 'exists') {
+        // Keep every field and the dialog: the generated folder is taken, and
+        // the user still needs to see exactly which skill is in the way.
+        setConflict({
+          ...(outcome.dirPath ? { dirPath: outcome.dirPath } : {}),
+          ...(outcome.name ? { name: outcome.name } : {}),
+        })
       } else {
-        setError(result?.error || t('sessionReuse.skill.failed'))
+        setConflict(null)
+        setError(t(outcome.messageKey))
+        // Main's sentence is a secondary detail for a real failure code, not
+        // the headline; `exists` never reaches this branch.
+        if (outcome.kind === 'failed' && outcome.error) setErrorDetail(outcome.error)
       }
     } catch (err) {
-      setError(String(err))
+      setConflict(null)
+      setError(t('sessionReuse.skill.failed'))
+      setErrorDetail(String(err))
     } finally {
       setInstalling(false)
     }
   }, [name, installSlug, description, body, provenance, addToast, t, onClose])
+
+  const handleInstall = useCallback(() => {
+    void submit(false)
+  }, [submit])
+
+  const handleReplace = useCallback(() => {
+    if (!conflict) return
+    void submit(true)
+  }, [conflict, submit])
+
+  const handleOpenExisting = useCallback(() => {
+    if (!conflict?.dirPath) return
+    useUiStore.getState().openSkillDetail(conflict.dirPath)
+    onClose()
+  }, [conflict, onClose])
 
   const failureKey = failure
     ? generalizeErrorKey(failure.error, Boolean(failure.reason && failure.reason.trim()))
@@ -661,7 +712,12 @@ export default function SaveConversationSkillDialog({
               <input
                 autoFocus
                 value={name}
-                onChange={e => setName(e.target.value.slice(0, SKILL_DIALOG_NAME_MAX))}
+                onChange={e => {
+                  setName(e.target.value.slice(0, SKILL_DIALOG_NAME_MAX))
+                  // A new name is a new folder; the old conflict no longer
+                  // describes what Replace would overwrite.
+                  if (conflict) setConflict(null)
+                }}
                 maxLength={SKILL_DIALOG_NAME_MAX}
                 placeholder={t('sessionReuse.skill.namePlaceholder')}
                 data-reuse-field="skill-name"
@@ -745,6 +801,62 @@ export default function SaveConversationSkillDialog({
             </pre>
           )}
 
+          {conflict && (
+            <div
+              role="alert"
+              data-install-conflict
+              style={{
+                marginTop: 10, padding: '9px 11px', borderRadius: 8,
+                background: 'rgba(234,179,8,0.08)',
+                border: '1px solid rgba(234,179,8,0.28)',
+                fontSize: 11, color: 'rgba(253,224,71,0.92)', lineHeight: 1.5,
+              }}
+            >
+              <div style={{ fontWeight: 600 }}>{t('skill.existsTitle')}</div>
+              {/* Same two lines as the creator: the folder in the way, and the
+                  promise that nothing was written this time. */}
+              {conflict.dirPath && (
+                <div>{t('skill.existsBody', { path: conflict.dirPath })}</div>
+              )}
+              {conflict.name && (
+                <div>{t('skill.existsName', { name: conflict.name })}</div>
+              )}
+              <div style={{ marginTop: 3, fontSize: 10, color: 'var(--text-muted)' }}>
+                {t(INSTALL_REPLACE_WARNING_KEY)}
+              </div>
+              <div style={{ display: 'flex', gap: 6, marginTop: 7 }}>
+                {conflict.dirPath && (
+                  <button
+                    onClick={handleOpenExisting}
+                    data-install-open-existing
+                    style={{
+                      padding: '4px 10px', borderRadius: 7, fontSize: 11,
+                      border: '1px solid rgba(234,179,8,0.35)', background: 'transparent',
+                      color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    {t('skill.existsOpen')}
+                  </button>
+                )}
+                <button
+                  onClick={handleReplace}
+                  disabled={installing}
+                  data-install-replace
+                  style={{
+                    padding: '4px 10px', borderRadius: 7, fontSize: 11,
+                    border: '1px solid rgba(234,179,8,0.45)',
+                    background: 'rgba(234,179,8,0.16)',
+                    color: 'rgba(253,224,71,0.95)', fontWeight: 700,
+                    cursor: installing ? 'not-allowed' : 'pointer',
+                    opacity: installing ? 0.5 : 1,
+                  }}
+                >
+                  {installing ? t('skill.replacing') : t('skill.existsReplace')}
+                </button>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div style={{
               display: 'flex', alignItems: 'flex-start', gap: 7,
@@ -754,7 +866,14 @@ export default function SaveConversationSkillDialog({
               color: '#fca5a5', fontSize: 11, lineHeight: 1.45,
             }}>
               <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
-              <span>{error}</span>
+              <div style={{ minWidth: 0 }}>
+                <div>{error}</div>
+                {errorDetail && (
+                  <div style={{ marginTop: 3, fontSize: 10, color: 'var(--text-muted)', wordBreak: 'break-word' }}>
+                    {errorDetail}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </>

@@ -3,7 +3,13 @@ import { createLogger } from '../utils/logger'
 import { isPathInside } from '../utils/validate'
 import { canonicalSkillPath, resolveSkillRoots } from '../automation/skill-action'
 import { parseSkillMd, sanitizeSkillDirName, type ParsedSkillMd } from '../skills/skillMd'
-import { installSkill } from '../skills/skillInstall'
+import {
+  decodeSkillBytes,
+  installSkill,
+  makeSkillFileToken,
+  updateSkill,
+  type SkillFileToken,
+} from '../skills/skillInstall'
 import {
   listTrashedSkills,
   moveSkillToTrash,
@@ -16,6 +22,15 @@ import fs from 'fs'
 import path from 'path'
 
 const log = createLogger('ipc:skills')
+
+/** A token from `skills:read`, validated at the IPC boundary. */
+function isSkillFileToken(value: unknown): value is SkillFileToken {
+  if (!value || typeof value !== 'object') return false
+  const token = value as Record<string, unknown>
+  return typeof token.hash === 'string'
+    && typeof token.mtimeMs === 'number'
+    && typeof token.size === 'number'
+}
 
 // Kept as a re-export for callers that import it from this handler. The rule
 // itself lives in `skills/skillMd.ts`, which the renderer can import without
@@ -136,6 +151,13 @@ export function registerSkillsHandlers(): void {
     })
   })
 
+  /**
+   * Read a SKILL.md and hand back the token the editor sends with the update.
+   *
+   * The token is a hash of the exact bytes, not a path: `skills:update` resolves
+   * the skill by identity again, so a path that moved between the read and the
+   * write cannot quietly redirect the save.
+   */
   ipcMain.handle('skills:read', (_e, dirPath: string) => {
     try {
       // Restrict reads to a skills root: either the skill directory itself
@@ -146,12 +168,28 @@ export function registerSkillsHandlers(): void {
       if (!atRoot && !roots.some(root => isPathInside(root, resolved))) {
         return { error: 'Path outside skills directories is not allowed' }
       }
-      if (path.basename(resolved) === 'SKILL.md') {
-        return { content: fs.readFileSync(resolved, 'utf-8') }
-      }
-      const skillPath = path.join(resolved, 'SKILL.md')
+      const skillPath = path.basename(resolved) === 'SKILL.md'
+        ? resolved
+        : path.join(resolved, 'SKILL.md')
       if (!fs.existsSync(skillPath)) return { error: 'SKILL.md not found' }
-      return { content: fs.readFileSync(skillPath, 'utf-8') }
+      // The lexical check above does not see through a symlink. The update
+      // refuses to write through one, so a read that followed it would fill
+      // the editor with a file the save can never touch. Refuse both halves.
+      const realFile = fs.realpathSync(skillPath)
+      const contained = roots.some(root => {
+        try {
+          const realRoot = fs.realpathSync(root)
+          return realFile === realRoot || isPathInside(realRoot, realFile)
+        } catch {
+          return false
+        }
+      })
+      if (!contained) return { error: 'Path outside skills directories is not allowed' }
+      const bytes = fs.readFileSync(realFile)
+      const content = decodeSkillBytes(bytes)
+      if (content === null) return { error: 'SKILL.md is not valid UTF-8' }
+      const stat = fs.statSync(realFile)
+      return { content, token: makeSkillFileToken(bytes, stat.mtimeMs) }
     } catch (err) {
       return { error: String(err) }
     }
@@ -178,6 +216,64 @@ export function registerSkillsHandlers(): void {
       // "Error invoking remote method …", which a user cannot act on.
       log.warn('skills:install error:', String(err))
       return { success: false, code: 'write_failed', error: String(err) } as const
+    }
+  })
+
+  /**
+   * Edit an installed SKILL.md in place.
+   *
+   * The renderer names the skill the way the scheduler does (`{ source, dir }`)
+   * and this handler resolves it through the same `resolveSkillRoots`, so the
+   * page cannot edit a different file from the one the list showed. The token
+   * from `skills:read` is required unless `force` is set; `force` is sent only
+   * after the user has been told the file changed underneath them.
+   */
+  ipcMain.handle('skills:update', (
+    _e,
+    args?: {
+      source?: unknown
+      dir?: unknown
+      name?: unknown
+      description?: unknown
+      body?: unknown
+      token?: unknown
+      force?: unknown
+      workingDir?: unknown
+    },
+  ) => {
+    try {
+      const source = args?.source
+      if (source !== 'personal' && source !== 'project') {
+        return {
+          success: false as const,
+          code: 'invalid_input' as const,
+          error: 'A skill update needs a personal or project source',
+        }
+      }
+      // Same roots as `skills:list` and the scheduler: personal first, then
+      // every allowed project's `.claude/skills`. A project skill only ever
+      // resolves against the project roots.
+      const allRoots = getSkillsRoots(
+        typeof args?.workingDir === 'string' ? args.workingDir : undefined,
+      )
+      const roots = source === 'personal' ? allRoots.slice(0, 1) : allRoots.slice(1)
+      const token = isSkillFileToken(args?.token) ? args.token : undefined
+      const result = updateSkill({
+        ref: { source, dir: typeof args?.dir === 'string' ? args.dir : '' },
+        roots,
+        name: typeof args?.name === 'string' ? args.name : '',
+        description: typeof args?.description === 'string' ? args.description : '',
+        body: typeof args?.body === 'string' ? args.body : '',
+        ...(token ? { token } : {}),
+        force: args?.force === true,
+      })
+      if (!result.success) log.warn('skills:update refused:', result.code, result.error)
+      return result
+    } catch (err) {
+      // Resolve, never throw: an IPC rejection reaches the renderer as
+      // "Error invoking remote method …", which a user cannot act on.
+      log.warn('skills:update error:', String(err))
+      return { success: false as const, code: 'write_failed' as const, error: String(err) }
     }
   })
 

@@ -69,6 +69,111 @@ function escapeFrontmatter(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\s*\n\s*/g, ' ')
 }
 
+/** Flatten and cap a description exactly the way `buildSkillFile` does. */
+function capDescription(value: string): string {
+  return value.replace(/\s*\n\s*/g, ' ').trim().slice(0, SKILL_DESCRIPTION_MAX)
+}
+
+/** The keys the edit form owns. Everything else in the frontmatter is preserved. */
+const OWNED_FRONTMATTER_KEYS = new Set(['name', 'description'])
+
+export type SkillRewriteRefusal =
+  | 'no_frontmatter'
+  | 'unterminated_frontmatter'
+  | 'duplicate_key'
+  | 'block_scalar'
+
+export interface SkillRewriteFields {
+  /** Kept as written by the form; the update never renames the skill. */
+  name: string
+  description: string
+  /** The body of the file — what the assistant follows. */
+  body: string
+}
+
+export type SkillRewriteResult =
+  | { ok: true; content: string }
+  | { ok: false; reason: SkillRewriteRefusal }
+
+/**
+ * Rewrite an existing SKILL.md while leaving everything the editor does not
+ * own exactly as it was.
+ *
+ * A SKILL.md may carry frontmatter keys AIPA knows nothing about
+ * (`allowed-tools`, `license`, `metadata`, …), inline comments and list
+ * blocks. Rebuilding the file from `buildSkillFile` would silently delete all
+ * of that, so this function edits line by line instead:
+ *
+ *   - only a top-level `name:` or `description:` line is replaced, in place;
+ *   - every other line (unknown keys, comments, blank lines, indented
+ *     continuations) is emitted verbatim and in its original order;
+ *   - a missing owned key is appended after the existing ones;
+ *   - the body is replaced wholesale, in the same shape `buildSkillFile`
+ *     produces, so a newly created file and an edited one look alike.
+ *
+ * It refuses rather than guesses when the frontmatter is not something it can
+ * read line by line: no opening delimiter, no closing delimiter, a duplicated
+ * owned key, or an owned key written as a block scalar (`description: |`). A
+ * half-understood file is not safe to save over — YAML block scalars would
+ * need their continuation lines removed, and a duplicate key has no single
+ * value to replace. This is the authority for `skills:update`; `buildSkillFile`
+ * remains the authority for *new* files only.
+ *
+ * Line endings are normalised to the file's dominant style (CRLF when the file
+ * already contains a CRLF), because the delimiters and the owned lines are
+ * re-emitted. Every other line keeps its text; a pathologically mixed-ending
+ * file would have those line terminators normalised too.
+ */
+export function rewriteSkillMd(source: string, fields: SkillRewriteFields): SkillRewriteResult {
+  const eol = source.includes('\r\n') ? '\r\n' : '\n'
+  const lines = source.split(/\r?\n/)
+  if (lines.length === 0 || lines[0].trim() !== '---') {
+    return { ok: false, reason: 'no_frontmatter' }
+  }
+
+  let close = -1
+  for (let i = 1; i < lines.length; i++) {
+    const trimmed = lines[i].trim()
+    if (trimmed === '---' || trimmed === '...') {
+      close = i
+      break
+    }
+  }
+  if (close === -1) return { ok: false, reason: 'unterminated_frontmatter' }
+
+  const frontmatter = lines.slice(1, close)
+  const seen = new Set<string>()
+  const emitted: string[] = []
+  for (const line of frontmatter) {
+    const match = /^([A-Za-z0-9_-]+):(.*)$/.exec(line)
+    const key = match?.[1]
+    if (!key || !OWNED_FRONTMATTER_KEYS.has(key)) {
+      // Unknown key, comment, blank line or indented continuation: keep it.
+      emitted.push(line)
+      continue
+    }
+    if (seen.has(key)) return { ok: false, reason: 'duplicate_key' }
+    seen.add(key)
+    if (/^\s*[|>][+-]?\s*(#.*)?$/.test(match[2])) {
+      return { ok: false, reason: 'block_scalar' }
+    }
+    const value = key === 'name'
+      ? fields.name.trim()
+      : capDescription(fields.description)
+    emitted.push(`${key}: "${escapeFrontmatter(value)}"`)
+  }
+  if (!seen.has('name')) emitted.push(`name: "${escapeFrontmatter(fields.name.trim())}"`)
+  if (!seen.has('description')) {
+    emitted.push(`description: "${escapeFrontmatter(capDescription(fields.description))}"`)
+  }
+
+  const body = fields.body.replace(/\r\n?/g, '\n').trim()
+  return {
+    ok: true,
+    content: ['---', ...emitted, '---', '', body, ''].join(eol),
+  }
+}
+
 export interface SkillFileInput {
   name: string
   description: string

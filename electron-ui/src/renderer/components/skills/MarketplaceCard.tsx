@@ -12,11 +12,26 @@ interface MarketplaceCardProps {
   isInstalling: boolean
   onInstall: () => void
   onUse: () => void
-  t: (key: string) => string
+  /** Set only for this card: main refused because the folder already holds a skill. */
+  conflict?: { dirPath?: string; name?: string } | null
+  onOpenExisting?: () => void
+  onReplace?: () => void
+  t: (key: string, params?: Record<string, string | number>) => string
   language?: string
 }
 
-export default function MarketplaceCard({ skill, isInstalled, isInstalling, onInstall, onUse, t, language }: MarketplaceCardProps) {
+export default function MarketplaceCard({
+  skill,
+  isInstalled,
+  isInstalling,
+  onInstall,
+  onUse,
+  conflict,
+  onOpenExisting,
+  onReplace,
+  t,
+  language,
+}: MarketplaceCardProps) {
   const [hovered, setHovered] = useState(false)
   const [btnHovered, setBtnHovered] = useState(false)
   const srcColor = SOURCE_COLORS[skill.source]
@@ -201,6 +216,78 @@ export default function MarketplaceCard({ skill, isInstalled, isInstalling, onIn
           )}
         </div>
       </div>
+
+      {/* The folder this card would install into already holds a skill. This is
+          not a failure: name what is there and let the user open it or replace
+          it on purpose. Nothing is re-sent until Replace is pressed. */}
+      {conflict && (
+        <div
+          data-install-conflict={skill.id}
+          style={{
+            marginTop: 10,
+            padding: '8px 10px',
+            background: 'rgba(234,179,8,0.08)',
+            border: '1px solid rgba(234,179,8,0.28)',
+            borderRadius: 8,
+            fontSize: 11,
+            lineHeight: 1.45,
+            color: 'rgba(253,224,71,0.92)',
+          }}
+        >
+          <div style={{ fontWeight: 600 }}>{t('skill.existsTitle')}</div>
+          {/* The same two lines the skill creator shows: what is in the way and
+              the promise that this attempt wrote nothing. */}
+          {conflict.dirPath && (
+            <div>{t('skill.existsBody', { path: conflict.dirPath })}</div>
+          )}
+          {conflict.name && (
+            <div>{t('skill.existsName', { name: conflict.name })}</div>
+          )}
+          <div style={{ marginTop: 3, fontSize: 10, color: 'var(--text-muted)' }}>
+            {t('skill.existsReplaceWarning')}
+          </div>
+          <div style={{ display: 'flex', gap: 6, marginTop: 7 }}>
+            {conflict.dirPath && onOpenExisting && (
+              <button
+                onClick={e => { e.stopPropagation(); onOpenExisting() }}
+                data-install-open-existing={skill.id}
+                style={{
+                  padding: '3px 9px',
+                  borderRadius: 6,
+                  border: '1px solid rgba(234,179,8,0.35)',
+                  background: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontSize: 10,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {t('skill.existsOpen')}
+              </button>
+            )}
+            {onReplace && (
+              <button
+                onClick={e => { e.stopPropagation(); onReplace() }}
+                disabled={isInstalling}
+                data-install-replace={skill.id}
+                style={{
+                  padding: '3px 9px',
+                  borderRadius: 6,
+                  border: '1px solid rgba(234,179,8,0.45)',
+                  background: 'rgba(234,179,8,0.16)',
+                  color: 'rgba(253,224,71,0.95)',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  cursor: isInstalling ? 'not-allowed' : 'pointer',
+                  opacity: isInstalling ? 0.5 : 1,
+                }}
+              >
+                {isInstalling ? t('skill.replacing') : t('skill.existsReplace')}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -129,6 +129,54 @@ export interface SkillInfoData {
   createdAt?: string
 }
 
+/**
+ * The token a `skills:read` hands to the editor and `skills:update` sends back.
+ *
+ * `hash` is a SHA-256 of the exact bytes and is the only field compared; the
+ * timestamp and size are carried so a refusal can name the on-disk time.
+ */
+export interface SkillFileTokenData {
+  hash: string
+  mtimeMs: number
+  size: number
+}
+
+export type SkillUpdateErrorCodeData =
+  | 'invalid_input'
+  | 'outside_skills'
+  | 'symlink'
+  | 'not_found'
+  | 'unreadable'
+  | 'file_too_large'
+  | 'unparsable'
+  | 'changed_on_disk'
+  | 'write_failed'
+
+export type SkillUpdateResultData =
+  | { success: true; token: SkillFileTokenData; content: string; dirPath: string }
+  | {
+      success: false
+      code: SkillUpdateErrorCodeData
+      error: string
+      currentMtimeMs?: number
+      token?: SkillFileTokenData
+      reason?: string
+    }
+
+export interface SkillUpdateArgsData {
+  /** The identity the scheduler stores; never an absolute path. */
+  source: 'personal' | 'project'
+  dir: string
+  name: string
+  description: string
+  body: string
+  token?: SkillFileTokenData
+  /** Only after the user was told the file changed underneath them. */
+  force?: boolean
+  /** The same working directory the list was read with, when there is one. */
+  workingDir?: string
+}
+
 /** A record in the skill trash manifest, as returned by delete/restore/remove. */
 export interface TrashedSkillEntryData {
   id: string
@@ -2475,7 +2523,15 @@ const electronAPI = {
   // Provenance fields are added in wave 64 and are absent on older entries.
   skillsList: (workingDir?: string) =>
     ipcRenderer.invoke('skills:list', workingDir) as Promise<SkillInfoData[]>,
-  skillsRead: (dirPath: string) => ipcRenderer.invoke('skills:read', dirPath),
+  // `token` is the version of the file this read saw; `skills:update` refuses
+  // to save unless it is handed back, so an edit cannot silently overwrite a
+  // change made outside the app.
+  skillsRead: (dirPath: string) =>
+    ipcRenderer.invoke('skills:read', dirPath) as Promise<{
+      content?: string
+      token?: SkillFileTokenData
+      error?: string
+    }>,
   // Omitting `replace` refuses to overwrite an existing folder (`skill_exists`
   // plus that folder's path and best-effort name). The create form previews the
   // same path `sanitizeSkillDirName` will create, and only re-sends with
@@ -2491,6 +2547,11 @@ const electronAPI = {
           name?: string
         }
     >,
+  // Edits an installed skill by identity. Main re-reads the file and preserves
+  // every frontmatter key the editor does not own; `force: true` is only sent
+  // after a `changed_on_disk` refusal and the user choosing "Overwrite anyway".
+  skillsUpdate: (args: SkillUpdateArgsData) =>
+    ipcRenderer.invoke('skills:update', args) as Promise<SkillUpdateResultData>,
   // Deleting now moves the skill folder into the trash; the renderer offers
   // "Recently deleted" to restore it for the retention window.
   skillsDelete: (dirPath: string) =>

@@ -511,7 +511,9 @@
       "skillStepsHeading": "指令",
       "skillContextHeading": "原会话中的文件与命令",
       "skillContextFile": "读取或修改了 `{{path}}`",
-      "skillContextCommand": "执行了 `{{command}}`"
+      "skillContextCommand": "执行了 `{{command}}`",
+      "saved": "技能“{{name}}”已保存",
+      "replaced": "技能“{{name}}”已替换"
     }
   },
   "welcome": {
@@ -2003,6 +2005,39 @@
       "scheduleHint": "打开一条已预填该技能的新自动化。在你按下保存之前，什么都不会写入。",
       "blockedEmpty": "这个 SKILL.md 在头部之后没有任何指令，每次运行都会以 nothing_to_run 停下。先补上内容，再排程。",
       "blockedUnreadable": "无法读取这个 SKILL.md，定时运行会以 skill_unreadable 停下。先修好文件，再排程。"
+    },
+    "installOutcome": {
+      "replaced": "技能已替换",
+      "invalidName": "这个名字没法变成技能文件夹。至少用一个字母或数字。",
+      "outsideSkills": "技能文件夹必须直接放在技能目录里。",
+      "alreadyInstalled": "{{name}} 已经安装过了"
+    },
+    "edit": {
+      "edit": "编辑",
+      "editHint": "编辑指令和说明。这个应用不认识的文件头字段会原样保留。",
+      "unreadable": "读不出这个技能的 SKILL.md，所以无法编辑。",
+      "save": "保存",
+      "saving": "正在保存…",
+      "cancel": "取消",
+      "dirty": "有未保存的修改",
+      "discardTitle": "要放弃这些修改吗？",
+      "discardBody": "你对这个技能的修改还没有保存，现在离开就会丢失。",
+      "discard": "放弃修改",
+      "keepEditing": "继续编辑",
+      "descriptionLabel": "说明",
+      "bodyLabel": "指令",
+      "previewTitle": "SKILL.md 预览",
+      "previewPath": "保存到 {{path}}/SKILL.md",
+      "unparsable": "这个文件的文件头无法解析，所以不能保存。下面的正文仍然可以编辑。一个会悄悄改写自己看不懂的文件头的编辑器，比没有编辑器更糟。",
+      "changedTitle": "这个文件在磁盘上被改动过",
+      "changedBody": "它最后一次写入是在 {{time}}，在你开始编辑之后。这次什么都没有写入。",
+      "reload": "从磁盘重新读取",
+      "reloadWarning": "重新读取会丢掉你的草稿，显示文件现在的样子。",
+      "overwrite": "仍然覆盖",
+      "overwriting": "正在覆盖…",
+      "overwriteWarning": "覆盖会用你的草稿替换磁盘上的文件。这个应用还能读懂的文件头字段会保留；文件头读不懂的文件不会被覆盖。",
+      "saveFailed": "保存失败：{{error}}",
+      "saved": "技能已保存"
     }
   },
   "skill": {

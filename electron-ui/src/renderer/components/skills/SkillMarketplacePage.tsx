@@ -1,5 +1,5 @@
 // SkillMarketplacePage — full-page marketplace view opened from Skills panel
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { ArrowLeft, Store } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useUiStore, usePrefsStore } from '../../store'
@@ -13,6 +13,14 @@ import {
 } from '../../utils/skillMarketplace'
 import MarketplaceCard from './MarketplaceCard'
 import CodexSkillsSection from './CodexSkillsSection'
+import { findInstalledSkill, resolveInstallOutcome } from './installOutcome'
+import type { SkillInfo } from './skillsShared'
+
+interface InstallConflict {
+  skillId: string
+  dirPath?: string
+  name?: string
+}
 
 export default function SkillMarketplacePage() {
   const t = useT()
@@ -22,29 +30,104 @@ export default function SkillMarketplacePage() {
   const [marketplaceCategory, setMarketplaceCategory] = useState<SkillCategory | null>(null)
   const [marketplaceSource, setMarketplaceSource] = useState<SkillSource | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [installedSkillNames, setInstalledSkillNames] = useState<Set<string>>(new Set())
+  // The real list, not a name invented by this page: a skill installed from
+  // anywhere (the creator, the conversation dialog, another marketplace
+  // visit) must show as Installed here too.
+  const [installedSkills, setInstalledSkills] = useState<SkillInfo[]>([])
   const [installingSkillId, setInstallingSkillId] = useState<string | null>(null)
+  const [conflict, setConflict] = useState<InstallConflict | null>(null)
   const [searchFocused, setSearchFocused] = useState(false)
 
-  const handleInstallSkill = useCallback(async (skill: MarketplaceSkill) => {
+  const refreshInstalled = useCallback(async () => {
+    try {
+      const list = await window.electronAPI.skillsList()
+      // Marketplace installs land in the personal root. A project skill with
+      // the same name is not what this card would create, so it must not make
+      // the card say Installed.
+      if (list) setInstalledSkills(list.filter(skill => skill.source === 'personal'))
+    } catch (err) {
+      // Keep the last known list: an unreadable scan must not turn every card
+      // back into "Install" and invite an overwrite attempt.
+      console.error('Failed to load installed skills:', err)
+    }
+  }, [])
+
+  useEffect(() => { void refreshInstalled() }, [refreshInstalled])
+
+  const installedFor = useCallback(
+    (skill: MarketplaceSkill) => findInstalledSkill(installedSkills, [skill.id, skill.name]),
+    [installedSkills],
+  )
+
+  // `replace` is only ever true from `handleReplaceSkill`, which is wired to
+  // the Replace button inside a refusal. Install, mount and a retry all pass
+  // false, so no surface can overwrite a hand-written skill by accident.
+  const startInstall = useCallback(async (skill: MarketplaceSkill, replace: boolean) => {
     setInstallingSkillId(skill.id)
     try {
       const result = await window.electronAPI.skillsInstall({
         name: skill.id,
         content: skill.skillContent,
+        replace,
       })
-      if (result?.success) {
-        addToast('success', t('skills.installSuccess'))
-        setInstalledSkillNames(prev => new Set([...prev, skill.name.toLowerCase()]))
+      const outcome = resolveInstallOutcome(result, { replaceRequested: replace })
+      if (outcome.kind === 'installed') {
+        setConflict(null)
+        addToast('success', t(outcome.messageKey))
+        if (outcome.dirPath) {
+          const dirPath = outcome.dirPath
+          setInstalledSkills(prev => {
+            if (findInstalledSkill(prev, [skill.id, skill.name, dirPath])) return prev
+            return [...prev, {
+              name: skill.id,
+              description: skill.description,
+              source: 'personal',
+              dirPath,
+              fileName: skill.id,
+              skillDir: skill.id,
+            }]
+          })
+        }
+        // The optimistic row keeps the card truthful even if the scan below
+        // cannot run; the scan is what makes every other card truthful.
+        void refreshInstalled()
+      } else if (outcome.kind === 'exists') {
+        // Not an error: the folder is occupied. The card names it and offers
+        // Open / Replace; nothing is re-sent until the user chooses.
+        setConflict({
+          skillId: skill.id,
+          ...(outcome.dirPath ? { dirPath: outcome.dirPath } : {}),
+          ...(outcome.name ? { name: outcome.name } : {}),
+        })
+        void refreshInstalled()
       } else {
-        addToast('error', result?.error || t('skills.installFailed'))
+        setConflict(null)
+        addToast('error', t(outcome.messageKey))
       }
     } catch (err) {
-      addToast('error', String(err))
+      console.error('Skill install failed:', err)
+      addToast('error', t('skills.installFailed'))
     } finally {
       setInstallingSkillId(null)
     }
-  }, [addToast, t])
+  }, [addToast, t, refreshInstalled])
+
+  const handleInstallSkill = useCallback((skill: MarketplaceSkill) => {
+    void startInstall(skill, false)
+  }, [startInstall])
+
+  const handleReplaceSkill = useCallback((skill: MarketplaceSkill) => {
+    // Replacing is only reachable after main refused this exact card.
+    if (conflict?.skillId !== skill.id) return
+    void startInstall(skill, true)
+  }, [conflict, startInstall])
+
+  const handleOpenExisting = useCallback((dirPath: string) => {
+    // The same hand-off the create form and global search use: the Employees
+    // page opens the skill once its list has loaded.
+    useUiStore.getState().openSkillDetail(dirPath)
+    setConflict(null)
+  }, [])
 
   const handleUseSkill = useCallback((skillName: string) => {
     const setQuotedText = useUiStore.getState().setQuotedText
@@ -280,10 +363,15 @@ export default function SkillMarketplacePage() {
                 <MarketplaceCard
                   key={skill.id}
                   skill={skill}
-                  isInstalled={installedSkillNames.has(skill.name.toLowerCase())}
+                  isInstalled={!!installedFor(skill)}
                   isInstalling={installingSkillId === skill.id}
                   onInstall={() => handleInstallSkill(skill)}
                   onUse={() => handleUseSkill(skill.name)}
+                  conflict={conflict?.skillId === skill.id ? conflict : null}
+                  onOpenExisting={conflict?.skillId === skill.id && conflict.dirPath
+                    ? () => handleOpenExisting(conflict.dirPath as string)
+                    : undefined}
+                  onReplace={() => handleReplaceSkill(skill)}
                   t={t}
                   language={language}
                 />
