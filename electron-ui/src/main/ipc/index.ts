@@ -32,6 +32,12 @@ import {
   sanitizeAskHistory,
 } from '../sessions/ask-history'
 import { parseScopeSessionIds } from '../sessions/ask-scope'
+import {
+  buildWorkflowDigest,
+  buildWorkflowPrompt,
+  normalizeGeneralizeLocale,
+  parseWorkflowDraft,
+} from '../sessions/workflow-generalize'
 import { collectRelatedSessions } from '../sessions/related-sessions'
 import { addMcpServer, getMcpConfigInfo, readMcpServers, removeMcpServer, setMcpServerEnabledRouted } from '../config/mcp-config'
 import { getSessionStats } from '../sessions/session-stats'
@@ -294,6 +300,16 @@ let askHistoryInFlight = false
 // by the time the aborted one unwinds.
 let askHistoryAbort: AbortController | null = null
 let askHistoryGeneration = 0
+
+// One workflow generalisation at a time, process-wide. Unlike the ask overlay
+// (which rejects a second question as "busy"), a second request here *supersedes*
+// the first: the renderer's draft window can be reopened on another
+// conversation, and waiting up to 90 s for a draft nobody will see is worse
+// than aborting it. The generation counter makes the older handler's `finally`
+// unable to free the slot the newer one already owns.
+let workflowGeneralizeInFlight = false
+let workflowGeneralizeAbort: AbortController | null = null
+let workflowGeneralizeGeneration = 0
 
 export function registerAllHandlers(
   win: BrowserWindow,
@@ -2247,6 +2263,108 @@ function registerSessionHandlers(): void {
         askHistoryInFlight = false
         if (askHistoryAbort === controller) askHistoryAbort = null
       }
+    }
+  })
+
+  // ── Generalise a stored conversation into a workflow draft ──
+  //
+  // Reads one transcript, asks for a reusable procedure (not a replay), and
+  // returns a draft. Nothing is saved: the renderer shows the draft for review
+  // and owns the save/edit flow. The prompt carries transcript text, so only
+  // error codes are ever logged.
+  ipcMain.handle('session:generalizeWorkflowCancel', (): void => {
+    workflowGeneralizeGeneration++
+    workflowGeneralizeAbort?.abort()
+    workflowGeneralizeAbort = null
+    workflowGeneralizeInFlight = false
+  })
+
+  ipcMain.handle('session:generalizeWorkflow', async (
+    _e: Electron.IpcMainInvokeEvent,
+    input: unknown,
+  ) => {
+    try {
+      const raw = input && typeof input === 'object' && !Array.isArray(input)
+        ? input as { sessionId?: unknown; locale?: unknown; title?: unknown }
+        : {}
+      const sessionId = typeof raw.sessionId === 'string' ? raw.sessionId.trim() : ''
+      // `loadSession` itself refuses an unusable id; checking here keeps the
+      // "no session" answer distinct from "session exists but has no turns".
+      if (!sessionId || !isValidSessionId(sessionId)) return { ok: false, error: 'missing_session' }
+
+      let messages
+      try {
+        messages = loadClaudeSession(sessionId)
+      } catch {
+        // A read failure is reported as a missing session rather than leaking a
+        // path or an fs error across IPC.
+        return { ok: false, error: 'missing_session' }
+      }
+      if (messages.length === 0) return { ok: false, error: 'missing_session' }
+
+      const { digest, meta } = buildWorkflowDigest(messages)
+      if (meta.turnsUsed === 0) return { ok: false, error: 'empty_transcript' }
+
+      const locale = normalizeGeneralizeLocale(typeof raw.locale === 'string' ? raw.locale : undefined)
+      const title = typeof raw.title === 'string' && raw.title.trim() ? raw.title.trim() : null
+      const prompt = buildWorkflowPrompt(digest, { locale, title, meta })
+
+      // Newest wins: abort the turn this one replaces, then take the slot. The
+      // digest above is synchronous, so no other invoke can interleave here.
+      if (workflowGeneralizeInFlight) workflowGeneralizeAbort?.abort()
+      const generation = ++workflowGeneralizeGeneration
+      const controller = new AbortController()
+      workflowGeneralizeAbort = controller
+      workflowGeneralizeInFlight = true
+
+      try {
+        const result = await runInternalTurn({
+          prompt,
+          timeoutMs: 90_000,
+          internalTag: 'generalize-workflow',
+          // The draft must come from the digest alone; a read-only internal
+          // turn must not reach for tools either.
+          answerOnly: true,
+          cwd: getPref('workingDir'),
+        }, controller.signal)
+
+        if (controller.signal.aborted || workflowGeneralizeGeneration !== generation) {
+          return { ok: false, error: 'aborted' }
+        }
+        if (!result.success) {
+          const code = result.error === 'aborted'
+            ? 'aborted'
+            : /timed out/i.test(result.error || '') ? 'timeout' : 'failed'
+          // Error code only: `result.error` can quote model output, and the
+          // prompt itself is transcript text.
+          log.warn(`session:generalizeWorkflow ${code}`)
+          return { ok: false, error: code }
+        }
+
+        const parsed = parseWorkflowDraft(result.text || '', { fallbackTitle: title })
+        if (!parsed.ok) {
+          if (parsed.error === 'not_procedural') {
+            return parsed.reason
+              ? { ok: false, error: 'not_procedural', reason: parsed.reason }
+              : { ok: false, error: 'not_procedural' }
+          }
+          log.warn('session:generalizeWorkflow invalid_draft')
+          return { ok: false, error: 'invalid_draft' }
+        }
+        return { ok: true, draft: parsed.draft, meta }
+      } finally {
+        // A superseding call already owns the state; only the current
+        // generation may hand the slot back.
+        if (workflowGeneralizeGeneration === generation) {
+          workflowGeneralizeInFlight = false
+          if (workflowGeneralizeAbort === controller) workflowGeneralizeAbort = null
+        }
+      }
+    } catch {
+      // Code only: this path can quote the prompt or the model's answer, and
+      // neither belongs in the log.
+      log.warn('session:generalizeWorkflow failed')
+      return { ok: false, error: 'failed' }
     }
   })
 

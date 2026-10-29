@@ -194,6 +194,7 @@ export default function SessionReuseMenu({
 
       {dialog === 'workflow' && (
         <SaveConversationWorkflowDialog
+          sessionId={viewSessionId}
           sessionTitle={sessionTitle}
           onClose={() => setDialog(null)}
         />

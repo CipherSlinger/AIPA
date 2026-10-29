@@ -357,6 +357,42 @@
       "noDepartmentsHint": "先在组织架构里创建一个部门，之后就可以把对话归入其中。",
       "filedToast": "已归入「{{name}}」。",
       "removedToast": "已移除手动归入。对话重新跟随它所在的文件夹。"
+    },
+    "reuse": {
+      "generalize": {
+        "modeLabel": "草稿方式",
+        "modeExact": "按原样",
+        "modeGeneral": "让 AIPA 提炼",
+        "subtitleGeneral": "AIPA 会读取已保存的对话，归纳出一套可重复使用的流程。保存前请逐条检查推断出来的步骤。",
+        "action": "提炼",
+        "actionPending": "提炼中…",
+        "actionHint": "读取这段已保存的对话并归纳成流程。点保存之前不会写入任何内容。",
+        "cancel": "取消",
+        "appliedNotice": "草稿已填入，请检查后再保存",
+        "summaryHeading": "这个流程做什么",
+        "basisObserved": "已发生",
+        "basisInferred": "推断",
+        "basisInferredTip": "这一步是模型推断出来的，原对话里并没有发生。若不合用，请修改或删除。",
+        "inferredCount": "推断 {{inferred}} 步，已发生 {{observed}} 步",
+        "assumptionsHeading": "推断的前提",
+        "assumptionsNote": "为了让流程能再次运行，模型做了这些取舍。保存前请逐条确认。",
+        "inputsHeading": "下次运行需要提供的输入",
+        "inputsNote": "流程会向你询问这些值；原来那一次的具体取值已被替换。",
+        "metaFull": "读取了这段对话的全部 {{count}} 条消息。",
+        "metaTruncated": "对话较长，只读取了 {{count}} 条消息，后面的消息没有读到。",
+        "stepsDropped": "超出 {{max}} 步上限，另有 {{count}} 步被舍弃。",
+        "errorTimeout": "模型没有及时回答。什么都没有改动。",
+        "errorMissing": "这段对话还没有保存的记录可读。什么都没有改动。",
+        "errorEmpty": "已保存的对话里没有可用于提炼的真人发言。什么都没有改动。",
+        "errorInvalid": "模型返回的草稿无法使用。什么都没有改动。",
+        "errorFailed": "模型调用失败。什么都没有改动。",
+        "errorAborted": "提炼已取消。什么都没有改动。",
+        "notProcedural": "{{reason}}",
+        "notProceduralGeneric": "这段对话看起来不像一套可以重复的流程。什么都没有改动。",
+        "tryAgain": "重试",
+        "unavailableNoSession": "这段对话尚未保存，没有可提炼的记录。",
+        "unavailableStreaming": "请等当前回复结束后再提炼。"
+      }
     }
   },
   "sessionReuse": {

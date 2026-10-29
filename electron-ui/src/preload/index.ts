@@ -331,6 +331,67 @@ export interface AskHistoryResultData {
   error?: string
 }
 
+/**
+ * One step of a workflow drafted from a conversation by the model.
+ *
+ * `basis` is the honesty field: `observed` means the conversation actually did
+ * this, `inferred` means the draft generalised it (a placeholder for a value
+ * only that one run had, an implied check, a step the user obviously took
+ * outside the chat). The editor shows the difference rather than presenting an
+ * inferred step as if the recording contained it.
+ */
+export interface SessionWorkflowStepDraft {
+  title: string
+  prompt: string
+  basis: 'observed' | 'inferred'
+}
+
+/**
+ * A reusable workflow generalised from one conversation.
+ *
+ * Every field here is a *draft*: it is never saved without the user reviewing
+ * it. `assumptions` is the model's own list of what it had to decide for the
+ * procedure to be reusable (what it treated as a variable, what it left out as
+ * specific to that day); `inputs` names the values a future run must supply.
+ */
+export interface SessionWorkflowDraftData {
+  name: string
+  description: string
+  icon: string
+  /** One sentence on what the procedure does, shown above the steps. */
+  summary: string
+  steps: SessionWorkflowStepDraft[]
+  assumptions: string[]
+  inputs: string[]
+}
+
+export interface SessionWorkflowDraftMetaData {
+  /** Messages the digest was built from. */
+  messagesRead: number
+  /** The transcript was longer than the digest cap. */
+  truncated: boolean
+  /** Human turns that reached the model. */
+  turnsUsed: number
+}
+
+export type SessionGeneralizeError =
+  | 'missing_session'
+  | 'empty_transcript'
+  | 'not_procedural'
+  | 'invalid_draft'
+  | 'timeout'
+  | 'failed'
+  | 'aborted'
+
+export type SessionGeneralizeResultData =
+  | { ok: true; draft: SessionWorkflowDraftData; meta: SessionWorkflowDraftMetaData }
+  | {
+      ok: false
+      error: SessionGeneralizeError
+      /** The model's own words for `not_procedural`; absent otherwise. */
+      reason?: string
+    }
+
 export interface NavPluginManifest {
   id: string
   name: string
@@ -1440,6 +1501,15 @@ const electronAPI = {
     ipcRenderer.invoke('session:askHistory', { question, locale, requestId, history, scopeSessionIds }) as Promise<AskHistoryResultData>,
   /** Abort the in-flight ask (the overlay closes mid-run) and free the slot. */
   sessionAskHistoryCancel: () => ipcRenderer.invoke('session:askHistoryCancel') as Promise<void>,
+  // Read one stored conversation and ask the model for a *reusable procedure*
+  // rather than a replay of it. The answer is a draft shown for review; nothing
+  // is saved, scheduled or run by this call.
+  sessionGeneralizeWorkflow: (input: { sessionId: string; locale?: string; title?: string | null }) =>
+    ipcRenderer.invoke('session:generalizeWorkflow', input) as Promise<SessionGeneralizeResultData>,
+  // Cancels the one in-flight generalisation, if any. The handler answers with
+  // `{ ok: false, error: 'aborted' }`.
+  sessionGeneralizeWorkflowCancel: () =>
+    ipcRenderer.invoke('session:generalizeWorkflowCancel') as Promise<void>,
   /**
    * Cumulative answer text for one ask, pushed every ~120 ms while the private
    * turn runs. The `requestId` is the one passed to `sessionAskHistory`; an

@@ -357,6 +357,42 @@
       "noDepartmentsHint": "Create a department in the Org view first; then you can file conversations under it.",
       "filedToast": "Filed under {{name}}.",
       "removedToast": "Manual filing removed. The conversation follows its folder again."
+    },
+    "reuse": {
+      "generalize": {
+        "modeLabel": "Draft mode",
+        "modeExact": "As it happened",
+        "modeGeneral": "Generalize with AIPA",
+        "subtitleGeneral": "AIPA reads the stored conversation and proposes a reusable procedure. Review every inferred step before saving.",
+        "action": "Generalize",
+        "actionPending": "Generalizing…",
+        "actionHint": "Reads this stored conversation and proposes a procedure. Nothing is saved until you press Save.",
+        "cancel": "Cancel",
+        "appliedNotice": "Draft applied — review before saving",
+        "summaryHeading": "What this procedure does",
+        "basisObserved": "observed",
+        "basisInferred": "inferred",
+        "basisInferredTip": "Inferred by the model, not observed in this conversation. Edit or remove it if it does not fit your work.",
+        "inferredCount": "{{inferred}} inferred, {{observed}} observed",
+        "assumptionsHeading": "Inferred assumptions",
+        "assumptionsNote": "The model made these choices so the procedure can run again. Check each one before saving.",
+        "inputsHeading": "Inputs a future run must supply",
+        "inputsNote": "The procedure will ask for these values; one-off values from the original run were replaced.",
+        "metaFull": "Read all {{count}} messages in this conversation.",
+        "metaTruncated": "Read {{count}} messages from a longer conversation; later messages were not read.",
+        "stepsDropped": "{{count}} more steps were dropped to fit the {{max}}-step limit.",
+        "errorTimeout": "The model did not answer in time. Nothing was changed.",
+        "errorMissing": "This conversation has no stored transcript to read. Nothing was changed.",
+        "errorEmpty": "The stored conversation has no human turns to generalise. Nothing was changed.",
+        "errorInvalid": "The model returned a draft that could not be used. Nothing was changed.",
+        "errorFailed": "The model call failed. Nothing was changed.",
+        "errorAborted": "Generalising was cancelled. Nothing was changed.",
+        "notProcedural": "{{reason}}",
+        "notProceduralGeneric": "This conversation does not read like a repeatable procedure. Nothing was changed.",
+        "tryAgain": "Try again",
+        "unavailableNoSession": "This conversation is not stored yet, so there is no transcript to generalise.",
+        "unavailableStreaming": "Wait for the current reply to finish before generalising."
+      }
     }
   },
   "sessionReuse": {
