@@ -75,6 +75,58 @@ function addCost(
 }
 
 /**
+ * One attempt inside a spend window, as the rails count it.
+ *
+ * `costUsd` is absent when the run reported no money: the attempt still counts
+ * (it is not a skip), which is what makes a window `unmeasured` instead of
+ * empty. The list is the one walk both `summarizeSpendWindowFor` and the
+ * department "frees at" forecast read, so "inside the window", "is an attempt"
+ * and the last-run fold-in cannot exist in two versions that disagree.
+ */
+export interface SpendWindowAttempt {
+  startedAt: number
+  costUsd?: number
+}
+
+/**
+ * The attempts inside `windowStart < startedAt <= now` for one job, oldest
+ * record first, including the last-run fold-in when the history does not hold
+ * it yet.
+ *
+ * Only real attempts (success or error) appear. A skip never executed, so it
+ * carries no spend and must not make the window look "covered" or spent.
+ */
+export function collectSpendWindowAttempts(
+  job: AutomationJob,
+  now: number,
+  windowStart: number,
+): SpendWindowAttempt[] {
+  const inWindow = (startedAt: number): boolean => startedAt > windowStart && startedAt <= now
+  const attempts: SpendWindowAttempt[] = []
+
+  for (const record of job.history) {
+    if (!inWindow(record.startedAt)) continue
+    if (record.status === 'skipped') continue
+    attempts.push({ startedAt: record.startedAt, costUsd: record.usage?.costUsd })
+  }
+
+  // The history postdates the history feature, so a job persisted before it (or
+  // a run whose record has not been appended yet) still carries its latest
+  // facts on the job. Fold that run in only when its start is absent from the
+  // history, which keeps it from being counted twice.
+  if (
+    job.lastRunAt !== null &&
+    (job.lastStatus === 'success' || job.lastStatus === 'error') &&
+    !job.history.some(record => record.startedAt === job.lastRunAt) &&
+    inWindow(job.lastRunAt)
+  ) {
+    attempts.push({ startedAt: job.lastRunAt, costUsd: job.lastUsage?.costUsd })
+  }
+
+  return attempts
+}
+
+/**
  * What a window holds for one job.
  *
  * The window is supplied rather than derived from `now`: the rail's rolling 24
@@ -91,8 +143,6 @@ export function summarizeSpendWindowFor(
   now: number,
   windowStart: number,
 ): AutomationSpendWindow {
-  const inWindow = (startedAt: number): boolean => startedAt > windowStart && startedAt <= now
-
   // The history is capped. A full list whose oldest record still falls inside
   // the window proves older runs in this window were evicted, so the sum is a
   // lower bound rather than a total.
@@ -105,33 +155,12 @@ export function summarizeSpendWindowFor(
   let attemptedRuns = 0
   let unreportedRuns = 0
 
-  const fold = (
-    startedAt: number,
-    status: AutomationRunRecordStatus,
-    costUsd: number | undefined,
-  ): void => {
-    if (!inWindow(startedAt)) return
-    // A skip is not an attempt: the guard fired before any work (or any spend).
-    if (status === 'skipped') return
+  // Folding the shared attempt list in its own order keeps this sum bit-for-bit
+  // what the pre-refactor loop produced: the same costs, added in the same order.
+  for (const attempt of collectSpendWindowAttempts(job, now, windowStart)) {
     attemptedRuns += 1
-    if (costUsd === undefined) unreportedRuns += 1
-    else reportedCostUsd = addCost(reportedCostUsd, costUsd)
-  }
-
-  for (const record of job.history) {
-    fold(record.startedAt, record.status, record.usage?.costUsd)
-  }
-
-  // The history postdates the history feature, so a job persisted before it (or
-  // a run whose record has not been appended yet) still carries its latest
-  // facts on the job. Fold that run in only when its start is absent from the
-  // history, which keeps it from being counted twice.
-  if (
-    job.lastRunAt !== null &&
-    (job.lastStatus === 'success' || job.lastStatus === 'error') &&
-    !job.history.some(record => record.startedAt === job.lastRunAt)
-  ) {
-    fold(job.lastRunAt, job.lastStatus, job.lastUsage?.costUsd)
+    if (attempt.costUsd === undefined) unreportedRuns += 1
+    else reportedCostUsd = addCost(reportedCostUsd, attempt.costUsd)
   }
 
   return {
@@ -437,6 +466,21 @@ export function normalizeDeptSpendRequest(
 }
 
 /**
+ * Whether a job is filed under one of the requested departments.
+ *
+ * Exact id only: main does not know the tree and must not infer that one id
+ * contains another. A blank (including whitespace-only) or non-string filing is
+ * not an id and never matches anything. Shared so the spend figure and the
+ * "frees at" forecast cannot count different jobs for the same department.
+ */
+function inDepartment(job: AutomationJob, wanted: ReadonlySet<string>): boolean {
+  const departmentId = job.departmentId
+  return typeof departmentId === 'string'
+    && departmentId.trim().length > 0
+    && wanted.has(departmentId)
+}
+
+/**
  * Reported spend for the jobs filed under exactly these department ids.
  *
  * `jobsCounted` counts matching jobs even when they have no run in the window:
@@ -472,17 +516,7 @@ export function summarizeDeptSpend(
   for (const raw of list) {
     const job = deptJob(raw)
     if (!job) continue
-    const departmentId = job.departmentId
-    // Exact id only: main does not know the tree and must not infer that one
-    // id contains another. A blank (including whitespace-only) or non-string
-    // filing is not an id and never matches anything.
-    if (
-      typeof departmentId !== 'string' ||
-      departmentId.trim().length === 0 ||
-      !wanted.has(departmentId)
-    ) {
-      continue
-    }
+    if (!inDepartment(job, wanted)) continue
     jobsCounted += 1
     const summary = summarizeSpendWindowFor(job, now, windowStart)
     if (summary.reportedCostUsd !== undefined) {
@@ -505,4 +539,51 @@ export function summarizeDeptSpend(
     unmeasured: reportedCostUsd === undefined && (attemptedRuns > 0 || partial),
     partial,
   }
+}
+
+/** One attempt that reported a finite cost, inside a department's window. */
+export interface DeptCostedAttempt {
+  startedAt: number
+  costUsd: number
+}
+
+/**
+ * The costed attempts behind a department's spend figure.
+ *
+ * This is `summarizeDeptSpend`'s job set and window, asked for the individual
+ * runs instead of their total: the same `deptJob` repair, the same exact-id
+ * matching, and the same per-job attempt walk. A "frees at" derived from this
+ * list therefore describes the same window as the figure the user is shown; a
+ * second matching rule here would eventually let the two disagree about whose
+ * money the cap is counting.
+ *
+ * Only attempts with a finite cost appear. An attempt that reported nothing
+ * contributes nothing to the sum and nothing to the moment the sum falls —
+ * which is exactly why a window with such an attempt cannot claim a freeing
+ * time at all; the caller reads `unreportedRuns` for that.
+ *
+ * The order is the store's: jobs in list order, records oldest first. Callers
+ * that need chronological order sort the result.
+ */
+export function collectDeptCostedAttempts(
+  jobs: readonly AutomationJob[],
+  departmentIds: readonly string[],
+  windowStart: number,
+  now: number,
+): DeptCostedAttempt[] {
+  const wanted = new Set(departmentIds)
+  const attempts: DeptCostedAttempt[] = []
+
+  // Same tolerance as every reader of the same jobs: a non-array is no jobs.
+  const list: readonly unknown[] = Array.isArray(jobs) ? jobs : []
+  for (const raw of list) {
+    const job = deptJob(raw)
+    if (!job) continue
+    if (!inDepartment(job, wanted)) continue
+    for (const attempt of collectSpendWindowAttempts(job, now, windowStart)) {
+      if (attempt.costUsd === undefined) continue
+      attempts.push({ startedAt: attempt.startedAt, costUsd: attempt.costUsd })
+    }
+  }
+  return attempts
 }

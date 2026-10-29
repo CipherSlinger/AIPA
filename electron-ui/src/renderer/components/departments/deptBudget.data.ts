@@ -9,6 +9,8 @@
 //   * a cap request is parsed conservatively — a comma is refused rather than
 //     guessed as a thousands separator or a decimal comma;
 //   * a failed read is never "no cap", and an absent spend figure is never `$0`;
+//   * a "frees at" is main's forecast or nothing — the renderer never derives a
+//     time from the spend figure, so a cap with a floor total cannot print one;
 //   * a cap whose membership is empty is a broken sync and is reported as such,
 //     not hidden behind a plausible-looking line;
 //   * every tree walk reuses `briefSubtree`, so the cap covers exactly the nodes
@@ -176,6 +178,99 @@ export function describeDeptBudget(
     coversNodes,
     ...(syncedAt !== undefined ? { syncedAt } : {}),
   }
+}
+
+/**
+ * When a cap is expected to free, as a surface can say it.
+ *
+ * `'noCap'` and `'notOver'` both print nothing, but they are different facts:
+ * one says there is no cap here, the other that the cap is not currently
+ * holding anything. `'at'` is main's forecast, never a value this module
+ * derives from `spentUsd` — the window arithmetic belongs to main alone, and a
+ * second copy here would eventually name a time the rail will not honour.
+ * `'unknown'` means the cap *is* over and main could not prove a time.
+ */
+export type DeptBudgetFrees =
+  | { kind: 'notOver' }
+  | { kind: 'at'; at: number }
+  | { kind: 'unknown'; why: 'unmeasured' | 'partial' }
+  | { kind: 'noCap' }
+
+/**
+ * Read the forecast off a department cap report.
+ *
+ * The spend test mirrors both the rail and `describeDeptBudget`: `unmeasured`
+ * means no total could be read, so nothing can be over, and a stray `spentUsd`
+ * is not shown as one. The comparison is the rail's own `>= cap` (with the
+ * float-dust epsilon), because that is where the hold actually bites.
+ *
+ * A report written before the forecast existed carries neither `freesAt` nor
+ * `freesUnknown`. When it is over the cap this returns `'unknown'` — never a
+ * time — and picks `'unmeasured'` as the reason, the more general of the two: it
+ * does not assert that any history was truncated.
+ */
+export function describeDeptBudgetFrees(
+  report: AutomationDeptBudgetReportData | null | undefined,
+): DeptBudgetFrees {
+  if (!report || typeof report !== 'object') return { kind: 'noCap' }
+  const raw = report as AutomationDeptBudgetReportData & Record<string, unknown>
+
+  if (typeof raw.usd !== 'number' || !Number.isFinite(raw.usd) || raw.usd <= 0) {
+    return { kind: 'noCap' }
+  }
+
+  const spentUsd = raw.unmeasured === true
+    ? undefined
+    : typeof raw.spentUsd === 'number' && Number.isFinite(raw.spentUsd) && raw.spentUsd >= 0
+      ? raw.spentUsd
+      : undefined
+  if (spentUsd === undefined || spentUsd + 1e-9 < raw.usd) return { kind: 'notOver' }
+
+  const at = raw.freesAt
+  if (typeof at === 'number' && Number.isFinite(at) && at > 0) return { kind: 'at', at }
+
+  return {
+    kind: 'unknown',
+    why: raw.freesUnknown === 'partial' ? 'partial' : 'unmeasured',
+  }
+}
+
+/**
+ * In-window attempts that reported no cost, as a non-negative integer.
+ *
+ * Only the count travels with an `'unknown'` forecast: the line names how many
+ * runs made the total a floor, and a malformed value must read as "none known"
+ * rather than crash a card.
+ */
+export function budgetUnreportedRuns(
+  report: AutomationDeptBudgetReportData | null | undefined,
+): number {
+  if (!report || typeof report !== 'object') return 0
+  return readCount((report as AutomationDeptBudgetReportData & Record<string, unknown>).unreportedRuns)
+}
+
+/**
+ * The cap that holds a job's department, out of the stored reports.
+ *
+ * Mirrors `checkDeptBudgetLimit`: the first stored cap whose membership contains
+ * the department is the one that applies, and "first" is the store's order. It
+ * is deliberately not `budgetCovers` — that answers "is this the cap set on this
+ * node", which is what the Brief edits, while a job filed in a child node is
+ * held by an ancestor's cap and only this reader finds it.
+ */
+export function budgetHolding(
+  reports: readonly AutomationDeptBudgetReportData[] | null | undefined,
+  departmentId: string | null | undefined,
+): AutomationDeptBudgetReportData | null {
+  if (!Array.isArray(reports)) return null
+  if (typeof departmentId !== 'string' || !departmentId) return null
+  for (const report of reports) {
+    if (!report || typeof report !== 'object') continue
+    const memberIds = (report as AutomationDeptBudgetReportData & Record<string, unknown>).memberIds
+    if (!Array.isArray(memberIds)) continue
+    if (memberIds.includes(departmentId)) return report
+  }
+  return null
 }
 
 /**

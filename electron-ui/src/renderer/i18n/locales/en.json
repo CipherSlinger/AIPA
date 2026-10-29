@@ -402,6 +402,15 @@
         "unavailableExactStored": "As it happened needs the conversation open in chat. A stored conversation can only be generalised by AIPA.",
         "storedEmptyHint": "Press Generalize to read this conversation and propose a skill. Until then the fields stay empty and Install is disabled."
       }
+    },
+    "madeFrom": {
+      "lead": "Made from this conversation",
+      "skillsUnknown": "skills couldn't be read",
+      "more": "show {{count}} more",
+      "openWorkflow": "Open workflow “{{name}}”",
+      "openSkill": "Open skill “{{name}}”",
+      "retry": "Retry reading skills",
+      "moreTitle": "Show the other {{count}} made from this conversation"
     }
   },
   "sessionReuse": {
@@ -1883,6 +1892,13 @@
       "noEligible": "No stored conversation can be used as a source right now.",
       "noResults": "No conversations match your search.",
       "showMore": "Show {{count}} more"
+    },
+    "provenance": {
+      "titled": "Drafted from “{{title}}” on {{date}}",
+      "titledNoDate": "Drafted from “{{title}}”",
+      "untitled": "Drafted from a conversation on {{date}}",
+      "untitledNoDate": "Drafted from a conversation",
+      "gone": "no longer in your history"
     }
   },
   "skill": {
@@ -3148,7 +3164,13 @@
       "noMembers": "This department has no members to cover, so the limit was not saved.",
       "cleared": "Limit cleared.",
       "saved": "Limit saved.",
-      "noSchedules": "This department has no scheduled work yet, so a limit would cover nothing."
+      "noSchedules": "This department has no scheduled work yet, so a limit would cover nothing.",
+      "frees": {
+        "at": "Frees around {{time}} if nothing else runs",
+        "unknownUnmeasured": "Can't say when it frees — {{count}} of the window's runs reported no cost",
+        "unknownPartial": "Can't say when it frees — part of the window's run history is missing",
+        "unknownGeneric": "Can't say when it frees — the window's spend can't be pinned down"
+      }
     }
   },
   "archive": {

@@ -16,6 +16,7 @@ import ChatHeader from './ChatHeader'
 import ChatInput from './ChatInput'
 import MessageList from './MessageList'
 import SessionOriginLine from './SessionOriginLine'
+import MadeFromConversation from '../provenance/MadeFromConversation'
 import CatchUpCard from './CatchUpCard'
 import SearchBar from './SearchBar'
 import TaskQueuePanel from './TaskQueuePanel'
@@ -598,6 +599,12 @@ export default function ChatPanel() {
       {/* Who started this conversation. Sits on the transcript's reading
           column, above it, and renders nothing at all for the user's own. */}
       <SessionOriginLine />
+
+      {/* What was made from this conversation (wave 66): the workflows and
+          skills drafted from it. Its own line, and absent — not an empty
+          placeholder — when the conversation produced nothing, so the header
+          keeps its height. */}
+      <MadeFromConversation />
 
       {/* Messages */}
       <div className="flex-1 overflow-hidden" style={{ display: 'flex', flexDirection: 'column' }}>

@@ -39,6 +39,7 @@ import {
   describeDeptBudget,
   parseBudgetInput,
 } from './deptBudget.data'
+import DeptBudgetFrees from './DeptBudgetFrees'
 import { costText } from '../workflows/scheduleSummary'
 import { nextRunText } from '../automation/nextRunText'
 import type { AppLocale } from '../../utils/formatDate'
@@ -907,6 +908,10 @@ function BriefBudget({
           {t('dept.budget.heldNote', { count: facts.heldRuns })}
         </div>
       )}
+
+      {/* The cap's own forecast, in the words the popover uses too. Nothing is
+          printed under the cap, and a time is only ever main's. */}
+      {facts.state === 'set' && <DeptBudgetFrees report={report} />}
 
       {editor}
 

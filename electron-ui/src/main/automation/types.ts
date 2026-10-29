@@ -493,6 +493,28 @@ export interface AutomationDeptBudgetReport extends AutomationDeptBudget {
   heldJobs: number
   /** Held runs still visible in those jobs' capped histories. */
   heldRuns: number
+  /**
+   * The first instant at which the rolling-window spend is *expected* to drop
+   * to or below the cap, assuming no other run happens in the meantime. A run's
+   * cost leaves the window 24 h after it started, so this is the moment the
+   * oldest remaining attempt stops counting.
+   *
+   * Absent — never guessed — when the spend is not over the cap, when some
+   * in-window attempt reported no cost (the total is a lower bound), or when a
+   * member job's capped history cannot reach the window start. A forecast about
+   * the cap, not about work: a held occurrence is gone and nothing starts
+   * because of this time.
+   */
+  freesAt?: number
+  /**
+   * Why `freesAt` could not be computed although the cap *is* over.
+   * `'unmeasured'`: at least one in-window attempt reported no cost, so the
+   * total is a floor and any time would be fiction. `'partial'`: a member job's
+   * capped history cannot reach the window start, so evicted attempts may be
+   * the ones keeping the hold alive. Absent whenever `freesAt` is present or the
+   * spend is not over the cap.
+   */
+  freesUnknown?: 'unmeasured' | 'partial'
 }
 
 export interface AutomationJobView extends AutomationJob {

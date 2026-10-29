@@ -23,13 +23,26 @@
  *     nothing is worse than an absent one, because the user would believe
  *     unattended spend was held.
  *
+ * The report also answers "when would waiting help?". A run's cost leaves the
+ * rolling window 24 h after it started, so when the cap is over the report can
+ * name the first instant the spend is expected to fall below it. That number is
+ * offered only when the attempt list proves it (every attempt costed, no member
+ * history truncated); otherwise the report says why it cannot be given rather
+ * than guessing. A forecast is not a promise: a held occurrence is gone, and
+ * only the cap frees.
+ *
  * Pure and Electron-free: the store owns the file, the scheduler owns the live
  * list, and `.scratch/wave58a-dept-budget-harness` can pin `now` and exercise
  * each rule without either.
  */
 
 import { normalizeDepartmentId } from './job-department'
-import { SPEND_WINDOW_MS, summarizeDeptSpend } from './spend-guard'
+import {
+  SPEND_WINDOW_MS,
+  collectDeptCostedAttempts,
+  summarizeDeptSpend,
+  type DeptCostedAttempt,
+} from './spend-guard'
 import type {
   AutomationDeptBudget,
   AutomationDeptBudgetReport,
@@ -290,6 +303,69 @@ export function applyDeptBudgetSync(
 }
 
 /**
+ * When a cap that is *already over* will stop being over, or `undefined` when
+ * the attempt list cannot prove it.
+ *
+ * The window is rolling: a run's cost leaves it exactly
+ * `SPEND_WINDOW_MS` after it started. Assuming nothing else runs in the
+ * meantime, spend falls only at those instants, so the answer is one of the
+ * attempts' start times plus the window. Walking the costed attempts oldest
+ * first and subtracting one at a time finds the first removal after which the
+ * remaining spend no longer trips the rail.
+ *
+ * "No longer trips the rail" is the rail's own predicate, not a rounded idea of
+ * it: `checkDeptBudgetLimit` holds while `spend + 1e-9 >= cap`, so spend that is
+ * mathematically exactly at the cap is still held (float dust included) and the
+ * oldest run must still leave before anything frees. Using `<= cap` here would
+ * print a time at which the scheduler would still refuse the run.
+ *
+ * A non-positive cap cannot be stored (`normalizeDeptBudgetUsd` refuses it), so
+ * this branch only guards a hand-built budget: nothing can ever fall *below* a
+ * cap at or under zero, and the only instant that ends the hold is an empty
+ * window — the latest in-window attempt plus the window. No division, no loop
+ * that depends on the cap's magnitude. No attempts with a reported cost means
+ * there was nothing to free; `now` is the honest answer and the window already
+ * spends nothing.
+ *
+ * Pure: it takes the attempts, the cap and the clock, nothing else.
+ */
+function computeDeptFreesAt(
+  attempts: readonly DeptCostedAttempt[],
+  capUsd: number,
+  now: number,
+): number | undefined {
+  if (!(capUsd > 0)) {
+    if (attempts.length === 0) return now
+    let latest = attempts[0].startedAt
+    for (const attempt of attempts) {
+      if (attempt.startedAt > latest) latest = attempt.startedAt
+    }
+    return latest + SPEND_WINDOW_MS
+  }
+
+  const blocks = (total: number): boolean => total + 1e-9 >= capUsd
+
+  let total = 0
+  for (const attempt of attempts) total += attempt.costUsd
+  if (!blocks(total)) return undefined
+
+  // Chronological order is the only order in which "the next removal" means
+  // "the next instant the window loses a run". Ties are harmless: two attempts
+  // with the same start leave the window at the same instant, so whichever is
+  // removed first yields the same answer.
+  const ordered = [...attempts].sort((a, b) => a.startedAt - b.startedAt)
+  let remaining = total
+  for (const attempt of ordered) {
+    remaining -= attempt.costUsd
+    if (!blocks(remaining)) return attempt.startedAt + SPEND_WINDOW_MS
+  }
+  // Every costed attempt has left and the sum still reads as over (only a cap
+  // at or below the rail's own epsilon can get here). Better to claim no time
+  // than one the scheduler would not honour.
+  return undefined
+}
+
+/**
  * One stored cap with its live figures.
  *
  * The spend half comes from `summarizeDeptSpend`, so this report and the
@@ -297,6 +373,21 @@ export function applyDeptBudgetSync(
  * are folded here because they are a different question: not "what did the
  * department spend" but "what did this cap stop", which only the run records
  * with `skipReason: 'dept-budget'` can answer.
+ *
+ * `freesAt` answers the question the hold makes the user ask — "when is it
+ * worth trying again?" — and only when the answer is a fact, not a guess:
+ *
+ *   - only when the reported spend is over the cap, because otherwise the
+ *     question does not arise;
+ *   - never when any in-window attempt reported no cost, because the total is
+ *     then a lower bound and the walk would be subtracting from a number that
+ *     is not the spend;
+ *   - never when a member job's capped history cannot reach the window start,
+ *     because evicted attempts may include the very cost that keeps the hold
+ *     alive.
+ *
+ * Even when it is given, the time is a forecast: a held occurrence is gone, and
+ * only the cap frees at that instant — nothing runs because of it.
  *
  * "Latest run" means the last record in the job's history. The store appends in
  * time order and caps from the newest end, so the last element is the most
@@ -338,6 +429,34 @@ export function buildDeptBudgetReport(
     if (latestHeld) heldJobs += 1
   }
 
+  // Same predicate as the rail, for the same reason it exists: at or above the
+  // cap the hold bites. A window nobody could measure is not "over" — it has no
+  // total to compare — and `unmeasured` already says so on the surface.
+  const overCap = summary.reportedCostUsd !== undefined
+    && summary.reportedCostUsd + 1e-9 >= budget.usd
+
+  let freesAt: number | undefined
+  let freesUnknown: 'unmeasured' | 'partial' | undefined
+  if (overCap) {
+    // A missing cost makes the total a floor: subtracting known costs from it
+    // would predict a freeing time for a window that may hold unknown spend of
+    // its own. `unreportedRuns` is the right test — `unmeasured` is only true
+    // when *no* run reported a cost, which also leaves nothing to compare.
+    if (summary.unreportedRuns > 0) {
+      freesUnknown = 'unmeasured'
+    } else if (summary.partial) {
+      // Evicted attempts could be the ones keeping the hold alive, so the walk
+      // has no complete list to leave from.
+      freesUnknown = 'partial'
+    } else {
+      freesAt = computeDeptFreesAt(
+        collectDeptCostedAttempts(jobs, budget.memberIds, windowStart, now),
+        budget.usd,
+        now,
+      )
+    }
+  }
+
   return {
     departmentId: budget.departmentId,
     memberIds: [...budget.memberIds],
@@ -350,6 +469,8 @@ export function buildDeptBudgetReport(
     partial: summary.partial,
     heldJobs,
     heldRuns,
+    ...(freesAt !== undefined ? { freesAt } : {}),
+    ...(freesUnknown !== undefined ? { freesUnknown } : {}),
   }
 }
 

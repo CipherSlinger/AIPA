@@ -54,7 +54,12 @@ import {
 } from '../automation/heldBatch'
 import type { HeldBatchOutcome, HeldBatchPhase } from '../automation/heldBatch'
 import type { Translate } from '../automation/scheduleText'
-import type { AutomationJobData } from '../../../preload'
+import DeptBudgetFrees from '../departments/DeptBudgetFrees'
+import { budgetHolding } from '../departments/deptBudget.data'
+import type {
+  AutomationDeptBudgetReportData,
+  AutomationJobData,
+} from '../../../preload'
 
 interface BackgroundWorkPopoverProps {
   running: AutomationJobData[]
@@ -484,6 +489,64 @@ export default function BackgroundWorkPopover({
     () => buildJobDepartmentOptions(departments, resolvedLocale),
     [departments, resolvedLocale],
   )
+
+  // The held group's forecast. Read through the same channel the department
+  // Brief uses — this panel adds no IPC surface of its own — and only while the
+  // group is on screen. A failed read leaves the list null, which prints no
+  // line: the forecast is an extra, and "could not read" is not "no cap".
+  const [budgetReports, setBudgetReports] = useState<
+    AutomationDeptBudgetReportData[] | null
+  >(null)
+  // A stable key instead of the array: the held rows are rebuilt on every tick
+  // of `now`, and an identity dependency would re-read the caps each second.
+  const heldDepartmentKey = useMemo(() => {
+    const ids = new Set<string>()
+    for (const hold of held.rows) {
+      if (typeof hold.departmentId === 'string' && hold.departmentId) ids.add(hold.departmentId)
+    }
+    return [...ids].sort().join('|')
+  }, [held.rows])
+
+  useEffect(() => {
+    const ids = heldDepartmentKey ? heldDepartmentKey.split('|') : []
+    const api = window.electronAPI
+    if (ids.length === 0 || !api?.automationDeptBudgets) {
+      setBudgetReports(null)
+      return
+    }
+    let alive = true
+    const load = () => {
+      api.automationDeptBudgets()
+        .then(reports => {
+          if (alive) setBudgetReports(Array.isArray(reports) ? reports : [])
+        })
+        .catch(() => {
+          if (alive) setBudgetReports(null)
+        })
+    }
+    load()
+    // A finished run or a cap edit moves the figure this line forecasts from;
+    // the scheduler broadcasts `automation:changed` for both.
+    const off = api.onAutomationChanged(load)
+    return () => {
+      alive = false
+      off()
+    }
+  }, [heldDepartmentKey])
+
+  // One cap for the whole group, or no line at all. Held jobs can be held by
+  // different caps, and one sentence cannot honestly speak for two different
+  // limits; when every row resolves to the same cap, this is that report.
+  const heldCaps = useMemo(() => {
+    if (!budgetReports || !heldDepartmentKey) return []
+    const caps: AutomationDeptBudgetReportData[] = []
+    for (const departmentId of heldDepartmentKey.split('|')) {
+      const report = budgetHolding(budgetReports, departmentId)
+      if (report && !caps.some(cap => cap.departmentId === report.departmentId)) caps.push(report)
+    }
+    return caps
+  }, [budgetReports, heldDepartmentKey])
+
   const panelRef = useRef<HTMLDivElement>(null)
   // Jobs whose start request is still awaiting the IPC reply. Keyed by job, not
   // by row: the same job can occupy two failure rows, and both must show the
@@ -929,6 +992,14 @@ export default function BackgroundWorkPopover({
               />
             )
           })}
+          {/* Under the rows it describes: when the cap that stopped them is
+              expected to free. Never "they will run then" — the occurrences are
+              gone, and only the limit stops holding. */}
+          {heldCaps.length === 1 && (
+            <div style={{ padding: '2px 6px 1px' }}>
+              <DeptBudgetFrees report={heldCaps[0]} />
+            </div>
+          )}
           {showHeldBatch && (
             <div style={{
               display: 'flex', flexDirection: 'column', gap: 3,

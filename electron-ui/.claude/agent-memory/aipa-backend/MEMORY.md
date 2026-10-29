@@ -9,3 +9,4 @@
 - [Codex app-server 0.145 protocol](codex-app-server-protocol-0-145.md) — rename/rollback/input variants/enums, and why `mention` is not an attachment path
 - [Pet attention notifications](pet-attention-notifications.md) — pet bubble replaces native notification for approvals/questions/failures/plugin jobs; per-session suppression, chooser for batches
 - [Claude CLI ephemeral flag](claude-cli-ephemeral-flag.md) — `--no-session-persistence` works in session mode with piped stdio; PTY-only failure is a false alarm
+- [Dept cap "frees at" forecast](dept-budget-frees-forecast.md) — rail holds at `>= cap` with float epsilon; forecast keys on `unreportedRuns`, not `unmeasured`

@@ -796,6 +796,26 @@ export interface AutomationDeptBudgetReportData extends AutomationDeptBudgetData
   heldJobs: number
   /** Held runs still visible in those jobs' capped histories. */
   heldRuns: number
+  /**
+   * The first instant at which the cap is *expected* to free — the moment the
+   * rolling window's spend is projected to drop to or below the cap, assuming
+   * nothing else runs before then. "Expected" is the whole of the claim: the
+   * window is 24 h deep and a run's cost leaves it 24 h after it started, so the
+   * time is arithmetic, but it is a forecast about the cap and not about work.
+   * A held occurrence is gone; nothing starts because of this time.
+   *
+   * Absent when the spend is under the cap, when some in-window run reported no
+   * cost, or when the history cannot prove the window. A surface must never
+   * synthesise a time from the spend figure alone.
+   */
+  freesAt?: number
+  /**
+   * Why `freesAt` is absent although the cap *is* over. `'unmeasured'`: at least
+   * one in-window run reported no cost, so the total is a lower bound and any
+   * time would be fiction. `'partial'`: a member job's capped history cannot
+   * reach the window start, so evicted runs may be keeping the hold alive.
+   */
+  freesUnknown?: 'unmeasured' | 'partial'
 }
 
 /**

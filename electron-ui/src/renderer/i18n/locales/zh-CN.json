@@ -402,6 +402,15 @@
         "unavailableExactStored": "「按原样」需要在聊天中打开这段对话；已保存的对话只能用 AIPA 提炼。",
         "storedEmptyHint": "点击「提炼」，读取这段对话并生成技能草稿。在此之前各字段为空，安装按钮不可用。"
       }
+    },
+    "madeFrom": {
+      "lead": "由这段对话产出",
+      "skillsUnknown": "技能列表读取失败",
+      "more": "再显示 {{count}} 个",
+      "openWorkflow": "打开工作流“{{name}}”",
+      "openSkill": "打开技能“{{name}}”",
+      "retry": "重新读取技能",
+      "moreTitle": "展开这段对话产出的另外 {{count}} 个"
     }
   },
   "sessionReuse": {
@@ -1883,6 +1892,13 @@
       "noEligible": "目前没有可用于生成草稿的已保存对话。",
       "noResults": "没有匹配的对话。",
       "showMore": "再显示 {{count}} 条"
+    },
+    "provenance": {
+      "titled": "提炼自“{{title}}”，{{date}}",
+      "titledNoDate": "提炼自“{{title}}”",
+      "untitled": "提炼自一段对话，{{date}}",
+      "untitledNoDate": "提炼自一段对话",
+      "gone": "该对话已不在你的历史记录中"
     }
   },
   "skill": {
@@ -3148,7 +3164,13 @@
       "noMembers": "这个部门没有可覆盖的成员，限额未保存。",
       "cleared": "限额已清除。",
       "saved": "限额已保存。",
-      "noSchedules": "这个部门还没有排程，设置限额也不会覆盖任何任务。"
+      "noSchedules": "这个部门还没有排程，设置限额也不会覆盖任何任务。",
+      "frees": {
+        "at": "如果不再有别的运行，大约 {{time}} 解除限制",
+        "unknownUnmeasured": "说不准什么时候解除限制——窗口内有 {{count}} 次运行没有报告费用",
+        "unknownPartial": "说不准什么时候解除限制——窗口内的运行记录不完整",
+        "unknownGeneric": "说不准什么时候解除限制——这段窗口的花费算不准"
+      }
     }
   },
   "archive": {
