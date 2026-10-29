@@ -10,19 +10,30 @@
 // without git, or no usable folder at all renders nothing. A repository that is
 // clean still renders — the branch is a fact worth seeing — and the panel says
 // plainly that nothing is uncommitted.
+//
+// Wave 89C: one refusal is not absence. When main will not read the folder at
+// all (`cwd_invalid`), the chip shows a small muted lock or warning instead of
+// disappearing: the repository may be perfectly fine and AIPA simply cannot
+// see it. Which refusal it is comes from main's `reason`, never from a stat in
+// the renderer.
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowDown, ArrowUp, GitBranch } from 'lucide-react'
+import { AlertTriangle, ArrowDown, ArrowUp, GitBranch, Lock } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useChatStore, usePrefsStore, useSessionStore, useUiStore } from '../../store'
 import { resolveWorkingDir } from '../../lib/workingDir'
 import { pushEscapeHandler } from '../ui/escapeStack'
-import type { GitStatusData, GitStatusOkData } from '../../../preload'
+import type { GitStatusData } from '../../../preload'
 import GitStatusPopover from './GitStatusPopover'
+import GitStatusRefusalPopover from './GitStatusRefusalPopover'
 import {
   GIT_STATUS_OPEN_EVENT,
   consumeGitStatusRequest,
+  forgetGitStatus,
+  gitRefusalCopyKeys,
   gitStatusErrorText,
+  gitStatusReading,
+  readGitStatusFailure,
   rememberGitStatus,
 } from './gitStatusPanel'
 
@@ -89,6 +100,11 @@ export default function GitStatusChip() {
     rememberGitStatus(folder, result)
     if (result.ok) {
       // A palette ask that got its panel owes no failure sentence later.
+      announceFailureRef.current = false
+    } else if (readGitStatusFailure(result).kind === 'refused') {
+      // The refusal panel is the truthful answer, so a palette ask needs no
+      // second sentence in a toast — and the panel must stay open rather than
+      // collapse to nothing, which would read as "nothing to report".
       announceFailureRef.current = false
     } else {
       if (announceFailureRef.current) {
@@ -179,6 +195,17 @@ export default function GitStatusChip() {
     if (refocusTrigger) triggerRef.current?.focus()
   }, [])
 
+  // The user just confirmed this folder in the OS dialog, which is what makes
+  // it readable. Drop the cached refusal so nothing later repeats it, close the
+  // panel, and read once — the same single read every other change uses, not a
+  // new loop. If main still refuses, the chip says why again.
+  const reloadAfterGrant = useCallback(() => {
+    forgetGitStatus(cwdRef.current)
+    openRef.current = false
+    setOpen(false)
+    if (cwdRef.current) void load()
+  }, [load])
+
   useEffect(() => {
     if (!open) return
     const onMouseDown = (event: MouseEvent) => {
@@ -204,21 +231,34 @@ export default function GitStatusChip() {
     }
   }, [open, close])
 
-  const ok: GitStatusOkData | null = status && status.ok ? status : null
-  if (!ok) return null
+  const reading = gitStatusReading(status, cwd)
+  // Absence is still absence: not a repository, git missing, or a read that
+  // failed for another reason leaves the bar exactly as it was. A refusal is
+  // not absence — the repository may be fine and AIPA simply cannot see it —
+  // so it renders below instead of vanishing.
+  if (reading.kind === 'hidden' || reading.kind === 'silent') return null
 
-  const branchText = ok.detached
-    ? (ok.headSha ?? t('gitStatus.detached'))
-    : (ok.branch ?? t('gitStatus.unknownBranch'))
-  const dirty = ok.total > 0
+  const repo = reading.kind === 'repo' ? reading.status : null
+  const refusal = reading.kind === 'refused' ? reading : null
+  const refusalCopy = refusal ? gitRefusalCopyKeys(refusal.cause) : null
 
-  const title = ok.detached
-    ? (ok.headSha
-      ? t('gitStatus.detachedTitle', { sha: ok.headSha })
-      : t('gitStatus.detachedUnknownTitle'))
-    : dirty
-      ? t('gitStatus.dirtyTitle', { count: String(ok.total), branch: branchText })
-      : t('gitStatus.cleanTitle', { branch: branchText })
+  const branchText = repo
+    ? repo.detached
+      ? (repo.headSha ?? t('gitStatus.detached'))
+      : (repo.branch ?? t('gitStatus.unknownBranch'))
+    : ''
+  const dirty = repo ? repo.total > 0 : false
+
+  const repoTitle = repo
+    ? repo.detached
+      ? (repo.headSha
+        ? t('gitStatus.detachedTitle', { sha: repo.headSha })
+        : t('gitStatus.detachedUnknownTitle'))
+      : dirty
+        ? t('gitStatus.dirtyTitle', { count: String(repo.total), branch: branchText })
+        : t('gitStatus.cleanTitle', { branch: branchText })
+    : ''
+  const title = refusal && refusalCopy ? t(refusalCopy.title, { folder: cwd }) : repoTitle
 
   const toggle = () => {
     if (open) {
@@ -227,7 +267,10 @@ export default function GitStatusChip() {
     }
     openRef.current = true
     setOpen(true)
-    void load()
+    // Re-reading a folder main will not look at can only repeat the same
+    // refusal, so the outside-roots panel opens on the answer it already has.
+    // A folder that is gone may come back, so opening it asks again.
+    if (!(refusal?.cause === 'outside_allowed_roots')) void load()
   }
 
   // No "can a diff be shown here?" precomputation any more (wave 88A): the
@@ -258,11 +301,15 @@ export default function GitStatusChip() {
           transition: 'all 0.15s ease',
         }}
       >
-        <GitBranch size={10} style={{ flexShrink: 0 }} />
+        {refusal
+          ? refusal.cause === 'outside_allowed_roots'
+            ? <Lock size={10} style={{ flexShrink: 0 }} />
+            : <AlertTriangle size={10} style={{ flexShrink: 0 }} />
+          : <GitBranch size={10} style={{ flexShrink: 0 }} />}
         <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {branchText}
+          {refusal && refusalCopy ? t(refusalCopy.label) : branchText}
         </span>
-        {dirty && (
+        {repo && dirty && (
           <>
             <span aria-hidden style={{ opacity: 0.5 }}>·</span>
             <span
@@ -273,35 +320,43 @@ export default function GitStatusChip() {
               }}
             />
             <span style={{ fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>
-              {ok.total}
+              {repo.total}
             </span>
           </>
         )}
-        {ok.upstream && ok.ahead > 0 && (
+        {repo?.upstream && repo.ahead > 0 && (
           <span
-            title={t('gitStatus.aheadTitle', { count: String(ok.ahead), upstream: ok.upstream })}
+            title={t('gitStatus.aheadTitle', { count: String(repo.ahead), upstream: repo.upstream })}
             style={{ display: 'flex', alignItems: 'center', gap: 1, opacity: 0.85 }}
           >
             <ArrowUp size={9} />
-            {ok.ahead}
+            {repo.ahead}
           </span>
         )}
-        {ok.upstream && ok.behind > 0 && (
+        {repo?.upstream && repo.behind > 0 && (
           <span
-            title={t('gitStatus.behindTitle', { count: String(ok.behind), upstream: ok.upstream })}
+            title={t('gitStatus.behindTitle', { count: String(repo.behind), upstream: repo.upstream })}
             style={{ display: 'flex', alignItems: 'center', gap: 1, opacity: 0.85 }}
           >
             <ArrowDown size={9} />
-            {ok.behind}
+            {repo.behind}
           </span>
         )}
       </button>
 
-      {open && (
+      {open && repo && (
         <GitStatusPopover
           cwd={cwd}
-          status={ok}
+          status={repo}
           refreshing={refreshing}
+          onClose={() => close(false)}
+        />
+      )}
+      {open && refusal && (
+        <GitStatusRefusalPopover
+          cwd={cwd}
+          cause={refusal.cause}
+          onGranted={reloadAfterGrant}
           onClose={() => close(false)}
         />
       )}

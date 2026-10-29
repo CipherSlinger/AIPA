@@ -8,6 +8,7 @@
  */
 import { BrowserWindow, dialog, app } from 'electron'
 import { createLogger } from '../../utils/logger'
+import { registerAllowedRoot } from '../../utils/allowed-roots'
 import {
   initNavPluginManager,
   listNavPlugins,
@@ -146,7 +147,13 @@ export function registerNavPluginHandlers(win: BrowserWindow, send: SendFn): voi
     const result = win.isDestroyed()
       ? await dialog.showOpenDialog({ title, properties: ['openDirectory'] })
       : await dialog.showOpenDialog(win, { title, properties: ['openDirectory'] })
-    return result.canceled ? null : result.filePaths[0] ?? null
+    const picked = result.canceled ? null : result.filePaths[0] ?? null
+    // A plugin asking for a folder is still the user answering a system dialog.
+    // Without this the plugin's own `plugin:fs:scanFolder` on the folder it just
+    // received would be refused by the gate — a dialog whose answer the app then
+    // pretends not to have been given.
+    if (picked) registerAllowedRoot(picked)
+    return picked
   })
   safeHandle('plugin:ai:generate', async (_e, { pluginId, requestId, prompt, instructions, model }: {
     pluginId: string

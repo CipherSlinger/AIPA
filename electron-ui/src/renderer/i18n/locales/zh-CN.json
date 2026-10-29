@@ -3851,6 +3851,12 @@
         "missing": "找不到这段对话",
         "other": "系统拒绝了"
       }
+    },
+    "folderFilter": {
+      "group": "按文件夹",
+      "all": "全部文件夹",
+      "none": "未记录文件夹",
+      "startNew": "在「{{folder}}」开始新对话"
     }
   },
   "canvas": {
@@ -4712,6 +4718,16 @@
       "row": "连续 2 次失败才提醒",
       "held": "提醒暂缓，直到第二次失败",
       "heldHint": "这次失败已经记录、计入连续失败并显示出来，但提醒策略会等到连续两次失败才通知你。"
+    },
+    "folder": {
+      "label": "运行目录",
+      "appWide": "应用全局工作目录",
+      "appWideHint": "使用运行开始时 AIPA 的应用全局工作目录，不会固定成今天这个文件夹。",
+      "recentHeading": "最近使用的文件夹",
+      "browse": "浏览…",
+      "notAllowed": "AIPA 不允许在 {{path}} 运行。请换一个文件夹，或使用应用全局工作目录。",
+      "grantAction": "允许 AIPA 读取这个文件夹…",
+      "grantChanged": "文件夹已改为 {{path}}。请按「保存」重试。"
     }
   },
   "speculation": {
@@ -5200,12 +5216,28 @@
     "dirtyTitle": "{{branch}} 上有 {{count}} 处未提交的改动。打开工作区。",
     "notARepo": "{{folder}} 不是 git 仓库。",
     "gitMissing": "没有安装 Git，或者它不在 PATH 上。",
-    "cwdInvalid": "{{folder}} 不是一个可读的、位于允许范围内的文件夹。",
     "failed": "git status 失败：{{message}}",
-    "revealOnly": "差异查看器运行在应用全局的工作文件夹里，那不是这个仓库。因此改为打开文件所在的文件夹。",
-    "revealFailed": "差异查看器运行在应用全局的工作文件夹里，那不是这个仓库。文件所在的文件夹也没能打开——路径就在上面那一行。",
     "diffRefusedReveal": "AIPA 不被允许在这个对话的文件夹里读取差异，因此改为打开文件所在的文件夹。",
-    "diffRefusedRevealFailed": "AIPA 不被允许在这个对话的文件夹里读取差异，文件所在的文件夹也没能打开——路径就在上面那一行。"
+    "diffRefusedRevealFailed": "AIPA 不被允许在这个对话的文件夹里读取差异，文件所在的文件夹也没能打开——路径就在上面那一行。",
+    "refusedOutsideLabel": "不可读",
+    "refusedMissingLabel": "文件夹已消失",
+    "refusedNotFolderLabel": "不是文件夹",
+    "refusedUnknownLabel": "无法读取",
+    "refusedOutsideTitle": "AIPA 不被允许读取 {{folder}}。这并不说明那个仓库的状态——只是 AIPA 看不到它。",
+    "refusedMissingTitle": "{{folder}} 已不存在，AIPA 没有工作区可读取。",
+    "refusedNotFolderTitle": "{{folder}} 不是文件夹，AIPA 无法在这里读取工作区。",
+    "refusedUnknownTitle": "AIPA 无法读取 {{folder}}。它可能不在 AIPA 可读取的范围内，也可能已经不存在。",
+    "refusedOutsideHeading": "不被允许读取这个文件夹",
+    "refusedOutsideBody": "{{folder}} 不在 AIPA 可读取的文件夹范围内。AIPA 看不到那里的工作区。",
+    "refusedMissingHeading": "这个文件夹已消失",
+    "refusedMissingBody": "{{folder}} 已不存在。这段对话的记录还在。请选择另一个文件夹继续。",
+    "refusedNotFolderHeading": "这个路径不是文件夹",
+    "refusedNotFolderBody": "{{folder}} 是文件或别的东西，不是 AIPA 能读取工作区的文件夹。请选择另一个文件夹继续。",
+    "refusedUnknownHeading": "AIPA 无法读取这个文件夹",
+    "refusedUnknownBody": "AIPA 无法读取 {{folder}}。它可能不在 AIPA 可读取的范围内，也可能已经不存在。",
+    "refusedClose": "关闭",
+    "refusedChooseFolder": "选择另一个文件夹…",
+    "refusedGrantFolder": "允许 AIPA 读取这个文件夹…"
   },
   "engineApiError": {
     "title": "引擎报告了一个 API 错误",
@@ -5226,5 +5258,21 @@
   "quickSwitcher": {
     "placeholderWithFolders": "搜索会话和文件夹...",
     "matchedFolder": "匹配文件夹"
+  },
+  "allowedFolders": {
+    "title": "AIPA 可读取的文件夹",
+    "description": "你在文件夹对话框里确认过的文件夹。AIPA 可以读取它们来做差异、git 状态、终端和定时任务。你的主目录（~）始终可读，不在此列出。",
+    "add": "添加文件夹…",
+    "addFailed": "无法打开文件夹对话框。列表已从应用重新读取。",
+    "loadFailed": "读不到已授权文件夹的列表。",
+    "retry": "重试",
+    "emptyTitle": "还没有授权任何文件夹",
+    "emptyHint": "AIPA 本来就能读取你的主目录。若要让它在你选择的另一个文件夹里工作，请用「添加文件夹…」——只有你在对话框里亲自选中，授权才会被记录。",
+    "removeAria": "撤销对 {{folder}} 的访问",
+    "notInList": "{{folder}} 不在列表里，因此没有移除任何东西。",
+    "removeFailed": "无法撤销对 {{folder}} 的访问。下面的列表已从应用重新读取。",
+    "confirmTitle": "要撤销对 {{folder}} 的访问吗？",
+    "confirmBody": "AIPA 将无法再读取 {{path}}：这里的差异、git 状态、终端和定时任务都会被拒绝。磁盘上不会删除任何东西。",
+    "confirmRemove": "撤销访问"
   }
 }

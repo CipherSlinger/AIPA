@@ -8,8 +8,9 @@
 // department node, origin plugin and next-run sentence are computed exactly
 // once per row as before.
 
-import { AlertTriangle, Building2, Clock, Puzzle, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Building2, Clock, Folder, Puzzle, RefreshCw } from 'lucide-react'
 import { scheduleText } from '../../automation/scheduleText'
+import { workingDirLabel } from '../../../lib/workingDir'
 import type { NextRunDescription } from '../../automation/nextRunText'
 import type { JobDepartmentResolution } from '../../automation/jobDepartment'
 import { SECONDARY, WARNING } from '../../automation/automationStyles'
@@ -25,6 +26,7 @@ export function AutomationJobChips({
   watch,
   watchWarning,
   nextRun,
+  homeDir,
 }: {
   t: Translate
   job: AutomationJobData
@@ -34,7 +36,14 @@ export function AutomationJobChips({
   watch: boolean
   watchWarning: string | null
   nextRun: NextRunDescription
+  /** For the `~/…` spelling of a job's own folder. */
+  homeDir?: string | null
 }) {
+  // Only a prompt job can name its own folder. Empty means the app-wide
+  // working folder, which is deliberately shown as nothing: the global
+  // preference may change after this job was created, so naming today's
+  // folder on the row would describe a folder the next run may not use.
+  const ownFolder = job.action.kind === 'prompt' ? (job.action.cwd ?? '').trim() : ''
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
       <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -93,6 +102,22 @@ export function AutomationJobChips({
         >
           <AlertTriangle size={10} style={{ flexShrink: 0 }} />
           {t('automation.department.missingOption')}
+        </span>
+      )}
+      {ownFolder && (
+        // A short label with the full path one hover away. A job with no own
+        // folder shows nothing here rather than the current app-wide folder.
+        <span
+          title={ownFolder}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            fontSize: 11, padding: '0 6px', borderRadius: 8,
+            color: SECONDARY, background: 'var(--bg-hover)',
+            border: '1px solid var(--border)',
+          }}
+        >
+          <Folder size={10} style={{ flexShrink: 0 }} />
+          {workingDirLabel(ownFolder, homeDir)}
         </span>
       )}
       <span style={{

@@ -1,6 +1,7 @@
 import Store from 'electron-store'
 import { safeStorage } from 'electron'
 import { createLogger } from '../utils/logger'
+import { clearAllowedRoots } from '../utils/allowed-roots'
 
 const log = createLogger('config-manager')
 
@@ -37,6 +38,14 @@ interface StoreSchema {
    * the switch and its pass log.
    */
   dreamConsolidationEnabled: boolean
+  /**
+   * Folders the user has granted through an OS folder dialog. The file-system
+   * gate treats them as roots alongside home and the working folder, so a
+   * project on another drive works once it has been picked. Granted rather than
+   * claimed: only the main process writes here, when a dialog returns. See
+   * `utils/allowed-roots.ts`.
+   */
+  allowedFolders: string[]
 }
 
 const store = new Store<StoreSchema>({
@@ -61,6 +70,7 @@ const store = new Store<StoreSchema>({
     clawdEnabled: true,
     petAttentionAlerts: true,
     dreamConsolidationEnabled: true,
+    allowedFolders: [],
   },
   // Removed hardcoded encryptionKey — API key is now encrypted via safeStorage
 })
@@ -168,5 +178,10 @@ export function setOnboardingDone(value: boolean): void {
 }
 
 export function resetAllPrefs(): void {
+  // Grants are part of what this file stores, but the gate reads them from
+  // memory. Clearing the store alone would leave that list live, and the next
+  // folder pick would write it back — a reset quietly undone. Clear both, and
+  // do it first so the failure mode is "no access" rather than "old access".
+  clearAllowedRoots()
   store.clear()
 }

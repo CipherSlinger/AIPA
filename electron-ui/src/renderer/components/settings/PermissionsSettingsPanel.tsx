@@ -3,6 +3,7 @@ import { Shield, Plus, X, AlertTriangle, Info, CheckCircle2, XCircle, Clock } fr
 import { useT } from '../../i18n'
 import { useChatStore } from '../../store/chatStore'
 import { PermissionMessage } from '../../types/app.types'
+import AllowedFoldersSection from './AllowedFoldersSection'
 
 type PermissionDefaultMode = 'default' | 'acceptEdits' | 'autoEdit' | 'plan' | 'dontAsk' | 'bypassPermissions'
 
@@ -196,6 +197,11 @@ export default function PermissionsSettingsPanel() {
           {toast}
         </div>
       )}
+
+      {/* Folders the file-system gate in main may read. A different list from
+          the Claude CLI rules below: those govern tool calls, this one decides
+          whether AIPA can open the folder at all. */}
+      <AllowedFoldersSection />
 
       {/* Default Mode Selector */}
       <DefaultModeSelector

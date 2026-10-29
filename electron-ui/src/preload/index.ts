@@ -1743,9 +1743,21 @@ export interface GitStatusOkData {
 
 export type GitStatusCode = 'not_a_repo' | 'git_missing' | 'cwd_invalid' | 'failed'
 
+/**
+ * Why a `cwd_invalid` was refused, as main decided it. Absent for every other
+ * code. The renderer reads this; it never stats the folder to form its own
+ * opinion.
+ */
+export type GitStatusCwdReason =
+  | 'outside_allowed_roots'
+  | 'missing'
+  | 'not_directory'
+  | 'no_folder'
+
 export interface GitStatusErrorData {
   ok: false
   code: GitStatusCode
+  reason?: GitStatusCwdReason
   message: string
 }
 
@@ -2420,7 +2432,19 @@ const electronAPI = {
     ipcRenderer.invoke('fs:listDir', dirPath) as Promise<
       Array<{ name: string; isDirectory: boolean; isFile: boolean; path: string }>
     >,
-  fsShowOpenDialog: () => ipcRenderer.invoke('fs:showOpenDialog'),
+  /**
+   * Pick a folder. The answer is also the consent that makes that folder
+   * readable: main records it as an allowed root, which is why a refusal
+   * elsewhere offers this dialog as its exit. `defaultPath` only seeds the
+   * dialog — passing it does not grant anything the user did not confirm.
+   */
+  fsShowOpenDialog: (defaultPath?: string) =>
+    ipcRenderer.invoke('fs:showOpenDialog', { defaultPath }) as Promise<string | null>,
+  /** Folders the user has granted, as the file-system gate currently sees them. */
+  foldersAllowed: () => ipcRenderer.invoke('folders:allowed') as Promise<string[]>,
+  /** Withdraw one grant. The answer says whether it was there and lists what remains. */
+  foldersForget: (dir: string) =>
+    ipcRenderer.invoke('folders:forget', { dir }) as Promise<{ forgotten: boolean; folders: string[] }>,
   fsShowOpenFileDialog: (filters?: { name: string; extensions: string[] }[], multiSelections?: boolean) =>
     ipcRenderer.invoke('fs:showOpenFileDialog', { filters, multiSelections }),
   fsShowSaveDialog: (defaultName: string, filters: { name: string; extensions: string[] }[]) =>
@@ -2458,7 +2482,9 @@ const electronAPI = {
   /**
    * `git status --porcelain=v1 -b` for `cwd` (or the app-wide working folder
    * when omitted). A folder outside the allowed roots is rejected with
-   * `cwd_invalid`; it is never reported as a clean tree.
+   * `cwd_invalid`; it is never reported as a clean tree. Every `cwd_invalid`
+   * carries a `reason` naming which refusal it is, so the renderer can tell
+   * "not allowed here" from "gone" without statting the folder itself.
    */
   fsGitStatus: (cwd?: string) =>
     ipcRenderer.invoke('fs:gitStatus', { cwd }) as Promise<GitStatusData>,

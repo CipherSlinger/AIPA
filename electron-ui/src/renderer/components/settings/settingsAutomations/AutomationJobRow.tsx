@@ -61,6 +61,7 @@ export function AutomationJobRow({
   confirming,
   historyUi,
   runFilesOpen,
+  homeDir,
   onToggle,
   onRunNow,
   onDuplicate,
@@ -92,6 +93,8 @@ export function AutomationJobRow({
   confirming: boolean
   historyUi: RunHistoryUi
   runFilesOpen: Record<string, boolean>
+  /** So a job folder under home reads `~/…` on its chip. */
+  homeDir?: string | null
   onToggle: (enabled: boolean) => void
   onRunNow: () => void
   onDuplicate: () => void
@@ -180,6 +183,7 @@ export function AutomationJobRow({
           watch={watch}
           watchWarning={watchWarning}
           nextRun={nextRun}
+          homeDir={homeDir}
         />
 
         {/* Where this job was drafted from. A job made in Settings,

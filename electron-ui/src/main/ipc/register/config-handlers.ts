@@ -38,6 +38,7 @@ import { assembleMemoryContext, readPersonalMemories } from '../../sessions/memo
 import { checkIsGitRepo, listWorktrees, createWorktree, removeWorktree } from '../../sessions/worktree-manager'
 import { listPlugins, setPluginEnabled, uninstallPlugin, registerLocalPlugin } from '../../plugins/plugin-manager'
 import { safePath, getAllowedFsRoots, validateApiKey } from '../../utils/validate'
+import { getAllowedRoots, forgetAllowedRoot } from '../../utils/allowed-roots'
 import { refreshAttention } from '../../clawd-attention'
 import { codexBridgeManager } from '../../codex/codex-bridge'
 import {
@@ -98,12 +99,34 @@ export function registerConfigHandlers(): void {
   })
   ipcMain.handle('prefs:set', (_e, key, value) => {
     try {
+      // The granted-folder list decides what this app may read, so it is not a
+      // preference the renderer can write: `prefs:set` would be a one-line way
+      // around the file-system gate, effective at the next restart. Grants are
+      // recorded only where the user answered an OS dialog; withdrawals have
+      // their own handler below.
+      if (key === 'allowedFolders') {
+        log.warn('prefs:set refused for allowedFolders — grants come from folder dialogs')
+        return
+      }
       setPref(key, value)
       // Switching the background pet alerts off also retracts any bubble that
       // is currently up; switching them on lets queued items surface.
       if (key === 'petAttentionAlerts') refreshAttention()
     } catch (err) { log.warn('prefs:set error:', String(err)) }
   })
+  // Folders the user granted through a folder dialog, as the gate currently
+  // sees them — the in-memory list, not the file, so a grant in this session is
+  // visible without a restart and a failed write cannot hide one.
+  safeHandle('folders:allowed', () => getAllowedRoots())
+  // Withdrawal is the safe direction, so it is the one folder operation the
+  // renderer may perform on its own. The answer is the list as it now stands.
+  safeHandle('folders:forget', (_e, { dir }: { dir: string }) => {
+    if (typeof dir !== 'string' || !dir.trim()) return { forgotten: false, folders: getAllowedRoots() }
+    const forgotten = forgetAllowedRoot(dir)
+    if (forgotten) log.info('allowed-roots: withdrew a grant')
+    return { forgotten, folders: getAllowedRoots() }
+  })
+
   ipcMain.handle('prefs:getAll', () => {
     try {
       // Never hand the encrypted API key (or any other secret) to the renderer.

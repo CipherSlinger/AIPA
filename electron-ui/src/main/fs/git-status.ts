@@ -76,9 +76,30 @@ export interface GitStatusSuccess {
 
 export type GitStatusFailureCode = 'not_a_repo' | 'git_missing' | 'cwd_invalid' | 'failed'
 
+/**
+ * Why a folder could not be read, as *this* process knows it.
+ *
+ * `cwd_invalid` alone conflates "AIPA is not allowed here" with "it is gone",
+ * and those two call for different words in the status bar. Only a
+ * `cwd_invalid` carries this field; a git failure does not have a folder
+ * problem to explain.
+ */
+export type GitStatusCwdReason =
+  | 'outside_allowed_roots'
+  | 'missing'
+  | 'not_directory'
+  | 'no_folder'
+
 export interface GitStatusFailure {
   ok: false
   code: GitStatusFailureCode
+  /**
+   * Which kind of `cwd_invalid` this is. Omitted for every other code.
+   *
+   * The renderer must not re-derive this by statting the folder: the answer
+   * already says it, and a second opinion could contradict it.
+   */
+  reason?: GitStatusCwdReason
   /** Short diagnostic for the renderer to append to its translated sentence. */
   message: string
 }
@@ -337,8 +358,14 @@ export interface ReadGitStatusOptions {
   timeoutMs?: number
 }
 
-function fail(code: GitStatusFailureCode, message: string): GitStatusFailure {
-  return { ok: false, code, message: message.slice(0, 500) }
+function fail(
+  code: GitStatusFailureCode,
+  message: string,
+  reason?: GitStatusCwdReason,
+): GitStatusFailure {
+  const failure: GitStatusFailure = { ok: false, code, message: message.slice(0, 500) }
+  if (reason) failure.reason = reason
+  return failure
 }
 
 function textOf(value: unknown): string {
@@ -403,15 +430,15 @@ function readGitOutput(
  */
 export function readGitStatus(cwd: string, options: ReadGitStatusOptions = {}): GitStatusResult {
   if (typeof cwd !== 'string' || !cwd.trim()) {
-    return fail('cwd_invalid', 'No folder was given.')
+    return fail('cwd_invalid', 'No folder was given.', 'no_folder')
   }
   const resolved = path.resolve(cwd)
   try {
     if (!fs.statSync(resolved).isDirectory()) {
-      return fail('cwd_invalid', `Not a folder: ${resolved}`)
+      return fail('cwd_invalid', `Not a folder: ${resolved}`, 'not_directory')
     }
   } catch {
-    return fail('cwd_invalid', `Folder does not exist: ${resolved}`)
+    return fail('cwd_invalid', `Folder does not exist: ${resolved}`, 'missing')
   }
 
   const gitBin = options.gitBin || 'git'

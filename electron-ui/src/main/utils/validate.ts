@@ -1,6 +1,7 @@
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
+import { getAllowedRoots } from './allowed-roots'
 
 /**
  * Custom error thrown when a path is outside the allowed sandbox roots.
@@ -172,9 +173,15 @@ export function validateDirectoryExists(dirPath: string): string {
 /**
  * Get the standard allowed roots for file system operations.
  * Dynamically reads the working dir from the prefs store at call time.
+ *
+ * Folders the user granted through an OS folder dialog are included between the
+ * app's own roots and the current working folder. They are read at call time so
+ * a grant takes effect for every surface at once — the diff, the git chip, a
+ * shell, a scheduled job — instead of each one growing its own way to be told.
  */
 export function getAllowedFsRoots(workingDir?: string): string[] {
   const roots: string[] = [os.homedir(), path.join(os.homedir(), '.claude')]
+  roots.push(...getAllowedRoots())
   if (workingDir && workingDir.trim()) {
     roots.push(path.resolve(workingDir))
   }

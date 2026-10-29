@@ -1,6 +1,7 @@
 import { ipcMain, BrowserWindow, dialog, shell } from 'electron'
 import { getPref } from '../config/config-manager'
 import { safePath, getAllowedFsRoots } from '../utils/validate'
+import { registerAllowedRoot } from '../utils/allowed-roots'
 import { createLogger } from '../utils/logger'
 import fs from 'fs'
 import path from 'path'
@@ -60,13 +61,27 @@ export function registerFsHandlers(): void {
     }
   })
 
-  ipcMain.handle('fs:showOpenDialog', async (e) => {
+  ipcMain.handle('fs:showOpenDialog', async (e, options?: { defaultPath?: string }) => {
     const win = BrowserWindow.fromWebContents(e.sender)
-    const result = await dialog.showOpenDialog(win!, {
+    if (!win) return null
+    // `defaultPath` only positions the dialog on a folder the app already has in
+    // hand (a recorded conversation folder, a job's folder). It grants nothing;
+    // the answer does, and only when the user confirms.
+    const seed = typeof options?.defaultPath === 'string' && options.defaultPath.trim()
+      ? options.defaultPath
+      : undefined
+    const result = await dialog.showOpenDialog(win, {
       properties: ['openDirectory'],
       title: 'Select Working Directory',
+      ...(seed ? { defaultPath: seed } : {}),
     })
-    return result.canceled ? null : result.filePaths[0]
+    if (result.canceled || !result.filePaths[0]) return null
+    // The one place a folder becomes readable. This is the user answering a
+    // system dialog, so it is consent, not a claim from the renderer — which is
+    // why the grant lives here and not in the handler for "set a folder".
+    const picked = result.filePaths[0]
+    registerAllowedRoot(picked)
+    return picked
   })
 
   ipcMain.handle('fs:showOpenFileDialog', async (e, { filters, multiSelections }: { filters?: { name: string; extensions: string[] }[]; multiSelections?: boolean }) => {
@@ -225,7 +240,10 @@ export function registerFsHandlers(): void {
   // the roots. Without a folder the app-wide working directory is used, which
   // is what the old argument-less handler did. A rejection is reported as
   // `cwd_invalid`, never as an empty status: "I could not look" and "nothing
-  // changed" must not read the same.
+  // changed" must not read the same. The `reason` names which refusal this is —
+  // outside the roots, here, versus missing or not a folder, decided by
+  // `readGitStatus` — so the status bar can say the true thing instead of
+  // guessing from a diagnostic string.
   ipcMain.handle('fs:gitStatus', (_e, { cwd }: { cwd?: string } = {}): GitStatusResult => {
     const workingDir = (getPref('workingDir') as string) || os.homedir()
     let folder: string
@@ -234,7 +252,7 @@ export function registerFsHandlers(): void {
         folder = safePath(cwd, getAllowedFsRoots(workingDir))
       } catch (err) {
         log.debug('fs:gitStatus rejected cwd:', String(err))
-        return { ok: false, code: 'cwd_invalid', message: String(err) }
+        return { ok: false, code: 'cwd_invalid', reason: 'outside_allowed_roots', message: String(err) }
       }
     } else {
       folder = path.resolve(workingDir)

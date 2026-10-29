@@ -15,7 +15,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlarmClock, Clock, Plus } from 'lucide-react'
 import { useI18n } from '../../i18n'
-import { useChatStore, useDepartmentStore, usePrefsStore, useUiStore } from '../../store'
+import { useChatStore, useDepartmentStore, usePrefsStore, useSessionStore, useUiStore } from '../../store'
 import { usePluginStore } from '../../store/pluginStore'
 import SettingsGroup from './SettingsGroup'
 import AutomationDialog, { type WorkflowOption } from '../automation/AutomationDialog'
@@ -32,6 +32,7 @@ import {
 import { sortJobs, type JobSortMode } from '../automation/jobSort'
 import { buildInvestigatePrompt } from '../automation/investigatePrompt'
 import { buildJobDepartmentOptions } from '../automation/jobDepartment'
+import { isFolderRefusedError, jobFolderFromAction } from '../automation/jobFolder'
 import { SECONDARY, primaryButtonStyle } from '../automation/automationStyles'
 import type {
   AutomationJobData,
@@ -66,6 +67,8 @@ export default function SettingsAutomations() {
   // A skill-backed job's row names the skill, and the name lives in the skills
   // scan, not in the job. Same directory main resolves the project root from.
   const workingDir = usePrefsStore(s => s.prefs.workingDir)
+  // A job's own folder reads `~/…` under home, like the chat folder chip.
+  const homeDir = useSessionStore(s => s.homeDir)
   const plugins = usePluginStore(s => s.plugins)
   const departments = useDepartmentStore(s => s.departments)
   const addToast = useUiStore(s => s.addToast)
@@ -404,7 +407,13 @@ export default function SettingsAutomations() {
     setBusyId(job.id)
     try {
       const result = await window.electronAPI.automationRunNow(job.id)
-      if (!result.ok) setError(t('automation.errors.runFailed', { error: errorTextFor(t, result.error) }))
+      if (!result.ok) {
+        // Today only a save validates the folder, but if a start ever refuses
+        // it, name the folder the refusal is about instead of a bare code.
+        setError(isFolderRefusedError(result.error)
+          ? t('automation.folder.notAllowed', { path: jobFolderFromAction(job.action) })
+          : t('automation.errors.runFailed', { error: errorTextFor(t, result.error) }))
+      }
     } catch (err) {
       setError(t('automation.errors.runFailed', { error: String(err) }))
     } finally {
@@ -589,6 +598,7 @@ export default function SettingsAutomations() {
                 confirming={confirmingId === job.id}
                 historyUi={runHistoryUi[job.id] ?? RUN_HISTORY_UI_DEFAULT}
                 runFilesOpen={runFilesOpen}
+                homeDir={homeDir}
                 onToggle={enabled => { void toggleJob(job, enabled) }}
                 onRunNow={() => { void runNow(job) }}
                 onDuplicate={() => { void duplicateJob(job) }}

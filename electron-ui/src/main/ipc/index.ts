@@ -3,7 +3,8 @@ import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 import { createLogger } from '../utils/logger'
-import { getPref, getRawPref } from '../config/config-manager'
+import { getPref, getRawPref, setPref } from '../config/config-manager'
+import { configureAllowedRoots } from '../utils/allowed-roots'
 import { writeConsolidatedMemoryFile, deleteConsolidatedMemoryFile } from '../sessions/memory-manager'
 import { createDreamService } from '../memory/dream-service'
 import { createDreamTranscriptReader } from '../memory/dream-transcript'
@@ -66,6 +67,18 @@ export function registerAllHandlers(
     return
   }
   handlersRegistered = true
+
+  // The folders the user granted in earlier sessions become roots before any
+  // handler can consult the gate. Persisting back through the prefs store keeps
+  // the grant and its list in one file: the security list is part of what the
+  // app prefers, and a second store would be a second thing to back up.
+  try {
+    configureAllowedRoots(getPref('allowedFolders'), folders => setPref('allowedFolders', folders))
+  } catch (err) {
+    // A failed read must not take the app down; it starts with no grants, which
+    // means refusals rather than access, the safe direction.
+    log.warn('allowed-roots: could not load grants:', String(err))
+  }
 
   const send = (channel: string, ...args: unknown[]) => {
     const target = liveWindow

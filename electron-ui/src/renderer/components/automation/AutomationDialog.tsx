@@ -44,6 +44,7 @@ import { isAbsolutePath, labelStyle } from './automationDialog/shared'
 import { ActionFields } from './automationDialog/ActionFields'
 import { AgentFields } from './automationDialog/AgentFields'
 import { DepartmentField } from './automationDialog/DepartmentField'
+import { JobFolderField } from './automationDialog/JobFolderField'
 import { CostChainFields } from './automationDialog/CostChainFields'
 import { TriggerFields } from './automationDialog/TriggerFields'
 import {
@@ -59,6 +60,13 @@ import {
   initialSkillChoice,
   skillAction,
 } from './skillSelection'
+import {
+  isFolderRefusedError,
+  jobFolderFromAction,
+  promptActionWithFolder,
+} from './jobFolder'
+import { grantOutcome, pickFolderToGrant } from '../../lib/grantFolder'
+import { smallButtonStyle } from './automationStyles'
 import type {
   AutomationInputData,
   AutomationTriggerData,
@@ -151,6 +159,9 @@ export default function AutomationDialog({
     if (job) return job.action.kind === 'prompt' ? job.action.prompt : ''
     return initialPrompt ?? ''
   })
+  // '' is the app-wide folder, not a path. An edit opens with the job's own
+  // `action.cwd` so saving an untouched form cannot drop it.
+  const [folder, setFolder] = useState(() => jobFolderFromAction(job?.action))
   // '' follows the workflow; ASSISTANT_PERSONA_ID is an explicit plain assistant;
   // anything else is a persona id.
   const [personaChoice, setPersonaChoice] = useState<string>(() => {
@@ -237,6 +248,14 @@ export default function AutomationDialog({
   const [chainFailure, setChainFailure] = useState(job?.chain?.onFailure ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // The folder main refused, kept only while its refusal is on screen. It is
+  // the seed for the grant dialog; a different folder pick replaces it, and a
+  // new error or a folder edit clears it so the action never describes a
+  // refusal that is no longer showing.
+  const [folderRefusal, setFolderRefusal] = useState<string | null>(null)
+  // One sentence after the grant dialog returned a folder other than the one
+  // the form had — shown beside the field the user must now look at.
+  const [folderNotice, setFolderNotice] = useState<string | null>(null)
 
   useEffect(() => pushEscapeHandler(onClose), [onClose])
 
@@ -295,8 +314,10 @@ export default function AutomationDialog({
       // and "chosen on the skill page" cannot produce different payloads.
       return skillAction({ source: skillSource, dir: skillDir })
     }
-    return { kind: 'prompt', prompt: prompt.trim() }
-  }, [actionKind, workflowId, prompt, skillSource, skillDir])
+    // The scheduler reads exactly `action.cwd`; a blank folder omits the field
+    // so an edit returns the job to the app-wide working folder.
+    return promptActionWithFolder(prompt.trim(), folder)
+  }, [actionKind, workflowId, prompt, folder, skillSource, skillDir])
 
   const skillList = useMemo(() => skills ?? [], [skills])
 
@@ -333,6 +354,8 @@ export default function AutomationDialog({
     if (!canSave || !action) return
     setSaving(true)
     setError(null)
+    setFolderRefusal(null)
+    setFolderNotice(null)
     // '' is not an id: omit it so the main process stores "follow the workflow".
     const personaId = personaChoice === '' ? undefined : personaChoice
     // "Follow the app default" is an absent field, not a level. An explicit
@@ -402,7 +425,17 @@ export default function AutomationDialog({
           }
         }
         onClose()
-      } else setError(errorText(result.error, result.errorDetail))
+      } else if (isFolderRefusedError(result.error)) {
+        // Main refused the folder, not the rest of the form: keep every edit
+        // on screen and name the folder the refusal is about. Remembering the
+        // folder is what lets the box offer the one action that can fix it.
+        const refused = folder.trim()
+        setError(t('automation.folder.notAllowed', { path: refused }))
+        setFolderRefusal(refused || null)
+      } else {
+        setError(errorText(result.error, result.errorDetail))
+        setFolderRefusal(null)
+      }
     } catch (err) {
       setError(String(err))
     } finally {
@@ -420,6 +453,35 @@ export default function AutomationDialog({
     } else {
       setPersonaChoice(prev => prev === '' ? ASSISTANT_PERSONA_ID : prev)
     }
+  }
+
+  // The refusal's exit: confirm the refused folder in the OS dialog, which is
+  // the only place a grant is recorded. A cancelled dialog changes nothing.
+  //
+  // Same folder: the form already holds it, and every edit is still on screen,
+  // so retry the same save — a second refusal shows its own sentence here.
+  // Different folder: put it in the field and stop. Saving it would store a
+  // folder the user has not seen in the field yet.
+  const grantRefusedFolder = async () => {
+    const refused = folderRefusal
+    if (!refused || saving) return
+    let picked: string | null
+    try {
+      picked = await pickFolderToGrant(refused)
+    } catch {
+      return
+    }
+    const outcome = grantOutcome(refused, picked)
+    if (outcome === 'cancelled') return
+    if (outcome === 'same_folder') {
+      await save()
+      return
+    }
+    if (!picked) return
+    setFolder(picked)
+    setError(null)
+    setFolderRefusal(null)
+    setFolderNotice(t('automation.folder.grantChanged', { path: picked }))
   }
 
   return (
@@ -480,6 +542,22 @@ export default function AutomationDialog({
           setSkillSource={setSkillSource}
           setSkillDir={setSkillDir}
         />
+
+        {actionKind === 'prompt' && (
+          <JobFolderField
+            folder={folder}
+            notice={folderNotice}
+            onFolderChange={next => {
+              setFolder(next)
+              // The refusal described the previous pick; a new pick deserves a
+              // fresh answer from Save instead of a stale sentence. The grant
+              // offer described that refusal too, so it goes with it.
+              setError(null)
+              setFolderRefusal(null)
+              setFolderNotice(null)
+            }}
+          />
+        )}
 
         <AgentFields
           actionKind={actionKind}
@@ -559,7 +637,19 @@ export default function AutomationDialog({
         )}
 
         {error && (
-          <DialogErrorBox error={error} />
+          <DialogErrorBox
+            error={error}
+            action={folderRefusal ? (
+              <button
+                type="button"
+                onClick={() => { void grantRefusedFolder() }}
+                disabled={saving}
+                style={{ ...smallButtonStyle, cursor: saving ? 'not-allowed' : 'pointer' }}
+              >
+                {t('automation.folder.grantAction')}
+              </button>
+            ) : undefined}
+          />
         )}
 
         <DialogFooter

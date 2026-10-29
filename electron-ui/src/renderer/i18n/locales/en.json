@@ -3851,6 +3851,12 @@
         "missing": "not found any more",
         "other": "the system refused"
       }
+    },
+    "folderFilter": {
+      "group": "By folder",
+      "all": "All folders",
+      "none": "No folder recorded",
+      "startNew": "Start a new conversation in {{folder}}"
     }
   },
   "canvas": {
@@ -4712,6 +4718,16 @@
       "row": "alert: after 2 failures in a row",
       "held": "alert held until a second failure",
       "heldHint": "This failure was recorded, counted and shown, but the alert policy holds the announcement until two failures in a row."
+    },
+    "folder": {
+      "label": "Runs in",
+      "appWide": "App-wide working folder",
+      "appWideHint": "Uses the app-wide working folder as it stands when the run starts, not today's folder.",
+      "recentHeading": "Recent folders",
+      "browse": "Browse…",
+      "notAllowed": "AIPA is not allowed to run in {{path}}. Choose another folder, or use the app-wide working folder.",
+      "grantAction": "Let AIPA read this folder…",
+      "grantChanged": "The folder is now {{path}}. Press Save to try again."
     }
   },
   "speculation": {
@@ -5200,12 +5216,28 @@
     "dirtyTitle": "{{count}} uncommitted on {{branch}}. Open the working tree.",
     "notARepo": "{{folder}} is not a git repository.",
     "gitMissing": "Git is not installed, or it is not on PATH.",
-    "cwdInvalid": "{{folder}} can't be read as a folder within the allowed roots.",
     "failed": "git status failed: {{message}}",
-    "revealOnly": "The diff viewer runs in the app-wide working folder, which is not this repository. The file's folder was opened instead.",
-    "revealFailed": "The diff viewer runs in the app-wide working folder, which is not this repository. The file's folder could not be opened either — the path is in the row above.",
     "diffRefusedReveal": "AIPA was not allowed to read a diff in this conversation's folder, so the file's folder was opened instead.",
-    "diffRefusedRevealFailed": "AIPA was not allowed to read a diff in this conversation's folder, and the file's folder could not be opened either — the path is in the row above."
+    "diffRefusedRevealFailed": "AIPA was not allowed to read a diff in this conversation's folder, and the file's folder could not be opened either — the path is in the row above.",
+    "refusedOutsideLabel": "not readable",
+    "refusedMissingLabel": "folder gone",
+    "refusedNotFolderLabel": "not a folder",
+    "refusedUnknownLabel": "can't read",
+    "refusedOutsideTitle": "AIPA is not allowed to read {{folder}}. This says nothing about the state of that repository — AIPA simply cannot see it.",
+    "refusedMissingTitle": "{{folder}} no longer exists, so AIPA has no working tree to read.",
+    "refusedNotFolderTitle": "{{folder}} is not a folder, so AIPA cannot read a working tree there.",
+    "refusedUnknownTitle": "AIPA could not read {{folder}}. It may be outside the folders AIPA may read, or it may no longer exist.",
+    "refusedOutsideHeading": "Not allowed to read this folder",
+    "refusedOutsideBody": "{{folder}} is outside the folders AIPA may read. AIPA cannot see the working tree there.",
+    "refusedMissingHeading": "This folder is gone",
+    "refusedMissingBody": "{{folder}} no longer exists. The conversation's history is still here. Choose another folder to continue in.",
+    "refusedNotFolderHeading": "This path is not a folder",
+    "refusedNotFolderBody": "{{folder}} is a file or something else, not a folder AIPA can read a working tree from. Choose another folder to continue in.",
+    "refusedUnknownHeading": "AIPA cannot read this folder",
+    "refusedUnknownBody": "AIPA could not read {{folder}}. It may be outside the folders AIPA may read, or it may no longer exist.",
+    "refusedClose": "Close",
+    "refusedChooseFolder": "Choose another folder…",
+    "refusedGrantFolder": "Let AIPA read this folder…"
   },
   "engineApiError": {
     "title": "The engine reported an API error",
@@ -5226,5 +5258,21 @@
   "quickSwitcher": {
     "placeholderWithFolders": "Search sessions and folders...",
     "matchedFolder": "matched folder"
+  },
+  "allowedFolders": {
+    "title": "Folders AIPA may read",
+    "description": "Folders you confirmed in a folder dialog. AIPA can read them for diffs, git status, shells and scheduled jobs. Your home folder (~) is always readable and is not listed here.",
+    "add": "Add folder…",
+    "addFailed": "Could not open the folder dialog. The list was re-read from the app.",
+    "loadFailed": "Could not read the list of granted folders.",
+    "retry": "Try again",
+    "emptyTitle": "No folders have been granted yet",
+    "emptyHint": "AIPA can already read your home folder. To let it work in another folder, use Add folder… — a grant is recorded only when you pick the folder in the dialog.",
+    "removeAria": "Remove access to {{folder}}",
+    "notInList": "{{folder}} was not in the list, so nothing was removed.",
+    "removeFailed": "Could not withdraw access to {{folder}}. The list below was re-read from the app.",
+    "confirmTitle": "Remove access to {{folder}}?",
+    "confirmBody": "{{path}} will no longer be readable by AIPA. Diffs, git status, shells and scheduled jobs there will be refused. Nothing on disk is deleted.",
+    "confirmRemove": "Remove access"
   }
 }

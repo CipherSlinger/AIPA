@@ -35,8 +35,14 @@ import { buildDeptLookup, resolveDeptForSession } from '../departments/sessionFi
 import { openSessionCore } from '../departments/openSessionCore'
 import FileUnderDeptDialog from '../chat/FileUnderDeptDialog'
 import { displayTitle } from '../../lib/sessionTitle'
+import { workingDirLabel } from '../../lib/workingDir'
 import { formatDateTimeShort } from '../../utils/formatDate'
 import { CommandOnlyNotice, EmptyState, Pill } from './ArchiveChrome'
+import ArchiveFolderSelect from './ArchiveFolderSelect'
+import {
+  ALL_FOLDER_FILTER, deriveArchiveFolderOptions, matchesFolderFilter,
+  type ArchiveFolderFilter,
+} from './archiveFolderFilter'
 import ArchiveJobSummary from './ArchiveJobSummary'
 import { filterByHandFiling, hasHandFiling } from './archiveFiling'
 import {
@@ -146,6 +152,9 @@ export default function ArchivePanel() {
   const [originFilter, setOriginFilter] = useState<OriginFilter>('all')
   // One scheduled job under the origin filter; null means "every job".
   const [jobFilter, setJobFilter] = useState<string | null>(null)
+  // Which folder the work ran in. `all` is the absence of the facet, `none`
+  // is the explicit "no folder recorded" choice.
+  const [folderFilter, setFolderFilter] = useState<ArchiveFolderFilter>(ALL_FOLDER_FILTER)
   const [showArchived, setShowArchived] = useState(false)
   const [query, setQuery] = useState('')
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
@@ -219,9 +228,13 @@ export default function ArchivePanel() {
       // The filter picks a branch, so anything anywhere under it matches.
       if (deptFilter === UNASSIGNED ? r.dept !== null : deptFilter !== 'all' && r.root?.id !== deptFilter) return false
       if (originFilter !== 'all' && originKind(r.session) !== originFilter) return false
+      // The folder is a top-level facet like the department: applied here so
+      // every downstream step (job, search, command-only, selection) sees the
+      // same scoped set. A row another filter excluded cannot come back here.
+      if (!matchesFolderFilter(r.session.cwd, folderFilter)) return false
       return true
     })
-  }, [allRecords, timeRange, showArchived, deptFilter, originFilter])
+  }, [allRecords, timeRange, showArchived, deptFilter, originFilter, folderFilter])
 
   // The job choices describe the archive, not the current origin/time slice:
   // picking one must not change the choices or their counts, and a job should
@@ -233,6 +246,17 @@ export default function ArchivePanel() {
     [allRecords, showArchived],
   )
   const jobChoices = useMemo(() => visibleJobOptions(jobOptions), [jobOptions])
+
+  // Folder choices describe the archive, not the current slice: picking one must
+  // not make the others disappear. Archived rows follow the same visibility rule
+  // as the job options, so a hidden row cannot add a folder to the selector.
+  const folderOptions = useMemo(
+    () => deriveArchiveFolderOptions(
+      allRecords.filter(r => showArchived || !r.archived).map(r => r.session),
+      { homeDir },
+    ),
+    [allRecords, showArchived, homeDir],
+  )
 
   // A job can vanish from the loaded set (deleted, or all its runs archived
   // away), or stop being a choice when it becomes the only one left. Either
@@ -572,12 +596,14 @@ export default function ArchivePanel() {
   }, [visibleRecords])
 
   const filtersActive = deptFilter !== 'all' || timeRange !== 'all' || originFilter !== 'all'
-    || jobFilter !== null || showArchived || onlyHandFiled || query.trim().length > 0
+    || jobFilter !== null || folderFilter.kind !== 'all' || showArchived || onlyHandFiled
+    || query.trim().length > 0
   const clearFilters = () => {
     setDeptFilter('all')
     setTimeRange('all')
     setOriginFilter('all')
     setJobFilter(null)
+    setFolderFilter(ALL_FOLDER_FILTER)
     setShowArchived(false)
     setOnlyHandFiled(false)
     setQuery('')
@@ -596,6 +622,11 @@ export default function ArchivePanel() {
   const activeFilterNames = [
     originFilter !== 'all' ? t(`archive.origin.${originFilter}`) : null,
     jobFilter !== null ? (jobOptions.find(option => option.jobId === jobFilter)?.jobName ?? null) : null,
+    folderFilter.kind === 'none'
+      ? t('archive.folderFilter.none')
+      : folderFilter.kind === 'folder'
+        ? workingDirLabel(folderFilter.dir, homeDir)
+        : null,
     onlyHandFiled ? t('archive.onlyFiled') : null,
   ].filter((name): name is string => name !== null)
   const activeFilterDescription = activeFilterNames.join(' · ')
@@ -732,6 +763,13 @@ export default function ArchivePanel() {
           ))}
           <option value={UNASSIGNED}>{t('archive.unassigned')}</option>
         </select>
+
+        <ArchiveFolderSelect
+          filter={folderFilter}
+          options={folderOptions}
+          homeDir={homeDir}
+          onChange={setFolderFilter}
+        />
 
         {timeOptions.map(range => (
           <Pill key={range} active={timeRange === range} onClick={() => setTimeRange(range)}>

@@ -6,9 +6,144 @@
 // palette may have to reveal a hidden status bar first, and the chip only
 // mounts after that, so an event alone could be dispatched to no listener.
 
-import type { GitDiffData, GitStatusData, GitStatusErrorData } from '../../../preload'
+import type {
+  GitDiffData,
+  GitStatusData,
+  GitStatusErrorData,
+  GitStatusOkData,
+} from '../../../preload'
 
 export const GIT_STATUS_OPEN_EVENT = 'aipa:openGitStatus'
+
+/**
+ * What the chip says about one answer from `fs:gitStatus`.
+ *
+ *   - `hidden`  — there is no folder to ask about (or the first answer has not
+ *                 arrived yet). Nothing is claimed.
+ *   - `silent`  — a genuine "nothing to say": not a repository, git missing, or
+ *                 a read that failed for a reason that is not about the folder.
+ *                 The chip stays absent, exactly as before.
+ *   - `repo`    — a working tree was read.
+ *   - `refused` — main would not look: the folder is outside the roots it may
+ *                 read, or it is gone / no longer a folder. This one must not
+ *                 be dressed up as silence.
+ *
+ * `cwd_invalid` is the only code that becomes `refused`. Main sends a `reason`
+ * with it; the renderer reads that reason rather than statting the folder.
+ */
+export type GitRefusalCause =
+  | 'outside_allowed_roots'
+  | 'missing'
+  | 'not_directory'
+  /** A refusal with no reason attached — an older main, or a path main never saw. */
+  | 'unstated'
+
+export type GitStatusReading =
+  | { kind: 'hidden' }
+  | { kind: 'silent' }
+  | { kind: 'repo'; status: GitStatusOkData }
+  | { kind: 'refused'; cause: GitRefusalCause }
+
+export type GitStatusFailureReading =
+  | { kind: 'silent' }
+  | { kind: 'refused'; cause: GitRefusalCause }
+
+/**
+ * The one place a failure code is turned into "the chip says nothing" or "the
+ * chip says it could not look". `not_a_repo`, `git_missing` and `failed` stay
+ * silent: they are facts about the read, and the status bar has never claimed
+ * anything in those states.
+ */
+export function readGitStatusFailure(failure: GitStatusErrorData): GitStatusFailureReading {
+  if (failure.code !== 'cwd_invalid') return { kind: 'silent' }
+  switch (failure.reason) {
+    case 'outside_allowed_roots':
+    case 'missing':
+    case 'not_directory':
+      return { kind: 'refused', cause: failure.reason }
+    default:
+      // `no_folder`, or a main that predates the reason: still a refusal, but
+      // one whose cause this build cannot name. Say so without inventing a
+      // distinction.
+      return { kind: 'refused', cause: 'unstated' }
+  }
+}
+
+/** The chip's whole reading of the current answer. */
+export function gitStatusReading(status: GitStatusData | null, folder: string): GitStatusReading {
+  if (!folder.trim() || !status) return { kind: 'hidden' }
+  if (status.ok) return { kind: 'repo', status }
+  const failure = readGitStatusFailure(status)
+  return failure.kind === 'refused' ? failure : { kind: 'silent' }
+}
+
+export interface GitRefusalCopyKeys {
+  label: string
+  title: string
+  heading: string
+  body: string
+}
+
+/**
+ * The words for a refusal, chosen in one place so the chip's tooltip and the
+ * panel cannot describe the same answer differently.
+ */
+export function gitRefusalCopyKeys(cause: GitRefusalCause): GitRefusalCopyKeys {
+  switch (cause) {
+    case 'outside_allowed_roots':
+      return {
+        label: 'gitStatus.refusedOutsideLabel',
+        title: 'gitStatus.refusedOutsideTitle',
+        heading: 'gitStatus.refusedOutsideHeading',
+        body: 'gitStatus.refusedOutsideBody',
+      }
+    case 'missing':
+      return {
+        label: 'gitStatus.refusedMissingLabel',
+        title: 'gitStatus.refusedMissingTitle',
+        heading: 'gitStatus.refusedMissingHeading',
+        body: 'gitStatus.refusedMissingBody',
+      }
+    case 'not_directory':
+      return {
+        label: 'gitStatus.refusedNotFolderLabel',
+        title: 'gitStatus.refusedNotFolderTitle',
+        heading: 'gitStatus.refusedNotFolderHeading',
+        body: 'gitStatus.refusedNotFolderBody',
+      }
+    case 'unstated':
+      return {
+        label: 'gitStatus.refusedUnknownLabel',
+        title: 'gitStatus.refusedUnknownTitle',
+        heading: 'gitStatus.refusedUnknownHeading',
+        body: 'gitStatus.refusedUnknownBody',
+      }
+  }
+}
+
+/**
+ * Whether the refusal can honestly end with a folder pick. A folder outside
+ * the roots is not fixed by picking another one — the user may need to know
+ * why *this* one cannot be read — so only a folder that is gone (or is no
+ * longer a folder) offers that exit. The `unstated` case cannot tell, so it
+ * explains and stops. An outside-roots refusal has its own exit instead:
+ * `gitRefusalOffersGrant`.
+ */
+export function gitRefusalOffersNewFolder(cause: GitRefusalCause): boolean {
+  return cause === 'missing' || cause === 'not_directory'
+}
+
+/**
+ * Whether the refusal can end by granting *this* folder.
+ *
+ * Since wave 90 a confirmed OS dialog is consent, so the folder that was
+ * refused can become readable without changing it. The panel offers that only
+ * for `outside_allowed_roots`: a folder that is gone cannot be granted into
+ * existence, and an unnamed refusal cannot say which folder the grant is for.
+ */
+export function gitRefusalOffersGrant(cause: GitRefusalCause): boolean {
+  return cause === 'outside_allowed_roots'
+}
 
 let pending = false
 
@@ -62,6 +197,21 @@ export function cachedGitStatus(folder: string): GitStatusData | null {
 }
 
 /**
+ * Drop the remembered answer for a folder.
+ *
+ * The cache exists so the palette can describe a folder already read. A
+ * refusal in it is an answer from before the user granted the folder; after a
+ * confirmed dialog it is stale, and leaving it would let a later reader repeat
+ * "not readable" about a folder main may now open. Invalidating is not a
+ * claim that the next read succeeds — only that the old answer is no longer
+ * the truth to repeat.
+ */
+export function forgetGitStatus(folder: string): void {
+  if (!folder) return
+  cache.delete(gitFolderKey(folder))
+}
+
+/**
  * One sentence for a failed read. The code chooses the sentence; the raw git
  * message is appended only for `failed`, where it is the only detail there is.
  */
@@ -76,8 +226,14 @@ export function gitStatusErrorText(
       return t('gitStatus.notARepo', { folder: folderName })
     case 'git_missing':
       return t('gitStatus.gitMissing')
-    case 'cwd_invalid':
-      return t('gitStatus.cwdInvalid', { folder: folderName })
+    case 'cwd_invalid': {
+      // The same reading the chip and the panel use. The shipped
+      // `gitStatus.cwdInvalid` sentence names only the allowed-roots case, so
+      // it is not reused for a folder that is simply gone.
+      const reading = readGitStatusFailure(failure)
+      const keys = gitRefusalCopyKeys(reading.kind === 'refused' ? reading.cause : 'unstated')
+      return t(keys.title, { folder: folderName })
+    }
     case 'failed':
       return t('gitStatus.failed', { message: failure.message })
     default:
