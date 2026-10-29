@@ -7,7 +7,7 @@ import {
   Brain, Workflow, Play, NotebookPen, ClipboardPaste, Radio, Archive,
   Sun, Moon, Languages, Copy, Pin, StickyNote, ArrowUpDown,
   FileText, Stethoscope, Pencil, BarChart2, Shield,
-  Database, DollarSign, SkipBack, RefreshCw, ExternalLink, Hourglass,
+  Database, DollarSign, SkipBack, RefreshCw, ExternalLink, Hourglass, ListChecks,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
 import type { SidebarTab, NavItem } from '../../store'
@@ -691,6 +691,42 @@ export function buildApprovalCommands({
       dispatchApprovalFocus({ jobId: job.id, requestId: wait.requestId })
     },
   }))
+}
+
+export interface RunActivityCommandBuilderArgs {
+  t: Translate
+  onClose: () => void
+  /** `null` = the probe failed or has not answered; `[]` = no jobs at all. */
+  jobs: AutomationJobData[] | null
+}
+
+/**
+ * The one row that opens the cross-job run list.
+ *
+ * It vanishes when there is not a single remembered run to show — the same rule
+ * the trash and approval groups follow. A row that opened an empty page would
+ * promise history that does not exist; the status-bar popover keeps its own
+ * entry point because that is where a reader notices something ran.
+ */
+export function buildRunActivityCommands({
+  t, onClose, jobs,
+}: RunActivityCommandBuilderArgs): PaletteCommand[] {
+  if (!jobs) return []
+  const remembered = jobs.reduce((sum, job) => sum + (Array.isArray(job.history) ? job.history.length : 0), 0)
+  if (remembered === 0) return []
+  return [{
+    id: 'open-run-activity',
+    name: t('command.runActivity'),
+    description: t('command.runActivityDesc'),
+    icon: <ListChecks size={14} />,
+    category: 'automation',
+    action: () => {
+      // Both entry points go through the store action, so the status bar and
+      // the palette cannot land on two different pages.
+      useUiStore.getState().openRunActivity()
+      onClose()
+    },
+  }]
 }
 
 export interface AutomationCommandBuilderArgs {

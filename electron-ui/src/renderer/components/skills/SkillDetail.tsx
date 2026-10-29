@@ -1,11 +1,14 @@
 // Skill detail view — extracted from SkillsPanel.tsx (Iteration 199)
-import React, { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, CalendarClock, ChevronRight, Play, Trash2 } from 'lucide-react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { ArrowLeft, CalendarClock, CalendarPlus, ChevronRight, Play, Trash2 } from 'lucide-react'
 import { useT } from '../../i18n'
-import { useUiStore } from '../../store'
+import { usePrefsStore, useUiStore } from '../../store'
 import { scheduleText } from '../automation/scheduleText'
+import AutomationDialog, { type WorkflowOption } from '../automation/AutomationDialog'
+import { WARNING } from '../automation/automationStyles'
+import { skillBodyState } from '../automation/skillSelection'
 import ProvenanceLine from '../provenance/ProvenanceLine'
-import type { AutomationJobData } from '../../../preload'
+import type { AutomationJobData, AutomationLimitsData } from '../../../preload'
 import type { SkillInfo } from './skillsShared'
 
 interface SkillDetailProps {
@@ -91,29 +94,70 @@ export default function SkillDetail({
   const [backHovered, setBackHovered] = useState(false)
   const [useHovered, setUseHovered] = useState(false)
   const [deleteHovered, setDeleteHovered] = useState(false)
+  const [scheduleHovered, setScheduleHovered] = useState(false)
+  // The dialog needs the same lists the workflow page hands it: the workflow
+  // options it offers for a workflow action, and the scheduler's limits.
+  const workflows = usePrefsStore(s => s.prefs.workflows) as WorkflowOption[] | undefined
 
   // Read on mount and on every scheduler broadcast, so a job created or
   // deleted in Settings shows up here without reopening the page. A failed read
   // is an empty list: showing no schedules is quieter than a broken strip, and
   // the page's real subject (the SKILL.md) is unaffected.
   const [jobs, setJobs] = useState<AutomationJobData[] | null>(null)
-  useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      try {
-        const result = await window.electronAPI.automationList()
-        if (!cancelled) setJobs(Array.isArray(result?.jobs) ? result.jobs : [])
-      } catch {
-        if (!cancelled) setJobs(null)
-      }
-    }
-    void load()
-    const off = window.electronAPI.onAutomationChanged(() => { void load() })
-    return () => {
-      cancelled = true
-      if (typeof off === 'function') off()
+  const [limits, setLimits] = useState<AutomationLimitsData | null>(null)
+  const refreshJobs = useCallback(async () => {
+    try {
+      const result = await window.electronAPI.automationList()
+      setJobs(Array.isArray(result?.jobs) ? result.jobs : [])
+      setLimits(result?.limits ?? null)
+    } catch {
+      setJobs(null)
     }
   }, [])
+  useEffect(() => {
+    void refreshJobs()
+    const off = window.electronAPI.onAutomationChanged(() => { void refreshJobs() })
+    return () => {
+      if (typeof off === 'function') off()
+    }
+  }, [refreshJobs])
+
+  // Whether this skill can be scheduled at all. The page carries `skillContent`
+  // for display, but that string is the read error when the read failed, so it
+  // cannot answer "is the body empty"; one read of the same file through the
+  // same IPC gives a truthful answer without a probe per render.
+  const [runState, setRunState] = useState<'checking' | 'ready' | 'unreadable'>('checking')
+  const [bodyEmpty, setBodyEmpty] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    setRunState('checking')
+    void (async () => {
+      try {
+        const result = await window.electronAPI.skillsRead(skill.dirPath)
+        if (cancelled) return
+        if (typeof result?.content !== 'string') {
+          setRunState('unreadable')
+          return
+        }
+        setBodyEmpty(skillBodyState(result.content) === 'empty')
+        setRunState('ready')
+      } catch {
+        if (!cancelled) setRunState('unreadable')
+      }
+    })()
+    return () => { cancelled = true }
+  }, [skill.dirPath])
+
+  // Nothing is written by opening this page. The dialog saves on the user's
+  // click, and closing it re-reads the list so a new schedule appears now
+  // rather than on the next broadcast.
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false)
+  const canSchedule = runState === 'ready' && !bodyEmpty
+  const blockedReason = runState === 'unreadable'
+    ? t('skills.schedules.blockedUnreadable')
+    : runState === 'ready' && bodyEmpty
+      ? t('skills.schedules.blockedEmpty')
+      : null
 
   // A job names the skill by source + directory segment, which is exactly the
   // identity this page was opened with. `skillDir` is absent only for a payload
@@ -288,6 +332,42 @@ export default function SkillDetail({
           {t('skills.useSkill')}
         </button>
 
+        {/* Scheduling from the page a skill lives on. It only opens the same
+            dialog the workflow page opens, pre-filled with this identity; the
+            save is the user's. Disabled — never present-and-failing — when the
+            run could not start: an unreadable file, or one with no body. */}
+        <button
+          onClick={() => setShowScheduleDialog(true)}
+          disabled={!canSchedule}
+          onMouseEnter={() => setScheduleHovered(true)}
+          onMouseLeave={() => setScheduleHovered(false)}
+          title={blockedReason ?? t('skills.schedules.scheduleHint')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '9px 20px',
+            background: !canSchedule
+              ? 'var(--bg-hover)'
+              : scheduleHovered
+                ? 'rgba(99,102,241,0.16)'
+                : 'var(--bg-hover)',
+            color: canSchedule ? 'var(--accent-text)' : 'var(--text-muted)',
+            border: canSchedule
+              ? '1px solid rgba(99,102,241,0.35)'
+              : '1px solid var(--border)',
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: canSchedule ? 'pointer' : 'not-allowed',
+            opacity: canSchedule ? 1 : 0.6,
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <CalendarPlus size={14} />
+          {t('skills.schedules.schedule')}
+        </button>
+
         {skill.source === 'personal' && (
           <button
             onClick={() => onDeleteSkill(skill.dirPath)}
@@ -319,6 +399,19 @@ export default function SkillDetail({
           </button>
         )}
       </div>
+
+      {/* Why the action is unavailable, in place rather than on hover only. */}
+      {blockedReason && (
+        <div style={{
+          padding: '0 20px 10px',
+          fontSize: 11,
+          color: WARNING,
+          lineHeight: 1.5,
+          flexShrink: 0,
+        }}>
+          {blockedReason}
+        </div>
+      )}
 
       {/* Schedules that run this skill. Nothing at all when there are none:
           an empty section header would suggest a feature that is missing
@@ -391,6 +484,22 @@ export default function SkillDetail({
           </pre>
         </div>
       </div>
+
+      {/* The same dialog the workflow page opens; the only difference is the
+          pre-filled action. `skillDir ?? ''` mirrors the schedules strip: an
+          older payload without the segment names the root SKILL.md. */}
+      {showScheduleDialog && (
+        <AutomationDialog
+          job={null}
+          initialSkill={{ source: skill.source, dir: skill.skillDir ?? '' }}
+          workflows={workflows ?? []}
+          limits={limits}
+          onClose={() => {
+            setShowScheduleDialog(false)
+            void refreshJobs()
+          }}
+        />
+      )}
     </div>
   )
 }

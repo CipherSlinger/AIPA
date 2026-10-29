@@ -10,6 +10,7 @@
 import type { AutomationJobData } from '../../../preload'
 import type { AppLocale } from '../../utils/formatDate'
 import { failureStreakText } from '../archive/archiveJobFilter'
+import { rememberedSkillName } from '../automation/jobFilter'
 import { nextRunText } from '../automation/nextRunText'
 import { scheduleText, type Translate } from '../automation/scheduleText'
 import { outcomeText } from '../workflows/scheduleSummary'
@@ -86,9 +87,29 @@ export function automationDescription(
       : streak
     : null
 
-  return [schedule, timing, outcomeText(job, t, now).text, streakText]
+  // A skill job's name says nothing about the skill it runs — "Monday report"
+  // could be any of five. The label makes the row searchable by the skill's
+  // name; when the folder is gone, the stored segment stands in, because that
+  // is the identity the user can still act on.
+  const skillText = skillLabel(job, t)
+
+  return [schedule, timing, outcomeText(job, t, now).text, streakText, skillText]
     .filter((part): part is string => Boolean(part))
     .join(' · ')
+}
+
+/**
+ * The skill a job runs, when it runs one.
+ *
+ * Read synchronously from the session journal: the palette's filter runs per
+ * keystroke and must not touch the disk. An unknown skill contributes nothing
+ * rather than an empty "Skill:" segment.
+ */
+function skillLabel(job: AutomationJobData, t: Translate): string | null {
+  if (job.action.kind !== 'skill') return null
+  const name = rememberedSkillName(job.action.skillSource, job.action.skillDir)
+    ?? job.action.skillDir
+  return name ? t('automation.palette.skill', { name }) : null
 }
 
 /**

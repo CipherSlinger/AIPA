@@ -28,10 +28,12 @@ import {
   buildAutomationCommands,
   buildApprovalCommands,
   buildTrashCommands,
+  buildRunActivityCommands,
   type PaletteCommand,
 } from '../shared/commandPaletteCommands'
 import { normalizeTrashedWorkflows } from '../../lib/workflowTrash'
 import { countTrashedItems } from '../../lib/trashPresence'
+import { rememberSkills } from '../automation/jobFilter'
 import type { AutomationJobData } from '../../../preload'
 
 interface Props {
@@ -118,6 +120,29 @@ export default function CommandPalette({
     }
   }, [])
 
+  // Skill names, read once per opening so a job row can name the skill it runs
+  // and be found by that name. These names are not stored on the job, and the
+  // palette's filter runs on every keystroke: the read populates the search
+  // journal here, and the filter itself only does map lookups. A failed read
+  // leaves the previous names in place rather than blanking the rows.
+  const workingDir = usePrefsStore(s => s.prefs.workingDir)
+  const [skillNamesReady, setSkillNamesReady] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const list = await window.electronAPI.skillsList(workingDir || undefined)
+        if (cancelled) return
+        if (Array.isArray(list)) rememberSkills(list)
+      } catch {
+        // The palette still works without names; nothing to announce.
+      } finally {
+        if (!cancelled) setSkillNamesReady(true)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [workingDir])
+
   // How many rows "Recently deleted" holds. `null` = the probe could not
   // answer, and the entry stays hidden rather than promising an empty page.
   // This component only mounts while the palette is open, so the probe runs
@@ -135,6 +160,10 @@ export default function CommandPalette({
 
   // Build all commands
   const commands = useMemo<PaletteCommand[]>(() => {
+    // The job rows read skill names from the session journal, a module-level
+    // cache. Reading the flag here is the rebuild trigger: without it the list
+    // would keep the descriptions it built before the names arrived.
+    void skillNamesReady
     const args = {
       t, onClose, onExport, onNewConversation, onSendSlashCommand,
       toggleSidebar, setSidebarTab, setSidebarOpen, setActiveNavItem,
@@ -144,6 +173,7 @@ export default function CommandPalette({
       ...buildApprovalCommands({ t, onClose, jobs: automationJobs }),
       ...buildSessionCommands(args),
       ...buildAutomationCommands({ t, onClose, addToast, jobs: automationJobs, resolvedLocale }),
+      ...buildRunActivityCommands({ t, onClose, jobs: automationJobs }),
       ...buildActionCommands(args),
       ...buildTrashCommands({ t, onClose, trashCount }),
       ...buildSlashCommands(args),
@@ -155,7 +185,7 @@ export default function CommandPalette({
     onClose, onExport, onNewConversation, onSendSlashCommand,
     toggleSidebar, setSidebarTab, setSidebarOpen, setActiveNavItem,
     addToQueue, addToast, sessions, query, askHistoryAvailable, t, resolvedLocale,
-    automationJobs, trashCount,
+    automationJobs, trashCount, skillNamesReady,
   ])
 
   // Filter and rank by query. A raw `includes` made "ask" surface "Open

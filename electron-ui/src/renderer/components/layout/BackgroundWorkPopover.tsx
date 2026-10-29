@@ -31,15 +31,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import {
-  AlertTriangle, ArrowUpRight, Building2, Check, Clock, Loader2, Pause, Play, RotateCcw,
-  Sparkles, X,
+  AlertTriangle, ArrowUpRight, Building2, Check, Clock, ListChecks, Loader2, Pause, Play,
+  RotateCcw, Sparkles, X,
 } from 'lucide-react'
 import { useI18n } from '../../i18n'
-import { useChatStore, useDepartmentStore, useUiStore } from '../../store'
+import { useDepartmentStore, useUiStore } from '../../store'
 import { formatDuration } from './statusBarConstants'
 import { errorCodeText, relativeTimeText } from '../workflows/scheduleSummary'
 import { failureStreakText, type UnseenFailure } from './automationFailures'
-import { buildInvestigatePrompt } from '../automation/investigatePrompt'
+import { prepareRunInvestigation } from '../automation/investigateRun'
 import { buildJobDepartmentOptions, resolveJobDepartment } from '../automation/jobDepartment'
 import type { HeldJobs, JobHold } from '../automation/jobHold'
 import {
@@ -911,6 +911,14 @@ export default function BackgroundWorkPopover({
     useUiStore.getState().openSettingsAt('automations')
   }
 
+  // The popover answers "what is happening now"; this row answers the question
+  // it cannot — "what happened across everything". Both entry points go
+  // through one store action, so the palette and the status bar land together.
+  const openRunActivity = () => {
+    onClose()
+    useUiStore.getState().openRunActivity()
+  }
+
   const openRun = (sessionId: string) => {
     onClose()
     // The app-level bridge owns opening: it loads the transcript, restores the
@@ -924,38 +932,21 @@ export default function BackgroundWorkPopover({
    *
    * This panel deliberately receives only the failure rows (see the note in
    * BackgroundWorkIndicator: it gets ids, not whole jobs, so it cannot start
-   * showing live state of its own). The prompt needs the whole job — trigger,
-   * streak, spend rail, history — so the list is read once at click time, for
-   * this row only. A failed read says so and leaves the conversation alone.
+   * showing live state of its own). The read, the record lookup and the
+   * composer hand-off live in `prepareRunInvestigation`, shared with the
+   * cross-job run list so both rows produce the same question for the same run.
    */
   const investigate = async (failure: UnseenFailure) => {
-    const api = window.electronAPI
-    if (!api?.automationList) {
-      addToast('error', t('automation.investigate.unavailable', { name: failure.jobName }))
-      return
-    }
     setInvestigatingJobId(failure.jobId)
     try {
-      const result = await api.automationList()
-      const jobs: AutomationJobData[] = Array.isArray(result?.jobs) ? result.jobs : []
-      const job = jobs.find(candidate => candidate.id === failure.jobId)
-      if (!job) {
-        addToast('warning', t('automation.investigate.unavailable', { name: failure.jobName }))
-        return
-      }
-      const record = (job.history ?? []).find(r => r.startedAt === failure.startedAt) ?? null
-      const text = buildInvestigatePrompt({ job, record })
-      // The same new-conversation call the app menu's New Session and the
-      // command palette's New conversation make. The question then waits in the
-      // composer; this never sends it.
-      useChatStore.getState().clearMessages()
-      useUiStore.getState().setActiveNavItem('chat')
-      useUiStore.getState().prefillComposer(text)
-      onClose()
-      addToast('success', t('automation.investigate.prepared', { name: job.name }))
-    } catch (err) {
-      console.error('[AIPA] Could not prepare a question about a failed run', err)
-      addToast('error', t('automation.investigate.unavailable', { name: failure.jobName }))
+      await prepareRunInvestigation({
+        jobId: failure.jobId,
+        jobName: failure.jobName,
+        startedAt: failure.startedAt,
+        t,
+        addToast,
+        onPrepared: onClose,
+      })
     } finally {
       setInvestigatingJobId(null)
     }
@@ -1353,6 +1344,29 @@ export default function BackgroundWorkPopover({
           ))}
         </Group>
       ))}
+
+      <button
+        type="button"
+        onClick={openRunActivity}
+        title={t('statusBar.background.viewAllRunsTitle')}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 4,
+          width: '100%',
+          marginTop: 4,
+          padding: '6px 6px 2px',
+          border: 'none',
+          borderTop: '1px solid var(--border)',
+          background: 'none',
+          color: 'var(--accent-text)',
+          fontSize: 11,
+          cursor: 'pointer',
+        }}
+        onMouseEnter={event => { event.currentTarget.style.color = 'var(--text-primary)' }}
+        onMouseLeave={event => { event.currentTarget.style.color = 'var(--accent-text)' }}
+      >
+        <ListChecks size={10} />
+        <span style={{ flex: 1, textAlign: 'left' }}>{t('statusBar.background.viewAllRuns')}</span>
+      </button>
 
       <button
         type="button"

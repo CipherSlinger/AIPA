@@ -759,6 +759,15 @@ export interface AutomationSkillDigestData extends AutomationSkillRefData {
 
 export type AutomationRunStatusData = 'success' | 'error' | 'skipped' | 'running'
 
+/**
+ * Mirrors main's `AutomationRunSource`: how a run came due.
+ *
+ * A retry is not a member; it is the `retry` number on the same record. A record
+ * written before main stored this field carries no source at all, and that
+ * absence means "not recorded" — never `scheduled`.
+ */
+export type AutomationRunSourceData = 'manual' | 'scheduled' | 'watch' | 'chain'
+
 /** Mirrors main's `AutomationMissedRunPolicy`; absent means `'run'`. */
 export type AutomationMissedRunPolicyData = 'run' | 'skip'
 
@@ -978,6 +987,13 @@ export interface AutomationRunRecordData {
   /** True when this run fired after its scheduled minute (app was closed). */
   late: boolean
   /**
+   * How this run came due, as main recorded it at start time. Absent on every
+   * record written before the field existed, and on a run repaired after a
+   * crash — the process that knew how it started is gone. Absent is not
+   * `scheduled`: a reader must say "not recorded".
+   */
+  source?: AutomationRunSourceData
+  /**
    * 1-based retry attempt, absent for an ordinary scheduled run. A successful
    * retry still carries it, so the history can tell retries apart.
    */
@@ -1023,6 +1039,31 @@ export interface AutomationRunRecordData {
    * request was refused and why.
    */
   approvals?: AutomationRunApprovalData[]
+}
+
+/** One remembered run in the cross-job list, with the job it belongs to. */
+export interface AutomationRunActivityRowData {
+  /** Live job id. The row opens this job in Settings when it left no transcript. */
+  jobId: string
+  /** The job's current name — not the name the run had when it started. */
+  jobName: string
+  /** The stored record, unchanged. */
+  run: AutomationRunRecordData
+}
+
+/**
+ * Every job's remembered runs, newest first, as one bounded read.
+ *
+ * `total` is the count before `cap`, so a surface can say "the newest 500 of
+ * 1,240" rather than implying it listed everything; `perJob` is how many runs
+ * one job remembers, which is why the list is finite at all. A deleted job's
+ * runs are not in it — they left the store with the job.
+ */
+export interface AutomationRunActivityData {
+  rows: AutomationRunActivityRowData[]
+  total: number
+  cap: number
+  perJob: number
 }
 
 /** A retry of a failed occurrence, waiting for its due time. Mirrors main. */
@@ -2077,6 +2118,11 @@ const electronAPI = {
       jobs: AutomationJobData[]
       limits: AutomationLimitsData | null
     }>,
+  // Every job's remembered runs in one newest-first list, capped by main. An
+  // empty `rows` with `total: 0` means nothing has run; a rejected promise means
+  // the store could not be read, which is a different fact.
+  automationRunActivity: () =>
+    ipcRenderer.invoke('automation:runActivity') as Promise<AutomationRunActivityData>,
   automationCreate: (input: AutomationInputData) =>
     ipcRenderer.invoke('automation:create', input) as Promise<AutomationMutationData>,
   // Read-only preview of a schedule the dialog has not saved yet. Never creates,

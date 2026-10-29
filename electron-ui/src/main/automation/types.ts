@@ -355,6 +355,20 @@ export interface AutomationRunRecord {
   /** True when this run fired after its scheduled minute (app was closed). */
   late: boolean
   /**
+   * How this run came due, recorded at the moment it started.
+   *
+   * Kept on the record because a cross-job reader cannot reconstruct it: a
+   * manual run, a file change and a clock tick leave identical shapes, and a
+   * successor started by another job's chain is only visible on the *source*
+   * record. Nothing infers it after the fact, so absent means "this record
+   * predates the field" and must read that way rather than as `scheduled`.
+   *
+   * A retry keeps the source of the occurrence it stands in for; `retry` says
+   * it was an extra attempt. A run repaired after a crash is left absent: the
+   * process that knew how it started is gone.
+   */
+  source?: AutomationRunSource
+  /**
    * 1-based retry attempt this record belongs to, or absent for an ordinary
    * scheduled occurrence. A success can carry it too: a retry that works is
    * still a retry, and the history must be able to say so.

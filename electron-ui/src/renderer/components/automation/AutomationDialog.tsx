@@ -36,6 +36,14 @@ import {
 } from './jobDepartment'
 import { buildChainOptions } from './jobChain'
 import type { ChainOption } from './jobChain'
+import {
+  defaultActionKindFor,
+  initialSkillChoice,
+  skillAction,
+  skillBodyState,
+  type InitialSkill,
+  type SkillBodyState,
+} from './skillSelection'
 import type {
   AutomationInputData,
   AutomationJobData,
@@ -116,6 +124,12 @@ export interface AutomationDialogProps {
    */
   initialWorkflowId?: string
   /**
+   * Create mode only: open pre-filled with this skill as the action. The
+   * caller (a skill page) already knows the identity; the dialog still asks
+   * for a name and a schedule, and saves nothing until the user does.
+   */
+  initialSkill?: InitialSkill
+  /**
    * Create mode only: open with action "send a prompt" and this text. An empty
    * string still selects the prompt action, so the caller can prefill a
    * conversation whose first message the user has yet to write. Absence keeps
@@ -179,6 +193,7 @@ export default function AutomationDialog({
   workflows,
   limits,
   initialWorkflowId,
+  initialSkill,
   initialPrompt,
   initialName,
   initialPromptClipped,
@@ -221,12 +236,19 @@ export default function AutomationDialog({
   const initialCron = job && job.trigger.kind === 'cron' ? describeCron(job.trigger.expr) : null
   const cronIsCustom = !!job && job.trigger.kind === 'cron' && !initialCron
 
-  // An explicit prompt prefill wins over the "workflows exist" default: the
-  // caller (the chat header) already decided that this job should send text,
-  // not run a pipeline, and inventing a workflow would be a different job.
-  const defaultActionKind: 'workflow' | 'prompt' | 'skill' =
-    job?.action.kind ??
-    (presetWorkflowId || (initialPrompt === undefined && workflows.length > 0) ? 'workflow' : 'prompt')
+  // An explicit prompt or skill prefill wins over the "workflows exist"
+  // default: the caller (the chat header, a skill page) already decided what
+  // this job should do, and inventing a workflow would be a different job.
+  const defaultActionKind = defaultActionKindFor({
+    job,
+    initialSkill,
+    presetWorkflowId,
+    initialPrompt,
+    workflowCount: workflows.length,
+  })
+  // The prefill is read once for the form's initial state. An edit keeps the
+  // stored pair; otherwise a skill page's identity wins over "nothing chosen".
+  const [initialChoice] = useState(() => initialSkillChoice(job, initialSkill))
 
   const [name, setName] = useState(job?.name ?? initialName ?? '')
   const [enabled, setEnabled] = useState(job?.enabled ?? true)
@@ -234,12 +256,8 @@ export default function AutomationDialog({
   // Kept as the two stored fields, never as a joined string: main validates the
   // pair, and a "source:dir" round-trip here would be a second parser to keep
   // in step with the one that matters.
-  const [skillSource, setSkillSource] = useState<'' | 'personal' | 'project'>(
-    job?.action.kind === 'skill' ? job.action.skillSource : '',
-  )
-  const [skillDir, setSkillDir] = useState(
-    job?.action.kind === 'skill' ? job.action.skillDir : '',
-  )
+  const [skillSource, setSkillSource] = useState<'' | 'personal' | 'project'>(initialChoice.source)
+  const [skillDir, setSkillDir] = useState(initialChoice.dir)
   const [skillQuery, setSkillQuery] = useState('')
   // `null` means "not read yet"; an empty array is the real answer "no skills
   // are installed", which the picker must say instead of showing an empty box.
@@ -517,7 +535,9 @@ export default function AutomationDialog({
     if (actionKind === 'workflow') return { kind: 'workflow', workflowId }
     if (actionKind === 'skill') {
       if (!skillSource) return null
-      return { kind: 'skill', skillSource, skillDir }
+      // The same builder the page's prefill goes through, so "chosen here"
+      // and "chosen on the skill page" cannot produce different payloads.
+      return skillAction({ source: skillSource, dir: skillDir })
     }
     return { kind: 'prompt', prompt: prompt.trim() }
   }, [actionKind, workflowId, prompt, skillSource, skillDir])
@@ -539,6 +559,45 @@ export default function AutomationDialog({
   const storedSkillMissing = skillSource !== '' &&
     skills !== null &&
     !skills.some(skill => skill.source === skillSource && skill.skillDir === skillDir)
+
+  // Whether the chosen SKILL.md has anything for a run to send. Read once per
+  // chosen skill, cached for this dialog's lifetime: a keystroke in the picker
+  // must never touch the disk. Unknown covers "not read yet", "read failed"
+  // and "no such skill" — none of them may be reported as an empty file.
+  const [skillBody, setSkillBody] = useState<SkillBodyState>('unknown')
+  const skillBodyCache = useRef<Map<string, SkillBodyState>>(new Map())
+  useEffect(() => {
+    if (actionKind !== 'skill' || !skillSource) {
+      setSkillBody('unknown')
+      return
+    }
+    const chosen = skills?.find(skill =>
+      skill.source === skillSource && skill.skillDir === skillDir)
+    if (!chosen) {
+      setSkillBody('unknown')
+      return
+    }
+    const key = `${chosen.source}\u0000${chosen.skillDir}`
+    const cached = skillBodyCache.current.get(key)
+    if (cached) {
+      setSkillBody(cached)
+      return
+    }
+    let cancelled = false
+    setSkillBody('unknown')
+    void (async () => {
+      try {
+        const result = await window.electronAPI.skillsRead(chosen.dirPath)
+        if (cancelled) return
+        const state = skillBodyState(typeof result?.content === 'string' ? result.content : null)
+        skillBodyCache.current.set(key, state)
+        setSkillBody(state)
+      } catch {
+        if (!cancelled) setSkillBody('unknown')
+      }
+    })()
+    return () => { cancelled = true }
+  }, [actionKind, skillSource, skillDir, skills])
 
   // Empty means no limit. The upper bound is the main process's call; here we
   // only refuse a value that is not a positive amount at all, so Save cannot
@@ -879,6 +938,19 @@ export default function AutomationDialog({
                 }}>
                   <AlertTriangle size={11} style={{ flexShrink: 0, marginTop: 1 }} />
                   <span>{t('automation.skill.missingHint', { name: skillDir || 'SKILL.md' })}</span>
+                </div>
+              )}
+              {/* A SKILL.md with no body is a legitimate draft, so this states
+                  the consequence and leaves Save on: the file may be filled in
+                  before the first run, and blocking the save would lose the
+                  schedule the user just built. */}
+              {skillBody === 'empty' && (
+                <div style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 5,
+                  fontSize: 11, color: WARNING, marginTop: 6, lineHeight: 1.5,
+                }}>
+                  <AlertTriangle size={11} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>{t('automation.skill.emptyBody')}</span>
                 </div>
               )}
               <div style={{ fontSize: 11, color: SECONDARY, marginTop: 6, lineHeight: 1.5 }}>

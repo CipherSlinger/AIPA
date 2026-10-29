@@ -45,6 +45,8 @@ import { MISSED_RUN_GRACE_MS, normalizeMissedRunPolicy, shouldSkipMissedRun } fr
 import { nextRunAfter } from './next-run'
 import { AUTOMATION_RETRY_POLICY, isPendingRetryExpired, nextRetryAfterFailure } from './retry-policy'
 import { appendRunRecord, countFailureStreak, createSkipRecord, MAX_RUN_ERROR_CHARS } from './run-history'
+import { flattenRunActivity } from './run-activity'
+import type { AutomationRunActivity } from './run-activity'
 import { addToLifetimeTotals } from './run-usage'
 import {
   checkGlobalSpendLimit,
@@ -612,7 +614,7 @@ function recordSpendSkip(
   job: AutomationJob,
   now: number,
   code: 'budget_exceeded' | 'global_budget_exceeded' | 'dept_budget_exceeded',
-  opts: { retryAttempt?: number; chain?: boolean } = {},
+  opts: { retryAttempt?: number; chain?: boolean; source?: AutomationRunSource } = {},
 ): void {
   const isRetry = opts.retryAttempt !== undefined
   const isChain = opts.chain === true
@@ -630,12 +632,18 @@ function recordSpendSkip(
   // in a machine-readable field.
   job.history = appendRunRecord(
     job.history,
-    createSkipRecord(
-      skippedAt,
-      code,
-      opts.retryAttempt,
-      code === 'dept_budget_exceeded' ? 'dept-budget' : undefined,
-    ),
+    {
+      ...createSkipRecord(
+        skippedAt,
+        code,
+        opts.retryAttempt,
+        code === 'dept_budget_exceeded' ? 'dept-budget' : undefined,
+      ),
+      // A rail refusal still came due somehow — the record says which way, so
+      // a cross-job reader can tell a held 03:00 occurrence from a held file
+      // change. The rail's own code stays in `error`; this is not a second one.
+      ...(opts.source ? { source: opts.source } : {}),
+    },
   )
   // A rail refusal of a retry resolves the wait: leaving it pending would retry
   // again a tick later, which is the loop the limit exists to stop. A chained
@@ -749,6 +757,16 @@ async function startRun(
   }
   const now = Date.now()
   const locale = resolveUiLanguage()
+  // How this run came due. Resolved before anything can write a record, because
+  // the record is the only place a cross-job reader can learn it later: the
+  // job's own fields look identical for a clock tick, a file change and a
+  // successor's chain. A retry does not change it — the record's `retry` number
+  // says "extra attempt", while the source names the occurrence it stands in
+  // for. Only `manual` is exempt from the unattended spend rails below.
+  let source: AutomationRunSource = 'scheduled'
+  if (opts.manual) source = 'manual'
+  else if (opts.chainDepth !== undefined) source = 'chain'
+  else if (opts.watch) source = 'watch'
   // A manual run is the user spending now, and an ordinary occurrence is a
   // fresh chance; either supersedes a retry that was waiting for this moment.
   // A retry start has already had its pending record cleared by the tick. A
@@ -784,6 +802,7 @@ async function startRun(
       sessionId: null,
       error: resolved.error,
       late: false,
+      source,
       ...(opts.retryAttempt !== undefined ? { retry: opts.retryAttempt } : {}),
     })
     log.warn(
@@ -818,6 +837,7 @@ async function startRun(
       sessionId: null,
       error: 'nothing_to_run',
       late: false,
+      source,
       ...(opts.retryAttempt !== undefined ? { retry: opts.retryAttempt } : {}),
     })
     // A retry leaves the regular schedule alone; only an occurrence advances it.
@@ -842,10 +862,6 @@ async function startRun(
   // it is railed the same way — and a chained run is the third of the same kind:
   // nobody is at the keyboard when one job starts another. Only `manual` is
   // exempt (the user spending now), and a chained start is never manual.
-  let source: AutomationRunSource = 'scheduled'
-  if (opts.manual) source = 'manual'
-  else if (opts.chainDepth !== undefined) source = 'chain'
-  else if (opts.watch) source = 'watch'
 
   // Department cap. Checked before the job's own limit and the global budget so
   // a run held by more than one rail records the broader reason — "this
@@ -868,6 +884,7 @@ async function startRun(
     recordSpendSkip(job, now, 'dept_budget_exceeded', {
       retryAttempt: opts.retryAttempt,
       chain: opts.chainDepth !== undefined,
+      source,
     })
     // The rail held the start, so the chained successor did not begin. The
     // source's record names the fact without repeating the rail, which this
@@ -892,6 +909,7 @@ async function startRun(
     recordSpendSkip(job, now, 'budget_exceeded', {
       retryAttempt: opts.retryAttempt,
       chain: opts.chainDepth !== undefined,
+      source,
     })
     reportChain({ note: 'target_refused' })
     log.warn(
@@ -917,6 +935,7 @@ async function startRun(
     recordSpendSkip(job, now, 'global_budget_exceeded', {
       retryAttempt: opts.retryAttempt,
       chain: opts.chainDepth !== undefined,
+      source,
     })
     reportChain({ note: 'target_refused' })
     log.warn(
@@ -1082,6 +1101,7 @@ async function startRun(
     sessionId,
     error,
     late: opts.late,
+    source,
     ...(opts.retryAttempt !== undefined ? { retry: opts.retryAttempt } : {}),
     ...(outcome.usage ? { usage: outcome.usage } : {}),
     // A failed run still saw the snapshot it fetched, so the digest is carried
@@ -1266,7 +1286,10 @@ function fireWatchJob(jobId: string): void {
     job.lastError = 'hourly_limit'
     job.lastRunLate = false
     job.lastUsage = undefined
-    job.history = appendRunRecord(job.history, createSkipRecord(now, 'hourly_limit'))
+    job.history = appendRunRecord(
+      job.history,
+      { ...createSkipRecord(now, 'hourly_limit'), source: 'watch' },
+    )
     persistAndBroadcast()
     log.warn(
       `Automation "${job.name}" watch run skipped — more than `
@@ -1331,7 +1354,8 @@ function tick(): void {
         job.lastUsage = undefined
         job.history = appendRunRecord(
           job.history,
-          createSkipRecord(retry.dueAt, 'hourly_limit', retry.attempt),
+          // A retry stands in for a scheduled occurrence that already came due.
+          { ...createSkipRecord(retry.dueAt, 'hourly_limit', retry.attempt), source: 'scheduled' },
         )
         dirty = true
         log.warn(
@@ -1388,7 +1412,7 @@ function tick(): void {
       job.lastUsage = undefined
       job.history = appendRunRecord(
         job.history,
-        createSkipRecord(missedAt, 'missed_while_closed'),
+        { ...createSkipRecord(missedAt, 'missed_while_closed'), source: 'scheduled' },
       )
       job.nextRunAt = nextRunAfter(job.trigger, now)
       dirty = true
@@ -1414,7 +1438,10 @@ function tick(): void {
       job.lastUsage = undefined
       // Kept in history so the gap is explainable, but it is not an attempt:
       // the streak ignores it and the record carries no spend or session.
-      job.history = appendRunRecord(job.history, createSkipRecord(skippedAt, 'hourly_limit'))
+      job.history = appendRunRecord(
+        job.history,
+        { ...createSkipRecord(skippedAt, 'hourly_limit'), source: 'scheduled' },
+      )
       job.nextRunAt = nextRunAfter(job.trigger, now)
       dirty = true
       log.warn(`Automation "${job.name}" skipped — more than ${AUTOMATION_LIMITS.maxRunsPerHour} runs this hour`)
@@ -1550,6 +1577,19 @@ export function listAutomationJobs(): { jobs: AutomationJobView[]; limits: Autom
       globalSpend: summarizeGlobalSpendWindow(jobs, Date.now(), globalDailyCostLimitUsd),
     },
   }
+}
+
+/**
+ * Every job's remembered runs in one newest-first list.
+ *
+ * Read from the same live array `listAutomationJobs` uses, so a job deleted a
+ * moment ago contributes nothing and a job restored a moment ago contributes
+ * again. Read-only: no persistence, no broadcast — nothing here can change the
+ * store. A failed read must reject (the handler lets it), because an empty list
+ * would claim "nothing has run".
+ */
+export function listAutomationRunActivity(): AutomationRunActivity {
+  return flattenRunActivity(jobs)
 }
 
 /** How many upcoming occurrences the dialog previews. */

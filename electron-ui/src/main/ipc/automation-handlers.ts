@@ -11,6 +11,7 @@ import {
   createAutomationJob,
   listAutomationDeptBudgetReports,
   listAutomationJobs,
+  listAutomationRunActivity,
   previewAutomationSchedule,
   restoreAutomationJob,
   runAutomationNow,
@@ -46,6 +47,19 @@ export function registerAutomationHandlers(): void {
     } catch (err) {
       console.error('[automation:list]', err)
       return { jobs: [], limits: null }
+    }
+  })
+
+  // One read of every job's remembered runs, newest first, capped. Same result
+  // discipline as `automation:trash:list`: a failed read rejects so the page can
+  // say the store could not be read, instead of resolving an empty list that
+  // would read as "nothing has ever run".
+  safeHandle('automation:runActivity', () => {
+    try {
+      return listAutomationRunActivity()
+    } catch (err) {
+      console.error('[automation:runActivity]', err)
+      throw err
     }
   })
 

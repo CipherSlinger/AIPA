@@ -24,6 +24,8 @@ import {
   countJobsByStatus,
   hasActiveFilters,
   matchesJob,
+  rememberSkills,
+  skillSearchFields,
   type JobFilterStatus,
   type JobSearchContext,
 } from '../automation/jobFilter'
@@ -229,7 +231,13 @@ export default function SettingsAutomations() {
     void (async () => {
       try {
         const list = await window.electronAPI.skillsList(workingDir || undefined)
-        if (!cancelled) setSkills(Array.isArray(list) ? list : [])
+        if (cancelled) return
+        const entries = Array.isArray(list) ? list : []
+        // One write per read, never per keystroke: the filter below is pure.
+        // A skill deleted after this read keeps its name, so a job that names
+        // it stays searchable by the name the user remembers.
+        rememberSkills(entries)
+        setSkills(entries)
       } catch {
         if (!cancelled) setSkills(null)
       }
@@ -313,8 +321,12 @@ export default function SettingsAutomations() {
         : null,
       scheduleSentence: scheduleText(t, job.trigger),
       personaName: expert?.kind === 'persona' ? expert.persona.name : null,
+      // The name and description live in the skill list, not in the job. A
+      // skill deleted since it was scheduled still answers from the name
+      // journal, so the job remains findable by the name the user typed.
+      ...skillSearchFields(job.action, skills),
     }
-  }, [jobExpert, workflowName, t])
+  }, [jobExpert, workflowName, t, skills])
 
   const filterQuery = useMemo(
     () => ({ text: filterText, statuses: filterStatuses }),

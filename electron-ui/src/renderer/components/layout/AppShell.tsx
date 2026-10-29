@@ -18,6 +18,7 @@ const SkillCreatorPage = React.lazy(() => import('../skills/SkillCreatorPage'))
 const SkillMarketplacePage = React.lazy(() => import('../skills/SkillMarketplacePage'))
 const DepartmentDashboard = React.lazy(() => import('../departments/DepartmentDashboard'))
 const ArchivePanel = React.lazy(() => import('../archive/ArchivePanel'))
+const RunActivityPanel = React.lazy(() => import('../automation/RunActivityPanel'))
 const WorkflowPanel = React.lazy(() => import('../workflows/WorkflowPanel'))
 const ChangesPanel = React.lazy(() => import('../sidebar/ChangesPanel'))
 const FileBrowser = React.lazy(() => import('../filebrowser/FileBrowser'))
@@ -98,6 +99,7 @@ export default function AppShell() {
           mainView === 'workflows' ||
           mainView === 'changes' ||
           mainView === 'files' ||
+          mainView === 'run-activity' ||
           mainView === 'plugin'
         ) {
           useUiStore.getState().setActiveNavItem('chat')
@@ -184,6 +186,12 @@ export default function AppShell() {
             <ErrorBoundary key={mainView} fallbackLabel="archive panel">
               <React.Suspense fallback={<PanelSkeleton />}>
                 <ArchivePanel />
+              </React.Suspense>
+            </ErrorBoundary>
+          ) : mainView === 'run-activity' ? (
+            <ErrorBoundary key={mainView} fallbackLabel="run activity page">
+              <React.Suspense fallback={<PanelSkeleton />}>
+                <RunActivityPanel />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'workflows' ? (

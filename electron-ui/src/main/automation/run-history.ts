@@ -35,6 +35,7 @@ import type {
   AutomationRunRecord,
   AutomationRunRecordStatus,
   AutomationRunSkipReason,
+  AutomationRunSource,
 } from './types'
 
 /** Runs remembered per job. Enough to see a nightly streak; small enough to bound the store. */
@@ -47,6 +48,13 @@ const MAX_SESSION_ID_CHARS = 256
 /** A job name is short; this only bounds a hand-edited history row. */
 const MAX_CHAIN_NAME_CHARS = 120
 const RECORD_STATUSES: AutomationRunRecordStatus[] = ['success', 'error', 'skipped']
+/**
+ * The sources a record may name, mirroring `AutomationRunSource`.
+ *
+ * A value outside this list is dropped rather than carried: a hand-edited file
+ * must not be able to make a run claim an origin the app can never produce.
+ */
+const RECORD_SOURCES: AutomationRunSource[] = ['manual', 'scheduled', 'watch', 'chain']
 
 function finiteNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
@@ -104,6 +112,12 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
     : null
   const errorText = typeof record.error === 'string' ? record.error.trim() : ''
   const error = errorText ? errorText.slice(0, MAX_RUN_ERROR_CHARS) : null
+  // Absent stays absent — "not recorded" is a fact this field must be able to
+  // carry, because every record written before it existed has exactly that
+  // shape and guessing `scheduled` would invent an origin.
+  const source = typeof record.source === 'string' && RECORD_SOURCES.includes(record.source as AutomationRunSource)
+    ? record.source as AutomationRunSource
+    : undefined
   // Only an attempt the policy could actually have made survives restore. A
   // success may carry it: a retry that works is still marked as a retry.
   const retry = typeof record.retry === 'number' &&
@@ -155,6 +169,7 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
       sessionId: null,
       error,
       late: false,
+      ...(source ? { source } : {}),
       ...(retry !== undefined ? { retry } : {}),
       ...(skipReason !== undefined ? { skipReason } : {}),
     }
@@ -168,6 +183,7 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
       sessionId,
       error: null,
       late: record.late === true,
+      ...(source ? { source } : {}),
       ...(retry !== undefined ? { retry } : {}),
       ...(usage ? { usage } : {}),
       ...(memory ? { memory } : {}),
@@ -186,6 +202,7 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
     sessionId,
     error,
     late: record.late === true,
+    ...(source ? { source } : {}),
     ...(retry !== undefined ? { retry } : {}),
     ...(usage ? { usage } : {}),
     // A failed run saw a snapshot too; keeping it here is what makes the

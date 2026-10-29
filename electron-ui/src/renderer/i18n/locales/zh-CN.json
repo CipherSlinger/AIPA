@@ -1329,7 +1329,9 @@
     "waitingApprovals": {
       "group": "在等你答复",
       "description": "已等 {{time}}——打开这个请求"
-    }
+    },
+    "runActivity": "运行记录：所有任务",
+    "runActivityDesc": "所有定时任务记住的运行，最新的在最上面"
   },
   "permission": {
     "allow": "允许",
@@ -1996,7 +1998,11 @@
     "restored": "技能已恢复",
     "schedules": {
       "title": "定时运行",
-      "openHint": "在 设置 → 自动化 中打开"
+      "openHint": "在 设置 → 自动化 中打开",
+      "schedule": "为这个技能排程",
+      "scheduleHint": "打开一条已预填该技能的新自动化。在你按下保存之前，什么都不会写入。",
+      "blockedEmpty": "这个 SKILL.md 在头部之后没有任何指令，每次运行都会以 nothing_to_run 停下。先补上内容，再排程。",
+      "blockedUnreadable": "无法读取这个 SKILL.md，定时运行会以 skill_unreadable 停下。先修好文件，再排程。"
     }
   },
   "skill": {
@@ -2758,7 +2764,9 @@
       "waitingApproved": "已允许，{{name}} 继续。",
       "waitingDenied": "已拒绝，{{name}} 不带这一项继续。",
       "waitingGone": "这个请求已经不在等了——已经被答复，或者超时了。",
-      "focusGone": "这个请求已经不在等了：已经被答复、超时了，或者它所属的运行已经结束。"
+      "focusGone": "这个请求已经不在等了：已经被答复、超时了，或者它所属的运行已经结束。",
+      "viewAllRuns": "查看所有运行",
+      "viewAllRunsTitle": "所有任务记住的运行，最新的在最上面"
     }
   },
   "dailyBriefing": {
@@ -3993,7 +4001,8 @@
     "palette": {
       "paused": "已暂停",
       "manage": "管理",
-      "failing": "持续失败——{{streak}}"
+      "failing": "持续失败——{{streak}}",
+      "skill": "技能：{{name}}"
     },
     "spend": {
       "limitHint": "只对定时自动发起的运行生效，按最近 24 小时滚动计算；「立即运行」不会被拦截。只统计引擎报告的花费——不报告金额的引擎（Codex、部分 Claude 路由）不在覆盖范围内，因此没有任何花费报告时无法校验上限。",
@@ -4262,10 +4271,65 @@
       "empty": "还没有安装任何技能。可以把一段对话保存为技能，或从技能市场安装一个，然后再回来。",
       "noMatch": "没有已安装的技能符合这个搜索。",
       "missingHint": "技能“{{name}}”已不在已安装列表中。保存前请另选一个，或换一种动作。",
-      "hint": "运行时这条任务会把该技能的 SKILL.md 作为指令发出去。如果技能之后被删除，这次运行会停下并给这一行打上标记，而不是空跑一遍。"
+      "hint": "运行时这条任务会把该技能的 SKILL.md 作为指令发出去。如果技能之后被删除，这次运行会停下并给这一行打上标记，而不是空跑一遍。",
+      "emptyBody": "这个 SKILL.md 在头部之后没有任何指令，在补充内容之前，每次运行都会以 nothing_to_run 停下。仍然可以保存——在第一次运行前补上即可。"
     },
     "skillAction": "运行技能：{{name}}",
-    "skillMissing": "它指向的技能已被删除。请编辑它改选其他技能，或删除这条自动化。"
+    "skillMissing": "它指向的技能已被删除。请编辑它改选其他技能，或删除这条自动化。",
+    "runActivity": {
+      "title": "运行记录",
+      "subtitle": "每个任务记住的运行，最新的在最上面。",
+      "summaryAll": "共记住 {{total}} 次运行，来自所有任务。",
+      "summaryCapped": "显示最近 {{shown}} 条，共记住 {{total}} 次运行，来自所有任务。",
+      "hiddenOne": "此筛选隐藏了 1 条已载入的运行",
+      "hidden": "此筛选隐藏了 {{count}} 条已载入的运行",
+      "chipHint": "数字统计的是本页已载入的运行，不是筛选结果。",
+      "chip": {
+        "all": "全部",
+        "failed": "失败",
+        "skipped": "跳过",
+        "succeeded": "成功"
+      },
+      "filter": {
+        "jobAria": "按任务筛选",
+        "jobAll": "全部任务",
+        "jobOption": "{{name}}（{{count}}）",
+        "sourceAria": "按运行来源筛选"
+      },
+      "source": {
+        "all": "任何来源",
+        "scheduled": "定时",
+        "manual": "手动",
+        "watch": "文件监听",
+        "chain": "链式触发",
+        "unrecorded": "来源未记录"
+      },
+      "searchPlaceholder": "按任务、错误或会话 id 筛选",
+      "clearSearch": "清除搜索",
+      "clearFilters": "清除筛选",
+      "loading": "正在读取记住的运行…",
+      "retry": "重试",
+      "empty": {
+        "no-runs": {
+          "title": "还没有记住任何运行",
+          "hint": "定时任务每次运行——按点触发或手动启动——都会在这里记下最近 {{perJob}} 次。"
+        },
+        "no-match": {
+          "title": "没有运行符合此筛选",
+          "hint": "筛选把已载入的运行全部藏了起来。清除筛选即可重新看到。"
+        },
+        "unreadable": {
+          "title": "读取不到运行记录",
+          "hint": "没有删除任何东西：这次读取存储失败。请重试。"
+        }
+      },
+      "capNote": "每个任务只保留最近 {{perJob}} 次运行，所以这里是各任务记住的部分，不是全部记录。列表最多到最近 {{cap}} 条。已删除任务的运行随任务一起消失。",
+      "row": {
+        "openTranscript": "打开这次运行留下的对话",
+        "openJob": "在「设置 → 定时任务」中打开 {{name}}",
+        "session": "会话 {{id}}"
+      }
+    }
   },
   "speculation": {
     "title": "投机预览",

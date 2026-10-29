@@ -22,7 +22,7 @@ export interface ArchiveAskScopeSeed {
 export type SidebarTab = 'history' | 'files' | 'notes' | 'workflows' | 'changes'
 // 'skills' is kept as an alias: the Skills panel is now a section of the Employees
 // page, so entry points (Ctrl+4, /skills, command palette) resolve to 'workflows'.
-export type NavItem = 'chat' | 'department' | 'archive' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'changes' | `plugin:${string}`
+export type NavItem = 'chat' | 'department' | 'archive' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'changes' | 'run-activity' | `plugin:${string}`
 export type MainView =
   | 'chat'
   | 'department'
@@ -37,6 +37,7 @@ export type MainView =
   | 'workflow-detail'
   | 'skill-creator'
   | 'skill-marketplace'
+  | 'run-activity'
   | 'plugin'
 
 interface UiState {
@@ -203,6 +204,13 @@ interface UiState {
   openPersonaEditor: (personaId: string | null, returnView?: 'chat' | 'settings' | 'workflows') => void
   openWorkflowEditor: (workflowId: string | null) => void
   openWorkflowDetail: (workflowId: string) => void
+  /**
+   * The cross-job run list. A page, not a settings tab: it spans every job, so
+   * the page that owns one job at a time is the wrong owner. No rail item — it
+   * is reached from the status bar and the command palette, and the rail has no
+   * permanent slot for a surface people open after the fact.
+   */
+  openRunActivity: () => void
 
   // Session Quick Switcher (Ctrl+K)
   sessionSwitcherOpen: boolean
@@ -256,6 +264,12 @@ function resolveNav(_s: UiState, item: NavItem): NavPatch {
   // Archive opens the company-wide task ledger
   if (item === 'archive') {
     return { activeNavItem: 'archive', mainView: 'archive', sidebarOpen: false }
+  }
+  // The cross-job run list. No rail icon equals this item, so nothing on the
+  // rail stays highlighted while the page is in front — which is the honest
+  // state: the page belongs to no section, it spans them all.
+  if (item === 'run-activity') {
+    return { activeNavItem: 'run-activity', mainView: 'run-activity', sidebarOpen: false }
   }
   // Chat/History opens chat panel in main content area
   if (item === 'chat' || item === 'history') {
@@ -367,6 +381,9 @@ export const useUiStore = create<UiState>((set, get) => ({
   clearPendingSettingsTab: () => set({ pendingSettingsTab: null }),
   mainView: 'department' as const,
   setMainView: (view) => set({ mainView: view }),
+  // Through `setActiveNavItem` so both entry points (status bar, palette) land
+  // on one view and any open Settings closes first.
+  openRunActivity: () => get().setActiveNavItem('run-activity'),
   pendingEmployeesSection: null,
   // Through `setActiveNavItem`, so the palette and the /skills entry point land
   // on the same view with the same section request; only the section is added.

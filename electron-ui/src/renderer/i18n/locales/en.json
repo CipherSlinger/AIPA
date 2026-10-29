@@ -1329,7 +1329,9 @@
     "waitingApprovals": {
       "group": "Waiting for your answer",
       "description": "Waiting {{time}} — open the request"
-    }
+    },
+    "runActivity": "Run history: every job",
+    "runActivityDesc": "Every scheduled job's remembered runs, newest first"
   },
   "permission": {
     "allow": "Allow",
@@ -1996,7 +1998,11 @@
     "restored": "Skill restored",
     "schedules": {
       "title": "Scheduled runs",
-      "openHint": "Open in Settings → Automations"
+      "openHint": "Open in Settings → Automations",
+      "schedule": "Schedule this skill",
+      "scheduleHint": "Open a new automation pre-filled with this skill. Nothing is saved until you press Save.",
+      "blockedEmpty": "This SKILL.md has no instructions after its header, so every run would stop with nothing_to_run. Add instructions first, then schedule it.",
+      "blockedUnreadable": "This SKILL.md could not be read, so a scheduled run would stop with skill_unreadable. Fix the file first, then schedule it."
     }
   },
   "skill": {
@@ -2758,7 +2764,9 @@
       "waitingApproved": "Approved. {{name}} continues.",
       "waitingDenied": "Denied. {{name}} continues without it.",
       "waitingGone": "That request is no longer waiting — it was answered or timed out.",
-      "focusGone": "That request is no longer waiting: it was answered, timed out, or its run ended."
+      "focusGone": "That request is no longer waiting: it was answered, timed out, or its run ended.",
+      "viewAllRuns": "View all runs",
+      "viewAllRunsTitle": "Every job's remembered runs, newest first"
     }
   },
   "dailyBriefing": {
@@ -3993,7 +4001,8 @@
     "palette": {
       "paused": "Paused",
       "manage": "Manage",
-      "failing": "Failing — {{streak}}"
+      "failing": "Failing — {{streak}}",
+      "skill": "Skill: {{name}}"
     },
     "spend": {
       "limitHint": "Applies to runs the schedule starts in a rolling 24 hours; Run now is never blocked. Only reported costs count — engines that report no money (Codex, some Claude routes) are not covered, so with no reported cost the limit cannot be checked.",
@@ -4262,10 +4271,65 @@
       "empty": "No skills are installed yet. Save a conversation as a skill, or install one from the Marketplace, then come back.",
       "noMatch": "No installed skill matches that search.",
       "missingHint": "The skill “{{name}}” is no longer installed. Pick another one, or choose a different action, before saving.",
-      "hint": "At run time the job sends this skill's SKILL.md as its instructions. If the skill is deleted later, the run stops and the row is flagged instead of running with nothing."
+      "hint": "At run time the job sends this skill's SKILL.md as its instructions. If the skill is deleted later, the run stops and the row is flagged instead of running with nothing.",
+      "emptyBody": "This SKILL.md has no instructions after its header, so a run would stop with nothing_to_run until you add some. You can still save — fill it in before the first run."
     },
     "skillAction": "Runs skill: {{name}}",
-    "skillMissing": "Its skill was deleted. Edit this automation to pick another, or delete it."
+    "skillMissing": "Its skill was deleted. Edit this automation to pick another, or delete it.",
+    "runActivity": {
+      "title": "Run history",
+      "subtitle": "Every job's remembered runs, newest first.",
+      "summaryAll": "All {{total}} remembered runs across every job.",
+      "summaryCapped": "Showing the newest {{shown}} of {{total}} remembered runs across every job.",
+      "hiddenOne": "1 loaded run hidden by this filter",
+      "hidden": "{{count}} loaded runs hidden by this filter",
+      "chipHint": "Counts describe the runs loaded on this page, not a filter's result.",
+      "chip": {
+        "all": "All",
+        "failed": "Failed",
+        "skipped": "Skipped",
+        "succeeded": "Succeeded"
+      },
+      "filter": {
+        "jobAria": "Filter by job",
+        "jobAll": "All jobs",
+        "jobOption": "{{name}} ({{count}})",
+        "sourceAria": "Filter by how the run came due"
+      },
+      "source": {
+        "all": "Any source",
+        "scheduled": "Scheduled",
+        "manual": "Manual",
+        "watch": "File watch",
+        "chain": "Chained",
+        "unrecorded": "Source not recorded"
+      },
+      "searchPlaceholder": "Filter by job, error or transcript id",
+      "clearSearch": "Clear the search",
+      "clearFilters": "Clear filters",
+      "loading": "Reading remembered runs…",
+      "retry": "Try again",
+      "empty": {
+        "no-runs": {
+          "title": "No runs remembered yet",
+          "hint": "When a scheduled job runs — on its clock or started by hand — its last {{perJob}} runs are recorded here."
+        },
+        "no-match": {
+          "title": "No runs match this filter",
+          "hint": "The filter hides every loaded run. Clear it to see them again."
+        },
+        "unreadable": {
+          "title": "The run history could not be read",
+          "hint": "Nothing was deleted: the store could not be read this time. Try again."
+        }
+      },
+      "capNote": "Each job keeps its last {{perJob}} runs, so this is what each job remembered, not a transcript of everything. The list stops at the newest {{cap}}. A deleted job's runs left with it.",
+      "row": {
+        "openTranscript": "Open the conversation this run left",
+        "openJob": "Open {{name}} in Settings → Automations",
+        "session": "session {{id}}"
+      }
+    }
   },
   "speculation": {
     "title": "Speculative Preview",

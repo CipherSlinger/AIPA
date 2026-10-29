@@ -9368,3 +9368,36 @@ Status: SUCCESS — `npm run check`: 0 errors, 113 warnings (none in the files t
 - [x] Harness: 18 checks — identity accept/reject, ceiling + in-band marker, digest arithmetic, resolution under scratch roots, parent rename, save-time rejections, whitelists through store/trash/backup, deleted skill disables the job, run-history restore, UI/preload wiring, i18n parity
 - [x] Deleted skill fails the run with a named code and a flagged row; no silent no-op
 - [x] No new spending path, no persisted permission, no write outside scratch directories
+
+## Iteration 9 (wave 79B) — Global search overlay split, zero behaviour change
+_Date: 2026-10-29 | Sprint 79_
+
+### Summary
+`GlobalSearchOverlay.tsx` (2,422 lines, six waves of features absorbed into one component) became a
+1,393-line coordinator over fourteen modules in `components/search/overlay/`. Nothing users see moved:
+every i18n literal keeps its call-site count, every IPC call keeps its shape, every aria label and
+`data-` anchor renders from the same place in the tree. The six invariants the scoped-scan and
+ask-history waves established are now written down where they are enforced — the ask life cycle in
+`useAskHistory.ts`, the corpus decision in `askHistory.ts`, the key protocol in `keyboard.ts`, the scan
+narrowing in the coordinator's two callbacks — rather than being described by one 2,400-line file.
+
+### Files Changed
+- `src/renderer/components/search/GlobalSearchOverlay.tsx` — 2,422 → 1,393 lines; still the default export behind `App.tsx`'s lazy import. Keeps state, the two scan actions, the dept select, sorting/grouping/paging derivations, the scan-scoped and building-block empty copy
+- `src/renderer/components/search/overlay/useAskHistory.ts` — new: ask state, run token, request id, progress subscription, Stop/timeout/unmount settlement
+- `src/renderer/components/search/overlay/askHistory.ts` — new: `deriveAskScope`, `AskState`, `AskedScope`, `askErrorKey`, `newAskRequestId`, `ASK_MIN_QUERY` (pure, React-free)
+- `src/renderer/components/search/overlay/keyboard.ts` — new: the overlay key protocol
+- `src/renderer/components/search/overlay/AnswerBody.tsx`, `AskAnswerView.tsx`, `AskMoreCharsHint.tsx`, `AskRunningView.tsx`, `AskScopeControls.tsx`, `FollowUpRow.tsx`, `OverlayFooter.tsx`, `SearchEmptyStates.tsx`, `SearchPager.tsx`, `SearchResultGroups.tsx` — new: the blocks that left the coordinator, moved verbatim
+- `src/renderer/components/search/overlay/shared.ts` — new: `projectLabel`, `stopPillActivation`, the shared style constants
+- `.scratch/wave79b-overlay-split-harness/` — build.js + entry.ts + run.js + collect.js
+- `.scratch/wave56a-overlay-scope-harness/run.js` — reads the coordinator plus `overlay/*` as one surface; one assertion re-pointed from `let scopeIds` to the optional type `deriveAskScope` returns. Every other assertion unchanged
+
+### API Changes
+- None. No IPC channel, no store field, no i18n key, no exported component signature, no dependency.
+
+### Build
+Status: SUCCESS — `npm run check`: 0 errors, 114 warnings (none in the files this wave touched); main, preload and renderer built; `dist/renderer/assets/GlobalSearchOverlay-*.js` 53.6 kB lazy chunk.
+
+### Acceptance Criteria
+- [x] Harness: 35 checks — 108 i18n literals at 137 call sites, IPC (1/1/2/1/1/1/10), zero storage keys, 12 attribute families, 28 setters + 4 store actions, the six invariants, keyboard protocol, export surface, dependency set
+- [x] wave 75B (14), 77B (53), 78B (53), 65A (33), 56A (18), 53B (18) all pass; 54A's archive check was already failing before this wave (rows live in `ArchiveRow.tsx` now)
+- [x] No user-visible string, i18n key, or exported API changed
