@@ -421,3 +421,70 @@ export function checkDeptBudgetLimit(
     partial: summary.partial,
   }
 }
+
+// ── Announcing a hold ─────────────────────────────────
+
+/**
+ * How often one department's hold may be announced, whatever the run cadence.
+ *
+ * Every refused run is still recorded; this only governs the notice. A cap that
+ * keeps holding the same department would otherwise produce a notice per run —
+ * a job every five minutes would become 288 identical bubbles a day, which is
+ * a second kind of silence. One announcement per day says the rail is working
+ * without burying everything else.
+ */
+export const DEPT_HOLD_NOTICE_INTERVAL_MS = 24 * 60 * 60 * 1000
+
+/**
+ * How long a department's last announcement is remembered before the entry can
+ * be dropped. Longer than the interval so an active department keeps its
+ * timestamp across the day, short enough that caps deleted months ago do not
+ * leave entries behind forever.
+ */
+export const DEPT_HOLD_NOTICE_RETENTION_MS = 7 * 24 * 60 * 60 * 1000
+
+/**
+ * May this department's hold be announced now?
+ *
+ * True when nothing was announced yet, or when a full interval has passed.
+ * A non-finite `now` always answers false: without a clock there is no way to
+ * tell an hour from a day, and staying quiet is safer than announcing on every
+ * call. A non-finite or missing timestamp reads as "never announced", which is
+ * the fail-open direction for a notice that is meant to be seen once.
+ */
+export function shouldAnnounceDeptHold(
+  lastNotifiedAt: number | undefined,
+  now: number,
+): boolean {
+  if (!Number.isFinite(now)) return false
+  if (typeof lastNotifiedAt !== 'number' || !Number.isFinite(lastNotifiedAt)) return true
+  return now - lastNotifiedAt >= DEPT_HOLD_NOTICE_INTERVAL_MS
+}
+
+/**
+ * Drop announcement timestamps that can no longer matter.
+ *
+ * The map is keyed by department id and only grows when a cap holds work, but
+ * departments are deleted and their caps removed; without a bound, a long-lived
+ * process would keep one number per department it ever held. Entries whose
+ * timestamp is malformed are dropped too — they would read as "never
+ * announced" anyway.
+ *
+ * Returns a new map rather than mutating, so a caller cannot observe a
+ * half-pruned state and the rule is testable without a scheduler.
+ */
+export function pruneDeptHoldNotices(
+  lastNotifiedAt: ReadonlyMap<string, number>,
+  now: number,
+): Map<string, number> {
+  const next = new Map<string, number>()
+  // An unusable clock cannot date anything; keep what is there rather than
+  // throwing away the throttle state because one call got a bad number.
+  if (!Number.isFinite(now)) return new Map(lastNotifiedAt)
+  for (const [departmentId, at] of lastNotifiedAt) {
+    if (typeof at !== 'number' || !Number.isFinite(at)) continue
+    if (now - at > DEPT_HOLD_NOTICE_RETENTION_MS) continue
+    next.set(departmentId, at)
+  }
+  return next
+}

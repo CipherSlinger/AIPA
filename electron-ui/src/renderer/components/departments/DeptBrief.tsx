@@ -29,7 +29,9 @@ import {
   buildDeptJobs,
   deptJobStateText,
   deptJobStatusText,
+  deptJobStatusTone,
   type DeptJobsResult,
+  type DeptJobStatusTone,
 } from './deptJobs.data'
 import { describeDeptSpend } from './deptSpend.data'
 import {
@@ -55,6 +57,15 @@ interface DeptBriefProps {
 }
 
 const ACCENT = '#6366f1'
+
+/** The tone names are shared with the department page; the tokens are this panel's. */
+const STATUS_TONE_COLOR: Record<DeptJobStatusTone, string> = {
+  running: 'var(--accent-text)',
+  success: 'var(--success-text)',
+  danger: 'var(--danger-text)',
+  warning: 'var(--warning-text)',
+  muted: 'var(--text-faint)',
+}
 
 export default function DeptBrief({
   dept,
@@ -1029,13 +1040,7 @@ function BriefJobRow({
   if (job.skippedInWindow > 0) {
     runParts.push(t('dept.brief.jobsRowSkips', { count: job.skippedInWindow }))
   }
-  const statusColor = job.running || job.lastStatus === 'running'
-    ? 'var(--accent-text)'
-    : job.lastStatus === 'error'
-      ? 'var(--danger-text)'
-      : job.lastStatus === 'success'
-        ? 'var(--success-text)'
-        : 'var(--text-faint)'
+  const statusColor = STATUS_TONE_COLOR[deptJobStatusTone(job)]
   // A globally paused job keeps an enabled switch but will not fire; its stored
   // next occurrence is not a promise, so the sentence is replaced rather than
   // printed as if scheduling were live.
@@ -1063,7 +1068,15 @@ function BriefJobRow({
       }}>
         {deptJobStateText(job, t)}
       </span>
-      <span style={{ flexShrink: 0, fontSize: 10, color: statusColor }}>
+      <span
+        // Same wording and reason as the department page: the cap held a run
+        // that never started, and a manual run is not subject to it.
+        title={job.lastHeld ? t('dept.jobs.statusHeldTip') : undefined}
+        style={{
+          flexShrink: 0, fontSize: 10, color: statusColor,
+          cursor: job.lastHeld ? 'help' : undefined,
+        }}
+      >
         {deptJobStatusText(job, t)}
       </span>
       <span

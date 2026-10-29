@@ -2,15 +2,16 @@
  * clawd-attention.ts — the single path from main-process events to a surface
  * that can reach the user.
  *
- * Five things can need the user while AIPA is in the background:
+ * Six things can need the user while AIPA is in the background:
  *   - an approval is waiting          (Codex approval / Claude permission / plan)
  *   - an answer is needed             (Claude MCP elicitation)
  *   - a task failed                   (failed turn, bridge crash, API error,
  *                                      failed automation run)
+ *   - scheduled work is being held    (a department's daily spending cap)
  *   - a plugin job finished           (plugin AI generate / plugin edit)
  *   - an automation run finished      (a hidden scheduled run)
  *
- * All five raise one record shape and share one queue, so there is exactly one
+ * All six raise one record shape and share one queue, so there is exactly one
  * bubble on screen and exactly one delivery decision. Sources never talk to a
  * surface directly — they call `raiseAttention`.
  *
@@ -71,7 +72,13 @@ const { createTranslator } = require('./clawd/src/i18n') as {
   createTranslator: (getLang: () => string) => (key: string) => string
 }
 
-export type AttentionKind = 'approval' | 'clarification' | 'failed' | 'plugin-done' | 'automation-done'
+export type AttentionKind =
+  | 'approval'
+  | 'clarification'
+  | 'failed'
+  | 'limit-hold'
+  | 'plugin-done'
+  | 'automation-done'
 
 export interface AttentionInput {
   kind: AttentionKind
@@ -81,7 +88,7 @@ export interface AttentionInput {
   bridgeId?: string | null
   /** Permission / elicitation request id — one answer clears one pending request. */
   requestId?: string | null
-  /** Tool name, plugin name or error summary, shown inside the bubble body. */
+  /** Tool, plugin, automation or job name, shown inside the bubble body. */
   detail?: string | null
   /** Plugin that owns the job (plugin-done / plugin failure). */
   pluginId?: string | null
@@ -136,8 +143,11 @@ const KIND_PRIORITY: Record<AttentionKind, number> = {
   approval: 0,
   clarification: 1,
   failed: 2,
-  'plugin-done': 3,
-  'automation-done': 4,
+  // A held department sits just below a failure: it is not something that
+  // broke, but it is a rail the user set that is silently stopping work.
+  'limit-hold': 3,
+  'plugin-done': 4,
+  'automation-done': 5,
 }
 
 /** A burst of events becomes one bubble: wait for the quiet gap first. */
@@ -634,9 +644,11 @@ function nativeAttentionLanguage(): string {
 }
 
 function buildNativeContent(item: AttentionItem): { title: string; body: string } {
-  // `buildPayload` is the one string table for both surfaces. The pet is not
-  // rendering this bubble, so choose the app language rather than the pet's
-  // (which is "en" while it has no instance).
+  // `buildPayload` is the one string table for both surfaces: the native
+  // notification takes its title and body from the same switch as the pet
+  // bubble, so a new kind needs no separate OS copy. The pet is not rendering
+  // this bubble, so choose the app language rather than the pet's (which is
+  // "en" while it has no instance).
   const previous = lang
   lang = nativeAttentionLanguage()
   try {
@@ -872,6 +884,17 @@ function buildPayload(item: AttentionItem): BuiltBubble {
       message = count > 1
         ? fmt(t('attentionFailedBodyCount'), { n: count })
         : (name ? fmt(t('attentionFailedBodyDetail'), { name }) : t('attentionFailedBody'))
+      break
+    case 'limit-hold':
+      // Same shape as `automation-done`: `detail` carries the job's name, so
+      // the bubble says which job was held instead of only that something was.
+      // The text is deliberately about the limit, not about a failure — the
+      // job did nothing wrong, and the user's own cap is what stopped it.
+      title = t('attentionLimitHoldTitle')
+      pill = t('attentionLimitHoldPill')
+      message = name
+        ? fmt(t('attentionLimitHoldBody'), { name })
+        : t('attentionLimitHoldBodyGeneric')
       break
     case 'plugin-done':
       title = t('attentionPluginDoneTitle')

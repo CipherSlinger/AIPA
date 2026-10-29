@@ -3066,7 +3066,9 @@
       "statusSkipped": "已跳过",
       "count": "{{count}} 个任务",
       "openInSettings": "在设置 → 自动化中管理",
-      "more": "另有 {{count}} 个"
+      "more": "另有 {{count}} 个",
+      "statusHeld": "被限额拦下",
+      "statusHeldTip": "部门每日支出上限拦下了最近一次定时运行；手动运行不受此限。上限在部门简报中设置或调整。"
     },
     "filedByHand": "手动归档",
     "filedByHandTip": "这段对话是你手动归到这里的。它出现在这个部门，是因为你的选择，而不是按文件夹匹配——这并不代表工作是这个部门做的。",

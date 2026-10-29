@@ -29,6 +29,8 @@ import {
   applyDeptBudgetSync,
   buildDeptBudgetReport,
   checkDeptBudgetLimit,
+  pruneDeptHoldNotices,
+  shouldAnnounceDeptHold,
 } from './dept-budget'
 import { departmentIdForCreate, normalizeDepartmentId } from './job-department'
 import { readAutomationStore, writeAutomationStore } from './job-store'
@@ -140,6 +142,16 @@ let globalDailyCostLimitUsd: number | undefined
  * rail together.
  */
 let deptBudgets: AutomationDeptBudget[] = []
+/**
+ * When each department's hold was last announced, keyed by department id.
+ *
+ * Holds are recorded on every refused run; this map only throttles the
+ * announcement, so the history stays exact while the user is not told the same
+ * thing hundreds of times a day. Kept in memory rather than persisted: a
+ * restart legitimately re-announces a hold that is still active, and the
+ * attention layer's own dedupe covers the rest of the process lifetime.
+ */
+let deptHoldNotifiedAt = new Map<string, number>()
 
 // ── Validation ───────────────────────────────────────
 
@@ -475,6 +487,37 @@ function recordSpendSkip(
   persistAndBroadcast()
 }
 
+/**
+ * Tell the user that a department's cap is holding work, at most once a day.
+ *
+ * Every refused run has already been recorded by `recordSpendSkip`; this only
+ * decides whether the refusal is also announced. The department id is the
+ * throttle key, and the `dept-budget:<id>` bridge id is what the attention
+ * layer dedupes on, so the two throttles agree: a second raise inside the day
+ * is dropped here before `raiseAttention` is called, and a raise after the day
+ * re-keys to the same queued item instead of stacking a second bubble while the
+ * first is still up. The job's name is carried as `detail`, so the notice names
+ * the work that was held rather than saying "something was held".
+ */
+function announceDeptHold(departmentId: string, jobName: string, now: number): void {
+  deptHoldNotifiedAt = pruneDeptHoldNotices(deptHoldNotifiedAt, now)
+  if (!shouldAnnounceDeptHold(deptHoldNotifiedAt.get(departmentId), now)) return
+
+  // Stored before the raise: if a surface decides not to show anything (the
+  // user is looking, or DND is on), the day's announcement is still spent.
+  // Re-raising a minute later would defeat the throttle for a user who was
+  // simply at the screen; the hold remains recorded on every refused run.
+  deptHoldNotifiedAt.set(departmentId, now)
+  raiseAttention({
+    kind: 'limit-hold',
+    // A hold belongs to a department, not to a conversation. There is no
+    // session to open; the click brings the app forward.
+    sessionId: null,
+    bridgeId: `dept-budget:${departmentId}`,
+    detail: jobName,
+  })
+}
+
 async function startRun(
   job: AutomationJob,
   opts: { manual: boolean; late: boolean; watch?: boolean; retryAttempt?: number },
@@ -569,7 +612,14 @@ async function startRun(
   // Manual runs are exempt exactly as they are for the two rails below.
   const deptBudget = checkDeptBudgetLimit(deptBudgets, jobs, job, now, source)
   if (deptBudget.kind === 'blocked') {
+    // Record first, announce second: the skip is the fact and must survive
+    // whatever the announcement surface does. Only scheduled, retry and watch
+    // runs reach this branch — `checkDeptBudgetLimit` returns `not_applicable`
+    // for a manual run — so no extra exemption is needed here. The per-job and
+    // global rails below stay silent; this hold is the one the user set on a
+    // whole department, and the one that stops a group of jobs at once.
     recordSpendSkip(job, now, opts.retryAttempt, 'dept_budget_exceeded')
+    announceDeptHold(deptBudget.budget.departmentId, job.name, now)
     log.warn(
       `Automation "${job.name}" skipped — its department's reported spend in the last `
       + `24 h is at its ${deptBudget.budget.usd} USD limit`,

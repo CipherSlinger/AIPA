@@ -17,7 +17,9 @@ import {
   buildDeptJobs,
   deptJobStateText,
   deptJobStatusText,
+  deptJobStatusTone,
   type DeptJobRow,
+  type DeptJobStatusTone,
 } from './deptJobs.data'
 import { deptSpendWindowStart, describeDeptSpend } from './deptSpend.data'
 import { costText } from '../workflows/scheduleSummary'
@@ -28,6 +30,15 @@ interface DeptJobsBlockProps {
 }
 
 const PAGE_JOB_ROW_LIMIT = 5
+
+/** The tone names are shared; the tokens they map to belong to this surface. */
+const STATUS_TONE_COLOR: Record<DeptJobStatusTone, string> = {
+  running: 'var(--accent-text)',
+  success: 'var(--success-text)',
+  danger: 'var(--danger-text)',
+  warning: 'var(--warning-text)',
+  muted: 'var(--text-faint)',
+}
 
 export default function DeptJobsBlock({ deptId, departments }: DeptJobsBlockProps) {
   const { t } = useI18n()
@@ -246,13 +257,7 @@ function SpendLine({
 
 function JobLine({ job, onOpen }: { job: DeptJobRow; onOpen: () => void }) {
   const { t } = useI18n()
-  const statusColor = job.running || job.lastStatus === 'running'
-    ? 'var(--accent-text)'
-    : job.lastStatus === 'error'
-      ? 'var(--danger-text)'
-      : job.lastStatus === 'success'
-        ? 'var(--success-text)'
-        : 'var(--text-faint)'
+  const statusColor = STATUS_TONE_COLOR[deptJobStatusTone(job)]
 
   return (
     <button
@@ -278,7 +283,16 @@ function JobLine({ job, onOpen }: { job: DeptJobRow; onOpen: () => void }) {
       }}>
         {deptJobStateText(job, t)}
       </span>
-      <span style={{ flexShrink: 0, fontSize: 10, color: statusColor }}>
+      <span
+        // A hold names the cause and the way out; no other outcome needs a
+        // second sentence here. The run-now action lives in Settings, so this
+        // is only a tooltip, not a control.
+        title={job.lastHeld ? t('dept.jobs.statusHeldTip') : undefined}
+        style={{
+          flexShrink: 0, fontSize: 10, color: statusColor,
+          cursor: job.lastHeld ? 'help' : undefined,
+        }}
+      >
         {deptJobStatusText(job, t)}
       </span>
     </button>

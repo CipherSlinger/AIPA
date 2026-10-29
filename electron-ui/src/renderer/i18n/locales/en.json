@@ -3066,7 +3066,9 @@
       "statusSkipped": "Skipped",
       "count": "{{count}} job(s)",
       "openInSettings": "Open Settings → Automations",
-      "more": "+{{count}} more"
+      "more": "+{{count}} more",
+      "statusHeld": "Held by limit",
+      "statusHeldTip": "The department's daily spending limit held the most recent scheduled run. Manual runs are exempt. Set or change the limit in the department Brief."
     },
     "filedByHand": "filed by hand",
     "filedByHandTip": "This conversation was filed here by hand. Its place on this roster is your choice, not a folder match — it does not mean this department did the work.",

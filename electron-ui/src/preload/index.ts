@@ -627,6 +627,13 @@ export interface AutomationRunRecordData {
    * retry still carries it, so the history can tell retries apart.
    */
   retry?: number
+  /**
+   * The rail that refused this run, when the record is a skip. Absent on every
+   * older record, and on rails that only say why in their message, so a reader
+   * must treat it as "this skip did not name a structured reason" rather than
+   * "this skip had no reason".
+   */
+  skipReason?: 'dept-budget'
   /** What this run spent, when its engine reported usage; absent otherwise. */
   usage?: AutomationRunUsageData
   /**

@@ -51,10 +51,15 @@ export type DeptJobsState = DeptJobsLoad | 'unreadable'
 
 export type DeptRunStatus = 'success' | 'error' | 'skipped'
 
-/** One recorded run, normalised down to the two fields a window count uses. */
+/** One recorded run, normalised down to the fields a window count and a hold use. */
 export interface DeptRunRecord {
   startedAt: number
   status: DeptRunStatus
+  /**
+   * The structured reason a skip named, when the record carries one this build
+   * understands. An unknown string is no structured reason, not a hold.
+   */
+  skipReason: 'dept-budget' | null
 }
 
 export interface DeptJobRow {
@@ -71,6 +76,13 @@ export interface DeptJobRow {
   nextRunAt: number | null
   lastRunAt: number | null
   lastStatus: AutomationRunStatusData | null
+  /** The newest record's reason when it was a skip this build understands. */
+  lastSkipReason: 'dept-budget' | null
+  /**
+   * The newest record is a skip held by the department's daily cap. It is not a
+   * failure: nothing ran and nothing broke, so it must not be shown as an error.
+   */
+  lastHeld: boolean
   lastError: string | null
   running: boolean
   /** Successes recorded inside the passed window. */
@@ -207,7 +219,13 @@ function readHistory(raw: unknown): { records: DeptRunRecord[]; unreadable: numb
       unreadable++
       continue
     }
-    records.push({ startedAt, status })
+    // Only a skip can be held, and only the literal this build understands
+    // survives. Older records carry no reason at all; an unknown string is a
+    // reason a reader cannot interpret, so it is dropped rather than shown.
+    const skipReason = status === 'skipped' && entry.skipReason === 'dept-budget'
+      ? 'dept-budget'
+      : null
+    records.push({ startedAt, status, skipReason })
   }
   return { records, unreadable, atCap }
 }
@@ -216,6 +234,20 @@ function readStatus(raw: unknown): AutomationRunStatusData | null {
   return raw === 'success' || raw === 'error' || raw === 'skipped' || raw === 'running'
     ? raw
     : null
+}
+
+/**
+ * The record the job's current state is taken from. The store appends in time
+ * order, but a malformed or reordered payload must not let an older hold shadow
+ * a newer run, so the greatest start time wins; ties go to the later entry,
+ * which is the order the store would have written.
+ */
+function newestRecord(records: readonly DeptRunRecord[]): DeptRunRecord | null {
+  let newest: DeptRunRecord | null = null
+  for (const record of records) {
+    if (!newest || record.startedAt >= newest.startedAt) newest = record
+  }
+  return newest
 }
 
 /**
@@ -345,6 +377,9 @@ export function buildDeptJobs(input: BuildDeptJobsInput): DeptJobsResult {
     }
 
     const historyRead = readHistory(raw.history)
+    const newest = newestRecord(historyRead.records)
+    const lastSkipReason = newest?.skipReason ?? null
+    const lastHeld = newest?.status === 'skipped' && lastSkipReason === 'dept-budget'
     const lastRunAt = finiteOrNull(raw.lastRunAt)
     const nextRunAt = finiteOrNull(raw.nextRunAt)
     const lastStatus = readStatus(raw.lastStatus)
@@ -380,6 +415,8 @@ export function buildDeptJobs(input: BuildDeptJobsInput): DeptJobsResult {
       nextRunAt,
       lastRunAt,
       lastStatus,
+      lastSkipReason,
+      lastHeld,
       lastError: typeof raw.lastError === 'string' ? raw.lastError : null,
       running,
       succeededInWindow: succeeded,
@@ -415,16 +452,38 @@ export function buildDeptJobs(input: BuildDeptJobsInput): DeptJobsResult {
 
 /** Last recorded outcome, in the app's existing automation vocabulary. */
 export function deptJobStatusText(
-  job: Pick<DeptJobRow, 'running' | 'lastStatus'>,
+  job: Pick<DeptJobRow, 'running' | 'lastStatus' | 'lastHeld'>,
   t: DeptJobTranslate,
 ): string {
   if (job.running || job.lastStatus === 'running') return t('automation.status.running')
   if (job.lastStatus === 'success') return t('automation.status.success')
   if (job.lastStatus === 'error') return t('automation.status.error')
+  // A held occurrence never started, so nothing failed. Naming it as a hold
+  // keeps it from reading as an error, and keeps it distinct from the other
+  // rails' neutral "Skipped" (hourly cap, app closed at the scheduled time).
+  if (job.lastHeld) return t('dept.jobs.statusHeld')
   // The settings label names the hourly cap; a Brief count has no room for that
   // distinction, so it uses a neutral "Skipped" instead.
   if (job.lastStatus === 'skipped') return t('dept.jobs.statusSkipped')
   return t('automation.neverRun')
+}
+
+/** Semantic colour for the last outcome; presentation maps the names to tokens. */
+export type DeptJobStatusTone = 'warning' | 'danger' | 'success' | 'running' | 'muted'
+
+/**
+ * The same decision `deptJobStatusText` makes, reduced to a colour role, so the
+ * department page and the Brief cannot colour one state differently. A hold is
+ * `warning` because it is a pause imposed by a limit, not a failure.
+ */
+export function deptJobStatusTone(
+  job: Pick<DeptJobRow, 'running' | 'lastStatus' | 'lastHeld'>,
+): DeptJobStatusTone {
+  if (job.running || job.lastStatus === 'running') return 'running'
+  if (job.lastStatus === 'success') return 'success'
+  if (job.lastStatus === 'error') return 'danger'
+  if (job.lastHeld) return 'warning'
+  return 'muted'
 }
 
 /** Enabled state, including the global pause, for a row's state chip. */
