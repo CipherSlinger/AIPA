@@ -1,13 +1,65 @@
-import { ipcMain, shell } from 'electron'
+import { ipcMain, shell, type BrowserWindow } from 'electron'
+import * as fs from 'fs'
 import { createLogger } from '../../utils/logger'
+import { getPref } from '../../config/config-manager'
+import { getAllowedFsRoots, safePath } from '../../utils/validate'
+import { createShellExecRegistry, isValidShellRunId } from '../../shell/shell-exec'
 import { safeHandle } from './safe-handle'
+import type { SendFn } from './types'
 
 const log = createLogger('ipc')
 
 // ----------------------------------------
 // Shell handlers
 // ----------------------------------------
-export function registerShellHandlers(): void {
+export function registerShellHandlers(_win: BrowserWindow, send: SendFn): void {
+  const shellExec = createShellExecRegistry()
+
+  safeHandle('shell:exec', (_e, args: { runId?: unknown; command?: unknown; cwd?: unknown }) => {
+    if (!isValidShellRunId(args?.runId)) {
+      return { ok: false, code: 'invalid_run_id', error: 'The run id is not a safe identifier.' }
+    }
+    const command = typeof args.command === 'string' ? args.command : ''
+    if (!command.trim()) {
+      return { ok: false, code: 'invalid_command', error: 'The command is empty.' }
+    }
+    // The working directory comes from the renderer, so it gets the same
+    // sandbox treatment as every other renderer-supplied path. A rejected
+    // directory is named, never replaced with the home directory.
+    let cwd: string
+    try {
+      cwd = safePath(
+        typeof args.cwd === 'string' ? args.cwd : '',
+        getAllowedFsRoots(String(getPref('workingDir') || '')),
+      )
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return { ok: false, code: 'cwd_not_allowed', error: message }
+    }
+    let stat: fs.Stats
+    try {
+      stat = fs.statSync(cwd)
+    } catch {
+      return { ok: false, code: 'cwd_missing', error: `The directory does not exist: ${cwd}` }
+    }
+    if (!stat.isDirectory()) {
+      return { ok: false, code: 'cwd_missing', error: `The path is not a directory: ${cwd}` }
+    }
+    return shellExec.start(
+      { runId: args.runId, command, cwd },
+      {
+        onData: (event) => send('shell:exec:data', { runId: args.runId, ...event }),
+        onExit: (event) => send('shell:exec:exit', { runId: args.runId, ...event }),
+      },
+    )
+  })
+
+  safeHandle('shell:abort', (_e, args: { runId?: unknown }) => {
+    const runId = typeof args?.runId === 'string' ? args.runId : ''
+    // Unknown or already-finished ids are a no-op, and the answer says so.
+    return shellExec.abort(runId)
+  })
+
   ipcMain.handle('shell:openExternal', (_e, url: string) => {
     // Only allow http/https URLs to prevent shell command injection
     try {

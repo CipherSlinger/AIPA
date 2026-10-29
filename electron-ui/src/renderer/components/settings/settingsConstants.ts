@@ -8,6 +8,10 @@
  */
 export const SETTINGS_TABS = [
   { id: 'general', labelKey: 'settings.tabs.general' },
+  // Snippets sit beside General because both configure the composer: General
+  // holds its font and behaviour, Snippets holds the text `::keyword` expands
+  // to. Memory is a different concern — what the assistant remembers.
+  { id: 'snippets', labelKey: 'settings.tabs.snippets' },
   { id: 'ai-engine', labelKey: 'settings.tabs.ai-engine' },
   { id: 'memory', labelKey: 'settings.tabs.memory' },
   // Main-process scheduler for "do this on its own" jobs — see src/main/automation/.

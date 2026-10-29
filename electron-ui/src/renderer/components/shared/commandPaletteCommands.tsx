@@ -8,8 +8,10 @@ import {
   Sun, Moon, Languages, Copy, Pin, StickyNote, ArrowUpDown,
   FileText, Stethoscope, Pencil, BarChart2, Shield,
   Database, DollarSign, SkipBack, RefreshCw, ExternalLink, Hourglass, ListChecks,
+  Type, TerminalSquare,
 } from 'lucide-react'
 import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../store'
+import { useTerminalStore } from '../../store/terminalStore'
 import type { SidebarTab, NavItem } from '../../store'
 import { MODEL_OPTIONS } from '../settings/settingsConstants'
 import type { SessionListItem } from '../../types/app.types'
@@ -30,7 +32,7 @@ export interface PaletteCommand {
   icon?: React.ReactNode
   shortcut?: string
   action: () => void
-  category: 'action' | 'slash' | 'session' | 'model' | 'persona' | 'workflow' | 'automation' | 'approval'
+  category: 'action' | 'slash' | 'session' | 'model' | 'persona' | 'workflow' | 'automation' | 'approval' | 'snippet'
 }
 
 interface CommandBuilderArgs {
@@ -100,6 +102,23 @@ export function buildActionCommands(args: CommandBuilderArgs): PaletteCommand[] 
       icon: <Settings size={14} />,
       shortcut: 'Ctrl+,',
       action: () => { useUiStore.getState().openSettingsModal(); onClose() },
+      category: 'action',
+    },
+    {
+      id: 'manage-snippets',
+      name: t('command.manageSnippets'),
+      description: t('command.manageSnippetsDesc'),
+      icon: <Type size={14} />,
+      action: () => { useUiStore.getState().openSettingsAt('snippets'); onClose() },
+      category: 'action',
+    },
+    {
+      id: 'toggle-terminal',
+      name: t('command.toggleTerminal'),
+      description: t('command.toggleTerminalDesc'),
+      icon: <TerminalSquare size={14} />,
+      shortcut: 'Ctrl+`',
+      action: () => { useTerminalStore.getState().toggleOpen(); onClose() },
       category: 'action',
     },
     {
@@ -616,6 +635,42 @@ export function buildWorkflowCommands(args: Pick<CommandBuilderArgs, 't' | 'onCl
       onClose()
     },
     category: 'workflow' as const,
+  }))
+}
+
+/**
+ * Snippets as palette rows, beside Personas and Workflows — the palette already
+ * indexes pref-backed entities, so a snippet list that could only be found in
+ * Settings would be the odd one out.
+ *
+ * The action reuses the composer's own `aipa:insertText` event (the path the
+ * file browser and plugin host use), so a snippet inserts exactly where `::`
+ * would have expanded it. That listener only exists while ChatPanel is
+ * mounted; when the palette is opened from Settings, the row copies the text
+ * instead of firing an event nobody hears, and says so in the toast.
+ */
+export function buildSnippetCommands(args: Pick<CommandBuilderArgs, 't' | 'onClose' | 'addToast'>): PaletteCommand[] {
+  const { t, onClose, addToast } = args
+  const snippets = usePrefsStore.getState().prefs.textSnippets || []
+  return snippets.map(snippet => ({
+    id: `snippet-${snippet.id}`,
+    name: `::${snippet.keyword}`,
+    description: snippet.content.replace(/\s+/g, ' ').trim().slice(0, 120),
+    icon: <Type size={14} />,
+    category: 'snippet' as const,
+    action: () => {
+      onClose()
+      const composer = typeof document !== 'undefined'
+        ? document.querySelector('.chat-textarea')
+        : null
+      if (composer) {
+        window.dispatchEvent(new CustomEvent('aipa:insertText', { detail: snippet.content }))
+        return
+      }
+      navigator.clipboard.writeText(snippet.content)
+        .then(() => addToast('success', t('command.snippetCopied', { keyword: snippet.keyword })))
+        .catch(() => addToast('error', t('command.snippetCopyFailed')))
+    },
   }))
 }
 

@@ -76,7 +76,11 @@ export function useAppShortcuts(
         e.preventDefault()
         toggleCommandPalette()
       }
-      // Ctrl+` was terminal toggle — removed (Iteration 404)
+      // The terminal dock's toggle is an application-menu accelerator
+      // (`CmdOrCtrl+``, View → Toggle Terminal), which Electron dispatches to
+      // the renderer as `menu:toggleTerminal`. Binding the same chord here as
+      // well toggled it twice on one keypress and left the dock where it was.
+
       // Ctrl+Shift+P: Command palette (alias)
       if (e.ctrlKey && e.shiftKey && e.key === 'P') {
         e.preventDefault()

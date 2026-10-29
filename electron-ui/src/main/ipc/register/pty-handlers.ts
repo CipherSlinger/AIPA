@@ -1,7 +1,12 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import * as fs from 'fs'
+import { type BrowserWindow } from 'electron'
 import { createLogger } from '../../utils/logger'
-import { ptyManager } from '../../pty/pty-manager'
+import { getPref } from '../../config/config-manager'
+import { getAllowedFsRoots, safePath } from '../../utils/validate'
+import { ptyManager, normalizePtyDimensions, type PtyKind } from '../../pty/pty-manager'
 import { fallbackShellManager } from '../../pty/fallback-shell'
+import { resolveShellCommand } from '../../pty/shell-command'
+import { safeHandle } from './safe-handle'
 import type { SendFn } from './types'
 
 const log = createLogger('ipc')
@@ -12,9 +17,78 @@ const log = createLogger('ipc')
 // Track which sessions are using the fallback shell (not real PTY)
 const fallbackSessions = new Set<string>()
 
+interface NormalizedPtyCreateArgs {
+  sessionId: string
+  cwd: string
+  env?: Record<string, string>
+  cols: number
+  rows: number
+  resumeSessionId?: string
+  kind: PtyKind
+}
+
+/**
+ * Resolve and validate the working directory a terminal asked for.
+ *
+ * This runs for both kinds (`codex` and `shell`): the renderer chooses the
+ * folder, and every other renderer-supplied path in this app goes through the
+ * same allowed-root check. A rejected folder is named and the call fails — it
+ * is never quietly replaced with the home directory, because a shell that
+ * silently opens somewhere else runs the user's next command in the wrong
+ * place.
+ */
+function validatePtyCwd(rawCwd: unknown): string {
+  if (typeof rawCwd !== 'string' || !rawCwd.trim()) {
+    throw new Error('PTY_CWD_INVALID: The terminal did not name a working folder.')
+  }
+  let cwd: string
+  try {
+    cwd = safePath(rawCwd, getAllowedFsRoots(String(getPref('workingDir') || '')))
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    throw new Error(`PTY_CWD_REJECTED: ${message}`)
+  }
+  let stat: fs.Stats
+  try {
+    stat = fs.statSync(cwd)
+  } catch {
+    throw new Error(`PTY_CWD_MISSING: The folder does not exist: ${cwd}`)
+  }
+  if (!stat.isDirectory()) {
+    throw new Error(`PTY_CWD_NOT_DIRECTORY: The path is not a folder: ${cwd}`)
+  }
+  return cwd
+}
+
+function normalizeCreateArgs(args: any): NormalizedPtyCreateArgs {
+  const input = args && typeof args === 'object' ? args : {}
+  if (input.kind !== undefined && input.kind !== 'codex' && input.kind !== 'shell') {
+    throw new Error(`PTY_KIND_INVALID: Unknown terminal kind "${String(input.kind)}".`)
+  }
+  const kind: PtyKind = input.kind === 'shell' ? 'shell' : 'codex'
+  const sessionId = typeof input.sessionId === 'string' ? input.sessionId.trim() : ''
+  if (!sessionId) {
+    throw new Error('PTY_ARGS_INVALID: The terminal did not name a session.')
+  }
+  const { cols, rows } = normalizePtyDimensions(input.cols, input.rows)
+  return {
+    sessionId,
+    cwd: validatePtyCwd(input.cwd),
+    ...(input.env && typeof input.env === 'object'
+      ? { env: input.env as Record<string, string> }
+      : {}),
+    cols,
+    rows,
+    ...(typeof input.resumeSessionId === 'string' ? { resumeSessionId: input.resumeSessionId } : {}),
+    kind,
+  }
+}
+
 export function registerPtyHandlers(_win: BrowserWindow, send: SendFn): void {
-  ipcMain.handle('pty:create', (_e, args) => {
-    // If node-pty is available, use real PTY; otherwise fall back to child_process shell
+  safeHandle('pty:create', (_e, rawArgs) => {
+    // The working directory is validated before either spawning path, so a
+    // rejected path can never be papered over by the fallback shell.
+    const args = normalizeCreateArgs(rawArgs)
     const useFallback = !ptyManager.isAvailable()
 
     if (!useFallback) {
@@ -34,7 +108,12 @@ export function registerPtyHandlers(_win: BrowserWindow, send: SendFn): void {
         ptyManager.on(`data:${sessionId}`, dataHandler)
         ptyManager.on(`exit:${sessionId}`, exitHandler)
 
-        return { sessionId, fallback: false }
+        return {
+          sessionId,
+          fallback: false,
+          kind: args.kind,
+          shell: args.kind === 'shell' ? resolveShellCommand().label : 'codex',
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         log.debug(`pty:create failed, falling back to basic shell: ${msg}`)
@@ -66,20 +145,25 @@ export function registerPtyHandlers(_win: BrowserWindow, send: SendFn): void {
       send('pty:data', sessionId,
         '\x1b[33m[Basic Mode] ' +
         'Terminal is running in basic mode (node-pty native module not available).\x1b[0m\r\n' +
-        '\x1b[90mClaude Code CLI and other interactive programs will not work in this mode.\r\n' +
-        'Use the Chat panel instead for AI conversations.\r\n' +
+        '\x1b[90mInteractive programs and colours will not work correctly in this mode.\r\n' +
         'To enable full terminal: run "npm run rebuild-pty" (requires C++ Build Tools on Windows).\x1b[0m\r\n\r\n'
       )
 
-      return { sessionId, fallback: true }
+      return {
+        sessionId,
+        fallback: true,
+        kind: args.kind,
+        shell: resolveShellCommand().label,
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       log.debug(`pty:create fallback failed: ${msg}`)
-      throw err
+      throw new Error(`PTY_SPAWN_FAILED: ${msg}`)
     }
   })
 
-  ipcMain.handle('pty:write', (_e, { sessionId, data }) => {
+  safeHandle('pty:write', (_e, { sessionId, data }: { sessionId?: unknown; data?: unknown }) => {
+    if (typeof sessionId !== 'string' || typeof data !== 'string') return
     if (fallbackSessions.has(sessionId)) {
       fallbackShellManager.write(sessionId, data)
     } else {
@@ -87,15 +171,18 @@ export function registerPtyHandlers(_win: BrowserWindow, send: SendFn): void {
     }
   })
 
-  ipcMain.handle('pty:resize', (_e, { sessionId, cols, rows }) => {
+  safeHandle('pty:resize', (_e, { sessionId, cols, rows }: { sessionId?: unknown; cols?: unknown; rows?: unknown }) => {
+    if (typeof sessionId !== 'string') return
+    const sized = normalizePtyDimensions(cols, rows)
     if (fallbackSessions.has(sessionId)) {
-      fallbackShellManager.resize(sessionId, cols, rows)
+      fallbackShellManager.resize(sessionId, sized.cols, sized.rows)
     } else {
-      ptyManager.resize(sessionId, cols, rows)
+      ptyManager.resize(sessionId, sized.cols, sized.rows)
     }
   })
 
-  ipcMain.handle('pty:destroy', (_e, sessionId) => {
+  safeHandle('pty:destroy', (_e, sessionId: unknown) => {
+    if (typeof sessionId !== 'string') return
     if (fallbackSessions.has(sessionId)) {
       fallbackShellManager.removeAllListeners(`data:${sessionId}`)
       fallbackShellManager.removeAllListeners(`exit:${sessionId}`)

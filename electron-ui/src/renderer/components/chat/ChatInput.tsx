@@ -600,9 +600,11 @@ export default function ChatInput({
           {popups.snippetQuery !== null && (
             <SnippetPopup
               snippets={popups.filteredSnippets}
+              totalCount={popups.snippetCount}
               selectedIndex={popups.snippetIndex}
               onSelect={popups.handleSnippetSelect}
               onHover={popups.setSnippetIndex}
+              onDismiss={() => popups.setSnippetQuery(null)}
             />
           )}
           {/* Textarea */}

@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useChatStore, useUiStore } from '../../store'
 import { usePluginStore } from '../../store/pluginStore'
+import { useTerminalStore } from '../../store/terminalStore'
 import { useT } from '../../i18n'
 import NavRail from './NavRail'
 import ChatPanel from '../chat/ChatPanel'
@@ -23,6 +24,9 @@ const WorkflowPanel = React.lazy(() => import('../workflows/WorkflowPanel'))
 const ChangesPanel = React.lazy(() => import('../sidebar/ChangesPanel'))
 const FileBrowser = React.lazy(() => import('../filebrowser/FileBrowser'))
 const PluginHostView = React.lazy(() => import('../plugins/PluginHostView'))
+// xterm is only needed once the dock opens; keeping it lazy means a user who
+// never opens a terminal never downloads or evaluates the widget.
+const TerminalDock = React.lazy(() => import('../terminal/TerminalDock'))
 
 /** Shimmer skeleton shown while lazy panels load */
 function PanelSkeleton() {
@@ -58,6 +62,13 @@ export default function AppShell() {
   const mainView = useUiStore(s => s.mainView)
   const closeSettings = useUiStore(s => s.closeSettingsModal)
   const currentSessionTitle = useChatStore(s => s.currentSessionTitle)
+  const terminalOpen = useTerminalStore(s => s.open)
+  // Once the dock has been opened it stays mounted while hidden, so its shells
+  // keep running; `TerminalDock` hides itself with `display:none`.
+  const [terminalMounted, setTerminalMounted] = useState(false)
+  useEffect(() => {
+    if (terminalOpen) setTerminalMounted(true)
+  }, [terminalOpen])
 
   // Initialize hot-pluggable plugin listener
   useEffect(() => {
@@ -310,6 +321,17 @@ export default function AppShell() {
         </div>
 
       </div>
+
+      {/* Terminal dock — mounted above the status bar after its first open, and
+          hidden rather than unmounted from then on, so toggling it never kills
+          a running shell. */}
+      {terminalMounted && (
+        <ErrorBoundary fallbackLabel="terminal dock">
+          <React.Suspense fallback={null}>
+            <TerminalDock visible={terminalOpen} />
+          </React.Suspense>
+        </ErrorBoundary>
+      )}
 
       {/* Status bar */}
       <StatusBar />

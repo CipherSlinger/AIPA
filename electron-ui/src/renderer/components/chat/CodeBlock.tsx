@@ -2,11 +2,13 @@
 // Sub-components: CopyButton, WrapToggleButton, CollapsiblePre, CodeBlockWithHeader, PreviewButton
 // Iteration 510: Added RunButton + SaveButton for actionable code blocks
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Copy, Check, ChevronDown, ChevronUp, WrapText, Play, X, Download, Loader2 } from 'lucide-react'
+import { Copy, Check, ChevronDown, ChevronUp, WrapText, Play, X, Download, Loader2, Square } from 'lucide-react'
 import { useT } from '../../i18n'
 import { usePrefsStore, useUiStore } from '../../store'
 import { CODE_COLLAPSE_THRESHOLD } from './messageContentConstants'
 import RunConfirmDialog from './RunConfirmDialog'
+import { useBlockRun, formatElapsed, type BlockRunState } from './useBlockRun'
+import { SHELL_OUTPUT_CAP } from './shellOutput'
 
 // Languages that support live preview
 const PREVIEWABLE_LANGS = new Set(['html', 'svg', 'css', 'javascript', 'js', 'jsx', 'htm'])
@@ -156,13 +158,24 @@ export function CopyButton({ text }: { text: string }) {
   )
 }
 
-function RunButton({ code, onRun }: { code: string; onRun: () => void }) {
+function RunButton({
+  onRun,
+  disabled,
+  running,
+}: {
+  onRun: () => void
+  disabled: boolean
+  running: boolean
+}) {
   const t = useT()
   return (
     <button
       onClick={onRun}
-      aria-label={t('codeAction.runInTerminal')}
-      title={t('codeAction.runInTerminal')}
+      disabled={disabled}
+      aria-disabled={disabled}
+      aria-busy={running || undefined}
+      aria-label={disabled ? t('codeAction.run.running') : t('codeAction.runInTerminal')}
+      title={disabled ? t('codeAction.run.running') : t('codeAction.runInTerminal')}
       className="code-action"
       style={{
         background: 'rgba(63,185,80,0.15)',
@@ -170,7 +183,8 @@ function RunButton({ code, onRun }: { code: string; onRun: () => void }) {
         borderRadius: 6,
         padding: '2px 6px',
         color: '#4ade80',
-        cursor: 'pointer',
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.65 : 1,
         fontSize: 11,
         display: 'flex',
         alignItems: 'center',
@@ -178,9 +192,190 @@ function RunButton({ code, onRun }: { code: string; onRun: () => void }) {
         transition: 'all 0.15s ease',
       }}
     >
-      <Play size={11} />
-      {t('codeAction.run')}
+      {running
+        ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
+        : <Play size={11} />}
+      {running ? t('codeAction.run.running') : t('codeAction.run')}
     </button>
+  )
+}
+
+/** Status row and streaming output for one run of this block. */
+function RunOutputPanel({
+  run,
+  elapsedMs,
+  onStop,
+  onToggleOutput,
+}: {
+  run: BlockRunState
+  elapsedMs: number
+  onStop: () => void
+  onToggleOutput: () => void
+}) {
+  const t = useT()
+  const outputRef = useRef<HTMLPreElement>(null)
+  const stickToBottom = useRef(true)
+  const running = run.status === 'running'
+  const showOutput = running || run.outputVisible
+
+  // Follow the tail while the command runs, but stop following as soon as the
+  // user scrolls up to read something earlier.
+  useEffect(() => {
+    const el = outputRef.current
+    if (el && stickToBottom.current) el.scrollTop = el.scrollHeight
+  }, [run.output, run.status, showOutput])
+
+  let tone = 'var(--code-text-muted)'
+  let label = ''
+  switch (run.status) {
+    case 'running':
+      tone = '#a5b4fc'
+      label = `${t('codeAction.run.running')} · ${t('codeAction.run.elapsed', { time: formatElapsed(elapsedMs) })}`
+      break
+    case 'exited':
+      if (run.exitCode === 0) {
+        tone = '#4ade80'
+        label = t('codeAction.run.exited', { code: 0 })
+      } else if (run.exitCode !== null) {
+        // Non-zero is a warning, not a failure of the app: the command ran and
+        // told us something went wrong.
+        tone = '#fbbf24'
+        label = t('codeAction.run.exited', { code: run.exitCode })
+      } else {
+        tone = '#fbbf24'
+        label = t('codeAction.run.exitedSignal', { signal: run.signal || t('codeAction.run.unknownError') })
+      }
+      break
+    case 'stopped':
+      tone = '#fbbf24'
+      label = run.stoppedReason === 'timeout'
+        ? t('codeAction.run.stoppedAfterTimeout', {
+          seconds: Math.round((run.timeoutMs ?? 120_000) / 1000),
+        })
+        : run.exitCode !== null
+          ? t('codeAction.run.stoppedWithCode', { code: run.exitCode })
+          : t('codeAction.run.stopped')
+      break
+    case 'failed':
+      tone = '#f87171'
+      label = t('codeAction.run.couldNotStart', {
+        reason: run.failureMessage || t('codeAction.run.unknownError'),
+      })
+      break
+    default:
+      break
+  }
+
+  const controlStyle: React.CSSProperties = {
+    borderRadius: 6,
+    padding: '2px 8px',
+    fontSize: 11,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    cursor: 'pointer',
+    background: 'var(--code-btn-bg)',
+    border: '1px solid var(--code-border)',
+    color: 'var(--code-text-muted)',
+  }
+
+  return (
+    <div style={{ borderTop: '1px solid var(--code-border)' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '5px 12px',
+          background: 'var(--code-header-bg)',
+          borderBottom: showOutput ? '1px solid var(--code-border)' : 'none',
+        }}
+      >
+        <span
+          aria-hidden="true"
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: tone,
+            flexShrink: 0,
+          }}
+        />
+        <span
+          aria-live="polite"
+          style={{ fontSize: 11, color: tone, fontVariantNumeric: 'tabular-nums' }}
+        >
+          {label}
+        </span>
+        {running && elapsedMs >= 30_000 && (
+          <span style={{ fontSize: 10, color: 'var(--code-text-muted)' }}>
+            {t('codeAction.run.stillRunning')}
+          </span>
+        )}
+        {run.truncated && (
+          <span style={{ fontSize: 10, color: 'var(--code-text-muted)' }}>
+            {t('codeAction.run.truncated', { chars: SHELL_OUTPUT_CAP.toLocaleString() })}
+          </span>
+        )}
+        <span style={{ flex: 1 }} />
+        {running ? (
+          <button
+            onClick={onStop}
+            disabled={run.stopping}
+            aria-label={t('codeAction.run.stop')}
+            style={{
+              ...controlStyle,
+              cursor: run.stopping ? 'default' : 'pointer',
+              opacity: run.stopping ? 0.6 : 1,
+              borderColor: 'rgba(251,191,36,0.35)',
+              color: '#fbbf24',
+            }}
+          >
+            <Square size={9} />
+            {run.stopping ? t('codeAction.run.stopping') : t('codeAction.run.stop')}
+          </button>
+        ) : (
+          <button
+            onClick={onToggleOutput}
+            aria-expanded={run.outputVisible}
+            aria-label={run.outputVisible ? t('codeAction.run.hide') : t('codeAction.run.show')}
+            style={controlStyle}
+          >
+            {run.outputVisible ? t('codeAction.run.hide') : t('codeAction.run.show')}
+          </button>
+        )}
+      </div>
+      {showOutput && (
+        <pre
+          ref={outputRef}
+          aria-label={t('codeAction.run.outputLabel')}
+          onScroll={() => {
+            const el = outputRef.current
+            if (!el) return
+            stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24
+          }}
+          style={{
+            margin: 0,
+            padding: '10px 12px',
+            maxHeight: 240,
+            overflowY: 'auto',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            background: 'var(--code-surface)',
+            color: '#c9d1d9',
+            fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
+            fontSize: 12,
+            lineHeight: 1.5,
+          }}
+        >
+          {run.output || (
+            <span style={{ color: 'rgba(255,255,255,0.45)' }}>
+              {running ? t('codeAction.run.noOutputYet') : t('codeAction.run.noOutput')}
+            </span>
+          )}
+        </pre>
+      )}
+    </div>
   )
 }
 
@@ -348,35 +543,27 @@ export default function CodeBlockWithHeader({
   const [wordWrap, setWordWrap] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [showRunConfirm, setShowRunConfirm] = useState(false)
-  const [runStatus, setRunStatus] = useState<'idle' | 'executing' | 'done' | 'error'>('idle')
   const isPreviewable = PREVIEWABLE_LANGS.has(langName.toLowerCase())
   const isShellLang = SHELL_LANGS.has(langName.toLowerCase())
   const addToast = useUiStore(s => s.addToast)
   const workingDir = usePrefsStore(s => s.prefs.workingDir)
+  const run = useBlockRun(codeText)
+  const isRunning = run.state.status === 'running'
 
-  const handleRunConfirm = useCallback(async () => {
-    setShowRunConfirm(false)
-    if (!window.electronAPI) return
-    const cwd = workingDir || undefined
-    if (!cwd) {
+  // The confirmation dialog is the consent boundary. No working directory means
+  // there is nothing truthful to show in it, so explain instead of opening it.
+  const handleRunRequest = useCallback(() => {
+    if (!workingDir) {
       addToast('error', t('codeAction.noWorkingDir'))
       return
     }
-    setRunStatus('executing')
-    try {
-      const { sessionId } = await window.electronAPI.ptyCreate({ cwd }) as { sessionId: string }
-      // Write command + Enter to the PTY
-      await window.electronAPI.ptyWrite({ sessionId, data: codeText.trim() + '\n' })
-      setRunStatus('done')
-      addToast('success', t('codeAction.executed'))
-      // Auto-reset status after 3 seconds
-      setTimeout(() => setRunStatus('idle'), 3000)
-    } catch (err) {
-      setRunStatus('error')
-      addToast('error', t('codeAction.executeFailed'))
-      setTimeout(() => setRunStatus('idle'), 3000)
-    }
-  }, [codeText, workingDir, addToast, t])
+    setShowRunConfirm(true)
+  }, [workingDir, addToast, t])
+
+  const handleRunConfirm = useCallback(() => {
+    setShowRunConfirm(false)
+    void run.start(workingDir || undefined)
+  }, [run, workingDir])
 
   return (
     <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--code-border)', margin: '4px 0', boxShadow: 'var(--code-shadow)' }}>
@@ -409,14 +596,11 @@ export default function CodeBlockWithHeader({
         </span>
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           {isShellLang && (
-            runStatus === 'executing' ? (
-              <span style={{ fontSize: 11, color: '#4ade80', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
-                {t('codeAction.executing')}
-              </span>
-            ) : (
-              <RunButton code={codeText} onRun={() => setShowRunConfirm(true)} />
-            )
+            <RunButton
+              onRun={handleRunRequest}
+              disabled={isRunning}
+              running={isRunning}
+            />
           )}
           <SaveButton code={codeText} langName={langName} />
           {isPreviewable && (
@@ -492,6 +676,14 @@ export default function CodeBlockWithHeader({
           </code>
         )}
       </CollapsiblePre>
+      {isShellLang && run.state.status !== 'idle' && (
+        <RunOutputPanel
+          run={run.state}
+          elapsedMs={run.elapsedMs}
+          onStop={run.stop}
+          onToggleOutput={run.toggleOutput}
+        />
+      )}
       {showPreview && isPreviewable && (
         <PreviewPane code={codeText} lang={langName} />
       )}

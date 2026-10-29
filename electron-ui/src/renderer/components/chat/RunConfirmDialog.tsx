@@ -118,6 +118,15 @@ export default function RunConfirmDialog({ command, workingDir, onConfirm, onCan
             {t('codeAction.confirmRunMessage')}
           </div>
 
+          {/*
+            The assistant's approval rules and sandbox do not apply to this
+            path: it is a real shell on the user's machine. Say so next to the
+            folder rather than letting the command preview imply otherwise.
+          */}
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            {t('codeAction.run.confirmScope', { cwd: workingDir })}
+          </div>
+
           {/* Command preview — deep dark monospace */}
           <pre
             style={{

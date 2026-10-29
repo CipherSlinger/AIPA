@@ -23,6 +23,9 @@ export type { Department, OrgNodeKind, Position } from './departmentStore'
 
 export { usePluginStore } from './pluginStore'
 
+export { useTerminalStore } from './terminalStore'
+export type { TerminalStatus, TerminalTab } from './terminalStore'
+
 // ── Session store ───────────────────────────────
 interface SessionState {
   sessions: SessionListItem[]

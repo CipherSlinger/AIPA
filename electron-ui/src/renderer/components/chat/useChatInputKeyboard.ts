@@ -55,6 +55,11 @@ export function useChatInputKeyboard(deps: KeyboardDeps) {
       if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); popups.handleSnippetSelect(popups.filteredSnippets[popups.snippetIndex]); return }
       if (e.key === 'Escape') { e.preventDefault(); popups.setSnippetQuery(null); return }
     }
+    // The empty "no snippets yet" row has nothing to select, but Escape must
+    // still close it — otherwise the only way out is to delete the `::` text.
+    if (popups.snippetQuery !== null && popups.filteredSnippets.length === 0 && e.key === 'Escape') {
+      e.preventDefault(); popups.setSnippetQuery(null); return
+    }
 
     if (e.key === 'ArrowUp' && !e.shiftKey && popups.atQuery === null && popups.slashQuery === null) {
       const ta = textareaRef.current

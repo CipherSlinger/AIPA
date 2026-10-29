@@ -25,6 +25,7 @@ import {
   buildPersonaCommands,
   buildSessionCommands,
   buildWorkflowCommands,
+  buildSnippetCommands,
   buildAutomationCommands,
   buildApprovalCommands,
   buildTrashCommands,
@@ -45,8 +46,9 @@ interface Props {
 
 // Category display config. `automation` is absent because its header is
 // localized through `automation.title`, the same string the Settings tab uses;
-// `approval` is localized too, because "waiting for you" must read as an ask.
-const CATEGORY_LABELS: Record<Exclude<PaletteCommand['category'], 'automation' | 'approval'>, string> = {
+// `approval` is localized too, because "waiting for you" must read as an ask;
+// `snippet` borrows `snippet.title`, the name the Settings page itself uses.
+const CATEGORY_LABELS: Record<Exclude<PaletteCommand['category'], 'automation' | 'approval' | 'snippet'>, string> = {
   action: 'Actions',
   session: 'Recent Sessions',
   model: 'Models',
@@ -58,7 +60,7 @@ const CATEGORY_LABELS: Record<Exclude<PaletteCommand['category'], 'automation' |
 // A live wait is the only row in this list where the app is stopped and the
 // user is what it is waiting for, so it leads.
 const CATEGORY_ORDER: PaletteCommand['category'][] = [
-  'approval', 'session', 'automation', 'action', 'slash', 'workflow', 'model', 'persona',
+  'approval', 'session', 'automation', 'action', 'slash', 'workflow', 'snippet', 'model', 'persona',
 ]
 
 export default function CommandPalette({
@@ -178,6 +180,7 @@ export default function CommandPalette({
       ...buildTrashCommands({ t, onClose, trashCount }),
       ...buildSlashCommands(args),
       ...buildWorkflowCommands(args),
+      ...buildSnippetCommands({ t, onClose, addToast }),
       ...buildModelCommands(args),
       ...buildPersonaCommands(args),
     ]
@@ -281,7 +284,9 @@ export default function CommandPalette({
       ? t('automation.title')
       : category === 'approval'
         ? t('command.waitingApprovals.group')
-        : CATEGORY_LABELS[category]
+        : category === 'snippet'
+          ? t('snippet.title')
+          : CATEGORY_LABELS[category]
 
   // Render a single command row
   const renderItem = (cmd: PaletteCommand, index: number) => {

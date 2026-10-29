@@ -687,7 +687,27 @@
     "unpinAll": "取消全部置顶"
   },
   "codeAction": {
-    "run": "运行",
+    "run": {
+      "confirmScope": "这条命令会在这台机器上的 {{cwd}} 里执行，不受助手的审批规则和沙箱约束。",
+      "running": "正在运行",
+      "elapsed": "已运行 {{time}}",
+      "stillRunning": "还在运行——如果卡住了就停下它。",
+      "stop": "停止",
+      "stopping": "正在停止…",
+      "exited": "已退出，代码 {{code}}",
+      "exitedSignal": "因信号 {{signal}} 退出",
+      "stopped": "被你停下了",
+      "stoppedWithCode": "被你停下了（退出码 {{code}}）",
+      "stoppedAfterTimeout": "运行 {{seconds}} 秒后已停止",
+      "couldNotStart": "无法启动：{{reason}}",
+      "unknownError": "未知错误",
+      "outputLabel": "命令输出",
+      "noOutputYet": "还没有输出。",
+      "noOutput": "没有输出。",
+      "hide": "收起输出",
+      "show": "显示输出",
+      "truncated": "只显示最后 {{chars}} 个字符。"
+    },
     "runInTerminal": "在终端中运行",
     "save": "保存",
     "saveToFile": "保存到文件",
@@ -695,9 +715,6 @@
     "confirmRunMessage": "此命令将在终端中执行：",
     "workingDirectory": "工作目录",
     "dangerWarning": "此命令可能具有破坏性，请在执行前仔细检查。",
-    "executing": "执行中...",
-    "executed": "已执行",
-    "executeFailed": "执行失败",
     "noWorkingDir": "未设置工作目录，请先在设置中配置。",
     "savedToFile": "已保存到 {{path}}",
     "saveFailed": "保存失败: {{error}}",
@@ -817,7 +834,8 @@
       "pluginsAndMcp": "插件与 MCP",
       "advanced": "高级",
       "about": "关于",
-      "hooks": "钩子"
+      "hooks": "钩子",
+      "snippets": "片段"
     },
     "groups": {
       "aiEngine": "AI 引擎",
@@ -1258,7 +1276,7 @@
     "toggleSidebar": "切换侧边栏",
     "toggleSidebarDesc": "显示或隐藏侧边栏",
     "toggleTerminal": "切换终端",
-    "toggleTerminalDesc": "显示或隐藏终端面板",
+    "toggleTerminalDesc": "显示或隐藏终端；隐藏不会停掉里面正在跑的东西。",
     "openSettings": "打开设置",
     "openSettingsDesc": "打开设置面板",
     "openHistory": "打开历史",
@@ -1333,7 +1351,11 @@
       "description": "已等 {{time}}——打开这个请求"
     },
     "runActivity": "运行记录：所有任务",
-    "runActivityDesc": "所有定时任务记住的运行，最新的在最上面"
+    "runActivityDesc": "所有定时任务记住的运行，最新的在最上面",
+    "manageSnippets": "管理文字片段",
+    "manageSnippetsDesc": "创建和编辑 ::关键词 展开的文字",
+    "snippetCopied": "已复制 ::{{keyword}} 的内容",
+    "snippetCopyFailed": "无法复制片段内容"
   },
   "permission": {
     "allow": "允许",
@@ -1441,7 +1463,35 @@
     "rebuildInstructions": "请在 electron-ui 文件夹中运行 'npm run rebuild-pty'，然后重启应用。",
     "windowsBuildTools": "在 Windows 上需要安装 Visual Studio C++ 生成工具。",
     "basicMode": "基本模式",
-    "basicModeHint": "当前运行在无原生 PTY 支持的基本模式。交互式程序可能无法正常工作。运行 'npm run rebuild-pty' 可获得完整终端功能。"
+    "basicModeHint": "当前运行在无原生 PTY 支持的基本模式。交互式程序可能无法正常工作。运行 'npm run rebuild-pty' 可获得完整终端功能。",
+    "dock": {
+      "title": "终端",
+      "toggleHint": "{{key}} 收起",
+      "clear": "清屏",
+      "newTab": "新建终端标签页",
+      "closeTab": "关闭 {{title}}",
+      "closeAll": "关闭所有终端标签页",
+      "resizeHandle": "拖动以调整终端高度",
+      "empty": "还没有终端标签页。用 + 打开一个。",
+      "noCwd": "请先选择工作文件夹，再打开终端。",
+      "starting": "正在启动…",
+      "failedChip": "启动失败",
+      "exited": "已退出 · {{code}}",
+      "exitedUnknown": "已退出",
+      "closeAllTitle": "关闭所有终端标签页？",
+      "closeAllBody": "还有 {{count}} 个终端标签页在运行。关闭停靠栏会停止它们以及里面正在执行的命令。",
+      "closeAllCancel": "继续保留",
+      "closeAllConfirm": "全部关闭"
+    },
+    "errors": {
+      "nativeUnavailable": "终端需要 node-pty 原生模块，但当前不可用。请在 electron-ui 文件夹中运行 \"npm run rebuild-pty\"，然后重启 AIPA。",
+      "cwdRejected": "这个文件夹不在 AIPA 被允许打开的范围内：{{reason}}",
+      "cwdMissing": "打不开这个工作文件夹：{{reason}}",
+      "kindInvalid": "这个终端请求了 AIPA 不会在终端里运行的引擎。",
+      "spawnFailed": "启动 shell 失败：{{reason}}",
+      "unknown": "终端无法启动：{{reason}}",
+      "invalidRequest": "终端请求不完整。"
+    }
   },
   "fileBrowser": {
     "title": "文件",
@@ -2547,7 +2597,31 @@
     "hint": "定义可重复使用的文本片段，在聊天输入框中输入 ::关键词 即可触发插入。",
     "add": "添加片段",
     "empty": "暂无文本片段。创建一个快速插入可重复使用的文本。",
-    "limitReached": "文本片段数量已达上限（最多50个）。"
+    "limitReached": "文本片段数量已达上限（最多50个）。",
+    "count": "{{count}} / {{max}}",
+    "searchPlaceholder": "搜索片段",
+    "noMatches": "没有匹配「{{query}}」的片段。",
+    "formAddTitle": "新建片段",
+    "formEditTitle": "编辑片段",
+    "triggerPreview": "触发词",
+    "keywordPreviewEmpty": "未填写触发词",
+    "keywordHint": "只能包含字母、数字和下划线。聊天里的触发方式是 ::关键词。",
+    "contentCounter": "{{count}} / {{max}}",
+    "error": {
+      "keywordEmpty": "请填写触发词。",
+      "keywordTooLong": "触发词最多 {{max}} 个字符。",
+      "keywordInvalid": "触发词只能包含字母、数字和下划线。聊天里的触发方式是 ::关键词，带空格、连字符或点的触发词即使能保存，也永远无法在聊天里输入。",
+      "keywordDuplicate": "::{{keyword}} 已经被另一个片段使用。",
+      "contentEmpty": "请填写要插入的文字。",
+      "contentTooLong": "片段正文最多 {{max}} 个字符。",
+      "limitReached": "已经有 {{max}} 个片段。请先删除一个再添加。"
+    },
+    "deleteTitle": "删除 ::{{keyword}}？",
+    "deleteBody": "删除后无法恢复，这个片段会立刻被移除。",
+    "deleteConfirm": "删除片段",
+    "chatEmptyTitle": "还没有片段",
+    "chatEmptyBody": "输入 ::关键词 可以插入保存好的文字。先创建第一个片段吧。",
+    "chatEmptyAction": "设置片段"
   },
   "provider": {
     "title": "模型提供商",
@@ -2855,6 +2929,12 @@
       "focusGone": "这个请求已经不在等了：已经被答复、超时了，或者它所属的运行已经结束。",
       "viewAllRuns": "查看所有运行",
       "viewAllRunsTitle": "所有任务记住的运行，最新的在最上面"
+    },
+    "terminal": {
+      "hiddenOne": "1 个 shell 在运行",
+      "hidden": "{{count}} 个 shell 在运行",
+      "exited": "终端",
+      "hint": "终端已隐藏，点一下把它叫回来。"
     }
   },
   "dailyBriefing": {

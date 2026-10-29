@@ -13,6 +13,7 @@ import { useStreamingSpeed } from './useStreamingSpeed'
 import { useMemoryUsage } from '../../hooks/useMemoryUsage'
 import StatusBarTokenPopup from './StatusBarTokenPopup'
 import BackgroundWorkIndicator from './BackgroundWorkIndicator'
+import TerminalIndicator from './TerminalIndicator'
 
 // Per-model pricing tiers (inspired by Claude Code modelCost.ts)
 // Format: [inputCostPerMtok, outputCostPerMtok]
@@ -426,6 +427,10 @@ export default function StatusBar() {
             state. Kept at the end of the flexible center zone so appearing
             never shifts the fixed left/right segments. */}
         <BackgroundWorkIndicator />
+        {/* A hidden terminal with a shell still in it. Sits beside the
+            scheduled-work indicator for the same reason: something the user
+            started is still running behind a closed panel. */}
+        <TerminalIndicator />
       </div>
 
       <Separator />

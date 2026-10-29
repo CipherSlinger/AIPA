@@ -12,6 +12,7 @@
 import { spawn, ChildProcess } from 'child_process'
 import { EventEmitter } from 'events'
 import os from 'os'
+import { resolveShellCommand } from './shell-command'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('fallback-shell')
@@ -28,9 +29,9 @@ class FallbackShellManager extends EventEmitter {
   private sessions = new Map<string, ChildProcess>()
 
   create(args: FallbackCreateArgs): string {
-    const isWin = process.platform === 'win32'
-    const shell = isWin ? 'cmd.exe' : (process.env.SHELL || '/bin/bash')
-    const shellArgs = isWin ? [] : ['--login']
+    // Reuse the main process's one shell resolver, so the fallback terminal
+    // runs the same shell (and the same login flag) as the real PTY path.
+    const shell = resolveShellCommand()
 
     const env: Record<string, string> = {
       ...process.env as Record<string, string>,
@@ -40,9 +41,9 @@ class FallbackShellManager extends EventEmitter {
       LINES: String(args.rows || 24),
     }
 
-    log.debug(`Fallback shell spawning: ${shell} in ${args.cwd}`)
+    log.debug(`Fallback shell spawning: ${shell.file} in ${args.cwd}`)
 
-    const proc = spawn(shell, shellArgs, {
+    const proc = spawn(shell.file, shell.args, {
       cwd: args.cwd,
       env,
       stdio: ['pipe', 'pipe', 'pipe'],

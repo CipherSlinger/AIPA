@@ -402,8 +402,8 @@ export interface ApiKeyEntry {
 
 export interface TextSnippet {
   id: string           // unique id
-  keyword: string      // trigger keyword (e.g., 'sig', 'email', 'addr') -- no spaces, max 20 chars
-  content: string      // snippet content to insert (max 2000 chars)
+  keyword: string      // trigger keyword (e.g., 'sig', 'email', 'addr') -- \w{1,32}, no spaces (see snippetRules.ts)
+  content: string      // snippet content to insert (max 4000 chars)
 }
 
 export interface Note {

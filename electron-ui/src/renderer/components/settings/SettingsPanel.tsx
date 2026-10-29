@@ -3,6 +3,7 @@ import { usePrefsStore, useUiStore } from '../../store'
 import { useI18n } from '../../i18n'
 import type { CustomPromptTemplate, Persona } from '../../types/app.types'
 import SettingsGeneral from './SettingsGeneral'
+import SettingsSnippets from './SettingsSnippets'
 import SettingsAbout from './SettingsAbout'
 import SettingsStats from './SettingsStats'
 import PermissionsSettingsPanel from './PermissionsSettingsPanel'
@@ -88,9 +89,14 @@ export default function SettingsPanel() {
   }, [])
 
   const save = useCallback(async () => {
-    setPrefs(local)
+    // `textSnippets` is edited and persisted directly by SettingsSnippets.
+    // `local` is a mount-time snapshot and `setPrefs` merges, so both this
+    // write and the prefsSet loop below would restore the old snippet list
+    // after the user has added one.
+    const { textSnippets: _staleSnippets, ...prefsToSave } = local
+    setPrefs(prefsToSave)
     await window.electronAPI.configSetApiKey(local.apiKey)
-    for (const [k, v] of Object.entries(local)) {
+    for (const [k, v] of Object.entries(prefsToSave)) {
       if (k !== 'apiKey') await window.electronAPI.prefsSet(k, v)
     }
     setSaved(true)
@@ -203,6 +209,8 @@ export default function SettingsPanel() {
             saved={saved}
             onSave={save}
           />
+        ) : settingsTab === 'snippets' ? (
+          <SettingsSnippets />
         ) : settingsTab === 'ai-engine' ? (
           <SettingsAIEngine
             local={local}

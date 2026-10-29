@@ -362,6 +362,8 @@ export function useInputPopups({
     snippetIndex,
     setSnippetIndex,
     filteredSnippets,
+    // Pre-filter total: lets the popup tell "none created" from "none match".
+    snippetCount: textSnippets.length,
     handleSnippetSelect,
     // Trigger parser
     parsePopupTriggers,

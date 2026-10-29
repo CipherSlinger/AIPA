@@ -95,7 +95,7 @@ export function registerAllHandlers(
     registerFsWatchHandlers(send)
     registerFsStatHandlers()
     registerAttachmentHandlers()
-    registerShellHandlers()
+    registerShellHandlers(win, send)
     registerWindowHandlers(win)
     registerSkillsHandlers()
     registerProviderHandlers(win, send)

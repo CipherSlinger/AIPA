@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events'
 import { getCodexPath } from '../codex/codex-resolver'
 import { sanitizeCodexEnv } from '../codex/codex-env'
+import { resolveShellCommand } from './shell-command'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('pty-manager')
@@ -34,6 +35,15 @@ let _electronApp: any
 try { _electronApp = require('electron').app } catch {}
 
 
+/**
+ * What a PTY should run.
+ *
+ * `codex` is the interactive engine panel that existed before this wave; it is
+ * the default so every existing caller keeps its behaviour. `shell` is the
+ * user-facing terminal: their own login shell, with their own environment.
+ */
+export type PtyKind = 'codex' | 'shell'
+
 export interface PtyCreateArgs {
   sessionId: string
   cwd: string
@@ -41,6 +51,34 @@ export interface PtyCreateArgs {
   cols: number
   rows: number
   resumeSessionId?: string
+  /** Defaults to `codex`. Validated by the IPC layer before it reaches here. */
+  kind?: PtyKind
+}
+
+// The renderer's fit addon normally produces values in this range. A bogus
+// payload must not be able to ask the native PTY layer for a 1,000,000-column
+// screen, so both paths clamp instead of trusting `cols`/`rows`.
+export const PTY_MIN_COLS = 10
+export const PTY_MAX_COLS = 1000
+export const PTY_MIN_ROWS = 2
+export const PTY_MAX_ROWS = 400
+
+export function clampPtyDimension(
+  value: unknown,
+  min: number,
+  max: number,
+  fallback: number,
+): number {
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(n)) return fallback
+  return Math.min(max, Math.max(min, Math.round(n)))
+}
+
+export function normalizePtyDimensions(cols: unknown, rows: unknown): { cols: number; rows: number } {
+  return {
+    cols: clampPtyDimension(cols, PTY_MIN_COLS, PTY_MAX_COLS, 80),
+    rows: clampPtyDimension(rows, PTY_MIN_ROWS, PTY_MAX_ROWS, 24),
+  }
 }
 
 class PtyManager extends EventEmitter {
@@ -70,24 +108,50 @@ class PtyManager extends EventEmitter {
       )
     }
 
-    const codexPath = getCodexPath()
-    // Codex interactive mode — no additional args needed
-    // (thread/resume is handled via app-server protocol, not CLI flags)
-    const codexArgs: string[] = []
+    const kind: PtyKind = args.kind === 'shell' ? 'shell' : 'codex'
+    const { cols, rows } = normalizePtyDimensions(args.cols, args.rows)
 
-    const env: Record<string, string> = sanitizeCodexEnv({
-      ...(args.env || {}),
-      TERM: 'xterm-256color',
-      TERM_PROGRAM: 'aipa-codex-ui',
-    })
+    let executable: string
+    let executableArgs: string[]
+    let env: Record<string, string>
 
-    log.debug(`PTY spawning: codex=${codexPath}, cwd=${args.cwd}`)
+    if (kind === 'shell') {
+      const shell = resolveShellCommand()
+      executable = shell.file
+      executableArgs = shell.args
+      // Deliberately NOT sanitizeCodexEnv here. The Codex allowlist exists to
+      // keep an engine turn reproducible; a user's own terminal is the opposite
+      // — it must see the environment they logged in with (their PATH, their
+      // shell functions, their proxy/editor/toolchain variables). Filtering it
+      // would make "the terminal" a different machine from the user's shell.
+      env = {}
+      for (const [key, value] of Object.entries(process.env)) {
+        if (value !== undefined) env[key] = value
+      }
+      Object.assign(env, args.env || {}, {
+        TERM: args.env?.TERM || 'xterm-256color',
+        TERM_PROGRAM: 'aipa-terminal',
+      })
+      log.debug(`PTY spawning shell: ${shell.file} ${shell.args.join(' ')}, cwd=${args.cwd}`)
+    } else {
+      const codexPath = getCodexPath()
+      // Codex interactive mode — no additional args needed
+      // (thread/resume is handled via app-server protocol, not CLI flags)
+      executable = codexPath
+      executableArgs = []
+      env = sanitizeCodexEnv({
+        ...(args.env || {}),
+        TERM: 'xterm-256color',
+        TERM_PROGRAM: 'aipa-codex-ui',
+      })
+      log.debug(`PTY spawning: codex=${codexPath}, cwd=${args.cwd}`)
+    }
 
     try {
-      const ptyProcess = pty.spawn(codexPath, codexArgs, {
+      const ptyProcess = pty.spawn(executable, executableArgs, {
         name: 'xterm-256color',
-        cols: args.cols,
-        rows: args.rows,
+        cols,
+        rows,
         cwd: args.cwd,
         env,
         useConpty: false,
@@ -107,13 +171,20 @@ class PtyManager extends EventEmitter {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       if (msg.includes('File not found') || msg.includes('ENOENT')) {
+        if (kind === 'shell') {
+          throw new Error(
+            `PTY_SHELL_UNAVAILABLE: The shell "${executable}" could not be started. ` +
+            `Check that it exists and is executable, or set SHELL (or COMSPEC on Windows) ` +
+            `to a working shell.`
+          )
+        }
         throw new Error(
-          `Codex CLI executable not found at "${codexPath}". ` +
+          `PTY_CODEX_UNAVAILABLE: Codex CLI executable not found at "${executable}". ` +
           `Please ensure Codex is installed (npm install -g @openai/codex) ` +
           `or set the CODEX_CLI_PATH environment variable to the full path.`
         )
       }
-      throw err
+      throw new Error(`PTY_SPAWN_FAILED: ${msg}`)
     }
   }
 

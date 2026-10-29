@@ -1991,6 +1991,44 @@ export interface McpRuntimeStatusData {
   oauth: CliMcpOauthLoginCompletedEventData[]
 }
 
+// ── Shell command execution ─────────────────
+// A separate capability from the PTY: the main process runs one shell command
+// in an allowed directory and streams its stdout/stderr back for this run id.
+export interface ShellExecStartArgsData {
+  runId: string
+  command: string
+  cwd: string
+}
+
+export type ShellExecFailureCodeData =
+  | 'invalid_run_id'
+  | 'invalid_command'
+  | 'duplicate_run_id'
+  | 'cwd_not_allowed'
+  | 'cwd_missing'
+  | 'spawn_failed'
+
+export type ShellExecStartResultData =
+  | { ok: true }
+  | { ok: false; code: ShellExecFailureCodeData; error: string }
+
+export interface ShellExecExitData {
+  runId: string
+  code: number | null
+  signal: string | null
+  error?: string
+  timedOut: boolean
+  aborted: boolean
+  truncated: boolean
+  outputTail: string
+  timeoutMs: number
+  durationMs: number
+}
+
+export type ShellExecEventData =
+  | { type: 'data'; runId: string; stream: 'stdout' | 'stderr'; chunk: string }
+  | ({ type: 'exit' } & ShellExecExitData)
+
 const electronAPI = {
   // ── IPC readiness check ────────────────────
   ipcPing: () => ipcRenderer.invoke('ipc:ping') as Promise<{ ok: boolean; timestamp: number }>,
@@ -2352,6 +2390,10 @@ const electronAPI = {
   },
 
   // ── Shell ───────────────────────────────
+  shellExec: (args: ShellExecStartArgsData) =>
+    ipcRenderer.invoke('shell:exec', args) as Promise<ShellExecStartResultData>,
+  shellAbort: (runId: string) =>
+    ipcRenderer.invoke('shell:abort', { runId }) as Promise<{ found: boolean; aborted: boolean }>,
   shellOpenExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
   shellShowItemInFolder: (filePath: string) =>
     ipcRenderer.invoke('shell:showItemInFolder', filePath) as Promise<{ success: boolean; error?: string }>,
@@ -2369,6 +2411,28 @@ const electronAPI = {
     }
     ipcRenderer.on('pty:exit', handler)
     return () => ipcRenderer.removeListener('pty:exit', handler)
+  },
+
+  /**
+   * One subscription for a shell run's data and exit events, scoped by run id.
+   * The returned function removes both listeners; calling it after the run has
+   * exited is harmless.
+   */
+  onShellExec: (runId: string, cb: (event: ShellExecEventData) => void): Unsubscribe => {
+    const dataHandler = (_: unknown, payload: { runId: string; stream: 'stdout' | 'stderr'; chunk: string }) => {
+      if (payload?.runId === runId) {
+        cb({ type: 'data', runId: payload.runId, stream: payload.stream, chunk: payload.chunk })
+      }
+    }
+    const exitHandler = (_: unknown, payload: ShellExecExitData) => {
+      if (payload?.runId === runId) cb({ type: 'exit', ...payload })
+    }
+    ipcRenderer.on('shell:exec:data', dataHandler)
+    ipcRenderer.on('shell:exec:exit', exitHandler)
+    return () => {
+      ipcRenderer.removeListener('shell:exec:data', dataHandler)
+      ipcRenderer.removeListener('shell:exec:exit', exitHandler)
+    }
   },
 
   // `null` subscribes to every conversation's events — the shape the renderer's

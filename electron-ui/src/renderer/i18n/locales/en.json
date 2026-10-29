@@ -687,7 +687,27 @@
     "unpinAll": "Unpin All"
   },
   "codeAction": {
-    "run": "Run",
+    "run": {
+      "confirmScope": "It runs on this machine in {{cwd}}, outside the assistant's approval rules and sandbox.",
+      "running": "Running",
+      "elapsed": "{{time}} elapsed",
+      "stillRunning": "Still running — stop it if it is stuck.",
+      "stop": "Stop",
+      "stopping": "Stopping…",
+      "exited": "Exited with code {{code}}",
+      "exitedSignal": "Exited after signal {{signal}}",
+      "stopped": "Stopped by you",
+      "stoppedWithCode": "Stopped by you (exit code {{code}})",
+      "stoppedAfterTimeout": "Stopped after {{seconds}} s",
+      "couldNotStart": "Could not start: {{reason}}",
+      "unknownError": "unknown error",
+      "outputLabel": "Command output",
+      "noOutputYet": "No output yet.",
+      "noOutput": "No output.",
+      "hide": "Hide output",
+      "show": "Show output",
+      "truncated": "Showing the last {{chars}} characters."
+    },
     "runInTerminal": "Run in Terminal",
     "save": "Save",
     "saveToFile": "Save to file",
@@ -695,9 +715,6 @@
     "confirmRunMessage": "This command will be executed in the terminal:",
     "workingDirectory": "Working directory",
     "dangerWarning": "This command may be destructive. Please review carefully before executing.",
-    "executing": "Executing...",
-    "executed": "Executed",
-    "executeFailed": "Execution failed",
     "noWorkingDir": "No working directory set. Please configure one in Settings first.",
     "savedToFile": "Saved to {{path}}",
     "saveFailed": "Failed to save: {{error}}",
@@ -817,7 +834,8 @@
       "pluginsAndMcp": "Plugins & MCP",
       "advanced": "Advanced",
       "about": "About",
-      "hooks": "Hooks"
+      "hooks": "Hooks",
+      "snippets": "Snippets"
     },
     "groups": {
       "aiEngine": "AI Engine",
@@ -1258,7 +1276,7 @@
     "toggleSidebar": "Toggle Sidebar",
     "toggleSidebarDesc": "Show or hide the sidebar panel",
     "toggleTerminal": "Toggle Terminal",
-    "toggleTerminalDesc": "Show or hide the terminal panel",
+    "toggleTerminalDesc": "Show or hide the terminal; hiding keeps its shells running.",
     "openSettings": "Open Settings",
     "openSettingsDesc": "Open the settings panel",
     "openHistory": "Open History",
@@ -1333,7 +1351,11 @@
       "description": "Waiting {{time}} — open the request"
     },
     "runActivity": "Run history: every job",
-    "runActivityDesc": "Every scheduled job's remembered runs, newest first"
+    "runActivityDesc": "Every scheduled job's remembered runs, newest first",
+    "manageSnippets": "Manage text snippets",
+    "manageSnippetsDesc": "Create and edit ::keyword text expansions",
+    "snippetCopied": "Copied the text of ::{{keyword}}",
+    "snippetCopyFailed": "Could not copy the snippet text"
   },
   "permission": {
     "allow": "Allow",
@@ -1441,7 +1463,35 @@
     "rebuildInstructions": "Run 'npm run rebuild-pty' in the electron-ui folder, then restart the app.",
     "windowsBuildTools": "On Windows, Visual Studio C++ Build Tools are required.",
     "basicMode": "Basic mode",
-    "basicModeHint": "Running in basic mode without native PTY support. Interactive programs may not work correctly. Run 'npm run rebuild-pty' for full terminal functionality."
+    "basicModeHint": "Running in basic mode without native PTY support. Interactive programs may not work correctly. Run 'npm run rebuild-pty' for full terminal functionality.",
+    "dock": {
+      "title": "Terminal",
+      "toggleHint": "{{key}} to hide",
+      "clear": "Clear",
+      "newTab": "New terminal tab",
+      "closeTab": "Close {{title}}",
+      "closeAll": "Close all terminal tabs",
+      "resizeHandle": "Drag to resize the terminal",
+      "empty": "No terminal tabs. Use + to open one.",
+      "noCwd": "Choose a working folder before opening a terminal.",
+      "starting": "Starting…",
+      "failedChip": "Failed",
+      "exited": "Exited · {{code}}",
+      "exitedUnknown": "Exited",
+      "closeAllTitle": "Close all terminal tabs?",
+      "closeAllBody": "{{count}} terminal tab(s) are still running. Closing the dock stops them and any command running inside.",
+      "closeAllCancel": "Keep them open",
+      "closeAllConfirm": "Close all"
+    },
+    "errors": {
+      "nativeUnavailable": "The terminal needs the node-pty native module, which is not available. Run \"npm run rebuild-pty\" in the electron-ui folder, then restart AIPA.",
+      "cwdRejected": "This folder is outside the folders AIPA may open: {{reason}}",
+      "cwdMissing": "The working folder could not be opened: {{reason}}",
+      "kindInvalid": "This terminal requested an engine AIPA does not run in a terminal.",
+      "spawnFailed": "The shell could not be started: {{reason}}",
+      "unknown": "The terminal could not start: {{reason}}",
+      "invalidRequest": "The terminal request was incomplete."
+    }
   },
   "fileBrowser": {
     "title": "Files",
@@ -2547,7 +2597,31 @@
     "hint": "Define reusable text snippets triggered by typing ::keyword in the chat input.",
     "add": "Add Snippet",
     "empty": "No snippets yet. Create one to quickly insert reusable text.",
-    "limitReached": "Maximum 50 snippets reached."
+    "limitReached": "Maximum 50 snippets reached.",
+    "count": "{{count}} / {{max}}",
+    "searchPlaceholder": "Search snippets",
+    "noMatches": "No snippets match \"{{query}}\".",
+    "formAddTitle": "New snippet",
+    "formEditTitle": "Edit snippet",
+    "triggerPreview": "Trigger",
+    "keywordPreviewEmpty": "keyword not set",
+    "keywordHint": "Letters, digits and underscores only — the chat trigger is ::keyword.",
+    "contentCounter": "{{count}} / {{max}}",
+    "error": {
+      "keywordEmpty": "Enter a keyword.",
+      "keywordTooLong": "Keywords can be at most {{max}} characters.",
+      "keywordInvalid": "Use only letters, digits and underscores. The chat trigger is ::keyword, so a keyword with a space, dash or dot could be saved here but never typed in chat.",
+      "keywordDuplicate": "::{{keyword}} is already used by another snippet.",
+      "contentEmpty": "Enter the text to insert.",
+      "contentTooLong": "Snippet text can be at most {{max}} characters.",
+      "limitReached": "You already have {{max}} snippets. Delete one before adding another."
+    },
+    "deleteTitle": "Delete ::{{keyword}}?",
+    "deleteBody": "This cannot be undone. The snippet is removed right away.",
+    "deleteConfirm": "Delete snippet",
+    "chatEmptyTitle": "No snippets yet",
+    "chatEmptyBody": "Type ::keyword to insert saved text. Create your first snippet to get started.",
+    "chatEmptyAction": "Set up snippets"
   },
   "provider": {
     "title": "Model Providers",
@@ -2855,6 +2929,12 @@
       "focusGone": "That request is no longer waiting: it was answered, timed out, or its run ended.",
       "viewAllRuns": "View all runs",
       "viewAllRunsTitle": "Every job's remembered runs, newest first"
+    },
+    "terminal": {
+      "hiddenOne": "1 shell running",
+      "hidden": "{{count}} shells running",
+      "exited": "Terminal",
+      "hint": "The terminal is hidden. Click to show it."
     }
   },
   "dailyBriefing": {

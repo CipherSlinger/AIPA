@@ -3,6 +3,7 @@ import AppShell from './components/layout/AppShell'
 import ErrorBoundary from './components/shared/ErrorBoundary'
 import { ToastContainer } from './components/ui/Toast'
 import { usePrefsStore, useChatStore, useUiStore, useSessionStore, useDepartmentStore } from './store'
+import { useTerminalStore } from './store/terminalStore'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
 import { useAppEventBridge } from './hooks/useAppEventBridge'
 import { useContextHealth } from './hooks/useContextHealth'
@@ -266,6 +267,11 @@ export default function App() {
         }
       }),
       window.electronAPI.onMenuEvent('toggleSidebar', toggleSidebar),
+      // View > Toggle Terminal (CmdOrCtrl+`) — the menu item existed but no
+      // renderer listened, so it did nothing before this wave.
+      window.electronAPI.onMenuEvent('toggleTerminal', () => {
+        useTerminalStore.getState().toggleOpen()
+      }),
       window.electronAPI.onMenuEvent('commandPalette', toggleCommandPalette),
       // Tray: open a specific session by ID
       window.electronAPI.onMenuEvent('openSession', (sessionId) => {
