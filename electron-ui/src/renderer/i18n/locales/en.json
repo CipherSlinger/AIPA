@@ -427,7 +427,13 @@
         "globalStructured": "global memory folder",
         "projectStructured": "project memory folder",
         "personal": "personal notes"
-      }
+      },
+      "dept": {
+        "told": "Department handbook ({{dept}}) · {{chars}} characters",
+        "toldCut": "Department handbook ({{dept}}) · cut to {{chars}} of {{sourceChars}} characters",
+        "unreadable": "Couldn't read the department handbook ({{dept}}) — this turn ran without it."
+      },
+      "expandHintTurn": "Show the exact context this turn was given"
     }
   },
   "sessionReuse": {
@@ -2696,7 +2702,98 @@
     "hint": "Export all your data (personas, workflows, notes, memories, snippets, settings) to a file. API keys are never exported.",
     "exportSuccess": "Backup saved ({{size}} KB): {{items}}",
     "importSuccess": "Restored: {{items}}",
-    "invalidFormat": "Invalid backup file format"
+    "invalidFormat": "Invalid backup file format",
+    "scopeHint": "This file holds your settings, personas, workflows, notes, memories, snippets, scheduled jobs, skills, memory documents and the Recently deleted lists. Conversations themselves, API keys and plugin data are not included.",
+    "report": {
+      "exportTitle": "Backup report",
+      "importTitle": "Restore report",
+      "exported": "Saved {{size}} KB: {{items}}.",
+      "settingsOnly": "settings only",
+      "exportSkippedFiles": "{{n}} files were skipped when this backup was made because they were too large or not text; they are listed inside the file.",
+      "exportNotIncluded": "Conversation transcripts, API keys and plugin data are not in this file.",
+      "restored": "Wrote {{items}}.",
+      "nothingWritten": "Nothing was written — everything in the file is already here.",
+      "skippedExisting": "Left unchanged because they already existed here: {{items}}.",
+      "failed": "{{n}} items could not be written.",
+      "refused": "{{n}} entries were refused because a path pointed outside where it may be written. Nothing from those entries was written.",
+      "olderVersion": "This file was made by an older version of AIPA (format {{version}}). It cannot contain scheduled jobs, skills, memory documents or Recently deleted lists; those sections were left as they are.",
+      "noJobs": "The file has no scheduled-jobs section; your scheduled jobs were left unchanged.",
+      "sessionPayloads": "{{n}} deleted conversation records were restored, but their transcripts were not in the backup. They are listed in Recently deleted and cannot be opened or restored.",
+      "importSkippedFiles": "{{n}} files had been skipped when the backup was made (too large or not text); those skills and memory documents are incomplete.",
+      "conversationsAbsent": "Conversations themselves are never in a backup.",
+      "reload": "Reload to apply restored settings"
+    },
+    "error": {
+      "newerVersion": "This file was made by a newer version of AIPA. Update AIPA before restoring it; nothing was changed.",
+      "writeFailed": "The backup could not be saved.",
+      "readFailed": "The backup could not be read."
+    },
+    "unit": {
+      "settings": {
+        "one": "{{n}} setting",
+        "other": "{{n}} settings"
+      },
+      "personas": {
+        "one": "{{n}} persona",
+        "other": "{{n}} personas"
+      },
+      "workflows": {
+        "one": "{{n}} workflow",
+        "other": "{{n}} workflows"
+      },
+      "notes": {
+        "one": "{{n}} note",
+        "other": "{{n}} notes"
+      },
+      "memories": {
+        "one": "{{n}} memory",
+        "other": "{{n}} memories"
+      },
+      "snippets": {
+        "one": "{{n}} snippet",
+        "other": "{{n}} snippets"
+      },
+      "quickReplies": {
+        "one": "{{n}} quick reply",
+        "other": "{{n}} quick replies"
+      },
+      "templates": {
+        "one": "{{n}} template",
+        "other": "{{n}} templates"
+      },
+      "tags": {
+        "one": "{{n}} tag",
+        "other": "{{n}} tags"
+      },
+      "jobs": {
+        "one": "{{n}} scheduled job",
+        "other": "{{n}} scheduled jobs"
+      },
+      "trashedJobs": {
+        "one": "{{n}} deleted job",
+        "other": "{{n}} deleted jobs"
+      },
+      "skills": {
+        "one": "{{n}} skill",
+        "other": "{{n}} skills"
+      },
+      "trashedSkills": {
+        "one": "{{n}} deleted skill",
+        "other": "{{n}} deleted skills"
+      },
+      "memoryFiles": {
+        "one": "{{n}} memory file",
+        "other": "{{n}} memory files"
+      },
+      "trashedConversations": {
+        "one": "{{n}} deleted conversation record",
+        "other": "{{n}} deleted conversation records"
+      },
+      "files": {
+        "one": "{{n}} file",
+        "other": "{{n}} files"
+      }
+    }
   },
   "fork": {
     "forkFromHere": "Fork from here",
@@ -3200,7 +3297,10 @@
         "unknownGeneric": "Can't say when it frees — the window's spend can't be pinned down"
       }
     },
-    "empFireAria": "Dismiss employee — the conversation moves to Recently deleted, where you can restore it"
+    "empFireAria": "Dismiss employee — the conversation moves to Recently deleted, where you can restore it",
+    "handbookHintEveryTurn": "Applies to every message in this department's conversations",
+    "handbookSubtitleEveryTurn": "Standing rules for this desk. Every message in a conversation that belongs to this department carries them — conventions, hand-off expectations, where things live.",
+    "positionHireHandbookHintEveryTurn": "The department handbook will travel with every message here"
   },
   "archive": {
     "summaryTask": "{{count}} tasks",
@@ -3270,6 +3370,42 @@
       "buttonTipCapped": "This view lists {{total}} conversations, but only the first {{count}} are sent; {{omitted}} are left out.",
       "buttonDisabled": "No conversations are listed, so there is nothing to ask about.",
       "cappedNote": "AIPA reads at most {{cap}} conversations per question."
+    },
+    "bulk": {
+      "selectAll": "Select all {{count}} in this view",
+      "selectAllAria": "Select every task in the current view",
+      "selectRowAria": "Select “{{title}}”",
+      "selected": "{{count}} selected",
+      "archive": "Archive {{count}}",
+      "unarchive": "Restore {{count}}",
+      "delete": "Delete {{count}}",
+      "deleteAria": "Move {{count}} selected to Recently deleted",
+      "clear": "Clear selection",
+      "skipArchive": "{{count}} already archived — left unchanged.",
+      "skipUnarchive": "{{count}} not archived — left unchanged.",
+      "pruned": "Removed {{count}} from the selection — no longer in this view.",
+      "undoAria": "Undo this batch delete",
+      "rowDelete": "Delete this conversation",
+      "result": {
+        "archive": "Archived {{done}} of {{total}} selected.",
+        "unarchive": "Returned {{done}} of {{total}} selected to the active list.",
+        "delete": "Moved {{done}} of {{total}} selected to Recently deleted.",
+        "restore": "Restored {{done}} of {{total}} selected from Recently deleted."
+      },
+      "note": {
+        "alreadyArchived": "{{count}} already archived.",
+        "notArchived": "{{count}} not archived.",
+        "skipped": "{{count}} skipped.",
+        "reason": "{{count}} failed — {{reason}}.",
+        "listStale": "The list could not be refreshed — the sidebar may not show what came back yet."
+      },
+      "reason": {
+        "gone": "no longer in Recently deleted",
+        "occupied": "the original place is taken",
+        "folderGone": "the transcript is incomplete on disk",
+        "missing": "not found any more",
+        "other": "the system refused"
+      }
     }
   },
   "canvas": {

@@ -60,8 +60,10 @@ export interface Department {
   /** Ghost positions waiting to be filled. Absent/empty = none. */
   positions?: Position[]
   /**
-   * Standing brief for the desk ("部门手册"): prepended to the first message of
-   * every employee started from this node. Absent/blank = no handbook.
+   * Standing brief for the desk ("部门手册"): carried by every turn of a
+   * conversation that belongs to this node, not just the first one. Absent or
+   * blank = no handbook. See `lib/deptHandbook.ts` for the ceiling and for how
+   * membership is resolved.
    */
   handbook?: string
   /** Persona new seats in this node inherit when the position names none. */

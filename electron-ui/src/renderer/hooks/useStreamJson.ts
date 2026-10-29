@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { useChatStore, usePrefsStore, useSessionStore } from '../store'
+import { useChatStore, useDepartmentStore, usePrefsStore, useSessionStore } from '../store'
 import { CodexQuestion, ElicitationMessage, HookCallbackMessage, PermissionMessage, PlanMessage, StandardChatMessage, PromptHistoryItem, SessionListItem } from '../types/app.types'
 import { useUiStore } from '../store'
-import { getT } from '../i18n'
+import { getResolvedLocale, getT } from '../i18n'
 import { resolveProvider, sendCompletionNotification, playCompletionSound, getActiveApiKey, rotateApiKey } from './streamJsonUtils'
 import { useAutoCompact } from './useAutoCompact'
 import { useAutoMemory } from './useAutoMemory'
 import { assembleMemoryContextForTurn } from './promptMemory'
-import { assembleTurnMemoryForSend } from '../lib/memoryReceipt'
+import { assembleTurnMemoryForSend, mergeTurnReceipt } from '../lib/memoryReceipt'
+import { buildDeptHandbookTurn } from '../lib/deptHandbook'
 import { composeSystemPromptParts, resolvePersonaTurnSettings } from './promptAssembly'
 import { listSessionsShared } from '../utils/sessionListShared'
 import { readThreadLifecycleEvent } from '../utils/threadLifecycle'
@@ -417,11 +418,37 @@ export function useStreamJson() {
             cwd: effectiveCwdEarly,
           }),
         })
+    // The department handbook rides in the same envelope, on EVERY turn of a
+    // conversation that belongs to a department — not only the first message
+    // of one started from that department's roster. Membership is resolved
+    // from the user's own org tree (filing → session row's directory → the
+    // desk the draft was started at); anything unknown or ambiguous yields no
+    // block and no receipt, because silence is the honest answer there.
+    //
+    // Scheduled / automated runs are deliberately not covered: the main
+    // process starts those turns and cannot read this renderer-owned tree, so
+    // a job has no honest way to name its department yet. That is a known gap,
+    // not an oversight — do not "fix" it by guessing a directory here.
+    const deptTurn = isCompactCommand
+      ? { text: '', receipt: null }
+      : buildDeptHandbookTurn({
+          departments: useDepartmentStore.getState().departments,
+          filings: useDepartmentStore.getState().filings,
+          sessions: useSessionStore.getState().sessions,
+          sessionId: currentSessionId,
+          draftDepartmentId: useChatStore.getState().draftDepartmentId,
+          homeDir: useSessionStore.getState().homeDir,
+          locale: getResolvedLocale(),
+        })
+
+    // One receipt per turn for both disclosures: the row renders one quiet
+    // line, and either half may be absent without hiding the other.
+    const turnReceipt = mergeTurnReceipt(memoryTurn.receipt, deptTurn.receipt)
     // The row already exists (added above, before assembly started), so the
     // disclosure lands on the message the user actually wrote rather than on
     // a row that appears once memory finishes loading.
-    if (memoryTurn.receipt) {
-      useChatStore.getState().noteMemoryReceipt(userMsg.id, memoryTurn.receipt)
+    if (turnReceipt) {
+      useChatStore.getState().noteMemoryReceipt(userMsg.id, turnReceipt)
     }
 
     // Build combined system prompt (injected as prefix to user message: Codex
@@ -430,6 +457,7 @@ export function useStreamJson() {
       prefs,
       persona: personaTurn,
       memoryContext: memoryTurn.text,
+      departmentHandbook: deptTurn.text,
       cwd: effectiveCwdEarly,
       appendSystemPrompt: useChatStore.getState().tempSystemPrompt || prefs.appendSystemPrompt,
     })

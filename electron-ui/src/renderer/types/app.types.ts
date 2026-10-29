@@ -167,8 +167,9 @@ export interface StandardChatMessage {
    *  transcript must say they were not sent instead of implying delivery. */
   attachmentError?: string
   /**
-   * What memory context this turn prepended to the prompt. Absent means
-   * *unknown*, not "no memory was sent": rows re-read from disk never carry a
+   * What context this turn prepended to the prompt — memory tiers and, when
+   * the conversation belongs to a department, its handbook. Absent means
+   * *unknown*, not "nothing was sent": rows re-read from disk never carry a
    * receipt (the transcript does not persist one), and `/compact` deliberately
    * assembles none. Only a present receipt may be rendered as a disclosure.
    */

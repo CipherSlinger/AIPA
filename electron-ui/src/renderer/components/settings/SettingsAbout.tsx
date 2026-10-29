@@ -37,27 +37,92 @@ const dividerStyle: React.CSSProperties = {
   margin: '8px 0',
 }
 
-export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts }: SettingsAboutProps) {
+/**
+ * How each restored section is named in the report. The unit keys carry both a
+ * singular and a plural form so "1 workflow" never reads as "1 workflows";
+ * Chinese uses the same wording for both forms.
+ */
+const REPORT_UNITS: { countKey: string; unitKey: string }[] = [
+  { countKey: 'settings', unitKey: 'backup.unit.settings' },
+  { countKey: 'personas', unitKey: 'backup.unit.personas' },
+  { countKey: 'workflows', unitKey: 'backup.unit.workflows' },
+  { countKey: 'notes', unitKey: 'backup.unit.notes' },
+  { countKey: 'memories', unitKey: 'backup.unit.memories' },
+  { countKey: 'snippets', unitKey: 'backup.unit.snippets' },
+  { countKey: 'quickReplies', unitKey: 'backup.unit.quickReplies' },
+  { countKey: 'templates', unitKey: 'backup.unit.templates' },
+  { countKey: 'tagNames', unitKey: 'backup.unit.tags' },
+  { countKey: 'jobs', unitKey: 'backup.unit.jobs' },
+  { countKey: 'jobTrash', unitKey: 'backup.unit.trashedJobs' },
+  { countKey: 'skills', unitKey: 'backup.unit.skills' },
+  { countKey: 'trashedSkills', unitKey: 'backup.unit.trashedSkills' },
+  { countKey: 'memoryFiles', unitKey: 'backup.unit.memoryFiles' },
+  { countKey: 'sessionTrash', unitKey: 'backup.unit.trashedConversations' },
+  { countKey: 'skippedFiles', unitKey: 'backup.unit.files' },
+]
+
+interface BackupReportLine {
+  tone: 'ok' | 'muted' | 'warn'
+  text: string
+}
+
+interface BackupReport {
+  kind: 'export' | 'import'
+  lines: BackupReportLine[]
+  canReload: boolean
+}
+
+export default function SettingsAbout({ onResetDefaults, onShowShortcuts }: SettingsAboutProps) {
   const { t } = useI18n()
   const [showDiagnostics, setShowDiagnostics] = useState(false)
   const [backupLoading, setBackupLoading] = useState(false)
   const [restoreLoading, setRestoreLoading] = useState(false)
+  const [report, setReport] = useState<BackupReport | null>(null)
   const addToast = useUiStore(s => s.addToast)
+
+  const unit = (unitKey: string, count: number) =>
+    t(count === 1 ? `${unitKey}.one` : `${unitKey}.other`, { n: String(count) })
+
+  const summarize = (counts: Record<string, number> | undefined, keys: string[]): string => {
+    if (!counts) return ''
+    const parts: string[] = []
+    for (const entry of REPORT_UNITS) {
+      if (!keys.includes(entry.countKey)) continue
+      const count = counts[entry.countKey] || 0
+      if (count > 0) parts.push(unit(entry.unitKey, count))
+    }
+    return parts.join(', ')
+  }
+
+  const errorText = (code: string | undefined, fallback: string | undefined): string => {
+    if (code === 'invalid_format') return t('backup.invalidFormat')
+    if (code === 'unsupported_version') return t('backup.error.newerVersion')
+    if (code === 'write_failed') return t('backup.error.writeFailed')
+    if (code === 'read_failed') return t('backup.error.readFailed')
+    return fallback || code || t('backup.error.readFailed')
+  }
 
   const handleBackup = async () => {
     setBackupLoading(true)
     try {
       const result = await window.electronAPI.backupExport()
       if (result.success && result.counts) {
-        const parts: string[] = []
-        if (result.counts.personas > 0) parts.push(`${result.counts.personas} personas`)
-        if (result.counts.workflows > 0) parts.push(`${result.counts.workflows} workflows`)
-        if (result.counts.notes > 0) parts.push(`${result.counts.notes} notes`)
-        if (result.counts.memories > 0) parts.push(`${result.counts.memories} memories`)
-        if (result.counts.snippets > 0) parts.push(`${result.counts.snippets} snippets`)
-        addToast('success', t('backup.exportSuccess', { size: String(result.sizeKB), items: parts.join(', ') || 'settings' }))
+        const items = summarize(result.counts, [
+          'personas', 'workflows', 'notes', 'memories', 'snippets', 'quickReplies', 'templates',
+          'tagNames', 'jobs', 'jobTrash', 'skills', 'trashedSkills', 'memoryFiles', 'sessionTrash',
+        ])
+        const lines: BackupReportLine[] = [
+          { tone: 'ok', text: t('backup.report.exported', { size: String(result.sizeKB), items: items || t('backup.report.settingsOnly') }) },
+        ]
+        const skipped = result.counts.skippedFiles || 0
+        if (skipped > 0) {
+          lines.push({ tone: 'warn', text: t('backup.report.exportSkippedFiles', { n: String(skipped) }) })
+        }
+        lines.push({ tone: 'muted', text: t('backup.report.exportNotIncluded') })
+        setReport({ kind: 'export', lines, canReload: false })
+        addToast('success', t('backup.exportSuccess', { size: String(result.sizeKB), items: items || t('backup.report.settingsOnly') }))
       } else if (result.error) {
-        addToast('error', result.error)
+        addToast('error', errorText(result.error, undefined))
       }
     } catch (err) {
       addToast('error', String(err))
@@ -69,19 +134,47 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
     setRestoreLoading(true)
     try {
       const result = await window.electronAPI.backupImport()
-      if (result.success && result.imported) {
-        const parts: string[] = []
-        for (const [key, count] of Object.entries(result.imported)) {
-          if (key !== 'settings' && count > 0) parts.push(`${count} ${key}`)
+      if (result.success) {
+        const written = result.written || {}
+        const skipped = result.skippedExisting || {}
+        const failed = result.failed || {}
+        const writtenKeys = Object.keys(written).filter(key => (written[key] || 0) > 0 && key !== 'skillFiles' && key !== 'trashedSkillFiles')
+        const skippedKeys = Object.keys(skipped).filter(key => (skipped[key] || 0) > 0)
+        const writtenSummary = summarize(written, writtenKeys)
+        const skippedSummary = summarize(skipped, skippedKeys)
+        const failedTotal = Object.values(failed).reduce((sum, value) => sum + value, 0)
+        const lines: BackupReportLine[] = [
+          writtenSummary
+            ? { tone: 'ok', text: t('backup.report.restored', { items: writtenSummary }) }
+            : { tone: 'muted', text: t('backup.report.nothingWritten') },
+        ]
+        if (skippedSummary) {
+          lines.push({ tone: 'muted', text: t('backup.report.skippedExisting', { items: skippedSummary }) })
         }
-        addToast('success', t('backup.importSuccess', { items: parts.join(', ') || 'settings' }))
-        // Reload prefs from store after import
-        const allPrefs = await window.electronAPI.prefsGetAll()
-        if (allPrefs) {
-          window.location.reload()
+        if (failedTotal > 0) {
+          lines.push({ tone: 'warn', text: t('backup.report.failed', { n: String(failedTotal) }) })
         }
+        if ((result.refused || []).length > 0) {
+          lines.push({ tone: 'warn', text: t('backup.report.refused', { n: String(result.refused?.length || 0) }) })
+        }
+        for (const warning of result.warnings || []) {
+          if (warning.code === 'older_version') {
+            lines.push({ tone: 'warn', text: t('backup.report.olderVersion', { version: String(warning.version ?? 1) }) })
+          } else if (warning.code === 'no_jobs_section') {
+            lines.push({ tone: 'muted', text: t('backup.report.noJobs') })
+          } else if (warning.code === 'session_payloads_missing') {
+            lines.push({ tone: 'warn', text: t('backup.report.sessionPayloads', { n: String(warning.count ?? 0) }) })
+          } else if (warning.code === 'skipped_files') {
+            lines.push({ tone: 'warn', text: t('backup.report.importSkippedFiles', { n: String(warning.count ?? 0) }) })
+          }
+        }
+        lines.push({ tone: 'muted', text: t('backup.report.conversationsAbsent') })
+        setReport({ kind: 'import', lines, canReload: Object.values(written).some(count => count > 0) })
+        addToast('success', writtenSummary
+          ? t('backup.importSuccess', { items: writtenSummary })
+          : t('backup.report.nothingWritten'))
       } else if (result.error) {
-        addToast('error', result.error)
+        addToast('error', errorText(result.errorCode || result.error, result.error))
       }
     } catch (err) {
       addToast('error', String(err))
@@ -245,8 +338,60 @@ export default function SettingsAbout({ onResetDefaults, saved, onShowShortcuts 
           </button>
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
-          {t('backup.hint')}
+          {t('backup.scopeHint')}
         </div>
+        {report && (
+          <div
+            role="status"
+            aria-live="polite"
+            style={{
+              marginTop: 10,
+              borderTop: '1px solid var(--glass-border)',
+              paddingTop: 10,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 5,
+            }}
+          >
+            <div style={{ ...sectionLabelStyle, marginBottom: 0 }}>
+              {report.kind === 'export' ? t('backup.report.exportTitle') : t('backup.report.importTitle')}
+            </div>
+            {report.lines.map((line, index) => (
+              <div
+                key={`${line.tone}-${index}`}
+                style={{
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                  color: line.tone === 'ok'
+                    ? 'var(--text-primary)'
+                    : line.tone === 'warn'
+                      ? 'var(--warning-text, var(--text-primary))'
+                      : 'var(--text-muted)',
+                }}
+              >
+                {line.text}
+              </div>
+            ))}
+            {report.canReload && (
+              <button
+                onClick={() => window.location.reload()}
+                style={{
+                  alignSelf: 'flex-start',
+                  marginTop: 2,
+                  padding: '4px 10px',
+                  background: 'var(--bg-hover)',
+                  border: '1px solid var(--glass-border-md)',
+                  borderRadius: 6,
+                  color: 'var(--accent-text)',
+                  cursor: 'pointer',
+                  fontSize: 11,
+                }}
+              >
+                {t('backup.report.reload')}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* System Diagnostics */}

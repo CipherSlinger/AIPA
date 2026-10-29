@@ -179,50 +179,49 @@ export default function DeptView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // One-shot on mount only
 
-  // The department's standing rules ride in front of an employee's own brief.
-  // The tags mirror the `<system_context>` wrapper useStreamJson already uses
-  // for injected context, so the model can tell house rules from the task.
-  // An empty first message stays empty: a handbook cannot make a session, and
-  // turning "just create an idle employee" into a handbook-only message would.
-  const withHandbook = useCallback((message: string) => {
-    const handbook = dept?.handbook?.trim()
-    if (!handbook || !message.trim()) return message
-    return `<department_handbook>\n${handbook}\n</department_handbook>\n\n${message.trim()}`
-  }, [dept])
-
   // The hand-off to chat, shared by recruiting and by hiring a ghost position:
   // the node becomes the working directory and `brief` becomes the first message
   // the freshly mounted ChatPanel sends. ChatPanel consumes the brief once it is
   // mounted, so the caller does not need to wait for a session id back.
+  //
+  // The handbook is deliberately NOT wrapped around the brief here. It used to
+  // be, which put the desk's rules inside the user's own visible message and
+  // only on the first turn. `useStreamJson` now prepends it to every turn's
+  // envelope; the only thing this view owes that path is the desk the draft was
+  // started at, because a conversation with no session id cannot be resolved
+  // from the org tree yet.
   const startWork = useCallback((directory: string, brief: string, personaId?: string) => {
+    if (!dept) return
     setPrefs({ workingDir: directory })
     window.electronAPI.prefsSet('workingDir', directory)
     useChatStore.getState().clearMessages()
+    // After clearMessages, which drops the previous conversation's assertion.
+    useChatStore.getState().setDraftDepartmentId(dept.id)
     // New session from dept view: set fromDepartment so the back button shows in chat (Iteration 538)
     useUiStore.getState().setFromDepartment(true)
     useUiStore.getState().setPendingRecruitBrief(brief || null)
     useUiStore.getState().setMainView('chat')
     // After clearMessages, which resets any previous session's persona.
     bindPersonaToNewSession(personaId)
-  }, [setPrefs])
+  }, [dept, setPrefs])
 
   // Confirm: the job description becomes the employee's first message, so the
   // new session opens in chat with the brief already on its way.
   const confirmRecruit = useCallback((brief: string, personaId?: string) => {
     if (!dept) return
     setRecruitOpen(false)
-    startWork(dept.directory, withHandbook(brief), personaId)
-  }, [dept, startWork, withHandbook])
+    startWork(dept.directory, brief, personaId)
+  }, [dept, startWork])
 
   // Hiring now asks which persona the seat runs as; the modal supplies it.
   const hirePosition = useCallback((position: Position, personaId?: string) => {
     if (!dept) return
     setHiringPosition(null)
-    startWork(dept.directory, withHandbook(positionDisplayBrief(position, resolvedLocale)), personaId)
+    startWork(dept.directory, positionDisplayBrief(position, resolvedLocale), personaId)
     // Dropping the seat right away is safe: the session is guaranteed to be
     // created, and the real employee appears with the next session-list refresh.
     removePosition(dept.id, position.id)
-  }, [dept, startWork, withHandbook, removePosition, resolvedLocale])
+  }, [dept, startWork, removePosition, resolvedLocale])
 
   // Seat binding → department default → currently active persona. This is the
   // same order the modal shows, so the highlighted chip is what will be used.

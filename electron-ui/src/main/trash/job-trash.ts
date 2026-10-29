@@ -65,12 +65,12 @@ export type JobTrashErrorCode =
 export type JobTrashFailure = { ok: false; code: JobTrashErrorCode; error: string }
 export type JobTrashSuccess<T> = { ok: true } & T
 
-function trashRoot(): string {
-  return path.join(app.getPath('userData'), 'trash')
+function trashRoot(override?: string): string {
+  return override ?? path.join(app.getPath('userData'), 'trash')
 }
 
-function manifestPath(): string {
-  return path.join(trashRoot(), 'jobs.json')
+function manifestPath(override?: string): string {
+  return path.join(trashRoot(override), 'jobs.json')
 }
 
 /**
@@ -91,8 +91,8 @@ function normalizeEntry(raw: unknown): TrashedJobEntry | null {
   return { id, job, deletedAt }
 }
 
-function readManifest(): TrashedJobEntry[] {
-  const file = manifestPath()
+function readManifest(trashDir?: string): TrashedJobEntry[] {
+  const file = manifestPath(trashDir)
   if (!fs.existsSync(file)) return []
   try {
     const parsed = JSON.parse(fs.readFileSync(file, 'utf-8')) as unknown
@@ -117,8 +117,8 @@ function readManifest(): TrashedJobEntry[] {
   }
 }
 
-function writeManifest(entries: TrashedJobEntry[]): void {
-  const file = manifestPath()
+function writeManifest(entries: TrashedJobEntry[], trashDir?: string): void {
+  const file = manifestPath(trashDir)
   fs.mkdirSync(path.dirname(file), { recursive: true })
   const tmp = `${file}.tmp`
   fs.writeFileSync(tmp, JSON.stringify({
@@ -233,6 +233,44 @@ export function listTrashedJobs(_now: number = Date.now()): JobTrashSuccess<{
     }))
     .sort((a, b) => b.deletedAt - a.deletedAt)
   return { ok: true, entries, retentionDays: JOB_TRASH_RETENTION_DAYS }
+}
+
+/**
+ * Read the manifest for a caller that is not moving a job (the backup export).
+ * Rows are already validated by the same whitelist the live store uses, so the
+ * backup cannot carry a field the scheduler would never write.
+ */
+export function readTrashedJobEntries(trashDir?: string): TrashedJobEntry[] {
+  return readManifest(trashDir)
+}
+
+/**
+ * Merge rows from a backup into the trash.
+ *
+ * An existing id wins and is counted as skipped: the trash row may be the only
+ * copy of a job the user deleted on this machine, and a restore must never
+ * replace it with an older record from another machine. Incoming rows go
+ * through the same validator, so a tampered backup cannot smuggle a field in.
+ */
+export function mergeTrashedJobEntries(
+  incoming: unknown,
+  trashDir?: string,
+): { added: number; skipped: number; invalid: number } {
+  if (!Array.isArray(incoming)) return { added: 0, skipped: 0, invalid: 0 }
+  const entries = readManifest(trashDir)
+  const existing = new Set(entries.map(entry => entry.id))
+  const added: TrashedJobEntry[] = []
+  let skipped = 0
+  let invalid = 0
+  for (const raw of incoming) {
+    const entry = normalizeEntry(raw)
+    if (!entry) { invalid += 1; continue }
+    if (existing.has(entry.id)) { skipped += 1; continue }
+    existing.add(entry.id)
+    added.push(entry)
+  }
+  if (added.length > 0) writeManifest([...entries, ...added], trashDir)
+  return { added: added.length, skipped, invalid }
 }
 
 export interface RestoreJobOptions {

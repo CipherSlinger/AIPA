@@ -31,6 +31,8 @@ export interface TabSnapshot {
   sessionPersonaId: string | undefined
   /** Explicit model pick for this conversation; outranks the persona's model. */
   sessionModelOverride: string | undefined
+  /** The desk a brand-new conversation was started from; see the flat field. */
+  draftDepartmentId: string | undefined
 }
 
 export interface TabInfo {
@@ -438,6 +440,20 @@ interface ChatState {
   sessionModelOverride: string | undefined
   setSessionModelOverride: (modelId: string | undefined) => void
 
+  /**
+   * The department desk a brand-new conversation was started from.
+   *
+   * A draft has no session id, so the org tree cannot resolve it yet. This is
+   * the department view's own assertion ("this conversation started at that
+   * desk"), not a guess: nothing else sets it, it names an id that must still
+   * exist in the tree at send time, and it is consulted only while the
+   * conversation has no session row of its own. The working directory and the
+   * conversation title are deliberately not used this way — either can differ
+   * from where the conversation really lives.
+   */
+  draftDepartmentId: string | undefined
+  setDraftDepartmentId: (deptId: string | undefined) => void
+
   // Plan Mode (Iteration 520): Claude only plans, does not execute tools
   isPlanMode: boolean
   setPlanMode: (v: boolean) => void
@@ -583,6 +599,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   contextBeforeCompact: null,
   sessionPersonaId: undefined,
   sessionModelOverride: undefined,
+  draftDepartmentId: undefined,
   isPlanMode: false,
   changedFiles: [],
   turnDiff: null,
@@ -893,6 +910,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       modelUsage: {},
       sessionPersonaId: undefined,
       sessionModelOverride: undefined,
+      // The wiped view's desk assertion dies with it. The next conversation
+      // must be started from a department again to claim one.
+      draftDepartmentId: undefined,
       isPlanMode: false,
       changedFiles: [],
       turnDiff: null,
@@ -1243,6 +1263,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     return removed
   },
 
+  setDraftDepartmentId: (deptId) => set({ draftDepartmentId: deptId }),
+
   setSessionPersonaId: (personaId) => {
     set({ sessionPersonaId: personaId })
     // Persist session-persona mapping in localStorage
@@ -1395,6 +1417,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
         modelUsage: {},
         sessionPersonaId: undefined,
         sessionModelOverride: undefined,
+        // An opened conversation has a row, so membership comes from the org
+        // tree; it must not inherit a draft desk left in this tab.
+        draftDepartmentId: undefined,
       },
     }
     // If there's a current session in the store with no tab, snapshot it first as the "initial" tab
@@ -1464,6 +1489,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         modelUsage: {},
         sessionPersonaId: undefined,
         sessionModelOverride: undefined,
+        draftDepartmentId: undefined,
         isPlanMode: false,
         turnDiff: null,
         threadSettings: null,
@@ -1495,6 +1521,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             modelUsage: sole.snapshot.modelUsage,
             sessionPersonaId: sole.snapshot.sessionPersonaId,
             sessionModelOverride: sole.snapshot.sessionModelOverride,
+            draftDepartmentId: sole.snapshot.draftDepartmentId,
             // A turn diff belongs to the conversation that produced it; the
             // snapshot does not carry one, so the reopened tab starts clean.
             turnDiff: null,
@@ -1538,6 +1565,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           modelUsage: newActive.snapshot.modelUsage,
           sessionPersonaId: newActive.snapshot.sessionPersonaId,
           sessionModelOverride: newActive.snapshot.sessionModelOverride,
+          draftDepartmentId: newActive.snapshot.draftDepartmentId,
           turnDiff: null,
           threadSettings: null,
           threadStatus: null,
@@ -1577,6 +1605,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             modelUsage: state.modelUsage,
             sessionPersonaId: state.sessionPersonaId,
             sessionModelOverride: state.sessionModelOverride,
+            draftDepartmentId: state.draftDepartmentId,
           },
         }
       }
@@ -1605,6 +1634,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         modelUsage: targetTab.snapshot.modelUsage,
         sessionPersonaId: targetTab.snapshot.sessionPersonaId,
         sessionModelOverride: targetTab.snapshot.sessionModelOverride,
+        draftDepartmentId: targetTab.snapshot.draftDepartmentId,
         turnDiff: null,
         threadSettings: null,
         threadStatus: null,

@@ -17,12 +17,8 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import {
   Archive,
   ArrowUpDown,
-  Building2,
   ChevronDown,
   ChevronRight,
-  ExternalLink,
-  FolderInput,
-  FolderOpen,
   Inbox,
   PenLine,
   Search,
@@ -34,7 +30,6 @@ import type { SessionListItem } from '../../types/app.types'
 import { useT, useI18n } from '../../i18n'
 import {
   deptDisplayName, deptEmoji, kindOf, rootOf,
-  type UiLocale,
 } from '../departments/deptUtils'
 import { buildDeptLookup, resolveDeptForSession } from '../departments/sessionFiling'
 import { openSessionCore } from '../departments/openSessionCore'
@@ -52,13 +47,14 @@ import {
   deriveJobOptions, isFilteredEmpty, jobAfterOriginChange, resolveJobSelection,
   visibleJobOptions, type ArchiveOriginKind,
 } from './archiveJobFilter'
-import SessionOriginBadge from '../shared/SessionOriginBadge'
-
-const ELLIPSIS: React.CSSProperties = {
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-}
+import ArchiveRow, { ROW_H } from './ArchiveRow'
+import ArchiveBulkBar from './ArchiveBulkBar'
+import { ELLIPSIS, employeeTag, recordTitle, type ArchiveRecord } from './archiveRecord'
+import {
+  emptySelection, pruneSelection, selectAllInView, selectedInView,
+  selectionMode, toggleSelected,
+} from './archiveSelection'
+import { useArchiveBulkActions } from './useArchiveBulkActions'
 
 type TimeRange = 'all' | 'today' | 'week' | 'month'
 
@@ -101,10 +97,10 @@ function readShowCommandOnly(): boolean {
 // ── Fixed geometry ───────────────────────────────────────────────────────────
 // The ledger is windowed, so every block's size has to be known without
 // measuring the DOM. These numbers mirror the styles below exactly: a row is
-// 35px (including its 1px separator), a group header is 25px, the card border
-// contributes 2px, groups are separated by an 18px flex gap and the scroller
-// has 12px of top padding.
-const ROW_H = 35
+// 35px (including its 1px separator — `ROW_H` is shared with ArchiveRow so the
+// two cannot drift), a group header is 25px, the card border contributes 2px,
+// groups are separated by an 18px flex gap and the scroller has 12px of top
+// padding.
 const GROUP_HEADER_H = 25
 const CARD_BORDER_H = 2
 const GROUP_GAP = 18
@@ -113,31 +109,6 @@ const LEDGER_PAD_TOP = 12
 const OVERSCAN_ROWS = 8
 /** Initial slice rendered before the scroller has been measured. */
 const INITIAL_VIEWPORT_H = 900
-
-interface ArchiveRecord {
-  session: SessionListItem
-  /**
-   * The resolved live owner — a manual filing's node, or the node whose folder
-   * the session ran in. Null when the user's filing points at a deleted node.
-   */
-  dept: Department | null
-  /**
-   * A manual filing whose node no longer exists: the node's name at filing
-   * time. The row shows this, never the folder-derived node and never a live
-   * department it was not filed under.
-   */
-  removedDeptName: string | null
-  /** The top of that node's branch — what the record is grouped under. */
-  root: Department | null
-  archived: boolean
-  /** No human-authored message in the transcript — a run of commands only. */
-  commandOnly: boolean
-  /**
-   * The user filed this conversation by hand. True even when the target node
-   * was deleted: the assertion outlived the node, and the row says so.
-   */
-  handFiled: boolean
-}
 
 interface ArchiveGroup {
   /** null for the 未分派 group. */
@@ -151,15 +122,6 @@ const TIME_WINDOWS: Record<Exclude<TimeRange, 'all'>, number> = {
   today: 24 * 60 * 60 * 1000,
   week: 7 * 24 * 60 * 60 * 1000,
   month: 30 * 24 * 60 * 60 * 1000,
-}
-
-/** Short, stable handle for an employee — the session id is all they have. */
-function employeeTag(sessionId: string): string {
-  return sessionId.replace(/-/g, '').slice(0, 6)
-}
-
-function recordTitle(session: SessionListItem, untitled: string): string {
-  return displayTitle(session, untitled)
 }
 
 export default function ArchivePanel() {
@@ -194,6 +156,15 @@ export default function ArchivePanel() {
   const [onlyHandFiled, setOnlyHandFiled] = useState(false)
   // One dialog for the panel, opened for whichever row asked for it.
   const [filingSessionId, setFilingSessionId] = useState<string | null>(null)
+  // ── Selection ──
+  // Scoped to the current filtered view; the prune effect below is what keeps
+  // that promise. `prunedCount` is the receipt for a filter change that dropped
+  // selected rows, so the selection never shrinks silently.
+  const [selection, setSelection] = useState<ReadonlySet<string>>(emptySelection)
+  const [prunedCount, setPrunedCount] = useState(0)
+  // A delete in flight: the bar stays mounted but cannot start a second batch.
+  const [bulkBusy, setBulkBusy] = useState(false)
+  const { deleteSessions, setArchived } = useArchiveBulkActions()
 
   // Remember the reveal choice; the toggle itself still works if storage throws.
   useEffect(() => {
@@ -305,6 +276,96 @@ export default function ArchivePanel() {
   )
   const visibleRecords = handFiltered.visible
   const handHiddenCount = handFiltered.hidden
+
+  // ── Selection, scoped to the view ──
+  // All three derive from `visibleRecords`, the fully filtered listing. A bulk
+  // action reads `selectedVisibleIds`, so even the one render between a filter
+  // change and the prune effect cannot act on a row the user cannot see.
+  const visibleIds = useMemo(
+    () => visibleRecords.map(r => r.session.sessionId),
+    [visibleRecords],
+  )
+  const selectedVisibleIds = useMemo(
+    () => selectedInView(selection, visibleIds),
+    [selection, visibleIds],
+  )
+  const selectionModeValue = useMemo(
+    () => selectionMode(selection, visibleIds),
+    [selection, visibleIds],
+  )
+  const selectedArchivedCount = useMemo(
+    () => selectedVisibleIds.filter(id => archivedSet.has(id)).length,
+    [selectedVisibleIds, archivedSet],
+  )
+
+  // A filter change (or a write action) can take selected rows out of the view.
+  // Keep only visible-and-selected and report how many were dropped: shrinking
+  // the number without a word is exactly the silent behaviour to avoid.
+  useEffect(() => {
+    const result = pruneSelection(selection, visibleIds)
+    if (result.dropped === 0) return
+    setSelection(result.selected)
+    setPrunedCount(result.dropped)
+  }, [selection, visibleIds])
+
+  const toggleRowSelection = useCallback((id: string) => {
+    setPrunedCount(0)
+    setSelection(current => toggleSelected(current, id))
+  }, [])
+
+  const toggleAllSelection = useCallback(() => {
+    setPrunedCount(0)
+    // 'some' means the next press selects everything shown; only a full view
+    // clears it.
+    setSelection(current => selectAllInView(current, visibleIds, selectionModeValue !== 'all'))
+  }, [visibleIds, selectionModeValue])
+
+  const clearSelection = useCallback(() => {
+    setPrunedCount(0)
+    setSelection(emptySelection())
+  }, [])
+
+  const archiveSelected = useCallback((archive: boolean) => {
+    const ids = selectedVisibleIds
+    // Empty the selection before writing: the bar must not be able to offer the
+    // same batch twice while the prefs change re-renders the ledger.
+    setPrunedCount(0)
+    setSelection(emptySelection())
+    setArchived(ids, archive)
+  }, [selectedVisibleIds, setArchived])
+
+  const deleteSelected = useCallback(async () => {
+    if (bulkBusy || selectedVisibleIds.length === 0) return
+    const chosen = new Set(selectedVisibleIds)
+    const items = visibleRecords
+      .filter(r => chosen.has(r.session.sessionId))
+      .map(r => ({ id: r.session.sessionId, title: recordTitle(r.session, t('session.untitled')) }))
+    setPrunedCount(0)
+    setSelection(emptySelection())
+    setBulkBusy(true)
+    try {
+      await deleteSessions(items)
+    } finally {
+      setBulkBusy(false)
+    }
+  }, [bulkBusy, deleteSessions, selectedVisibleIds, visibleRecords, t])
+
+  /** The row's own delete is the same batch path with one item in it. */
+  const deleteOne = useCallback((record: ArchiveRecord) => {
+    const sessionId = record.session.sessionId
+    // Same as the row's archive toggle: the delete was asked for, so its row
+    // must not show up later as "selected rows left the view".
+    setSelection(currentSelection => {
+      if (!currentSelection.has(sessionId)) return currentSelection
+      const kept = new Set(currentSelection)
+      kept.delete(sessionId)
+      return kept
+    })
+    void deleteSessions([{
+      id: sessionId,
+      title: recordTitle(record.session, t('session.untitled')),
+    }])
+  }, [deleteSessions, t])
 
   // What "ask about these" would send, previewed on every listing change so the
   // number on the button is the count that will actually leave: distinct session
@@ -424,6 +485,15 @@ export default function ArchivePanel() {
       : [...current, sessionId]
     setPrefs({ archivedSessions: next })
     window.electronAPI.prefsSet('archivedSessions', next)
+    // Archiving the only row that matched removes it from the view. Drop it
+    // from the selection here so the user gets no "selected rows left the
+    // view" notice for an action they just asked for.
+    setSelection(currentSelection => {
+      if (!currentSelection.has(sessionId)) return currentSelection
+      const kept = new Set(currentSelection)
+      kept.delete(sessionId)
+      return kept
+    })
   }, [setPrefs])
 
   const toggleCommandOnly = useCallback(() => {
@@ -781,6 +851,27 @@ export default function ArchivePanel() {
           the windowed ledger relies on. */}
       {jobFilter !== null && <ArchiveJobSummary jobId={jobFilter} />}
 
+      {/* Selection bar. Outside the scroller, like the job summary, so its
+          height can never move the analytic row offsets. It stays mounted when
+          a filter emptied the view after a prune, because that notice is the
+          only account of what happened to the selection. */}
+      {(visibleRecords.length > 0 || selection.size > 0 || prunedCount > 0) && (
+        <ArchiveBulkBar
+          mode={selectionModeValue}
+          visibleCount={visibleIds.length}
+          selectedCount={selectedVisibleIds.length}
+          archiveCount={selectedVisibleIds.length - selectedArchivedCount}
+          unarchiveCount={selectedArchivedCount}
+          prunedCount={prunedCount}
+          busy={bulkBusy}
+          onToggleAll={toggleAllSelection}
+          onArchive={() => archiveSelected(true)}
+          onUnarchive={() => archiveSelected(false)}
+          onDelete={() => void deleteSelected()}
+          onClear={clearSelection}
+        />
+      )}
+
       {/* Ledger */}
       <div ref={ledgerRef} style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 24px' }}>
         {sessionsLoading && sessions.length === 0 ? (
@@ -892,9 +983,12 @@ export default function ArchivePanel() {
                           index={start + i}
                           first={start + i === 0}
                           opening={opening === record.session.sessionId}
+                          selected={selection.has(record.session.sessionId)}
                           onOpen={() => void open(record)}
                           onToggleArchived={() => toggleArchived(record.session.sessionId)}
                           onFile={() => setFilingSessionId(record.session.sessionId)}
+                          onDelete={() => deleteOne(record)}
+                          onToggleSelected={() => toggleRowSelection(record.session.sessionId)}
                           t={t}
                           locale={resolvedLocale}
                         />
@@ -966,201 +1060,3 @@ export default function ArchivePanel() {
   )
 }
 
-function ArchiveRow({
-  record, index, first, opening, onOpen, onToggleArchived, onFile, t, locale,
-}: {
-  record: ArchiveRecord
-  /** Absolute row index inside the group — used for windowing verification. */
-  index: number
-  first: boolean
-  opening: boolean
-  onOpen: () => void
-  onToggleArchived: () => void
-  /** Open the panel's single file-under-department dialog for this session. */
-  onFile: () => void
-  t: ReturnType<typeof useT>
-  locale: UiLocale
-}) {
-  const [hovered, setHovered] = useState(false)
-  const { session } = record
-  const title = recordTitle(session, t('session.untitled'))
-  const when = formatDateTimeShort(locale, session.timestamp)
-
-  return (
-    <div
-      data-archive-row={index}
-      data-session-id={session.sessionId}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={onOpen}
-      role="button"
-      tabIndex={0}
-      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen() } }}
-      title={session.lastPrompt || title}
-      className="row-focus-inset"
-      style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        // Fixed height keeps the analytic offsets in `layout` exact.
-        height: ROW_H, boxSizing: 'border-box',
-        padding: '0 12px', cursor: 'pointer',
-        // Hairlines use the same token as the card border; the brighter
-        // --bg-active read as a second border colour inside the card.
-        borderTop: first ? 'none' : '1px solid var(--border)',
-        background: hovered ? 'var(--bg-active)' : 'transparent',
-        // Command-only rows are revealable, never promoted: they read as
-        // background, which is what they are.
-        opacity: record.archived || record.commandOnly ? 0.55 : 1,
-        transition: 'background 0.15s ease',
-      }}
-    >
-      <span style={{ fontSize: 11, width: 12, flexShrink: 0, color: 'var(--text-muted)' }}>
-        {record.archived ? '📦' : '📄'}
-      </span>
-
-      <span title={title} style={{
-        flex: 1, minWidth: 0, fontSize: 12, color: 'var(--text-primary)',
-        fontWeight: 500, ...ELLIPSIS,
-      }}>
-        {title}
-      </span>
-
-      <SessionOriginBadge origin={session.origin} />
-
-      {record.commandOnly && (
-        <span style={{
-          flexShrink: 0, fontSize: 9, padding: '1px 6px', borderRadius: 999,
-          border: '1px solid var(--border)', color: 'var(--text-subtle)',
-        }}>
-          {t('archive.commandOnlyTag')}
-        </span>
-      )}
-
-      {record.archived && (
-        <span style={{
-          flexShrink: 0, fontSize: 9, padding: '1px 6px', borderRadius: 999,
-          border: '1px solid var(--border)', color: 'var(--text-muted)',
-        }}>
-          {t('archive.archivedTag')}
-        </span>
-      )}
-
-      {/* Employee handle — a session has no name of its own, so the id is it. */}
-      <span
-        title={session.sessionId}
-        style={{
-          flexShrink: 0, fontSize: 10, fontFamily: 'monospace',
-          padding: '1px 6px', borderRadius: 5,
-          background: 'var(--accent-bg)', color: 'var(--accent-text)',
-          border: '1px solid var(--accent-border)',
-        }}
-      >
-        #{employeeTag(session.sessionId)}
-      </span>
-
-      {/* Hand-filed marker. The width is reserved even when the row has no
-          filing, so revealing the pen never shifts the department columns.
-          The tooltip says "by you, not by the folder" and never names a live
-          department — a removed filing is described by the tag beside it. */}
-      <span
-        data-hand-filed={record.handFiled ? 'true' : undefined}
-        title={record.handFiled ? t('archive.filedByYouTip') : undefined}
-        style={{
-          flexShrink: 0, width: 14, display: 'flex', alignItems: 'center',
-          justifyContent: 'center', color: 'var(--accent-text)',
-        }}
-      >
-        {record.handFiled && <PenLine size={10} />}
-      </span>
-
-      {/* A manual filing whose node was deleted. The remembered name is the
-          only honest label; the working folder is deliberately not shown as
-          its department, and the row is not moved to a live node. */}
-      {record.removedDeptName !== null ? (
-        <span
-          title={t('archive.removedDeptTip', { name: record.removedDeptName })}
-          style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-muted)', maxWidth: 200 }}
-        >
-          <Building2 size={10} style={{ opacity: 0.6 }} />
-          <span style={ELLIPSIS}>{record.removedDeptName}</span>
-          <span style={{
-            fontSize: 9, padding: '0 5px', borderRadius: 999,
-            border: '1px dashed var(--border)', color: 'var(--text-subtle)', flexShrink: 0,
-          }}>
-            {t('archive.removedDeptTag')}
-          </span>
-        </span>
-      ) : record.dept && record.dept.id !== record.root?.id ? (
-        /* Which desk inside the group's company this was worked at. Only shown
-           when the record sat below the group node — a top-level department's
-           own work would otherwise repeat its own name on every row. */
-        <span
-          title={record.dept.directory}
-          style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-subtle)', maxWidth: 180 }}
-        >
-          <FolderOpen size={10} />
-          <span style={ELLIPSIS}>
-            {kindOf(record.dept) === 'team'
-              ? `${deptDisplayName(record.dept, locale)} · ${t('dept.team')}`
-              : deptDisplayName(record.dept, locale)}
-          </span>
-        </span>
-      ) : !record.dept ? (
-        /* Unassigned records have no group to carry their folder, so spell it out. */
-        <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-subtle)', maxWidth: 200 }}>
-          <FolderOpen size={10} />
-          <span title={session.project || undefined} style={ELLIPSIS}>{session.project || '—'}</span>
-        </span>
-      ) : null}
-
-      <span style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-muted)', width: 118, textAlign: 'right' }}>
-        {when}
-      </span>
-
-      <span style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-subtle)', width: 52, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-        {t('archive.rounds', { count: String(session.messageCount ?? 0) })}
-      </span>
-
-      <button
-        onClick={(e) => { e.stopPropagation(); onToggleArchived() }}
-        title={record.archived ? t('archive.unarchive') : t('archive.archive')}
-        // Hover-revealed, but `row-action` also reveals it on keyboard focus:
-        // an invisible control must not be the next tab stop.
-        className="row-action"
-        style={{
-          flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--text-muted)', display: 'flex', padding: 2,
-          opacity: hovered ? 1 : 0,
-          transition: 'opacity 0.15s ease',
-        }}
-      >
-        <Archive size={12} />
-      </button>
-
-      <button
-        onClick={(e) => { e.stopPropagation(); onFile() }}
-        title={t('archive.fileActionTip')}
-        aria-label={t('archive.fileAction')}
-        data-file-session-action
-        // Same hover/focus idiom as the archive toggle: revealed on row hover,
-        // and `row-action` keeps it visible when it is the keyboard's next stop.
-        className="row-action"
-        style={{
-          flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--text-muted)', display: 'flex', padding: 2,
-          opacity: hovered ? 1 : 0,
-          transition: 'opacity 0.15s ease',
-        }}
-      >
-        <FolderInput size={12} />
-      </button>
-
-      <span style={{
-        flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4,
-        fontSize: 11, color: opening ? 'var(--text-muted)' : 'var(--accent-text)',
-        opacity: opening || hovered ? 1 : 0.55, transition: 'opacity 0.15s ease',
-      }}>
-        <ExternalLink size={11} />{t('archive.open')}
-      </span>
-    </div>
-  )
-}

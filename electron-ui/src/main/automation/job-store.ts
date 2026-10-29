@@ -228,8 +228,12 @@ export interface AutomationStore {
   deptBudgets?: AutomationDeptBudget[]
 }
 
-export function readAutomationStore(): AutomationStore {
-  const file = getStorePath()
+/**
+ * `file` is a seam for the backup/importer (and its harness): the app always
+ * reads userData/automations.json, while a restore into a scratch directory can
+ * name the same file explicitly and still go through this one validator.
+ */
+export function readAutomationStore(file: string = getStorePath()): AutomationStore {
   if (!fs.existsSync(file)) return { jobs: [], pausedAll: false, deptBudgets: [] }
   try {
     const parsed = JSON.parse(fs.readFileSync(file, 'utf-8')) as Record<string, unknown>
@@ -261,8 +265,7 @@ export function readAutomationStore(): AutomationStore {
   }
 }
 
-export function writeAutomationStore(store: AutomationStore): void {
-  const file = getStorePath()
+export function writeAutomationStore(store: AutomationStore, file: string = getStorePath()): void {
   try {
     fs.mkdirSync(path.dirname(file), { recursive: true })
     const tmp = `${file}.tmp`

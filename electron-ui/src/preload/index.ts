@@ -2219,17 +2219,24 @@ const electronAPI = {
       id: string; label: string; status: 'ok' | 'warning' | 'error'; detail: string; subDetail?: string
     }[]>,
 
-  // ── Backup & Restore (Iteration 426) ──────
+  // ── Backup & Restore (format 2) ──────
+  // Counts cover every section the file carries; a section the user had none of
+  // is simply zero rather than absent, so the report can say "0 jobs" honestly.
   backupExport: () =>
     ipcRenderer.invoke('backup:export') as Promise<{
       success?: boolean; canceled?: boolean; error?: string;
-      filePath?: string; sizeKB?: number;
-      counts?: { personas: number; workflows: number; notes: number; memories: number; snippets: number }
+      filePath?: string; sizeKB?: number; backupVersion?: number;
+      counts?: Record<string, number>
     }>,
   backupImport: () =>
     ipcRenderer.invoke('backup:import') as Promise<{
-      success?: boolean; canceled?: boolean; error?: string;
-      imported?: Record<string, number>; backupDate?: string
+      success?: boolean; canceled?: boolean; error?: string; errorCode?: string;
+      backupVersion?: number; backupDate?: string; olderVersion?: boolean;
+      written?: Record<string, number>; skippedExisting?: Record<string, number>;
+      failed?: Record<string, number>;
+      refused?: { section: string; path: string; reason: string }[];
+      warnings?: { code: string; count?: number; version?: number }[];
+      sectionsPresent?: { automations: boolean; skills: boolean; memoryFiles: boolean; sessionTrash: boolean }
     }>,
 
   // ── Providers (multi-model support) ────

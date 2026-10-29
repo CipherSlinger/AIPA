@@ -20,8 +20,9 @@
  *    "this turn carried no memory".
  */
 import type { MemoryContextResult, MemoryUnreadableEntry } from '../hooks/promptMemory'
+import type { DeptHandbookReceipt } from './deptHandbook'
 
-/** What one turn was handed as memory context. */
+/** What one turn was handed as context: memory tiers, and a department handbook. */
 export interface MemoryTurnReceipt {
   /** Tier ids that made it into the block, in the assembler's own order. */
   applied: string[]
@@ -37,6 +38,39 @@ export interface MemoryTurnReceipt {
   unreadable: MemoryUnreadableEntry[]
   /** The thrown message when assembly failed; the turn ran without memory. */
   failed?: string
+  /**
+   * The department handbook this turn was told about, if the conversation
+   * belongs to a department. Absent on every receipt written before this field
+   * existed, which is why it stays optional and is validated on its own.
+   */
+  department?: DeptHandbookReceipt
+}
+
+/**
+ * Combine the two things a turn can be told about onto one receipt.
+ *
+ * They travel together because the row renders one quiet line per turn: two
+ * separate receipts would mean two lines for what is one envelope. A memory
+ * receipt and a handbook receipt are independent — either may be null — and
+ * only when both are absent is there nothing to disclose.
+ */
+export function mergeTurnReceipt(
+  memory: MemoryTurnReceipt | null,
+  department: DeptHandbookReceipt | null,
+): MemoryTurnReceipt | null {
+  if (!memory && !department) return null
+  // A receipt carrying only a handbook still has the memory fields, empty:
+  // `summarizeMemoryReceipt` validates them and reports no memory rather than
+  // guessing from a missing field.
+  const base: MemoryTurnReceipt = memory ?? {
+    applied: [],
+    omitted: [],
+    used: {},
+    chars: 0,
+    text: '',
+    unreadable: [],
+  }
+  return department ? { ...base, department } : base
 }
 
 /**
@@ -107,6 +141,22 @@ export async function assembleTurnMemoryForSend(input: {
   return { text, receipt: empty ? null : receipt }
 }
 
+/** The handbook side of a receipt, reduced to what the row may say. */
+export interface DeptHandbookSummary {
+  /**
+   * `empty` means the department defines a handbook with no content. The row
+   * renders nothing for it — the record exists so the fact is not lost, not so
+   * it can be shown as a disclosure.
+   */
+  kind: 'told' | 'unreadable' | 'empty'
+  deptName: string
+  chars: number
+  sourceChars: number
+  truncated: boolean
+  /** Why the handbook could not be used, for the line's tooltip. */
+  reason?: string
+}
+
 /** What the row is allowed to say about a receipt. */
 export interface MemoryReceiptSummary {
   kind: 'absent' | 'told' | 'failed'
@@ -114,6 +164,8 @@ export interface MemoryReceiptSummary {
   omitted: string[]
   unreadableCount: number
   chars: number
+  /** The handbook half, when it has something to disclose; otherwise null. */
+  department: DeptHandbookSummary | null
 }
 
 function isStringArray(value: unknown): value is string[] {
@@ -135,35 +187,82 @@ function isUnreadableArray(value: unknown): value is MemoryUnreadableEntry[] {
 }
 
 /**
- * Decide what a row may claim from a receipt.
+ * Decide what a row may claim about the handbook half of a receipt.
  *
- * Anything that does not have the full expected shape — an older receipt from
- * a build that lacked a field, a hand-edited transcript, a value that is a
- * string where a number belongs — degrades to `absent`. Guessing at a
- * half-known receipt would let the row invent tiers the assembler never
- * applied; silence is the only honest fallback.
+ * Validated separately from the memory half so a receipt written by an older
+ * build (no `department` at all) still renders its memory line, and a receipt
+ * whose handbook record is malformed loses only the handbook claim.
  */
-export function summarizeMemoryReceipt(
-  receipt: MemoryTurnReceipt | null | undefined,
-): MemoryReceiptSummary {
-  const absent = (): MemoryReceiptSummary => ({
+function summarizeDepartment(value: unknown): DeptHandbookSummary | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const d = value as Record<string, unknown>
+  if (typeof d.deptId !== 'string') return null
+  if (typeof d.deptName !== 'string' || d.deptName.trim() === '') return null
+  if (typeof d.chars !== 'number' || !Number.isFinite(d.chars) || d.chars < 0) return null
+  if (typeof d.sourceChars !== 'number' || !Number.isFinite(d.sourceChars) || d.sourceChars < 0) return null
+  if (typeof d.truncated !== 'boolean') return null
+  if (d.empty !== undefined && typeof d.empty !== 'boolean') return null
+  if (d.unreadable !== undefined && typeof d.unreadable !== 'string') return null
+  if (d.text !== undefined && typeof d.text !== 'string') return null
+
+  // An unreadable handbook applied nothing, whatever else the record says.
+  if (typeof d.unreadable === 'string' && d.unreadable.trim() !== '') {
+    return {
+      kind: 'unreadable',
+      deptName: d.deptName,
+      chars: 0,
+      sourceChars: d.sourceChars,
+      truncated: false,
+      reason: d.unreadable,
+    }
+  }
+
+  if (d.chars === 0) {
+    // Explicitly empty: recorded, never rendered. A zero-character entry
+    // without that flag is an inconsistent record, so it degrades to nothing.
+    return d.empty === true
+      ? { kind: 'empty', deptName: d.deptName, chars: 0, sourceChars: 0, truncated: false }
+      : null
+  }
+
+  // Truncation has to have cut something. A record that claims a cut but
+  // carries the whole handbook is not trustworthy enough to report.
+  if (d.truncated ? d.sourceChars <= d.chars : d.sourceChars < d.chars) return null
+
+  return {
+    kind: 'told',
+    deptName: d.deptName,
+    chars: d.chars,
+    sourceChars: d.sourceChars,
+    truncated: d.truncated,
+  }
+}
+
+function emptySummary(): MemoryReceiptSummary {
+  return {
     kind: 'absent',
     applied: [],
     omitted: [],
     unreadableCount: 0,
     chars: 0,
-  })
+    department: null,
+  }
+}
 
-  if (!receipt || typeof receipt !== 'object') return absent()
-  const raw = receipt as unknown as Record<string, unknown>
-
-  if (typeof raw.text !== 'string') return absent()
-  if (!isStringArray(raw.applied)) return absent()
-  if (!isStringArray(raw.omitted)) return absent()
-  if (!isNumberRecord(raw.used)) return absent()
-  if (!isUnreadableArray(raw.unreadable)) return absent()
-  if (typeof raw.chars !== 'number' || !Number.isFinite(raw.chars) || raw.chars < 0) return absent()
-  if (raw.failed !== undefined && typeof raw.failed !== 'string') return absent()
+/**
+ * The memory half, or null when it does not have the full expected shape — an
+ * older receipt from a build that lacked a field, a hand-edited transcript, a
+ * value that is a string where a number belongs. Guessing at a half-known
+ * receipt would let the row invent tiers the assembler never applied.
+ */
+function summarizeMemoryPart(raw: Record<string, unknown>): MemoryReceiptSummary | null {
+  if (typeof raw.text !== 'string') return null
+  if (!isStringArray(raw.applied)) return null
+  if (!isStringArray(raw.omitted)) return null
+  if (!isNumberRecord(raw.used)) return null
+  if (!isUnreadableArray(raw.unreadable)) return null
+  if (typeof raw.chars !== 'number' || !Number.isFinite(raw.chars) || raw.chars < 0) return null
+  if (raw.failed !== undefined && typeof raw.failed !== 'string') return null
 
   const unreadableCount = raw.unreadable.length
 
@@ -176,6 +275,7 @@ export function summarizeMemoryReceipt(
       omitted: [],
       unreadableCount: 0,
       chars: 0,
+      department: null,
     }
   }
 
@@ -188,7 +288,14 @@ export function summarizeMemoryReceipt(
   // reportable on their own — that is a fact about the user's files, not a
   // claim about the prompt.
   if (applied.length === 0 && text.trim() === '' && unreadableCount === 0) {
-    return absent()
+    return {
+      kind: 'absent',
+      applied: [],
+      omitted: [],
+      unreadableCount: 0,
+      chars: 0,
+      department: null,
+    }
   }
 
   return {
@@ -197,5 +304,44 @@ export function summarizeMemoryReceipt(
     omitted,
     unreadableCount,
     chars: raw.chars as number,
+    department: null,
+  }
+}
+
+/**
+ * Decide what a row may claim from a receipt.
+ *
+ * The two halves are validated independently: a malformed memory half must not
+ * hide an intact handbook disclosure, and an older receipt with no handbook
+ * must render exactly as it always did. The row is silent only when neither
+ * half has anything to say.
+ */
+export function summarizeMemoryReceipt(
+  receipt: MemoryTurnReceipt | null | undefined,
+): MemoryReceiptSummary {
+  if (!receipt || typeof receipt !== 'object') return emptySummary()
+  const raw = receipt as unknown as Record<string, unknown>
+
+  const department = summarizeDepartment(raw.department)
+  const memory = summarizeMemoryPart(raw)
+
+  if (!memory) {
+    // The memory half is unreadable; the handbook half may still stand on its
+    // own. `empty` says nothing, so it is not a disclosure either.
+    if (department && department.kind !== 'empty') {
+      return { ...emptySummary(), department }
+    }
+    return emptySummary()
+  }
+
+  // Nothing given on either half: silence. A recorded-but-empty handbook never
+  // turns into "this turn carried no handbook".
+  const nothingToShow = memory.kind === 'absent'
+    && (!department || department.kind === 'empty')
+  if (nothingToShow) return emptySummary()
+
+  return {
+    ...memory,
+    department: department && department.kind !== 'empty' ? department : null,
   }
 }

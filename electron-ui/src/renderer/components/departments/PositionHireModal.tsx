@@ -25,7 +25,7 @@ interface PositionHireModalProps {
   personas: Persona[]
   /** Seat binding → department default → active persona, resolved by the caller. */
   initialPersonaId?: string
-  /** A handbook exists, so it will be prepended to the brief. */
+  /** A handbook exists, so every turn of this conversation will carry it. */
   hasHandbook?: boolean
   onCancel: () => void
   onConfirm: (personaId?: string) => void
@@ -47,7 +47,7 @@ export default function PositionHireModal({
       footer={(
         <>
           <span style={{ flex: 1, fontSize: 10, color: 'var(--text-faint)' }}>
-            {hasHandbook ? t('dept.positionHireHandbookHint') : t('dept.positionHireHint')}
+            {hasHandbook ? t('dept.positionHireHandbookHintEveryTurn') : t('dept.positionHireHint')}
           </span>
           <button onClick={onCancel} style={modalSecondaryButtonStyle}>{t('common.cancel')}</button>
           <button onClick={() => onConfirm(personaId)} style={modalPrimaryButtonStyle}>

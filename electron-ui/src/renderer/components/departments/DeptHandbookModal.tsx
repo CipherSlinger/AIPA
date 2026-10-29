@@ -1,9 +1,10 @@
 // The department handbook ("部门手册") plus its default persona.
 //
-// The handbook is the standing brief every employee started from this desk
-// receives before its own first message: conventions, reporting lines, where
-// things live. It is plain text on the department, not a new document store —
-// it only ever travels with the first message of a new session.
+// The handbook is the standing brief every conversation that belongs to this
+// desk receives: conventions, reporting lines, where things live. It is plain
+// text on the department, not a new document store, and it travels with every
+// turn of such a conversation (see `lib/deptHandbook.ts`), never inside the
+// user's visible message.
 
 import { useState } from 'react'
 import { BookOpen } from 'lucide-react'
@@ -43,7 +44,7 @@ export default function DeptHandbookModal({ dept, personas, onCancel, onSave }: 
       footer={(
         <>
           <span style={{ flex: 1, fontSize: 10, color: 'var(--text-faint)' }}>
-            {t('dept.handbookHint')}
+            {t('dept.handbookHintEveryTurn')}
           </span>
           <button onClick={onCancel} style={modalSecondaryButtonStyle}>{t('common.cancel')}</button>
           <button
@@ -56,7 +57,7 @@ export default function DeptHandbookModal({ dept, personas, onCancel, onSave }: 
       )}
     >
       <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
-        {t('dept.handbookSubtitle')}
+        {t('dept.handbookSubtitleEveryTurn')}
       </div>
 
       <label style={modalLabelStyle}>{t('dept.handbook')}</label>

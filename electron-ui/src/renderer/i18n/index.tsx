@@ -93,6 +93,15 @@ type Locale_DateFns = typeof dateFnsZhCN
 let _currentResolvedLocale: 'en' | 'zh-CN' = 'en'
 
 /**
+ * The locale the interface is showing right now, for callers that are not
+ * components (the turn builder). Reads the latest value synchronously; it does
+ * not subscribe, which is why it is only for values written at send time.
+ */
+export function getResolvedLocale(): 'en' | 'zh-CN' {
+  return _currentResolvedLocale
+}
+
+/**
  * Standalone translation function for class components and non-React contexts.
  * Uses the current resolved locale from the I18nProvider.
  * NOTE: Unlike useT(), this does NOT cause React re-renders on locale change.

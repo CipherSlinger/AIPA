@@ -427,7 +427,13 @@
         "globalStructured": "全局记忆目录",
         "projectStructured": "项目记忆目录",
         "personal": "个人笔记"
-      }
+      },
+      "dept": {
+        "told": "部门手册（{{dept}}）· {{chars}} 个字符",
+        "toldCut": "部门手册（{{dept}}）· 只发了前 {{chars}} 个字符，实际 {{sourceChars}} 个",
+        "unreadable": "部门手册（{{dept}}）没读出来——这一轮是在没有它的情况下运行的。"
+      },
+      "expandHintTurn": "查看这一轮实际收到的上下文"
     }
   },
   "sessionReuse": {
@@ -2696,7 +2702,98 @@
     "hint": "导出所有数据（角色、工作流、笔记、记忆、文本片段、设置）到文件。API 密钥不会被导出。",
     "exportSuccess": "备份已保存 ({{size}} KB): {{items}}",
     "importSuccess": "已恢复: {{items}}",
-    "invalidFormat": "无效的备份文件格式"
+    "invalidFormat": "无效的备份文件格式",
+    "scopeHint": "这个文件装着设置、角色、工作流、笔记、记忆、文本片段、定时任务、技能、记忆文档，以及「最近删除」里的清单。对话本身、API 密钥和插件数据不在其中。",
+    "report": {
+      "exportTitle": "备份结果",
+      "importTitle": "恢复结果",
+      "exported": "已保存 {{size}} KB：{{items}}。",
+      "settingsOnly": "仅设置",
+      "exportSkippedFiles": "备份时跳过了 {{n}} 个文件（太大或不是文本），它们已列在文件里。",
+      "exportNotIncluded": "对话记录、API 密钥和插件数据都不在这个文件里。",
+      "restored": "已写入：{{items}}。",
+      "nothingWritten": "什么都没写——文件里的东西这里已经有了。",
+      "skippedExisting": "这里已经有，保持原样：{{items}}。",
+      "failed": "有 {{n}} 项没能写入。",
+      "refused": "有 {{n}} 项被拒绝：其中某个路径指向了不允许写入的位置，这些项一个文件都没有写。",
+      "olderVersion": "这个文件来自较旧版本的 AIPA（格式 {{version}}）。它不可能包含定时任务、技能、记忆文档和「最近删除」清单，这些部分保持原样。",
+      "noJobs": "文件里没有定时任务这一部分，你的定时任务保持原样。",
+      "sessionPayloads": "恢复了 {{n}} 条已删对话的记录，但对话文件不在备份里。它们会出现在「最近删除」中，打不开，也恢复不了。",
+      "importSkippedFiles": "备份时跳过了 {{n}} 个文件（太大或不是文本），对应的技能和记忆文档并不完整。",
+      "conversationsAbsent": "对话本身从不在备份里。",
+      "reload": "重新载入以应用恢复的设置"
+    },
+    "error": {
+      "newerVersion": "这个文件来自更新版本的 AIPA。请先更新 AIPA 再恢复；这次没有改动任何东西。",
+      "writeFailed": "备份没能保存。",
+      "readFailed": "备份文件读不出来。"
+    },
+    "unit": {
+      "settings": {
+        "one": "{{n}} 项设置",
+        "other": "{{n}} 项设置"
+      },
+      "personas": {
+        "one": "{{n}} 个角色",
+        "other": "{{n}} 个角色"
+      },
+      "workflows": {
+        "one": "{{n}} 个工作流",
+        "other": "{{n}} 个工作流"
+      },
+      "notes": {
+        "one": "{{n}} 条笔记",
+        "other": "{{n}} 条笔记"
+      },
+      "memories": {
+        "one": "{{n}} 条记忆",
+        "other": "{{n}} 条记忆"
+      },
+      "snippets": {
+        "one": "{{n}} 个文本片段",
+        "other": "{{n}} 个文本片段"
+      },
+      "quickReplies": {
+        "one": "{{n}} 条快捷回复",
+        "other": "{{n}} 条快捷回复"
+      },
+      "templates": {
+        "one": "{{n}} 个模板",
+        "other": "{{n}} 个模板"
+      },
+      "tags": {
+        "one": "{{n}} 个标签",
+        "other": "{{n}} 个标签"
+      },
+      "jobs": {
+        "one": "{{n}} 个定时任务",
+        "other": "{{n}} 个定时任务"
+      },
+      "trashedJobs": {
+        "one": "{{n}} 个已删任务",
+        "other": "{{n}} 个已删任务"
+      },
+      "skills": {
+        "one": "{{n}} 个技能",
+        "other": "{{n}} 个技能"
+      },
+      "trashedSkills": {
+        "one": "{{n}} 个已删技能",
+        "other": "{{n}} 个已删技能"
+      },
+      "memoryFiles": {
+        "one": "{{n}} 个记忆文档",
+        "other": "{{n}} 个记忆文档"
+      },
+      "trashedConversations": {
+        "one": "{{n}} 条已删对话记录",
+        "other": "{{n}} 条已删对话记录"
+      },
+      "files": {
+        "one": "{{n}} 个文件",
+        "other": "{{n}} 个文件"
+      }
+    }
   },
   "fork": {
     "forkFromHere": "从此处分叉",
@@ -3200,7 +3297,10 @@
         "unknownGeneric": "说不准什么时候解除限制——这段窗口的花费算不准"
       }
     },
-    "empFireAria": "解雇这名员工——对话会移入“最近删除”，可以从那里恢复"
+    "empFireAria": "解雇这名员工——对话会移入“最近删除”，可以从那里恢复",
+    "handbookHintEveryTurn": "这个部门的每一条消息都会带上它",
+    "handbookSubtitleEveryTurn": "这个部门的常驻规则。属于这个部门的对话，每一条消息都会带上它——协作约定、交接要求、资料位置都写在这里。",
+    "positionHireHandbookHintEveryTurn": "部门手册会跟着这里的每一条消息一起发出去"
   },
   "archive": {
     "summaryTask": "{{count}} 项任务",
@@ -3270,6 +3370,42 @@
       "buttonTipCapped": "当前视图共有 {{total}} 段对话，但只发送前 {{count}} 段，另有 {{omitted}} 段没有带上。",
       "buttonDisabled": "当前没有列出任何对话，没有可提问的内容。",
       "cappedNote": "每次提问最多读取 {{cap}} 段对话。"
+    },
+    "bulk": {
+      "selectAll": "选中当前列表全部 {{count}} 项",
+      "selectAllAria": "选中当前列表里的全部任务",
+      "selectRowAria": "选中“{{title}}”",
+      "selected": "已选 {{count}} 项",
+      "archive": "归档 {{count}} 项",
+      "unarchive": "放回列表 {{count}} 项",
+      "delete": "删除 {{count}} 项",
+      "deleteAria": "把选中的 {{count}} 项移入最近删除",
+      "clear": "取消选择",
+      "skipArchive": "其中 {{count}} 项已经归档，保持原样。",
+      "skipUnarchive": "其中 {{count}} 项本来没有归档，保持原样。",
+      "pruned": "{{count}} 项选中项已不在当前列表，已从选中中移除。",
+      "undoAria": "撤销这次批量删除",
+      "rowDelete": "删除这段对话",
+      "result": {
+        "archive": "已归档 {{done}} / {{total}} 项。",
+        "unarchive": "已把 {{done}} / {{total}} 项放回列表。",
+        "delete": "{{done}} / {{total}} 项已移入最近删除。",
+        "restore": "已从最近删除恢复 {{done}} / {{total}} 项。"
+      },
+      "note": {
+        "alreadyArchived": "{{count}} 项本来就已经归档。",
+        "notArchived": "{{count}} 项本来没有归档。",
+        "skipped": "{{count}} 项跳过。",
+        "reason": "{{count}} 项失败：{{reason}}。",
+        "listStale": "列表没能刷新，侧边栏可能还看不到恢复的对话。"
+      },
+      "reason": {
+        "gone": "这段对话已经不在最近删除里",
+        "occupied": "原来的位置被占用了",
+        "folderGone": "有一部分已经不在磁盘上",
+        "missing": "找不到这段对话",
+        "other": "系统拒绝了"
+      }
     }
   },
   "canvas": {

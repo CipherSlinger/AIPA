@@ -116,16 +116,16 @@ export interface RestoreSessionOptions {
   roots?: SessionRoots
 }
 
-function trashRoot(): string {
-  return path.join(app.getPath('userData'), 'trash')
+function trashRoot(override?: string): string {
+  return override ?? path.join(app.getPath('userData'), 'trash')
 }
 
-function trashSessionsDir(): string {
-  return path.join(trashRoot(), 'sessions')
+function trashSessionsDir(override?: string): string {
+  return path.join(trashRoot(override), 'sessions')
 }
 
-function manifestPath(): string {
-  return path.join(trashRoot(), 'sessions.json')
+function manifestPath(override?: string): string {
+  return path.join(trashRoot(override), 'sessions.json')
 }
 
 function failure(code: SessionTrashErrorCode, error: string): SessionTrashFailure {
@@ -177,8 +177,8 @@ function normalizeEntry(raw: unknown): TrashedSessionEntry | null {
   return { id, sessionId, engine, items, deletedAt, ...(title ? { title } : {}) }
 }
 
-function readManifest(): TrashedSessionEntry[] {
-  const file = manifestPath()
+function readManifest(trashDir?: string): TrashedSessionEntry[] {
+  const file = manifestPath(trashDir)
   if (!fs.existsSync(file)) return []
   try {
     const parsed = JSON.parse(fs.readFileSync(file, 'utf-8')) as unknown
@@ -203,8 +203,8 @@ function readManifest(): TrashedSessionEntry[] {
   }
 }
 
-function writeManifest(entries: TrashedSessionEntry[]): void {
-  const file = manifestPath()
+function writeManifest(entries: TrashedSessionEntry[], trashDir?: string): void {
+  const file = manifestPath(trashDir)
   fs.mkdirSync(path.dirname(file), { recursive: true })
   const tmp = `${file}.tmp`
   fs.writeFileSync(tmp, JSON.stringify({
@@ -377,6 +377,45 @@ export function moveSessionToTrash(
   }
 
   return { ok: true, entry }
+}
+
+/**
+ * Read the manifest for the backup export.
+ *
+ * The backup stores these rows without the payload files, so the restored rows
+ * will point at paths that do not exist. That is a fact the restore reports
+ * rather than hides; `listTrashedSessions` will mark each one unavailable.
+ */
+export function readTrashedSessionEntries(trashDir?: string): TrashedSessionEntry[] {
+  return readManifest(trashDir)
+}
+
+/**
+ * Merge rows from a backup into the conversation trash manifest.
+ *
+ * An existing id wins. The incoming rows are validated by the same per-row
+ * validator the delete path uses, so a hand-edited backup cannot make the trash
+ * point at arbitrary paths.
+ */
+export function mergeTrashedSessionEntries(
+  incoming: unknown,
+  trashDir?: string,
+): { added: number; skipped: number; invalid: number } {
+  if (!Array.isArray(incoming)) return { added: 0, skipped: 0, invalid: 0 }
+  const entries = readManifest(trashDir)
+  const existing = new Set(entries.map(entry => entry.id))
+  const added: TrashedSessionEntry[] = []
+  let skipped = 0
+  let invalid = 0
+  for (const raw of incoming) {
+    const entry = normalizeEntry(raw)
+    if (!entry) { invalid += 1; continue }
+    if (existing.has(entry.id)) { skipped += 1; continue }
+    existing.add(entry.id)
+    added.push(entry)
+  }
+  if (added.length > 0) writeManifest([...entries, ...added], trashDir)
+  return { added: added.length, skipped, invalid }
 }
 
 /**

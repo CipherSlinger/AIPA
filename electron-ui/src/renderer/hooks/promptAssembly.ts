@@ -73,6 +73,12 @@ export interface ComposeSystemPromptInput {
   persona: PersonaTurnSettings
   /** Pre-assembled, already-budgeted memory block ('' when none). */
   memoryContext: string
+  /**
+   * Pre-built `<department_handbook>` block for this turn ('' when none).
+   * Already wrapped and cut by `buildDeptHandbookTurn`; this function only
+   * decides where it sits in the envelope.
+   */
+  departmentHandbook?: string
   /** Effective working directory for this turn (tab override > prefs). */
   cwd: string
   /** tempSystemPrompt > prefs.appendSystemPrompt, resolved by the caller. */
@@ -84,10 +90,10 @@ export interface ComposeSystemPromptInput {
 /**
  * Build the system-prompt parts that are prepended to the user message.
  * Order matters: presence, persona/custom prompt, output style, memory,
- * appended prompt.
+ * department handbook, appended prompt.
  */
 export function composeSystemPromptParts(input: ComposeSystemPromptInput): string[] {
-  const { prefs, persona, memoryContext, cwd, appendSystemPrompt } = input
+  const { prefs, persona, memoryContext, departmentHandbook, cwd, appendSystemPrompt } = input
   const parts: string[] = []
 
   if (prefs.systemPresence !== false) {
@@ -125,6 +131,13 @@ export function composeSystemPromptParts(input: ComposeSystemPromptInput): strin
 
   if (memoryContext.trim()) {
     parts.push(memoryContext.trim())
+  }
+
+  // The desk's standing rules follow the memory block: both are context about
+  // the user and their work, and both must precede anything the user appended
+  // deliberately for this turn.
+  if (departmentHandbook?.trim()) {
+    parts.push(departmentHandbook.trim())
   }
 
   if (appendSystemPrompt?.trim()) {

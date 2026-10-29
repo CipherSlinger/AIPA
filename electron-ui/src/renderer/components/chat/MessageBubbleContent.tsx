@@ -394,9 +394,11 @@ export default React.memo(function MessageBubbleContent({
             </div>
           )}
 
-          {/* What memory context this turn was handed, under the user's own
-              words. Absent on rows loaded from disk — the line says nothing
-              rather than claiming the turn carried no memory. */}
+          {/* What context this turn was handed (memory tiers, and the
+              department handbook when the conversation belongs to a
+              department), under the user's own words. Absent on rows loaded
+              from disk — the line says nothing rather than claiming the turn
+              carried nothing. */}
           {isUser && message.memoryReceipt ? (
             <MemoryReceiptLine receipt={message.memoryReceipt} />
           ) : null}

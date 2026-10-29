@@ -69,16 +69,16 @@ export function personalSkillsRoot(): string {
   return path.join(os.homedir(), '.claude', 'skills')
 }
 
-function trashRoot(): string {
-  return path.join(app.getPath('userData'), 'trash')
+function trashRoot(override?: string): string {
+  return override ?? path.join(app.getPath('userData'), 'trash')
 }
 
-function trashSkillsDir(): string {
-  return path.join(trashRoot(), 'skills')
+function trashSkillsDir(override?: string): string {
+  return path.join(trashRoot(override), 'skills')
 }
 
-function manifestPath(): string {
-  return path.join(trashRoot(), 'skills.json')
+function manifestPath(override?: string): string {
+  return path.join(trashRoot(override), 'skills.json')
 }
 
 /**
@@ -105,8 +105,8 @@ function normalizeEntry(raw: unknown): TrashedSkillEntry | null {
   return { id, name, originalPath, trashedPath, deletedAt }
 }
 
-function readManifest(): TrashedSkillEntry[] {
-  const file = manifestPath()
+function readManifest(trashDir?: string): TrashedSkillEntry[] {
+  const file = manifestPath(trashDir)
   if (!fs.existsSync(file)) return []
   try {
     const parsed = JSON.parse(fs.readFileSync(file, 'utf-8')) as unknown
@@ -131,8 +131,8 @@ function readManifest(): TrashedSkillEntry[] {
   }
 }
 
-function writeManifest(entries: TrashedSkillEntry[]): void {
-  const file = manifestPath()
+function writeManifest(entries: TrashedSkillEntry[], trashDir?: string): void {
+  const file = manifestPath(trashDir)
   fs.mkdirSync(path.dirname(file), { recursive: true })
   const tmp = `${file}.tmp`
   fs.writeFileSync(tmp, JSON.stringify({
@@ -233,6 +233,40 @@ export function moveSkillToTrash(
   }
 
   return { ok: true, entry }
+}
+
+/** Read the validated manifest for the backup export. */
+export function readTrashedSkillEntries(trashDir?: string): TrashedSkillEntry[] {
+  return readManifest(trashDir)
+}
+
+/**
+ * Merge backup rows into the trash manifest.
+ *
+ * An existing id wins: the folder it points at may still be on this machine,
+ * and a restore must not overwrite the row that makes it restorable. The caller
+ * writes the folders before calling this; a failed write leaves the folders
+ * behind, so the caller removes them and counts the rows as failed.
+ */
+export function mergeTrashedSkillEntries(
+  incoming: unknown,
+  trashDir?: string,
+): { added: number; skipped: number; invalid: number } {
+  if (!Array.isArray(incoming)) return { added: 0, skipped: 0, invalid: 0 }
+  const entries = readManifest(trashDir)
+  const existing = new Set(entries.map(entry => entry.id))
+  const added: TrashedSkillEntry[] = []
+  let skipped = 0
+  let invalid = 0
+  for (const raw of incoming) {
+    const entry = normalizeEntry(raw)
+    if (!entry) { invalid += 1; continue }
+    if (existing.has(entry.id)) { skipped += 1; continue }
+    existing.add(entry.id)
+    added.push(entry)
+  }
+  if (added.length > 0) writeManifest([...entries, ...added], trashDir)
+  return { added: added.length, skipped, invalid }
 }
 
 /**

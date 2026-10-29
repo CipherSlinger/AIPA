@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useT } from '../../i18n'
 import {
   summarizeMemoryReceipt,
+  type DeptHandbookSummary,
   type MemoryReceiptSummary,
   type MemoryTurnReceipt,
 } from '../../lib/memoryReceipt'
@@ -26,57 +27,69 @@ interface Props {
 }
 
 /**
- * One quiet line under a user message saying what memory context was given to
- * the model for that turn, expandable to the block verbatim.
+ * One quiet line under a user message saying what context was given to the
+ * model for that turn — memory tiers and, when the conversation belongs to a
+ * department, its handbook — expandable to the blocks verbatim.
  *
  * The copy reports what was *given*, never what was *used*: the receipt proves
  * the prompt contained a block, not that the assistant acted on it. "Told ·
  * project notes" is a statement about the envelope; "remembered your project
  * notes" would be a claim about behaviour that nothing here can support.
+ *
+ * A turn that was handed nothing renders nothing at all. In particular an
+ * empty handbook is recorded on the receipt but never shown: "this department
+ * has no handbook" is not something the user asked to be told on every turn.
  */
 export function MemoryReceiptLine({ receipt }: Props) {
   const t = useT()
   const [expanded, setExpanded] = useState(false)
   const summary = summarizeMemoryReceipt(receipt)
+  const dept = summary.department
 
   // Absent = unknown or nothing to disclose. Rendering an empty line would
   // turn "we don't know" into "there was no memory", which is a different
   // statement.
-  if (summary.kind === 'absent') return null
+  if (summary.kind === 'absent' && !dept) return null
 
+  const clauses: string[] = []
   if (summary.kind === 'failed') {
-    return (
-      <div
-        data-memory-receipt="failed"
-        title={receipt?.failed || t('error.unknownError')}
-        style={{
-          marginTop: 6,
-          fontSize: 11,
-          lineHeight: 1.5,
-          color: 'var(--text-muted)',
-          userSelect: 'none',
-        }}
-      >
-        {t('chat.memoryReceipt.failed')}
-      </div>
-    )
+    clauses.push(t('chat.memoryReceipt.failed'))
+  } else if (summary.kind === 'told') {
+    const head = memoryHead(summary, t)
+    clauses.push(summary.unreadableCount > 0 && summaryHeadNamesBlock(summary)
+      ? `${head} · ${t('chat.memoryReceipt.unreadable', { count: summary.unreadableCount })}`
+      : head)
   }
+  if (dept?.kind === 'told') clauses.push(deptHead(dept, t))
+  else if (dept?.kind === 'unreadable') {
+    clauses.push(t('chat.memoryReceipt.dept.unreadable', { dept: dept.deptName }))
+  }
+  if (clauses.length === 0) return null
 
-  const head = memoryHead(summary, t)
-  const line = summary.unreadableCount > 0 && summaryHeadNamesBlock(summary)
-    ? `${head} · ${t('chat.memoryReceipt.unreadable', { count: summary.unreadableCount })}`
-    : head
-  const canExpand = Boolean(receipt?.text)
+  const line = clauses.join(' · ')
+  const reasons = [receipt?.failed, dept?.kind === 'unreadable' ? dept.reason : undefined]
+    .filter((reason): reason is string => typeof reason === 'string' && reason.trim() !== '')
+  const blockText = [receipt?.text, dept?.kind === 'told' ? receipt?.department?.text : undefined]
+    .filter((block): block is string => typeof block === 'string' && block !== '')
+    .join('\n\n')
+  const canExpand = blockText !== ''
 
   return (
-    <div data-memory-receipt="told" style={{ marginTop: 6 }}>
+    <div
+      data-memory-receipt={summary.kind === 'failed' ? 'failed' : 'told'}
+      data-dept-handbook={dept?.kind === 'told' ? 'told' : dept?.kind === 'unreadable' ? 'unreadable' : undefined}
+      title={reasons.length > 0 ? reasons.join('\n') : undefined}
+      style={{ marginTop: 6 }}
+    >
       {canExpand ? (
         <button
           type="button"
           data-memory-receipt-toggle="true"
           aria-expanded={expanded}
           onClick={() => setExpanded(value => !value)}
-          title={t('chat.memoryReceipt.expandHint')}
+          title={dept?.kind === 'told'
+            ? t('chat.memoryReceipt.expandHintTurn')
+            : t('chat.memoryReceipt.expandHint')}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -96,7 +109,14 @@ export function MemoryReceiptLine({ receipt }: Props) {
           {expanded ? <ChevronUp size={10} style={{ flexShrink: 0 }} /> : <ChevronDown size={10} style={{ flexShrink: 0 }} />}
         </button>
       ) : (
-        <div style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--text-faint)' }}>
+        <div style={{
+          fontSize: 11,
+          lineHeight: 1.5,
+          // A pure failure is a warning-shaped row, not the quiet disclosure
+          // line — same colour the failed memory receipt has always used.
+          color: summary.kind === 'failed' && !dept ? 'var(--text-muted)' : 'var(--text-faint)',
+          userSelect: summary.kind === 'failed' && !dept ? 'none' : undefined,
+        }}>
           {line}
         </div>
       )}
@@ -120,7 +140,7 @@ export function MemoryReceiptLine({ receipt }: Props) {
             fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
           }}
         >
-          {receipt!.text}
+          {blockText}
         </pre>
       ) : null}
     </div>
@@ -130,6 +150,22 @@ export function MemoryReceiptLine({ receipt }: Props) {
 /** Does the head line already say something was given? */
 function summaryHeadNamesBlock(summary: MemoryReceiptSummary): boolean {
   return summary.applied.length > 0 || summary.chars > 0
+}
+
+/**
+ * The handbook clause. It says how much text the model was handed and, when
+ * the ceiling cut the handbook, names the real size — a cut must never read
+ * like the whole document.
+ */
+function deptHead(dept: DeptHandbookSummary, t: ReturnType<typeof useT>): string {
+  if (dept.truncated) {
+    return t('chat.memoryReceipt.dept.toldCut', {
+      dept: dept.deptName,
+      chars: dept.chars,
+      sourceChars: dept.sourceChars,
+    })
+  }
+  return t('chat.memoryReceipt.dept.told', { dept: dept.deptName, chars: dept.chars })
 }
 
 function memoryHead(summary: MemoryReceiptSummary, t: ReturnType<typeof useT>): string {
