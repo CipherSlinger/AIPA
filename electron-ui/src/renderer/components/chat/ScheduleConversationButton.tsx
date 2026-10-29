@@ -15,6 +15,8 @@ import { useChatStore, usePrefsStore } from '../../store'
 import { isHumanTurn } from '../../lib/sessionReuse'
 import { firstMeaningfulLine } from '../../lib/sessionTitle'
 import AutomationDialog, { type WorkflowOption } from '../automation/AutomationDialog'
+import { workflowProvenance } from '../../lib/provenance'
+import { localDateStamp } from '../../lib/sessionReuse'
 import type { AutomationLimitsData } from '../../../preload'
 import type { ChatMessage, StandardChatMessage } from '../../types/app.types'
 
@@ -36,6 +38,13 @@ interface Prefill {
   clipped: boolean
   workflows: WorkflowOption[]
   limits: AutomationLimitsData | null
+  /**
+   * Where this schedule came from, in the same three fields a workflow saved
+   * from a chat header records. Empty when the conversation was never stored:
+   * there is no id to point back at, and a job with a fabricated origin would
+   * be worse than one that simply says nothing.
+   */
+  provenance: { sourceConversation: string; sourceTitle?: string; sourceDraftedAt?: string } | undefined
 }
 
 /**
@@ -114,12 +123,26 @@ export default function ScheduleConversationButton({
       // re-render when a workflow is renamed elsewhere.
       const workflows = (usePrefsStore.getState().prefs.workflows ?? []) as WorkflowOption[]
       const clipped = clipPrompt(prompt)
+      // Read at click time like everything else here: the id changes when the
+      // user switches conversations, and the header never re-renders for it.
+      // `viewSessionId`, not `currentSessionId` — a streaming turn overwrites
+      // the latter with a bridge id that is not a conversation.
+      const fields = workflowProvenance(
+        useChatStore.getState().viewSessionId,
+        sessionTitle,
+        localDateStamp(),
+      )
       setPrefill({
         name: scheduleName(sessionTitle, prompt),
         prompt: clipped.prompt,
         clipped: clipped.clipped,
         workflows,
         limits,
+        provenance: fields.sourceConversation ? fields as {
+          sourceConversation: string
+          sourceTitle?: string
+          sourceDraftedAt?: string
+        } : undefined,
       })
     } finally {
       setBusy(false)
@@ -156,6 +179,7 @@ export default function ScheduleConversationButton({
           initialName={prefill.name}
           initialPrompt={prefill.prompt}
           initialPromptClipped={prefill.clipped}
+          initialProvenance={prefill.provenance}
           onClose={() => setPrefill(null)}
         />
       )}

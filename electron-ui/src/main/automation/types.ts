@@ -306,6 +306,26 @@ export interface AutomationJob {
    * attribution, not a lock.
    */
   originPluginId?: string
+  /**
+   * The conversation this job was drafted from, if it was drafted from one.
+   *
+   * Mirrors the fields a workflow records when it is saved from a chat header
+   * (`Workflow.sourceConversation` / `sourceTitle` / `sourceDraftedAt`), so both
+   * artefacts point back at the same conversation in the same words.
+   *
+   * Every field is optional. Absent on every hand-made job and on every job that
+   * existed before this field did — and absent means "not drafted from a
+   * conversation", never "drafted from an unknown one". The title is a snapshot
+   * kept because the conversation can be deleted; the date is a local calendar
+   * day, not an instant. Only `createAutomationJob` writes these from renderer
+   * input (validated field by field in `normalizeJobProvenance`), and an edit
+   * must never clear or rewrite them: the edit form does not know they exist.
+   */
+  sourceConversation?: string
+  /** The conversation's title at drafting time; a snapshot, not a live lookup. */
+  sourceTitle?: string
+  /** Local `YYYY-MM-DD` stamp of the day the job was drafted. */
+  sourceDraftedAt?: string
   createdAt: number
   updatedAt: number
   /** Epoch ms of the next scheduled occurrence; null only for a dead cron. */
@@ -620,6 +640,16 @@ export interface AutomationInput {
    * scheduler stores an absent value rather than `0`.
    */
   dailyCostLimitUsd?: number
+  /**
+   * Provenance, when the job is being drafted from a conversation. Each value
+   * is validated independently (`normalizeJobProvenance`): a malformed value is
+   * dropped, never written as a placeholder and never a reason to reject the
+   * job. The update path ignores these fields entirely, so an edit that omits
+   * them preserves what was recorded at creation.
+   */
+  sourceConversation?: string
+  sourceTitle?: string
+  sourceDraftedAt?: string
 }
 
 /** What the scheduler asks the main process to execute. */

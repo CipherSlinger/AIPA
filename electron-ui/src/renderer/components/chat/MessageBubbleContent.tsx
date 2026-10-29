@@ -7,6 +7,7 @@ import { groupToolUses } from '../../utils/toolSummary'
 import { ChevronDown, ChevronRight, ChevronUp, Check, CheckCheck, Clock, CornerDownRight, Timer, Type, AlertTriangle } from 'lucide-react'
 import { ImageThumbnail } from './tool-cards/ImageThumbnail'
 import { messageAttachmentSrc } from './attachmentDisplay'
+import { MemoryReceiptLine } from './MemoryReceiptLine'
 import { useT } from '../../i18n'
 import { getShowAbsoluteTime, formatAbsoluteTime, relativeTime, formatResponseDuration } from './messageUtils'
 
@@ -370,6 +371,13 @@ export default React.memo(function MessageBubbleContent({
               )}
             </div>
           )}
+
+          {/* What memory context this turn was handed, under the user's own
+              words. Absent on rows loaded from disk — the line says nothing
+              rather than claiming the turn carried no memory. */}
+          {isUser && message.memoryReceipt ? (
+            <MemoryReceiptLine receipt={message.memoryReceipt} />
+          ) : null}
 
           {/* Timestamp inside bubble (grouped: hidden for consecutive same-role messages within 2 min) */}
           {showTimestamp && message.timestamp && (

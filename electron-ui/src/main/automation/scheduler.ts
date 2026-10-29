@@ -33,6 +33,7 @@ import {
   shouldAnnounceDeptHold,
 } from './dept-budget'
 import { departmentIdForCreate, normalizeDepartmentId } from './job-department'
+import { normalizeJobProvenance } from './job-provenance'
 import { readAutomationStore, writeAutomationStore } from './job-store'
 import { MISSED_RUN_GRACE_MS, normalizeMissedRunPolicy, shouldSkipMissedRun } from './missed-policy'
 import { AUTOMATION_RETRY_POLICY, isPendingRetryExpired, nextRetryAfterFailure } from './retry-policy'
@@ -1265,6 +1266,12 @@ function createJob(input: AutomationInput, originPluginId?: string): AutomationM
     const retryOnFailure = validateRetryOnFailure(input?.retryOnFailure)
     const missedRunPolicy = validateMissedRunPolicy(input?.missedRunPolicy)
     const dailyCostLimitUsd = validateDailyCostLimit(input?.dailyCostLimitUsd)
+    // Provenance is built field by field — the input's own object is never
+    // spread onto the job, so a renderer bug cannot inject arbitrary keys. A
+    // plugin-created job records none at all: a plugin has no conversation to
+    // point back to, and `createAutomationJobForPlugin` is meant to stay
+    // byte-identical to the jobs it made before this field existed.
+    const provenance = originPluginId ? {} : normalizeJobProvenance(input)
     const enabled = input?.enabled !== false
     const job: AutomationJob = {
       id: makeJobId(now),
@@ -1279,6 +1286,7 @@ function createJob(input: AutomationInput, originPluginId?: string): AutomationM
       ...(missedRunPolicy ? { missedRunPolicy } : {}),
       ...(dailyCostLimitUsd !== undefined ? { dailyCostLimitUsd } : {}),
       ...(originPluginId ? { originPluginId } : {}),
+      ...provenance,
       createdAt: now,
       updatedAt: now,
       nextRunAt: enabled ? nextRunAfter(trigger, now) : null,
@@ -1370,6 +1378,9 @@ export function cloneAutomationJob(id: string, name?: string): AutomationMutatio
       ...(source.dailyCostLimitUsd !== undefined
         ? { dailyCostLimitUsd: source.dailyCostLimitUsd }
         : {}),
+      // Provenance is deliberately not copied. The copy was not drafted from
+      // that conversation; claiming otherwise would put a line on the new job
+      // pointing at a source the user never chose for it.
       createdAt: now,
       updatedAt: now,
       // Off means no calendar: a nextRunAt here would make the ticker run a job
@@ -1437,6 +1448,10 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
     // Same rule for the spend rail: an empty field removes the limit rather than
     // storing 0, which would block every scheduled run forever.
     job.dailyCostLimitUsd = dailyCostLimitUsd
+    // `sourceConversation` / `sourceTitle` / `sourceDraftedAt` are deliberately
+    // not touched here. They are creation facts, and the user's edit form does
+    // not know they exist: assigning them from this input would let an ordinary
+    // rename erase the only evidence of which conversation the job came from.
     job.enabled = enabled
     job.updatedAt = Date.now()
     // A pending retry belongs to the old schedule/policy. A schedule change,

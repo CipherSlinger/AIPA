@@ -411,6 +411,21 @@
       "openSkill": "Open skill “{{name}}”",
       "retry": "Retry reading skills",
       "moreTitle": "Show the other {{count}} made from this conversation"
+    },
+    "memoryReceipt": {
+      "told": "Told · {{tiers}}",
+      "toldChars": "Told · {{chars}} characters of context",
+      "unreadable": "couldn't read {{count}} of your memory files",
+      "unreadableOnly": "Couldn't read {{count}} of your memory files, so this turn ran without them.",
+      "failed": "Memory couldn't be assembled — this turn ran without it.",
+      "expandHint": "Show the exact memory context this turn was given",
+      "tier": {
+        "globalDoc": "global memory",
+        "projectDoc": "project memory",
+        "globalStructured": "global memory folder",
+        "projectStructured": "project memory folder",
+        "personal": "personal notes"
+      }
     }
   },
   "sessionReuse": {

@@ -411,6 +411,21 @@
       "openSkill": "打开技能“{{name}}”",
       "retry": "重新读取技能",
       "moreTitle": "展开这段对话产出的另外 {{count}} 个"
+    },
+    "memoryReceipt": {
+      "told": "已告知 · {{tiers}}",
+      "toldChars": "已告知 · {{chars}} 个字符的上下文",
+      "unreadable": "另有 {{count}} 个记忆文件读取失败",
+      "unreadableOnly": "有 {{count}} 个记忆文件读取失败，这一轮没有带上它们。",
+      "failed": "记忆内容没能组装出来——这一轮是在没有它的情况下运行的。",
+      "expandHint": "查看这一轮实际收到的记忆内容",
+      "tier": {
+        "globalDoc": "全局记忆",
+        "projectDoc": "项目记忆",
+        "globalStructured": "全局记忆目录",
+        "projectStructured": "项目记忆目录",
+        "personal": "个人笔记"
+      }
     }
   },
   "sessionReuse": {

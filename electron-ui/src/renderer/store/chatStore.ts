@@ -5,6 +5,7 @@ import { ChatMessage, ElicitationMessage, HistoryAskNotice, HookCallbackMessage,
 import { sessionModelStorageKey } from '../lib/sessionModel'
 import type { ThreadStatusChip } from '../components/chat/threadStatusText'
 import type { ThreadGoalView } from '../utils/threadGoal'
+import type { MemoryTurnReceipt } from '../lib/memoryReceipt'
 
 // ── Task Queue types ─────────────────────────────
 export interface TaskQueueItem {
@@ -238,6 +239,19 @@ interface ChatState {
   updateHistoryAsk: (messageId: string, patch: Partial<HistoryAskNotice>) => void
   /** Mark a user message's images as undelivered, with the honest reason. */
   markAttachmentsNotSent: (msgId: string, reason: string) => void
+  /**
+   * Record what memory block this turn prepended to the prompt, so the user's
+   * row can disclose it verbatim. Addressed by id — the row was already added
+   * when assembly resolves — and never written to any other message.
+   */
+  noteMemoryReceipt: (msgId: string, receipt: MemoryTurnReceipt) => void
+  /**
+   * Drop a receipt whose turn never reached the engine. The disclosure
+   * describes a prompt block the model was given; if the request failed to
+   * start, that block was never delivered, and saying nothing is truthful
+   * where "told · …" would not be.
+   */
+  clearMemoryReceipt: (msgId: string) => void
   /**
    * Tag the newest still-unattributed user row with the Codex turn it started.
    * The engine echoes each prompt as a `userMessage` item carrying `turnId`;
@@ -608,6 +622,32 @@ export const useChatStore = create<ChatState>((set, get) => ({
         : m
     )),
   })),
+
+  noteMemoryReceipt: (msgId, receipt) => set((s) => {
+    const index = s.messages.findIndex(m => m.id === msgId && m.role === 'user')
+    // The row may have been dropped (conversation switched while assembly was
+    // still running); there is nowhere to put the disclosure, and attributing
+    // it to another row would be a lie.
+    if (index < 0) return s
+    const messages = s.messages.slice()
+    messages[index] = { ...(messages[index] as StandardChatMessage), memoryReceipt: receipt }
+    return { messages }
+  }),
+
+  clearMemoryReceipt: (msgId) => set((s) => {
+    const index = s.messages.findIndex(m => m.id === msgId && m.role === 'user')
+    if (index < 0) return s
+    const current = s.messages[index] as StandardChatMessage
+    if (!current.memoryReceipt) return s
+    // A receipt says "the model was handed this block". A request that never
+    // reached the engine makes that false, and absence is the only honest
+    // description of what the model got — unknown, not "nothing".
+    const next: StandardChatMessage = { ...current }
+    delete next.memoryReceipt
+    const messages = s.messages.slice()
+    messages[index] = next
+    return { messages }
+  }),
 
   attachTurnToLastUserMessage: (turnId) => set((s) => {
     if (!turnId) return s

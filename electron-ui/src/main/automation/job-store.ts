@@ -13,6 +13,7 @@ import * as path from 'path'
 import { createLogger } from '../utils/logger'
 import { normalizeDeptBudgets } from './dept-budget'
 import { normalizeDepartmentId } from './job-department'
+import { normalizeJobProvenance } from './job-provenance'
 import { normalizeMissedRunPolicy } from './missed-policy'
 import { normalizePendingRetry } from './retry-policy'
 import { normalizeRunHistory } from './run-history'
@@ -146,6 +147,10 @@ function normalizeJob(raw: unknown): AutomationJob | null {
     originPluginId: typeof job.originPluginId === 'string' && job.originPluginId.trim()
       ? job.originPluginId.trim()
       : undefined,
+    // Creation facts, restored independently: a hand-edited title drops only
+    // the title, and a job with no usable provenance stays a job (no line is
+    // shown) rather than being discarded on load.
+    ...normalizeJobProvenance(job),
     createdAt: numberOrNull(job.createdAt) ?? Date.now(),
     updatedAt: numberOrNull(job.updatedAt) ?? Date.now(),
     // A watch job has no calendar at all. A stale or hand-edited `nextRunAt`

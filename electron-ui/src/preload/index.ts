@@ -851,6 +851,16 @@ export interface AutomationJobData {
    */
   originPluginId?: string
   /**
+   * The conversation this job was drafted from, when it was drafted from one.
+   * Mirrors the same three fields on a `Workflow`. Absent means "not drafted
+   * from a conversation" — never "drafted from an unknown one" — and an edit
+   * never clears them: the edit form does not know they exist. The title is a
+   * snapshot taken at drafting time; the date is a local `YYYY-MM-DD` day.
+   */
+  sourceConversation?: string
+  sourceTitle?: string
+  sourceDraftedAt?: string
+  /**
    * This job's own expert override; absent means "follow the workflow".
    * `__assistant__` is the reserved explicit plain-assistant choice.
    */
@@ -975,6 +985,15 @@ export interface AutomationInputData {
   missedRunPolicy?: AutomationMissedRunPolicyData
   /** Omitted clears the scheduled-run spend limit; 0 is not a limit. */
   dailyCostLimitUsd?: number
+  /**
+   * Provenance for a job drafted from a conversation. Main validates each
+   * value on its own and drops a malformed one without rejecting the job. The
+   * update path ignores these fields, so an edit that omits them preserves the
+   * origin recorded at creation.
+   */
+  sourceConversation?: string
+  sourceTitle?: string
+  sourceDraftedAt?: string
 }
 
 // ── Plugin `schedule` capability ────────────────────────────────────────────

@@ -117,6 +117,17 @@ export interface AutomationDialogProps {
    * shortened text as the user's whole message.
    */
   initialPromptClipped?: boolean
+  /**
+   * Create mode only: the conversation this job is being drafted from. Sent
+   * with the create request so the settings row can say where the job came
+   * from. Ignored when editing — an edit must never rewrite a creation fact,
+   * and the edit form does not know these fields exist.
+   */
+  initialProvenance?: {
+    sourceConversation: string
+    sourceTitle?: string
+    sourceDraftedAt?: string
+  }
   onClose: () => void
 }
 
@@ -136,6 +147,7 @@ export default function AutomationDialog({
   initialPrompt,
   initialName,
   initialPromptClipped,
+  initialProvenance,
   onClose,
 }: AutomationDialogProps) {
   const { t, resolvedLocale } = useI18n()
@@ -402,6 +414,10 @@ export default function AutomationDialog({
       // Omitting a cleared limit is what removes it; sending 0 would block
       // every scheduled run.
       ...(spendLimitValue !== undefined ? { dailyCostLimitUsd: spendLimitValue } : {}),
+      // Creation only. An edit that carried these would let a rename or a
+      // schedule change point the job at a conversation it was never drafted
+      // from — main ignores them on update anyway, so this is the second guard.
+      ...(!job && initialProvenance ? initialProvenance : {}),
     }
     try {
       const result = job

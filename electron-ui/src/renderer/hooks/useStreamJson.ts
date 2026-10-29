@@ -7,6 +7,7 @@ import { resolveProvider, sendCompletionNotification, playCompletionSound, getAc
 import { useAutoCompact } from './useAutoCompact'
 import { useAutoMemory } from './useAutoMemory'
 import { assembleMemoryContextForTurn } from './promptMemory'
+import { assembleTurnMemoryForSend } from '../lib/memoryReceipt'
 import { composeSystemPromptParts, resolvePersonaTurnSettings } from './promptAssembly'
 import { listSessionsShared } from '../utils/sessionListShared'
 import { readThreadLifecycleEvent } from '../utils/threadLifecycle'
@@ -405,19 +406,30 @@ export function useStreamJson() {
     // Assemble the persistent memory tiers once per turn (sendMessage is the
     // turn boundary — this code never runs on keystrokes). The result is
     // already budgeted and labelled by tier.
-    const memoryContext = isCompactCommand
-      ? null
-      : await assembleMemoryContextForTurn({
-          prefs,
-          cwd: effectiveCwdEarly,
+    //
+    // Memory is a bonus, never a precondition: a read failure turns into a
+    // receipt on the user's row, not into a send that never happened.
+    const memoryTurn = isCompactCommand
+      ? { text: '', receipt: null }
+      : await assembleTurnMemoryForSend({
+          assemble: () => assembleMemoryContextForTurn({
+            prefs,
+            cwd: effectiveCwdEarly,
+          }),
         })
+    // The row already exists (added above, before assembly started), so the
+    // disclosure lands on the message the user actually wrote rather than on
+    // a row that appears once memory finishes loading.
+    if (memoryTurn.receipt) {
+      useChatStore.getState().noteMemoryReceipt(userMsg.id, memoryTurn.receipt)
+    }
 
     // Build combined system prompt (injected as prefix to user message: Codex
     // has no --append-system-prompt equivalent).
     const systemPromptParts = composeSystemPromptParts({
       prefs,
       persona: personaTurn,
-      memoryContext: memoryContext?.text ?? '',
+      memoryContext: memoryTurn.text,
       cwd: effectiveCwdEarly,
       appendSystemPrompt: useChatStore.getState().tempSystemPrompt || prefs.appendSystemPrompt,
     })
@@ -537,6 +549,8 @@ export function useStreamJson() {
         useChatStore.getState().markAttachmentsNotSent(userMsg.id, String(err))
         useUiStore.getState().addToast('error', t('chat.imageAttachment.notSent', { reason: String(err) }))
       }
+      // Nothing left the renderer, so the memory block was never delivered.
+      useChatStore.getState().clearMemoryReceipt(userMsg.id)
       stopStreamingAndReleaseSleep()
       throw err
     }
@@ -558,9 +572,16 @@ export function useStreamJson() {
         )
       } catch (err) {
         useUiStore.getState().addToast('error', String(err))
+        useChatStore.getState().clearMemoryReceipt(userMsg.id)
         stopStreamingAndReleaseSleep()
         throw err
       }
+    }
+
+    // A rejected `turn/start` means the prompt never reached the model, so the
+    // row may not keep claiming it was handed a memory block.
+    if (result && !result.success) {
+      useChatStore.getState().clearMemoryReceipt(userMsg.id)
     }
 
     if (result?.success && result.sessionId) {

@@ -38,6 +38,8 @@ import { isHeldJob } from '../automation/jobHold'
 import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from '../automation/automationStyles'
 import { RUN_HISTORY_CAP, viewRunHistory } from './runHistoryView'
 import { fileKindMarker, viewRunFiles } from './runFilesView'
+import ProvenanceLine from '../provenance/ProvenanceLine'
+import { workflowProvenance } from '../../lib/provenance'
 import type {
   AutomationJobData,
   AutomationLimitsData,
@@ -1066,6 +1068,14 @@ export default function SettingsAutomations() {
               // `stale` (an id whose node is gone) is a distinct visible state —
               // it must not look like "no department", and must never be moved.
               const department = resolveJobDepartment(job.departmentId, departmentOptions)
+              // Normalized through the same helper a workflow uses, so the job
+              // and the workflow drafted from one conversation word their origin
+              // identically. An empty object means a hand-made/pre-field job.
+              const provenance = workflowProvenance(
+                job.sourceConversation,
+                job.sourceTitle,
+                job.sourceDraftedAt ?? '',
+              )
               const busy = busyId === job.id || job.running
               // A watch job runs on an event, so its schedule line names the
               // path instead of a time, and a lost path is the row's warning.
@@ -1229,6 +1239,18 @@ export default function SettingsAutomations() {
                           {`· ${t('automation.missedPolicy.row')}`}
                         </span>
                       )}
+                    </div>
+
+                    {/* Where this job was drafted from. A job made in Settings,
+                        and every job saved before the field existed, carries no
+                        conversation id — the shared line then renders nothing
+                        at all rather than "unknown source". */}
+                    <div style={{ marginTop: 2 }}>
+                      <ProvenanceLine
+                        sessionId={provenance.sourceConversation}
+                        title={provenance.sourceTitle}
+                        date={provenance.sourceDraftedAt}
+                      />
                     </div>
 
                     <div style={{

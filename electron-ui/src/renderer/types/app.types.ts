@@ -1,3 +1,5 @@
+import type { MemoryTurnReceipt } from '../lib/memoryReceipt'
+
 /**
  * Who started a conversation besides the user. Absent means the user did —
  * the common case, and the only one that gets no badge.
@@ -164,6 +166,13 @@ export interface StandardChatMessage {
   /** Set when the turn failed after the images had been attached: the
    *  transcript must say they were not sent instead of implying delivery. */
   attachmentError?: string
+  /**
+   * What memory context this turn prepended to the prompt. Absent means
+   * *unknown*, not "no memory was sent": rows re-read from disk never carry a
+   * receipt (the transcript does not persist one), and `/compact` deliberately
+   * assembles none. Only a present receipt may be rendered as a disclosure.
+   */
+  memoryReceipt?: MemoryTurnReceipt
   /**
    * This user row is guidance steered into a turn that was already running,
    * not the message that started one. The transcript has to say so: a row that
