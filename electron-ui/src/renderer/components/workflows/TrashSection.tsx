@@ -1,24 +1,33 @@
-// "Recently deleted" — the shared holding area for deleted workflows and skills.
+// "Recently deleted" — the shared holding area for deleted workflows, skills
+// and conversations.
 //
-// Both deletes used to be instant and permanent. A workflow is only a pref
+// All three deletes used to be instant and permanent. A workflow is only a pref
 // record, so it is kept in `AppPrefs.trashedWorkflows`; a skill is a real
-// folder, so main moves it under userData and records it in a manifest. This
-// section is the one place the user sees either kind, and it is also where the
-// difference is spelled out: a trashed skill can be restored only while its
-// folder still exists.
+// folder and a conversation is one or more transcript files, so main moves them
+// under userData and records them in a manifest. This section is the one place
+// the user sees all three, and it is also where the difference is spelled out:
+// a trashed skill or conversation can be restored only while its payload still
+// exists on disk.
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Undo2, Trash2, Workflow as WorkflowIcon, Puzzle } from 'lucide-react'
+import { Undo2, Trash2, Workflow as WorkflowIcon, Puzzle, MessageSquare } from 'lucide-react'
 import { useT, useI18n } from '../../i18n'
 import { formatDateMedium } from '../../utils/formatDate'
-import type { TrashedWorkflow } from '../../types/app.types'
-import type { SkillTrashErrorCode, TrashedSkillInfoData } from '../../../preload'
+import { listSessionsShared } from '../../utils/sessionListShared'
+import { useSessionStore } from '../../store'
+import type { SessionListItem, TrashedWorkflow } from '../../types/app.types'
+import type {
+  SessionTrashErrorCode,
+  SkillTrashErrorCode,
+  TrashedSessionInfoData,
+  TrashedSkillInfoData,
+} from '../../../preload'
 import { TRASH_RETENTION_DAYS, workflowPurgeAt } from '../../lib/workflowTrash'
 import { MAX_WORKFLOWS } from './workflowConstants'
 import { SectionHeader } from './EmployeesShared'
 import type { EmployeeSkillsState } from './EmployeesSkillsSection'
 import type { useWorkflowCrud } from './useWorkflowCrud'
 
-export type TrashKind = 'workflow' | 'skill'
+export type TrashKind = 'workflow' | 'skill' | 'session'
 
 export interface TrashRow {
   kind: TrashKind
@@ -27,7 +36,7 @@ export interface TrashRow {
   deletedAt: number
   /** When the row leaves for good, shown as a date rather than "30 days ago". */
   purgeAt: number
-  /** A trashed skill folder that is gone from disk cannot be restored. */
+  /** A trashed skill folder or transcript that is gone from disk cannot be restored. */
   available: boolean
 }
 
@@ -35,13 +44,17 @@ export interface TrashRow {
 export type TrashActionOutcome = { ok: true } | { ok: false; message: string }
 
 /**
- * Merge the two kinds into one newest-first list. Kept pure and exported so
+ * Merge the three kinds into one newest-first list. Kept pure and exported so
  * the harness can assert the ordering and that an empty holding area yields no
  * rows at all — the section renders nothing in that case, not an empty box.
+ *
+ * `sessionEntries` is last and optional so the two older kinds keep the call
+ * shape they had before conversations joined the list.
  */
 export function buildTrashRows(
   skillEntries: TrashedSkillInfoData[],
   workflowEntries: TrashedWorkflow[],
+  sessionEntries: TrashedSessionInfoData[] = [],
 ): TrashRow[] {
   const rows: TrashRow[] = [
     ...workflowEntries.map(entry => ({
@@ -60,14 +73,35 @@ export function buildTrashRows(
       purgeAt: entry.purgeAt,
       available: entry.available,
     })),
+    ...sessionEntries.map(entry => ({
+      kind: 'session' as const,
+      id: entry.id,
+      // A conversation's display name is whatever the renderer passed at delete
+      // time. When there was none the id is shown — a title is never invented.
+      name: entry.title || entry.sessionId,
+      deletedAt: entry.deletedAt,
+      purgeAt: entry.purgeAt,
+      available: entry.available,
+    })),
   ]
   return rows.sort((a, b) => b.deletedAt - a.deletedAt)
 }
 
 function kindBadge(kind: TrashKind): { color: string; background: string; border: string } {
-  return kind === 'workflow'
-    ? { color: '#a5b4fc', background: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.30)' }
-    : { color: '#c4b5fd', background: 'rgba(167,139,250,0.14)', border: 'rgba(167,139,250,0.30)' }
+  switch (kind) {
+    case 'workflow':
+      return { color: '#a5b4fc', background: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.30)' }
+    case 'skill':
+      return { color: '#c4b5fd', background: 'rgba(167,139,250,0.14)', border: 'rgba(167,139,250,0.30)' }
+    case 'session':
+      return { color: '#7dd3fc', background: 'rgba(56,189,248,0.14)', border: 'rgba(56,189,248,0.30)' }
+  }
+}
+
+function kindIcon(kind: TrashKind): React.ReactNode {
+  if (kind === 'workflow') return <WorkflowIcon size={13} />
+  if (kind === 'skill') return <Puzzle size={13} />
+  return <MessageSquare size={13} />
 }
 
 function smallButtonStyle(disabled: boolean): React.CSSProperties {
@@ -127,6 +161,14 @@ function TrashRowView({ row, locale, first, onRestore, onDeleteForever }: {
 
   const badge = kindBadge(row.kind)
   const canRestore = row.available && !busy
+  const kindLabel = row.kind === 'workflow'
+    ? t('trash.kindWorkflow')
+    : row.kind === 'skill' ? t('trash.kindSkill') : t('sessionTrash.kind')
+  // A skill was a folder; a conversation was a transcript file. Say which one
+  // is gone rather than reusing a sentence about folders.
+  const unavailableLabel = row.kind === 'session'
+    ? t('sessionTrash.unavailable')
+    : t('trash.folderUnavailable')
 
   return (
     <div style={{
@@ -140,7 +182,7 @@ function TrashRowView({ row, locale, first, onRestore, onDeleteForever }: {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: badge.color, background: badge.background, border: `1px solid ${badge.border}`,
         }}>
-          {row.kind === 'workflow' ? <WorkflowIcon size={13} /> : <Puzzle size={13} />}
+          {kindIcon(row.kind)}
         </span>
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -156,13 +198,13 @@ function TrashRowView({ row, locale, first, onRestore, onDeleteForever }: {
               flexShrink: 0, borderRadius: 20, padding: '1px 6px',
               color: badge.color, background: badge.background, border: `1px solid ${badge.border}`,
             }}>
-              {t(row.kind === 'workflow' ? 'trash.kindWorkflow' : 'trash.kindSkill')}
+              {kindLabel}
             </span>
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
             {row.available
               ? t('trash.removesOn', { date: formatDateMedium(locale, row.purgeAt) })
-              : t('trash.folderUnavailable')}
+              : unavailableLabel}
           </div>
         </div>
 
@@ -170,7 +212,7 @@ function TrashRowView({ row, locale, first, onRestore, onDeleteForever }: {
           <button
             onClick={() => { if (canRestore) void run(onRestore) }}
             disabled={!canRestore}
-            title={row.available ? t('trash.restore') : t('trash.folderUnavailable')}
+            title={row.available ? t('trash.restore') : unavailableLabel}
             style={smallButtonStyle(!canRestore)}
           >
             <Undo2 size={11} />
@@ -208,7 +250,7 @@ function TrashRowView({ row, locale, first, onRestore, onDeleteForever }: {
 
 /**
  * Pure view: nothing when the holding area is empty, otherwise one list for
- * both kinds. Exported so the harness can render it without an app instance.
+ * all kinds. Exported so the harness can render it without an app instance.
  */
 export function TrashView({ rows, retentionDays, onRestore, onDeleteForever }: {
   rows: TrashRow[]
@@ -221,6 +263,7 @@ export function TrashView({ rows, retentionDays, onRestore, onDeleteForever }: {
   if (rows.length === 0) return null
 
   const hasSkill = rows.some(row => row.kind === 'skill')
+  const hasSession = rows.some(row => row.kind === 'session')
 
   return (
     <section
@@ -236,6 +279,11 @@ export function TrashView({ rows, retentionDays, onRestore, onDeleteForever }: {
       {hasSkill && (
         <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 10, marginLeft: 34, lineHeight: 1.45 }}>
           {t('trash.skillsHint')}
+        </div>
+      )}
+      {hasSession && (
+        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 10, marginLeft: 34, lineHeight: 1.45 }}>
+          {t('sessionTrash.hint')}
         </div>
       )}
       <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
@@ -255,9 +303,9 @@ export function TrashView({ rows, retentionDays, onRestore, onDeleteForever }: {
 }
 
 /**
- * Connected wrapper: reads the skill manifest over IPC, takes the workflow
- * holding area from prefs, and turns each failure code into a sentence the
- * user can do something about.
+ * Connected wrapper: reads the skill and conversation manifests over IPC, takes
+ * the workflow holding area from prefs, and turns each failure code into a
+ * sentence the user can do something about.
  */
 export default function TrashSection({ crud, skillState }: {
   crud: ReturnType<typeof useWorkflowCrud>
@@ -265,7 +313,11 @@ export default function TrashSection({ crud, skillState }: {
 }) {
   const t = useT()
   const [skillEntries, setSkillEntries] = useState<TrashedSkillInfoData[]>([])
+  const [sessionEntries, setSessionEntries] = useState<TrashedSessionInfoData[]>([])
   const [retentionDays, setRetentionDays] = useState(TRASH_RETENTION_DAYS)
+  // Deleting a conversation changes the sidebar list; that is also the signal
+  // that the conversation holding area changed.
+  const sessions = useSessionStore(state => state.sessions)
 
   const refreshSkills = useCallback(async () => {
     try {
@@ -280,20 +332,40 @@ export default function TrashSection({ crud, skillState }: {
     }
   }, [])
 
-  // Expired skill folders under userData are the one thing this page can clean
-  // up without being asked; the list is read after the purge so an expired row
+  const refreshSessions = useCallback(async () => {
+    try {
+      const result = await window.electronAPI.sessionsTrashList()
+      if (result.ok) {
+        setSessionEntries(result.entries)
+        setRetentionDays(result.retentionDays)
+      }
+    } catch (err) {
+      console.error('[trash] could not read the conversation trash:', err)
+    }
+  }, [])
+
+  // Expired payloads under userData are the one thing this page can clean up
+  // without being asked; each list is read after its purge so an expired row
   // never flashes on screen.
   useEffect(() => {
     let cancelled = false
-    window.electronAPI.skillsTrashPurge()
-      .catch(() => null)
-      .then(() => { if (!cancelled) void refreshSkills() })
+    Promise.all([
+      window.electronAPI.skillsTrashPurge().catch(() => null),
+      window.electronAPI.sessionsTrashPurge().catch(() => null),
+    ]).then(() => {
+      if (cancelled) return
+      void refreshSkills()
+      void refreshSessions()
+    })
     return () => { cancelled = true }
-  }, [refreshSkills])
+  }, [refreshSkills, refreshSessions])
 
   // Deleting or restoring a skill changes the installed grid; re-read the
   // holding area whenever that grid changes so a just-deleted skill appears.
   useEffect(() => { void refreshSkills() }, [skillState.skills, refreshSkills])
+
+  // Same for conversations: a delete or restore rewrites the sidebar list.
+  useEffect(() => { void refreshSessions() }, [sessions, refreshSessions])
 
   const failureForSkill = useCallback((
     code: SkillTrashErrorCode | undefined,
@@ -335,6 +407,52 @@ export default function TrashSection({ crud, skillState }: {
     }
   }, [refreshSkills, failureForSkill, t])
 
+  const failureForSession = useCallback((
+    code: SessionTrashErrorCode | undefined,
+    error: string | undefined,
+  ): string => {
+    switch (code) {
+      // Restoring never overwrites: say plainly that something is in the way
+      // and that nothing was moved, so the row is not mistaken for a success.
+      case 'target_exists': return t('sessionTrash.failure.targetExists')
+      case 'folder_missing': return t('sessionTrash.failure.gone')
+      case 'not_found': return t('trash.failure.notFound')
+      case 'outside_sessions':
+      case 'outside_trash': return t('sessionTrash.failure.outside')
+      default: return t('trash.failure.generic', { message: error || t('trash.failure.unknown') })
+    }
+  }, [t])
+
+  const restoreSession = useCallback(async (row: TrashRow): Promise<TrashActionOutcome> => {
+    try {
+      const result = await window.electronAPI.sessionsTrashRestore(row.id)
+      if (result.ok) {
+        await refreshSessions()
+        // Main forgot the reader caches for the restored paths, so a re-list
+        // sees the conversation again — no restart needed.
+        const list = await listSessionsShared()
+        if (list) useSessionStore.getState().setSessions(list as SessionListItem[])
+        return { ok: true }
+      }
+      return { ok: false, message: failureForSession(result.code, result.error) }
+    } catch (err) {
+      return { ok: false, message: t('trash.failure.generic', { message: String(err) }) }
+    }
+  }, [refreshSessions, failureForSession, t])
+
+  const removeSession = useCallback(async (row: TrashRow): Promise<TrashActionOutcome> => {
+    try {
+      const result = await window.electronAPI.sessionsTrashRemove(row.id)
+      if (result.ok) {
+        await refreshSessions()
+        return { ok: true }
+      }
+      return { ok: false, message: failureForSession(result.code, result.error) }
+    } catch (err) {
+      return { ok: false, message: t('trash.failure.generic', { message: String(err) }) }
+    }
+  }, [refreshSessions, failureForSession, t])
+
   const restoreWorkflow = useCallback((row: TrashRow): Promise<TrashActionOutcome> => {
     const result = crud.restoreTrashedWorkflow(row.id)
     if (result.ok) return Promise.resolve({ ok: true })
@@ -352,15 +470,21 @@ export default function TrashSection({ crud, skillState }: {
     return Promise.resolve({ ok: true })
   }, [crud])
 
-  const handleRestore = useCallback((row: TrashRow) =>
-    row.kind === 'skill' ? restoreSkill(row) : restoreWorkflow(row), [restoreSkill, restoreWorkflow])
+  const handleRestore = useCallback((row: TrashRow) => {
+    if (row.kind === 'skill') return restoreSkill(row)
+    if (row.kind === 'session') return restoreSession(row)
+    return restoreWorkflow(row)
+  }, [restoreSkill, restoreSession, restoreWorkflow])
 
-  const handleDeleteForever = useCallback((row: TrashRow) =>
-    row.kind === 'skill' ? removeSkill(row) : removeWorkflow(row), [removeSkill, removeWorkflow])
+  const handleDeleteForever = useCallback((row: TrashRow) => {
+    if (row.kind === 'skill') return removeSkill(row)
+    if (row.kind === 'session') return removeSession(row)
+    return removeWorkflow(row)
+  }, [removeSkill, removeSession, removeWorkflow])
 
   const rows = useMemo(
-    () => buildTrashRows(skillEntries, crud.trashedWorkflows),
-    [skillEntries, crud.trashedWorkflows],
+    () => buildTrashRows(skillEntries, crud.trashedWorkflows, sessionEntries),
+    [skillEntries, crud.trashedWorkflows, sessionEntries],
   )
 
   return (

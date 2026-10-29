@@ -4,7 +4,7 @@
 // (EmployeeFigure) rather than generic session cards.
 import { useEffect, useState } from 'react'
 import { Building2 } from 'lucide-react'
-import { useDepartmentStore, useSessionStore } from '../../store'
+import { useChatStore, useDepartmentStore, useSessionStore, useUiStore } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
 import OrgChart from './OrgChart'
 import { kindOf } from './deptUtils'
@@ -71,15 +71,40 @@ export default function DepartmentDashboard() {
     }
   }
 
-  const handleDeleteSession = async (sessionId: string) => {
+  const handleDeleteSession = async (sessionId: string, sessionTitle?: string) => {
     try {
       if (typeof window.electronAPI.sessionDelete === 'function') {
-        await window.electronAPI.sessionDelete(sessionId)
+        // The delete now only moves the transcript into "Recently deleted" and
+        // says why when it could not. A refused delete must not make the row
+        // vanish: it is still on disk, so the sidebar keeps it — and the toast
+        // says why, because a click that appears to do nothing reads as broken.
+        const result = await window.electronAPI.sessionDelete(sessionId, sessionTitle)
+        if (!result.success) {
+          useUiStore.getState().addToast(
+            'error',
+            result.code === 'not_found'
+              ? t('trash.failure.notFound')
+              : t('sessionTrash.failure.deleteFailed', { message: result.error }),
+          )
+          return
+        }
+        // The number of days is deliberately not spoken here: main owns the
+        // window, and a sentence with no number cannot disagree with it.
+        useUiStore.getState().addToast('success', t('sessionTrash.deleted'))
+      }
+      // If the conversation was the one on screen, close it: it is no longer in
+      // the sidebar, and leaving it displayed would let the next turn write a
+      // fresh transcript at the path the trashed copy would need back.
+      if (useChatStore.getState().viewSessionId === sessionId) {
+        useChatStore.getState().clearMessages()
       }
       const updated = useSessionStore.getState().sessions.filter(s => s.sessionId !== sessionId)
       useSessionStore.getState().setSessions(updated)
-    } catch {
-      // ignore
+    } catch (err) {
+      useUiStore.getState().addToast(
+        'error',
+        t('sessionTrash.failure.deleteFailed', { message: String(err) }),
+      )
     }
   }
 

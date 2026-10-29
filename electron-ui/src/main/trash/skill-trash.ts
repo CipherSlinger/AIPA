@@ -21,6 +21,7 @@ import * as os from 'os'
 import * as path from 'path'
 import { createLogger } from '../utils/logger'
 import { isPathInside } from '../utils/validate'
+import { movePath } from './path-move'
 
 const log = createLogger('skill-trash')
 
@@ -141,31 +142,6 @@ function writeManifest(entries: TrashedSkillEntry[]): void {
   fs.renameSync(tmp, file)
 }
 
-/**
- * Move a directory, falling back to copy+delete across volumes: the trash lives
- * under userData, which can be on a different drive than the user's home folder,
- * and `rename` fails with EXDEV in that case.
- *
- * If the delete half of the fallback fails, the copy is removed again — leaving
- * two visible copies of the same skill would be worse than reporting failure.
- */
-function moveDirectory(from: string, to: string): void {
-  try {
-    fs.renameSync(from, to)
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== 'EXDEV') throw err
-    fs.cpSync(from, to, { recursive: true })
-    try {
-      fs.rmSync(from, { recursive: true, force: true })
-    } catch (rmErr) {
-      try {
-        fs.rmSync(to, { recursive: true, force: true })
-      } catch { /* best effort: the original is still intact */ }
-      throw rmErr
-    }
-  }
-}
-
 function uniqueTrashPath(now: number, base: string): string {
   fs.mkdirSync(trashSkillsDir(), { recursive: true })
   let candidate = path.join(trashSkillsDir(), `${now}-${base}`)
@@ -227,7 +203,7 @@ export function moveSkillToTrash(
   let trashedPath: string
   try {
     trashedPath = uniqueTrashPath(now, base)
-    moveDirectory(resolved, trashedPath)
+    movePath(resolved, trashedPath)
   } catch (err) {
     log.warn('Could not move skill to trash:', err)
     return failure('move_failed', String(err))
@@ -248,7 +224,7 @@ export function moveSkillToTrash(
     // written, put the skill back rather than leaving an invisible copy the
     // user has no way to recover through the UI.
     try {
-      moveDirectory(trashedPath, resolved)
+      movePath(trashedPath, resolved)
     } catch (restoreErr) {
       log.error('Skill moved to trash but the manifest failed and the move back failed:', restoreErr)
     }
@@ -316,7 +292,7 @@ export function restoreTrashedSkill(
 
   try {
     fs.mkdirSync(path.dirname(originalPath), { recursive: true })
-    moveDirectory(trashedPath, originalPath)
+    movePath(trashedPath, originalPath)
   } catch (err) {
     log.warn('Could not restore skill from trash:', err)
     return failure('move_failed', String(err))

@@ -319,22 +319,49 @@ export function loadSession(sessionId: string): SessionMessage[] {
   return []
 }
 
-export function deleteSession(sessionId: string): boolean {
-  if (!isValidSessionId(sessionId)) return false
+/** The Claude projects root, so the trash can guard what a delete may move. */
+export function claudeProjectsDir(): string {
+  return PROJECTS_DIR
+}
 
-  const projectDirs = fs.readdirSync(PROJECTS_DIR, { withFileTypes: true })
-    .filter(d => d.isDirectory())
+/**
+ * Every transcript for one session id, across project slugs. The same id can
+ * exist under more than one slug when a conversation is resumed from another
+ * working directory, and a delete has to take all of them: a leftover copy
+ * would come back as a duplicate row in the sidebar.
+ *
+ * `projectsDir` is a seam for the trash module's harness — the IPC handlers
+ * never pass it, so the installed app always scans the real projects folder.
+ */
+export function findSessionFiles(sessionId: string, projectsDir: string = PROJECTS_DIR): string[] {
+  if (!isValidSessionId(sessionId)) return []
+  if (!fs.existsSync(projectsDir)) return []
 
-  for (const dir of projectDirs) {
-    const filePath = path.join(PROJECTS_DIR, dir.name, `${sessionId}.jsonl`)
-    if (isPathInside(PROJECTS_DIR, filePath) && fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath)
-      sessionSummaryCache.delete(filePath)
-      dropCachedSummary(filePath)
-      return true
-    }
+  let dirs: fs.Dirent[]
+  try {
+    dirs = fs.readdirSync(projectsDir, { withFileTypes: true })
+  } catch {
+    return []
   }
-  return false
+
+  const files: string[] = []
+  for (const dir of dirs) {
+    if (!dir.isDirectory()) continue
+    const filePath = path.join(projectsDir, dir.name, `${sessionId}.jsonl`)
+    if (isPathInside(projectsDir, filePath) && fs.existsSync(filePath)) files.push(filePath)
+  }
+  return files
+}
+
+/**
+ * Forget the derived summary of a transcript. A restored file keeps its old
+ * mtime and size, so the cache would otherwise still say "deleted" (or a stale
+ * title) until the file changed — the list must see the conversation again
+ * without a restart.
+ */
+export function forgetSessionCache(filePath: string): void {
+  sessionSummaryCache.delete(filePath)
+  dropCachedSummary(filePath)
 }
 
 function decodeProjectSlug(slug: string): string {

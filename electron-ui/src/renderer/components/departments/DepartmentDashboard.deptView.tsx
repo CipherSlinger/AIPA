@@ -70,7 +70,8 @@ interface DeptViewProps {
   /** Drill into another node — the parent in the breadcrumb, or a child team. */
   onSelectDept: (deptId: string) => void
   loadingSessionId?: string | null
-  onDeleteSession?: (sessionId: string) => void
+  /** `title` is display text for "Recently deleted"; the id is the fallback. */
+  onDeleteSession?: (sessionId: string, sessionTitle?: string) => void
   autoNewSession?: boolean
 }
 

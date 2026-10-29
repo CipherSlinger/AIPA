@@ -1442,7 +1442,8 @@
     "saving": "Saving…",
     "installing": "Installing…",
     "loadingEllipsis": "Loading…",
-    "days": "days"
+    "days": "days",
+    "undo": "Undo"
   },
   "shortcutCheatsheet": {
     "title": "Keyboard Shortcuts",
@@ -1917,7 +1918,9 @@
       "untitledNoDate": "Drafted from a conversation",
       "gone": "no longer in your history"
     },
-    "deletedToTrash": "Skill moved to Recently deleted — restorable for {{days}} days"
+    "deletedToTrash": "Skill moved to Recently deleted — restorable for {{days}} days",
+    "undoDeleteAria": "Undo deleting “{{name}}”",
+    "restored": "Skill restored"
   },
   "skill": {
     "createTitle": "Create Skill",
@@ -2360,7 +2363,8 @@
     "deletedTrash": "Workflow deleted — you can restore it from Recently deleted for {{days}} days",
     "trashCapped": "Recently deleted keeps only {{count}} items — the oldest was removed for good",
     "restored": "Workflow restored",
-    "trashRemoved": "Workflow removed for good"
+    "trashRemoved": "Workflow removed for good",
+    "undoDeleteAria": "Undo deleting “{{name}}”"
   },
   "snippet": {
     "title": "Text Snippets",
@@ -4219,5 +4223,17 @@
       "unknown": "no reason was reported",
       "generic": "That didn't work: {{message}}"
     }
+  },
+  "sessionTrash": {
+    "kind": "Conversation",
+    "hint": "A deleted conversation is a transcript file on disk — it can be restored only while that file still exists.",
+    "unavailable": "The transcript is no longer on disk",
+    "failure": {
+      "targetExists": "Can't restore — something already occupies that conversation's place. Nothing was moved; your deleted copy is still in Recently deleted.",
+      "gone": "Can't restore — a deleted part of this conversation is gone from disk.",
+      "outside": "Can't restore — the record for this conversation points outside the sessions folder.",
+      "deleteFailed": "Couldn't delete this conversation: {{message}}"
+    },
+    "deleted": "Conversation moved to Recently deleted — you can restore it from there."
   }
 }

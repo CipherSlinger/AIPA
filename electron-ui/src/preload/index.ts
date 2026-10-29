@@ -170,6 +170,64 @@ export type SkillTrashPurgeResultData =
   | { ok: true; removed: number; failed: number }
   | SkillTrashFailureData
 
+/** One moved file or folder of a deleted conversation. */
+export interface TrashedSessionItemData {
+  originalPath: string
+  trashedPath: string
+}
+
+/** One conversation waiting in `session:trash:list`. */
+export interface TrashedSessionEntryData {
+  id: string
+  sessionId: string
+  /** Display text passed at delete time; the UI falls back to the id. */
+  title?: string
+  engine: 'claude' | 'codex' | 'both'
+  items: TrashedSessionItemData[]
+  deletedAt: number
+}
+
+export interface TrashedSessionInfoData extends TrashedSessionEntryData {
+  /** False once any payload is gone from disk; restore is then impossible. */
+  available: boolean
+  /** Epoch ms when the entry leaves for good. */
+  purgeAt: number
+}
+
+export type SessionTrashErrorCode =
+  | 'not_found'
+  | 'invalid_session'
+  | 'outside_sessions'
+  | 'outside_trash'
+  | 'folder_missing'
+  | 'target_exists'
+  | 'move_failed'
+  | 'write_failed'
+  | 'delete_failed'
+
+export type SessionTrashFailureData = { ok: false; code: SessionTrashErrorCode; error: string }
+
+export type SessionTrashListResultData =
+  | { ok: true; entries: TrashedSessionInfoData[]; retentionDays: number }
+  | SessionTrashFailureData
+
+export type SessionTrashActionResultData =
+  | { ok: true; entry: TrashedSessionEntryData }
+  | SessionTrashFailureData
+
+export type SessionTrashPurgeResultData =
+  | { ok: true; removed: number; failed: number }
+  | SessionTrashFailureData
+
+/**
+ * `session:delete` reports why nothing was deleted instead of throwing: a
+ * remote-method error reaches the renderer as an unactionable rejection, and
+ * "this conversation was not found" is something the caller can handle.
+ */
+export type SessionDeleteResultData =
+  | { success: true; entry: TrashedSessionEntryData }
+  | { success: false; error: string; code: SessionTrashErrorCode }
+
 /** One entry of a Codex hook run (`HookRunSummary.entries`). */
 export interface CodexHookRunEntryData {
   kind: string
@@ -1610,7 +1668,11 @@ const electronAPI = {
   // ── Sessions ─────────────────────────────
   sessionList: () => ipcRenderer.invoke('session:list') as Promise<SessionListItemData[]>,
   sessionLoad: (id: string) => ipcRenderer.invoke('session:load', id),
-  sessionDelete: (id: string) => ipcRenderer.invoke('session:delete', id),
+  // Deleting moves the conversation into the trash; the renderer offers
+  // "Recently deleted" to restore it for the retention window. `title` is
+  // display text only — main falls back to the session id when it is absent.
+  sessionDelete: (id: string, sessionTitle?: string) =>
+    ipcRenderer.invoke('session:delete', { sessionId: id, title: sessionTitle }) as Promise<SessionDeleteResultData>,
   sessionFork: (sessionId: string, upToMessageIndex: number) => ipcRenderer.invoke('session:fork', { sessionId, upToMessageIndex }),
   sessionRename: (sessionId: string, title: string) => ipcRenderer.invoke('session:rename', { sessionId, title }),
   sessionGenerateTitle: (description: string) => ipcRenderer.invoke('session:generateTitle', { description }),
@@ -1992,6 +2054,18 @@ const electronAPI = {
     ipcRenderer.invoke('skills:trash:purge') as Promise<SkillTrashPurgeResultData>,
   skillsTrashRemove: (id: string) =>
     ipcRenderer.invoke('skills:trash:remove', id) as Promise<SkillTrashActionResultData>,
+
+  // ── Deleted conversations ──────────────
+  // Same holding-area shape as skills above: every call resolves with a reason
+  // rather than rejecting, so a refusal can be shown next to the row.
+  sessionsTrashList: () =>
+    ipcRenderer.invoke('session:trash:list') as Promise<SessionTrashListResultData>,
+  sessionsTrashRestore: (id: string) =>
+    ipcRenderer.invoke('session:trash:restore', id) as Promise<SessionTrashActionResultData>,
+  sessionsTrashPurge: () =>
+    ipcRenderer.invoke('session:trash:purge') as Promise<SessionTrashPurgeResultData>,
+  sessionsTrashRemove: (id: string) =>
+    ipcRenderer.invoke('session:trash:remove', id) as Promise<SessionTrashActionResultData>,
 
   // ── Window ──────────────────────────────
   windowSetTitleBarOverlay: (opts: { color: string; symbolColor: string }) =>

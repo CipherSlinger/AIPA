@@ -41,7 +41,7 @@ interface DeptRosterProps {
   filedByHand: ReadonlySet<string>
   onToggleSelect: (sessionId: string) => void
   onOpenSession: (session: SessionListItem) => void
-  onDeleteSession?: (sessionId: string) => void
+  onDeleteSession?: (sessionId: string, sessionTitle?: string) => void
   onNewSession: () => void
   onHire: (position: Position) => void
   onEdit: (position: Position) => void
@@ -204,7 +204,10 @@ export default function DeptRoster({
           onClick={selectMode ? () => {} : () => onOpenSession(session)}
           isLoading={loadingSessionId === session.sessionId}
           filedByHand={filedByHand.has(session.sessionId)}
-          onDelete={selectMode ? undefined : () => onDeleteSession?.(session.sessionId)}
+          onDelete={selectMode ? undefined : () => onDeleteSession?.(
+            session.sessionId,
+            session.title || session.lastPrompt,
+          )}
         />
       </div>
     </div>

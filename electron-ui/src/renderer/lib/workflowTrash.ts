@@ -19,6 +19,15 @@ export const TRASH_RETENTION_DAYS = 30
 export const TRASH_RETENTION_MS = TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000
 
 /**
+ * How long a delete toast stays up when it carries Undo. The trash entry
+ * outlives the toast by 30 days either way, so this is not about data loss: it
+ * is the time a user gets to notice the delete, read it and reach the button.
+ * The default 4s undercuts that once the toast is not the first thing they look
+ * at. Same window as the memory "Undo" toast, so undo feels like one feature.
+ */
+export const UNDO_TOAST_MS = 8000
+
+/**
  * The holding area's cap. It exists so a user who deletes far more than they
  * restore cannot grow prefs without bound; the oldest entry is dropped and the
  * delete toast says so.

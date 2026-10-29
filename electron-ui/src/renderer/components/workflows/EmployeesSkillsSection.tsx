@@ -7,7 +7,8 @@ import { useUiStore, useChatStore, useSessionStore } from '../../store'
 import type { SkillInfo } from '../skills/skillsShared'
 import { MARKETPLACE_SKILLS, type MarketplaceSkill } from '../../utils/skillMarketplace'
 import { SectionHeader, ToolbarButton, AddCard, PresetCard, SubLabel, cardStyle, EMPLOYEE_GRID } from './EmployeesShared'
-import { TRASH_RETENTION_DAYS } from '../../lib/workflowTrash'
+import { TRASH_RETENTION_DAYS, UNDO_TOAST_MS } from '../../lib/workflowTrash'
+import type { SkillTrashErrorCode } from '../../../preload'
 import SkillDraftSourceDialog from '../skills/SkillDraftSourceDialog'
 import SaveConversationSkillDialog from '../chat/SaveConversationSkillDialog'
 
@@ -82,13 +83,49 @@ export function useEmployeeSkills() {
     }
   }, [t, refresh])
 
+  /**
+   * Why a skill restore was refused, in the words the Recently deleted page
+   * already uses. Sharing the keys keeps one explanation of each refusal
+   * instead of a second, possibly disagreeing, sentence here.
+   */
+  const trashFailureMessage = useCallback((code: SkillTrashErrorCode | undefined, error: string | undefined): string => {
+    switch (code) {
+      // Restoring never overwrites: say exactly what is in the way.
+      case 'original_exists': return t('trash.failure.folderExists')
+      case 'folder_missing': return t('trash.failure.folderGone')
+      case 'not_found': return t('trash.failure.notFound')
+      default: return t('trash.failure.generic', { message: error || t('trash.failure.unknown') })
+    }
+  }, [t])
+
   const deleteSkill = useCallback(async (dirPath: string) => {
     try {
       const result = await window.electronAPI.skillsDelete(dirPath)
       if (result?.success) {
-        // The folder was moved, not erased; say where it went so the user
-        // knows it is still recoverable instead of assuming it is gone.
-        useUiStore.getState().addToast('success', t('skills.deletedToTrash', { days: TRASH_RETENTION_DAYS }))
+        // The folder was moved, not erased; say where it went and offer the
+        // way back right here, so undoing does not require finding the
+        // Recently deleted page.
+        const entry = result.entry
+        useUiStore.getState().addToast('success', t('skills.deletedToTrash', { days: TRASH_RETENTION_DAYS }), UNDO_TOAST_MS, {
+          label: t('common.undo'),
+          ariaLabel: t('skills.undoDeleteAria', { name: entry.name }),
+          onClick: async () => {
+            try {
+              const restored = await window.electronAPI.skillsTrashRestore(entry.id)
+              if (restored.ok) {
+                useUiStore.getState().addToast('success', t('skills.restored'))
+                await refresh()
+                return
+              }
+              // A refusal must never look like a restore: the card would
+              // reappear in the user's mind while the folder is still in the
+              // holding area (or gone).
+              useUiStore.getState().addToast('error', trashFailureMessage(restored.code, restored.error))
+            } catch (err) {
+              useUiStore.getState().addToast('error', t('trash.failure.generic', { message: String(err) }))
+            }
+          },
+        })
         await refresh()
         return true
       }
@@ -97,7 +134,7 @@ export function useEmployeeSkills() {
       useUiStore.getState().addToast('error', String(err))
     }
     return false
-  }, [t, refresh])
+  }, [t, refresh, trashFailureMessage])
 
   return { skills, loading, loaded, refresh, useSkill, installSkill, deleteSkill, installedNames, installingId }
 }

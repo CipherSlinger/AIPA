@@ -102,6 +102,9 @@ export default function App() {
         // this is just the earliest convenient nudge. Failure is harmless —
         // the next launch or the Employees page tries again.
         window.electronAPI.skillsTrashPurge().catch(() => { /* best effort */ })
+        // Deleted conversations are files under userData too; a user who never
+        // opens the Employees page should still have a bounded holding area.
+        window.electronAPI.sessionsTrashPurge().catch(() => { /* best effort */ })
 
         // Auto-populate default personas and workflows on first launch (Iteration 405)
         populateDefaultPresetsIfEmpty(all)

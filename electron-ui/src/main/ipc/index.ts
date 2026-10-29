@@ -21,9 +21,17 @@ import type {
 import { buildCodexTurnArgs } from '../codex/codex-turn-args'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { speculationManager, isSafeToSpeculate } from '../pty/speculation-bridge'
-import { readSettings, writeSettings, listSessions as listClaudeSessions, loadSession as loadClaudeSession, deleteSession as deleteClaudeSession, forkSession as forkClaudeSession, renameSession, rewindSession, searchSessions as searchClaudeSessions, detectTurnInterruption, getDreamConsolidationMtime } from '../sessions/session-reader'
+import { readSettings, writeSettings, listSessions as listClaudeSessions, loadSession as loadClaudeSession, forkSession as forkClaudeSession, renameSession, rewindSession, searchSessions as searchClaudeSessions, detectTurnInterruption, getDreamConsolidationMtime } from '../sessions/session-reader'
 import type { SessionListItem as ClaudeSessionListItem } from '../sessions/session-reader'
-import { listSessions as listCodexSessions, loadSession as loadCodexSession, deleteSession as deleteCodexSession, forkSession as forkCodexSession, searchSessions as searchCodexSessions, isCodexSession } from '../codex/codex-session-reader'
+import { listSessions as listCodexSessions, loadSession as loadCodexSession, forkSession as forkCodexSession, searchSessions as searchCodexSessions, isCodexSession } from '../codex/codex-session-reader'
+import {
+  listTrashedSessions,
+  moveSessionToTrash,
+  purgeTrashedSessions,
+  removeTrashedSession,
+  restoreTrashedSession,
+  type SessionTrashErrorCode,
+} from '../trash/session-trash'
 import {
   historyAskStatus,
   historyIndexBuilding,
@@ -1988,15 +1996,77 @@ function registerSessionHandlers(): void {
     }
   })
 
-  // Session deletion: try both
-  ipcMain.handle('session:delete', (_e, id) => {
+  // Session deletion moves the conversation into the trash instead of erasing
+  // it, so a misclick stays restorable for the retention window. Both engines
+  // are still tried — a session id may exist in either — but the answer is a
+  // result object the renderer can act on ("nothing matched" is a reason, not
+  // a boolean), and a refusal never reaches the renderer as a rejected invoke.
+  ipcMain.handle('session:delete', (_e, payload: { sessionId?: string; title?: string } | string) => {
     try {
-      const codexDeleted = deleteCodexSession(id)
-      const claudeDeleted = deleteClaudeSession(id)
-      return codexDeleted || claudeDeleted
+      const sessionId = typeof payload === 'string' ? payload : payload?.sessionId
+      const title = typeof payload === 'string' ? undefined : payload?.title
+      if (typeof sessionId !== 'string' || !sessionId) {
+        return {
+          success: false,
+          error: 'No conversation was given',
+          code: 'not_found' satisfies SessionTrashErrorCode,
+        }
+      }
+      const result = moveSessionToTrash(sessionId, { title })
+      if (!result.ok) {
+        log.warn('session:delete refused:', result.code, result.error)
+        return { success: false, error: result.error, code: result.code }
+      }
+      return { success: true, entry: result.entry }
     } catch (err) {
       log.warn('session:delete error:', String(err))
-      return false
+      return { success: false, error: String(err), code: 'move_failed' satisfies SessionTrashErrorCode }
+    }
+  })
+
+  ipcMain.handle('session:trash:list', () => {
+    try {
+      return listTrashedSessions()
+    } catch (err) {
+      log.warn('session:trash:list error:', String(err))
+      return { ok: false, code: 'delete_failed' satisfies SessionTrashErrorCode, error: String(err) }
+    }
+  })
+
+  ipcMain.handle('session:trash:restore', (_e, id: string) => {
+    try {
+      if (typeof id !== 'string' || !id) {
+        return { ok: false, code: 'not_found' satisfies SessionTrashErrorCode, error: 'No item was given' }
+      }
+      const result = restoreTrashedSession(id)
+      if (!result.ok) log.warn('session:trash:restore refused:', result.code, result.error)
+      return result
+    } catch (err) {
+      log.warn('session:trash:restore error:', String(err))
+      return { ok: false, code: 'move_failed' satisfies SessionTrashErrorCode, error: String(err) }
+    }
+  })
+
+  ipcMain.handle('session:trash:purge', () => {
+    try {
+      return purgeTrashedSessions()
+    } catch (err) {
+      log.warn('session:trash:purge error:', String(err))
+      return { ok: false, code: 'delete_failed' satisfies SessionTrashErrorCode, error: String(err) }
+    }
+  })
+
+  ipcMain.handle('session:trash:remove', (_e, id: string) => {
+    try {
+      if (typeof id !== 'string' || !id) {
+        return { ok: false, code: 'not_found' satisfies SessionTrashErrorCode, error: 'No item was given' }
+      }
+      const result = removeTrashedSession(id)
+      if (!result.ok) log.warn('session:trash:remove refused:', result.code, result.error)
+      return result
+    } catch (err) {
+      log.warn('session:trash:remove error:', String(err))
+      return { ok: false, code: 'delete_failed' satisfies SessionTrashErrorCode, error: String(err) }
     }
   })
 

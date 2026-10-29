@@ -7,6 +7,7 @@ import { runWorkflowIntoQueue } from './runWorkflow'
 import {
   MAX_TRASHED_WORKFLOWS,
   TRASH_RETENTION_DAYS,
+  UNDO_TOAST_MS,
   addTrashedWorkflow,
   normalizeTrashedWorkflows,
   WorkflowTrashResult,
@@ -91,6 +92,33 @@ export function useWorkflowCrud() {
     addToast('success', t('workflow.created'))
   }, [newName, newDesc, newIcon, newSteps, workflows, saveWorkflows, addToast, t])
 
+  /**
+   * Put a trashed workflow back in the grid. Refuses rather than overwriting
+   * when the list is full; an id that was reused in the meantime is given a
+   * fresh one, so a restore can never replace a newer workflow.
+   *
+   * Reads the holding area and the grid from the store rather than this
+   * render's snapshot: the Undo button in the delete toast is pressed after
+   * the delete has already changed both lists, so a snapshot taken before the
+   * delete would not contain the entry the button means to restore.
+   */
+  const restoreTrashedWorkflow = useCallback((id: string): WorkflowTrashResult => {
+    const current = usePrefsStore.getState().prefs
+    const entries = normalizeTrashedWorkflows(current.trashedWorkflows)
+    const live: Workflow[] = current.workflows || []
+    const entry = entries.find(item => item.workflow.id === id)
+    if (!entry) return { ok: false, code: 'not_found' }
+    if (live.length >= MAX_WORKFLOWS) return { ok: false, code: 'workflow_limit' }
+    const idTaken = live.some(w => w.id === entry.workflow.id)
+    const restored: Workflow = idTaken
+      ? { ...entry.workflow, id: `wf-${Date.now()}-${Math.random().toString(36).slice(2, 6)}` }
+      : entry.workflow
+    saveWorkflows([restored, ...live])
+    saveTrashed(entries.filter(item => item.workflow.id !== id))
+    addToast('success', t('workflow.restored'))
+    return { ok: true }
+  }, [saveWorkflows, saveTrashed, addToast, t])
+
   const deleteWorkflow = useCallback((id: string) => {
     const removed = workflows.find(w => w.id === id)
     if (!removed) return
@@ -107,32 +135,31 @@ export function useWorkflowCrud() {
     localStorage.removeItem(`aipa:canvas-collapsed:${id}`)
     localStorage.removeItem(`aipa:canvas-pos:${id}`)
     localStorage.removeItem(`aipa:canvas-dir:${id}`)
-    addToast('info', t('workflow.deletedTrash', { days: TRASH_RETENTION_DAYS }))
+    addToast('info', t('workflow.deletedTrash', { days: TRASH_RETENTION_DAYS }), UNDO_TOAST_MS, {
+      label: t('common.undo'),
+      // The label is one word; the spoken form names what this undoes, so a
+      // screen-reader user with several toasts up knows which delete is meant.
+      ariaLabel: t('workflow.undoDeleteAria', { name: removed.name }),
+      onClick: () => {
+        const result = restoreTrashedWorkflow(id)
+        // Success already reports itself ("Workflow restored"); a refusal has
+        // to say why, or the workflow would look restored while it is not.
+        if (result.ok) return
+        addToast(
+          'error',
+          result.code === 'workflow_limit'
+            ? t('trash.failure.workflowLimit', { count: MAX_WORKFLOWS })
+            : t('trash.failure.notFound'),
+        )
+      },
+    })
     if (held.dropped) {
       // The cap pushed the oldest entry out for good; saying nothing would make
-      // that disappearance look like a bug.
+      // that disappearance look like a bug. It is not this delete that was
+      // lost, so this toast names no undoable item and offers no Undo.
       addToast('info', t('workflow.trashCapped', { count: MAX_TRASHED_WORKFLOWS }))
     }
-  }, [workflows, prefs.trashedWorkflows, saveWorkflows, saveTrashed, expandedId, addToast, t])
-
-  /**
-   * Put a trashed workflow back in the grid. Refuses rather than overwriting
-   * when the list is full; an id that was reused in the meantime is given a
-   * fresh one, so a restore can never replace a newer workflow.
-   */
-  const restoreTrashedWorkflow = useCallback((id: string): WorkflowTrashResult => {
-    const entry = trashedWorkflows.find(item => item.workflow.id === id)
-    if (!entry) return { ok: false, code: 'not_found' }
-    if (workflows.length >= MAX_WORKFLOWS) return { ok: false, code: 'workflow_limit' }
-    const idTaken = workflows.some(w => w.id === entry.workflow.id)
-    const restored: Workflow = idTaken
-      ? { ...entry.workflow, id: `wf-${Date.now()}-${Math.random().toString(36).slice(2, 6)}` }
-      : entry.workflow
-    saveWorkflows([restored, ...workflows])
-    saveTrashed(trashedWorkflows.filter(item => item.workflow.id !== id))
-    addToast('success', t('workflow.restored'))
-    return { ok: true }
-  }, [trashedWorkflows, workflows, saveWorkflows, saveTrashed, addToast, t])
+  }, [workflows, prefs.trashedWorkflows, saveWorkflows, saveTrashed, expandedId, addToast, t, restoreTrashedWorkflow])
 
   /** Delete one holding-area entry for good (the workflow record is already gone). */
   const removeTrashedWorkflow = useCallback((id: string) => {

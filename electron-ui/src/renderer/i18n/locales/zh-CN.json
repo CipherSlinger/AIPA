@@ -1442,7 +1442,8 @@
     "saving": "保存中…",
     "installing": "安装中…",
     "loadingEllipsis": "加载中…",
-    "days": "天"
+    "days": "天",
+    "undo": "撤销"
   },
   "shortcutCheatsheet": {
     "title": "键盘快捷键",
@@ -1917,7 +1918,9 @@
       "untitledNoDate": "提炼自一段对话",
       "gone": "该对话已不在你的历史记录中"
     },
-    "deletedToTrash": "技能已移入“最近删除”——可在 {{days}} 天内恢复"
+    "deletedToTrash": "技能已移入“最近删除”——可在 {{days}} 天内恢复",
+    "undoDeleteAria": "撤销删除“{{name}}”",
+    "restored": "技能已恢复"
   },
   "skill": {
     "createTitle": "创建技能",
@@ -2360,7 +2363,8 @@
     "deletedTrash": "工作流已删除——可在“最近删除”中恢复，期限 {{days}} 天",
     "trashCapped": "“最近删除”只保留 {{count}} 项——最旧的一项已被永久移除",
     "restored": "工作流已恢复",
-    "trashRemoved": "工作流已永久删除"
+    "trashRemoved": "工作流已永久删除",
+    "undoDeleteAria": "撤销删除“{{name}}”"
   },
   "snippet": {
     "title": "文本片段",
@@ -4219,5 +4223,17 @@
       "unknown": "没有给出原因",
       "generic": "操作未能完成：{{message}}"
     }
+  },
+  "sessionTrash": {
+    "kind": "对话",
+    "hint": "被删除的对话是磁盘上的一个对话记录文件——只要该文件还在，就能恢复。",
+    "unavailable": "该对话记录已不在磁盘上",
+    "failure": {
+      "targetExists": "无法恢复——该对话原来的位置已被占用，什么都没有移动；删除的那一份仍在“最近删除”里。",
+      "gone": "无法恢复——这段对话有部分已从磁盘上消失。",
+      "outside": "无法恢复——这条对话的记录指向会话文件夹之外。",
+      "deleteFailed": "没能删掉这段对话：{{message}}"
+    },
+    "deleted": "对话已移入“最近删除”——在那里可以恢复。"
   }
 }

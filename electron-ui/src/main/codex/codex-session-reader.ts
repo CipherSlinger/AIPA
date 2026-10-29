@@ -256,6 +256,15 @@ function isSessionPathSafe(filePath: string): boolean {
   return isPathInside(getSessionsDir(), filePath) || isPathInside(getArchivedDir(), filePath)
 }
 
+/** The roots as an array, for callers that guard more than one path at a time. */
+export function codexSessionRoots(): string[] {
+  return [getSessionsDir(), getArchivedDir()]
+}
+
+function isInsideRoots(roots: string[], target: string): boolean {
+  return roots.some(root => isPathInside(root, target))
+}
+
 /** Every rollout JSONL under a root, at any date-directory depth. */
 function collectRolloutFiles(root: string): string[] {
   const files: string[] = []
@@ -289,18 +298,28 @@ function uuidFromRolloutName(filePath: string): string | null {
  * list alone never finds an existing session.
  */
 function findSessionFile(sessionId: string): string | null {
+  return findSessionFileInRoots(sessionId, codexSessionRoots())
+}
+
+/**
+ * The same probe over caller-chosen roots. The trash module needs to look in
+ * an arbitrary directory tree (its harness) and to prove that everything it
+ * found is inside the roots it was given.
+ */
+function findSessionFileInRoots(sessionId: string, roots: string[]): string | null {
+  const [sessionsRoot, archivedRoot = sessionsRoot] = roots
   const direct = [
-    path.join(getSessionsDir(), `${sessionId}.jsonl`),
-    path.join(getSessionsDir(), sessionId, `${sessionId}.jsonl`),
-    path.join(getArchivedDir(), `${sessionId}.jsonl`),
+    path.join(sessionsRoot, `${sessionId}.jsonl`),
+    path.join(sessionsRoot, sessionId, `${sessionId}.jsonl`),
+    path.join(archivedRoot, `${sessionId}.jsonl`),
   ]
   for (const filePath of direct) {
-    if (isSessionPathSafe(filePath) && fs.existsSync(filePath)) return filePath
+    if (isInsideRoots(roots, filePath) && fs.existsSync(filePath)) return filePath
   }
 
   const all = [
-    ...collectRolloutFiles(getSessionsDir()),
-    ...collectRolloutFiles(getArchivedDir()),
+    ...collectRolloutFiles(sessionsRoot),
+    ...collectRolloutFiles(archivedRoot),
   ]
   // Filename match first; session_meta is the fallback for renamed/forked files.
   const byName = all.find(f => path.basename(f).includes(sessionId))
@@ -310,6 +329,30 @@ function findSessionFile(sessionId: string): string | null {
     if (meta.id === sessionId) return filePath
   }
   return null
+}
+
+/**
+ * Every path that belongs to one thread, for a delete that must be complete.
+ *
+ * Older Codex kept a folder per thread (`sessions/<id>/`), which the old
+ * delete removed whole; the trash takes that folder rather than lifting the
+ * JSONL out of it, so nothing of the session is left behind. The rollout file
+ * found by the reader is added for the current date-sharded layout.
+ */
+export function findSessionPaths(sessionId: string, roots: string[] = codexSessionRoots()): string[] {
+  if (!isValidSessionId(sessionId)) return []
+  const [sessionsRoot, archivedRoot = sessionsRoot] = roots
+  const found: string[] = []
+  for (const candidate of [
+    path.join(sessionsRoot, sessionId),
+    path.join(sessionsRoot, `${sessionId}.jsonl`),
+    path.join(archivedRoot, `${sessionId}.jsonl`),
+  ]) {
+    if (isInsideRoots(roots, candidate) && fs.existsSync(candidate)) found.push(candidate)
+  }
+  const rollout = findSessionFileInRoots(sessionId, roots)
+  if (rollout) found.push(rollout)
+  return found
 }
 
 /**
@@ -326,37 +369,12 @@ export function loadSession(sessionId: string): CodexSessionMessage[] {
 // ── Session Deletion ─────────────────────────────────
 
 /**
- * Delete a session file.
+ * Forget the cached list row of a transcript. A restored file keeps the mtime
+ * and size the cache keyed on, so without this the row would stay missing (or
+ * stale) until the file changed again.
  */
-export function deleteSession(sessionId: string): boolean {
-  // Without this a "../.." id would resolve outside CODEX_HOME and the
-  // recursive rm below could delete an arbitrary directory.
-  if (!isValidSessionId(sessionId)) return false
-
-  const candidates = [
-    path.join(getSessionsDir(), `${sessionId}.jsonl`),
-    path.join(getSessionsDir(), sessionId),
-    path.join(getArchivedDir(), `${sessionId}.jsonl`),
-    findSessionFile(sessionId) ?? '',
-  ].filter(Boolean)
-
-  let deleted = false
-  for (const p of candidates) {
-    if (isSessionPathSafe(p) && fs.existsSync(p)) {
-      try {
-        const stat = fs.statSync(p)
-        if (stat.isDirectory()) {
-          fs.rmSync(p, { recursive: true, force: true })
-        } else {
-          fs.unlinkSync(p)
-        }
-        summaryCache.delete(p)
-        deleted = true
-      } catch { /* ignore */ }
-    }
-  }
-
-  return deleted
+export function forgetSessionCache(filePath: string): void {
+  summaryCache.delete(filePath)
 }
 
 // ── Session Search ───────────────────────────────────
