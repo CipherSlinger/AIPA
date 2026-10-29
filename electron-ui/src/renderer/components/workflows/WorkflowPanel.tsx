@@ -1,5 +1,5 @@
 // Employees page: Experts (personas), Skills and Workflows as matching card grids.
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Workflow as WorkflowIcon, Search, Users2, ClipboardPaste, Plus } from 'lucide-react'
 import { useT } from '../../i18n'
 import { useUiStore } from '../../store'
@@ -38,7 +38,7 @@ export default function WorkflowPanel() {
   const [skillContent, setSkillContent] = useState('')
   const [deletingSkillPath, setDeletingSkillPath] = useState<string | null>(null)
 
-  const openSkill = async (skill: SkillInfo) => {
+  const openSkill = useCallback(async (skill: SkillInfo) => {
     setSelectedSkill(skill)
     try {
       const result = await window.electronAPI.skillsRead(skill.dirPath)
@@ -46,7 +46,7 @@ export default function WorkflowPanel() {
     } catch (err) {
       setSkillContent(String(err))
     }
-  }
+  }, [t])
 
   const backFromSkill = () => {
     setSelectedSkill(null)
@@ -72,6 +72,22 @@ export default function WorkflowPanel() {
     el?.scrollIntoView({ block: 'start', behavior: 'smooth' })
     useUiStore.getState().clearPendingEmployeesSection()
   }, [pendingSection, selectedSkill])
+
+  // A global-search row can ask this page to open one skill. The page mounts
+  // after the overlay closes, so the path waits in the store until the list has
+  // actually been read: before that, "not in the list" would mean "not read
+  // yet", and the request would be dropped for the wrong reason. A path the
+  // list no longer has (deleted, or from another project) opens nothing; the
+  // section request above still lands the user on the skills grid.
+  const pendingSkillPath = useUiStore(s => s.pendingSkillPath)
+  useEffect(() => {
+    if (!pendingSkillPath || selectedSkill || !skillState.loaded) return
+    const match = skillState.skills.find(
+      skill => skill.dirPath.toLowerCase() === pendingSkillPath.toLowerCase(),
+    )
+    useUiStore.getState().consumePendingSkillPath()
+    if (match) void openSkill(match)
+  }, [pendingSkillPath, selectedSkill, skillState.loaded, skillState.skills, openSkill])
 
   if (selectedSkill) {
     return (

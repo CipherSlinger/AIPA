@@ -480,6 +480,22 @@ export interface Workflow {
    */
   personaId?: string
   teamwork?: boolean      // true = multi-agent teamwork workflow, false/undefined = single-agent workflow
+  /**
+   * Where this workflow came from, when it was drafted from a conversation.
+   * Absent for hand-made workflows and for every workflow saved before wave 65,
+   * so the detail page renders no line rather than an "unknown source".
+   *
+   * `sourceDraftedAt` is the local calendar date (YYYY-MM-DD) the draft was
+   * saved, not the record's `createdAt` epoch: `createdAt` already means "when
+   * this record was created" — sorting, run stats and staleness compare it as
+   * an instant — so reusing it would silently redefine a number every stored
+   * workflow already relies on. The line also needs a day, not an instant: it
+   * is stamped once from the user's own clock at save time, exactly like a
+   * skill's `created_at`, and must not shift with a timezone or a later edit.
+   */
+  sourceConversation?: string
+  sourceTitle?: string
+  sourceDraftedAt?: string
   createdAt: number       // epoch ms
   updatedAt: number       // epoch ms
   runCount: number        // how many times this workflow has been run

@@ -11,6 +11,7 @@ import { useWorkflowExecution } from './useWorkflowExecution'
 import { useWorkflowHistory } from './useWorkflowHistory'
 import WorkflowDetailHeader from './WorkflowDetailHeader'
 import WorkflowSchedulesStrip from './WorkflowSchedulesStrip'
+import ProvenanceLine from '../provenance/ProvenanceLine'
 import AutomationDialog from '../automation/AutomationDialog'
 import { getStepQueueEntries, getWorkflowQueuePlan, stepHasContent } from './workflowConstants'
 import type { AutomationJobData, AutomationLimitsData } from '../../../preload'
@@ -638,6 +639,16 @@ export default function WorkflowDetailPage() {
           )}
         </div>
       ) : null}
+
+      {/* Where this workflow was drafted from. Hand-made workflows and all of
+          those saved before wave 65 carry no provenance fields, so the shared
+          line renders nothing for them. */}
+      <ProvenanceLine
+        sessionId={workflow.sourceConversation}
+        title={workflow.sourceTitle}
+        date={workflow.sourceDraftedAt}
+        className="px-5 pb-1"
+      />
 
       {/* Execution progress bar — only shown when execution has started */}
       {(() => {

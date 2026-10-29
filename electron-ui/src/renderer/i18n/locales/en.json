@@ -1883,13 +1883,6 @@
       "noEligible": "No stored conversation can be used as a source right now.",
       "noResults": "No conversations match your search.",
       "showMore": "Show {{count}} more"
-    },
-    "provenance": {
-      "titled": "Drafted from “{{title}}” on {{date}}",
-      "titledNoDate": "Drafted from “{{title}}”",
-      "untitled": "Drafted from a conversation on {{date}}",
-      "untitledNoDate": "Drafted from a conversation",
-      "gone": "no longer in your history"
     }
   },
   "skill": {
@@ -3408,7 +3401,26 @@
       "attributedTitle": "{{path}}\nWorking folder: {{directory}}\nFiled here because the conversation ran in this folder. That is not a claim this department did the work. The session list is local to this machine, and each search returns a capped slice (up to 40 of at most 100 matches), so this chip describes this row — not the department's whole history.",
       "unlistedTitle": "This conversation is not in this machine's session list, so it cannot be filed under a department.",
       "unaffiliatedTitle": "This conversation is in this machine's local session list, but its working folder matches no node in the org chart."
-    }
+    },
+    "entities": {
+      "workflows": "Workflows",
+      "skills": "Skills",
+      "jobs": "Scheduled jobs",
+      "sectionAria": "{{name}}, {{count}} matching",
+      "more": "and {{count}} more not shown — keep typing to narrow the list",
+      "loadingSkills": "Reading installed skills…",
+      "loadingJobs": "Reading scheduled jobs…",
+      "skillsFailed": "Couldn't read the skills list — skills were not searched",
+      "jobsFailed": "Couldn't read the scheduled jobs list — scheduled jobs were not searched",
+      "retry": "Retry",
+      "skillPersonal": "Personal skill",
+      "skillProject": "Project skill",
+      "jobEnabled": "Enabled",
+      "jobDisabled": "Disabled",
+      "emptyFailedSkills": "The skills list could not be read, so skills were not searched.",
+      "emptyFailedJobs": "The scheduled jobs list could not be read, so scheduled jobs were not searched."
+    },
+    "noConversations": "No conversations matched — here's what you built."
   },
   "askHistory": {
     "entry": "Ask AIPA…",
@@ -4136,5 +4148,12 @@
       "emptyTitle": "No result among the {{count}} conversations picked in the archive",
       "emptyHint": "The search ran over all history; this list is limited to the archive snapshot. Clear it to search everywhere."
     }
+  },
+  "provenance": {
+    "titled": "Drafted from “{{title}}” on {{date}}",
+    "titledNoDate": "Drafted from “{{title}}”",
+    "untitled": "Drafted from a conversation on {{date}}",
+    "untitledNoDate": "Drafted from a conversation",
+    "gone": "no longer in your history"
   }
 }

@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import { ArrowLeft, Play, Trash2 } from 'lucide-react'
 import { useT } from '../../i18n'
-import { useSessionStore } from '../../store'
+import ProvenanceLine from '../provenance/ProvenanceLine'
 import type { SkillInfo } from './skillsShared'
 
 interface SkillDetailProps {
@@ -50,28 +50,6 @@ export default function SkillDetail({
   const [deleteHovered, setDeleteHovered] = useState(false)
 
   const sourceBadge = getSourceBadgeStyle(skill.source)
-  const sessions = useSessionStore(s => s.sessions)
-
-  // Only a stored source id makes a provenance line meaningful. The title and
-  // date are optional: an older or partially edited file may have one without
-  // the other, and the line then says only what it actually knows. When the
-  // conversation is gone from the list, the line says so instead of offering a
-  // place to go — navigation to a deleted conversation would dead-end.
-  const sourceId = skill.sourceConversation?.trim() ?? ''
-  const sourceTitle = skill.sourceTitle?.trim() ?? ''
-  const createdAt = skill.createdAt?.trim() ?? ''
-  const provenance = sourceId
-    ? {
-        line: sourceTitle
-          ? (createdAt
-              ? t('skills.provenance.titled', { title: sourceTitle, date: createdAt })
-              : t('skills.provenance.titledNoDate', { title: sourceTitle }))
-          : (createdAt
-              ? t('skills.provenance.untitled', { date: createdAt })
-              : t('skills.provenance.untitledNoDate')),
-        gone: !sessions.some(row => row.sessionId === sourceId),
-      }
-    : null
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-chat)' }}>
@@ -266,22 +244,15 @@ export default function SkillDetail({
 
       {/* Skill content preview */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 20px' }}>
-        {provenance && (
-          <div
-            data-skill-provenance={provenance.gone ? 'missing' : 'present'}
-            style={{
-              fontSize: 11,
-              color: 'var(--text-muted)',
-              lineHeight: 1.5,
-              marginBottom: 10,
-            }}
-          >
-            {provenance.line}
-            {provenance.gone && (
-              <span data-skill-provenance-gone> · {t('skills.provenance.gone')}</span>
-            )}
-          </div>
-        )}
+        {/* One shared line: quiet text when the conversation is gone from the
+            list, a link back to it when it is still there. */}
+        <ProvenanceLine
+          sessionId={skill.sourceConversation}
+          title={skill.sourceTitle}
+          date={skill.createdAt}
+          surface="skill"
+          className="mb-2.5"
+        />
         <div style={{
           background: 'var(--bg-hover)',
           border: '1px solid var(--border)',

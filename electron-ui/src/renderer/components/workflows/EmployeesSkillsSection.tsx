@@ -22,6 +22,12 @@ export function useEmployeeSkills() {
   const workingDir = useChatStore(s => s.workingDir)
   const [skills, setSkills] = useState<SkillInfo[]>([])
   const [loading, setLoading] = useState(false)
+  // Whether the list has been read at least once. `loading` alone cannot tell
+  // "not read yet" from "read and empty" for a caller that arrives before the
+  // first read starts (the first render has loading=false and no rows), and
+  // that difference decides whether a pending skill path is gone or just not
+  // found yet.
+  const [loaded, setLoaded] = useState(false)
   const [installedNames, setInstalledNames] = useState<Set<string>>(new Set())
   const [installingId, setInstallingId] = useState<string | null>(null)
 
@@ -45,6 +51,7 @@ export function useEmployeeSkills() {
       console.error('Failed to load skills:', err)
     } finally {
       setLoading(false)
+      setLoaded(true)
     }
   }, [workingDir])
 
@@ -89,7 +96,7 @@ export function useEmployeeSkills() {
     return false
   }, [t, refresh])
 
-  return { skills, loading, refresh, useSkill, installSkill, deleteSkill, installedNames, installingId }
+  return { skills, loading, loaded, refresh, useSkill, installSkill, deleteSkill, installedNames, installingId }
 }
 
 export type EmployeeSkillsState = ReturnType<typeof useEmployeeSkills>

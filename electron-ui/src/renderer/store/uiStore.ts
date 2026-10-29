@@ -171,6 +171,22 @@ interface UiState {
   pendingEmployeesSection: 'skills' | 'agents' | 'workflows' | null
   clearPendingEmployeesSection: () => void
 
+  // The skill the global search asked the Employees page to open, identified by
+  // its directory path — the same id the search row carries. It waits here
+  // because the overlay closes as the view switches, so the page mounts after
+  // the click; the page consumes it once its skill list is loaded, so a path
+  // that no longer resolves is dropped instead of opening nothing forever.
+  pendingSkillPath: string | null
+  openSkillDetail: (dirPath: string) => void
+  consumePendingSkillPath: () => string | null
+
+  // The scheduled job the global search asked Settings → Automations to reveal.
+  // Same hand-off: the settings list mounts after the overlay closes, then
+  // scrolls the row into view and clears the request.
+  pendingAutomationJobId: string | null
+  focusAutomationJob: (jobId: string) => void
+  consumePendingAutomationJobId: () => string | null
+
   // Track whether the current chat was entered from a department view (Iteration 538)
   fromDepartment: boolean
   setFromDepartment: (v: boolean) => void
@@ -270,7 +286,7 @@ function resolveNav(_s: UiState, item: NavItem): NavPatch {
   return { activeNavItem: item }
 }
 
-export const useUiStore = create<UiState>((set) => ({
+export const useUiStore = create<UiState>((set, get) => ({
   sidebarTab: savedSidebarTab,
   sidebarOpen: true,
   commandPaletteOpen: false,
@@ -348,6 +364,34 @@ export const useUiStore = create<UiState>((set) => ({
   setMainView: (view) => set({ mainView: view }),
   pendingEmployeesSection: null,
   clearPendingEmployeesSection: () => set({ pendingEmployeesSection: null }),
+  // Same destination as the 'skills' nav item, plus the row to open. The
+  // section request stays set so that if the path no longer resolves the user
+  // still lands on the skills grid rather than on a blank page.
+  pendingSkillPath: null,
+  openSkillDetail: (dirPath) => {
+    // Through the nav resolver, not a hand-copied patch: the search row and the
+    // /skills entry point must land on the same view with the same section
+    // request, and a new nav field should reach both without an edit here.
+    get().setActiveNavItem('skills')
+    set({ pendingSkillPath: dirPath })
+  },
+  consumePendingSkillPath: () => {
+    const path = get().pendingSkillPath
+    if (path !== null) set({ pendingSkillPath: null })
+    return path
+  },
+  pendingAutomationJobId: null,
+  // Through `openSettingsAt`, so the search entry point and the palette /
+  // status-bar entries cannot drift apart, plus the row to reveal.
+  focusAutomationJob: (jobId) => {
+    get().openSettingsAt('automations')
+    set({ pendingAutomationJobId: jobId })
+  },
+  consumePendingAutomationJobId: () => {
+    const id = get().pendingAutomationJobId
+    if (id !== null) set({ pendingAutomationJobId: null })
+    return id
+  },
   fromDepartment: false,
   setFromDepartment: (v) => set({ fromDepartment: v }),
   editingPersonaId: null,

@@ -13,10 +13,23 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, Copy, Loader2, Lock, Search, Sparkles, X } from 'lucide-react'
-import type { AskHistorySourceData, SessionSearchResultData } from '../../../preload/index'
+import type {
+  AskHistorySourceData,
+  AutomationJobData,
+  SessionSearchResultData,
+  SkillInfoData,
+} from '../../../preload/index'
 import { useI18n, useT } from '../../i18n'
-import { useDepartmentStore, useSessionStore, useUiStore } from '../../store'
+import { useChatStore, useDepartmentStore, usePrefsStore, useSessionStore, useUiStore } from '../../store'
+import {
+  ENTITY_HIT_ROWS,
+  ENTITY_SEARCH_MIN_CHARS,
+  deriveJobHits,
+  deriveSkillHits,
+  deriveWorkflowHits,
+} from '../../lib/entitySearch'
 import { pushEscapeHandler } from '../ui/escapeStack'
+import { EntityHitGroups, type EntitySourceStatus } from './EntityHitGroups'
 import { useGlobalSessionSearch } from './useGlobalSessionSearch'
 import { SearchResultRow, relativeTime } from './SearchResultRow'
 import { revealSessionEvidence } from './revealSessionEvidence'
@@ -350,6 +363,17 @@ export default function GlobalSearchOverlay() {
   // that?" resolves. It survives Stop (a re-ask keeps its context) and is
   // cleared only by the chip's × or by unmounting the overlay.
   const [lastExchange, setLastExchange] = useState<{ question: string; answer: string } | null>(null)
+  // The two IPC-backed building-block lists. Each keeps its own status: one
+  // list failing must not hide the other, and neither may read as "no matches"
+  // when it was never read. `null` means "not read" — never "empty".
+  const [skills, setSkills] = useState<SkillInfoData[] | null>(null)
+  const [skillStatus, setSkillStatus] = useState<EntitySourceStatus>('loading')
+  const [jobs, setJobs] = useState<AutomationJobData[] | null>(null)
+  const [jobStatus, setJobStatus] = useState<EntitySourceStatus>('loading')
+  // Retry tokens. Bumping one re-runs that source's read without closing the
+  // overlay or touching the other list.
+  const [skillsReload, setSkillsReload] = useState(0)
+  const [jobsReload, setJobsReload] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const openingRef = useRef(false)
   // Set on the way out, whether through `close()` or a direct unmount. An
@@ -386,6 +410,17 @@ export default function GlobalSearchOverlay() {
   // the department filter and a scoped ask all change the moment the user
   // files or un-files a conversation.
   const filings = useDepartmentStore(s => s.filings)
+  // Building blocks are not sessions: they are read from their own stores and
+  // IPC, never through `session:search`, and the session filters below never
+  // touch them.
+  const workingDir = useChatStore(s => s.workingDir)
+  const workflows = usePrefsStore(s => s.prefs.workflows)
+  // A scheduled job carries only a workflow id, so the name the user recognises
+  // is resolved here, where the workflow list is at hand.
+  const workflowName = useCallback(
+    (id: string) => (workflows || []).find(workflow => workflow.id === id)?.name,
+    [workflows],
+  )
   const originMap = useMemo(() => buildSessionOriginMap(sessions), [sessions])
   const filtered = useMemo(
     () => filterResultsByOrigin(results, originMap, originFilter),
@@ -545,6 +580,58 @@ export default function GlobalSearchOverlay() {
       .catch(() => { /* feature stays hidden */ })
     return () => { cancelled = true }
   }, [])
+
+  // Both lists are read when the overlay opens and not before: the overlay is
+  // only mounted while it is open, so a closed search never pays for either
+  // call. The cancelled flag keeps a read that outlives the overlay from
+  // setting state on an unmounted component.
+  useEffect(() => {
+    let cancelled = false
+    setSkillStatus('loading')
+    const api = window.electronAPI
+    if (!api?.skillsList) {
+      // An older preload that cannot list skills still has to answer honestly:
+      // the section says it could not read the list, not that none matched.
+      setSkills(null)
+      setSkillStatus('failed')
+      return () => { cancelled = true }
+    }
+    Promise.resolve(api.skillsList(workingDir || undefined))
+      .then(list => {
+        if (cancelled) return
+        setSkills(Array.isArray(list) ? list : [])
+        setSkillStatus('ready')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setSkills(null)
+        setSkillStatus('failed')
+      })
+    return () => { cancelled = true }
+  }, [workingDir, skillsReload])
+
+  useEffect(() => {
+    let cancelled = false
+    setJobStatus('loading')
+    const api = window.electronAPI
+    if (!api?.automationList) {
+      setJobs(null)
+      setJobStatus('failed')
+      return () => { cancelled = true }
+    }
+    Promise.resolve(api.automationList())
+      .then(result => {
+        if (cancelled) return
+        setJobs(Array.isArray(result?.jobs) ? result.jobs : [])
+        setJobStatus('ready')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setJobs(null)
+        setJobStatus('failed')
+      })
+    return () => { cancelled = true }
+  }, [jobsReload])
 
   const groups = useMemo(() => {
     const map = new Map<string, SessionSearchResultData[]>()
@@ -776,6 +863,28 @@ export default function GlobalSearchOverlay() {
     if (!ok) addToast('error', t('globalSearch.openFailed'))
   }, [addToast, askedQuestion, close, t])
 
+  // Entity rows open the thing itself. The target is handed to the view that
+  // owns it and the overlay closes first, so the view switch happens behind a
+  // dismissed search. There is nothing to await: none of the three needs a
+  // transcript read, so none of them can fail into a toast.
+  const openEntityWorkflow = useCallback((workflowId: string) => {
+    useUiStore.getState().openWorkflowDetail(workflowId)
+    close()
+  }, [close])
+
+  const openEntitySkill = useCallback((dirPath: string) => {
+    useUiStore.getState().openSkillDetail(dirPath)
+    close()
+  }, [close])
+
+  const openEntityJob = useCallback((jobId: string) => {
+    useUiStore.getState().focusAutomationJob(jobId)
+    close()
+  }, [close])
+
+  const retrySkills = useCallback(() => setSkillsReload(n => n + 1), [])
+  const retryJobs = useCallback(() => setJobsReload(n => n + 1), [])
+
   const onKeyDown = (e: React.KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault()
@@ -820,10 +929,6 @@ export default function GlobalSearchOverlay() {
     : 0
   const showIdle = trimmed.length < 2
   const showLoading = status === 'loading' && trimmed.length >= 2
-  const showEmpty = status === 'ready'
-    && results.length === 0
-    && searchedQuery.length >= 2
-    && !listScope
   // The search found matches but a filter is hiding all of them. The copy must
   // name the filter, not pretend the query had no results. The origin filter
   // runs first, so it is the one to blame when it leaves nothing behind; the
@@ -845,6 +950,39 @@ export default function GlobalSearchOverlay() {
     && !showDeptFilterEmpty
     && listFiltered.visible.length === 0
   const showAskEntry = askState === 'idle' && askAvailable && trimmed.length >= ASK_MIN_QUERY
+  // The building-block sections share the transcript query but none of its
+  // filters. They are hidden while an answer is on screen — that view is about
+  // one question, not a list of everything — and below the minimum length,
+  // where every list would match itself.
+  const entityQuery = askState === 'idle' && trimmed.length >= ENTITY_SEARCH_MIN_CHARS ? trimmed : ''
+  // Totals only, derived from the same functions the sections use. This exists
+  // so the transcript empty state cannot claim "no matches" over three sections
+  // of matches directly below it; the sections still render from their own
+  // derivation, so there is one definition of "matches" and no prop plumbing.
+  const entityTotals = useMemo(() => {
+    if (entityQuery === '') return 0
+    return deriveWorkflowHits(workflows, entityQuery, ENTITY_HIT_ROWS).total
+      + deriveSkillHits(skills, entityQuery, ENTITY_HIT_ROWS).total
+      + deriveJobHits(jobs, entityQuery, ENTITY_HIT_ROWS, { workflowName }).total
+  }, [entityQuery, workflows, skills, jobs, workflowName])
+  const hasEntityHits = entityTotals > 0
+  // "No matches" is a claim about the whole search. While a building-block list
+  // is still being read, or when one of them did match, the transcript copy
+  // must not make it on their behalf.
+  const entityPending = entityQuery !== '' && (skillStatus === 'loading' || jobStatus === 'loading')
+  const showEmpty = status === 'ready'
+    && results.length === 0
+    && searchedQuery.length >= 2
+    && !listScope
+    && !entityPending
+    && !hasEntityHits
+  // Conversations had nothing, but the user's own building blocks did. One
+  // quiet line says so; the sections below carry the hits.
+  const showNoConversations = status === 'ready'
+    && results.length === 0
+    && searchedQuery.length >= 2
+    && !listScope
+    && hasEntityHits
 
   return (
     <div
@@ -1632,6 +1770,31 @@ export default function GlobalSearchOverlay() {
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
                       {t('globalSearch.emptyHint')}
                     </div>
+                    {/* "No matches" is a claim about the transcripts only. When
+                        a building-block list could not be read, the empty
+                        state has to admit what was not searched, or it reads
+                        as "nothing anywhere matched". */}
+                    {skillStatus === 'failed' && (
+                      <div style={{ fontSize: 11, color: 'var(--danger-text)', marginTop: 6 }}>
+                        {t('globalSearch.entities.emptyFailedSkills')}
+                      </div>
+                    )}
+                    {jobStatus === 'failed' && (
+                      <div style={{ fontSize: 11, color: 'var(--danger-text)', marginTop: 6 }}>
+                        {t('globalSearch.entities.emptyFailedJobs')}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Conversations had nothing, the building blocks did. Naming
+                    only the transcripts keeps the claim true; the sections
+                    below carry the hits. */}
+                {showNoConversations && !showLoading && (
+                  <div style={{ ...EMPTY_STYLE, paddingTop: 14, paddingBottom: 8 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                      {t('globalSearch.noConversations')}
+                    </div>
                   </div>
                 )}
 
@@ -1747,6 +1910,26 @@ export default function GlobalSearchOverlay() {
                   )
                 })}
               </div>
+
+              {/* After the transcript groups, and outside every session
+                  filter: a workflow is not filed by origin or department, so
+                  a filter that hides conversations must not hide it. */}
+              {entityQuery !== '' && (
+                <EntityHitGroups
+                  query={entityQuery}
+                  workflows={workflows}
+                  skills={skills}
+                  jobs={jobs}
+                  skillStatus={skillStatus}
+                  jobStatus={jobStatus}
+                  workflowName={workflowName}
+                  onOpenWorkflow={openEntityWorkflow}
+                  onOpenSkill={openEntitySkill}
+                  onOpenJob={openEntityJob}
+                  onRetrySkills={retrySkills}
+                  onRetryJobs={retryJobs}
+                />
+              )}
             </>
           )}
         </div>

@@ -1883,13 +1883,6 @@
       "noEligible": "目前没有可用于生成草稿的已保存对话。",
       "noResults": "没有匹配的对话。",
       "showMore": "再显示 {{count}} 条"
-    },
-    "provenance": {
-      "titled": "提炼自“{{title}}”，{{date}}",
-      "titledNoDate": "提炼自“{{title}}”",
-      "untitled": "提炼自一段对话，{{date}}",
-      "untitledNoDate": "提炼自一段对话",
-      "gone": "该对话已不在你的历史记录中"
     }
   },
   "skill": {
@@ -3408,7 +3401,26 @@
       "attributedTitle": "{{path}}\n工作目录：{{directory}}\n因为这个会话在这个文件夹里运行，所以归到这里。这不等于说该部门做了这项工作。会话列表只来自本机，每次搜索也只返回截断后的一段（最多 100 条中的 40 条），所以这枚标签只说明这一行——不代表该部门的全部历史。",
       "unlistedTitle": "本机的会话列表里没有这个会话，因此无法把它归到任何部门。",
       "unaffiliatedTitle": "这个会话在本机会话列表里，但它的工作目录没有对应组织图里的任何节点。"
-    }
+    },
+    "entities": {
+      "workflows": "工作流",
+      "skills": "技能",
+      "jobs": "定时任务",
+      "sectionAria": "{{name}}，{{count}} 个匹配",
+      "more": "还有 {{count}} 个未显示——继续输入可以缩小范围",
+      "loadingSkills": "正在读取已安装的技能…",
+      "loadingJobs": "正在读取定时任务…",
+      "skillsFailed": "无法读取技能列表，技能没有被搜索",
+      "jobsFailed": "无法读取定时任务列表，定时任务没有被搜索",
+      "retry": "重试",
+      "skillPersonal": "个人技能",
+      "skillProject": "项目技能",
+      "jobEnabled": "已启用",
+      "jobDisabled": "已停用",
+      "emptyFailedSkills": "技能列表读取失败，这次搜索没有包含技能。",
+      "emptyFailedJobs": "定时任务列表读取失败，这次搜索没有包含定时任务。"
+    },
+    "noConversations": "没有匹配的对话——以下是你自己做过的东西。"
   },
   "askHistory": {
     "entry": "问 AIPA…",
@@ -4136,5 +4148,12 @@
       "emptyTitle": "在从档案库选中的 {{count}} 段对话中没有结果",
       "emptyHint": "搜索本身会检索全部历史；这个列表只限于档案库快照。清除快照即可搜索全部。"
     }
+  },
+  "provenance": {
+    "titled": "提炼自“{{title}}”，{{date}}",
+    "titledNoDate": "提炼自“{{title}}”",
+    "untitled": "提炼自一段对话，{{date}}",
+    "untitledNoDate": "提炼自一段对话",
+    "gone": "该对话已不在你的历史记录中"
   }
 }

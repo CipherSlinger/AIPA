@@ -19,7 +19,8 @@ import type {
   SessionWorkflowDraftData,
   SessionWorkflowDraftMetaData,
 } from '../../../preload'
-import { buildWorkflowDraft } from '../../lib/sessionReuse'
+import { buildWorkflowDraft, localDateStamp } from '../../lib/sessionReuse'
+import { workflowProvenance } from '../../lib/provenance'
 import {
   applyDraft,
   canGeneralize,
@@ -298,13 +299,16 @@ export default function SaveConversationWorkflowDialog({
       createdAt: now,
       updatedAt: now,
       runCount: 0,
+      // Only a stored conversation can be pointed back to. A live, never-saved
+      // chat has no id, so it records nothing rather than a dead source.
+      ...workflowProvenance(sessionId, sessionTitle, localDateStamp()),
     }
     const updated = [workflow, ...existing]
     usePrefsStore.getState().setPrefs({ workflows: updated })
     window.electronAPI?.prefsSet('workflows', updated)
     addToast('success', t('sessionReuse.workflow.saved', { name: workflow.name }))
     onClose()
-  }, [name, description, icon, steps, addToast, t, onClose])
+  }, [name, description, icon, steps, sessionId, sessionTitle, addToast, t, onClose])
 
   const empty = draft.totalTurns === 0 && !applied
   const failureKey = failure

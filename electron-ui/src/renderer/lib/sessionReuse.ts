@@ -341,8 +341,12 @@ export interface SkillProvenance {
   title?: string | null
 }
 
-/** `created_at` is the user's local day, not UTC: the date they pressed Install. */
-function localDateStamp(): string {
+/**
+ * `created_at` is the user's local day, not UTC: the date they pressed Install.
+ * Exported because a workflow drafted from the same conversation records the
+ * same kind of day (`sourceDraftedAt`), and the two must not drift apart.
+ */
+export function localDateStamp(): string {
   const now = new Date()
   const month = String(now.getMonth() + 1).padStart(2, '0')
   const day = String(now.getDate()).padStart(2, '0')

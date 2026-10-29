@@ -6,7 +6,7 @@
 // page only reflects state and sends CRUD requests, then waits for
 // `automation:changed` instead of guessing what the scheduler did.
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { AlarmClock, AlertTriangle, Building2, Clock, Copy, History, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Search, Sparkles, Trash2, Wallet, X } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { useChatStore, useDepartmentStore, usePrefsStore, useUiStore } from '../../store'
@@ -277,6 +277,39 @@ export default function SettingsAutomations() {
     setFilterText('')
     setFilterStatuses([])
   }
+
+  // The global search hands this page a job id to reveal. The read has to land
+  // first: before it, an empty `jobs` means "unknown", not "gone". A filter left
+  // over from an earlier visit would hide the row the user came for, so it is
+  // cleared rather than allowed to swallow the request.
+  const pendingJobId = useUiStore(s => s.pendingAutomationJobId)
+  const [highlightJobId, setHighlightJobId] = useState<string | null>(null)
+  const jobRowRefs = useRef<Record<string, HTMLDivElement | null>>({})
+
+  useEffect(() => {
+    if (!pendingJobId || loading) return
+    if (!jobs.some(job => job.id === pendingJobId)) {
+      useUiStore.getState().consumePendingAutomationJobId()
+      return
+    }
+    if (!sortedJobs.some(job => job.id === pendingJobId)) {
+      setFilterText('')
+      setFilterStatuses([])
+      return
+    }
+    jobRowRefs.current[pendingJobId]?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    setHighlightJobId(pendingJobId)
+    useUiStore.getState().consumePendingAutomationJobId()
+  }, [pendingJobId, loading, jobs, sortedJobs])
+
+  // The highlight fades on its own clock. It lives in its own effect so a
+  // scheduler refresh re-running the reveal effect cannot cancel the timer and
+  // leave a row tinted forever.
+  useEffect(() => {
+    if (!highlightJobId) return
+    const timer = setTimeout(() => setHighlightJobId(null), 2400)
+    return () => clearTimeout(timer)
+  }, [highlightJobId])
 
   const timeText = (ts: number): string => new Date(ts).toLocaleString(resolvedLocale)
 
@@ -1057,11 +1090,22 @@ export default function SettingsAutomations() {
               return (
                 <div
                   key={job.id}
+                  ref={el => { jobRowRefs.current[job.id] = el }}
+                  data-automation-job={job.id}
+                  data-automation-job-focused={highlightJobId === job.id ? 'true' : undefined}
                   style={{
                     display: 'flex', gap: 10, alignItems: 'flex-start',
                     padding: '10px 0',
                     borderTop: index === 0 ? 'none' : '1px solid var(--border)',
                     opacity: job.enabled ? 1 : 0.62,
+                    // A brief tint marks the row the search opened; the
+                    // transition fades it without a second state change.
+                    background: highlightJobId === job.id ? 'var(--accent-bg)' : 'transparent',
+                    boxShadow: highlightJobId === job.id
+                      ? 'inset 0 0 0 1px var(--accent-border)'
+                      : 'inset 0 0 0 1px transparent',
+                    borderRadius: 6,
+                    transition: 'background-color 0.6s ease, box-shadow 0.6s ease',
                   }}
                 >
                   <div style={{ paddingTop: 1 }}>
