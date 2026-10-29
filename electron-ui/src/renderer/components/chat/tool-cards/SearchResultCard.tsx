@@ -12,6 +12,7 @@
 
 import React, { useState } from 'react'
 import { Globe } from 'lucide-react'
+import { useFindDeep } from '../findDeep'
 
 // ── GlobPathRow ───────────────────────────────────────────────────────────────
 
@@ -97,9 +98,12 @@ const PREVIEW_LIMIT = 10
 /** Glob/Grep result summary with count badge and fold-to-show-all */
 export function SearchResultSummary({ resultText, toolName }: SearchResultSummaryProps) {
   const [showAll, setShowAll] = useState(false)
+  // A deep find lists every result line: the fold hides paths and matches
+  // from both the eye and the scan.
+  const deepFind = useFindDeep()
   const lines = resultText.split('\n').filter(l => l.trim().length > 0)
   const total = lines.length
-  const visibleLines = (!showAll && total > PREVIEW_LIMIT) ? lines.slice(0, PREVIEW_LIMIT) : lines
+  const visibleLines = (!showAll && !deepFind && total > PREVIEW_LIMIT) ? lines.slice(0, PREVIEW_LIMIT) : lines
   const isGlob = toolName === 'Glob'
 
   return (
@@ -133,7 +137,7 @@ export function SearchResultSummary({ resultText, toolName }: SearchResultSummar
             ? <GlobPathRow key={idx} line={line} />
             : <GrepMatchRow key={idx} line={line} />
         ))}
-        {total > PREVIEW_LIMIT && !showAll && (
+        {total > PREVIEW_LIMIT && !showAll && !deepFind && (
           <button
             onClick={() => setShowAll(true)}
             style={{
@@ -178,9 +182,10 @@ const SUMMARY_LIMIT = 200
 /** URL chips + content preview for WebSearch/WebFetch results */
 export function WebResultBlock({ resultText, toolName }: WebResultBlockProps) {
   const [expanded, setExpanded] = useState(false)
+  const deepFind = useFindDeep()
   const urls = extractUrls(resultText)
   const isSearch = toolName === 'WebSearch'
-  const preview = resultText.length > SUMMARY_LIMIT && !expanded
+  const preview = resultText.length > SUMMARY_LIMIT && !expanded && !deepFind
     ? resultText.slice(0, SUMMARY_LIMIT) + '…'
     : resultText
 
@@ -265,12 +270,12 @@ export function WebResultBlock({ resultText, toolName }: WebResultBlockProps) {
           lineHeight: 1.6,
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
-          maxHeight: expanded ? 'none' : 160,
-          overflow: expanded ? 'visible' : 'hidden',
+          maxHeight: expanded || deepFind ? 'none' : 160,
+          overflow: expanded || deepFind ? 'visible' : 'hidden',
         }}>
           {preview}
         </pre>
-        {resultText.length > SUMMARY_LIMIT && (
+        {resultText.length > SUMMARY_LIMIT && !deepFind && (
           <button
             onClick={() => setExpanded(!expanded)}
             style={{

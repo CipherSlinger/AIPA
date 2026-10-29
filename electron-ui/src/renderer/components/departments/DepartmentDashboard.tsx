@@ -4,7 +4,7 @@
 // (EmployeeFigure) rather than generic session cards.
 import { useEffect, useState } from 'react'
 import { Building2 } from 'lucide-react'
-import { useChatStore, useDepartmentStore, useSessionStore, useUiStore } from '../../store'
+import { useDepartmentStore, useSessionStore } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
 import OrgChart from './OrgChart'
 import { kindOf } from './deptUtils'
@@ -12,6 +12,7 @@ import { openSessionCore } from './openSessionCore'
 import { useT } from '../../i18n'
 import { listSessionsShared } from '../../utils/sessionListShared'
 import DeptView from './DepartmentDashboard.deptView'
+import { useSessionDelete } from './useSessionDelete'
 
 // ── Main export ───────────────────────────────────────────────────────────────
 export default function DepartmentDashboard() {
@@ -71,42 +72,10 @@ export default function DepartmentDashboard() {
     }
   }
 
-  const handleDeleteSession = async (sessionId: string, sessionTitle?: string) => {
-    try {
-      if (typeof window.electronAPI.sessionDelete === 'function') {
-        // The delete now only moves the transcript into "Recently deleted" and
-        // says why when it could not. A refused delete must not make the row
-        // vanish: it is still on disk, so the sidebar keeps it — and the toast
-        // says why, because a click that appears to do nothing reads as broken.
-        const result = await window.electronAPI.sessionDelete(sessionId, sessionTitle)
-        if (!result.success) {
-          useUiStore.getState().addToast(
-            'error',
-            result.code === 'not_found'
-              ? t('trash.failure.notFound')
-              : t('sessionTrash.failure.deleteFailed', { message: result.error }),
-          )
-          return
-        }
-        // The number of days is deliberately not spoken here: main owns the
-        // window, and a sentence with no number cannot disagree with it.
-        useUiStore.getState().addToast('success', t('sessionTrash.deleted'))
-      }
-      // If the conversation was the one on screen, close it: it is no longer in
-      // the sidebar, and leaving it displayed would let the next turn write a
-      // fresh transcript at the path the trashed copy would need back.
-      if (useChatStore.getState().viewSessionId === sessionId) {
-        useChatStore.getState().clearMessages()
-      }
-      const updated = useSessionStore.getState().sessions.filter(s => s.sessionId !== sessionId)
-      useSessionStore.getState().setSessions(updated)
-    } catch (err) {
-      useUiStore.getState().addToast(
-        'error',
-        t('sessionTrash.failure.deleteFailed', { message: String(err) }),
-      )
-    }
-  }
+  // The delete and its Undo live in one hook: the toast has to carry the id
+  // main returned for the holding-area entry, and that id is only known on the
+  // far side of the call.
+  const handleDeleteSession = useSessionDelete()
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg-chat)' }}>

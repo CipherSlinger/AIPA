@@ -15,6 +15,7 @@
 
 import React, { useState } from 'react'
 import { Eye, Check, AlertCircle } from 'lucide-react'
+import { useFindDeep } from '../findDeep'
 
 export interface AdvisorToolCardProps {
   input: Record<string, unknown>
@@ -25,6 +26,7 @@ export interface AdvisorToolCardProps {
 
 export function AdvisorToolCard({ input, result, isLoading, error }: AdvisorToolCardProps) {
   const [expanded, setExpanded] = useState(false)
+  const deepFind = useFindDeep()
 
   const PREVIEW_CHARS = 300
 
@@ -77,7 +79,9 @@ export function AdvisorToolCard({ input, result, isLoading, error }: AdvisorTool
     ? 'rgba(239,68,68,0.50)'
     : 'rgba(34,197,94,0.50)'
 
-  const previewText = resultText && resultText.length > PREVIEW_CHARS && !expanded
+  // A deep find renders the whole feedback: the tail past PREVIEW_CHARS is
+  // text the user cannot see, so it must not answer "No matches".
+  const previewText = resultText && resultText.length > PREVIEW_CHARS && !expanded && !deepFind
     ? resultText.slice(0, PREVIEW_CHARS) + '...'
     : resultText ?? ''
 
@@ -193,7 +197,7 @@ export function AdvisorToolCard({ input, result, isLoading, error }: AdvisorTool
               borderRadius: 6,
               padding: '6px 8px',
               overflow: 'auto',
-              maxHeight: expanded ? 400 : 120,
+              maxHeight: expanded || deepFind ? 400 : 120,
               color: 'var(--text-secondary)',
               lineHeight: 1.5,
               whiteSpace: 'pre-wrap',
@@ -201,7 +205,8 @@ export function AdvisorToolCard({ input, result, isLoading, error }: AdvisorTool
             }}>
               {previewText}
             </pre>
-            {resultText.length > PREVIEW_CHARS && (
+            {/* Hidden during a deep find: the full text is already rendered. */}
+            {resultText.length > PREVIEW_CHARS && !deepFind && (
               <button
                 onClick={() => setExpanded(!expanded)}
                 style={{

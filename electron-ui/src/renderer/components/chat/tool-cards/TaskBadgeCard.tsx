@@ -10,6 +10,7 @@
 
 import React from 'react'
 import { Check, X, Loader2 } from 'lucide-react'
+import { useFindDeep } from '../findDeep'
 
 // Tool name sets — kept here for co-location with the rendering logic
 export const TASK_CREATE_TOOLS = new Set(['TaskCreate', 'task_create'])
@@ -70,7 +71,9 @@ interface TaskUpdateBadgeProps {
 export function TaskUpdateBadge({ taskId, status, updateStatus }: TaskUpdateBadgeProps) {
   const isDone = status === 'done'
   const isRunning = status === 'running'
-  const shortId = taskId.length > 6 ? taskId.slice(0, 6) : taskId
+  // A deep find shows the full id: the chip is the only text the id has.
+  const deepFind = useFindDeep()
+  const shortId = taskId.length > 6 && !deepFind ? taskId.slice(0, 6) : taskId
   return (
     <div style={{
       display: 'inline-flex',
@@ -117,7 +120,9 @@ interface TaskStopBadgeProps {
 export function TaskStopBadge({ taskId, status }: TaskStopBadgeProps) {
   const isDone = status === 'done'
   const isRunning = status === 'running'
-  const shortId = taskId.length > 6 ? taskId.slice(0, 6) : taskId
+  // A deep find shows the full id: the chip is the only text the id has.
+  const deepFind = useFindDeep()
+  const shortId = taskId.length > 6 && !deepFind ? taskId.slice(0, 6) : taskId
   return (
     <div style={{
       display: 'inline-flex',

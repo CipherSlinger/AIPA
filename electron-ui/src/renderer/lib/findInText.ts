@@ -132,6 +132,13 @@ export function stepMatchIndex(
 }
 
 /**
+ * What the scan covered. The bar must name this set in every sentence that
+ * reports a count, so "No matches for X" can never describe a smaller search
+ * than the toggle the user turned on.
+ */
+export type FindScope = 'messages' | 'messages-tools'
+
+/**
  * The three honest states of the bar, plus the untouched one.
  *
  *   idle               no query yet: the counter stays blank, never "0 of 0"
@@ -139,25 +146,30 @@ export function stepMatchIndex(
  *                      is empty instead of claiming to have searched it
  *   none               the conversation was searched and matched nothing
  *   matches            what was searched, and which one is current
+ *
+ * `none` and `matches` carry the scope because both are statements about a
+ * search that happened; `idle` and `empty-conversation` searched nothing.
  */
 export type FindState =
   | { kind: 'idle' }
   | { kind: 'empty-conversation' }
-  | { kind: 'none' }
-  | { kind: 'matches'; total: number; current: number }
+  | { kind: 'none'; scope: FindScope }
+  | { kind: 'matches'; total: number; current: number; scope: FindScope }
 
 export function buildFindState(
   query: string,
   totalMatches: number,
   hasMessages: boolean,
   currentMatch = 0,
+  scope: FindScope = 'messages',
 ): FindState {
   if (!isActiveFindQuery(query)) return { kind: 'idle' }
   if (!hasMessages) return { kind: 'empty-conversation' }
-  if (!Number.isFinite(totalMatches) || totalMatches <= 0) return { kind: 'none' }
+  if (!Number.isFinite(totalMatches) || totalMatches <= 0) return { kind: 'none', scope }
   return {
     kind: 'matches',
     total: Math.floor(totalMatches),
     current: clampMatchIndex(currentMatch, Math.floor(totalMatches)),
+    scope,
   }
 }

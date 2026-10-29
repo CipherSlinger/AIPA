@@ -167,8 +167,13 @@ interface UiState {
   mainView: MainView
   setMainView: (view: MainView) => void
 
-  // Which section of the Employees page to scroll to when arriving from another entry point
-  pendingEmployeesSection: 'skills' | 'agents' | 'workflows' | null
+  // Which section of the Employees page to scroll to when arriving from another
+  // entry point. The page finds it through `data-employees-section`; there is
+  // one anchor primitive, not a second navigation system. 'trash' is special
+  // only in that its anchor does not exist until the section's rows have
+  // loaded — the section itself waits for them (see TrashSection).
+  pendingEmployeesSection: 'skills' | 'agents' | 'workflows' | 'trash' | null
+  openEmployeesSection: (section: 'skills' | 'agents' | 'workflows' | 'trash') => void
   clearPendingEmployeesSection: () => void
 
   // The skill the global search asked the Employees page to open, identified by
@@ -363,6 +368,12 @@ export const useUiStore = create<UiState>((set, get) => ({
   mainView: 'department' as const,
   setMainView: (view) => set({ mainView: view }),
   pendingEmployeesSection: null,
+  // Through `setActiveNavItem`, so the palette and the /skills entry point land
+  // on the same view with the same section request; only the section is added.
+  openEmployeesSection: (section) => {
+    get().setActiveNavItem('workflows')
+    set({ pendingEmployeesSection: section })
+  },
   clearPendingEmployeesSection: () => set({ pendingEmployeesSection: null }),
   // Same destination as the 'skills' nav item, plus the row to open. The
   // section request stays set so that if the path no longer resolves the user

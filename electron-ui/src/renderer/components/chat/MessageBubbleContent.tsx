@@ -3,6 +3,7 @@ import { StandardChatMessage } from '../../types/app.types'
 import MessageContent from './MessageContent'
 import ToolUseBlock from './ToolUseBlock'
 import ToolBatchBlock from './ToolBatchBlock'
+import { useFindDeep } from './findDeep'
 import { groupToolUses } from '../../utils/toolSummary'
 import { ChevronDown, ChevronRight, ChevronUp, Check, CheckCheck, Clock, CornerDownRight, Timer, Type, AlertTriangle } from 'lucide-react'
 import { ImageThumbnail } from './tool-cards/ImageThumbnail'
@@ -46,6 +47,10 @@ export default React.memo(function MessageBubbleContent({
   onCollapse, onTimestampClick,
 }: MessageBubbleContentProps) {
   const t = useT()
+  // True while the find bar is searching tool output (wave 71A). It forces
+  // hidden text into the DOM for the duration of the search; nothing is
+  // written back, so turning the mode off restores this component exactly.
+  const deepFind = useFindDeep()
   const thinking = message.thinking
   const isMessageStreaming = message.isStreaming
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
@@ -116,10 +121,13 @@ export default React.memo(function MessageBubbleContent({
                 {thinkingExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
                 {isMessageStreaming && thinking ? t('message.thinking') + '...' : t('message.thinking')}
               </button>
-              {thinkingExpanded && (
+              {(thinkingExpanded || deepFind) && (
                 // Thinking is only in the DOM while it is expanded, so marking
                 // it here means the find bar searches it exactly when the user
-                // can see it — collapsed reasoning is not a phantom match.
+                // can see it — collapsed reasoning is not a phantom match. A
+                // deep search opens it for the same reason it opens collapsed
+                // messages: the text belongs to the conversation even when a
+                // disclosure is hiding it.
                 <div data-find-scope="" style={{
                   background: 'var(--accent-bg)',
                   border: '1px solid var(--accent-border)',
@@ -208,7 +216,16 @@ export default React.memo(function MessageBubbleContent({
 
           {/* Tool uses (inside AI bubble) -- with batch grouping */}
           {!isPermission && toolGroups && (
-            <div style={{ borderTop: '1px solid var(--border)', marginTop: 8, paddingTop: 8 }}>
+            <div
+              // Tool-card text joins the find scan only while the "Include
+              // tool output" toggle is on. The marker sits on the group so
+              // every card — including the specialised ones that render their
+              // own body — is covered in one place; buttons and aria-hidden
+              // chrome stay excluded by the walker's own rules, which is what
+              // keeps a "Copy" label out of the results.
+              data-find-scope={deepFind ? '' : undefined}
+              style={{ borderTop: '1px solid var(--border)', marginTop: 8, paddingTop: 8 }}
+            >
               {toolGroups.map((group, idx) => (
                 group.type === 'batch' ? (
                   <ToolBatchBlock key={`batch-${idx}`} group={group} />
@@ -294,8 +311,10 @@ export default React.memo(function MessageBubbleContent({
                   {message.content}
                   {isMessageStreaming && <span className="streaming-cursor">|</span>}
                 </pre>
-              ) : isLongMessage && !longMessageExpanded ? (
-                /* Auto-collapsed long message: show truncated preview */
+              ) : isLongMessage && !longMessageExpanded && !deepFind ? (
+                /* Auto-collapsed long message: show truncated preview. A deep
+                   find renders the whole text: the 500-char preview is the
+                   other place the transcript hides words from a search. */
                 <div style={{ position: 'relative' }}>
                   <div style={{ overflow: 'hidden', maxHeight: 200 }}>
                     <MessageContent

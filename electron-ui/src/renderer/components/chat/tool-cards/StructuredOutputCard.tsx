@@ -8,6 +8,7 @@
 import React, { useState } from 'react'
 import { Database, ChevronDown, ChevronRight, Copy, Check } from 'lucide-react'
 import { ToolUseInfo } from '../../../types/app.types'
+import { useFindDeep } from '../findDeep'
 
 interface Props {
   tool: ToolUseInfo
@@ -61,6 +62,9 @@ function JsonValue({ value, depth = 0 }: { value: unknown; depth?: number }): Re
 export function StructuredOutputCard({ tool }: Props) {
   const [schemaExpanded, setSchemaExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
+  // A deep find renders the schema too: a collapsed schema leaves its field
+  // names out of the DOM, so searching for one would answer "No matches".
+  const deepFind = useFindDeep()
 
   const schema = tool.input?.schema as Record<string, unknown> | undefined
   const schemaTitle = (schema?.title as string) || (schema?.description as string) || null
@@ -214,7 +218,7 @@ export function StructuredOutputCard({ tool }: Props) {
             {schemaExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
             JSON Schema
           </button>
-          {schemaExpanded && (
+          {(schemaExpanded || deepFind) && (
             <pre
               style={{
                 margin: '4px 0 2px',

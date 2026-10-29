@@ -25,6 +25,7 @@ import { SkillToolCard } from './tool-cards/SkillToolCard'
 import { ToolSearchToolCard } from './tool-cards/ToolSearchToolCard'
 import { ImageThumbnail } from './tool-cards/ImageThumbnail'
 import { ToolCardHeader } from './tool-cards/ToolCardHeader'
+import { useFindDeep } from './findDeep'
 import AutoApprovalReviewLine from './tool-cards/AutoApprovalReviewLine'
 import { StructuredOutputCard } from './tool-cards/StructuredOutputCard'
 import { FileReadCard } from './tool-cards/FileReadCard'
@@ -306,6 +307,13 @@ const EMPTY_IMAGE_PATHS: string[] = []
 export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
   const t = useT()
   const [expanded, setExpanded] = useState(false)
+  // The find bar's deep search needs every card's body in the DOM. It forces
+  // the body open for display without touching `expanded`, so the card's own
+  // toggle comes back unchanged when the search ends. While the mode is on an
+  // individual card cannot be collapsed — that is the price of a count that
+  // covers the whole conversation, and the mode ends with the bar.
+  const deepFind = useFindDeep()
+  const showDetail = expanded || deepFind
   const [elapsed, setElapsed] = useState(0)
   const [finalDuration, setFinalDuration] = useState<number | null>(null)
   const startTimeRef = useRef<number | null>(null)
@@ -372,8 +380,8 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
 
   const imagePaths = useMemo(
-    () => (!isRunning && expanded ? extractImagePaths(tool) : EMPTY_IMAGE_PATHS),
-    [isRunning, expanded, tool],
+    () => (!isRunning && showDetail ? extractImagePaths(tool) : EMPTY_IMAGE_PATHS),
+    [isRunning, showDetail, tool],
   )
 
   const resultText = useMemo(() => typeof tool.result === 'string'
@@ -628,7 +636,7 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
     >
       {/* Header */}
       <ToolCardHeader
-        expanded={expanded}
+        expanded={showDetail}
         onToggle={() => { userToggledRef.current = true; setExpanded(!expanded) }}
         Icon={Icon}
         leftBorderColor={leftBorderColor}
@@ -650,9 +658,9 @@ export default React.memo(function ToolUseBlock({ tool, onAbort }: Props) {
       <AutoApprovalReviewLine itemId={tool.id} />
 
       {/* Expanded detail with animated height */}
-      <div className={`tool-output-wrapper${expanded ? ' expanded' : ''}`}>
+      <div className={`tool-output-wrapper${showDetail ? ' expanded' : ''}`}>
         <div>
-        {expanded && (
+        {showDetail && (
         <div style={{ borderTop: '1px solid var(--border)' }}>
           {/* Input section */}
           <div style={{ padding: '8px 10px', background: 'var(--section-bg)' }}>

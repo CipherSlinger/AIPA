@@ -168,6 +168,12 @@ export default function EmployeeFigure({
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={e => e.stopPropagation()}>
           <button
             onClick={() => { setConfirmingFire(false); onDelete?.() }}
+            // The visible word is one syllable ("Dismiss"); the name a screen
+            // reader gets spells out what the second click actually does — the
+            // conversation moves to Recently deleted and can come back. The
+            // two-step flow itself is unchanged.
+            title={t('dept.empFireAria')}
+            aria-label={t('dept.empFireAria')}
             style={{
               ...ACTION_BTN, width: 'auto', padding: '2px 7px',
               fontSize: 10, fontWeight: 600,

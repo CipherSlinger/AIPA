@@ -17,6 +17,7 @@ import { getWorkflowQueuePlan } from '../workflows/workflowConstants'
 import { errorCodeText } from '../workflows/scheduleSummary'
 import { formatDateMedium, type AppLocale } from '../../utils/formatDate'
 import { buildAutomationDescriptors, canRunAutomation } from './automationPalette'
+import { buildTrashPaletteEntry } from '../../lib/trashPresence'
 import type { Translate } from '../automation/scheduleText'
 import type { AutomationJobData } from '../../../preload'
 
@@ -614,6 +615,39 @@ export function buildWorkflowCommands(args: Pick<CommandBuilderArgs, 't' | 'onCl
     },
     category: 'workflow' as const,
   }))
+}
+
+export interface TrashCommandBuilderArgs {
+  t: CommandBuilderArgs['t']
+  onClose: () => void
+  /**
+   * Rows in the holding area. `null` means the probe could not answer, which
+   * hides the entry: "I could not check" is not "there is something".
+   */
+  trashCount: number | null
+}
+
+/**
+ * Jump to Employees → "Recently deleted". Hidden rather than disabled when the
+ * holding area is empty: the section renders nothing in that case, so the row
+ * would promise a page that has nothing on it and no anchor to scroll to.
+ */
+export function buildTrashCommands({ t, onClose, trashCount }: TrashCommandBuilderArgs): PaletteCommand[] {
+  const entry = buildTrashPaletteEntry(t, trashCount)
+  if (!entry) return []
+  return [{
+    id: entry.id,
+    name: entry.name,
+    description: entry.description,
+    icon: <Trash2 size={14} />,
+    action: () => {
+      // The store action goes through the same nav resolver as the 'skills'
+      // entry point and adds the section request the page scrolls to.
+      useUiStore.getState().openEmployeesSection('trash')
+      onClose()
+    },
+    category: 'action',
+  }]
 }
 
 export interface AutomationCommandBuilderArgs {

@@ -13,6 +13,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Users, ChevronDown, Check, X, Timer, Loader2, GitBranch } from 'lucide-react'
 import { ToolUseInfo } from '../../types/app.types'
+import { useFindDeep } from './findDeep'
 
 // CopyOutputBtn inline (avoids circular import with ToolUseBlock)
 function CopyOutputBtn({ text }: { text: string }) {
@@ -93,6 +94,11 @@ export function AgentToolCard({ input, result, tool, onAbort }: AgentToolCardPro
   const [expanded, setExpanded] = useState(false)
   const [promptExpanded, setPromptExpanded] = useState(false)
   const [resultExpanded, setResultExpanded] = useState(false)
+  // A deep find opens the prompt and result without touching the user's own
+  // toggles: the body is otherwise absent from the DOM, so the bar could not
+  // find a phrase the sub-agent was actually given or returned.
+  const deepFind = useFindDeep()
+  const showBody = expanded || deepFind
 
   useEffect(() => {
     if (isRunning) {
@@ -125,14 +131,14 @@ export function AgentToolCard({ input, result, tool, onAbort }: AgentToolCardPro
 
   // Prompt preview logic
   const isPromptLong = promptText.length > PROMPT_LIMIT
-  const promptPreview = isPromptLong && !promptExpanded
+  const promptPreview = isPromptLong && !promptExpanded && !deepFind
     ? promptText.slice(0, PROMPT_LIMIT) + '...'
     : promptText
 
   // Result preview logic
   const resultText = result ?? ''
   const isResultLong = resultText.length > RESULT_LIMIT
-  const resultPreview = isResultLong && !resultExpanded
+  const resultPreview = isResultLong && !resultExpanded && !deepFind
     ? resultText.slice(0, RESULT_LIMIT) + '...'
     : resultText
 
@@ -162,7 +168,7 @@ export function AgentToolCard({ input, result, tool, onAbort }: AgentToolCardPro
           padding: '7px 10px',
           background: 'var(--bg-hover)',
           border: 'none',
-          borderBottom: expanded ? '1px solid var(--border)' : 'none',
+          borderBottom: showBody ? '1px solid var(--border)' : 'none',
           cursor: 'pointer',
           textAlign: 'left',
           transition: 'background 0.15s ease',
@@ -305,7 +311,7 @@ export function AgentToolCard({ input, result, tool, onAbort }: AgentToolCardPro
           size={11}
           style={{
             color: 'var(--text-muted)',
-            transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+            transform: showBody ? 'rotate(0deg)' : 'rotate(-90deg)',
             transition: 'transform 0.15s ease',
             flexShrink: 0,
           }}
@@ -313,7 +319,7 @@ export function AgentToolCard({ input, result, tool, onAbort }: AgentToolCardPro
       </button>
 
       {/* Expanded body */}
-      {expanded && (
+      {showBody && (
         <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {/* Description row */}
           {description && (
@@ -357,7 +363,8 @@ export function AgentToolCard({ input, result, tool, onAbort }: AgentToolCardPro
                 }}>
                   {promptPreview}
                 </pre>
-                {isPromptLong && (
+                {/* Hidden during a deep find: the full prompt is already rendered. */}
+                {isPromptLong && !deepFind && (
                   <button
                     onClick={() => setPromptExpanded(!promptExpanded)}
                     style={{
@@ -416,7 +423,8 @@ export function AgentToolCard({ input, result, tool, onAbort }: AgentToolCardPro
                 }}>
                   {resultPreview}
                 </pre>
-                {isResultLong && (
+                {/* Hidden during a deep find: the full result is already rendered. */}
+                {isResultLong && !deepFind && (
                   <button
                     onClick={() => setResultExpanded(!resultExpanded)}
                     style={{

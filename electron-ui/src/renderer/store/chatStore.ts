@@ -366,6 +366,12 @@ interface ChatState {
   toggleCollapse: (msgId: string) => void
   collapseAll: () => void
   expandAll: () => void
+  /**
+   * Collapse exactly these messages. `expandAll()` has no inverse, so the find
+   * bar needs a way to put back the rows it expanded on the user's behalf
+   * without touching anything else.
+   */
+  collapseMessages: (msgIds: readonly string[]) => void
   lastCost: number | null
   totalSessionCost: number
   lastContextUsage: { used: number; total: number } | null
@@ -1103,6 +1109,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
   expandAll: () => set((s) => ({
     messages: s.messages.map(m => m.role !== 'permission' && m.role !== 'plan' && m.role !== 'hook_callback' && m.role !== 'elicitation' ? { ...m, collapsed: false } as StandardChatMessage : m)
   })),
+
+  // Restores only the ids handed in: a message that arrived while the find
+  // bar was expanding the transcript was never collapsed by it, so it keeps
+  // whatever state it has.
+  collapseMessages: (msgIds) => {
+    const targets = new Set(msgIds)
+    if (targets.size === 0) return
+    set((s) => ({
+      messages: s.messages.map(m => targets.has(m.id) && (m as StandardChatMessage).collapsed !== true
+        ? { ...m, collapsed: true } as StandardChatMessage
+        : m)
+    }))
+  },
 
   // ── Task Queue actions ──────────────────────────
   addToQueue: (content, meta) => set((s) => ({

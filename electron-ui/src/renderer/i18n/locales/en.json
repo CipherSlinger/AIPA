@@ -1256,7 +1256,9 @@
     "modelSlashDesc": "Switch the active model",
     "costDesc": "Show token usage and cost for this session",
     "skillsDesc": "List available Claude skills",
-    "rewindDesc": "Rewind to a previous message in the conversation"
+    "rewindDesc": "Rewind to a previous message in the conversation",
+    "openTrash": "Recently deleted",
+    "openTrashDesc": "{{count}} deleted item(s) — restore any of them"
   },
   "permission": {
     "allow": "Allow",
@@ -3197,7 +3199,8 @@
         "unknownPartial": "Can't say when it frees — part of the window's run history is missing",
         "unknownGeneric": "Can't say when it frees — the window's spend can't be pinned down"
       }
-    }
+    },
+    "empFireAria": "Dismiss employee — the conversation moves to Recently deleted, where you can restore it"
   },
   "archive": {
     "summaryTask": "{{count}} tasks",
@@ -4251,9 +4254,13 @@
       "targetExists": "Can't restore — something already occupies that conversation's place. Nothing was moved; your deleted copy is still in Recently deleted.",
       "gone": "Can't restore — a deleted part of this conversation is gone from disk.",
       "outside": "Can't restore — the record for this conversation points outside the sessions folder.",
-      "deleteFailed": "Couldn't delete this conversation: {{message}}"
+      "deleteFailed": "Couldn't delete this conversation: {{message}}",
+      "alreadyGone": "Not restored — this conversation is no longer in Recently deleted. Nothing came back."
     },
-    "deleted": "Conversation moved to Recently deleted — you can restore it from there."
+    "deleted": "Conversation moved to Recently deleted — you can restore it from there.",
+    "undoDeleteAria": "Undo deleting “{{title}}”",
+    "restored": "Conversation restored — it is back in your list.",
+    "restoredNoList": "Conversation restored, but the list could not be refreshed — the sidebar may not show it yet."
   },
   "find": {
     "barLabel": "Find in conversation",
@@ -4264,6 +4271,12 @@
     "emptyConversation": "This conversation is empty",
     "previous": "Previous match",
     "next": "Next match",
-    "close": "Close find bar"
+    "close": "Close find bar",
+    "toolOutput": "Tool output",
+    "includeToolOutput": "Include tool output in the search",
+    "counterWithToolOutput": "{{current}} of {{total}} in messages and tool output",
+    "noMatchesWithToolOutput": "No matches for “{{query}}” in messages and tool output",
+    "expandTooLarge": "Can't expand {{count}} collapsed items to search (limit {{limit}}). Open the ones you need first.",
+    "expandTooLargeChars": "Can't expand {{count}} characters of text to search (limit {{limit}}). Open the ones you need first."
   }
 }

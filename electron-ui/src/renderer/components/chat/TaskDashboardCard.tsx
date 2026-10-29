@@ -1,5 +1,6 @@
 import React from 'react'
 import { Check, User, Link2, ClipboardList } from 'lucide-react'
+import { useFindDeep } from './findDeep'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -120,7 +121,10 @@ function StatusBadge({ status }: { status: TaskItem['status'] }) {
 // ── Short task ID display (first 6 chars) ─────────────────���───────────────────
 
 function ShortId({ id }: { id: string }) {
-  const short = id.length > 6 ? id.slice(0, 6) : id
+  // A deep find shows the full id: the 6-char chip is the only place the id
+  // appears as text, so searching for one would otherwise miss every task.
+  const deepFind = useFindDeep()
+  const short = id.length > 6 && !deepFind ? id.slice(0, 6) : id
   return (
     <span
       style={{

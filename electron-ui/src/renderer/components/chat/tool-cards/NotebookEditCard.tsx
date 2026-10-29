@@ -8,6 +8,7 @@
 
 import React, { useState } from 'react'
 import { BookOpen } from 'lucide-react'
+import { useFindDeep } from '../findDeep'
 
 // ── Style maps ────────────────────────────────────────────────────────────────
 
@@ -56,6 +57,9 @@ interface NotebookEditCardProps {
 /** Input preview card for the NotebookEdit tool */
 export function NotebookEditCard({ input }: NotebookEditCardProps) {
   const [sourceExpanded, setSourceExpanded] = useState(false)
+  // A deep find renders every source line: the unrendered tail is a phrase the
+  // bar can never find.
+  const deepFind = useFindDeep()
 
   const editMode = typeof input.edit_mode === 'string' ? input.edit_mode : 'replace'
   const cellNumber = typeof input.cell_number === 'number' ? input.cell_number : null
@@ -75,7 +79,7 @@ export function NotebookEditCard({ input }: NotebookEditCardProps) {
   const sourceLines = newSource ? newSource.split('\n') : []
   const totalLines = sourceLines.length
   const needsExpand = totalLines > NOTEBOOK_SOURCE_PREVIEW_LINES
-  const visibleSource = (needsExpand && !sourceExpanded)
+  const visibleSource = (needsExpand && !sourceExpanded && !deepFind)
     ? sourceLines.slice(0, NOTEBOOK_SOURCE_PREVIEW_LINES).join('\n')
     : newSource ?? ''
 
@@ -163,10 +167,10 @@ export function NotebookEditCard({ input }: NotebookEditCardProps) {
             fontFamily: "Consolas, 'Cascadia Code', 'Fira Code', monospace",
             background: 'var(--bg-secondary)',
             border: '1px solid var(--border)',
-            borderRadius: needsExpand && !sourceExpanded ? '6px 6px 0 0' : 6,
+            borderRadius: needsExpand && !sourceExpanded && !deepFind ? '6px 6px 0 0' : 6,
             padding: '8px 10px',
             overflow: 'auto',
-            maxHeight: sourceExpanded ? 400 : 160,
+            maxHeight: sourceExpanded || deepFind ? 400 : 160,
             color: 'var(--text-primary)',
             lineHeight: 1.55,
             whiteSpace: 'pre-wrap',
@@ -176,7 +180,8 @@ export function NotebookEditCard({ input }: NotebookEditCardProps) {
           }}>
             {visibleSource}
           </pre>
-          {needsExpand && (
+          {/* Hidden during a deep find: everything is already rendered. */}
+          {needsExpand && !deepFind && (
             <button
               onClick={() => setSourceExpanded(!sourceExpanded)}
               style={{

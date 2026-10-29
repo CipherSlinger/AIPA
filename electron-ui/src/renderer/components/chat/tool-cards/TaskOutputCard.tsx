@@ -13,6 +13,7 @@
 import React, { useState } from 'react'
 import { ClipboardList } from 'lucide-react'
 import TaskDashboardCard, { TaskItem } from '../TaskDashboardCard'
+import { useFindDeep } from '../findDeep'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,8 @@ export interface TaskOutputCardProps {
 
 export function TaskOutputCard({ input, result, isLoading }: TaskOutputCardProps) {
   const [showMore, setShowMore] = useState(false)
+  // Deep find renders the whole output rather than the 300-char preview.
+  const deepFind = useFindDeep()
 
   const taskId = typeof input.task_id === 'string' ? input.task_id : ''
   const isBlocking = input.block === true
@@ -69,7 +72,7 @@ export function TaskOutputCard({ input, result, isLoading }: TaskOutputCardProps
     : 'rgba(99,102,241,0.35)'
 
   const previewText = hasResult && !taskItems
-    ? (showMore ? (result ?? '') : (result ?? '').slice(0, PREVIEW_CHARS))
+    ? (showMore || deepFind ? (result ?? '') : (result ?? '').slice(0, PREVIEW_CHARS))
     : ''
   const needsExpand = hasResult && !taskItems && (result ?? '').length > PREVIEW_CHARS
 
@@ -165,10 +168,10 @@ export function TaskOutputCard({ input, result, isLoading }: TaskOutputCardProps
                 fontFamily: "Consolas, 'Cascadia Code', 'Fira Code', monospace",
                 background: 'var(--code-bg)',
                 border: '1px solid var(--border)',
-                borderRadius: needsExpand && !showMore ? '6px 6px 0 0' : 6,
+                borderRadius: needsExpand && !showMore && !deepFind ? '6px 6px 0 0' : 6,
                 padding: '8px 10px',
                 overflow: 'auto',
-                maxHeight: showMore ? 400 : 200,
+                maxHeight: showMore || deepFind ? 400 : 200,
                 color: 'var(--text-secondary)',
                 lineHeight: 1.55,
                 whiteSpace: 'pre-wrap',
@@ -177,11 +180,14 @@ export function TaskOutputCard({ input, result, isLoading }: TaskOutputCardProps
                 scrollbarColor: 'var(--border) transparent',
               }}>
                 {previewText}
-                {needsExpand && !showMore && (
+                {needsExpand && !showMore && !deepFind && (
                   <span style={{ color: 'var(--text-muted)' }}>…</span>
                 )}
               </pre>
-              {needsExpand && (
+              {/* Hidden during a deep find: the whole output is rendered, so
+                  "+ N more chars" would describe a preview that is not on
+                  screen. */}
+              {needsExpand && !deepFind && (
                 <button
                   onClick={() => setShowMore(!showMore)}
                   style={{

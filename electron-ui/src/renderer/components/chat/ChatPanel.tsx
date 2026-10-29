@@ -21,6 +21,7 @@ import MadeFromConversation from '../provenance/MadeFromConversation'
 import CatchUpCard from './CatchUpCard'
 import SearchBar from './SearchBar'
 import { FindInChatBar } from './FindInChatBar'
+import { FindDeepContext } from './findDeep'
 import TaskQueuePanel from './TaskQueuePanel'
 import TaskDashboard from './TaskDashboard'
 import ThinkingIndicator from './ThinkingIndicator'
@@ -160,12 +161,21 @@ export default function ChatPanel() {
     toggleCaseSensitive, changeRoleFilter,
   } = useConversationSearch(messages)
 
+  // How many rows are collapsed. The find bar re-scans when this changes:
+  // collapsing a row takes its text out of the DOM, so the previous count
+  // stops describing what is on screen.
+  const collapsedCount = useMemo(
+    () => messages.reduce((count, m) => count + ((m as StandardChatMessage).collapsed ? 1 : 0), 0),
+    [messages],
+  )
+
   // Find in the conversation on screen (wave 70B). It reads the transcript's
   // DOM, so it lives with this panel: there is nothing to search in another
   // view, and the bar is only ever opened from the shortcut.
   const find = useFindInChat({
     hasMessages: messages.length > 0,
     messageCount: messages.length,
+    collapsedCount,
     isStreaming,
   })
 
@@ -481,8 +491,11 @@ export default function ChatPanel() {
         <FindInChatBar
           query={find.query}
           state={find.state}
+          includeToolOutput={find.includeToolOutput}
+          expandBlocked={find.expandBlocked}
           inputRef={find.inputRef}
           onQueryChange={find.changeQuery}
+          onToggleToolOutput={find.toggleToolOutput}
           onNext={find.next}
           onPrev={find.prev}
           onClose={find.closeBar}
@@ -651,6 +664,7 @@ export default function ChatPanel() {
               }}
             />
           ) : (
+          <FindDeepContext.Provider value={find.includeToolOutput}>
           <MessageList
             messages={messages}
             onPermission={respondPermission}
@@ -674,6 +688,7 @@ export default function ChatPanel() {
             tabId={activeTabId}
             restoreScrollTop={restoreScrollTop}
           />
+          </FindDeepContext.Provider>
           )}
         </div>
         {isStreaming && <ThinkingIndicator />}

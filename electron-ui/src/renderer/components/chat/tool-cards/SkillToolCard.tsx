@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { Zap, Check, Clipboard } from 'lucide-react'
+import { useFindDeep } from '../findDeep'
 
 interface CopyBtnProps {
   text: string
@@ -50,6 +51,9 @@ export interface SkillToolCardProps {
 
 export function SkillToolCard({ input, result, isLoading }: SkillToolCardProps) {
   const [showFullResult, setShowFullResult] = useState(false)
+  // A deep find renders the whole output: the slice removes text nodes, and
+  // a removed node is a phrase the bar can never find.
+  const deepFind = useFindDeep()
 
   const skillName = typeof input.skill === 'string' ? input.skill
     : typeof input.skill_name === 'string' ? input.skill_name
@@ -68,7 +72,7 @@ export function SkillToolCard({ input, result, isLoading }: SkillToolCardProps) 
     ? 'rgba(34,197,94,0.50)'
     : 'rgba(34,197,94,0.35)'
 
-  const previewText = hasResult && result!.length > PREVIEW_CHARS && !showFullResult
+  const previewText = hasResult && result!.length > PREVIEW_CHARS && !showFullResult && !deepFind
     ? result!.slice(0, PREVIEW_CHARS) + '…'
     : result ?? ''
 
@@ -208,7 +212,7 @@ export function SkillToolCard({ input, result, isLoading }: SkillToolCardProps) 
               borderRadius: 6,
               padding: '6px 8px',
               overflow: 'auto',
-              maxHeight: 200,
+              maxHeight: deepFind ? 400 : 200,
               color: 'var(--text-secondary)',
               lineHeight: 1.5,
               whiteSpace: 'pre-wrap',
@@ -216,7 +220,8 @@ export function SkillToolCard({ input, result, isLoading }: SkillToolCardProps) 
             }}>
               {previewText}
             </pre>
-            {result!.length > PREVIEW_CHARS && (
+            {/* Hidden during a deep find: the full output is already rendered. */}
+            {result!.length > PREVIEW_CHARS && !deepFind && (
               <button
                 onClick={() => setShowFullResult(!showFullResult)}
                 style={{

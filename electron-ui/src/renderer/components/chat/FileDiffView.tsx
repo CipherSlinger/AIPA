@@ -7,6 +7,7 @@
  */
 import React, { useState, useMemo } from 'react'
 import { FileCode } from 'lucide-react'
+import { useFindDeep } from './findDeep'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -230,6 +231,9 @@ function LineRow({ line }: LineRowProps) {
 
 export default function FileDiffView({ tool, path, oldString, newString, content }: FileDiffViewProps) {
   const [expanded, setExpanded] = useState(false)
+  // A deep find unfolds the whole diff: the folded tail is text the user's
+  // eyes never reach and the bar could never match.
+  const deepFind = useFindDeep()
 
   // Determine mode: edit (has old+new) or write/create (new file, only content)
   const isEdit = tool === 'file_edit' && typeof oldString === 'string' && typeof newString === 'string'
@@ -271,7 +275,7 @@ export default function FileDiffView({ tool, path, oldString, newString, content
 
   // Fold at 50 visible lines; user can expand
   const shouldFold = totalLines > LARGE_DIFF_THRESHOLD
-  const visibleLines = (!shouldFold || expanded) ? allLines : allLines.slice(0, LARGE_DIFF_THRESHOLD)
+  const visibleLines = (!shouldFold || expanded || deepFind) ? allLines : allLines.slice(0, LARGE_DIFF_THRESHOLD)
 
   // File name from path (for display)
   const fileName = path.split(/[/\\]/).pop() || path
@@ -385,7 +389,8 @@ export default function FileDiffView({ tool, path, oldString, newString, content
       )}
 
       {/* Expand / collapse footer for large diffs */}
-      {shouldFold && (
+      {/* Hidden during a deep find: everything is already rendered. */}
+      {shouldFold && !deepFind && (
         <button
           onClick={() => setExpanded(e => !e)}
           style={{

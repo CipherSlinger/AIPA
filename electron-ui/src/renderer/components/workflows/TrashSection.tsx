@@ -9,12 +9,13 @@
 // it is also where the difference is spelled out: a trashed skill or
 // conversation can be restored only while its payload still exists on disk,
 // while a job — a record, not a file — is always restorable.
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Undo2, Trash2, Workflow as WorkflowIcon, Puzzle, MessageSquare, CalendarClock } from 'lucide-react'
 import { useT, useI18n } from '../../i18n'
 import { formatDateMedium } from '../../utils/formatDate'
 import { listSessionsShared } from '../../utils/sessionListShared'
-import { useSessionStore } from '../../store'
+import { useSessionStore, useUiStore } from '../../store'
+import { sessionTrashFailureText } from '../../lib/sessionTrashText'
 import type { SessionListItem, TrashedWorkflow } from '../../types/app.types'
 import type {
   JobTrashErrorCode,
@@ -276,11 +277,13 @@ function TrashRowView({ row, locale, first, onRestore, onDeleteForever }: {
  * Pure view: nothing when the holding area is empty, otherwise one list for
  * all kinds. Exported so the harness can render it without an app instance.
  */
-export function TrashView({ rows, retentionDays, onRestore, onDeleteForever }: {
+export function TrashView({ rows, retentionDays, onRestore, onDeleteForever, sectionRef }: {
   rows: TrashRow[]
   retentionDays: number
   onRestore: (row: TrashRow) => Promise<TrashActionOutcome>
   onDeleteForever: (row: TrashRow) => Promise<TrashActionOutcome>
+  /** Handed in so the connected wrapper can scroll here once the rows exist. */
+  sectionRef?: React.RefObject<HTMLElement>
 }) {
   const t = useT()
   const { resolvedLocale } = useI18n()
@@ -292,6 +295,7 @@ export function TrashView({ rows, retentionDays, onRestore, onDeleteForever }: {
 
   return (
     <section
+      ref={sectionRef}
       data-employees-section="trash"
       style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border)' }}
     >
@@ -346,6 +350,11 @@ export default function TrashSection({ crud, skillState }: {
   const [sessionEntries, setSessionEntries] = useState<TrashedSessionInfoData[]>([])
   const [jobEntries, setJobEntries] = useState<TrashedJobInfoData[]>([])
   const [retentionDays, setRetentionDays] = useState(TRASH_RETENTION_DAYS)
+  // True once the first read of all three lists has finished. The palette's
+  // "Recently deleted" jump has to know the difference between "empty" and
+  // "not read yet" before it scrolls — or gives up.
+  const [loaded, setLoaded] = useState(false)
+  const sectionRef = useRef<HTMLElement>(null)
   // Deleting a conversation changes the sidebar list; that is also the signal
   // that the conversation holding area changed.
   const sessions = useSessionStore(state => state.sessions)
@@ -398,11 +407,13 @@ export default function TrashSection({ crud, skillState }: {
       window.electronAPI.skillsTrashPurge().catch(() => null),
       window.electronAPI.sessionsTrashPurge().catch(() => null),
       window.electronAPI.automationTrashPurge().catch(() => null),
-    ]).then(() => {
+    ]).then(async () => {
       if (cancelled) return
-      void refreshSkills()
-      void refreshSessions()
-      void refreshJobs()
+      // Awaited, not fired and forgotten: `loaded` must not go true while a
+      // list is still in flight, or an empty read would be mistaken for an
+      // empty holding area.
+      await Promise.all([refreshSkills(), refreshSessions(), refreshJobs()])
+      if (!cancelled) setLoaded(true)
     })
     return () => { cancelled = true }
   }, [refreshSkills, refreshSessions, refreshJobs])
@@ -461,21 +472,12 @@ export default function TrashSection({ crud, skillState }: {
     }
   }, [refreshSkills, failureForSkill, t])
 
+  // The same mapping the delete toast's Undo uses, so one refusal cannot be
+  // explained two different ways depending on where the restore was started.
   const failureForSession = useCallback((
     code: SessionTrashErrorCode | undefined,
     error: string | undefined,
-  ): string => {
-    switch (code) {
-      // Restoring never overwrites: say plainly that something is in the way
-      // and that nothing was moved, so the row is not mistaken for a success.
-      case 'target_exists': return t('sessionTrash.failure.targetExists')
-      case 'folder_missing': return t('sessionTrash.failure.gone')
-      case 'not_found': return t('trash.failure.notFound')
-      case 'outside_sessions':
-      case 'outside_trash': return t('sessionTrash.failure.outside')
-      default: return t('trash.failure.generic', { message: error || t('trash.failure.unknown') })
-    }
-  }, [t])
+  ): string => sessionTrashFailureText(t, code, error), [t])
 
   const restoreSession = useCallback(async (row: TrashRow): Promise<TrashActionOutcome> => {
     try {
@@ -588,12 +590,26 @@ export default function TrashSection({ crud, skillState }: {
     [skillEntries, crud.trashedWorkflows, sessionEntries, jobEntries],
   )
 
+  // The command palette's "Recently deleted" entry lands here by parking a
+  // section request in the store. This section returns null until it has rows,
+  // so there is no anchor to scroll to on the first render — the scroll waits
+  // for the list to arrive, which WorkflowPanel cannot see.
+  const pendingSection = useUiStore(s => s.pendingEmployeesSection)
+  useEffect(() => {
+    if (pendingSection !== 'trash' || !loaded) return
+    if (rows.length > 0) sectionRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    // Cleared either way: a request must not lie in wait and jump the page
+    // when some later delete happens to fill the list.
+    useUiStore.getState().clearPendingEmployeesSection()
+  }, [pendingSection, loaded, rows.length])
+
   return (
     <TrashView
       rows={rows}
       retentionDays={retentionDays}
       onRestore={handleRestore}
       onDeleteForever={handleDeleteForever}
+      sectionRef={sectionRef}
     />
   )
 }

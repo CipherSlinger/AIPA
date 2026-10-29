@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Globe, Check, X } from 'lucide-react'
+import { useFindDeep } from '../findDeep'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -12,6 +13,9 @@ export function isBase64Image(s: string): boolean {
 
 /** Input section for browser automation tools */
 export function WebBrowserInputCard({ input }: { input: Record<string, unknown> }) {
+  // A deep find renders the full typed text: the 80-char preview drops the
+  // rest from the DOM, which would make the bar blind to it.
+  const deepFind = useFindDeep()
   const action = typeof input.action === 'string' ? input.action : null
   const url = typeof input.url === 'string' ? input.url : null
   const selector = typeof input.selector === 'string' ? input.selector : null
@@ -80,7 +84,7 @@ export function WebBrowserInputCard({ input }: { input: Record<string, unknown> 
             color: 'var(--success-text)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
           }}>
-            &ldquo;{text.length > 80 ? text.slice(0, 80) + '\u2026' : text}&rdquo;
+            &ldquo;{text.length > 80 && !deepFind ? text.slice(0, 80) + '\u2026' : text}&rdquo;
           </span>
         </div>
       )}
@@ -97,6 +101,9 @@ export function WebBrowserInputCard({ input }: { input: Record<string, unknown> 
 /** Result section for browser automation tools */
 export function WebBrowserResultCard({ result, status, t: _t }: { result: string; status: string | undefined; t: (k: string) => string }) {
   const [expanded, setExpanded] = useState(false)
+  // A deep find renders the whole page text: the slice removes the tail from
+  // the DOM, so the bar could never find a phrase that lives there.
+  const deepFind = useFindDeep()
   const isError = status === 'error'
 
   // Check if result is a screenshot (base64 or data URL)
@@ -108,7 +115,7 @@ export function WebBrowserResultCard({ result, status, t: _t }: { result: string
     : null
 
   const PREVIEW_LIMIT = 200
-  const preview = !expanded && result.length > PREVIEW_LIMIT
+  const preview = !expanded && !deepFind && result.length > PREVIEW_LIMIT
     ? result.slice(0, PREVIEW_LIMIT) + '\u2026'
     : result
 
@@ -150,12 +157,13 @@ export function WebBrowserResultCard({ result, status, t: _t }: { result: string
             margin: 0, fontSize: 11, fontFamily: 'monospace',
             color: isError ? 'var(--danger-text)' : 'var(--text-secondary)',
             lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-            maxHeight: expanded ? 'none' : 140,
-            overflow: expanded ? 'visible' : 'hidden',
+            maxHeight: expanded || deepFind ? 'none' : 140,
+            overflow: expanded || deepFind ? 'visible' : 'hidden',
           }}>
             {preview}
           </pre>
-          {result.length > PREVIEW_LIMIT && (
+          {/* Hidden during a deep find: everything is already rendered. */}
+          {result.length > PREVIEW_LIMIT && !deepFind && (
             <button
               onClick={() => setExpanded(!expanded)}
               style={{

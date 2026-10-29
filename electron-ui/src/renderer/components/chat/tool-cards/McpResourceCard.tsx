@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Database, FileInput, Check, ClipboardCopy } from 'lucide-react'
+import { useFindDeep } from '../findDeep'
 
 // ── Interfaces ─────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,9 @@ export function parseMcpResourceList(raw: string): McpResourceItem[] | null {
 
 /** ListMcpResources result card — resource URI chips */
 export function McpResourceListCard({ items, t: _t }: { items: McpResourceItem[]; t: (k: string) => string }) {
+  // A deep find lists every resource: the first 20 are all that exist in the
+  // DOM otherwise, and a phrase in resource 21 would answer "No matches".
+  const deepFind = useFindDeep()
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <div>
@@ -45,7 +49,7 @@ export function McpResourceListCard({ items, t: _t }: { items: McpResourceItem[]
         </span>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-        {items.slice(0, 20).map((item, i) => (
+        {(deepFind ? items : items.slice(0, 20)).map((item, i) => (
           <span
             key={i}
             title={item.description ?? item.uri}
@@ -65,7 +69,7 @@ export function McpResourceListCard({ items, t: _t }: { items: McpResourceItem[]
             {item.name ?? item.uri}
           </span>
         ))}
-        {items.length > 20 && (
+        {items.length > 20 && !deepFind && (
           <span style={{ fontSize: 10, color: 'var(--text-muted)', alignSelf: 'center', fontFamily: 'monospace' }}>
             +{items.length - 20} more
           </span>
@@ -78,9 +82,12 @@ export function McpResourceListCard({ items, t: _t }: { items: McpResourceItem[]
 /** ReadMcpResource result card — URI header + content preview */
 export function McpResourceReadCard({ uri, content, t }: { uri: string; content: string; t: (k: string) => string }) {
   const [expanded, setExpanded] = useState(false)
+  // A deep find renders the whole resource: the tail past the preview exists
+  // nowhere else in the DOM.
+  const deepFind = useFindDeep()
   const PREVIEW_LIMIT = 300
   const isLong = content.length > PREVIEW_LIMIT
-  const preview = isLong && !expanded ? content.slice(0, PREVIEW_LIMIT) + '…' : content
+  const preview = isLong && !expanded && !deepFind ? content.slice(0, PREVIEW_LIMIT) + '…' : content
   const [copied, setCopied] = useState(false)
 
   const handleCopy = () => {
@@ -125,11 +132,12 @@ export function McpResourceReadCard({ uri, content, t }: { uri: string; content:
           margin: 0, fontSize: 11, fontFamily: 'inherit',
           color: 'var(--text-secondary)', lineHeight: 1.6,
           whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-          maxHeight: expanded ? 'none' : 140, overflow: expanded ? 'visible' : 'hidden',
+          maxHeight: expanded || deepFind ? 'none' : 140, overflow: expanded || deepFind ? 'visible' : 'hidden',
         }}>
           {preview}
         </pre>
-        {isLong && (
+        {/* Hidden during a deep find: everything is already rendered. */}
+        {isLong && !deepFind && (
           <button
             onClick={() => setExpanded(!expanded)}
             style={{

@@ -15,7 +15,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Search } from 'lucide-react'
-import { useChatStore, useSessionStore, useUiStore } from '../../store'
+import { useChatStore, usePrefsStore, useSessionStore, useUiStore } from '../../store'
 import { useI18n } from '../../i18n'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import {
@@ -26,8 +26,11 @@ import {
   buildSessionCommands,
   buildWorkflowCommands,
   buildAutomationCommands,
+  buildTrashCommands,
   type PaletteCommand,
 } from '../shared/commandPaletteCommands'
+import { normalizeTrashedWorkflows } from '../../lib/workflowTrash'
+import { countTrashedItems } from '../../lib/trashPresence'
 import type { AutomationJobData } from '../../../preload'
 
 interface Props {
@@ -111,6 +114,21 @@ export default function CommandPalette({
     }
   }, [])
 
+  // How many rows "Recently deleted" holds. `null` = the probe could not
+  // answer, and the entry stays hidden rather than promising an empty page.
+  // This component only mounts while the palette is open, so the probe runs
+  // once per opening. Workflow records live in prefs, not in a manifest, and
+  // are read synchronously before the three IPC calls go out.
+  const [trashCount, setTrashCount] = useState<number | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    const workflows = normalizeTrashedWorkflows(usePrefsStore.getState().prefs.trashedWorkflows).length
+    void countTrashedItems(workflows).then(count => {
+      if (!cancelled) setTrashCount(count)
+    })
+    return () => { cancelled = true }
+  }, [])
+
   // Build all commands
   const commands = useMemo<PaletteCommand[]>(() => {
     const args = {
@@ -122,6 +140,7 @@ export default function CommandPalette({
       ...buildSessionCommands(args),
       ...buildAutomationCommands({ t, onClose, addToast, jobs: automationJobs, resolvedLocale }),
       ...buildActionCommands(args),
+      ...buildTrashCommands({ t, onClose, trashCount }),
       ...buildSlashCommands(args),
       ...buildWorkflowCommands(args),
       ...buildModelCommands(args),
@@ -131,7 +150,7 @@ export default function CommandPalette({
     onClose, onExport, onNewConversation, onSendSlashCommand,
     toggleSidebar, setSidebarTab, setSidebarOpen, setActiveNavItem,
     addToQueue, addToast, sessions, query, askHistoryAvailable, t, resolvedLocale,
-    automationJobs,
+    automationJobs, trashCount,
   ])
 
   // Filter and rank by query. A raw `includes` made "ask" surface "Open

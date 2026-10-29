@@ -1,5 +1,6 @@
 import React from 'react'
 import { ClipboardList, FileText, Check, FileEdit, Send } from 'lucide-react'
+import { useFindDeep } from '../findDeep'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,9 @@ const REMOTE_TRIGGER_ACTION_CONFIG: Record<RemoteTriggerAction, {
 
 /** RemoteTrigger input display — action chip + trigger_id + prompt preview */
 export function RemoteTriggerInputCard({ input }: { input: Record<string, unknown> }) {
+  // A deep find renders the whole prompt: the 60-char preview drops the rest
+  // from the DOM, so a phrase beyond it could never be found.
+  const deepFind = useFindDeep()
   const action = (typeof input.action === 'string' ? input.action : 'list') as RemoteTriggerAction
   const cfg = REMOTE_TRIGGER_ACTION_CONFIG[action] ?? REMOTE_TRIGGER_ACTION_CONFIG.list
   const ActionIcon = cfg.icon
@@ -66,7 +70,7 @@ export function RemoteTriggerInputCard({ input }: { input: Record<string, unknow
           fontSize: 11, color: 'var(--text-secondary)', fontStyle: 'italic',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 380,
         }}>
-          &ldquo;{prompt.length > 60 ? prompt.slice(0, 60) + '\u2026' : prompt}&rdquo;
+          &ldquo;{prompt.length > 60 && !deepFind ? prompt.slice(0, 60) + '\u2026' : prompt}&rdquo;
         </div>
       )}
     </div>
@@ -75,6 +79,9 @@ export function RemoteTriggerInputCard({ input }: { input: Record<string, unknow
 
 /** RemoteTrigger result card */
 export function RemoteTriggerResultCard({ action, resultText }: { action: RemoteTriggerAction; resultText: string }) {
+  // A deep find lists every trigger and the whole prompt: both slices remove
+  // text nodes, and a removed node is a phrase the bar can never find.
+  const deepFind = useFindDeep()
   const parsed = (() => { try { return JSON.parse(resultText) } catch { return null } })()
 
   if (action === 'run') {
@@ -111,7 +118,7 @@ export function RemoteTriggerResultCard({ action, resultText }: { action: Remote
         }}>
           {items.length} trigger{items.length !== 1 ? 's' : ''}
         </span>
-        {items.slice(0, 5).map((item, i) => (
+        {(deepFind ? items : items.slice(0, 5)).map((item, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
             <ClipboardList size={10} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
             <span style={{ fontFamily: 'monospace', color: 'var(--accent-text)', fontSize: 10 }}>{item.id ?? '\u2014'}</span>
@@ -123,7 +130,7 @@ export function RemoteTriggerResultCard({ action, resultText }: { action: Remote
             )}
           </div>
         ))}
-        {items.length > 5 && (
+        {items.length > 5 && !deepFind && (
           <span style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'monospace' }}>+{items.length - 5} more</span>
         )}
       </div>
@@ -154,7 +161,7 @@ export function RemoteTriggerResultCard({ action, resultText }: { action: Remote
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ color: 'var(--text-muted)', minWidth: 44, fontSize: 10 }}>prompt</span>
             <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 280 }}>
-              &ldquo;{trigger.prompt.length > 60 ? trigger.prompt.slice(0, 60) + '\u2026' : trigger.prompt}&rdquo;
+              &ldquo;{trigger.prompt.length > 60 && !deepFind ? trigger.prompt.slice(0, 60) + '\u2026' : trigger.prompt}&rdquo;
             </span>
           </div>
         )}

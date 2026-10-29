@@ -1,15 +1,19 @@
 import React, { useState } from 'react'
 import { Send, Loader2, Check, X, Users } from 'lucide-react'
 import { ToolUseInfo } from '../../../types/app.types'
+import { useFindDeep } from '../findDeep'
 
 /** SendMessage: shows recipient + message preview with indigo left-border style */
 export function SendMessageCard({ tool }: { tool: ToolUseInfo }) {
   const to = typeof tool.input?.to === 'string' ? tool.input.to : ''
   const message = typeof tool.input?.message === 'string' ? tool.input.message : ''
   const [msgExpanded, setMsgExpanded] = useState(false)
+  // A deep find renders the whole message and result: a slice removes text
+  // nodes, and a removed node is a phrase the bar can never find.
+  const deepFind = useFindDeep()
   const MSG_LIMIT = 120
   const isMsgLong = message.length > MSG_LIMIT
-  const msgPreview = isMsgLong && !msgExpanded ? message.slice(0, MSG_LIMIT) + '…' : message
+  const msgPreview = isMsgLong && !msgExpanded && !deepFind ? message.slice(0, MSG_LIMIT) + '…' : message
 
   const isDone = tool.status === 'done'
   const isRunning = tool.status === 'running'
@@ -86,7 +90,7 @@ export function SendMessageCard({ tool }: { tool: ToolUseInfo }) {
             }}>
               {msgPreview}
             </pre>
-            {isMsgLong && (
+            {isMsgLong && !deepFind && (
               <button
                 onClick={() => setMsgExpanded(!msgExpanded)}
                 style={{
@@ -109,7 +113,7 @@ export function SendMessageCard({ tool }: { tool: ToolUseInfo }) {
             fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
             maxHeight: 100, overflow: 'auto',
           }}>
-            {resultText.slice(0, 150)}{resultText.length > 150 ? '…' : ''}
+            {deepFind ? resultText : resultText.slice(0, 150)}{resultText.length > 150 && !deepFind ? '…' : ''}
           </div>
         )}
       </div>

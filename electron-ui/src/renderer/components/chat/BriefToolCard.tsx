@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { FileText, Check, Clipboard } from 'lucide-react'
+import { useFindDeep } from './findDeep'
 
 const PREVIEW_CHARS = 300
 
@@ -62,13 +63,16 @@ export interface BriefToolCardProps {
 
 export function BriefToolCard({ input, result }: BriefToolCardProps) {
   const [expanded, setExpanded] = useState(false)
+  // A deep find renders the whole brief: the tail past the preview exists
+  // nowhere else in the DOM, so the bar could never find it.
+  const deepFind = useFindDeep()
 
   const filePath = typeof input.path === 'string' ? input.path : ''
   const { dir, basename } = splitPath(filePath)
 
   const hasResult = typeof result === 'string' && result.length > 0
   const needsExpand = hasResult && result!.length > PREVIEW_CHARS
-  const visibleContent = needsExpand && !expanded
+  const visibleContent = needsExpand && !expanded && !deepFind
     ? result!.slice(0, PREVIEW_CHARS) + '…'
     : (result ?? '')
 
@@ -185,7 +189,7 @@ export function BriefToolCard({ input, result }: BriefToolCardProps) {
                 fontFamily: "Consolas, 'Cascadia Code', 'Fira Code', monospace",
                 background: 'var(--code-bg)',
                 border: '1px solid var(--bg-hover)',
-                borderRadius: needsExpand && !expanded ? '6px 6px 0 0' : 6,
+                borderRadius: needsExpand && !expanded && !deepFind ? '6px 6px 0 0' : 6,
                 padding: '8px 10px',
                 overflow: 'auto',
                 maxHeight: expanded ? 500 : 200,
@@ -199,7 +203,8 @@ export function BriefToolCard({ input, result }: BriefToolCardProps) {
                 {visibleContent}
               </pre>
 
-              {needsExpand && (
+              {/* Hidden during a deep find: the full text is already rendered. */}
+              {needsExpand && !deepFind && (
                 <button
                   onClick={() => setExpanded(!expanded)}
                   style={{

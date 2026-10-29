@@ -1256,7 +1256,9 @@
     "modelSlashDesc": "切换当前模型",
     "costDesc": "查看本次会话的 token 用量与费用",
     "skillsDesc": "列出可用的 Claude 技能",
-    "rewindDesc": "回退到对话中的某条消息"
+    "rewindDesc": "回退到对话中的某条消息",
+    "openTrash": "最近删除",
+    "openTrashDesc": "{{count}} 项已删除的内容——可以随时恢复"
   },
   "permission": {
     "allow": "允许",
@@ -3197,7 +3199,8 @@
         "unknownPartial": "说不准什么时候解除限制——窗口内的运行记录不完整",
         "unknownGeneric": "说不准什么时候解除限制——这段窗口的花费算不准"
       }
-    }
+    },
+    "empFireAria": "解雇这名员工——对话会移入“最近删除”，可以从那里恢复"
   },
   "archive": {
     "summaryTask": "{{count}} 项任务",
@@ -4251,9 +4254,13 @@
       "targetExists": "无法恢复——该对话原来的位置已被占用，什么都没有移动；删除的那一份仍在“最近删除”里。",
       "gone": "无法恢复——这段对话有部分已从磁盘上消失。",
       "outside": "无法恢复——这条对话的记录指向会话文件夹之外。",
-      "deleteFailed": "没能删掉这段对话：{{message}}"
+      "deleteFailed": "没能删掉这段对话：{{message}}",
+      "alreadyGone": "没有恢复——这段对话已经不在“最近删除”里了，什么都没找回。"
     },
-    "deleted": "对话已移入“最近删除”——在那里可以恢复。"
+    "deleted": "对话已移入“最近删除”——在那里可以恢复。",
+    "undoDeleteAria": "撤销删除“{{title}}”",
+    "restored": "对话已恢复——它回到了你的列表里。",
+    "restoredNoList": "对话已恢复，但列表没能刷新——侧边栏可能暂时看不到它。"
   },
   "find": {
     "barLabel": "在对话中查找",
@@ -4264,6 +4271,12 @@
     "emptyConversation": "这段对话还是空的",
     "previous": "上一个匹配",
     "next": "下一个匹配",
-    "close": "关闭查找栏"
+    "close": "关闭查找栏",
+    "toolOutput": "工具输出",
+    "includeToolOutput": "在查找中包含工具输出",
+    "counterWithToolOutput": "第 {{current}} 项，共 {{total}} 项（消息与工具输出）",
+    "noMatchesWithToolOutput": "在消息与工具输出中没有找到“{{query}}”",
+    "expandTooLarge": "无法为查找展开 {{count}} 项折叠内容（上限 {{limit}} 项）。请先展开需要查找的部分。",
+    "expandTooLargeChars": "无法为查找展开 {{count}} 个字符（上限 {{limit}}）。请先展开需要查找的部分。"
   }
 }

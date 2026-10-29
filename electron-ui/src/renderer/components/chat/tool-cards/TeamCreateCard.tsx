@@ -17,6 +17,7 @@
 
 import React, { useState, useCallback } from 'react'
 import { Users, Check, Clipboard, ChevronDown, ChevronUp } from 'lucide-react'
+import { useFindDeep } from '../findDeep'
 
 // ── CopyBtn ───────────────────────────────────────────────────────────────────
 
@@ -71,6 +72,7 @@ export interface TeamCreateCardProps {
 
 export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps) {
   const [resultExpanded, setResultExpanded] = useState(false)
+  const deepFind = useFindDeep()
 
   const teamName: string =
     typeof input.name === 'string' && input.name
@@ -312,7 +314,9 @@ export function TeamCreateCard({ input, result, isLoading }: TeamCreateCardProps
               </div>
             </div>
 
-            {resultExpanded && (
+            {/* A deep find renders the result without waiting for a click: a
+                collapsed body leaves its text out of the DOM entirely. */}
+            {(resultExpanded || deepFind) && (
               <pre style={{
                 margin: 0,
                 fontSize: 11,

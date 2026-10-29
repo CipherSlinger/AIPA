@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Clock, X } from 'lucide-react'
+import { useFindDeep } from '../findDeep'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,9 @@ export function CronCard({
   isResult?: boolean
 }) {
   const [promptExpanded, setPromptExpanded] = useState(false)
+  // A deep find renders every scheduled job and the whole prompt: both slices
+  // remove text nodes, and a removed node is a phrase the bar can never find.
+  const deepFind = useFindDeep()
 
   // ── CronCreate result ─────────────────────────────────────────
   if (mode === 'create' && isResult) {
@@ -80,7 +84,7 @@ export function CronCard({
     const durable = !!input.durable
     const PROMPT_LIMIT = 100
     const needsExpand = prompt.length > PROMPT_LIMIT
-    const displayPrompt = needsExpand && !promptExpanded ? prompt.slice(0, PROMPT_LIMIT) + '\u2026' : prompt
+    const displayPrompt = needsExpand && !promptExpanded && !deepFind ? prompt.slice(0, PROMPT_LIMIT) + '\u2026' : prompt
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -103,7 +107,7 @@ export function CronCard({
         {prompt && (
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
             {displayPrompt}
-            {needsExpand && (
+            {needsExpand && !deepFind && (
               <button
                 onClick={() => setPromptExpanded(v => !v)}
                 style={{
@@ -180,7 +184,7 @@ export function CronCard({
     if (jobs && jobs.length > 0) {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          {jobs.slice(0, 20).map((job, i) => {
+          {(deepFind ? jobs : jobs.slice(0, 20)).map((job, i) => {
             const cronExpr = job.cron ?? job.schedule ?? ''
             const promptText = job.prompt ?? job.description ?? ''
             const status = job.status ?? 'active'
@@ -213,7 +217,7 @@ export function CronCard({
                     }}
                     title={promptText}
                   >
-                    {promptText.length > 40 ? promptText.slice(0, 40) + '\u2026' : promptText}
+                    {promptText.length > 40 && !deepFind ? promptText.slice(0, 40) + '\u2026' : promptText}
                   </span>
                 )}
                 {jobId && !promptText && (
@@ -238,7 +242,7 @@ export function CronCard({
               </div>
             )
           })}
-          {jobs.length > 20 && (
+          {jobs.length > 20 && !deepFind && (
             <span style={{ fontSize: 10, color: 'var(--text-muted)', paddingLeft: 4 }}>
               +{jobs.length - 20} more
             </span>

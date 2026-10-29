@@ -11,6 +11,7 @@
  */
 
 import React, { useState } from 'react'
+import { useFindDeep } from '../findDeep'
 
 // ── Shared constants ──────────────────────────────────────────────────────────
 
@@ -74,8 +75,12 @@ export function BashOutputBlock({ output }: BashOutputBlockProps) {
   const totalLines = lines.length
   const hasError = ERROR_KEYWORDS.test(output)
   const [showAll, setShowAll] = useState(false)
+  // A deep find reads the whole output: the fold is another place tool text
+  // lives only in the model, not in the DOM. Display only — `showAll` keeps
+  // whatever the user chose once the search ends.
+  const deepFind = useFindDeep()
 
-  const visibleLines = (!showAll && totalLines > BASH_OUTPUT_MAX_LINES)
+  const visibleLines = (!showAll && !deepFind && totalLines > BASH_OUTPUT_MAX_LINES)
     ? lines.slice(0, BASH_OUTPUT_MAX_LINES)
     : lines
 
@@ -103,7 +108,7 @@ export function BashOutputBlock({ output }: BashOutputBlockProps) {
       }}>
         {visibleLines.join('\n')}
       </pre>
-      {totalLines > BASH_OUTPUT_MAX_LINES && !showAll && (
+      {totalLines > BASH_OUTPUT_MAX_LINES && !showAll && !deepFind && (
         <button
           onClick={() => setShowAll(true)}
           style={{

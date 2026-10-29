@@ -68,7 +68,11 @@ export default function WorkflowPanel() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const pendingSection = useUiStore(s => s.pendingEmployeesSection)
   useEffect(() => {
-    if (!pendingSection || selectedSkill) return
+    // 'trash' is skipped here on purpose: its anchor is rendered only once the
+    // holding area has rows, and they are read over IPC after this page mounts.
+    // TrashSection scrolls to itself when its list arrives; clearing the
+    // request here would drop it before there was anything to scroll to.
+    if (!pendingSection || pendingSection === 'trash' || selectedSkill) return
     const el = scrollRef.current?.querySelector(`[data-employees-section="${pendingSection}"]`)
     el?.scrollIntoView({ block: 'start', behavior: 'smooth' })
     useUiStore.getState().clearPendingEmployeesSection()

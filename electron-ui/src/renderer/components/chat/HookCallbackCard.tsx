@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { HookCallbackMessage } from '../../types/app.types'
 import { Check, X, ChevronDown, ChevronUp, Zap } from 'lucide-react'
+import { useFindDeep } from './findDeep'
 
 interface Props {
   message: HookCallbackMessage
@@ -56,9 +57,12 @@ export function HookCallbackCard({ message, onRespond }: Props) {
     onRespond(message.requestId, response)
   }
 
-  // Trim tool input JSON for display (max 400 chars)
-  const toolInputStr = Object.keys(toolInput).length > 0
-    ? JSON.stringify(toolInput, null, 2).slice(0, 400)
+  // Trim tool input JSON for display (max 400 chars). A deep find renders the
+  // whole payload: the cut tail would be text the bar could never match.
+  const deepFind = useFindDeep()
+  const toolInputJson = Object.keys(toolInput).length > 0 ? JSON.stringify(toolInput, null, 2) : ''
+  const toolInputStr = toolInputJson
+    ? (deepFind ? toolInputJson : toolInputJson.slice(0, 400))
     : null
 
   return (

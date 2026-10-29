@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { Search, Check, Clipboard, Wrench } from 'lucide-react'
+import { useFindDeep } from '../findDeep'
 
 interface ToolEntry {
   name: string
@@ -80,6 +81,9 @@ export interface ToolSearchToolCardProps {
 
 export function ToolSearchToolCard({ input, result, isLoading }: ToolSearchToolCardProps) {
   const [expanded, setExpanded] = useState(false)
+  // A deep find lists every tool and the whole raw result: both slices remove
+  // text nodes, and a removed node is a phrase the bar can never find.
+  const deepFind = useFindDeep()
 
   const query = typeof input.query === 'string' ? input.query
     : typeof input.tool_name === 'string' ? input.tool_name
@@ -234,7 +238,7 @@ export function ToolSearchToolCard({ input, result, isLoading }: ToolSearchToolC
             </div>
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-              {(expanded ? toolList : toolList.slice(0, 12)).map((tool, i) => (
+              {(expanded || deepFind ? toolList : toolList.slice(0, 12)).map((tool, i) => (
                 <div
                   key={i}
                   title={tool.description ?? ''}
@@ -261,7 +265,7 @@ export function ToolSearchToolCard({ input, result, isLoading }: ToolSearchToolC
                 </div>
               ))}
 
-              {toolList.length > 12 && (
+              {toolList.length > 12 && !deepFind && (
                 <button
                   onClick={() => setExpanded(!expanded)}
                   style={{
@@ -331,17 +335,18 @@ export function ToolSearchToolCard({ input, result, isLoading }: ToolSearchToolC
               borderRadius: 6,
               padding: '6px 8px',
               overflow: 'auto',
-              maxHeight: 180,
+              maxHeight: deepFind ? 400 : 180,
               color: 'var(--text-secondary)',
               lineHeight: 1.5,
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
             }}>
-              {rawResult.length > PREVIEW_CHARS && !expanded
+              {rawResult.length > PREVIEW_CHARS && !expanded && !deepFind
                 ? rawResult.slice(0, PREVIEW_CHARS) + '…'
                 : rawResult}
             </pre>
-            {rawResult.length > PREVIEW_CHARS && (
+            {/* Hidden during a deep find: the full result is already rendered. */}
+            {rawResult.length > PREVIEW_CHARS && !deepFind && (
               <button
                 onClick={() => setExpanded(!expanded)}
                 style={{

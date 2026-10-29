@@ -12,6 +12,7 @@
 
 import React, { useState, useCallback } from 'react'
 import { FileText, Check, Clipboard } from 'lucide-react'
+import { useFindDeep } from '../findDeep'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -88,6 +89,7 @@ export interface FileWriteCardProps {
  */
 export function FileWriteCard({ input, result, isStreaming }: FileWriteCardProps) {
   const [showMore, setShowMore] = useState(false)
+  const deepFind = useFindDeep()
 
   const filePath = typeof input.file_path === 'string' ? input.file_path : ''
   const content = typeof input.content === 'string' ? input.content : ''
@@ -100,7 +102,9 @@ export function FileWriteCard({ input, result, isStreaming }: FileWriteCardProps
   const contentLines = content.length > 0 ? content.split('\n') : []
   const totalLines = contentLines.length
   const needsExpand = totalLines > PREVIEW_LINES
-  const visibleContent = (needsExpand && !showMore)
+  // A deep find renders the whole content: the 20-line preview is text the
+  // user cannot see, so it must not answer "No matches".
+  const visibleContent = (needsExpand && !showMore && !deepFind)
     ? contentLines.slice(0, PREVIEW_LINES).join('\n')
     : content
 
@@ -273,8 +277,10 @@ export function FileWriteCard({ input, result, isStreaming }: FileWriteCardProps
                 {visibleContent}
               </pre>
 
-              {/* Show more / show less toggle */}
-              {needsExpand && (
+              {/* Show more / show less toggle, hidden during a deep find:
+                  everything is rendered, so a "+ N more lines" label would
+                  describe a preview that is not on screen. */}
+              {needsExpand && !deepFind && (
                 <button
                   onClick={() => setShowMore(!showMore)}
                   style={{

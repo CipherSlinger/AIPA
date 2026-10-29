@@ -8,6 +8,7 @@ import React, { useState } from 'react'
 import { ChevronDown, ChevronRight, Terminal, FileEdit, Search, Globe, Check, Loader2 } from 'lucide-react'
 import type { ToolGroup } from '../../utils/toolSummary'
 import ToolUseBlock from './ToolUseBlock'
+import { useFindDeep } from './findDeep'
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   command: Terminal,
@@ -25,6 +26,11 @@ interface ToolBatchBlockProps {
 
 export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) {
   const [expanded, setExpanded] = useState(false)
+  // A batch hides its cards until opened. The find bar's deep search opens it
+  // for display only, so the batch returns to its own state when the search
+  // ends — same rule as an individual tool card.
+  const deepFind = useFindDeep()
+  const showTools = expanded || deepFind
   const { tools, summary } = group
 
   // Determine aggregate status
@@ -69,7 +75,7 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
       {/* Batch Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        aria-expanded={expanded}
+        aria-expanded={showTools}
         aria-label={`Expand tool batch: ${summary}`}
         className="row-focus-inset"
         style={{
@@ -83,7 +89,7 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
           padding: '7px 10px',
           background: 'var(--section-bg)',
           border: 'none',
-          borderBottom: expanded ? '1px solid var(--border)' : 'none',
+          borderBottom: showTools ? '1px solid var(--border)' : 'none',
           cursor: 'pointer',
           textAlign: 'left',
           color: 'var(--accent-muted)',
@@ -92,7 +98,7 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
         onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
         onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--section-bg)' }}
       >
-        {expanded
+        {showTools
           ? <ChevronDown size={11} style={{ color: 'var(--text-muted)', transition: 'all 0.15s ease', fontSize: 11 }} />
           : <ChevronRight size={11} style={{ color: 'var(--text-muted)', transition: 'all 0.15s ease', fontSize: 11 }} />
         }
@@ -140,7 +146,7 @@ export default function ToolBatchBlock({ group, onAbort }: ToolBatchBlockProps) 
       </button>
 
       {/* Expanded: show individual tools with tree lines */}
-      {expanded && (
+      {showTools && (
         <div style={{ borderTop: '1px solid var(--border)', padding: '4px 0 4px 8px' }}>
           {tools.map((tool, idx) => {
             const isLast = idx === tools.length - 1

@@ -20,6 +20,7 @@
 import React, { useState, useCallback, useMemo, useSyncExternalStore } from 'react'
 import { FilePen, Check, Clipboard, ChevronDown, ChevronRight } from 'lucide-react'
 import { useT } from '../../../i18n'
+import { useFindDeep } from '../findDeep'
 import {
   itemIdFromToolId,
   parsePartialUnifiedDiff,
@@ -112,9 +113,12 @@ interface DiffPanelProps {
 
 function DiffPanel({ label, text, variant }: DiffPanelProps) {
   const [expanded, setExpanded] = useState(false)
+  // A deep find shows the whole before/after text: the truncated tail exists
+  // nowhere else in the DOM, so leaving it out would be a false negative.
+  const deepFind = useFindDeep()
   const { visible, hiddenCount } = truncateLines(text, PREVIEW_LINES)
   const needsExpand = hiddenCount > 0
-  const displayText = expanded ? text : visible
+  const displayText = expanded || deepFind ? text : visible
 
   const isOld = variant === 'old'
   // Diff ink is 11px text on a tinted row, so it needs the readable semantic
@@ -205,8 +209,9 @@ function DiffPanel({ label, text, variant }: DiffPanelProps) {
         {displayText}
       </pre>
 
-      {/* Show more toggle */}
-      {needsExpand && (
+      {/* Show more toggle, hidden during a deep find: the full text is
+          already rendered, so the control would describe a preview. */}
+      {needsExpand && !deepFind && (
         <button
           onClick={() => setExpanded(!expanded)}
           style={{
