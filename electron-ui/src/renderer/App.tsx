@@ -2,10 +2,11 @@ import React, { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import AppShell from './components/layout/AppShell'
 import ErrorBoundary from './components/shared/ErrorBoundary'
 import { ToastContainer } from './components/ui/Toast'
-import { usePrefsStore, useChatStore, useUiStore, useSessionStore } from './store'
+import { usePrefsStore, useChatStore, useUiStore, useSessionStore, useDepartmentStore } from './store'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
 import { useAppEventBridge } from './hooks/useAppEventBridge'
 import { useContextHealth } from './hooks/useContextHealth'
+import { cancelDeptBudgetSync, scheduleDeptBudgetSync } from './components/departments/deptBudgetSync'
 import { populateDefaultPresetsIfEmpty } from './utils/presetPopulator'
 import { listSessionsShared } from './utils/sessionListShared'
 import { useT } from './i18n'
@@ -21,6 +22,8 @@ const GlobalSearchOverlay = lazy(() => import('./components/search/GlobalSearchO
 
 export default function App() {
   const prefs = usePrefsStore(s => s.prefs)
+  // The org tree lives in its own store; `prefs` never holds it.
+  const departments = useDepartmentStore(s => s.departments)
   const setPrefs = usePrefsStore(s => s.setPrefs)
   const setLoaded = usePrefsStore(s => s.setLoaded)
   const setWorkingDir = useChatStore(s => s.setWorkingDir)
@@ -150,6 +153,16 @@ export default function App() {
     }
     init()
   }, [])
+
+  // A department cap stores the org node ids it covers, and main has no tree to
+  // resolve them. This runs app-wide, not inside the Brief, because a node added
+  // to a department must join an existing cap even when the user never opens
+  // that department's page; otherwise the cap silently covers less than the
+  // user asked for. The module debounces, deduplicates and swallows failures.
+  useEffect(() => {
+    scheduleDeptBudgetSync(departments)
+    return cancelDeptBudgetSync
+  }, [departments])
 
   // Probe once whether "Ask AIPA about your history" can run here, so the
   // command palette never offers a command whose overlay row is hidden for

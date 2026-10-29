@@ -161,6 +161,18 @@ export interface AutomationRunChangedFiles {
 }
 
 /**
+ * Why a safety rail held a run, when the free-text `error` code is not enough.
+ *
+ * Only the department cap sets this today. It is a separate field rather than a
+ * prefix on `error` because the same skip is also readable as prose in the
+ * settings row, and because a reader counting "runs this cap actually stopped"
+ * should not have to parse a message. Absent means the record predates this
+ * field, was a real run, or was held by a rail that does not classify itself —
+ * exactly the shape every existing record already has.
+ */
+export type AutomationRunSkipReason = 'dept-budget'
+
+/**
  * One finished run, kept on the job so the last few remain inspectable.
  *
  * The same record serves two readers: the settings row (time, outcome, spend,
@@ -206,6 +218,12 @@ export interface AutomationRunRecord {
    * complete effect on disk. See `AutomationRunChangedFiles`.
    */
   changedFiles?: AutomationRunChangedFiles
+  /**
+   * The department cap held this run. Absent on every real run and on skips
+   * written by the other rails, so a reader can count held runs without
+   * inferring it from the message text.
+   */
+  skipReason?: AutomationRunSkipReason
 }
 
 /**
@@ -425,6 +443,56 @@ export interface AutomationDeptSpend {
   unmeasured: boolean
   /** Any counted job's capped history may not reach back to `windowStart`. */
   partial: boolean
+}
+
+/**
+ * A daily spend cap on one department, as main stores it.
+ *
+ * The org tree lives in the renderer, so main cannot store "the subtree" — it
+ * has no tree to resolve. The renderer syncs the node ids the cap covers
+ * (`memberIds`), and the rail applies the cap to unattended runs of any job
+ * whose `departmentId` is exactly one of those ids. `syncedAt` is when that
+ * membership was last refreshed, so a surface can say how current it is; a
+ * department deleted in the renderer keeps its last membership instead of the
+ * cap vanishing behind the user's back.
+ *
+ * This is a hold on unattended spend, not a promise that nothing runs: manual
+ * runs are the user spending on purpose and stay exempt.
+ */
+export interface AutomationDeptBudget {
+  /** The org node the user set the cap on. */
+  departmentId: string
+  /** Node ids the cap covers, as the renderer's tree had them at the last sync. */
+  memberIds: string[]
+  /** Daily cap in USD over the same rolling 24 h window as every other rail. */
+  usd: number
+  /** Epoch ms of the last cap edit. */
+  updatedAt: number
+  /** Epoch ms of the last membership sync. */
+  syncedAt: number
+}
+
+/**
+ * A stored department cap plus what its window says about it.
+ *
+ * `spentUsd` is absent, never 0, when no member run reported money — the same
+ * absent-is-not-zero rule as every other spend figure. The held counts are what
+ * the cap actually stopped in that window, so a surface can distinguish a cap
+ * that is working from one that merely exists.
+ */
+export interface AutomationDeptBudgetReport extends AutomationDeptBudget {
+  /** Reported spend of member jobs in the window; absent = nothing reported. */
+  spentUsd?: number
+  /** Runs in the window that reported no cost, so a figure is a lower bound. */
+  unreportedRuns: number
+  /** Runs happened (or the capped history cannot prove none did) with no cost. */
+  unmeasured: boolean
+  /** A member job's capped history may not reach back to the window start. */
+  partial: boolean
+  /** Member jobs whose most recent run was held by this cap. */
+  heldJobs: number
+  /** Held runs still visible in those jobs' capped histories. */
+  heldRuns: number
 }
 
 export interface AutomationJobView extends AutomationJob {

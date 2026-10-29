@@ -637,6 +637,55 @@ export interface AutomationDeptSpendData {
 }
 
 /**
+ * A daily spend cap on one department, as the main process has it stored.
+ *
+ * The renderer owns the org tree, so a cap cannot be stored as "the subtree" —
+ * main has no tree to resolve. Instead the renderer syncs the node ids the cap
+ * covers (`memberIds`), and main applies it to unattended runs of any job whose
+ * `departmentId` is exactly one of those ids. `syncedAt` is the moment of the
+ * last sync, so a surface can say how current that membership is; a budget
+ * whose node has since been deleted keeps its last membership instead of
+ * silently disappearing.
+ *
+ * The cap is a *hold on unattended spend*, never a promise that nothing will
+ * run: manual runs are the user spending on purpose and are exempt, exactly
+ * like the per-job limit.
+ */
+export interface AutomationDeptBudgetData {
+  /** The org node the user set the cap on. */
+  departmentId: string
+  /** Node ids the cap covers, as the renderer's tree had them at the last sync. */
+  memberIds: string[]
+  /** Daily cap in USD over the same rolling 24 h window as every other rail. */
+  usd: number
+  /** Epoch ms of the last cap edit. */
+  updatedAt: number
+  /** Epoch ms of the last membership sync. */
+  syncedAt: number
+}
+
+/**
+ * A stored department cap plus what the window says about it. Reported money
+ * only, with the same absent-is-not-zero rules as `AutomationDeptSpendData`;
+ * `heldJobs`/`heldRuns` count the runs this cap actually stopped, so a surface
+ * can say the cap is doing something rather than merely existing.
+ */
+export interface AutomationDeptBudgetReportData extends AutomationDeptBudgetData {
+  /** Reported spend of member jobs in the window; absent = nothing reported. */
+  spentUsd?: number
+  /** Runs in the window that reported no cost, so a figure is a lower bound. */
+  unreportedRuns: number
+  /** Runs happened (or the capped history cannot prove none did) with no cost. */
+  unmeasured: boolean
+  /** A member job's capped history may not reach back to the window start. */
+  partial: boolean
+  /** Member jobs whose most recent run was held by this cap. */
+  heldJobs: number
+  /** Held runs still visible in those jobs' capped histories. */
+  heldRuns: number
+}
+
+/**
  * Mirrors main's `AutomationGlobalSpendWindow`: reported spend across *every*
  * job in the shared rolling 24 h. A missing `measuredUsd` means no run reported
  * money, never that the spend was zero; `unreportedRuns > 0` or `partial` makes
@@ -1442,6 +1491,20 @@ const electronAPI = {
   // summary, which says "nothing is filed under these nodes".
   automationDeptSpend: (departmentIds: string[], windowStart: number) =>
     ipcRenderer.invoke('automation:deptSpend', { departmentIds, windowStart }) as Promise<AutomationDeptSpendData | null>,
+  // Stored department caps with their window figures. An empty array means no
+  // cap is set anywhere — distinct from a failed read, which rejects.
+  automationDeptBudgets: () =>
+    ipcRenderer.invoke('automation:deptBudgets') as Promise<AutomationDeptBudgetReportData[]>,
+  // `usd: null` clears the cap. `memberIds` is the renderer's subtree at that
+  // moment; main validates the number and rejects an empty membership, since a
+  // cap that covers no node is a cap that can never hold anything.
+  automationDeptBudgetSet: (input: { departmentId: string; usd: number | null; memberIds: string[] }) =>
+    ipcRenderer.invoke('automation:deptBudgetSet', input) as Promise<{ ok: boolean; error?: string }>,
+  // Membership-only update from the org tree, so a cap starts covering nodes
+  // added to its department without the user re-entering the amount. Budgets
+  // whose department is missing from `entries` keep their last membership.
+  automationDeptBudgetSync: (entries: Array<{ departmentId: string; memberIds: string[] }>) =>
+    ipcRenderer.invoke('automation:deptBudgetSync', entries) as Promise<{ ok: boolean }>,
   onAutomationChanged: (cb: () => void): Unsubscribe => {
     const handler = () => cb()
     ipcRenderer.on('automation:changed', handler)

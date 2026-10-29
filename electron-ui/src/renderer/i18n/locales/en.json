@@ -3048,6 +3048,33 @@
       "partialNote": "Each job keeps only its most recent runs; older runs in this window may be missing.",
       "floorNote": "Reported only — an engine that reports tokens but no money leaves this a floor.",
       "runs": "{{count}} run(s)"
+    },
+    "budget": {
+      "label": "Daily limit",
+      "setAction": "Set a daily limit",
+      "editAction": "Edit",
+      "clearAction": "Clear",
+      "cancelAction": "Cancel",
+      "saveAction": "Save",
+      "saving": "Saving…",
+      "placeholder": "per day, last 24 h",
+      "windowNote": "Covers unattended runs of this department and everything under it over the last 24 h. Manual runs are exempt.",
+      "spentOfCap": "{{spent}} of {{cap}} today",
+      "spentUnmeasured": "Spent could not be read for the last 24 h.",
+      "floorNote": "Some runs reported no cost, so this figure is a floor.",
+      "heldNote": "{{count}} unattended run(s) have been held by this limit.",
+      "manualExempt": "Manual runs are exempt — the limit only holds scheduled and watch runs.",
+      "coversSchedules": "Applies to {{count}} org node(s) in this branch.",
+      "coversNone": "This limit covers no org nodes yet, so it cannot hold anything.",
+      "readError": "The limit could not be read.",
+      "retry": "Retry",
+      "saveFailed": "The limit could not be saved.",
+      "invalidLimit": "Enter a positive dollar amount.",
+      "tooLarge": "The limit must be $10,000 or less.",
+      "noMembers": "This department has no members to cover, so the limit was not saved.",
+      "cleared": "Limit cleared.",
+      "saved": "Limit saved.",
+      "noSchedules": "This department has no scheduled work yet, so a limit would cover nothing."
     }
   },
   "archive": {

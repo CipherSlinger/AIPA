@@ -26,7 +26,11 @@ import { normalizeChangedFiles } from './changed-files'
 import { normalizeMemoryDigest } from './memory-digest'
 import { AUTOMATION_RETRY_POLICY } from './retry-policy'
 import { normalizeRunUsage } from './run-usage'
-import type { AutomationRunRecord, AutomationRunRecordStatus } from './types'
+import type {
+  AutomationRunRecord,
+  AutomationRunRecordStatus,
+  AutomationRunSkipReason,
+} from './types'
 
 /** Runs remembered per job. Enough to see a nightly streak; small enough to bound the store. */
 export const AUTOMATION_HISTORY_CAP = 20
@@ -88,6 +92,12 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
   if (status === 'skipped') {
     // No memory descriptor: a skipped occurrence never fetched a snapshot, and
     // recording an empty one would claim it saw "no memory".
+    //
+    // Only the literal reason this build understands survives restore. An
+    // unknown string is dropped rather than carried as a label no reader can
+    // interpret; the `error` code still says which rail refused the run.
+    const skipReason: AutomationRunSkipReason | undefined =
+      record.skipReason === 'dept-budget' ? 'dept-budget' : undefined
     return {
       startedAt,
       status,
@@ -96,6 +106,7 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
       error,
       late: false,
       ...(retry !== undefined ? { retry } : {}),
+      ...(skipReason !== undefined ? { skipReason } : {}),
     }
   }
   if (status === 'success') {
@@ -153,11 +164,16 @@ export function normalizeRunHistory(value: unknown): AutomationRunRecord[] {
  *
  * `retry` marks a rail refusal of a pending retry, so the history can still
  * tell that the wait ended in a skip rather than an attempt.
+ *
+ * `skipReason` names the rail when a surface needs to count refusals rather
+ * than read them. Only the department cap passes it; the other rails keep the
+ * four-argument shape they had, so their records are byte-identical to before.
  */
 export function createSkipRecord(
   startedAt: number,
   error: string,
   retry?: number,
+  skipReason?: AutomationRunSkipReason,
 ): AutomationRunRecord {
   return {
     startedAt,
@@ -167,6 +183,7 @@ export function createSkipRecord(
     error: clipError(error),
     late: false,
     ...(retry !== undefined ? { retry } : {}),
+    ...(skipReason !== undefined ? { skipReason } : {}),
   }
 }
 

@@ -9,7 +9,10 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ScrollText, X } from 'lucide-react'
 import { useDepartmentStore, type Department } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
-import type { AutomationDeptSpendData } from '../../../preload'
+import type {
+  AutomationDeptBudgetReportData,
+  AutomationDeptSpendData,
+} from '../../../preload'
 import { useI18n } from '../../i18n'
 import {
   deptDisplayName,
@@ -29,6 +32,11 @@ import {
   type DeptJobsResult,
 } from './deptJobs.data'
 import { describeDeptSpend } from './deptSpend.data'
+import {
+  budgetCovers,
+  describeDeptBudget,
+  parseBudgetInput,
+} from './deptBudget.data'
 import { costText } from '../workflows/scheduleSummary'
 import { nextRunText } from '../automation/nextRunText'
 import type { AppLocale } from '../../utils/formatDate'
@@ -137,6 +145,18 @@ export default function DeptBrief({
   const spendStart = brief.window.start
   const spendScope = `${dept.id}:${spendStart}`
 
+  // The department's daily cap, as main stores it. The whole list is read
+  // because main returns every cap; the Brief only shows its own node's entry.
+  // `null` on a ready read is a real "no cap here", not an error.
+  const [budgetVersion, setBudgetVersion] = useState(0)
+  const [budget, setBudget] = useState<{
+    /** Which department this answer belongs to. */
+    scope: string
+    status: 'loading' | 'ready' | 'error'
+    report: AutomationDeptBudgetReportData | null
+  }>({ scope: '', status: 'loading', report: null })
+  const budgetSeq = useRef(0)
+
   useEffect(() => {
     let alive = true
     let timer: ReturnType<typeof setTimeout> | null = null
@@ -161,11 +181,14 @@ export default function DeptBrief({
     }
 
     load()
-    // A finished run changes the figure. Debounced so a burst of scheduler
-    // broadcasts costs one read; the subscription is dropped on unmount.
+    // A finished run changes the figure and may move the cap's window numbers,
+    // so one debounce drives both reads. The subscription is dropped on unmount.
     const off = window.electronAPI.onAutomationChanged(() => {
       if (timer) clearTimeout(timer)
-      timer = setTimeout(load, 300)
+      timer = setTimeout(() => {
+        load()
+        setBudgetVersion(v => v + 1)
+      }, 300)
     })
 
     return () => {
@@ -174,6 +197,46 @@ export default function DeptBrief({
       off()
     }
   }, [departments, dept.id, spendStart])
+
+  // Mount, a tree change, and a successful set/clear (or a finished run, via the
+  // debounce above) all refetch the cap list. Keystrokes never do.
+  useEffect(() => {
+    let alive = true
+    const seq = ++budgetSeq.current
+    const scope = dept.id
+    // Keep this department's previous report in hand but mark the read loading,
+    // so a stale cap of another department is never printed while this one is
+    // in flight.
+    setBudget(prev => ({
+      scope,
+      status: 'loading',
+      report: prev.scope === scope ? prev.report : null,
+    }))
+
+    const api = window.electronAPI
+    if (!api?.automationDeptBudgets) {
+      setBudget({ scope, status: 'error', report: null })
+      return () => { alive = false }
+    }
+
+    api.automationDeptBudgets()
+      .then(reports => {
+        if (!alive || budgetSeq.current !== seq) return
+        const list = Array.isArray(reports) ? reports : []
+        setBudget({
+          scope,
+          status: 'ready',
+          report: list.find(entry => budgetCovers(entry, dept.id)) ?? null,
+        })
+      })
+      .catch(() => {
+        if (!alive || budgetSeq.current !== seq) return
+        // A rejected read is an unknown, never "no cap".
+        setBudget({ scope, status: 'error', report: null })
+      })
+
+    return () => { alive = false }
+  }, [departments, dept.id, budgetVersion])
 
   const windowLabel = briefWindow === 'today' ? t('dept.brief.today') : t('dept.brief.week')
 
@@ -297,6 +360,15 @@ export default function DeptBrief({
         // counts now on screen.
         status={spend.scope === spendScope ? spend.status : 'loading'}
         summary={spend.scope === spendScope ? spend.summary : null}
+        dept={dept}
+        departments={departments}
+        // Null while the job list is unknown: only a known empty list disables
+        // setting a cap, because "no schedules" is a claim the read must support.
+        scheduleCount={jobs.state === 'ready' ? (jobs.counts?.total ?? null) : null}
+        // A late answer for the department that was showing is not this one's.
+        budgetStatus={budget.scope === dept.id ? budget.status : 'loading'}
+        budgetReport={budget.scope === dept.id ? budget.report : null}
+        onBudgetChanged={() => setBudgetVersion(v => v + 1)}
       />
 
       {/* Empty states ---------------------------------------------------- */}
@@ -443,9 +515,22 @@ export default function DeptBrief({
 function BriefSpend({
   status,
   summary,
+  dept,
+  departments,
+  scheduleCount,
+  budgetStatus,
+  budgetReport,
+  onBudgetChanged,
 }: {
   status: 'loading' | 'ready' | 'error'
   summary: AutomationDeptSpendData | null
+  dept: Department
+  departments: Department[]
+  /** Owned scheduled jobs, or null when that read cannot support a claim yet. */
+  scheduleCount: number | null
+  budgetStatus: 'loading' | 'ready' | 'error'
+  budgetReport: AutomationDeptBudgetReportData | null
+  onBudgetChanged: () => void
 }) {
   const { t } = useI18n()
   // Nothing loud while the read is in flight: no placeholder figure, no `$0`.
@@ -525,7 +610,334 @@ function BriefSpend({
           <BriefNote>{t('dept.spend.lowerBoundNote')}</BriefNote>
         )}
       {partialNote && <BriefNote>{partialNote}</BriefNote>}
+
+      <BriefBudget
+        dept={dept}
+        departments={departments}
+        scheduleCount={scheduleCount}
+        status={budgetStatus}
+        report={budgetReport}
+        onChanged={onBudgetChanged}
+      />
     </div>
+  )
+}
+
+// ── Daily cap on unattended spend ────────────────────────────────────────────
+
+/**
+ * The cap control lives under the spend figure because it is the same money
+ * question, asked as a limit rather than a report. Main enforces it; this
+ * surface only sets, edits and clears the stored cap, and says what the last
+ * window did with it.
+ */
+function BriefBudget({
+  dept,
+  departments,
+  scheduleCount,
+  status,
+  report,
+  onChanged,
+}: {
+  dept: Department
+  departments: Department[]
+  scheduleCount: number | null
+  status: 'loading' | 'ready' | 'error'
+  report: AutomationDeptBudgetReportData | null
+  onChanged: () => void
+}) {
+  const { t } = useI18n()
+  const facts = describeDeptBudget(report, status)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<'saved' | 'cleared' | null>(null)
+
+  // A known empty job list is the only evidence that a cap would cover nothing.
+  // Loading or a failed jobs read leaves the control usable rather than guessing.
+  const noSchedules = scheduleCount === 0
+
+  // Hooks must run before any early return.
+  if (facts.state === 'loading') return null
+
+  const openEditor = () => {
+    setDraft(report && facts.capUsd !== undefined ? String(facts.capUsd) : '')
+    setError(null)
+    setNotice(null)
+    setEditing(true)
+  }
+
+  const cancelEdit = () => {
+    setEditing(false)
+    setDraft('')
+    setError(null)
+  }
+
+  const parseError = (reason: 'empty' | 'nan' | 'negative' | 'zero' | 'tooLarge'): string =>
+    reason === 'tooLarge' ? t('dept.budget.tooLarge') : t('dept.budget.invalidLimit')
+
+  // Main's refusal is a string, not a code contract; map the common reasons and
+  // fall back to the generic failure rather than printing raw IPC text.
+  const refusalText = (reason?: string): string => {
+    const text = (reason || '').toLowerCase()
+    if (text.includes('member') || text.includes('node') || text.includes('cover')) {
+      return t('dept.budget.noMembers')
+    }
+    if (text.includes('usd') || text.includes('amount') || text.includes('limit')
+      || text.includes('number') || text.includes('positive')) {
+      return t('dept.budget.invalidLimit')
+    }
+    return t('dept.budget.saveFailed')
+  }
+
+  // Never optimistic: the line changes only after main says the cap changed.
+  const submit = (usd: number | null): void => {
+    if (pending) return
+    const api = window.electronAPI
+    if (!api?.automationDeptBudgetSet) {
+      setError(t('dept.budget.saveFailed'))
+      return
+    }
+
+    const memberIds = briefSubtree(departments, dept.id).map(node => node.id)
+    setPending(true)
+    setError(null)
+    setNotice(null)
+
+    let call: Promise<{ ok: boolean; error?: string }>
+    try {
+      call = api.automationDeptBudgetSet({ departmentId: dept.id, usd, memberIds })
+    } catch {
+      setPending(false)
+      setError(t('dept.budget.saveFailed'))
+      return
+    }
+
+    Promise.resolve(call)
+      .then(result => {
+        if (result?.ok) {
+          setEditing(false)
+          setDraft('')
+          setNotice(usd === null ? 'cleared' : 'saved')
+          // The server's answer is the new cap; re-read it rather than trusting
+          // the typed number, which main may have rounded or refused.
+          onChanged()
+        } else {
+          // Keep the input open with what the user typed.
+          setError(refusalText(result?.error))
+        }
+      })
+      .catch(() => setError(t('dept.budget.saveFailed')))
+      .finally(() => setPending(false))
+  }
+
+  const saveDraft = () => {
+    const parsed = parseBudgetInput(draft)
+    if (!parsed.ok) {
+      setError(parseError(parsed.reason))
+      return
+    }
+    submit(parsed.usd)
+  }
+
+  const editor = editing && (
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 4, flexWrap: 'wrap' }}>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center',
+          border: '1px solid var(--border)', borderRadius: 6, padding: '2px 7px',
+          background: 'var(--bg-primary)',
+        }}>
+          <span style={{ fontSize: 10, color: 'var(--text-faint)', marginRight: 2 }}>$</span>
+          <input
+            autoFocus
+            value={draft}
+            onChange={e => { setDraft(e.target.value); setError(null) }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { e.preventDefault(); saveDraft() }
+              else if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
+            }}
+            inputMode="decimal"
+            placeholder={t('dept.budget.placeholder')}
+            disabled={pending}
+            aria-label={t('dept.budget.setAction')}
+            style={{
+              width: 112, border: 'none', outline: 'none', background: 'transparent',
+              color: 'var(--text-primary)', fontSize: 11,
+              fontVariantNumeric: 'tabular-nums', padding: 0,
+            }}
+          />
+        </span>
+        <TextButton
+          disabled={pending || noSchedules}
+          title={noSchedules ? t('dept.budget.noSchedules') : undefined}
+          onClick={saveDraft}
+        >
+          {pending ? t('dept.budget.saving') : t('dept.budget.saveAction')}
+        </TextButton>
+        <TextButton disabled={pending} onClick={() => submit(null)}>
+          {t('dept.budget.clearAction')}
+        </TextButton>
+        <TextButton disabled={pending} onClick={cancelEdit}>
+          {t('dept.budget.cancelAction')}
+        </TextButton>
+      </div>
+      <div style={{ fontSize: 9.5, color: 'var(--text-faint)', lineHeight: 1.5, marginTop: 2 }}>
+        {t('dept.budget.windowNote')}
+      </div>
+    </>
+  )
+
+  return (
+    <div style={{ marginTop: 7 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+        <span style={{
+          fontSize: 9.5, fontWeight: 700, color: 'var(--text-muted)',
+          textTransform: 'uppercase', letterSpacing: '0.07em',
+        }}>
+          {t('dept.budget.label')}
+        </span>
+
+        {facts.state === 'error' && (
+          <>
+            <span style={{ fontSize: 10.5, color: 'var(--warning-text)', lineHeight: 1.5 }}>
+              {t('dept.budget.readError')}
+            </span>
+            <TextButton onClick={onChanged}>{t('dept.budget.retry')}</TextButton>
+          </>
+        )}
+
+        {facts.state === 'none' && !editing && (
+          <TextButton
+            disabled={noSchedules}
+            title={noSchedules ? t('dept.budget.noSchedules') : undefined}
+            onClick={openEditor}
+          >
+            {t('dept.budget.setAction')}
+          </TextButton>
+        )}
+
+        {facts.state === 'set' && facts.capUsd !== undefined && (
+          <>
+            {facts.spentUsd !== undefined ? (
+              <span
+                title={facts.floor ? t('dept.budget.floorNote') : undefined}
+                style={{
+                  fontSize: 12, fontWeight: 600, color: 'var(--text-primary)',
+                  fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"',
+                  cursor: facts.floor ? 'help' : 'default',
+                }}
+              >
+                {facts.floor ? '≥ ' : ''}
+                {t('dept.budget.spentOfCap', {
+                  spent: costText(facts.spentUsd),
+                  cap: costText(facts.capUsd),
+                })}
+              </span>
+            ) : (
+              <span
+                title={facts.floor ? t('dept.budget.floorNote') : undefined}
+                style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.5 }}
+              >
+                {t('dept.budget.spentUnmeasured')}
+              </span>
+            )}
+            {!editing && (
+              <>
+                <TextButton
+                  disabled={noSchedules}
+                  title={noSchedules ? t('dept.budget.noSchedules') : undefined}
+                  onClick={openEditor}
+                >
+                  {t('dept.budget.editAction')}
+                </TextButton>
+                <TextButton disabled={pending} onClick={() => submit(null)}>
+                  {t('dept.budget.clearAction')}
+                </TextButton>
+              </>
+            )}
+          </>
+        )}
+
+        {notice === 'saved' && (
+          <span role="status" style={{ fontSize: 9.5, color: 'var(--text-faint)' }}>
+            {t('dept.budget.saved')}
+          </span>
+        )}
+        {notice === 'cleared' && (
+          <span role="status" style={{ fontSize: 9.5, color: 'var(--text-faint)' }}>
+            {t('dept.budget.cleared')}
+          </span>
+        )}
+      </div>
+
+      {facts.state === 'set' && (
+        facts.coversNodes === 0 ? (
+          <div style={{ fontSize: 9.5, color: 'var(--warning-text)', lineHeight: 1.5 }}>
+            {t('dept.budget.coversNone')}
+          </div>
+        ) : (
+          <div style={{ fontSize: 9.5, color: 'var(--text-faint)', lineHeight: 1.5 }}>
+            {t('dept.budget.coversSchedules', { count: facts.coversNodes })}
+          </div>
+        )
+      )}
+
+      {facts.state === 'set' && facts.heldRuns > 0 && (
+        <div
+          role="status"
+          title={t('dept.budget.manualExempt')}
+          style={{
+            fontSize: 10, color: 'var(--warning-text)', lineHeight: 1.5,
+            cursor: 'help',
+          }}
+        >
+          {t('dept.budget.heldNote', { count: facts.heldRuns })}
+        </div>
+      )}
+
+      {editor}
+
+      {error && (
+        <div role="alert" style={{ fontSize: 9.5, color: 'var(--danger-text)', lineHeight: 1.5 }}>
+          {error}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** A text-sized action, kept at the panel's label scale rather than a button chip. */
+function TextButton({
+  children,
+  onClick,
+  disabled,
+  title,
+}: {
+  children: ReactNode
+  onClick: () => void
+  disabled?: boolean
+  title?: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      style={{
+        padding: 0, border: 'none', background: 'none',
+        fontSize: 10, lineHeight: 1.4,
+        color: disabled ? 'var(--text-faint)' : 'var(--text-muted)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        textDecoration: disabled ? 'none' : 'underline',
+        textUnderlineOffset: 2,
+        opacity: disabled ? 0.6 : 1,
+      }}
+    >
+      {children}
+    </button>
   )
 }
 

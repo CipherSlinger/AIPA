@@ -10,12 +10,15 @@ import {
   cloneAutomationJob,
   createAutomationJob,
   deleteAutomationJob,
+  listAutomationDeptBudgetReports,
   listAutomationJobs,
   previewAutomationSchedule,
   runAutomationNow,
+  setAutomationDeptBudget,
   setAutomationEnabled,
   setAutomationGlobalBudget,
   setAutomationPausedAll,
+  syncAutomationDeptBudgets,
   updateAutomationJob,
 } from '../automation/scheduler'
 import { normalizeDeptSpendRequest, summarizeDeptSpend } from '../automation/spend-guard'
@@ -57,6 +60,43 @@ export function registerAutomationHandlers(): void {
     } catch (err) {
       console.error('[automation:deptSpend]', err)
       return null
+    }
+  })
+
+  // Every stored department cap with its live figures. An empty array is a real
+  // answer — no cap is set anywhere. A failed read must not be dressed up as
+  // that answer, so the error is logged here and rethrown: the caller's promise
+  // rejects and the surface can say the caps could not be read, which is a
+  // different fact from "there are none".
+  safeHandle('automation:deptBudgets', () => {
+    try {
+      return listAutomationDeptBudgetReports()
+    } catch (err) {
+      console.error('[automation:deptBudgets]', err)
+      throw err
+    }
+  })
+
+  // Set or clear one department's cap. Validation lives in the scheduler (and
+  // `dept-budget.ts` beneath it); this handler only guards the payload shape so
+  // a renderer bug cannot reach the store as a coerced value.
+  safeHandle('automation:deptBudgetSet', (_event, input: unknown) => {
+    try {
+      return setAutomationDeptBudget(input)
+    } catch (err) {
+      console.error('[automation:deptBudgetSet]', err)
+      return { ok: false, error: 'unexpected_error' }
+    }
+  })
+
+  // Membership refresh from the org tree. It cannot create a cap, and a budget
+  // the entries do not mention keeps its last membership.
+  safeHandle('automation:deptBudgetSync', (_event, entries: unknown) => {
+    try {
+      return syncAutomationDeptBudgets(entries)
+    } catch (err) {
+      console.error('[automation:deptBudgetSync]', err)
+      return { ok: false, error: 'unexpected_error' }
     }
   })
 

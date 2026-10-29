@@ -11,6 +11,7 @@ import { app } from 'electron'
 import * as fs from 'fs'
 import * as path from 'path'
 import { createLogger } from '../utils/logger'
+import { normalizeDeptBudgets } from './dept-budget'
 import { normalizeDepartmentId } from './job-department'
 import { normalizeMissedRunPolicy } from './missed-policy'
 import { normalizePendingRetry } from './retry-policy'
@@ -18,7 +19,13 @@ import { normalizeRunHistory } from './run-history'
 import { normalizeCost, normalizeRunUsage, normalizeTokenCount } from './run-usage'
 import { normalizeDailyCostLimit } from './spend-guard'
 import { normalizeWatchDebounceMinutes } from './watcher'
-import type { AutomationAction, AutomationJob, AutomationRunStatus, AutomationTrigger } from './types'
+import type {
+  AutomationAction,
+  AutomationDeptBudget,
+  AutomationJob,
+  AutomationRunStatus,
+  AutomationTrigger,
+} from './types'
 
 const log = createLogger('automation-store')
 
@@ -190,11 +197,22 @@ export interface AutomationStore {
    * refuse every run forever).
    */
   globalDailyCostLimitUsd?: number
+  /**
+   * Daily spend caps on departments, one entry per capped org node.
+   *
+   * Same reasoning as `pausedAll` and the global cap: this is rail state read
+   * by the scheduler for every unattended run, so it is written in the same
+   * atomic file with the same jobs, not in renderer-owned prefs. Empty (or
+   * absent, which read turns into an empty list) means no department is capped;
+   * an unreadable entry is dropped rather than failing the whole store open
+   * into "no caps" only for everyone else.
+   */
+  deptBudgets?: AutomationDeptBudget[]
 }
 
 export function readAutomationStore(): AutomationStore {
   const file = getStorePath()
-  if (!fs.existsSync(file)) return { jobs: [], pausedAll: false }
+  if (!fs.existsSync(file)) return { jobs: [], pausedAll: false, deptBudgets: [] }
   try {
     const parsed = JSON.parse(fs.readFileSync(file, 'utf-8')) as Record<string, unknown>
     const list = Array.isArray(parsed.jobs) ? parsed.jobs : []
@@ -212,12 +230,16 @@ export function readAutomationStore(): AutomationStore {
       // fail open to "no cap": the alternative is enforcing a number the user
       // never intended, and 0 in particular would block every scheduled run.
       ...(globalDailyCostLimitUsd !== undefined ? { globalDailyCostLimitUsd } : {}),
+      // Each entry is validated on its own: one corrupt cap is dropped and the
+      // rest still hold. A missing or non-array value is simply no caps, never
+      // a reason to refuse a scheduled run.
+      deptBudgets: normalizeDeptBudgets(parsed.deptBudgets),
     }
   } catch (err) {
     // A corrupt file must not stop the app; keep it on disk for inspection and
-    // start from an empty, unpaused state (the next save rewrites it).
+    // start from an empty, unpaused, uncapped state (the next save rewrites it).
     log.warn('Could not read automations.json:', err)
-    return { jobs: [], pausedAll: false }
+    return { jobs: [], pausedAll: false, deptBudgets: [] }
   }
 }
 
@@ -226,6 +248,10 @@ export function writeAutomationStore(store: AutomationStore): void {
   try {
     fs.mkdirSync(path.dirname(file), { recursive: true })
     const tmp = `${file}.tmp`
+    // Normalized again on the way out: the in-memory list is already valid, but
+    // this is the one place a malformed value from any caller would reach disk,
+    // and an omitted key keeps a store that never used caps byte-identical.
+    const deptBudgets = normalizeDeptBudgets(store.deptBudgets)
     fs.writeFileSync(
       tmp,
       JSON.stringify({
@@ -236,6 +262,7 @@ export function writeAutomationStore(store: AutomationStore): void {
         ...(store.globalDailyCostLimitUsd !== undefined
           ? { globalDailyCostLimitUsd: store.globalDailyCostLimitUsd }
           : {}),
+        ...(deptBudgets.length > 0 ? { deptBudgets } : {}),
         jobs: store.jobs,
       }, null, 2),
       'utf-8',
@@ -271,5 +298,6 @@ export function writeAutomationJobs(jobs: AutomationJob[]): void {
     ...(current.globalDailyCostLimitUsd !== undefined
       ? { globalDailyCostLimitUsd: current.globalDailyCostLimitUsd }
       : {}),
+    ...(current.deptBudgets !== undefined ? { deptBudgets: current.deptBudgets } : {}),
   })
 }

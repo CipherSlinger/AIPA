@@ -3048,6 +3048,33 @@
       "partialNote": "每个任务只保留最近若干次运行记录，本窗口内更早的运行可能没有计入。",
       "floorNote": "只统计上报的金额——只报 token 不报金额的引擎会让这个数字停留在下限。",
       "runs": "{{count}} 次运行"
+    },
+    "budget": {
+      "label": "每日限额",
+      "setAction": "设置每日限额",
+      "editAction": "修改",
+      "clearAction": "清除",
+      "cancelAction": "取消",
+      "saveAction": "保存",
+      "saving": "保存中…",
+      "placeholder": "每天，过去 24 小时",
+      "windowNote": "按过去 24 小时计算，覆盖本部门及其下所有部门的无人值守运行。手动运行不受限制。",
+      "spentOfCap": "今日已花 {{spent}}，上限 {{cap}}",
+      "spentUnmeasured": "过去 24 小时的支出无法读取。",
+      "floorNote": "有些运行没有报告费用，因此这个数字只是下限。",
+      "heldNote": "已有 {{count}} 次无人值守运行被这个限额拦下。",
+      "manualExempt": "手动运行不受限制——限额只拦截定时和监视运行。",
+      "coversSchedules": "覆盖这个分支下的 {{count}} 个组织节点。",
+      "coversNone": "这个限额目前没有覆盖任何组织节点，因此拦不下任何运行。",
+      "readError": "无法读取限额。",
+      "retry": "重试",
+      "saveFailed": "无法保存限额。",
+      "invalidLimit": "请输入一个正数金额。",
+      "tooLarge": "限额不能超过 $10,000。",
+      "noMembers": "这个部门没有可覆盖的成员，限额未保存。",
+      "cleared": "限额已清除。",
+      "saved": "限额已保存。",
+      "noSchedules": "这个部门还没有排程，设置限额也不会覆盖任何任务。"
     }
   },
   "archive": {

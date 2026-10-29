@@ -24,6 +24,12 @@ import { raiseAttention } from '../clawd-attention'
 import { nextFireTime, parseCron } from '../utils/cron'
 import { createLogger } from '../utils/logger'
 import { getAllowedFsRoots, safePath } from '../utils/validate'
+import {
+  applyDeptBudgetSet,
+  applyDeptBudgetSync,
+  buildDeptBudgetReport,
+  checkDeptBudgetLimit,
+} from './dept-budget'
 import { departmentIdForCreate, normalizeDepartmentId } from './job-department'
 import { readAutomationStore, writeAutomationStore } from './job-store'
 import { MISSED_RUN_GRACE_MS, normalizeMissedRunPolicy, shouldSkipMissedRun } from './missed-policy'
@@ -47,6 +53,8 @@ import { workflowPrompts } from './workflow-plan'
 import type { MainWorkflow, UiLocale } from './workflow-plan'
 import type {
   AutomationAction,
+  AutomationDeptBudget,
+  AutomationDeptBudgetReport,
   AutomationInput,
   AutomationJob,
   AutomationJobView,
@@ -124,6 +132,14 @@ let pausedAll = false
  * as a sibling key under `automations.json`.
  */
 let globalDailyCostLimitUsd: number | undefined
+/**
+ * Department caps, kept live for the same reason as the global cap: the rail
+ * reads them on every unattended run, and their membership is refreshed from
+ * the renderer's org tree without the user re-entering an amount. Persisted as
+ * a sibling key in `automations.json` so one atomic write carries jobs and every
+ * rail together.
+ */
+let deptBudgets: AutomationDeptBudget[] = []
 
 // ── Validation ───────────────────────────────────────
 
@@ -352,6 +368,7 @@ function persist(): void {
     jobs,
     pausedAll,
     ...(globalDailyCostLimitUsd !== undefined ? { globalDailyCostLimitUsd } : {}),
+    ...(deptBudgets.length > 0 ? { deptBudgets } : {}),
   })
 }
 
@@ -409,12 +426,16 @@ function resolveModel(): string | undefined {
 /**
  * Refuse a scheduled run and record why.
  *
- * Shared by the per-job and the global spend rails so the two can never disagree
- * about what a skip means: nothing started, the record carries no spend, session
- * or duration (`createSkipRecord` enforces that shape), a pending retry is
- * resolved so it cannot fire again a tick later, and the regular schedule
- * advances so the refused occurrence does not re-check every tick.
- * `countFailureStreak` keeps ignoring skips, so a skip is not a failure.
+ * Shared by every spend rail — per-job, global and department — so they can
+ * never disagree about what a skip means: nothing started, the record carries
+ * no spend, session or duration (`createSkipRecord` enforces that shape), a
+ * pending retry is resolved so it cannot fire again a tick later, and the
+ * regular schedule advances so the refused occurrence does not re-check every
+ * tick. `countFailureStreak` keeps ignoring skips, so a skip is not a failure.
+ *
+ * Only the department rail tags its record with `skipReason`; the other two keep
+ * writing the same shape they always have, so existing histories do not change
+ * meaning.
  *
  * A watch-triggered run uses this too: it is unattended spend under the same
  * rails, and its "occurrence" is simply the moment the file changed.
@@ -423,7 +444,7 @@ function recordSpendSkip(
   job: AutomationJob,
   now: number,
   retryAttempt: number | undefined,
-  code: 'budget_exceeded' | 'global_budget_exceeded',
+  code: 'budget_exceeded' | 'global_budget_exceeded' | 'dept_budget_exceeded',
 ): void {
   const isRetry = retryAttempt !== undefined
   // A retry is due now, not at the regular occurrence still on the calendar.
@@ -435,8 +456,17 @@ function recordSpendSkip(
   job.lastUsage = undefined
   // A skip is not an attempt: no spend, no session, and the failure streak
   // neither grows nor resets. The retry marker keeps the refused wait visible
-  // in the history.
-  job.history = appendRunRecord(job.history, createSkipRecord(skippedAt, code, retryAttempt))
+  // in the history, and the department hold is the only one that names its rail
+  // in a machine-readable field.
+  job.history = appendRunRecord(
+    job.history,
+    createSkipRecord(
+      skippedAt,
+      code,
+      retryAttempt,
+      code === 'dept_budget_exceeded' ? 'dept-budget' : undefined,
+    ),
+  )
   // The rail resolved the retry: it must not stay pending and retry again a
   // tick later, which would be the loop the limit exists to stop.
   job.pendingRetry = undefined
@@ -526,6 +556,33 @@ async function startRun(
   // A watch-triggered run is unattended spend exactly like a scheduled one, so
   // it is railed the same way. Only `manual` is exempt (the user spending now).
   const source: AutomationRunSource = opts.manual ? 'manual' : opts.watch ? 'watch' : 'scheduled'
+
+  // Department cap. Checked before the job's own limit and the global budget so
+  // a run held by more than one rail records the broader reason — "this
+  // department is out of budget" explains a whole group of silent jobs, while
+  // the per-job limit would only name this one. One skip record is enough. The
+  // global pause was already consulted before this run was chosen, so this is
+  // the first check inside the run itself.
+  //
+  // A job filed nowhere has no cap; a cap whose membership does not include the
+  // job's department does not cover it; a store with no caps holds nothing.
+  // Manual runs are exempt exactly as they are for the two rails below.
+  const deptBudget = checkDeptBudgetLimit(deptBudgets, jobs, job, now, source)
+  if (deptBudget.kind === 'blocked') {
+    recordSpendSkip(job, now, opts.retryAttempt, 'dept_budget_exceeded')
+    log.warn(
+      `Automation "${job.name}" skipped — its department's reported spend in the last `
+      + `24 h is at its ${deptBudget.budget.usd} USD limit`,
+    )
+    return
+  }
+  if (deptBudget.kind === 'allowed' && deptBudget.unmeasured) {
+    log.warn(
+      `Automation "${job.name}" started despite its department limit — no run in the last `
+      + '24 h reported a cost, so the department limit cannot be evaluated',
+    )
+  }
+
   const spend = checkSpendLimit(job, now, source)
   if (spend.kind === 'blocked') {
     recordSpendSkip(job, now, opts.retryAttempt, 'budget_exceeded')
@@ -977,6 +1034,10 @@ export function startAutomationScheduler(
   jobs = store.jobs
   pausedAll = store.pausedAll
   globalDailyCostLimitUsd = store.globalDailyCostLimitUsd
+  // A malformed cap was already dropped by the store; what remains is the set
+  // the rail may use. "No usable caps" is a fail-open state, never "hold
+  // everything".
+  deptBudgets = store.deptBudgets ?? []
   const now = startedAt
   let repaired = false
   for (const job of jobs) {
@@ -1518,11 +1579,65 @@ export function setAutomationGlobalBudget(limitUsd: number | null): AutomationGl
   }
 }
 
+export type AutomationDeptBudgetResult =
+  | { ok: true; changed: boolean }
+  | { ok: false; error: string }
+
+/**
+ * Set or clear one department's daily cap.
+ *
+ * `null` clears it. Validation lives in `dept-budget.ts` so the handler, the
+ * store and the harness all see the same rules; this function only decides
+ * whether the live list changed and, if so, writes and broadcasts once. A save
+ * that repeats the stored amount and membership writes nothing.
+ */
+export function setAutomationDeptBudget(input: unknown): AutomationDeptBudgetResult {
+  const result = applyDeptBudgetSet(deptBudgets, input, Date.now())
+  if (!result.ok) return { ok: false, error: result.error }
+  if (!result.changed) return { ok: true, changed: false }
+  deptBudgets = result.budgets
+  persistAndBroadcast()
+  return { ok: true, changed: true }
+}
+
+/**
+ * Refresh cap membership from the renderer's org tree.
+ *
+ * Membership only: the amount and `updatedAt` stay where the user put them.
+ * Unknown departments are ignored, so this channel cannot create a cap, and a
+ * budget the entries do not mention keeps the membership it last had. Nothing
+ * changes, nothing is written or broadcast.
+ */
+export function syncAutomationDeptBudgets(
+  entries: unknown,
+): { ok: boolean; changed?: boolean; error?: string } {
+  const result = applyDeptBudgetSync(deptBudgets, entries, Date.now())
+  if (!result.ok) {
+    return { ok: false, ...(result.error !== undefined ? { error: result.error } : {}) }
+  }
+  if (!result.changed) return { ok: true, changed: false }
+  deptBudgets = result.budgets
+  persistAndBroadcast()
+  return { ok: true, changed: true }
+}
+
+/**
+ * Every stored department cap with its live window figures.
+ *
+ * An empty array means no cap is set anywhere. This function does not catch:
+ * the handler logs and lets the IPC call reject, so a read that failed is not
+ * reported as "the user has no caps".
+ */
+export function listAutomationDeptBudgetReports(): AutomationDeptBudgetReport[] {
+  const now = Date.now()
+  return deptBudgets.map(budget => buildDeptBudgetReport(budget, jobs, now))
+}
+
 /**
  * "Run now" is an explicit user gesture: it ignores `enabled`, the global
- * pause, the hourly cap, the spend limit, and the global daily budget, but not
- * the concurrency rail — an in-flight run still owns the job, and hidden
- * background work must never queue up behind a click.
+ * pause, the hourly cap, the spend limit, the global daily budget and the
+ * department cap, but not the concurrency rail — an in-flight run still owns
+ * the job, and hidden background work must never queue up behind a click.
  */
 export function runAutomationNow(id: string): AutomationMutationResult {
   const job = jobs.find(j => j.id === id)
