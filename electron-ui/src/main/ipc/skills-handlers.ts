@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import { createLogger } from '../utils/logger'
 import { getPref } from '../config/config-manager'
 import { getAllowedFsRoots, isPathInside, safePath } from '../utils/validate'
+import { parseSkillMd, type ParsedSkillMd } from '../skills/skillMd'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
@@ -43,30 +44,22 @@ interface SkillInfo {
   source: 'personal' | 'project'
   dirPath: string
   fileName: string
+  /** Provenance keys are absent for skills installed before wave 64. */
+  sourceConversation?: string
+  sourceTitle?: string
+  createdAt?: string
 }
 
-function parseSkillMd(content: string): { name?: string; description?: string; body: string } {
-  // Parse YAML frontmatter from SKILL.md
-  const fmMatch = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/)
-  if (!fmMatch) {
-    const firstLine = content.split('\n').find(l => l.trim()) || ''
-    return { body: content, description: firstLine.replace(/^#+\s*/, '').slice(0, 120) }
+/** Omit the keys entirely when the file has no provenance, so old rows are unchanged. */
+function provenanceFields(parsed: ParsedSkillMd): Pick<
+  SkillInfo,
+  'sourceConversation' | 'sourceTitle' | 'createdAt'
+> {
+  return {
+    ...(parsed.sourceConversation ? { sourceConversation: parsed.sourceConversation } : {}),
+    ...(parsed.sourceTitle ? { sourceTitle: parsed.sourceTitle } : {}),
+    ...(parsed.createdAt ? { createdAt: parsed.createdAt } : {}),
   }
-  const frontmatter = fmMatch[1]
-  const body = fmMatch[2]
-  let name: string | undefined
-  let description: string | undefined
-  for (const line of frontmatter.split('\n')) {
-    const nameMatch = line.match(/^name:\s*(.+)/)
-    if (nameMatch) name = nameMatch[1].trim().replace(/^["']|["']$/g, '')
-    const descMatch = line.match(/^description:\s*(.+)/)
-    if (descMatch) description = descMatch[1].trim().replace(/^["']|["']$/g, '')
-  }
-  if (!description) {
-    const firstLine = body.split('\n').find(l => l.trim()) || ''
-    description = firstLine.replace(/^#+\s*/, '').slice(0, 120)
-  }
-  return { name, description, body }
 }
 
 function scanSkillsDir(dir: string, source: 'personal' | 'project'): SkillInfo[] {
@@ -88,6 +81,7 @@ function scanSkillsDir(dir: string, source: 'personal' | 'project'): SkillInfo[]
               source,
               dirPath: path.join(dir, entry.name),
               fileName: entry.name,
+              ...provenanceFields(parsed),
             })
           } catch {
             // Skip unreadable files
@@ -104,6 +98,7 @@ function scanSkillsDir(dir: string, source: 'personal' | 'project'): SkillInfo[]
             source,
             dirPath: dir,
             fileName: entry.name,
+            ...provenanceFields(parsed),
           })
         } catch {
           // Skip unreadable files

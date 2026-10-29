@@ -328,16 +328,58 @@ function escapeFrontmatter(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\s*\n\s*/g, ' ')
 }
 
-export function assembleSkillContent(name: string, description: string, body: string): string {
+/**
+ * Where a drafted skill came from, recorded in SKILL.md so the skills page can
+ * still say which conversation taught it after the draft dialogs are closed.
+ *
+ * `sessionId` is required: a conversation that was never stored has no id, and
+ * a skill from it records nothing rather than inventing a source. `title` is
+ * optional for the same reason — omit it instead of guessing one.
+ */
+export interface SkillProvenance {
+  sessionId: string | null | undefined
+  title?: string | null
+}
+
+/** `created_at` is the user's local day, not UTC: the date they pressed Install. */
+function localDateStamp(): string {
+  const now = new Date()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${now.getFullYear()}-${month}-${day}`
+}
+
+/**
+ * Assemble the whole SKILL.md.
+ *
+ * The key order is fixed — name, description, then provenance in the order
+ * source_conversation, source_title, created_at — so installing the same draft
+ * twice writes the same file. Provenance keys are omitted entirely when there
+ * is no stored session id, which is what keeps a hand-written or pre-wave-64
+ * skill free of made-up history.
+ */
+export function assembleSkillContent(
+  name: string,
+  description: string,
+  body: string,
+  provenance?: SkillProvenance,
+): string {
   const safeName = escapeFrontmatter(name.trim())
   const safeDescription = escapeFrontmatter(description.trim()).slice(0, MAX_SKILL_DESCRIPTION)
-  return [
+  const lines = [
     '---',
     `name: "${safeName}"`,
     `description: "${safeDescription}"`,
-    '---',
-    '',
-    body.trim(),
-    '',
-  ].join('\n')
+  ]
+  const sourceId = provenance?.sessionId?.trim() ?? ''
+  if (sourceId) {
+    // The id is a bare scalar, not free text. Collapsing whitespace keeps a
+    // malformed id from breaking the frontmatter into extra lines.
+    lines.push(`source_conversation: ${sourceId.replace(/\s+/g, ' ')}`)
+    const title = provenance?.title?.trim() ?? ''
+    if (title) lines.push(`source_title: "${escapeFrontmatter(title)}"`)
+    lines.push(`created_at: ${localDateStamp()}`)
+  }
+  lines.push('---', '', body.trim(), '')
+  return lines.join('\n')
 }

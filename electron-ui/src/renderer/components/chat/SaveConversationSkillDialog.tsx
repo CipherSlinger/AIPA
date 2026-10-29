@@ -26,6 +26,7 @@ import {
   buildSkillDraft,
   skillInstallSlug,
   type SkillDraft,
+  type SkillProvenance,
 } from '../../lib/sessionReuse'
 import { canGeneralize, generalizeErrorKey, metaNote } from '../../lib/generalizeDraft'
 import {
@@ -153,6 +154,13 @@ export default function SaveConversationSkillDialog({
   const isStreaming = useChatStore(s => s.isStreaming)
   const addToast = useUiStore(s => s.addToast)
   const fromStored = origin === 'stored'
+  // Both origins install from a stored conversation, so both can record where
+  // the draft came from. An unsaved chat has no id and therefore no source: the
+  // dialog must not invent one just to fill the line in SKILL.md.
+  const provenance = useMemo<SkillProvenance | undefined>(
+    () => (sessionId?.trim() ? { sessionId, title: sessionTitle } : undefined),
+    [sessionId, sessionTitle],
+  )
   // A stored conversation has no live messages here — the open chat may be an
   // entirely different conversation — so borrowing its text would be a lie.
   // The fields start empty and stay so until the model's draft is applied.
@@ -214,7 +222,7 @@ export default function SaveConversationSkillDialog({
   // One normalizer for the preview, the installed directory and the SKILL.md
   // `name:` — the dialog must not advertise a path the installer will not create.
   const installSlug = skillInstallSlug(name)
-  const content = assembleSkillContent(installSlug, description, body)
+  const content = assembleSkillContent(installSlug, description, body, provenance)
   // Only the chat origin can claim the conversation has no turns: a stored
   // conversation's transcript is read by the model, not by this dialog. The
   // empty literal draft there must not be mistaken for an empty conversation.
@@ -324,7 +332,7 @@ export default function SaveConversationSkillDialog({
     try {
       const result = await window.electronAPI.skillsInstall({
         name: installSlug,
-        content: assembleSkillContent(installSlug, description, body),
+        content: assembleSkillContent(installSlug, description, body, provenance),
       })
       if (result?.success) {
         addToast('success', t('sessionReuse.skill.installed', { name: installSlug }))
@@ -337,7 +345,7 @@ export default function SaveConversationSkillDialog({
     } finally {
       setInstalling(false)
     }
-  }, [name, installSlug, description, body, addToast, t, onClose])
+  }, [name, installSlug, description, body, provenance, addToast, t, onClose])
 
   const failureKey = failure
     ? generalizeErrorKey(failure.error, Boolean(failure.reason && failure.reason.trim()))

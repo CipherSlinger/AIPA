@@ -105,6 +105,24 @@ export interface CodexSkillInfoData {
   shortDescription?: string | null
 }
 
+/**
+ * One entry of `skills:list`, read from a SKILL.md.
+ *
+ * The provenance fields are absent for skills installed before wave 64 and for
+ * hand-written skills; they are present only when a conversation was recorded
+ * as the source. Nothing else about an older entry changes.
+ */
+export interface SkillInfoData {
+  name: string
+  description: string
+  source: 'personal' | 'project'
+  dirPath: string
+  fileName: string
+  sourceConversation?: string
+  sourceTitle?: string
+  createdAt?: string
+}
+
 /** One entry of a Codex hook run (`HookRunSummary.entries`). */
 export interface CodexHookRunEntryData {
   kind: string
@@ -1868,7 +1886,9 @@ const electronAPI = {
   } | null>,
 
   // ── Skills ─────────────────────────────
-  skillsList: (workingDir?: string) => ipcRenderer.invoke('skills:list', workingDir),
+  // Provenance fields are added in wave 64 and are absent on older entries.
+  skillsList: (workingDir?: string) =>
+    ipcRenderer.invoke('skills:list', workingDir) as Promise<SkillInfoData[]>,
   skillsRead: (dirPath: string) => ipcRenderer.invoke('skills:read', dirPath),
   skillsInstall: (args: { name: string; content: string }) => ipcRenderer.invoke('skills:install', args),
   skillsDelete: (dirPath: string) => ipcRenderer.invoke('skills:delete', dirPath),

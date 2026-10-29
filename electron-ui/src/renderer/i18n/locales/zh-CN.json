@@ -1883,6 +1883,13 @@
       "noEligible": "目前没有可用于生成草稿的已保存对话。",
       "noResults": "没有匹配的对话。",
       "showMore": "再显示 {{count}} 条"
+    },
+    "provenance": {
+      "titled": "提炼自“{{title}}”，{{date}}",
+      "titledNoDate": "提炼自“{{title}}”",
+      "untitled": "提炼自一段对话，{{date}}",
+      "untitledNoDate": "提炼自一段对话",
+      "gone": "该对话已不在你的历史记录中"
     }
   },
   "skill": {
@@ -2602,7 +2609,16 @@
       "moreHeld": "还有 {{count}} 个",
       "runHeldAria": "立即运行「{{name}}」",
       "runHeldTitle": "立即运行「{{name}}」。手动运行不受部门支出上限限制。",
-      "runHeldWhileRunning": "「{{name}}」正在运行，等这次跑完。"
+      "runHeldWhileRunning": "「{{name}}」正在运行，等这次跑完。",
+      "runAllHeld": "运行全部 {{count}} 个被限额拦下的任务",
+      "runAllHeldConfirm": "现在开始 {{count}} 次运行？",
+      "runAllHeldPending": "正在开始 {{count}} 次运行…",
+      "runAllHeldHint": "这些是手动运行，不受部门每日上限限制。",
+      "runAllHeldTitle": "开始所有被部门每日支出上限拦下的任务。手动运行不受该上限限制。",
+      "runAllHeldAllStarted": "已开始 {{count}} 次运行",
+      "runAllHeldPartial": "已开始 {{started}} / {{total}} — {{failed}} 个未能开始",
+      "runAllHeldNone": "已经没有任务被限额拦下了",
+      "runAllHeldUnreadable": "读取任务列表失败，没有开始任何运行"
     }
   },
   "dailyBriefing": {

@@ -1883,6 +1883,13 @@
       "noEligible": "No stored conversation can be used as a source right now.",
       "noResults": "No conversations match your search.",
       "showMore": "Show {{count}} more"
+    },
+    "provenance": {
+      "titled": "Drafted from “{{title}}” on {{date}}",
+      "titledNoDate": "Drafted from “{{title}}”",
+      "untitled": "Drafted from a conversation on {{date}}",
+      "untitledNoDate": "Drafted from a conversation",
+      "gone": "no longer in your history"
     }
   },
   "skill": {
@@ -2602,7 +2609,16 @@
       "moreHeld": "and {{count}} more",
       "runHeldAria": "Run {{name}} now",
       "runHeldTitle": "Run {{name}} now. Manual runs are exempt from the department's spending limit.",
-      "runHeldWhileRunning": "{{name}} is running now — wait for it to finish."
+      "runHeldWhileRunning": "{{name}} is running now — wait for it to finish.",
+      "runAllHeld": "Run all {{count}} held",
+      "runAllHeldConfirm": "Start {{count}} runs now?",
+      "runAllHeldPending": "Starting {{count}} runs…",
+      "runAllHeldHint": "Manual runs, so the department's daily cap does not apply.",
+      "runAllHeldTitle": "Start every job the department's daily cap is holding. Manual runs are exempt from the cap.",
+      "runAllHeldAllStarted": "Started {{count}} runs",
+      "runAllHeldPartial": "Started {{started}} of {{total}} — {{failed}} could not start",
+      "runAllHeldNone": "Nothing is held any more",
+      "runAllHeldUnreadable": "Couldn't read the job list — nothing was started"
     }
   },
   "dailyBriefing": {

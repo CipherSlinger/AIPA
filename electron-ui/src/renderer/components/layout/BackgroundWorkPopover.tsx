@@ -21,12 +21,17 @@
 // deliberate way past it. Run now is manual and therefore exempt from that cap,
 // which is why the row can start a job the scheduler just stopped.
 //
+// Wave 64 adds Run all held inside that group. It is a batch over the jobs the
+// limit still holds at the moment of the confirming click, re-read from the
+// scheduler rather than taken from the render that showed the button: a hold
+// can clear between arming and confirming, and a cleared job must not start.
+//
 // `now` comes from the parent, which ticks only while this panel is open.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import {
-  AlertTriangle, ArrowUpRight, Building2, Clock, Loader2, Pause, RotateCcw, Sparkles,
+  AlertTriangle, ArrowUpRight, Building2, Clock, Loader2, Pause, Play, RotateCcw, Sparkles,
 } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { useChatStore, useDepartmentStore, useUiStore } from '../../store'
@@ -36,6 +41,18 @@ import { failureStreakText, type UnseenFailure } from './automationFailures'
 import { buildInvestigatePrompt } from '../automation/investigatePrompt'
 import { buildJobDepartmentOptions, resolveJobDepartment } from '../automation/jobDepartment'
 import type { HeldJobs, JobHold } from '../automation/jobHold'
+import {
+  HELD_BATCH_ARM_MS,
+  heldBatchHint,
+  heldBatchLabel,
+  heldBatchOutcome,
+  heldBatchResultText,
+  heldBatchTitle,
+  nextHeldBatchPhase,
+  selectHeldRunBatch,
+  summarizeHeldBatch,
+} from '../automation/heldBatch'
+import type { HeldBatchOutcome, HeldBatchPhase } from '../automation/heldBatch'
 import type { Translate } from '../automation/scheduleText'
 import type { AutomationJobData } from '../../../preload'
 
@@ -478,12 +495,51 @@ export default function BackgroundWorkPopover({
   // The row whose question is being prepared; also blocks a second click while
   // the job list is on its way.
   const [investigatingJobId, setInvestigatingJobId] = useState<string | null>(null)
+  // Run all held. The number the button names is every held job, including the
+  // ones beyond the rows the panel lists.
+  const heldCount = held.rows.length + held.hidden
+  const [batchPhase, setBatchPhase] = useState<HeldBatchPhase>({ kind: 'idle' })
+  // Same reason as startingRef: the render state lags a click by a frame, and
+  // two clicks inside that frame must not both get through the arming guard.
+  const batchPhaseRef = useRef<HeldBatchPhase>({ kind: 'idle' })
 
   // Focus the panel itself, not a row: activating a row navigates away, so
   // moving focus onto one at open would make Enter do more than the user asked.
   useEffect(() => {
     panelRef.current?.focus()
   }, [])
+
+  // A changed held count means the number in the label no longer describes the
+  // set behind it; the confirming click must not survive that.
+  useEffect(() => {
+    const current = batchPhaseRef.current
+    if (current.kind !== 'armed' || current.count === heldCount) return
+    batchPhaseRef.current = { kind: 'idle' }
+    setBatchPhase({ kind: 'idle' })
+  }, [heldCount])
+
+  // The confirmation lets go on its own if the second click never comes.
+  useEffect(() => {
+    if (batchPhase.kind !== 'armed') return
+    const timer = window.setTimeout(() => {
+      batchPhaseRef.current = { kind: 'idle' }
+      setBatchPhase({ kind: 'idle' })
+    }, HELD_BATCH_ARM_MS)
+    return () => window.clearTimeout(timer)
+  }, [batchPhase])
+
+  // Escape while armed disarms, not only closes: the indicator's own handler
+  // closes the panel a moment later, and an armed button must not outlive it.
+  useEffect(() => {
+    if (batchPhase.kind !== 'armed') return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      batchPhaseRef.current = { kind: 'idle' }
+      setBatchPhase({ kind: 'idle' })
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [batchPhase])
 
   // Read once: whether the pointing device can hover. A row action revealed
   // only on hover would be invisible on a touch screen, where it is the only
@@ -552,6 +608,85 @@ export default function BackgroundWorkPopover({
   }
 
   const runAgain = (failure: UnseenFailure) => startRun(failure.jobId, failure.jobName)
+
+  const applyBatchPhase = (next: HeldBatchPhase) => {
+    batchPhaseRef.current = next
+    setBatchPhase(next)
+  }
+
+  /**
+   * Start every job the limit still holds when the confirming click lands.
+   *
+   * The panel received held rows, not jobs, so the list is re-read here. That
+   * read is also what makes the batch honest: the number on the button may be
+   * seconds old, and a hold that cleared in between — a manual run finished, a
+   * cap raised, a newer record — must not be started from the render behind the
+   * label. Starts are awaited one at a time so each record lands in the
+   * scheduler before the next request leaves; nothing is retried.
+   */
+  const runAllHeld = async () => {
+    const running = nextHeldBatchPhase(batchPhaseRef.current, { type: 'click', heldCount })
+    if (running.kind !== 'running') return
+    applyBatchPhase(running)
+
+    let outcome: HeldBatchOutcome
+    try {
+      const api = window.electronAPI
+      if (!api?.automationList || !api?.automationRunNow) {
+        outcome = { kind: 'unreadable' }
+      } else {
+        const listed = await api.automationList()
+        const jobs: AutomationJobData[] | null = Array.isArray(listed?.jobs) ? listed.jobs : null
+        if (!jobs) {
+          outcome = { kind: 'unreadable' }
+        } else {
+          const ids = selectHeldRunBatch(jobs)
+          if (ids.length === 0) {
+            outcome = { kind: 'none' }
+          } else {
+            let started = 0
+            for (const id of ids) {
+              try {
+                const result = await api.automationRunNow(id)
+                // Accepted is not the same as going: a deleted workflow is
+                // acknowledged and only becomes a recorded failure later.
+                if (result.ok && result.job.running) started += 1
+              } catch (err) {
+                // One refusal must not abandon the rest. It is counted as not
+                // started, never retried.
+                console.error(
+                  '[AIPA] Could not start a held automation from the background panel',
+                  err,
+                )
+              }
+            }
+            outcome = heldBatchOutcome(summarizeHeldBatch(ids.length, started))
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[AIPA] Could not read the job list for the held batch', err)
+      outcome = { kind: 'unreadable' }
+    }
+    applyBatchPhase({ kind: 'done', outcome })
+  }
+
+  // The same click both arms and confirms. The ref decides which, so a double
+  // click inside one frame arms and then starts exactly one batch rather than
+  // leaving the button stuck in a pending state.
+  const onRunAllHeld = () => {
+    const current = batchPhaseRef.current
+    if (current.kind === 'running') return
+    if (current.kind === 'armed') {
+      void runAllHeld()
+      return
+    }
+    applyBatchPhase(nextHeldBatchPhase(current, { type: 'click', heldCount }))
+  }
+
+  const disarmHeldBatch = () => {
+    applyBatchPhase(nextHeldBatchPhase(batchPhaseRef.current, { type: 'disarm' }))
+  }
 
   const openAutomations = () => {
     onClose()
@@ -655,6 +790,12 @@ export default function BackgroundWorkPopover({
   // changes rather than sticking to whichever row it first met.
   const streakShownFor = new Set<string>()
 
+  // The batch block outlives the rows it acted on. Starting the jobs clears
+  // their holds on the next reload, and the result line is exactly what should
+  // still be readable then; the button reappears only when two are held again.
+  const showHeldBatch = heldCount >= 2
+    || batchPhase.kind === 'running' || batchPhase.kind === 'done'
+
   return (
     <div
       ref={panelRef}
@@ -750,7 +891,7 @@ export default function BackgroundWorkPopover({
         </Group>
       )}
 
-      {held.rows.length > 0 && (
+      {(held.rows.length > 0 || showHeldBatch) && (
         <Group title={t('statusBar.background.heldJobs')}>
           {held.rows.map(hold => {
             // Resolve against the same tree Settings uses. A node that no
@@ -788,6 +929,49 @@ export default function BackgroundWorkPopover({
               />
             )
           })}
+          {showHeldBatch && (
+            <div style={{
+              display: 'flex', flexDirection: 'column', gap: 3,
+              padding: '2px 6px 3px',
+            }}>
+              {(heldCount >= 2 || batchPhase.kind === 'running') && (
+                <button
+                  type="button"
+                  onClick={onRunAllHeld}
+                  onMouseLeave={disarmHeldBatch}
+                  disabled={batchPhase.kind === 'running'}
+                  aria-busy={batchPhase.kind === 'running' || undefined}
+                  title={heldBatchTitle(t)}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                    width: '100%', padding: '4px 6px',
+                    borderRadius: 6, fontSize: 11,
+                    cursor: batchPhase.kind === 'running' ? 'default' : 'pointer',
+                    // Arming tints the button like the warning-toned rows above:
+                    // this is the deliberate spend the cap exempts, not a
+                    // destructive act, so it never borrows the danger red.
+                    border: `1px solid ${batchPhase.kind === 'armed' ? 'var(--warning-text)' : 'var(--border)'}`,
+                    background: batchPhase.kind === 'armed' ? 'var(--bg-hover)' : 'transparent',
+                    color: batchPhase.kind === 'armed'
+                      ? 'var(--warning-text)'
+                      : 'var(--text-secondary)',
+                    opacity: batchPhase.kind === 'running' ? 0.6 : 1,
+                    transition: 'all 0.12s ease',
+                  }}
+                >
+                  {batchPhase.kind === 'running'
+                    ? <Loader2 size={11} style={{ animation: 'spin 0.9s linear infinite' }} />
+                    : <Play size={11} />}
+                  <span>{heldBatchLabel(batchPhase, heldCount, t)}</span>
+                </button>
+              )}
+              <span style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                {batchPhase.kind === 'done'
+                  ? heldBatchResultText(batchPhase.outcome, t)
+                  : heldBatchHint(t)}
+              </span>
+            </div>
+          )}
           {held.hidden > 0 && (
             // Same count-and-link shape as the failures group: the panel caps
             // the list, and Settings owns the whole set.
