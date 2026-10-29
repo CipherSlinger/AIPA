@@ -23,6 +23,29 @@ export interface TerminalTab {
   exitCode?: number | null
   /** Translated, user-facing failure. Present only when spawning failed. */
   failure?: string
+  /**
+   * The stable `PTY_*` code behind `failure`, kept beside the sentence rather
+   * than parsed out of it. The UI can then tell "this folder is outside the
+   * allowed roots" (`PTY_CWD_REJECTED`) apart from "the shell could not start"
+   * without reading translated prose that changes with the locale.
+   */
+  failureCode?: string | null
+  /** The folder the failed start was about; the grant dialog is seeded here. */
+  failureCwd?: string
+  /**
+   * Retry generation. `useTerminalSession` keys its one-and-only effect on the
+   * tab id plus this number, so a retry tears the dead xterm down and builds
+   * exactly one new PTY for it. A tab created fresh starts at 0, which is why
+   * an id reused after a close cannot inherit the old tab's retry.
+   */
+  retryEpoch?: number
+  /**
+   * True once a shell actually ran in this tab (`markTabRunning`). A tab whose
+   * start failed never produced output and never ran a command, so moving it
+   * to a newly granted folder costs the user nothing; one that did has a
+   * history this app must not silently replace.
+   */
+  hasOutput?: boolean
   /** True when node-pty was unavailable and the basic shell ran instead. */
   fallback?: boolean
 }
@@ -173,7 +196,11 @@ export function markTabRunning(
     ptyId,
     status: 'running',
     failure: undefined,
+    failureCode: undefined,
+    failureCwd: undefined,
     exitCode: undefined,
+    // A shell exists now: this tab has a history of its own from here on.
+    hasOutput: true,
   })
 }
 
@@ -185,15 +212,63 @@ export function markTabExited(
   return patchTab(state, id, { status: 'exited', exitCode })
 }
 
+/**
+ * Record a spawn failure: the translated sentence plus the code and folder it
+ * was about. The sentence is what the user reads; the code and folder are what
+ * the grant offer is decided on, so neither is ever parsed back out of prose.
+ */
 export function markTabFailed(
   state: TerminalTabsState,
   id: string,
   failure: string,
+  failureCode: string | null = null,
+  failureCwd?: string,
 ): TerminalTabsState {
   return patchTab(state, id, {
     status: 'exited',
     exitCode: null,
     failure,
+    failureCode,
+    failureCwd: failureCwd && failureCwd.trim() ? failureCwd : undefined,
+  })
+}
+
+/** A tab's retry generation, normalised: missing or junk means the first try. */
+export function retryEpochOf(tab: Pick<TerminalTab, 'retryEpoch'>): number {
+  const epoch = tab.retryEpoch
+  return typeof epoch === 'number' && Number.isFinite(epoch) && epoch > 0 ? Math.floor(epoch) : 0
+}
+
+/**
+ * Restart one failed tab in place — optionally in a different folder.
+ *
+ * The new epoch is the whole safety story: `useTerminalSession` owns exactly
+ * one effect per (tab id, epoch), so bumping it destroys the dead xterm and
+ * creates exactly one PTY. Nothing else in the app starts a terminal session,
+ * which is why a retry cannot produce a duplicate shell or an orphaned widget.
+ *
+ * Only a tab that failed may be retried. A running shell must never be killed
+ * by a click on a record that has since moved on, so any other state is left
+ * untouched and the caller can treat that as "nothing happened".
+ */
+export function beginTabRetry(
+  state: TerminalTabsState,
+  id: string,
+  cwd?: string,
+): TerminalTabsState {
+  const tab = state.tabs.find(candidate => candidate.id === id)
+  if (!tab || !tab.failure) return state
+  const nextCwd = typeof cwd === 'string' && cwd.trim() ? cwd : tab.cwd
+  return patchTab(state, id, {
+    cwd: nextCwd,
+    status: 'starting',
+    ptyId: '',
+    failure: undefined,
+    failureCode: undefined,
+    failureCwd: undefined,
+    exitCode: undefined,
+    fallback: undefined,
+    retryEpoch: retryEpochOf(tab) + 1,
   })
 }
 

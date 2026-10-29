@@ -125,11 +125,6 @@ export function registerWindowHandlers(win: BrowserWindow): void {
     }
   })
 
-  ipcMain.handle('window:isAlwaysOnTop', () => {
-    if (win.isDestroyed()) return false
-    return win.isAlwaysOnTop()
-  })
-
   // Capture a screenshot of the entire screen and return as base64 PNG data URL.
   // Requires prior consent — see `requestCaptureConsent()` above.
   ipcMain.handle('window:captureScreen', async (event) => {

@@ -412,14 +412,6 @@ export class StreamBridge extends EventEmitter {
         })
         break
       }
-      case 'custom-title': {
-        // CLI has auto-generated/set a custom session title
-        this.emit('customTitle', {
-          sessionId: sid,
-          title: (event.title as string) || '',
-        })
-        break
-      }
       case 'task_completed': {
         // Background task completed
         this.emit('taskCompleted', {

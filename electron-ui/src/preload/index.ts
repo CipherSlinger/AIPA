@@ -2127,6 +2127,9 @@ export type ShellExecEventData =
 
 const electronAPI = {
   // ── IPC readiness check ────────────────────
+  // No renderer caller. Retained because `.scratch/wave82c-ipc-split-harness`
+  // asserts this registration by name; removing it is a harness decision, not
+  // an IPC-surface one.
   ipcPing: () => ipcRenderer.invoke('ipc:ping') as Promise<{ ok: boolean; timestamp: number }>,
 
   // ── PTY ──────────────────────────────────
@@ -2160,6 +2163,8 @@ const electronAPI = {
     ipcRenderer.invoke('cli:respondPlanApproval', args),
   cliCancelRequest: (args: { sessionId: string; requestId: string }) =>
     ipcRenderer.invoke('cli:cancelRequest', args),
+  // No renderer caller: a turn's env is fixed when it is sent. Retained only
+  // because the wave82C split harness compares this channel sequence.
   cliUpdateEnv: (args: { sessionId: string; vars: Record<string, string> }) =>
     ipcRenderer.invoke('cli:updateEnv', args),
 
@@ -2246,6 +2251,9 @@ const electronAPI = {
   sessionRename: (sessionId: string, title: string) => ipcRenderer.invoke('session:rename', { sessionId, title }),
   sessionGenerateTitle: (description: string) => ipcRenderer.invoke('session:generateTitle', { description }),
   sessionRewind: (sessionId: string, beforeTimestamp: string) => ipcRenderer.invoke('session:rewind', { sessionId, beforeTimestamp }),
+  // Superseded by `sessionSearchPage` in the app (no renderer caller). Retained
+  // because `.scratch/ui-audit/harness.js` calls it and the wave82C split
+  // harness compares the session channel sequence.
   sessionSearch: (query: string, limit?: number) =>
     ipcRenderer.invoke('session:search', { query, limit }) as Promise<SessionSearchResultData[]>,
   /**
@@ -2409,6 +2417,9 @@ const electronAPI = {
   },
 
   // ── Config / prefs ───────────────────────
+  // `configRead`/`configWrite` have no renderer caller (the renderer uses the
+  // typed `configReadCLISettings` pair below). Retained because the wave82C
+  // split harness compares the config channel sequence.
   configRead: () => ipcRenderer.invoke('config:read'),
   configWrite: (patch: unknown) => ipcRenderer.invoke('config:write', patch),
   configGetEnv: () => ipcRenderer.invoke('config:getEnv'),
@@ -2559,6 +2570,8 @@ const electronAPI = {
   // `null` subscribes to every conversation's events — the shape the renderer's
   // global stream hook uses. It was always accepted at runtime (`!sessionId`
   // short-circuits the filter); the type now says so instead of forcing casts.
+  // `cli:hookEvent` has no dedicated listener: it is consumed through this one
+  // subscription (see `renderer/hooks/streamJson/conversationEvents.ts`).
   onCliEvent: (
     sessionId: string | null,
     cb: (event: string, data: unknown) => void
@@ -2627,12 +2640,6 @@ const electronAPI = {
     return () => ipcRenderer.removeListener('cli:notification', handler)
   },
 
-  onHookEvent: (cb: (data: { eventType?: string; [key: string]: unknown }) => void): Unsubscribe => {
-    const handler = (_: unknown, data: { eventType?: string; [key: string]: unknown }) => cb(data)
-    ipcRenderer.on('cli:hookEvent', handler)
-    return () => ipcRenderer.removeListener('cli:hookEvent', handler)
-  },
-
   onPlanApprovalRequest: (cb: (data: { sessionId: string; requestId: string; from: string; planContent: string; planFilePath: string; timestamp: string }) => void): Unsubscribe => {
     const handler = (_: unknown, data: { sessionId: string; requestId: string; from: string; planContent: string; planFilePath: string; timestamp: string }) => cb(data)
     ipcRenderer.on('cli:planApprovalRequest', handler)
@@ -2643,12 +2650,6 @@ const electronAPI = {
     const handler = (_: unknown, data: { sessionId: string; errorType: 'overloaded' | 'authentication'; message: string }) => cb(data)
     ipcRenderer.on('cli:apiError', handler)
     return () => ipcRenderer.removeListener('cli:apiError', handler)
-  },
-
-  onCustomTitle: (cb: (data: { sessionId: string; title: string }) => void): Unsubscribe => {
-    const handler = (_: unknown, data: { sessionId: string; title: string }) => cb(data)
-    ipcRenderer.on('cli:customTitle', handler)
-    return () => ipcRenderer.removeListener('cli:customTitle', handler)
   },
 
   // ── Menu events ──────────────────────────
@@ -2781,8 +2782,6 @@ const electronAPI = {
     ipcRenderer.invoke('window:toggleMaximize'),
   windowSetAlwaysOnTop: (onTop: boolean) =>
     ipcRenderer.invoke('window:setAlwaysOnTop', onTop),
-  windowIsAlwaysOnTop: () =>
-    ipcRenderer.invoke('window:isAlwaysOnTop') as Promise<boolean>,
   windowCaptureScreen: () =>
     ipcRenderer.invoke('window:captureScreen') as Promise<string | null>,
   windowPreventSleep: (prevent: boolean) =>
@@ -2871,10 +2870,7 @@ const electronAPI = {
   providerRemove: (providerId: string) => ipcRenderer.invoke('provider:remove', providerId),
   providerHealthCheck: () => ipcRenderer.invoke('provider:healthCheck'),
   providerHealthStatuses: () => ipcRenderer.invoke('provider:healthStatuses'),
-  providerSetActive: (providerId: string) => ipcRenderer.invoke('provider:setActive', providerId),
-  providerGetActive: () => ipcRenderer.invoke('provider:getActive'),
   providerSendMessage: (args: unknown) => ipcRenderer.invoke('provider:sendMessage', args),
-  providerAbort: (providerId: string) => ipcRenderer.invoke('provider:abort', providerId),
   providerFetchRemoteModels: (args: unknown) => ipcRenderer.invoke('provider:fetchRemoteModels', args),
 
   onProviderFailover: (cb: (data: { fromProvider: string; toProvider: string; reason: string }) => void): Unsubscribe => {
@@ -3001,6 +2997,9 @@ const electronAPI = {
   // ── Nav Plugins (Hot-Pluggable Left-Rail & Main View Plugins) ─────────────
   pluginNavList: () =>
     ipcRenderer.invoke('plugin:nav:list') as Promise<NavPlugin[]>,
+  // No renderer caller: main watches the plugin folders and pushes
+  // `plugin:nav:updated`. Retained because the wave82C split harness compares
+  // the nav-plugin channel sequence.
   pluginNavReload: () =>
     ipcRenderer.invoke('plugin:nav:reload') as Promise<NavPlugin[]>,
   pluginNavOpenFolder: (pluginId?: string) =>

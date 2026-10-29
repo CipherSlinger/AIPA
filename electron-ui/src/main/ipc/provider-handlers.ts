@@ -69,18 +69,6 @@ export function registerProviderHandlers(win: BrowserWindow, send: (ch: string, 
     return providerRegistry.getHealthStatuses()
   })
 
-  // Set active provider
-  ipcMain.handle('provider:setActive', (_e, providerId: string) => {
-    providerRegistry.setActiveProvider(providerId)
-    setPref('activeProviderId', providerId)
-    return { success: true }
-  })
-
-  // Get active provider ID
-  ipcMain.handle('provider:getActive', () => {
-    return providerRegistry.getActiveProviderId()
-  })
-
   // Send message via Claude CLI with provider-specific env vars injected
   ipcMain.handle('provider:sendMessage', async (_e, args: {
     prompt: string
@@ -151,12 +139,6 @@ export function registerProviderHandlers(win: BrowserWindow, send: (ch: string, 
       send('cli:error', { sessionId, error: String(err) })
       return { success: false, error: String(err) }
     }
-  })
-
-  // Abort a provider session
-  ipcMain.handle('provider:abort', (_e, sessionId: string) => {
-    streamBridgeManager.abort(sessionId)
-    return { success: true }
   })
 
   // Fetch models from an endpoint — tries multiple strategies for

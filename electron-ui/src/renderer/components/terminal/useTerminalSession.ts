@@ -6,9 +6,9 @@ import { WebLinksAddon } from '@xterm/addon-web-links'
 import '@xterm/xterm/css/xterm.css'
 import { useTerminalStore } from '../../store/terminalStore'
 import { useSessionStore } from '../../store'
-import { shortCwd, type TerminalTab } from '../../store/terminalTabs'
+import { retryEpochOf, shortCwd, type TerminalTab } from '../../store/terminalTabs'
 import { getT } from '../../i18n'
-import { describePtyFailure } from './ptyFailure'
+import { describePtyFailure, ptyFailureCode } from './ptyFailure'
 import { createPtySessionId, startPtySession, type PtySessionHandle } from './ptySession'
 import { registerTerminalHandle } from './terminalRegistry'
 import {
@@ -42,11 +42,21 @@ export function useTerminalSession(
 
   cwdRef.current = tab.cwd
 
+  // The one identity a PTY is ever created for. A retry bumps `retryEpoch`, the
+  // effect tears the dead widget down and runs again exactly once — so one
+  // retry is one shell, and closing the tab mid-retry ends it before it starts.
+  const tabId = tab.id
+  const retryEpoch = retryEpochOf(tab)
+
   useEffect(() => {
     const host = containerRef.current
     if (!host) return
 
-    const tabId = tab.id
+    // Keystrokes buffered here were typed into a shell that never existed. A
+    // retry builds a new shell, and replaying them would run commands the new
+    // shell has never shown the user. They die with the old effect.
+    pendingInputRef.current = []
+
     const term = new Terminal({
       scrollback: TERMINAL_SCROLLBACK,
       fontFamily: TERMINAL_FONT_FAMILY,
@@ -142,7 +152,9 @@ export function useTerminalSession(
         onFailure: (reason) => {
           if (disposed) return
           const message = describePtyFailure(reason, getT())
-          useTerminalStore.getState().markFailed(tabId, message)
+          // The sentence is for the user; the code and the folder it was about
+          // are what lets the failure area offer a grant without reading prose.
+          useTerminalStore.getState().markFailed(tabId, message, ptyFailureCode(reason), cwdRef.current)
           // A named reason, not a fake prompt: the user can see why this tab
           // never produced a shell.
           term.write(`\r\n\x1b[31m${message}\x1b[0m\r\n`)
@@ -187,9 +199,11 @@ export function useTerminalSession(
       terminalRef.current = null
       fitRef.current = null
     }
-    // Deliberately only the tab identity: status/title changes must not rebuild
-    // the terminal. `cwdRef` carries the folder without adding a dependency.
-  }, [tab.id])
+    // Deliberately only the tab identity plus its retry generation:
+    // status/title/cwd changes must not rebuild the terminal, while an explicit
+    // retry must. `cwdRef` carries the folder into a retry without adding a
+    // dependency that would recreate the widget on an ordinary folder write.
+  }, [tabId, retryEpoch])
 
   // Refit on tab activation and on the dock becoming visible again: while the
   // dock is hidden its container measures 0x0, so the xterm keeps the size it

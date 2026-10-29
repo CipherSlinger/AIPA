@@ -1597,6 +1597,12 @@
       "spawnFailed": "The shell could not be started: {{reason}}",
       "unknown": "The terminal could not start: {{reason}}",
       "invalidRequest": "The terminal request was incomplete."
+    },
+    "grant": {
+      "action": "Let AIPA read this folder…",
+      "retried": "This folder is now readable, so this terminal is starting again.",
+      "moved": "This tab had no output yet, so it now starts in {{path}}.",
+      "newTab": "This tab stays in {{folder}}; a new terminal started in {{path}}."
     }
   },
   "fileBrowser": {
@@ -4133,6 +4139,21 @@
       "emptyDeptHint": "This scan looked only at conversations filed under {{dept}} ({{count}} of them). Matches elsewhere exist but were not part of it.",
       "emptyBothTitle": "No {{origin}} matches under {{dept}}",
       "emptyBothHint": "This scan looked only at {{origin}} matches in the conversations filed under {{dept}} ({{count}} of them). Matches elsewhere exist but were not part of it."
+    },
+    "folder": {
+      "groupLabel": "Folder",
+      "all": "All folders",
+      "none": "No folder recorded",
+      "noneHint": "The conversation is not in this machine's session list, or its listing entry records no working folder. Filtering to this choice keeps those hits and does not assume any folder.",
+      "selectTitle": "Narrow the loaded results to conversations that ran in one folder. Filtering happens on this machine and does not run a new search; the folders come from the local session list.",
+      "clear": "Show all folders",
+      "hiddenOne": "{{folder}} only — {{count}} other match in the loaded results is hidden.",
+      "hidden": "{{folder}} only — {{count}} other matches in the loaded results are hidden.",
+      "emptyOne": "The folder filter is hiding the only remaining match",
+      "empty": "The folder filter is hiding all {{count}} remaining matches",
+      "emptyLoadedOne": "The folder filter is hiding the only remaining loaded match",
+      "emptyLoaded": "The folder filter is hiding all {{count}} remaining loaded matches",
+      "emptyHint": "Clear the folder filter to see them. A folder choice also leaves out hits whose folder is not known."
     }
   },
   "askHistory": {

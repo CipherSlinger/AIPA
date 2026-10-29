@@ -11,6 +11,11 @@
 // The department chip joins the same strip: it is a view over loaded rows too,
 // so the only way it can narrow the corpus is the one explicit action below,
 // and that action names both narrowings it will push.
+//
+// The folder select is a third view over the same loaded rows, not a scan
+// narrowing. Its options are the folders those hits actually ran in; a hit
+// whose session records no folder is offered as its own explicit choice rather
+// than silently dropped when a folder is selected.
 
 import React from 'react'
 import {
@@ -32,6 +37,17 @@ import {
   type ScannedDeptState,
 } from './searchDeptScan'
 import { MAX_SCOPE_SESSIONS } from './searchDeptAttribution'
+import {
+  ALL_FOLDERS_FILTER,
+  ALL_FOLDERS_VALUE,
+  NO_FOLDER_VALUE,
+  folderFilterFromValue,
+  folderFilterValue,
+  folderOptionsWithSelection,
+  type SearchFolderFilter,
+  type SearchFolderOptions,
+} from './searchFolderFilter'
+import { workingDirLabel } from '../../lib/workingDir'
 import { useT } from '../../i18n'
 
 interface Props {
@@ -43,6 +59,18 @@ interface Props {
   counts: MatchFilterCounts
   /** Rows the active filter keeps out of the loaded set. */
   hidden: number
+  /**
+   * The folder view over the loaded rows. Set only by this bar's select;
+   * changing it never starts a scan, exactly like the chips above.
+   */
+  folderFilter: SearchFolderFilter
+  onFolderFilterChange: (next: SearchFolderFilter) => void
+  /** Folders the loaded hits ran in, plus whether any hit has no known folder. */
+  folderOptions: SearchFolderOptions
+  /** Short folder labels and the full-path tooltip need the home directory. */
+  homeDir: string | null
+  /** Rows the folder choice hides among the rows the other chips left. */
+  folderHidden: number
   /** Rows currently loaded. */
   loaded: number
   /** Distinct hits the query's scan knows; at the ceiling this is the ceiling. */
@@ -149,9 +177,40 @@ const NOTE_STYLE: React.CSSProperties = {
   lineHeight: 1.5,
 }
 
+/**
+ * The folder control follows the archive's folder select: same compact height,
+ * border and focus ring, but shaped like the pills beside it so the strip reads
+ * as one filter row. A native select keeps its options keyboard-reachable.
+ */
+const FOLDER_SELECT_STYLE: React.CSSProperties = {
+  height: 22,
+  boxSizing: 'border-box',
+  padding: '0 7px',
+  borderRadius: 8,
+  fontSize: 11,
+  maxWidth: 170,
+  border: '1px solid var(--border)',
+  background: 'transparent',
+  color: 'var(--text-muted)',
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  flexShrink: 0,
+  transition: 'all 0.15s ease',
+}
+
 function pillStyle(active: boolean): React.CSSProperties {
   return {
     ...PILL_STYLE,
+    borderColor: active ? 'rgba(99,102,241,0.5)' : 'var(--border)',
+    background: active ? 'rgba(99,102,241,0.14)' : 'transparent',
+    color: active ? 'var(--accent-text)' : 'var(--text-muted)',
+    fontWeight: active ? 600 : 400,
+  }
+}
+
+function folderSelectStyle(active: boolean): React.CSSProperties {
+  return {
+    ...FOLDER_SELECT_STYLE,
     borderColor: active ? 'rgba(99,102,241,0.5)' : 'var(--border)',
     background: active ? 'rgba(99,102,241,0.14)' : 'transparent',
     color: active ? 'var(--accent-text)' : 'var(--text-muted)',
@@ -177,6 +236,11 @@ export function SearchMatchFilterBar({
   onOrderChange,
   counts,
   hidden,
+  folderFilter,
+  onFolderFilterChange,
+  folderOptions,
+  homeDir,
+  folderHidden,
   loaded,
   total,
   hasMore,
@@ -203,7 +267,30 @@ export function SearchMatchFilterBar({
   // a reply narrowed on both sides must name both.
   const echo = narrowingFromEcho(scanEcho)
   const scoped = echo !== null
-  const showWindowNote = partial && (filter !== 'all' || order === 'oldest')
+  const showWindowNote = partial && (filter !== 'all' || order === 'oldest' || folderFilter.kind !== 'all')
+  // The folders the loaded hits actually ran in. A lone "No folder recorded"
+  // option would be a filter with nothing to filter, so the control is hidden
+  // until at least one hit records a folder — unless a choice is already
+  // active, in which case hiding the control would leave the rows filtered by
+  // something the user cannot see. When the control does show, the
+  // unknown-folder choice appears beside the folders: a folder selection
+  // excludes those hits, and that must be visible rather than silent.
+  const showFolderControl = folderOptions.folders.length > 0 || folderFilter.kind !== 'all'
+  const folderChoices = showFolderControl
+    ? folderOptionsWithSelection(folderOptions.folders, folderFilter)
+    : []
+  const folderLabel = folderFilter.kind === 'none'
+    ? t('globalSearch.folder.none')
+    : folderFilter.kind === 'folder'
+      ? (workingDirLabel(folderFilter.dir, homeDir) || folderFilter.dir)
+      : ''
+  // The full path is the tooltip: the closed select can only afford one
+  // segment, and two folders can share a last segment.
+  const folderTitle = folderFilter.kind === 'folder'
+    ? folderFilter.dir
+    : folderFilter.kind === 'none'
+      ? t('globalSearch.folder.noneHint')
+      : t('globalSearch.folder.selectTitle')
   // Only an explicit press may restart the search with the narrowings pushed
   // into it. The department chip is part of the same decision, so it is passed
   // in — a selected department with no conversations is a scope worth no scan.
@@ -288,6 +375,60 @@ export function SearchMatchFilterBar({
             )
           })}
         </div>
+        {/* A folder view over the loaded hits. The select's options are exactly
+            the folders those rows ran in, so an empty list is not "no folder
+            filter": it means this query has no folder evidence to offer. */}
+        {showFolderControl && (
+          <>
+            <span style={DIVIDER_STYLE} aria-hidden="true" />
+            <span aria-hidden="true" style={CAPTION_STYLE}>{t('globalSearch.folder.groupLabel')}</span>
+            <select
+              value={folderFilterValue(folderFilter)}
+              onChange={e => onFolderFilterChange(folderFilterFromValue(e.target.value, folderChoices))}
+              aria-label={t('globalSearch.folder.groupLabel')}
+              title={folderTitle}
+              onFocus={e => {
+                e.currentTarget.style.boxShadow = '0 0 0 2px var(--accent-bg)'
+                e.currentTarget.style.borderColor = 'var(--accent-border)'
+              }}
+              onBlur={e => {
+                e.currentTarget.style.boxShadow = 'none'
+                e.currentTarget.style.borderColor = folderFilter.kind === 'all'
+                  ? 'var(--border)'
+                  : 'rgba(99,102,241,0.5)'
+              }}
+              style={folderSelectStyle(folderFilter.kind !== 'all')}
+            >
+              <option value={ALL_FOLDERS_VALUE}>{t('globalSearch.folder.all')}</option>
+              {folderChoices.map(option => (
+                <option key={option.key} value={`folder:${option.key}`} title={option.dir}>
+                  {option.label || workingDirLabel(option.dir, homeDir)}
+                </option>
+              ))}
+              {folderOptions.hasMissing && (
+                <option value={NO_FOLDER_VALUE} title={t('globalSearch.folder.noneHint')}>
+                  {t('globalSearch.folder.none')}
+                </option>
+              )}
+            </select>
+            {/* An active folder choice must be removable without touching the
+                query text, from the place that states it. */}
+            {folderFilter.kind !== 'all' && (
+              <button
+                type="button"
+                onClick={() => onFolderFilterChange(ALL_FOLDERS_FILTER)}
+                onKeyDown={stopPillActivation}
+                style={{
+                  ...PILL_STYLE,
+                  color: 'var(--accent-text)',
+                  borderColor: 'rgba(99,102,241,0.35)',
+                }}
+              >
+                {t('globalSearch.folder.clear')}
+              </button>
+            )}
+          </>
+        )}
         {/* One click back to everything: an active narrowing must always be
             removable from the place that states it. While the scan itself is
             narrowed, this chip-clear would only widen the view over rows that
@@ -435,6 +576,18 @@ export function SearchMatchFilterBar({
               ? (hidden === 1 ? 'globalSearch.match.scopeLoadedOne' : 'globalSearch.match.scopeLoaded')
               : (hidden === 1 ? 'globalSearch.match.scopeOne' : 'globalSearch.match.scope'),
             { count: hidden, origin: filterLabel },
+          )}
+        </div>
+      )}
+      {/* The folder view hid rows the other chips kept. Say how many loaded
+          rows, never how many exist elsewhere: the hit set is a page. */}
+      {folderFilter.kind !== 'all' && folderHidden > 0 && (
+        <div style={NOTE_STYLE}>
+          {t(
+            folderHidden === 1
+              ? 'globalSearch.folder.hiddenOne'
+              : 'globalSearch.folder.hidden',
+            { count: folderHidden, folder: folderLabel },
           )}
         </div>
       )}

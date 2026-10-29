@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import {
   activateTab,
   addTab,
+  beginTabRetry,
   closeAllTabs,
   closeTab,
   dropAllTerminalInput,
@@ -50,7 +51,13 @@ interface TerminalState extends TerminalTabsState {
   activateTab: (id: string) => void
   markRunning: (id: string, ptyId: string) => void
   markExited: (id: string, exitCode: number | null) => void
-  markFailed: (id: string, failure: string) => void
+  markFailed: (id: string, failure: string, failureCode?: string | null, failureCwd?: string) => void
+  /**
+   * Start one failed tab again, optionally in a newly granted folder. The
+   * epoch bump is what makes the tab's session effect build exactly one fresh
+   * PTY; this action itself never speaks to the PTY channel.
+   */
+  retryTab: (id: string, cwd?: string) => void
   markFallback: (id: string) => void
   retitleTab: (id: string, title: string) => void
   resetTabs: () => void
@@ -136,10 +143,21 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     // The shell is gone; input that never made it in must not outlive it.
     queuedInput: dropTerminalInput(state.queuedInput, id),
   })),
-  markFailed: (id, failure) => set(state => ({
-    ...markTabFailed(state, id, failure),
+  markFailed: (id, failure, failureCode, failureCwd) => set(state => ({
+    ...markTabFailed(state, id, failure, failureCode, failureCwd),
     queuedInput: dropTerminalInput(state.queuedInput, id),
   })),
+  retryTab: (id, cwd) => set(state => {
+    const next = beginTabRetry(state, id, cwd)
+    // Not a failed tab (closed, reused, or somehow alive): nothing to restart.
+    if (next === state) return state
+    return {
+      ...next,
+      // Keystrokes typed at the dead prompt belong to the shell that never
+      // existed; the replacement must not receive them as commands.
+      queuedInput: dropTerminalInput(state.queuedInput, id),
+    }
+  }),
   markFallback: (id) => set(state => markTabFallback(state, id)),
   retitleTab: (id, title) => set(state => retitleTab(state, id, title)),
   resetTabs: () => set({

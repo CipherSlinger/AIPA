@@ -256,16 +256,6 @@ export function handleConversationEvent(event: string, data: any, ctx: StreamJso
     return true
   }
 
-  if (event === 'cli:customTitle') {
-    // CLI has auto-generated a session title — update the store and notify user
-    const d = data as { sessionId: string; title: string }
-    if (d.title && !useChatStore.getState().currentSessionTitle) {
-      useChatStore.getState().setSessionTitle(d.title)
-      useUiStore.getState().addToast('info', t('session.titleGenerated'), 2000)
-    }
-    return true
-  }
-
   if (event === 'cli:worktreeState') {
     // Worktree state change from CLI — store active worktree info
     const d = data as { sessionId: string; worktreePath: string; branch: string; state: string }

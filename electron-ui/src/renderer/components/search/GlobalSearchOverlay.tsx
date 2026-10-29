@@ -64,35 +64,32 @@ import { revealSessionEvidence } from './revealSessionEvidence'
 import {
   SEARCH_ORIGIN_FILTERS,
   buildSessionOriginMap,
-  filterResultsByOrigin,
-  isOriginFilterEmpty,
   originFilterForQuery,
   type SearchOriginFilter,
 } from './searchOriginFilter'
 import {
-  filterResultsByMatchOrigin,
   isLoadedSetPartial,
-  isMatchFilterEmpty,
   nextPageSize,
-  sortSearchResults,
   type ScanOrigin,
   type SearchMatchFilter,
   type SearchSortOrder,
 } from './searchMatchFilter'
 import { SearchMatchFilterBar } from './SearchMatchFilterBar'
 import {
-  buildDeptAttributionMap,
+  ALL_FOLDERS_FILTER,
+  buildSearchFolderMap,
+  folderFilterForQuery,
+  type SearchFolderFilter,
+} from './searchFolderFilter'
+import {
   buildDeptFilterOptions,
   deptFilterForQuery,
   deptFilterOptionText,
-  filterResultsByDept,
-  isDeptFilterEmpty,
   searchRowKeys,
   sessionIdsInDeptTree,
 } from './searchDeptAttribution'
 import {
   buildListScope,
-  filterByListScope,
   listScopeOmitted,
   resolveListAskIds,
   type ListScope,
@@ -106,6 +103,8 @@ import {
 import { ASK_MIN_QUERY, type AskSource } from './overlay/askHistory'
 import { useAskHistory } from './overlay/useAskHistory'
 import { handleOverlayKeyDown } from './overlay/keyboard'
+import { deriveSearchEmptyFlags } from './searchEmptyFlags'
+import { useSearchFilterPipeline } from './useSearchFilterPipeline'
 import { AskAnswerView } from './overlay/AskAnswerView'
 import { AskMoreCharsHint } from './overlay/AskMoreCharsHint'
 import { AskRunningView } from './overlay/AskRunningView'
@@ -116,6 +115,7 @@ import { SearchPager } from './overlay/SearchPager'
 import { SearchResultGroups } from './overlay/SearchResultGroups'
 import {
   DeptFilterEmptyState,
+  FolderFilterEmptyState,
   ListScopeEmptyState,
   MatchFilterEmptyState,
   OriginFilterEmptyState,
@@ -224,6 +224,10 @@ export default function GlobalSearchOverlay() {
   // preference about the corpus, not a guess about one query. The scope line
   // below keeps it visible, so it can never hide rows unnoticed.
   const [matchFilter, setMatchFilter] = useState<SearchMatchFilter>('all')
+  // Which folder the loaded hits are narrowed to. The hit itself carries no
+  // cwd, so this is a view over the session listing joined by `sessionId` — it
+  // is applied after the search returns and can never start a scan.
+  const [folderFilter, setFolderFilter] = useState<SearchFolderFilter>(ALL_FOLDERS_FILTER)
   // Newest first is what the main process returns; oldest first is a client-side
   // reversal of the same window, never a second scan.
   const [sortOrder, setSortOrder] = useState<SearchSortOrder>('newest')
@@ -306,6 +310,11 @@ export default function GlobalSearchOverlay() {
     [workflows],
   )
   const originMap = useMemo(() => buildSessionOriginMap(sessions), [sessions])
+  // Session id -> recorded cwd. A hit not in this map, or listed without a cwd,
+  // has no known folder; the filter represents that instead of guessing from
+  // the row's `project` label (a Claude project slug is not a cwd).
+  const folderMap = useMemo(() => buildSearchFolderMap(sessions), [sessions])
+  const platform = window.electronAPI?.versions?.platform
   const deptOptions = useMemo(
     () => buildDeptFilterOptions(departments, resolvedLocale),
     [departments, resolvedLocale],
@@ -422,49 +431,34 @@ export default function GlobalSearchOverlay() {
     scanDept ? scanDept.ids : null,
   )
 
-  // Where-in-the-transcript narrowing runs first, on the raw window: its counts
-  // describe the search's own result set, so "3 tool matches" means that, not
-  // "3 that survived the other filters". Everything downstream sees what it kept.
-  const matchFiltered = useMemo(
-    () => filterResultsByMatchOrigin(results, matchFilter),
-    [results, matchFilter],
-  )
-  const filtered = useMemo(
-    () => filterResultsByOrigin(matchFiltered.visible, originMap, originFilter),
-    [matchFiltered, originMap, originFilter],
-  )
-  // One pass over this query's hits, shared by every row's chip and by the
-  // department filter. Rebuilt when the listing, tree or language changes, not
-  // per row and never through IPC.
-  const deptAttributions = useMemo(
-    () => buildDeptAttributionMap({
-      results,
-      sessions,
-      departments,
-      locale: resolvedLocale,
-      homeDir,
-      filings,
-    }),
-    [results, sessions, departments, resolvedLocale, homeDir, filings],
-  )
-  const deptFiltered = useMemo(
-    () => filterResultsByDept(filtered.visible, deptAttributions, departments, deptFilter),
-    [filtered, deptAttributions, departments, deptFilter],
-  )
-  // The archive's snapshot is applied last, after every existing narrowing, so
-  // "these rows" means these rows. `listScope.ids` is null when no snapshot was
-  // seeded, in which case the rows pass through untouched.
-  const listFiltered = useMemo(
-    () => filterByListScope(deptFiltered.visible, listScope?.ids ?? null),
-    [deptFiltered, listScope],
-  )
-  // Ordering is applied last, on exactly the rows about to be drawn. The rows
-  // stay grouped by project below; each group follows this order, and so do the
-  // groups themselves. See `sortSearchResults` for the window caveat.
-  const sortedHits = useMemo(
-    () => sortSearchResults(listFiltered.visible, sortOrder),
-    [listFiltered, sortOrder],
-  )
+  // Every client-side narrowing, in order, in one place — see the hook's header
+  // for why the order is the contract.
+  const {
+    matchFiltered,
+    filtered,
+    folderOptions,
+    folderFiltered,
+    deptAttributions,
+    deptFiltered,
+    listFiltered,
+    sortedHits,
+  } = useSearchFilterPipeline({
+    results,
+    matchFilter,
+    originMap,
+    originFilter,
+    folderMap,
+    folderFilter,
+    homeDir,
+    platform,
+    sessions,
+    departments,
+    locale: resolvedLocale,
+    filings,
+    deptFilter,
+    listScope,
+    sortOrder,
+  })
 
   const close = useCallback(() => {
     markDismissed()
@@ -624,7 +618,7 @@ export default function GlobalSearchOverlay() {
   // exactly where the user had it. A session-list refresh alone moves nothing.
   useEffect(() => {
     setActive(0)
-  }, [runId, matchFilter, originFilter, deptFilter, listScope, sortOrder])
+  }, [runId, matchFilter, originFilter, folderFilter, deptFilter, listScope, sortOrder])
   useEffect(() => {
     if (active >= flat.length) setActive(Math.max(0, flat.length - 1))
   }, [flat.length, active])
@@ -697,33 +691,6 @@ export default function GlobalSearchOverlay() {
   const listOmitted = listScope
     ? listScopeOmitted(listScope.total, listScope.sessionIds.length)
     : 0
-  const showIdle = trimmed.length < 2
-  const showLoading = status === 'loading' && trimmed.length >= 2
-  // The search found matches but a filter is hiding all of them. The copy must
-  // name the filter, not pretend the query had no results. The match filter
-  // runs first, so it is the one to blame when it leaves nothing behind; the
-  // origin filter only empties what survived it, and so on down the chain.
-  const showMatchFilterEmpty = status === 'ready'
-    && isMatchFilterEmpty(results.length, matchFiltered.visible.length, matchFilter)
-  const showFilterEmpty = status === 'ready'
-    && !showMatchFilterEmpty
-    && isOriginFilterEmpty(matchFiltered.visible.length, filtered.visible.length, originFilter)
-  const showDeptFilterEmpty = status === 'ready'
-    && !showMatchFilterEmpty
-    && !showFilterEmpty
-    && isDeptFilterEmpty(filtered.visible.length, deptFiltered.visible.length, deptFilter)
-  // The archive's snapshot is a client-side narrowing applied last. When it
-  // hides every remaining row, blame the snapshot and offer a one-click clear.
-  // The generic empty copy would say the history has nothing, when in fact the
-  // user's own list is what kept the rows out.
-  const showScopeEmpty = status === 'ready'
-    && trimmed.length >= 2
-    && searchedQuery.length >= 2
-    && listScope !== null
-    && !showMatchFilterEmpty
-    && !showFilterEmpty
-    && !showDeptFilterEmpty
-    && listFiltered.visible.length === 0
   const showAskEntry = askState === 'idle' && askAvailable && trimmed.length >= ASK_MIN_QUERY
   // The building-block sections share the transcript query but none of its
   // filters. They are hidden while an answer is on screen — that view is about
@@ -745,28 +712,39 @@ export default function GlobalSearchOverlay() {
   // is still being read, or when one of them did match, the transcript copy
   // must not make it on their behalf.
   const entityPending = entityQuery !== '' && (skillStatus === 'loading' || jobStatus === 'loading')
-  // The scan itself was narrowed and found nothing. Saying "no matches" here
-  // would speak for the whole history, which this scan never searched: other
-  // origins may well match, and the user chose to leave them out.
-  const showScopedEmpty = status === 'ready'
-    && results.length === 0
-    && filteredBy !== null
-    && searchedQuery.length >= 2
-  const showEmpty = status === 'ready'
-    && results.length === 0
-    && searchedQuery.length >= 2
-    && filteredBy === null
-    && !listScope
-    && !entityPending
-    && !hasEntityHits
-  // Conversations had nothing, but the user's own building blocks did. One
-  // quiet line says so; the sections below carry the hits.
-  const showNoConversations = status === 'ready'
-    && results.length === 0
-    && searchedQuery.length >= 2
-    && filteredBy === null
-    && !listScope
-    && hasEntityHits
+  // Which narrowing — if any — may claim this empty screen. Ordered, because a
+  // later view may only speak when every earlier one kept something; see
+  // `deriveSearchEmptyFlags` for the chain and for why absence is not emptiness.
+  const {
+    showIdle,
+    showLoading,
+    showMatchFilterEmpty,
+    showOriginFilterEmpty: showFilterEmpty,
+    showFolderFilterEmpty,
+    showDeptFilterEmpty,
+    showScopeEmpty,
+    showEmpty,
+    showScopedEmpty,
+    showNoConversations,
+  } = deriveSearchEmptyFlags({
+    status,
+    trimmedLength: trimmed.length,
+    resultsCount: results.length,
+    matchVisible: matchFiltered.visible.length,
+    matchFilter,
+    originVisible: filtered.visible.length,
+    originFilter,
+    folderVisible: folderFiltered.visible.length,
+    folderFilter,
+    deptVisible: deptFiltered.visible.length,
+    deptFilter,
+    hasListScope: listScope !== null,
+    listVisible: listFiltered.visible.length,
+    searchedQueryLength: searchedQuery.length,
+    filteredBy,
+    entityPending,
+    hasEntityHits,
+  })
 
   // The translated pill label, reused inside the empty-state copy below so no
   // sentence has to hard-code a second name for the same bucket. The coverage
@@ -863,6 +841,10 @@ export default function GlobalSearchOverlay() {
               // synchronously — an effect would let a stale filter hide the
               // new query's rows for a frame.
               setOriginFilter(current => originFilterForQuery(query, e.target.value, current))
+              // A folder choice described the old rows; a new query's loaded
+              // hits may all have run elsewhere, so it starts at All. This only
+              // touches the filter — the query text is whatever the user typed.
+              setFolderFilter(current => folderFilterForQuery(query, e.target.value, current))
               // A pinned filter was chosen from a department page, not over
               // these rows, so typing must not drop it; a manual choice still
               // resets with the query. While the scan itself carries a
@@ -1088,6 +1070,11 @@ export default function GlobalSearchOverlay() {
             onOrderChange={setSortOrder}
             counts={matchFiltered.counts}
             hidden={matchFiltered.hidden}
+            folderFilter={folderFilter}
+            onFolderFilterChange={setFolderFilter}
+            folderOptions={folderOptions}
+            homeDir={homeDir}
+            folderHidden={folderFiltered.hidden}
             loaded={results.length}
             total={totalHits}
             hasMore={hasMore}
@@ -1296,10 +1283,21 @@ export default function GlobalSearchOverlay() {
                   />
                 )}
 
+                {/* The folder choice hid what the earlier views left. Name the
+                    filter, count the loaded rows it hid, and make clearing it
+                    one click — without touching the query text. */}
+                {showFolderFilterEmpty && !showLoading && (
+                  <FolderFilterEmptyState
+                    partialLoaded={partialLoaded}
+                    visible={filtered.visible.length}
+                    onClear={() => setFolderFilter(ALL_FOLDERS_FILTER)}
+                  />
+                )}
+
                 {showDeptFilterEmpty && !showLoading && (
                   <DeptFilterEmptyState
                     partialLoaded={partialLoaded}
-                    visible={filtered.visible.length}
+                    visible={folderFiltered.visible.length}
                     onClear={() => {
                       setDeptFilter(null)
                       setDeptPinned(false)

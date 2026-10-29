@@ -313,7 +313,6 @@ export function wireStreamBridge(
   bridge.on('planApprovalRequest', (d) => sink('cli:planApprovalRequest', d))
   bridge.on('apiError', (d) => sink('cli:apiError', d))
   bridge.on('worktreeState', (d) => sink('cli:worktreeState', d))
-  bridge.on('customTitle', (d) => sink('cli:customTitle', d))
   bridge.on('taskCompleted', (d) => sink('cli:taskCompleted', d))
 
   if (internal) {

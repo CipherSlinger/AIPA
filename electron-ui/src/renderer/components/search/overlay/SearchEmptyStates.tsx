@@ -129,6 +129,50 @@ export function OriginFilterEmptyState({ partialLoaded, loaded, onClear }: Filte
 }
 
 /**
+ * The folder filter emptied what the earlier views left. `visible` is the
+ * count after those views, which is what the copy names. It must never say the
+ * query has no matches: the phrase exists elsewhere in the loaded rows, and a
+ * folder choice also leaves out hits whose folder is unknown.
+ */
+export function FolderFilterEmptyState({
+  partialLoaded,
+  visible,
+  onClear,
+}: Omit<FilterEmptyProps, 'loaded'> & { visible: number }) {
+  const t = useT()
+  return (
+    <div style={EMPTY_STYLE}>
+      <div style={TITLE_STYLE}>
+        {partialLoaded
+          ? t(
+              visible === 1
+                ? 'globalSearch.folder.emptyLoadedOne'
+                : 'globalSearch.folder.emptyLoaded',
+              { count: visible },
+            )
+          : t(
+              visible === 1
+                ? 'globalSearch.folder.emptyOne'
+                : 'globalSearch.folder.empty',
+              { count: visible },
+            )}
+      </div>
+      <div style={HINT_STYLE}>
+        {t('globalSearch.folder.emptyHint')}
+      </div>
+      <button
+        type="button"
+        onClick={onClear}
+        onKeyDown={stopPillActivation}
+        style={CLEAR_STYLE}
+      >
+        {t('globalSearch.folder.clear')}
+      </button>
+    </div>
+  )
+}
+
+/**
  * The department filter emptied what the origin filter left. `visible` is the
  * count after that filter, which is what the copy names.
  */

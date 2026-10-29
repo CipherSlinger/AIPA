@@ -1,0 +1,130 @@
+// The overlay's empty-state decision, lifted out of the component.
+//
+// Every one of these flags answers the same question — "which narrowing, if
+// any, is to blame for this empty screen?" — and the answer is ordered: the
+// match filter runs first, then origin, then folder, then department, then the
+// archive snapshot. A later stage may only claim the screen when every earlier
+// stage kept something, which is why the chain's order is the whole rule and
+// why it is written once, as a pure function, instead of being re-derived at
+// each branch.
+//
+// The other half of the rule is that absence is not emptiness: `showEmpty`
+// requires that the scan itself returned nothing, that it was not narrowed by
+// the user, that no building-block list is still loading or matched, and that
+// no filter has already spoken. Two screens must never both claim "nothing
+// here" for different reasons.
+
+import type { SessionSearchFilterEchoData } from '../../../preload/index'
+import type { GlobalSearchStatus } from './useGlobalSessionSearch'
+import { isMatchFilterEmpty, type SearchMatchFilter } from './searchMatchFilter'
+import { isOriginFilterEmpty, type SearchOriginFilter } from './searchOriginFilter'
+import { isFolderFilterEmpty, type SearchFolderFilter } from './searchFolderFilter'
+import { isDeptFilterEmpty } from './searchDeptAttribution'
+
+export interface SearchEmptyInputs {
+  status: GlobalSearchStatus
+  /** Query length after trimming; the overlay hides the list below 2 chars. */
+  trimmedLength: number
+  /** Rows the scan returned, before any client-side narrowing. */
+  resultsCount: number
+  /** Rows kept by the transcript-level (match) chips. */
+  matchVisible: number
+  matchFilter: SearchMatchFilter
+  /** Rows kept by the origin chips. */
+  originVisible: number
+  originFilter: SearchOriginFilter
+  /** Rows kept by the folder view. */
+  folderVisible: number
+  folderFilter: SearchFolderFilter
+  /** Rows kept by the department view. */
+  deptVisible: number
+  deptFilter: string | null
+  /** Whether an archive snapshot is narrowing the rows. */
+  hasListScope: boolean
+  /** Rows kept by the snapshot. */
+  listVisible: number
+  /** Length of the query the displayed rows were actually searched for. */
+  searchedQueryLength: number
+  /** The originating narrowing the scan reported, if it was narrowed. */
+  filteredBy: SessionSearchFilterEchoData | null
+  /** A building-block list is still being read for this query. */
+  entityPending: boolean
+  /** A building-block list matched this query. */
+  hasEntityHits: boolean
+}
+
+export interface SearchEmptyFlags {
+  /** Fewer than two characters: the list is hidden, not empty. */
+  showIdle: boolean
+  showLoading: boolean
+  showMatchFilterEmpty: boolean
+  showOriginFilterEmpty: boolean
+  showFolderFilterEmpty: boolean
+  showDeptFilterEmpty: boolean
+  /** The archive snapshot hid everything that survived the other views. */
+  showScopeEmpty: boolean
+  /** The history itself has nothing for this query. */
+  showEmpty: boolean
+  /** The scan was narrowed by the user and found nothing in that scope. */
+  showScopedEmpty: boolean
+  /** No conversations matched, but a building-block list did. */
+  showNoConversations: boolean
+}
+
+export function deriveSearchEmptyFlags(input: SearchEmptyInputs): SearchEmptyFlags {
+  const ready = input.status === 'ready'
+  const showIdle = input.trimmedLength < 2
+  const showLoading = input.status === 'loading' && input.trimmedLength >= 2
+
+  const showMatchFilterEmpty = ready
+    && isMatchFilterEmpty(input.resultsCount, input.matchVisible, input.matchFilter)
+  const showOriginFilterEmpty = ready
+    && !showMatchFilterEmpty
+    && isOriginFilterEmpty(input.matchVisible, input.originVisible, input.originFilter)
+  const showFolderFilterEmpty = ready
+    && !showMatchFilterEmpty
+    && !showOriginFilterEmpty
+    && isFolderFilterEmpty(input.originVisible, input.folderVisible, input.folderFilter)
+  const showDeptFilterEmpty = ready
+    && !showMatchFilterEmpty
+    && !showOriginFilterEmpty
+    && !showFolderFilterEmpty
+    && isDeptFilterEmpty(input.folderVisible, input.deptVisible, input.deptFilter)
+  const showScopeEmpty = ready
+    && input.trimmedLength >= 2
+    && input.searchedQueryLength >= 2
+    && input.hasListScope
+    && !showMatchFilterEmpty
+    && !showOriginFilterEmpty
+    && !showFolderFilterEmpty
+    && !showDeptFilterEmpty
+    && input.listVisible === 0
+
+  // The scan was narrowed and found nothing. Saying "no matches" here would
+  // speak for the whole history, which this scan never searched.
+  const showScopedEmpty = ready
+    && input.resultsCount === 0
+    && input.filteredBy !== null
+    && input.searchedQueryLength >= 2
+
+  const searchable = ready
+    && input.resultsCount === 0
+    && input.searchedQueryLength >= 2
+    && input.filteredBy === null
+    && !input.hasListScope
+  const showEmpty = searchable && !input.entityPending && !input.hasEntityHits
+  const showNoConversations = searchable && input.entityPending === false && input.hasEntityHits
+
+  return {
+    showIdle,
+    showLoading,
+    showMatchFilterEmpty,
+    showOriginFilterEmpty,
+    showFolderFilterEmpty,
+    showDeptFilterEmpty,
+    showScopeEmpty,
+    showEmpty,
+    showScopedEmpty,
+    showNoConversations,
+  }
+}

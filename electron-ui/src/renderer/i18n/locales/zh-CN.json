@@ -1597,6 +1597,12 @@
       "spawnFailed": "启动 shell 失败：{{reason}}",
       "unknown": "终端无法启动：{{reason}}",
       "invalidRequest": "终端请求不完整。"
+    },
+    "grant": {
+      "action": "允许 AIPA 读取这个文件夹…",
+      "retried": "这个文件夹现在可以读取了，因此这个终端正在重新启动。",
+      "moved": "这个标签还没有输出，因此现在改为在 {{path}} 启动。",
+      "newTab": "这个标签仍在 {{folder}}；新的终端已经在 {{path}} 启动。"
     }
   },
   "fileBrowser": {
@@ -4133,6 +4139,21 @@
       "emptyDeptHint": "这次扫描只看了归档在「{{dept}}」下的对话（共 {{count}} 个）。别处有匹配，但不属于这次扫描。",
       "emptyBothTitle": "「{{dept}}」下没有{{origin}}匹配",
       "emptyBothHint": "这次扫描只看了「{{dept}}」下对话里的{{origin}}匹配（共 {{count}} 个对话）。别处有匹配，但不属于这次扫描。"
+    },
+    "folder": {
+      "groupLabel": "文件夹",
+      "all": "全部文件夹",
+      "none": "未记录文件夹",
+      "noneHint": "这个对话不在本机的会话列表里，或者它在列表里的记录没有工作目录。选这一项会保留这些结果，也不会替它们假定一个文件夹。",
+      "selectTitle": "把已加载的结果缩小到在某个文件夹里运行过的对话。筛选在本机完成，不会重新搜索；可选文件夹来自本机的会话列表。",
+      "clear": "显示全部文件夹",
+      "hiddenOne": "只看「{{folder}}」：已加载的结果里还有 {{count}} 条匹配被挡住。",
+      "hidden": "只看「{{folder}}」：已加载的结果里还有 {{count}} 条匹配被挡住。",
+      "emptyOne": "文件夹筛选挡住了唯一剩下的一条匹配",
+      "empty": "文件夹筛选挡住了剩下的全部 {{count}} 条匹配",
+      "emptyLoadedOne": "文件夹筛选挡住了已加载结果里唯一剩下的一条",
+      "emptyLoaded": "文件夹筛选挡住了已加载结果里剩下的全部 {{count}} 条",
+      "emptyHint": "清除文件夹筛选即可看到。选了某个文件夹时，文件夹未知的结果也不会显示。"
     }
   },
   "askHistory": {
