@@ -2686,7 +2686,22 @@
       "runAllHeldAllStarted": "Started {{count}} runs",
       "runAllHeldPartial": "Started {{started}} of {{total}} — {{failed}} could not start",
       "runAllHeldNone": "Nothing is held any more",
-      "runAllHeldUnreadable": "Couldn't read the job list — nothing was started"
+      "runAllHeldUnreadable": "Couldn't read the job list — nothing was started",
+      "waitingAnswer": "{{count}} waiting for your answer",
+      "waitingAnswerAria": "{{label}}. Open the background work panel to approve or deny.",
+      "waitingGroup": "Waiting for your answer",
+      "waitingSince": "since {{time}}",
+      "waitingWaited": "waited {{time}}",
+      "waitingAskLabel": "The request, exactly as the run asked it",
+      "waitingTimeout": "No answer within {{minutes}} minutes means denied; the run then goes on as if it had refused.",
+      "waitingOnce": "This answers this request only. The next request is a new question.",
+      "waitingApprove": "Approve",
+      "waitingDeny": "Deny",
+      "waitingApproveAria": "Approve this request for {{name}}",
+      "waitingDenyAria": "Deny this request for {{name}}",
+      "waitingApproved": "Approved. {{name}} continues.",
+      "waitingDenied": "Denied. {{name}} continues without it.",
+      "waitingGone": "That request is no longer waiting — it was answered or timed out."
     }
   },
   "dailyBriefing": {
@@ -3612,7 +3627,9 @@
       "unaffiliated": "not in the org",
       "attributedTitle": "{{path}}\nWorking folder: {{directory}}\nFiled here because the conversation ran in this folder. That is not a claim this department did the work. The session list is local to this machine, and each search returns a capped slice (up to 40 of at most 100 matches), so this chip describes this row — not the department's whole history.",
       "unlistedTitle": "This conversation is not in this machine's session list, so it cannot be filed under a department.",
-      "unaffiliatedTitle": "This conversation is in this machine's local session list, but its working folder matches no node in the org chart."
+      "unaffiliatedTitle": "This conversation is in this machine's local session list, but its working folder matches no node in the org chart.",
+      "emptyLoadedOne": "The department filter is hiding the only remaining loaded match",
+      "emptyLoaded": "The department filter is hiding all {{count}} remaining loaded matches"
     },
     "entities": {
       "workflows": "Workflows",
@@ -3647,14 +3664,35 @@
       "emptyTitle": "No {{origin}} matches for this query",
       "emptyHintOne": "The phrase does exist — the search found 1 match, and this filter keeps it out.",
       "emptyHint": "The phrase does exist — the search found {{count}} matches, and this filter keeps them all out.",
-      "windowCapped": "The search stops after the newest {{limit}} matches. This view is only a slice of that window: older matches were never returned, and neither the filter nor the order can reach them."
+      "windowCapped": "The search stops after the newest {{limit}} matches. This view is only a slice of that window: older matches were never returned, and neither the filter nor the order can reach them.",
+      "scopeLoadedOne": "{{origin}} only — 1 other loaded match is hidden.",
+      "scopeLoaded": "{{origin}} only — {{count}} other loaded matches are hidden.",
+      "emptyLoadedTitle": "No {{origin}} matches among the {{loaded}} loaded",
+      "emptyLoadedHint": "Only the matches loaded so far were checked. Earlier matches have not been loaded, so this filter cannot speak for them."
     },
     "sort": {
       "groupLabel": "Order",
       "newest": "Newest first",
       "oldest": "Oldest first",
       "hint": "Rows stay grouped by project. Each group is ordered, and the groups follow the same order."
-    }
+    },
+    "paging": {
+      "showMore": "Show {{count}} earlier matches",
+      "showMoreOne": "Show 1 earlier match",
+      "loadingMore": "Loading earlier matches…",
+      "loadedOf": "{{loaded}} of {{total}} matches loaded",
+      "loadedOfAtLeast": "{{loaded}} of at least {{total}} matches loaded",
+      "allLoaded": "All {{total}} matches are loaded",
+      "ceiling": "The scan stops at the newest {{ceiling}} matches — older matches exist but were not collected.",
+      "failed": "Couldn't load earlier matches. Try again.",
+      "announce": "{{added}} more matches loaded — {{loaded}} now shown.",
+      "announceOne": "1 more match loaded — {{loaded}} now shown.",
+      "narrowedMore": "Filters and order apply only to the {{loaded}} matches loaded so far. Earlier matches are not loaded yet, so they have not been filtered.",
+      "narrowedCeiling": "Only the newest {{ceiling}} matches were scanned. Filters and order cannot reach older matches.",
+      "footerNarrowed": "{{visible}} of {{loaded}} loaded shown"
+    },
+    "originFilterEmptyLoadedOne": "The filter is hiding the only loaded match",
+    "originFilterEmptyLoaded": "The filter is hiding all {{count}} loaded matches"
   },
   "askHistory": {
     "entry": "Ask AIPA…",
@@ -3747,7 +3785,9 @@
       "running": "Running…",
       "budgetSkipped": "Skipped (spend limit)",
       "globalBudgetSkipped": "Skipped (daily budget reached)",
-      "missedSkipped": "Skipped (missed while closed)"
+      "missedSkipped": "Skipped (missed while closed)",
+      "waitingApproval": "Waiting for your answer since {{time}}",
+      "waitingApprovalHint": "This run is holding one permission request. It stays paused until you answer in the background work panel; no answer within {{minutes}} minutes is a denial."
     },
     "field": {
       "name": "Name",
@@ -3821,7 +3861,8 @@
       "name_invalid": "Give the copy a valid name.",
       "missed_while_closed": "It came due while AIPA was closed.",
       "chain_invalid": "That next job could not be read as a job. Choose another one, or Nothing.",
-      "chain_cycle": "That would make this automation run “{{job}}” and then come back to itself in a loop. Nothing was saved."
+      "chain_cycle": "That would make this automation run “{{job}}” and then come back to itself in a loop. Nothing was saved.",
+      "interrupted_while_waiting": "interrupted while waiting for your answer"
     },
     "personaHint": "Scheduled runs of this workflow use this expert. The workflow's own Run button still uses the current conversation's expert.",
     "personaMissing": "Expert deleted",
@@ -4100,6 +4141,20 @@
       "unknownDepartmentHint": "The job is filed under a department the saved snapshot does not list — it may have been added or restored since the last sync. The run went ahead without its rules; opening the app refreshes the snapshot.",
       "empty": "handbook empty: {{name}}",
       "emptyHint": "This department's handbook holds no text, so the run carried none."
+    },
+    "runApproval": {
+      "subjectHint": "The request, exactly as the run asked it. Nothing is summarized.",
+      "clause": "{{outcome}} (waited {{waited}})",
+      "clauseNoWait": "{{outcome}}",
+      "outcome": {
+        "approved": "permission approved by you",
+        "denied": "permission denied by you",
+        "timeout": "permission denied — no answer in time",
+        "queueFull": "permission denied — three requests were already waiting",
+        "runBusy": "permission denied — the run already had one waiting",
+        "runEnded": "permission denied — the run ended first",
+        "interrupted": "interrupted while waiting for your answer"
+      }
     }
   },
   "speculation": {
@@ -4523,5 +4578,36 @@
     "allKinds": "All kinds",
     "noMatch": "Nothing here matches the filter — {{count}} hidden.",
     "clear": "Clear filter"
+  },
+  "trashBulk": {
+    "groupLabel": "Batch actions for Recently deleted",
+    "selectAllAria": "Select every item in the current view",
+    "selectRowAria": "Select “{{name}}”",
+    "viewCount": "{{count}} in this view",
+    "selected": "{{count}} selected",
+    "pruned": "Removed {{count}} from the selection — no longer in this view.",
+    "restore": "Restore {{count}}",
+    "restoreHint": "Restore the selected items one at a time; anything refused says why.",
+    "delete": "Delete {{count}} forever",
+    "deleteAria": "Permanently delete {{count}} selected from Recently deleted",
+    "clear": "Clear selection",
+    "confirmTitle": "Delete {{count}} forever?",
+    "kindGroupLabel": "Items being deleted",
+    "kindCount": "{{kind}} × {{count}}",
+    "confirmNoUndo": "This cannot be undone. There is no undo for this action.",
+    "confirmDelete": "Delete forever",
+    "cancel": "Cancel",
+    "dismiss": "Dismiss this result",
+    "result": {
+      "restore": "Brought back {{done}} of {{total}}.",
+      "delete": "Deleted {{done}} of {{total}} for good."
+    },
+    "refused": {
+      "restore": "{{count}} not restored — still in Recently deleted:",
+      "delete": "{{count}} not deleted — still in Recently deleted:"
+    },
+    "refusalLine": "{{name}}: {{reason}}",
+    "refusalNoReason": "{{name}}: no reason was reported",
+    "listStale": "The sidebar could not be refreshed — conversations that came back may not be listed yet."
   }
 }

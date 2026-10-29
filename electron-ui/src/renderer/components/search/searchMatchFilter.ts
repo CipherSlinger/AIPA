@@ -8,12 +8,64 @@
 // Both are client-side views, and both must stay honest about what they hide.
 
 /**
- * The result window. `session:search` scans transcript files newest-first and
- * stops once it has this many hits, so the renderer never sees more than this
- * even for a term that appears thousands of times. Exported here because the
- * hook that passes it and the copy that admits to it must not drift apart.
+ * How many rows one page of results holds. `session:searchPage` returns the
+ * page and the counts that describe the scan behind it; asking for the next
+ * page continues the same ordering. Exported here because the hook that passes
+ * it and the copy that offers the next page must not drift apart.
  */
 export const GLOBAL_SEARCH_RESULT_LIMIT = 40
+
+/**
+ * Whether the rows on screen are only part of what the query knows. Filters and
+ * order are client-side views over the loaded rows: their counts describe that
+ * set, and the copy must not imply the unloaded matches were filtered too. This
+ * flag is what the copy keys off.
+ */
+export function isLoadedSetPartial(hasMore: boolean, ceilingReached: boolean): boolean {
+  return hasMore || ceilingReached
+}
+
+/**
+ * How many rows the next page would add. The last page can be short (the scan
+ * knows fewer rows than a full page), so the button never promises a page size
+ * it will not deliver.
+ */
+export function nextPageSize(
+  loaded: number,
+  total: number,
+  pageSize: number = GLOBAL_SEARCH_RESULT_LIMIT,
+): number {
+  return Math.max(0, Math.min(pageSize, total - loaded))
+}
+
+/**
+ * Which i18n key describes the loaded/known counts. Kept here — not inline in
+ * the overlay — so the sentence and the state that selects it cannot drift:
+ * a ceiling is "at least", a fetchable tail is "of", a complete scan is "all".
+ * Saying "of 200" when the ceiling truncated the scan would state a total the
+ * app never measured.
+ */
+export type PagingCountKey =
+  | 'globalSearch.paging.loadedOf'
+  | 'globalSearch.paging.loadedOfAtLeast'
+  | 'globalSearch.paging.allLoaded'
+
+export function pagingCountKey(hasMore: boolean, ceilingReached: boolean): PagingCountKey {
+  if (ceilingReached) return 'globalSearch.paging.loadedOfAtLeast'
+  return hasMore ? 'globalSearch.paging.loadedOf' : 'globalSearch.paging.allLoaded'
+}
+
+/**
+ * Which sentence explains that a filter/order cannot speak for the unseen
+ * matches: more can be fetched, or the scan never went further.
+ */
+export type PagingNarrowedKey =
+  | 'globalSearch.paging.narrowedMore'
+  | 'globalSearch.paging.narrowedCeiling'
+
+export function pagingNarrowedKey(hasMore: boolean): PagingNarrowedKey {
+  return hasMore ? 'globalSearch.paging.narrowedMore' : 'globalSearch.paging.narrowedCeiling'
+}
 
 export type SearchMatchFilter = 'all' | 'prose' | 'tool' | 'thinking'
 
@@ -95,20 +147,16 @@ export function isMatchFilterEmpty(
   return filter !== 'all' && totalResults > 0 && visibleResults === 0
 }
 
-/** Whether the main-side scan stopped at its cap, i.e. older hits were never read. */
-export function isSearchWindowCapped(returnedCount: number): boolean {
-  return returnedCount >= GLOBAL_SEARCH_RESULT_LIMIT
-}
-
 export type SearchSortOrder = 'newest' | 'oldest'
 
 export const SEARCH_SORT_ORDERS: readonly SearchSortOrder[] = ['newest', 'oldest']
 
 /**
- * Ordering is only window-deep. `searchSessions` sorts what it collected and
- * slices at the cap, so "oldest first" reverses the newest N hits — it cannot
- * surface anything older, because those rows were never returned. The copy
- * says so whenever the window is capped; the UI must not imply otherwise.
+ * Ordering is only loaded-deep. The main-side scan sorts what it collected and
+ * the pages are slices of that list, so "oldest first" reverses the loaded
+ * rows — it cannot surface anything older than the scan's ceiling, because
+ * those rows were never collected. The copy says so whenever the loaded set is
+ * partial; the UI must not imply otherwise.
  *
  * Sort is stable for equal timestamps: the original index is the tiebreak, so
  * two hits sharing a second keep the main process's order instead of shuffling

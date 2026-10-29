@@ -10,9 +10,10 @@
 
 import React from 'react'
 import {
-  GLOBAL_SEARCH_RESULT_LIMIT,
   SEARCH_MATCH_FILTERS,
   SEARCH_SORT_ORDERS,
+  isLoadedSetPartial,
+  pagingNarrowedKey,
   type MatchFilterCounts,
   type SearchMatchFilter,
   type SearchSortOrder,
@@ -24,12 +25,18 @@ interface Props {
   onFilterChange: (next: SearchMatchFilter) => void
   order: SearchSortOrder
   onOrderChange: (next: SearchSortOrder) => void
-  /** Totals over the current query's whole result window. */
+  /** Totals over the rows currently loaded, not over the whole history. */
   counts: MatchFilterCounts
-  /** Rows the active filter keeps out of that window. */
+  /** Rows the active filter keeps out of the loaded set. */
   hidden: number
-  /** The scan stopped at its cap, so the window itself is partial. */
-  windowCapped: boolean
+  /** Rows currently loaded. */
+  loaded: number
+  /** Distinct hits the query's scan knows; at the ceiling this is the ceiling. */
+  total: number
+  /** More rows can still be loaded. */
+  hasMore: boolean
+  /** The scan stopped at its own ceiling, so older hits were never collected. */
+  ceilingReached: boolean
 }
 
 const ROW_STYLE: React.CSSProperties = {
@@ -126,15 +133,21 @@ export function SearchMatchFilterBar({
   onOrderChange,
   counts,
   hidden,
-  windowCapped,
+  loaded,
+  total,
+  hasMore,
+  ceilingReached,
 }: Props) {
   const t = useT()
   // The translated pill name, reused inside the coverage and empty-state copy
   // so no sentence has to hard-code a second name for the same bucket.
   const filterLabel = t(`globalSearch.match.${filter}`)
-  // Filtering or reversing is a second-order narrowing on top of the scan's own
-  // cut; admit both at once rather than implying the window is the whole story.
-  const showWindowNote = windowCapped && (filter !== 'all' || order === 'oldest')
+  // Filtering or reversing is a narrowing on top of the paging cut, so the
+  // counts describe the loaded rows only. Say that when the loaded set is not
+  // the whole answer — and say which kind of partial it is, because "more can
+  // be loaded" and "the scan never went further" are different promises.
+  const partial = isLoadedSetPartial(hasMore, ceilingReached)
+  const showWindowNote = partial && (filter !== 'all' || order === 'oldest')
 
   return (
     <div style={ROW_STYLE}>
@@ -212,18 +225,22 @@ export function SearchMatchFilterBar({
       </div>
       {/* Coverage, not decoration: "tool output only" is a claim that matches
           elsewhere are being kept out. Without this line an empty list would
-          read as "the phrase does not exist". */}
+          read as "the phrase does not exist". When only part of the answer is
+          loaded, the line says "loaded" — the unseen matches were never
+          filtered, and claiming otherwise would be a lie about the corpus. */}
       {filter !== 'all' && hidden > 0 && (
         <div style={NOTE_STYLE}>
           {t(
-            hidden === 1 ? 'globalSearch.match.scopeOne' : 'globalSearch.match.scope',
+            partial
+              ? (hidden === 1 ? 'globalSearch.match.scopeLoadedOne' : 'globalSearch.match.scopeLoaded')
+              : (hidden === 1 ? 'globalSearch.match.scopeOne' : 'globalSearch.match.scope'),
             { count: hidden, origin: filterLabel },
           )}
         </div>
       )}
       {showWindowNote && (
         <div role="status" style={NOTE_STYLE}>
-          {t('globalSearch.match.windowCapped', { limit: GLOBAL_SEARCH_RESULT_LIMIT })}
+          {t(pagingNarrowedKey(hasMore), { loaded, ceiling: total })}
         </div>
       )}
     </div>

@@ -35,6 +35,7 @@ import {
 import { buildInvestigatePrompt } from '../automation/investigatePrompt'
 import { buildJobDepartmentOptions, resolveJobDepartment } from '../automation/jobDepartment'
 import { isHeldJob } from '../automation/jobHold'
+import { RUN_APPROVAL_TIMEOUT_MINUTES, approvalClause } from '../automation/runApproval'
 import { SECONDARY, WARNING, primaryButtonStyle, smallButtonStyle } from '../automation/automationStyles'
 import { RUN_HISTORY_CAP, viewRunHistory } from './runHistoryView'
 import { fileKindMarker, viewRunFiles } from './runFilesView'
@@ -45,6 +46,7 @@ import type {
   AutomationJobData,
   AutomationLimitsData,
   AutomationMemoryDigestData,
+  AutomationRunApprovalData,
   AutomationRunRecordData,
   JobTrashErrorCode,
 } from '../../../preload'
@@ -55,6 +57,22 @@ import type { Persona } from '../../types/app.types'
 type RunHistoryUi = { expanded: boolean; failuresOnly: boolean }
 
 const RUN_HISTORY_UI_DEFAULT: RunHistoryUi = { expanded: false, failuresOnly: false }
+
+/**
+ * The tone of one held-request clause in the run history.
+ *
+ * An approval is a success; a denial the user gave is their own decision and
+ * stays neutral, so it is not dressed up as a fault. A deadline, a cap refusal
+ * or a lost run is a warning, and a run interrupted mid-wait is a failure.
+ */
+function approvalClauseColor(
+  outcome: AutomationRunApprovalData['outcome'],
+): string | undefined {
+  if (outcome === 'approved') return 'var(--success-text)'
+  if (outcome === 'denied') return undefined
+  if (outcome === 'interrupted') return 'var(--danger-text)'
+  return WARNING
+}
 
 /** The quiet text control under a run list ("Show all" / "Show fewer"). */
 const QUIET_LINK: CSSProperties = {
@@ -770,6 +788,21 @@ export default function SettingsAutomations() {
   }
 
   const statusLine = (job: AutomationJobData): { text: string; color: string; title?: string } => {
+    // A live run holding a request is still running, but "Running" would hide
+    // the one fact the user can act on. The timestamp is when the run asked;
+    // the tooltip carries the verbatim ask and the deadline.
+    if (job.running && job.waitingApproval) {
+      const wait = job.waitingApproval
+      return {
+        text: t('automation.status.waitingApproval', { time: timeText(wait.since) }),
+        color: WARNING,
+        title: [
+          t('automation.status.waitingApprovalHint', { minutes: RUN_APPROVAL_TIMEOUT_MINUTES }),
+          t('automation.runApproval.subjectHint'),
+          wait.subject,
+        ].join('\n'),
+      }
+    }
     if (job.running || job.lastStatus === 'running') {
       return { text: t('automation.status.running'), color: 'var(--accent-text)' }
     }
@@ -1685,6 +1718,20 @@ export default function SettingsAutomations() {
                                     {t('automation.retry.badge', { attempt: record.retry })}
                                   </span>
                                 )}
+                                {(record.approvals ?? []).map((approval, approvalIndex) => (
+                                  // Who answered, how, after how long. One span
+                                  // per request: a run may have held several over
+                                  // its life. The verbatim ask is in the tooltip
+                                  // rather than in the row, which already carries
+                                  // time, status, duration and spend.
+                                  <span
+                                    key={`${approval.askedAt}-${approvalIndex}`}
+                                    style={{ color: approvalClauseColor(approval.outcome) }}
+                                    title={`${t('automation.runApproval.subjectHint')}\n${approval.subject}`}
+                                  >
+                                    {approvalClause(approval, t, durationText)}
+                                  </span>
+                                ))}
                                 {record.chain?.nextJobId && (
                                   // What followed this run. The name is the one
                                   // held at start time; the job may since have

@@ -10,7 +10,7 @@
 // live in TrashSectionView.tsx; the merged row shape in lib/trashRows.ts.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '../../i18n'
-import { listSessionsShared } from '../../utils/sessionListShared'
+import { refreshSessionList } from '../departments/useSessionDelete'
 import { useSessionStore, useUiStore } from '../../store'
 import { sessionTrashFailureText } from '../../lib/sessionTrashText'
 import { EMPTY_TRASH_FILTER } from '../../lib/trashFilter'
@@ -18,7 +18,6 @@ import type { TrashFilterState } from '../../lib/trashFilter'
 import { buildTrashRows } from '../../lib/trashRows'
 import { dropSessionEffortOverride } from '../../lib/sessionEffort'
 import type { TrashActionOutcome, TrashRow } from '../../lib/trashRows'
-import type { SessionListItem } from '../../types/app.types'
 import type {
   JobTrashErrorCode,
   SessionTrashErrorCode,
@@ -191,11 +190,13 @@ export default function TrashSection({ crud, skillState }: {
       const result = await window.electronAPI.sessionsTrashRestore(row.id)
       if (result.ok) {
         await refreshSessions()
-        // Main forgot the reader caches for the restored paths, so a re-list
-        // sees the conversation again — no restart needed.
-        const list = await listSessionsShared()
-        if (list) useSessionStore.getState().setSessions(list as SessionListItem[])
-        return { ok: true }
+        // The same refresh the delete toast's Undo uses: main has forgotten the
+        // reader caches for the restored paths, so a re-list is enough. It
+        // resolves false when the sidebar could not be reloaded, and a batch of
+        // twenty must say so rather than let the user hunt for a conversation
+        // that is back on disk but missing from the list.
+        const listFresh = await refreshSessionList()
+        return { ok: true, listStale: !listFresh }
       }
       return { ok: false, message: failureForSession(result.code, result.error) }
     } catch (err) {

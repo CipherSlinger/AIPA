@@ -2686,7 +2686,22 @@
       "runAllHeldAllStarted": "已开始 {{count}} 次运行",
       "runAllHeldPartial": "已开始 {{started}} / {{total}} — {{failed}} 个未能开始",
       "runAllHeldNone": "已经没有任务被限额拦下了",
-      "runAllHeldUnreadable": "读取任务列表失败，没有开始任何运行"
+      "runAllHeldUnreadable": "读取任务列表失败，没有开始任何运行",
+      "waitingAnswer": "{{count}} 个在等你答复",
+      "waitingAnswerAria": "{{label}}。打开后台工作面板来允许或拒绝。",
+      "waitingGroup": "在等你答复",
+      "waitingSince": "自 {{time}} 起",
+      "waitingWaited": "已等 {{time}}",
+      "waitingAskLabel": "请求原文，就是这次运行当时提出来的那句话",
+      "waitingTimeout": "{{minutes}} 分钟内不答复就算拒绝，运行随后照被拒绝那样往下走。",
+      "waitingOnce": "这里答复的只是这一个请求。下一个请求是新的一个问题。",
+      "waitingApprove": "允许",
+      "waitingDeny": "拒绝",
+      "waitingApproveAria": "允许 {{name}} 的这个请求",
+      "waitingDenyAria": "拒绝 {{name}} 的这个请求",
+      "waitingApproved": "已允许，{{name}} 继续。",
+      "waitingDenied": "已拒绝，{{name}} 不带这一项继续。",
+      "waitingGone": "这个请求已经不在等了——已经被答复，或者超时了。"
     }
   },
   "dailyBriefing": {
@@ -3612,7 +3627,9 @@
       "unaffiliated": "不属于任何部门",
       "attributedTitle": "{{path}}\n工作目录：{{directory}}\n因为这个会话在这个文件夹里运行，所以归到这里。这不等于说该部门做了这项工作。会话列表只来自本机，每次搜索也只返回截断后的一段（最多 100 条中的 40 条），所以这枚标签只说明这一行——不代表该部门的全部历史。",
       "unlistedTitle": "本机的会话列表里没有这个会话，因此无法把它归到任何部门。",
-      "unaffiliatedTitle": "这个会话在本机会话列表里，但它的工作目录没有对应组织图里的任何节点。"
+      "unaffiliatedTitle": "这个会话在本机会话列表里，但它的工作目录没有对应组织图里的任何节点。",
+      "emptyLoadedOne": "部门筛选挡住了已加载结果里剩下的唯一一条",
+      "emptyLoaded": "部门筛选挡住了已加载结果里剩下的全部 {{count}} 条"
     },
     "entities": {
       "workflows": "工作流",
@@ -3647,14 +3664,35 @@
       "emptyTitle": "这个查询没有{{origin}}匹配",
       "emptyHintOne": "这段文字是存在的——搜索找到了 1 条匹配，被这个筛选挡住了。",
       "emptyHint": "这段文字是存在的——搜索找到了 {{count}} 条匹配，全被这个筛选挡住了。",
-      "windowCapped": "搜索最多只取最近 {{limit}} 条匹配。这里看到的只是这个窗口的一部分：更早的匹配根本没有返回，筛选和倒序都到不了那里。"
+      "windowCapped": "搜索最多只取最近 {{limit}} 条匹配。这里看到的只是这个窗口的一部分：更早的匹配根本没有返回，筛选和倒序都到不了那里。",
+      "scopeLoadedOne": "只看{{origin}}：已加载的结果里还有 1 条被挡住。",
+      "scopeLoaded": "只看{{origin}}：已加载的结果里还有 {{count}} 条被挡住。",
+      "emptyLoadedTitle": "已加载的 {{loaded}} 条里没有{{origin}}匹配",
+      "emptyLoadedHint": "只检查了已经加载的这些结果。更早的匹配还没有加载，这个筛选说明不了它们。"
     },
     "sort": {
       "groupLabel": "排序",
       "newest": "最新在前",
       "oldest": "最早在前",
       "hint": "结果仍按项目分组：组内按时间排序，组的先后也按同一顺序。"
-    }
+    },
+    "paging": {
+      "showMore": "再显示 {{count}} 条更早的匹配",
+      "showMoreOne": "再显示 1 条更早的匹配",
+      "loadingMore": "正在加载更早的匹配…",
+      "loadedOf": "已加载 {{loaded}} 条，共 {{total}} 条匹配",
+      "loadedOfAtLeast": "已加载 {{loaded}} 条，至少 {{total}} 条匹配",
+      "allLoaded": "{{total}} 条匹配已全部加载",
+      "ceiling": "扫描到最新 {{ceiling}} 条就停了，更早的匹配存在，但没有取回。",
+      "failed": "没能加载更早的匹配，再试一次。",
+      "announce": "又加载了 {{added}} 条匹配，现在显示 {{loaded}} 条。",
+      "announceOne": "又加载了 1 条匹配，现在显示 {{loaded}} 条。",
+      "narrowedMore": "筛选和排序只作用于已加载的 {{loaded}} 条；更早的匹配还没加载，也没有被筛过。",
+      "narrowedCeiling": "只扫描了最新 {{ceiling}} 条匹配，筛选和排序到不了更早的那些。",
+      "footerNarrowed": "已显示 {{visible}} / {{loaded}} 条"
+    },
+    "originFilterEmptyLoadedOne": "这个筛选挡住了已加载的唯一一条结果",
+    "originFilterEmptyLoaded": "这个筛选挡住了已加载的全部 {{count}} 条结果"
   },
   "askHistory": {
     "entry": "问 AIPA…",
@@ -3747,7 +3785,9 @@
       "running": "正在运行…",
       "budgetSkipped": "已跳过（花费上限）",
       "globalBudgetSkipped": "已跳过（达到每日预算）",
-      "missedSkipped": "已跳过（关闭期间错过）"
+      "missedSkipped": "已跳过（关闭期间错过）",
+      "waitingApproval": "正在等你答复，自 {{time}} 起",
+      "waitingApprovalHint": "这次运行压着一个权限请求。在你于后台工作面板答复之前它一直停着；{{minutes}} 分钟内不答复就算拒绝。"
     },
     "field": {
       "name": "名称",
@@ -3821,7 +3861,8 @@
       "name_invalid": "请给副本起一个有效的名称。",
       "missed_while_closed": "该次运行在 AIPA 关闭期间到期。",
       "chain_invalid": "这个接着运行的任务读不出来。换一个，或者选“不接着运行”。",
-      "chain_cycle": "这样会让这个自动化运行“{{job}}”，然后绕回它自己，形成循环。这次没有保存。"
+      "chain_cycle": "这样会让这个自动化运行“{{job}}”，然后绕回它自己，形成循环。这次没有保存。",
+      "interrupted_while_waiting": "等待你答复时中断"
     },
     "personaHint": "该工作流的定时运行使用此专家；工作流页面上的“运行”按钮仍使用当前对话的专家。",
     "personaMissing": "专家已删除",
@@ -4100,6 +4141,20 @@
       "unknownDepartmentHint": "任务所属的部门不在已保存的快照里——可能是在上次同步之后新增或恢复的。本次运行照常进行，但没有这些规则；打开应用会刷新快照。",
       "empty": "部门手册为空：{{name}}",
       "emptyHint": "这个部门的部门手册没有任何文字，本次运行没有带上内容。"
+    },
+    "runApproval": {
+      "subjectHint": "请求原文，就是这次运行当时提出来的那句话。没有经过概括。",
+      "clause": "{{outcome}}（等了 {{waited}}）",
+      "clauseNoWait": "{{outcome}}",
+      "outcome": {
+        "approved": "权限请求已被你允许",
+        "denied": "权限请求已被你拒绝",
+        "timeout": "权限请求被拒——到时没人答复",
+        "queueFull": "权限请求被拒——已经有三个请求在等",
+        "runBusy": "权限请求被拒——这次运行已经有一个在等",
+        "runEnded": "权限请求被拒——运行先结束了",
+        "interrupted": "等待你答复时中断"
+      }
     }
   },
   "speculation": {
@@ -4523,5 +4578,36 @@
     "allKinds": "全部类型",
     "noMatch": "没有符合条件的项目，{{count}} 项被筛掉了。",
     "clear": "清除筛选"
+  },
+  "trashBulk": {
+    "groupLabel": "最近删除的批量操作",
+    "selectAllAria": "选中当前列表里的全部项目",
+    "selectRowAria": "选中“{{name}}”",
+    "viewCount": "当前列表 {{count}} 项",
+    "selected": "已选 {{count}} 项",
+    "pruned": "{{count}} 项选中项已不在当前列表，已从选中里移除。",
+    "restore": "恢复 {{count}} 项",
+    "restoreHint": "逐项恢复选中的条目；被拒绝的那一项会说明原因。",
+    "delete": "永久删除 {{count}} 项",
+    "deleteAria": "永久删除选中的 {{count}} 项",
+    "clear": "取消选择",
+    "confirmTitle": "永久删除 {{count}} 项？",
+    "kindGroupLabel": "要删除的条目",
+    "kindCount": "{{kind}} × {{count}}",
+    "confirmNoUndo": "删了就没了，没有撤销。",
+    "confirmDelete": "永久删除",
+    "cancel": "取消",
+    "dismiss": "关闭这条结果",
+    "result": {
+      "restore": "已恢复 {{done}} / {{total}} 项。",
+      "delete": "已永久删除 {{done}} / {{total}} 项。"
+    },
+    "refused": {
+      "restore": "{{count}} 项没有恢复，还在最近删除里：",
+      "delete": "{{count}} 项没有删除，还在最近删除里："
+    },
+    "refusalLine": "{{name}}：{{reason}}",
+    "refusalNoReason": "{{name}}：没有说明原因",
+    "listStale": "侧边栏没能刷新，恢复的对话可能还没出现在列表里。"
   }
 }

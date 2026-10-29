@@ -41,9 +41,21 @@ import { resolveRunHandbook } from './dept-handbook'
 import { readDeptHandbookSnapshot } from './dept-handbook-store'
 import { buildMemoryDigest, failedMemoryDigest } from './memory-digest'
 import { buildPersonaPromptPrefix, filterModelForEngine } from './persona-plan'
+import {
+  MAX_RUN_APPROVALS_RECORDED,
+  clipApprovalSubject,
+  runApprovalQueue,
+  toRunApproval,
+} from './run-approvals'
 import { RunUsageAccumulator, readTurnUsage } from './run-usage'
 import type { TurnUsage } from './run-usage'
-import type { AutomationRunChangedFiles, AutomationRunOutcome, AutomationRunRequest } from './types'
+import type {
+  AutomationRunApproval,
+  AutomationRunChangedFiles,
+  AutomationRunOutcome,
+  AutomationRunRequest,
+  AutomationWaitingApproval,
+} from './types'
 
 const log = createLogger('automation-runner')
 
@@ -80,6 +92,189 @@ interface TurnResult {
 }
 
 /**
+ * A turn's timeout, which a held approval must not consume.
+ *
+ * The wait for an answer is not the engine working, so it must not be what
+ * makes a turn "time out": without this, the 15-minute request timeout could
+ * never be reached on a 10-minute turn, and the stated timeout would be a lie.
+ * The timer is paused when a request is held and resumed when it settles, with
+ * the turn keeping exactly the budget it had left.
+ */
+interface TurnTimer {
+  pause(): void
+  resume(): void
+  stop(): void
+}
+
+/**
+ * Shared with the approval desk: the live turn's timer (so a held request can
+ * pause it) and the run's release hook (so a turn that ends while waiting
+ * settles the request before the outcome is built, not after).
+ */
+interface TurnSlot {
+  timer: TurnTimer | null
+  onEnd?: () => void
+}
+
+function createTurnTimer(timeoutMs: number, onExpire: () => void): TurnTimer {
+  let remaining = Math.max(1, timeoutMs)
+  let armedAt = 0
+  let handle: NodeJS.Timeout | null = null
+  let stopped = false
+
+  const arm = () => {
+    if (stopped) return
+    armedAt = Date.now()
+    handle = setTimeout(() => {
+      handle = null
+      remaining -= Date.now() - armedAt
+      // A timer that fired early (clock skew, a long event-loop block) is
+      // re-armed for what is left instead of ending the turn early.
+      if (remaining > 0) { arm(); return }
+      onExpire()
+    }, Math.max(1, remaining))
+    handle.unref?.()
+  }
+
+  arm()
+
+  return {
+    pause() {
+      if (stopped || handle === null) return
+      clearTimeout(handle)
+      handle = null
+      remaining = Math.max(0, remaining - (Date.now() - armedAt))
+    },
+    resume() {
+      if (stopped || handle !== null) return
+      arm()
+    },
+    stop() {
+      stopped = true
+      if (handle !== null) clearTimeout(handle)
+      handle = null
+    },
+  }
+}
+
+/**
+ * The exact ask, as the engine phrased it.
+ *
+ * The panel is the user's only chance to see what a hidden run wants to do, so
+ * nothing here paraphrases: a command is shown as the command, a file change as
+ * its path, and anything else as the engine's own input JSON. A title is used
+ * only when there is no input at all, and is still labelled with the tool.
+ */
+function describeApprovalAsk(data: {
+  toolName?: unknown
+  toolInput?: unknown
+  title?: unknown
+}): string {
+  const tool = typeof data?.toolName === 'string' && data.toolName.trim()
+    ? data.toolName.trim()
+    : 'request'
+  const input = data?.toolInput && typeof data.toolInput === 'object' && !Array.isArray(data.toolInput)
+    ? data.toolInput as Record<string, unknown>
+    : null
+  const command = input && typeof input.command === 'string' ? input.command : ''
+  if (command.trim()) return clipApprovalSubject(`${tool}: ${command}`)
+  for (const key of ['file_path', 'path', 'notebook_path']) {
+    const value = input?.[key]
+    if (typeof value === 'string' && value.trim()) return clipApprovalSubject(`${tool}: ${value}`)
+  }
+  if (input && Object.keys(input).length > 0) {
+    try {
+      return clipApprovalSubject(`${tool}: ${JSON.stringify(input)}`)
+    } catch {
+      // A non-serialisable payload cannot be shown verbatim; the tool name is
+      // still true, and it is better than an invented description.
+    }
+  }
+  if (typeof data?.title === 'string' && data.title.trim()) {
+    return clipApprovalSubject(`${tool}: ${data.title.trim()}`)
+  }
+  return clipApprovalSubject(tool) || 'request'
+}
+
+interface ApprovalDesk {
+  /** Feed one engine permission event into the queue. */
+  request(data: { requestId?: unknown; toolName?: unknown; toolInput?: unknown; title?: unknown }): void
+  /** What this run asked, oldest first; absent when it never asked. */
+  approvals(): AutomationRunApproval[] | undefined
+  /** Settle anything still held because the run ended. */
+  release(): void
+}
+
+/**
+ * The one place a run's permission requests meet the user.
+ *
+ * Each request is put to the bounded queue with a single callback that both
+ * answers the engine and records the outcome — the two facts the record and
+ * the live UI must never disagree about. `respond` is the engine's own reply
+ * function, called with this request's id only.
+ */
+function createApprovalDesk(
+  req: AutomationRunRequest,
+  runKey: string,
+  slot: TurnSlot,
+  respond: (requestId: string, approved: boolean) => void,
+): ApprovalDesk {
+  const recorded: AutomationRunApproval[] = []
+  let waiting: AutomationWaitingApproval | null = null
+
+  const report = (next: AutomationWaitingApproval | null): void => {
+    waiting = next
+    try {
+      req.onApprovalWait?.(next)
+    } catch (err) {
+      // The scheduler owns the row and the store; a failure there must not
+      // leave the engine unanswered.
+      log.warn('Could not report an approval wait:', err)
+    }
+  }
+
+  const request: ApprovalDesk['request'] = (data) => {
+    const requestId = String(data?.requestId ?? '')
+    if (!requestId) {
+      // The bridge could not name the request, so it cannot be answered by
+      // name either. Deny it as the old path did and keep no record.
+      try { respond('', false) } catch { /* request already gone */ }
+      return
+    }
+    const subject = describeApprovalAsk(data)
+    const result = runApprovalQueue.request(
+      { jobId: req.job.id, jobName: req.job.name, runKey, requestId, subject },
+      (decision) => {
+        recorded.push(toRunApproval(decision))
+        if (recorded.length > MAX_RUN_APPROVALS_RECORDED) {
+          recorded.splice(0, recorded.length - MAX_RUN_APPROVALS_RECORDED)
+        }
+        if (waiting && waiting.requestId === requestId) report(null)
+        slot.timer?.resume()
+        try {
+          respond(requestId, decision.outcome === 'approved')
+        } catch { /* request already gone */ }
+      },
+    )
+    if (result.held && result.hold) {
+      // The wait is not the engine working: stop the turn's clock until it ends.
+      slot.timer?.pause()
+      report({
+        requestId,
+        since: result.hold.since,
+        subject: result.hold.subject,
+      })
+    }
+  }
+
+  return {
+    request,
+    approvals: () => (recorded.length > 0 ? [...recorded] : undefined),
+    release: () => { runApprovalQueue.releaseRun(runKey) },
+  }
+}
+
+/**
  * One running conversation. Both engines implement the same operations, so
  * the prompt sequencing, deadline, abort and status bookkeeping in
  * `runAutomation` are written once.
@@ -97,6 +292,8 @@ interface EngineRun {
    * missing record.
    */
   changedFiles(): AutomationRunChangedFiles
+  /** Permission requests this run held, oldest first; absent when none. */
+  approvals(): AutomationRunApproval[] | undefined
   /** Stop the process and detach every listener; safe after a failure. */
   dispose(): void
 }
@@ -144,11 +341,16 @@ function observeFileEdits(
  * not missed, and every path that ends the turn — result, process exit,
  * timeout — detaches them again.
  */
-function runCodexTurn(bridge: CodexBridge, start: () => Promise<void>, timeoutMs: number): Promise<TurnResult> {
+function runCodexTurn(
+  bridge: CodexBridge,
+  start: () => Promise<void>,
+  timeoutMs: number,
+  slot: TurnSlot,
+): Promise<TurnResult> {
   return new Promise<TurnResult>((resolve) => {
     let settled = false
     let turnError = ''
-    let timer: NodeJS.Timeout | undefined
+    let timer: TurnTimer | null = null
     // Codex reports the turn's usage as it progresses; each update restates the
     // turn's totals, so only the latest snapshot is kept. `result` is not used:
     // when a turn reports no update the bridge can replay the previous turn's
@@ -158,7 +360,12 @@ function runCodexTurn(bridge: CodexBridge, start: () => Promise<void>, timeoutMs
     const finish = (result: TurnResult) => {
       if (settled) return
       settled = true
-      if (timer) clearTimeout(timer)
+      timer?.stop()
+      if (slot.timer === timer) slot.timer = null
+      // A request held by this turn cannot outlive it. Settling before the
+      // outcome is built is what lets the run record say "the run ended while
+      // waiting" instead of dropping the fact.
+      slot.onEnd?.()
       bridge.off('result', onResult)
       bridge.off('turnError', onTurnError)
       bridge.off('processExit', onExit)
@@ -191,12 +398,12 @@ function runCodexTurn(bridge: CodexBridge, start: () => Promise<void>, timeoutMs
     bridge.on('processExit', onExit)
     bridge.on('tokenUsageUpdated', onUsage)
 
-    timer = setTimeout(() => {
+    timer = createTurnTimer(timeoutMs, () => {
       // A wedged engine would otherwise hold a concurrency slot forever.
       try { bridge.abort() } catch { /* already gone */ }
       finish({ ok: false, error: `Turn timed out after ${Math.round(timeoutMs / 1000)}s` })
-    }, Math.max(1, timeoutMs))
-    timer.unref?.()
+    })
+    slot.timer = timer
 
     Promise.resolve().then(start).catch((err) => finish({ ok: false, error: String(err) }))
   })
@@ -208,16 +415,23 @@ function createCodexRun(req: AutomationRunRequest, bridgeId: string, model: stri
   const detachFileEdits = observeFileEdits(bridge, changedFiles)
   let turnText = ''
   let first = true
+  const slot: TurnSlot = { timer: null }
+  // A hidden run used to answer every approval itself, always "no". It now
+  // holds the request for the user and answers with whatever the queue settled
+  // on; "no" remains the outcome of a wait nobody answered.
+  const desk = createApprovalDesk(
+    req,
+    bridgeId,
+    slot,
+    (requestId, approved) => { bridge.respondApproval(requestId, approved) },
+  )
+  slot.onEnd = desk.release
+  bridge.on('permissionRequest', desk.request)
 
   const collectText = (data: { text?: string }) => {
     if (typeof data?.text === 'string') turnText += data.text
   }
   bridge.on('textDelta', collectText)
-  // Nobody can answer an approval prompt for a hidden run; deny and let the
-  // model finish with what it is allowed to do.
-  bridge.on('permissionRequest', (data: { requestId?: string | number }) => {
-    try { bridge.respondApproval(String(data?.requestId ?? ''), false) } catch { /* request already gone */ }
-  })
 
   return {
     async send(prompt: string, timeoutMs: number): Promise<TurnResult> {
@@ -241,23 +455,31 @@ function createCodexRun(req: AutomationRunRequest, bridgeId: string, model: stri
           },
           {
             // A background run writes files when the user asked for it, but
-            // only inside the workspace, and never asks for anything it cannot
-            // get.
-            approvalPolicy: 'never',
+            // only inside the workspace. It may still *ask* to go outside, and
+            // that ask is now held for the user instead of being auto-denied:
+            // `never` would answer it before anyone saw it, which is what made
+            // a nightly job fail on the same permission every night. The
+            // sandbox still refuses anything the engine does not ask about,
+            // and an unanswered hold is a denial after the stated timeout.
+            approvalPolicy: 'unless-allow-listed',
             sandbox: 'workspaceWrite',
             personality: 'pragmatic',
             // Without credentials Codex retries forever; fail the run instead.
             requireAuth: true,
           },
         )
-        return runCodexTurn(bridge, () => bridge.sendMessage(args), timeoutMs)
+        return runCodexTurn(bridge, () => bridge.sendMessage(args), timeoutMs, slot)
       }
-      return runCodexTurn(bridge, () => bridge.sendFollowUp(prompt), timeoutMs)
+      return runCodexTurn(bridge, () => bridge.sendFollowUp(prompt), timeoutMs, slot)
     },
     sessionId: () => bridge.getThreadId() ?? undefined,
     lastText: () => turnText,
     changedFiles: () => changedFiles.summary(),
+    approvals: desk.approvals,
     dispose: () => {
+      bridge.off('permissionRequest', desk.request)
+      // A request still held when the run ends has nobody left to answer it.
+      desk.release()
       bridge.off('textDelta', collectText)
       detachFileEdits()
       // Single-shot bridge: the thread is persisted, the app-server process is not.
@@ -295,18 +517,27 @@ function createClaudeRun(
   let sessionId: string | undefined
   let turnUsage: TurnUsage | undefined
   let first = true
+  const slot: TurnSlot = { timer: null }
+  // Tool permission requests are held for the user, exactly like the Codex
+  // path. A plan approval is deliberately still denied: approving a plan is a
+  // different decision from allowing one command, and this wave does not put
+  // it in front of someone who is away.
+  const desk = createApprovalDesk(
+    req,
+    bridgeId,
+    slot,
+    (requestId, approved) => { bridge.respondPermission(requestId, approved) },
+  )
+  slot.onEnd = desk.release
+  bridge.on('permissionRequest', desk.request)
+  bridge.on('planApprovalRequest', (data: { requestId?: string }) => {
+    try { bridge.respondPlanApproval(String(data?.requestId ?? ''), false) } catch { /* request already gone */ }
+  })
 
   const collectText = (data: { text?: string }) => {
     if (typeof data?.text === 'string') streamed += data.text
   }
   bridge.on('textDelta', collectText)
-  // A hidden run cannot answer: deny whatever asks, and keep the turn moving.
-  bridge.on('permissionRequest', (data: { requestId?: string }) => {
-    try { bridge.respondPermission(String(data?.requestId ?? ''), false) } catch { /* request already gone */ }
-  })
-  bridge.on('planApprovalRequest', (data: { requestId?: string }) => {
-    try { bridge.respondPlanApproval(String(data?.requestId ?? ''), false) } catch { /* request already gone */ }
-  })
 
   return {
     async send(prompt: string, timeoutMs: number): Promise<TurnResult> {
@@ -316,12 +547,15 @@ function createClaudeRun(
       return new Promise<TurnResult>((resolve) => {
         let settled = false
         let turnError = ''
-        let timer: NodeJS.Timeout | undefined
+        let timer: TurnTimer | null = null
 
         const finish = (result: TurnResult) => {
           if (settled) return
           settled = true
-          if (timer) clearTimeout(timer)
+          timer?.stop()
+          if (slot.timer === timer) slot.timer = null
+          // Settle anything this turn held before the outcome is built.
+          slot.onEnd?.()
           bridge.off('result', onResult)
           bridge.off('apiError', onApiError)
           bridge.off('processExit', onExit)
@@ -371,12 +605,12 @@ function createClaudeRun(
         bridge.on('apiError', onApiError)
         bridge.on('processExit', onExit)
 
-        timer = setTimeout(() => {
+        timer = createTurnTimer(timeoutMs, () => {
           // A wedged engine would otherwise hold a concurrency slot forever.
           try { bridge.abort() } catch { /* already gone */ }
           finish({ ok: false, error: `Turn timed out after ${Math.round(timeoutMs / 1000)}s` })
-        }, Math.max(1, timeoutMs))
-        timer.unref?.()
+        })
+        slot.timer = timer
 
         const isFirst = first
         first = false
@@ -405,7 +639,11 @@ function createClaudeRun(
     sessionId: () => sessionId,
     lastText: () => resultText || streamed,
     changedFiles: () => changedFiles.summary(),
+    approvals: desk.approvals,
     dispose: () => {
+      bridge.off('permissionRequest', desk.request)
+      // Nothing can answer a request once the run is gone.
+      desk.release()
       bridge.off('textDelta', collectText)
       detachFileEdits()
       try { streamBridgeManager.abort(bridgeId) } catch { /* already stopped */ }
@@ -495,6 +733,7 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
           memory: memoryDigest,
           handbook: handbook.digest,
           changedFiles: run.changedFiles(),
+          ...(run.approvals() ? { approvals: run.approvals() } : {}),
         }
       }
       // Memory stays outermost; inside it the order matches a chat turn:
@@ -518,6 +757,7 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
           memory: memoryDigest,
           handbook: handbook.digest,
           changedFiles: run.changedFiles(),
+          ...(run.approvals() ? { approvals: run.approvals() } : {}),
         }
       }
     }
@@ -537,6 +777,7 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
       memory: memoryDigest,
       handbook: handbook.digest,
       changedFiles: run.changedFiles(),
+      ...(run.approvals() ? { approvals: run.approvals() } : {}),
     }
   } catch (err) {
     log.warn(`Automation ${jobId} failed:`, err)
@@ -548,6 +789,7 @@ export async function runAutomation(req: AutomationRunRequest): Promise<Automati
       memory: memoryDigest,
       handbook: handbook.digest,
       changedFiles: run.changedFiles(),
+      ...(run.approvals() ? { approvals: run.approvals() } : {}),
     }
   } finally {
     activeRuns.delete(jobId)

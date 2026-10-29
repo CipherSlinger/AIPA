@@ -9236,3 +9236,42 @@ Status: SUCCESS — `npm run check`: 0 errors, 124 warnings; three-target build 
 - [x] Claude internal turn waits for `result` (final text, not the earlier `message_stop` text)
 - [x] Scheduled run forwards `prefs.model`; Chinese preset prompts resolve to Chinese text
 - [x] Notification is shown and its click activates the app with no live window; `system` language resolves to Chinese
+
+## Iteration 6 — Unattended run approval holds (Backend)
+_Date: 2026-10-29 | Sprint Backend_
+
+### Summary
+Scheduled runs no longer deny a permission request the moment it is asked. The runner puts it
+in a bounded queue that keeps the run alive; the status bar's background-work segment says
+"waiting for your answer", and the panel behind it shows the exact command/path and two buttons.
+No answer within 15 minutes is still a denial, so the old semantics survive, only later.
+The queue holds at most 3 requests process-wide and at most one per run, never lets a request
+outlive its run, and records every outcome with who answered and how long it waited.
+Launch repair now distinguishes "interrupted while waiting" from a plain interruption.
+
+### Files Changed
+- `src/main/automation/run-approvals.ts` — new: bounded hold queue, injectable clock, validators
+- `src/main/automation/runner.ts` — approval desk wired into both engines; turn timer pauses while held
+- `src/main/automation/scheduler.ts` — waiting state on the job view, attention raise/retract, record approvals, launch repair
+- `src/main/automation/types.ts` — waiting/approval record types
+- `src/main/automation/job-store.ts` — restore a live wait only while the job is running
+- `src/main/automation/run-history.ts` — keep validated approvals on a record
+- `src/main/ipc/automation-handlers.ts` — `automation:approvalRespond`
+- `src/preload/index.ts` — mirror types + `automationApprovalRespond`
+- `src/renderer/components/automation/runApproval.ts` — new: shared wording/derivation
+- `src/renderer/components/layout/BackgroundWorkIndicator.tsx` — waiting segment, 1 s tick while waiting
+- `src/renderer/components/layout/BackgroundWorkPopover.tsx` — waiting group with verbatim ask, approve/deny
+- `src/renderer/components/settings/SettingsAutomations.tsx` — waiting status line, history approval clauses
+
+### API Changes
+- New IPC channel: `automation:approvalRespond` — answers one held request by job + request id
+- `automation:list` job views gain `waitingApproval`; run records gain `approvals`
+- Spec: `.claude/agents-cowork/todo/api-spec-run-approval-2026-10-29.md`
+
+### Build
+Status: SUCCESS — `npm run check`: 0 errors, 112 warnings; main, preload and renderer built.
+
+### Acceptance Criteria
+- [x] Harness: 15 checks, including held-not-denied, per-request approval, deny/timeout distinction, cap, run lifetime, launch repair, storage round-trip
+- [x] `approvalPolicy: 'never'` and `permissionMode: 'acceptEdits'` unchanged
+- [x] No persisted permission rule and no always-allow channel

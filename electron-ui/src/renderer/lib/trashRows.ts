@@ -38,8 +38,25 @@ export interface TrashRow {
   sessionId?: string
 }
 
-/** What a row needs to tell the user, localized by the caller that knows the code. */
-export type TrashActionOutcome = { ok: true } | { ok: false; message: string }
+/**
+ * What a row needs to tell the user, localized by the caller that knows the
+ * code. `listStale` is set by the conversation restore when the entry came back
+ * but the sidebar list could not be re-read: the restore worked, the list the
+ * user is looking at did not, and a batch must be able to say so.
+ */
+export type TrashActionOutcome =
+  | { ok: true; listStale?: boolean }
+  | { ok: false; message: string }
+
+/**
+ * The selection key of a row. Ids are only unique within their kind — a trashed
+ * workflow and a trashed job may share a string — so the key carries both. The
+ * view already uses this composite for React keys; selection must use the same
+ * one or ticking a checkbox could tick an unrelated row of another kind.
+ */
+export function trashRowKey(row: { kind: TrashKind; id: string }): string {
+  return `${row.kind}:${row.id}`
+}
 
 /**
  * Merge the four kinds into one newest-first list. Kept pure and exported so

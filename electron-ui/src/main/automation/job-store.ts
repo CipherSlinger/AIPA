@@ -18,6 +18,7 @@ import { normalizeJobEffort } from './job-effort'
 import { normalizeJobProvenance } from './job-provenance'
 import { normalizeMissedRunPolicy } from './missed-policy'
 import { normalizePendingRetry } from './retry-policy'
+import { normalizeWaitingApproval } from './run-approvals'
 import { normalizeRunHistory } from './run-history'
 import { normalizeCost, normalizeRunUsage, normalizeTokenCount } from './run-usage'
 import { normalizeDailyCostLimit } from './spend-guard'
@@ -193,6 +194,11 @@ export function normalizeJob(raw: unknown): AutomationJob | null {
     dailyCostLimitUsd: normalizeDailyCostLimit(job.dailyCostLimitUsd),
     runCount: typeof job.runCount === 'number' && job.runCount >= 0 ? Math.floor(job.runCount) : 0,
     recentRuns,
+    // A live wait only means something while the run it belongs to is live;
+    // with any other status the value is a leftover from a crash, and keeping
+    // it would show a panel row nobody can answer. Launch repair names that
+    // wait in the run record and clears the field.
+    waitingApproval: status === 'running' ? normalizeWaitingApproval(job.waitingApproval) : undefined,
     // This whitelist is why every new field needs a line here: a job saved with
     // history but read back without it would lose its older-run origins and
     // its failure streak on the next launch.

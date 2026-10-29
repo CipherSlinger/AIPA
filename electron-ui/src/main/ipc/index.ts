@@ -21,9 +21,10 @@ import type {
 import { buildCodexTurnArgs } from '../codex/codex-turn-args'
 import { streamBridgeManager } from '../pty/stream-bridge'
 import { speculationManager, isSafeToSpeculate } from '../pty/speculation-bridge'
-import { readSettings, writeSettings, listSessions as listClaudeSessions, loadSession as loadClaudeSession, forkSession as forkClaudeSession, renameSession, rewindSession, searchSessions as searchClaudeSessions, detectTurnInterruption, getDreamConsolidationMtime } from '../sessions/session-reader'
+import { readSettings, writeSettings, listSessions as listClaudeSessions, loadSession as loadClaudeSession, forkSession as forkClaudeSession, renameSession, rewindSession, detectTurnInterruption, getDreamConsolidationMtime } from '../sessions/session-reader'
 import type { SessionListItem as ClaudeSessionListItem } from '../sessions/session-reader'
-import { listSessions as listCodexSessions, loadSession as loadCodexSession, forkSession as forkCodexSession, searchSessions as searchCodexSessions, isCodexSession } from '../codex/codex-session-reader'
+import { searchPage } from '../sessions/search-pager'
+import { listSessions as listCodexSessions, loadSession as loadCodexSession, forkSession as forkCodexSession, isCodexSession } from '../codex/codex-session-reader'
 import {
   listTrashedSessions,
   moveSessionToTrash,
@@ -2121,26 +2122,30 @@ function registerSessionHandlers(): void {
     }
   })
 
+  // The first page of a paged search. Kept as a bare row array because that is
+  // what it has always returned; new callers should use `session:searchPage`,
+  // which also says whether more rows exist.
   ipcMain.handle('session:search', async (_e: Electron.IpcMainInvokeEvent, { query, limit }: { query: string; limit?: number }) => {
     try {
-      const capped = Math.min(Math.max(Number(limit) || 20, 1), 100)
-      const [codexResults, claudeResults] = await Promise.all([
-        searchCodexSessions(query, capped),
-        searchClaudeSessions(query, capped),
-      ])
-      // Both engines can surface the same id after a migration; keep one row
-      // per session and let the newest hit represent it.
-      const bySession = new Map<string, (typeof codexResults)[number] | (typeof claudeResults)[number]>()
-      for (const hit of [...codexResults, ...claudeResults]) {
-        const existing = bySession.get(hit.sessionId)
-        if (!existing || hit.timestamp > existing.timestamp) bySession.set(hit.sessionId, hit)
-      }
-      return [...bySession.values()]
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .slice(0, capped)
+      return (await searchPage({ query, limit })).results
     } catch (err) {
       log.warn('session:search error:', String(err))
       return []
+    }
+  })
+
+  // One page of results, with the honest counts a paging UI needs: how many
+  // hits this query's scan knows (`total`), whether more can be loaded
+  // (`hasMore`), and whether the scan itself stopped at its ceiling
+  // (`ceilingReached` — older matches exist but were never collected). The
+  // scan runs once per query and pages are slices of that one ordering, so a
+  // later page never re-reads the corpus.
+  ipcMain.handle('session:searchPage', async (_e: Electron.IpcMainInvokeEvent, input: unknown) => {
+    try {
+      return await searchPage(input)
+    } catch (err) {
+      log.warn('session:searchPage error:', String(err))
+      throw err
     }
   })
 

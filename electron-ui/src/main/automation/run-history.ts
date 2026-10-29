@@ -27,6 +27,7 @@ import { normalizeAutomationHandbookDigest } from './dept-handbook'
 import { isChainNote } from './job-chain'
 import { normalizeMemoryDigest } from './memory-digest'
 import { AUTOMATION_RETRY_POLICY } from './retry-policy'
+import { normalizeRunApprovals } from './run-approvals'
 import { normalizeRunUsage } from './run-usage'
 import type {
   AutomationRunChain,
@@ -120,6 +121,10 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
   // Absent stays absent — "not recorded" must survive restore, never collapse
   // into an empty list. A corrupt summary is dropped for the same reason.
   const changedFiles = normalizeChangedFiles(record.changedFiles)
+  // A held request that a person answered is the one fact this record may
+  // never invent, which is why each entry is re-validated: `answeredBy` exists
+  // exactly for approved/denied. A malformed entry is dropped, not the run.
+  const approvals = normalizeRunApprovals(record.approvals)
   // A skipped run started nothing, whatever the file says: an occurrence a rail
   // refused cannot have begun a successor.
   const chain = status === 'skipped' ? undefined : normalizeRunChain(record.chain)
@@ -163,6 +168,7 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
       ...(handbook ? { handbook } : {}),
       ...(changedFiles ? { changedFiles } : {}),
       ...(chain ? { chain } : {}),
+      ...(approvals ? { approvals } : {}),
     }
   }
   const usage = normalizeRunUsage(record.usage)
@@ -186,6 +192,9 @@ export function normalizeRunRecord(raw: unknown): AutomationRunRecord | null {
     // A failure can name the successor it never started, just as a success can
     // name the one it did; the two are one field with two possible shapes.
     ...(chain ? { chain } : {}),
+    // A failed run may have asked for permission before it failed, and the
+    // answer (or the silence) is part of why it went the way it did.
+    ...(approvals ? { approvals } : {}),
   }
 }
 

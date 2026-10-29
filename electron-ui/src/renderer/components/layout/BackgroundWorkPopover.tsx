@@ -31,7 +31,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import {
-  AlertTriangle, ArrowUpRight, Building2, Clock, Loader2, Pause, Play, RotateCcw, Sparkles,
+  AlertTriangle, ArrowUpRight, Building2, Check, Clock, Loader2, Pause, Play, RotateCcw,
+  Sparkles, X,
 } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { useChatStore, useDepartmentStore, useUiStore } from '../../store'
@@ -53,6 +54,11 @@ import {
   summarizeHeldBatch,
 } from '../automation/heldBatch'
 import type { HeldBatchOutcome, HeldBatchPhase } from '../automation/heldBatch'
+import {
+  RUN_APPROVAL_TIMEOUT_MINUTES,
+  waitingApprovalKey,
+  type WaitingApprovalRow,
+} from '../automation/runApproval'
 import type { Translate } from '../automation/scheduleText'
 import DeptBudgetFrees from '../departments/DeptBudgetFrees'
 import { budgetHolding } from '../departments/deptBudget.data'
@@ -62,6 +68,12 @@ import type {
 } from '../../../preload'
 
 interface BackgroundWorkPopoverProps {
+  /**
+   * Runs holding one permission request for the user, oldest first. These are
+   * also in `running`; they are passed separately because the answer controls
+   * only make sense beside the verbatim ask.
+   */
+  waiting: WaitingApprovalRow[]
   running: AutomationJobData[]
   retrying: AutomationJobData[]
   /**
@@ -133,6 +145,62 @@ const ROW_MAIN: CSSProperties = {
 const ELLIPSIS: CSSProperties = {
   flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
   whiteSpace: 'nowrap', textAlign: 'left',
+}
+
+/**
+ * The request exactly as the engine stated it.
+ *
+ * Monospace and selectable, because the user is being asked to judge a command
+ * or a path: reflowing it, eliding it or translating it would remove the only
+ * thing they can act on. It scrolls instead of growing the panel without bound.
+ */
+const APPROVAL_SUBJECT: CSSProperties = {
+  margin: '1px 0', padding: '4px 6px', borderRadius: 4,
+  background: 'var(--bg-hover)',
+  borderLeft: '2px solid var(--warning-text)',
+  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+  fontSize: 10, lineHeight: 1.45,
+  color: 'var(--text-primary)',
+  whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+  maxHeight: 120, overflowY: 'auto',
+  userSelect: 'text',
+}
+
+/** One of the two answers to a held request. */
+function ApprovalButton({
+  tone, label, ariaLabel, busy, onClick,
+}: {
+  tone: 'approve' | 'deny'
+  label: string
+  ariaLabel: string
+  busy: boolean
+  onClick: () => void
+}) {
+  const approve = tone === 'approve'
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={busy}
+      aria-busy={busy || undefined}
+      aria-label={ariaLabel}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+        flex: 1, minWidth: 0, padding: '3px 6px',
+        borderRadius: 5, fontSize: 10, cursor: busy ? 'default' : 'pointer',
+        border: `1px solid ${approve ? 'var(--accent-text)' : 'var(--border)'}`,
+        background: approve ? 'var(--bg-hover)' : 'transparent',
+        color: approve ? 'var(--accent-text)' : 'var(--text-secondary)',
+        opacity: busy ? 0.55 : 1,
+        transition: 'opacity 0.12s ease',
+      }}
+    >
+      {busy
+        ? <Loader2 size={10} style={{ animation: 'spin 0.9s linear infinite' }} />
+        : approve ? <Check size={10} /> : <X size={10} />}
+      <span style={ELLIPSIS}>{label}</span>
+    </button>
+  )
 }
 
 /** The square icon actions a failed row offers beside its main button. */
@@ -468,6 +536,7 @@ function HeldRow({
 }
 
 export default function BackgroundWorkPopover({
+  waiting,
   running,
   retrying,
   held,
@@ -558,6 +627,10 @@ export default function BackgroundWorkPopover({
   // The row whose question is being prepared; also blocks a second click while
   // the job list is on its way.
   const [investigatingJobId, setInvestigatingJobId] = useState<string | null>(null)
+  // Requests whose answer is on its way to main, keyed by job + request. The
+  // mirror ref is read synchronously so a double click cannot answer twice.
+  const [answering, setAnswering] = useState<ReadonlySet<string>>(() => new Set())
+  const answeringRef = useRef<Set<string>>(new Set())
   // Run all held. The number the button names is every held job, including the
   // ones beyond the rows the panel lists.
   const heldCount = held.rows.length + held.hidden
@@ -671,6 +744,50 @@ export default function BackgroundWorkPopover({
   }
 
   const runAgain = (failure: UnseenFailure) => startRun(failure.jobId, failure.jobName)
+
+  /**
+   * Answer one held request.
+   *
+   * The job id and the request id both go to main: this answers that one
+   * request only, and nothing about the choice is stored for later. A
+   * `not_waiting` reply is normal — the deadline may have passed between this
+   * render and the click — so it is said in words and the row is left to the
+   * next `automation:changed` broadcast.
+   */
+  const answerApproval = async (row: WaitingApprovalRow, approved: boolean) => {
+    const api = window.electronAPI
+    if (!api?.automationApprovalRespond) {
+      addToast('error', t('automation.errors.unexpected_error'))
+      return
+    }
+    const key = waitingApprovalKey(row.job.id, row.wait.requestId)
+    if (answeringRef.current.has(key)) return
+    answeringRef.current.add(key)
+    setAnswering(new Set(answeringRef.current))
+    try {
+      const result = await api.automationApprovalRespond(row.job.id, row.wait.requestId, approved)
+      if (!result.ok) {
+        addToast(
+          result.error === 'not_waiting' ? 'warning' : 'error',
+          result.error === 'not_waiting'
+            ? t('statusBar.background.waitingGone')
+            : t('automation.errors.unexpected_error'),
+        )
+        return
+      }
+      // The run continues either way; these say so, and the denial toast names
+      // the refusal rather than implying the job died.
+      addToast('success', approved
+        ? t('statusBar.background.waitingApproved', { name: row.job.name })
+        : t('statusBar.background.waitingDenied', { name: row.job.name }))
+    } catch (err) {
+      console.error('[AIPA] Could not answer a held automation request', err)
+      addToast('error', t('automation.errors.unexpected_error'))
+    } finally {
+      answeringRef.current.delete(key)
+      setAnswering(new Set(answeringRef.current))
+    }
+  }
 
   const applyBatchPhase = (next: HeldBatchPhase) => {
     batchPhaseRef.current = next
@@ -871,7 +988,9 @@ export default function BackgroundWorkPopover({
         bottom: '100%',
         left: 0,
         marginBottom: 6,
-        width: 300,
+        // A little wider while a request is held: commands and paths are shown
+        // unabridged, and 300px wraps most of them into an unreadable column.
+        width: waiting.length > 0 ? 340 : 300,
         maxWidth: 'calc(100vw - 24px)',
         background: 'var(--popup-bg)',
         backdropFilter: 'blur(16px)',
@@ -901,6 +1020,79 @@ export default function BackgroundWorkPopover({
           <Pause size={10} style={{ flexShrink: 0, color: 'var(--accent-text)' }} />
           <span>{t('automation.pauseAll.row')}</span>
         </div>
+      )}
+
+      {waiting.length > 0 && (
+        // First, above failures: these are the only rows where the app is
+        // stopped and the user is the thing it is waiting for. A failure can be
+        // read later; a held request loses its run after a stated deadline.
+        <Group title={t('statusBar.background.waitingGroup')}>
+          {waiting.map(({ job, wait }) => {
+            const key = waitingApprovalKey(job.id, wait.requestId)
+            const busy = answering.has(key)
+            return (
+              <div
+                key={key}
+                style={{
+                  display: 'flex', flexDirection: 'column', gap: 3,
+                  padding: '3px 6px 5px',
+                  borderBottom: '1px solid var(--border)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                  <span style={{ ...ELLIPSIS, fontWeight: 600 }}>{job.name}</span>
+                  <span style={{
+                    flexShrink: 0, color: 'var(--warning-text)', fontSize: 10,
+                    fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"',
+                  }}>
+                    {t('statusBar.background.waitingWaited', {
+                      time: formatDuration(Math.max(0, now - wait.since)),
+                    })}
+                  </span>
+                </div>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                  {t('statusBar.background.waitingSince', { time: timeText(wait.since) })}
+                </span>
+                {/* Verbatim, selectable and scrollable. This is the whole point
+                    of the panel: approve what will actually run. */}
+                <div
+                  title={t('statusBar.background.waitingAskLabel')}
+                  aria-label={t('statusBar.background.waitingAskLabel')}
+                  style={APPROVAL_SUBJECT}
+                >
+                  {wait.subject}
+                </div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <ApprovalButton
+                    tone="approve"
+                    label={t('statusBar.background.waitingApprove')}
+                    ariaLabel={t('statusBar.background.waitingApproveAria', { name: job.name })}
+                    busy={busy}
+                    onClick={() => { void answerApproval({ job, wait }, true) }}
+                  />
+                  <ApprovalButton
+                    tone="deny"
+                    label={t('statusBar.background.waitingDeny')}
+                    ariaLabel={t('statusBar.background.waitingDenyAria', { name: job.name })}
+                    busy={busy}
+                    onClick={() => { void answerApproval({ job, wait }, false) }}
+                  />
+                </div>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                  {t('statusBar.background.waitingTimeout', {
+                    minutes: RUN_APPROVAL_TIMEOUT_MINUTES,
+                  })}
+                </span>
+              </div>
+            )
+          })}
+          <span style={{
+            fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4,
+            padding: '3px 6px 2px',
+          }}>
+            {t('statusBar.background.waitingOnce')}
+          </span>
+        </Group>
       )}
 
       {failures.length > 0 && (

@@ -3,7 +3,7 @@
 // so the view stays small and can be rendered on its own — the connected
 // wrapper there owns the IPC reads and the restore/remove callbacks.
 import React, { useEffect, useState } from 'react'
-import { Undo2, Trash2, Workflow as WorkflowIcon, Puzzle, MessageSquare, CalendarClock, Search } from 'lucide-react'
+import { Undo2, Trash2, Workflow as WorkflowIcon, Puzzle, MessageSquare, CalendarClock, Search, X } from 'lucide-react'
 import { useT, useI18n } from '../../i18n'
 import { formatDateMedium } from '../../utils/formatDate'
 import type { AppLocale } from '../../utils/formatDate'
@@ -14,8 +14,12 @@ import {
   toggleTrashKind,
 } from '../../lib/trashFilter'
 import type { TrashFilterKind, TrashFilterState } from '../../lib/trashFilter'
+import { trashRowKey } from '../../lib/trashRows'
 import type { TrashActionOutcome, TrashKind, TrashRow } from '../../lib/trashRows'
+import { kindBreakdown } from '../../lib/trashBatch'
 import { SectionHeader } from './EmployeesShared'
+import TrashBulkBar from './TrashBulkBar'
+import { useTrashBulk } from './useTrashBulk'
 
 function kindBadge(kind: TrashKind): { color: string; background: string; border: string } {
   switch (kind) {
@@ -84,15 +88,23 @@ function smallButtonStyle(disabled: boolean): React.CSSProperties {
   }
 }
 
-function TrashRowView({ row, locale, first, onRestore, onDeleteForever }: {
+function TrashRowView({ row, locale, first, selected, bulkBusy, onToggleSelected, onRestore, onDeleteForever }: {
   row: TrashRow
   locale: 'en' | 'zh-CN'
   first: boolean
+  selected: boolean
+  /** A bulk action is in flight; the row's own actions must not join it. */
+  bulkBusy: boolean
+  onToggleSelected: (key: string) => void
   onRestore: (row: TrashRow) => Promise<TrashActionOutcome>
   onDeleteForever: (row: TrashRow) => Promise<TrashActionOutcome>
 }) {
   const t = useT()
   const [failure, setFailure] = useState<string | null>(null)
+  // A success with a caveat: the entry came back but the sidebar list did not
+  // reload. Saying nothing would let the user look for a conversation that is
+  // not there yet and conclude the restore failed.
+  const [note, setNote] = useState<string | null>(null)
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
 
@@ -105,14 +117,16 @@ function TrashRowView({ row, locale, first, onRestore, onDeleteForever }: {
   }, [confirming])
 
   const run = async (action: (row: TrashRow) => Promise<TrashActionOutcome>) => {
-    if (busy) return
+    if (busy || bulkBusy) return
     setBusy(true)
     setFailure(null)
+    setNote(null)
     try {
       const outcome = await action(row)
       // A refusal stays on screen. Reporting success when the folder was not
       // moved would tell the user their skill is back when it is not.
       if (!outcome.ok) setFailure(outcome.message)
+      else if (outcome.listStale) setNote(t('trashBulk.listStale'))
     } catch (err) {
       setFailure(t('trash.failure.generic', { message: String(err) }))
     } finally {
@@ -121,7 +135,9 @@ function TrashRowView({ row, locale, first, onRestore, onDeleteForever }: {
   }
 
   const badge = kindBadge(row.kind)
-  const canRestore = row.available && !busy
+  const canRestore = row.available && !busy && !bulkBusy
+  const canDelete = !busy && !bulkBusy
+  const key = trashRowKey(row)
   const badgeText = kindLabel(t, row.kind)
   const secondLine = detailText(t, locale, row)
 
@@ -132,6 +148,17 @@ function TrashRowView({ row, locale, first, onRestore, onDeleteForever }: {
       background: 'var(--bg-card, rgba(255,255,255,0.02))',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <input
+          type="checkbox"
+          checked={selected}
+          disabled={bulkBusy}
+          onChange={() => onToggleSelected(key)}
+          aria-label={t('trashBulk.selectRowAria', { name: row.name || badgeText })}
+          style={{
+            accentColor: 'var(--accent-solid)', cursor: bulkBusy ? 'not-allowed' : 'pointer',
+            width: 13, height: 13, flexShrink: 0, margin: 0,
+          }}
+        />
         <span style={{
           width: 26, height: 26, borderRadius: 8, flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -173,16 +200,16 @@ function TrashRowView({ row, locale, first, onRestore, onDeleteForever }: {
           </button>
           <button
             onClick={() => {
-              if (busy) return
+              if (!canDelete) return
               if (!confirming) { setConfirming(true); return }
               setConfirming(false)
               void run(onDeleteForever)
             }}
-            disabled={busy}
+            disabled={!canDelete}
             title={confirming ? t('trash.confirmForever') : t('trash.deleteForever')}
             style={{
-              ...smallButtonStyle(busy),
-              cursor: busy ? 'not-allowed' : 'pointer',
+              ...smallButtonStyle(!canDelete),
+              cursor: canDelete ? 'pointer' : 'not-allowed',
               ...(confirming ? { border: '1px solid #f87171', background: '#f87171', color: '#fff' } : null),
             }}
           >
@@ -193,8 +220,13 @@ function TrashRowView({ row, locale, first, onRestore, onDeleteForever }: {
       </div>
 
       {failure && (
-        <div role="alert" style={{ fontSize: 11.5, color: '#f87171', lineHeight: 1.45, marginTop: 6, marginLeft: 36 }}>
+        <div role="alert" style={{ fontSize: 11.5, color: '#f87171', lineHeight: 1.45, marginTop: 6, marginLeft: 49 }}>
           {failure}
+        </div>
+      )}
+      {note && !failure && (
+        <div role="status" style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.45, marginTop: 6, marginLeft: 49 }}>
+          {note}
         </div>
       )}
     </div>
@@ -337,13 +369,21 @@ export function TrashView({
 }) {
   const t = useT()
   const { resolvedLocale } = useI18n()
-  if (rows.length === 0) return null
 
   const filtered = filterTrashRows(rows, filter, row => ({
     kind: kindLabel(t, row.kind),
     detail: detailText(t, resolvedLocale, row),
   }))
   const visible = filtered.visible
+  // Selection, pruning and the two batches live in a hook; the view only passes
+  // the filtered rows down and renders the controller's state.
+  const bulk = useTrashBulk(visible, onRestore, onDeleteForever)
+
+  // What the confirmation names: one entry per kind being deleted, counted.
+  const requestedKinds = kindBreakdown(bulk.selectedRows)
+    .map(entry => ({ label: kindLabel(t, entry.kind), count: entry.count }))
+
+  if (rows.length === 0) return null
 
   const hasSkill = visible.some(row => row.kind === 'skill')
   const hasSession = visible.some(row => row.kind === 'session')
@@ -364,6 +404,62 @@ export function TrashView({
         subtitle={t('trash.subtitle', { days: retentionDays })}
       />
       <TrashFilterBar filter={filter} byKind={filtered.byKind} onChange={onFilterChange} />
+
+      {/* Kept mounted when the filter empties the view, so the "removed from
+          the selection" receipt stays readable; disabled by an empty view. */}
+      {(visible.length > 0 || bulk.prunedCount > 0) && (
+        <TrashBulkBar
+          mode={bulk.mode}
+          visibleCount={visible.length}
+          selectedCount={bulk.selectedCount}
+          prunedCount={bulk.prunedCount}
+          kinds={requestedKinds}
+          busy={bulk.busy}
+          confirming={bulk.confirming}
+          onToggleAll={bulk.toggleAll}
+          onRestore={bulk.restoreSelected}
+          onRequestDelete={bulk.requestDelete}
+          onConfirmDelete={bulk.deleteSelected}
+          onCancelDelete={bulk.cancelDelete}
+          onClear={bulk.clear}
+        />
+      )}
+
+      {/* One result for the whole batch. Never a toast per row: the user did one
+          thing and gets one answer, with each refusal named on its own line. */}
+      {bulk.report && (
+        <div role="status" aria-live="polite" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10,
+          padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border)',
+          background: 'var(--bg-card, rgba(255,255,255,0.02))',
+          color: bulk.report.tone === 'success' ? 'var(--text-secondary)'
+            : bulk.report.tone === 'warning' ? '#fbbf24' : '#f87171',
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {bulk.report.lines.map((line, index) => (
+              <div
+                key={`${line.key}:${index}`}
+                style={{
+                  fontSize: index === 0 ? 12 : 11.5,
+                  fontWeight: index === 0 ? 600 : 400,
+                  lineHeight: 1.5,
+                }}
+              >
+                {t(line.key, line.params)}
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={bulk.dismissReport}
+            aria-label={t('trashBulk.dismiss')}
+            style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )}
+
       {hasSkill && (
         <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 10, marginLeft: 34, lineHeight: 1.45 }}>
           {t('trash.skillsHint')}
@@ -399,10 +495,13 @@ export function TrashView({
         <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
           {visible.map((row, index) => (
             <TrashRowView
-              key={`${row.kind}:${row.id}`}
+              key={trashRowKey(row)}
               row={row}
               locale={resolvedLocale}
               first={index === 0}
+              selected={bulk.selectedKeys.has(trashRowKey(row))}
+              bulkBusy={bulk.busy}
+              onToggleSelected={bulk.toggleRow}
               onRestore={onRestore}
               onDeleteForever={onDeleteForever}
             />

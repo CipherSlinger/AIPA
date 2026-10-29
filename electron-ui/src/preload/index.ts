@@ -400,6 +400,22 @@ export interface SessionSearchResultData {
 }
 
 /**
+ * One page of `session:searchPage`.
+ *
+ * `results` is the requested slice of one ordered scan. `total` counts the
+ * distinct hits that scan knows, which is capped at the main-process ceiling;
+ * `ceilingReached` is what tells the UI that older matches exist beyond it.
+ * Never infer `hasMore` from a full page — the scan stops where the ceiling
+ * is, not where the page ends.
+ */
+export interface SessionSearchPageData {
+  results: SessionSearchResultData[]
+  total: number
+  hasMore: boolean
+  ceilingReached: boolean
+}
+
+/**
  * One row of `session:related`. `termsHit` counts the distinct words the
  * conversation and this transcript share; `matchedTerms` shows up to three of
  * them. The relation is lexical — same words, not same meaning.
@@ -844,6 +860,66 @@ export interface AutomationRunChainData {
   note?: AutomationChainNoteData
 }
 
+/**
+ * How one held permission request of an unattended run ended. Mirrors main's
+ * `AutomationRunApprovalOutcome`. The last four are refusals the run made
+ * without the user answering: `timeout` after `RUN_APPROVAL_TIMEOUT_MS`, and the
+ * three structural ones (`queue-full`, `run-busy`, `run-ended`) immediately.
+ */
+export type AutomationRunApprovalOutcomeData =
+  | 'approved'
+  | 'denied'
+  | 'timeout'
+  | 'queue-full'
+  | 'run-busy'
+  | 'run-ended'
+  | 'interrupted'
+
+/**
+ * One permission request an unattended run held, as the run record keeps it.
+ *
+ * `subject` is the ask exactly as the engine stated it (the command, the path,
+ * the tool and its input), clipped only for storage — never a summary. The
+ * panel shows this text so the user approves the thing that will actually run.
+ */
+export interface AutomationRunApprovalData {
+  /** Epoch ms the run asked. */
+  askedAt: number
+  /** The verbatim ask, bounded; never paraphrased. */
+  subject: string
+  outcome: AutomationRunApprovalOutcomeData
+  /** Present exactly when a person answered in the panel: approved or denied. */
+  answeredBy?: 'user'
+  /** Epoch ms the request settled. */
+  resolvedAt: number
+  /** How long it waited, in ms. Structural refusals waited 0. */
+  waitedMs: number
+}
+
+/**
+ * A permission request an unattended run is holding right now. Present on a
+ * running job only while the run waits; the panel answers it by `requestId`.
+ */
+export interface AutomationWaitingApprovalData {
+  requestId: string
+  /** Epoch ms the run asked; the "waiting since" the surfaces show. */
+  since: number
+  /** The verbatim ask, bounded. */
+  subject: string
+}
+
+/**
+ * The answer to `automation:approvalRespond`.
+ *
+ * `not_waiting` is a normal outcome, not an error: the request timed out, its
+ * run ended, or another click already answered it between the panel rendering
+ * and this click. The caller should drop the row and say it is gone rather than
+ * retry.
+ */
+export type AutomationApprovalAnswerData =
+  | { ok: true }
+  | { ok: false; error: 'invalid_request' | 'not_waiting' | 'unexpected_error' }
+
 /** Mirrors main's `AutomationRunRecord`; `running` never appears in history. */
 export interface AutomationRunRecordData {
   /** Epoch ms when the run started (or the occurrence a skip replaced). */
@@ -890,6 +966,13 @@ export interface AutomationRunRecordData {
    * before chaining existed and on every skip (a refused run started nothing).
    */
   chain?: AutomationRunChainData
+  /**
+   * Permission requests this run held for the user, oldest first. Absent when
+   * the run never asked (and on every record written before holds existed). A
+   * denial the run made by itself appears here too, so the history can say the
+   * request was refused and why.
+   */
+  approvals?: AutomationRunApprovalData[]
 }
 
 /** A retry of a failed occurrence, waiting for its due time. Mirrors main. */
@@ -1114,6 +1197,13 @@ export interface AutomationJobData {
   lastDurationMs: number | null
   /** What the last completed run spent, when the engine reported usage. */
   lastUsage?: AutomationRunUsageData
+  /**
+   * The permission request this job's live run is holding for the user, with
+   * the verbatim ask and when it was asked. Present only while `running`;
+   * answering it does not end the run, so the row keeps saying "waiting" until
+   * the run moves on.
+   */
+  waitingApproval?: AutomationWaitingApprovalData
   /** Lifetime input + output tokens across this job's runs. */
   totalTokens?: number
   /** Lifetime cost reported by the engine; absent when none was reported. */
@@ -1859,6 +1949,17 @@ const electronAPI = {
   sessionSearch: (query: string, limit?: number) =>
     ipcRenderer.invoke('session:search', { query, limit }) as Promise<SessionSearchResultData[]>,
   /**
+   * One page of cross-session hits. `offset` is how many rows the caller
+   * already holds; main slices the same ordered scan, so a continuation costs
+   * a slice rather than a fresh corpus walk.
+   */
+  sessionSearchPage: (query: string, page?: { offset?: number; limit?: number }) =>
+    ipcRenderer.invoke('session:searchPage', {
+      query,
+      offset: page?.offset,
+      limit: page?.limit,
+    }) as Promise<SessionSearchPageData>,
+  /**
    * Other local conversations that share words with the given prose. The
    * caller passes the open session id so it is never listed as its own
    * relation.
@@ -1950,6 +2051,11 @@ const electronAPI = {
     ipcRenderer.invoke('automation:setEnabled', id, enabled) as Promise<AutomationMutationData>,
   automationRunNow: (id: string) =>
     ipcRenderer.invoke('automation:runNow', id) as Promise<AutomationMutationData>,
+  // Answer one held permission request of an unattended run. Names job *and*
+  // request: there is no "always allow" and no per-job rule — approving one ask
+  // answers that ask only. A request that already settled resolves `not_waiting`.
+  automationApprovalRespond: (jobId: string, requestId: string, approved: boolean) =>
+    ipcRenderer.invoke('automation:approvalRespond', { jobId, requestId, approved }) as Promise<AutomationApprovalAnswerData>,
   automationSetPausedAll: (paused: boolean) =>
     ipcRenderer.invoke('automation:setPausedAll', paused) as Promise<AutomationPauseData>,
   // `null` clears the global daily budget; the main process validates and

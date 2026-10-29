@@ -16,7 +16,7 @@
 // the cap, Run now, which is a manual run and therefore exempt from it.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, Clock } from 'lucide-react'
+import { AlertTriangle, Clock, Hourglass } from 'lucide-react'
 import { useT } from '../../i18n'
 import { pushEscapeHandler } from '../ui/escapeStack'
 import type { AutomationJobData, AutomationLimitsData } from '../../../preload'
@@ -28,6 +28,7 @@ import {
   resolveFailuresSeenAt,
 } from './automationFailures'
 import { deriveHeldJobs } from '../automation/jobHold'
+import { deriveWaitingApprovals } from '../automation/runApproval'
 
 interface AutomationSnapshot {
   jobs: AutomationJobData[]
@@ -94,6 +95,7 @@ export default function BackgroundWorkIndicator() {
     return () => window.clearInterval(id)
   }, [open])
 
+
   useEffect(() => {
     if (!open) return
     const onMouseDown = (event: MouseEvent) => {
@@ -127,6 +129,22 @@ export default function BackgroundWorkIndicator() {
   }, [open])
 
   const jobs = useMemo(() => snapshot?.jobs ?? [], [snapshot])
+  // Runs whose live turn is holding one permission request for the user. They
+  // are also `running` jobs; the segment names them first because a click is
+  // the only thing that moves them.
+  const waiting = useMemo(() => deriveWaitingApprovals(jobs), [jobs])
+
+  // A held request's wait is counted in the panel, and its deadline is minutes
+  // away; a thirty-second tick would make "waited 4s" jump to "waited 34s". The
+  // faster clock runs only while something is actually waiting, so a quiet app
+  // still wakes up once per panel refresh at most.
+  useEffect(() => {
+    if (waiting.length === 0) return
+    setNow(Date.now())
+    const id = window.setInterval(() => setNow(Date.now()), 1_000)
+    return () => window.clearInterval(id)
+  }, [waiting.length])
+
   const running = useMemo(() => jobs.filter(job => job.running), [jobs])
   // A failure row is a past run; the same job may be running again now, which is
   // the one case where its retry action must stay inert. The panel gets ids, not
@@ -162,16 +180,16 @@ export default function BackgroundWorkIndicator() {
   // would vanish under the panel the instant it was acknowledged, taking the
   // list with it.
   const failureCount = Math.max(unseen.total, open ? openFailures.total : 0)
-  const visible = running.length > 0 || retrying.length > 0 || failureCount > 0
-    || heldCount > 0
+  const visible = waiting.length > 0 || running.length > 0 || retrying.length > 0
+    || failureCount > 0 || heldCount > 0
 
   // The panel closes only when it has nothing left to list. Closing on "the
   // segment hid" would slam it shut the instant opening it cleared the badge —
   // which is exactly what happens when failures are the only signal. The next-up
   // group alone does not keep it open: the segment is hidden then, and a panel
   // anchored to a hidden trigger has nowhere to point.
-  const panelEmpty = running.length === 0 && retrying.length === 0
-    && openFailures.total === 0 && heldCount === 0
+  const panelEmpty = waiting.length === 0 && running.length === 0
+    && retrying.length === 0 && openFailures.total === 0 && heldCount === 0
   useEffect(() => {
     if (!open) return
     if (!panelEmpty) return
@@ -181,32 +199,39 @@ export default function BackgroundWorkIndicator() {
 
   if (!visible) return null
 
-  // Priority: a run in flight, then a waiting retry, then failures, then a held
-  // job. Held is last because the user set the limit themselves: the work is
+  // Priority: a held request first (the run cannot move without an answer),
+  // then a run in flight, then a waiting retry, then failures, then a held job.
+  // Held is last because the user set the limit themselves: the work is
   // stopped, not broken, so however many jobs are held it never outranks a
   // failure. The segment's text follows that order; the panel lists everything
   // regardless.
-  const failuresOnly = running.length === 0 && retrying.length === 0
-    && failureCount > 0
-  const heldOnly = running.length === 0 && retrying.length === 0
-    && failureCount === 0 && heldCount > 0
-  const visibleLabel = running.length > 0
-    ? t('statusBar.background.running', { count: running.length })
-    : retrying.length > 0
-      ? t('statusBar.background.retry', { count: retrying.length })
-      : failureCount > 0
-        ? t('statusBar.background.failures', { count: failureCount })
-        : t('statusBar.background.held', { count: heldCount })
+  const waitingOnly = waiting.length > 0 && running.length === 0
+    && retrying.length === 0 && failureCount === 0 && heldCount === 0
+  const failuresOnly = waiting.length === 0 && running.length === 0
+    && retrying.length === 0 && failureCount > 0
+  const heldOnly = waiting.length === 0 && running.length === 0
+    && retrying.length === 0 && failureCount === 0 && heldCount > 0
+  const visibleLabel = waiting.length > 0
+    ? t('statusBar.background.waitingAnswer', { count: waiting.length })
+    : running.length > 0
+      ? t('statusBar.background.running', { count: running.length })
+      : retrying.length > 0
+        ? t('statusBar.background.retry', { count: retrying.length })
+        : failureCount > 0
+          ? t('statusBar.background.failures', { count: failureCount })
+          : t('statusBar.background.held', { count: heldCount })
   // The accessible name keeps the visible words ("Running 2") and adds the
   // action, so label-in-name still holds for voice control. Whenever failures
   // are waiting the action sentence says they need attention, whatever the
   // segment's own label had to prioritise. A hold is informational, so its
   // sentence is used only when held is what the segment actually says.
-  const ariaLabel = failureCount > 0
-    ? t('statusBar.background.failuresAria', { label: visibleLabel })
-    : heldOnly
-      ? t('statusBar.background.heldAria', { label: visibleLabel })
-      : t('statusBar.background.aria', { label: visibleLabel })
+  const ariaLabel = waitingOnly
+    ? t('statusBar.background.waitingAnswerAria', { label: visibleLabel })
+    : failureCount > 0
+      ? t('statusBar.background.failuresAria', { label: visibleLabel })
+      : heldOnly
+        ? t('statusBar.background.heldAria', { label: visibleLabel })
+        : t('statusBar.background.aria', { label: visibleLabel })
 
   const toggle = () => {
     if (open) {
@@ -245,13 +270,21 @@ export default function BackgroundWorkIndicator() {
           border: 'none', cursor: 'pointer',
           fontSize: 10, whiteSpace: 'nowrap',
           background: hover || open ? 'var(--border)' : 'transparent',
-          color: running.length > 0
-            ? 'var(--text-secondary)'
-            : failuresOnly || heldOnly ? 'var(--warning-text)' : 'var(--text-muted)',
+          color: waiting.length > 0 || failuresOnly || heldOnly
+            ? 'var(--warning-text)'
+            : running.length > 0 ? 'var(--text-secondary)' : 'var(--text-muted)',
           transition: 'all 0.15s ease',
         }}
       >
-        {running.length > 0 ? (
+        {waiting.length > 0 ? (
+          <>
+            {/* A held request is the one state where the app is waiting on the
+                user, not the other way round: the warning tone and the
+                hourglass read as "nothing moves until you answer". */}
+            <Hourglass size={10} style={{ flexShrink: 0 }} />
+            <span>{visibleLabel}</span>
+          </>
+        ) : running.length > 0 ? (
           <>
             <span
               style={{
@@ -279,6 +312,7 @@ export default function BackgroundWorkIndicator() {
       </button>
       {open && (
         <BackgroundWorkPopover
+          waiting={waiting}
           running={running}
           retrying={retrying}
           held={held}

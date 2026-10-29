@@ -23,6 +23,7 @@ import {
   updateAutomationJob,
 } from '../automation/scheduler'
 import { syncDeptHandbookSnapshot } from '../automation/dept-handbook-store'
+import { runApprovalQueue } from '../automation/run-approvals'
 import { normalizeDeptSpendRequest, summarizeDeptSpend } from '../automation/spend-guard'
 import type { AutomationInput, AutomationTrigger } from '../automation/types'
 import { listTrashedJobs, purgeTrashedJobs, removeTrashedJob } from '../trash/job-trash'
@@ -112,6 +113,29 @@ export function registerAutomationHandlers(): void {
       return syncDeptHandbookSnapshot(entries)
     } catch (err) {
       console.error('[automation:handbookSnapshotSync]', err)
+      return { ok: false, error: 'unexpected_error' }
+    }
+  })
+
+  // Answer one held permission request of an unattended run.
+  //
+  // The answer names job and request, never the job alone: approving one
+  // request must never become "allow this job", and there is nothing to persist
+  // — the permission model is one request at a time. A request whose run ended,
+  // whose timeout fired, or that another click already answered is `not_waiting`
+  // rather than a silent success, so the panel can say the row is gone.
+  safeHandle('automation:approvalRespond', (_event, raw: unknown) => {
+    try {
+      const payload = raw as { jobId?: unknown; requestId?: unknown; approved?: unknown } | null
+      if (typeof payload?.jobId !== 'string' || !payload.jobId ||
+        typeof payload.requestId !== 'string' || !payload.requestId ||
+        typeof payload.approved !== 'boolean') {
+        return { ok: false, error: 'invalid_request' }
+      }
+      const answered = runApprovalQueue.answer(payload.jobId, payload.requestId, payload.approved)
+      return answered ? { ok: true } : { ok: false, error: 'not_waiting' }
+    } catch (err) {
+      console.error('[automation:approvalRespond]', err)
       return { ok: false, error: 'unexpected_error' }
     }
   })

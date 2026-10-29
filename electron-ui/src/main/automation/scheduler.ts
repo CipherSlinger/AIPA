@@ -20,7 +20,7 @@ import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 import { getPref, getRawPref } from '../config/config-manager'
-import { raiseAttention } from '../clawd-attention'
+import { raiseAttention, resolveAttention } from '../clawd-attention'
 import { nextFireTime, parseCron } from '../utils/cron'
 import { createLogger } from '../utils/logger'
 import { getAllowedFsRoots, safePath } from '../utils/validate'
@@ -77,6 +77,7 @@ import type {
   AutomationRunRequest,
   AutomationRunSource,
   AutomationTrigger,
+  AutomationWaitingApproval,
 } from './types'
 import { moveJobToTrash, restoreTrashedJob } from '../trash/job-trash'
 import type { JobTrashErrorCode, TrashedJobEntry } from '../trash/job-trash'
@@ -453,9 +454,25 @@ function persistAndBroadcast(): void {
   broadcastChanged()
 }
 
+/**
+ * The attention-queue identity of one job's live permission wait.
+ *
+ * Stable across a run because the queue is keyed by kind + bridge; a repeated
+ * raise for the same job refreshes one bubble rather than stacking. It is also
+ * what the scheduler retracts when the request settles.
+ */
+function approvalAttentionBridge(jobId: string): string {
+  return `automation:${jobId}`
+}
+
 function toView(job: AutomationJob): AutomationJobView {
+  const { waitingApproval, ...rest } = job
   return {
-    ...job,
+    ...rest,
+    // A stored wait only means something while this process actually owns the
+    // run. Anything else is a leftover (a crash, a restored trashed job) and
+    // must not put an unanswerable row in front of the user.
+    ...(waitingApproval && running.has(job.id) ? { waitingApproval } : {}),
     actionMissing: job.action.kind === 'workflow' && !findWorkflow(job.action.workflowId),
     running: running.has(job.id),
     // Derived, so a surface reading the list alone can tell that this enabled
@@ -871,6 +888,9 @@ async function startRun(
   // to it, and the write below already carries the truth.
   reportChain({ nextJobId: job.id, nextJobName: job.name })
   running.set(job.id, { startedAt })
+  // A leftover wait from a previous process cannot be answered; the run that
+  // owns it is gone. It is replaced by this run's own wait, if any.
+  delete job.waitingApproval
   job.lastStatus = 'running'
   job.lastError = null
   job.runCount += 1
@@ -910,12 +930,42 @@ async function startRun(
           }
         : {}),
       deadline: startedAt + RUN_DEADLINE_MS,
+      // The runner holds the engine's request; this callback is the scheduler
+      // taking ownership of the row: persisted state, one broadcast, one
+      // attention item. Written for every transition, so there is one writer
+      // for "this job is waiting for your answer" and it cannot drift.
+      onApprovalWait: (wait: AutomationWaitingApproval | null) => {
+        if (wait) job.waitingApproval = wait
+        else delete job.waitingApproval
+        persistAndBroadcast()
+        const bridgeId = approvalAttentionBridge(job.id)
+        if (wait) {
+          // Reuses the approval shape a chat turn raises, so the pet bubble,
+          // the native notification and DND all apply unchanged. `sessionId`
+          // is deliberately null: the run's openable id may not exist yet, and
+          // a click that opened the wrong transcript would be worse than none.
+          raiseAttention({
+            kind: 'approval',
+            bridgeId,
+            sessionId: null,
+            requestId: wait.requestId,
+            detail: clip(`${job.name}: ${wait.subject}`, 90),
+          })
+        } else {
+          resolveAttention({ kind: 'approval', bridgeId })
+        }
+      },
     })
   } catch (err) {
     outcome = { ok: false, error: String(err) }
   }
 
   running.delete(job.id)
+  // The run is over, so nothing is waiting on the user any more. Cleared
+  // before the record is written: the row and the record must never disagree,
+  // even for the moment between the two writes.
+  delete job.waitingApproval
+  resolveAttention({ kind: 'approval', bridgeId: approvalAttentionBridge(job.id) })
   const finishedAt = Date.now()
   const durationMs = finishedAt - startedAt
   const sessionId = outcome.sessionId ?? null
@@ -980,6 +1030,9 @@ async function startRun(
     // engine conversation, which is also the case where nothing was observed;
     // a present-but-empty summary is the honest "no file edits seen".
     ...(outcome.changedFiles ? { changedFiles: outcome.changedFiles } : {}),
+    // What the hidden run asked and how each request ended. The whole point of
+    // holding instead of denying is that this is answerable afterwards.
+    ...(outcome.approvals ? { approvals: outcome.approvals } : {}),
     ...(chainRecord ? { chain: chainRecord } : {}),
   })
   const totals = addToLifetimeTotals(job, outcome.usage)
@@ -1307,6 +1360,56 @@ function tick(): void {
 
 // ── Public API ───────────────────────────────────────
 
+/**
+ * Rewrite a run the previous process left behind.
+ *
+ * A persisted `running` belongs to a process that no longer exists, so the run
+ * is recorded as interrupted. If it was holding a permission request, the note
+ * says exactly that — the wait is repaired as "interrupted while waiting", not
+ * as a denial — because the user never answered and the engine never got an
+ * answer either. The wait itself is turned into the record's one approval row,
+ * so the history can still say what was asked and how long it had waited.
+ *
+ * Shared by launch repair and by restoring a job that was deleted mid-run; both
+ * cases are the same fact and must not be described two ways.
+ */
+function repairInterruptedRun(job: AutomationJob, now: number): void {
+  const wait = job.waitingApproval
+  job.lastStatus = 'error'
+  job.lastError = wait ? 'interrupted_while_waiting' : 'interrupted'
+  // The interrupted run never wrote a usage figure; an older run's would be
+  // read as this failed run's spend.
+  job.lastUsage = undefined
+  // Recover the attempt from the last recorded start so it stays in history
+  // (and in the failure streak) instead of vanishing. `lastRunAt` still names
+  // the previous completed run, so it must not be reused here.
+  const interruptedAt = job.recentRuns[job.recentRuns.length - 1]
+  const newest = job.history[job.history.length - 1]
+  if (interruptedAt !== undefined && interruptedAt !== newest?.startedAt) {
+    job.history = appendRunRecord(job.history, {
+      startedAt: interruptedAt,
+      status: 'error',
+      durationMs: null,
+      sessionId: null,
+      error: job.lastError,
+      late: false,
+      ...(wait
+        ? {
+            approvals: [{
+              askedAt: wait.since,
+              subject: wait.subject,
+              outcome: 'interrupted' as const,
+              resolvedAt: now,
+              // The wait really lasted this long; it just never got an answer.
+              waitedMs: Math.max(0, now - wait.since),
+            }],
+          }
+        : {}),
+    })
+  }
+  delete job.waitingApproval
+}
+
 export function startAutomationScheduler(
   getWindow: () => BrowserWindow | null,
   send: (channel: string, ...args: unknown[]) => void,
@@ -1332,26 +1435,7 @@ export function startAutomationScheduler(
   for (const job of jobs) {
     // A persisted `running` belongs to a process that no longer exists.
     if (job.lastStatus === 'running') {
-      job.lastStatus = 'error'
-      job.lastError = 'interrupted'
-      // The interrupted run never wrote a usage figure; an older run's would be
-      // read as this failed run's spend.
-      job.lastUsage = undefined
-      // Recover the attempt from the last recorded start so it stays in history
-      // (and in the failure streak) instead of vanishing. `lastRunAt` still
-      // names the previous completed run, so it must not be reused here.
-      const interruptedAt = job.recentRuns[job.recentRuns.length - 1]
-      const newest = job.history[job.history.length - 1]
-      if (interruptedAt !== undefined && interruptedAt !== newest?.startedAt) {
-        job.history = appendRunRecord(job.history, {
-          startedAt: interruptedAt,
-          status: 'error',
-          durationMs: null,
-          sessionId: null,
-          error: 'interrupted',
-          late: false,
-        })
-      }
+      repairInterruptedRun(job, now)
       repaired = true
     }
     // Due-while-closed jobs keep their past nextRunAt: the first tick runs them
@@ -1856,7 +1940,12 @@ export function restoreAutomationJob(id: string): AutomationTrashResult {
   })
   if (!restored.ok) return restored
 
-  jobs.push(restored.entry.job)
+  // The job may have been deleted while it was running. No process owns that
+  // run any more, so the restored row must say interrupted (and name a wait it
+  // was holding) instead of showing a run that will never finish.
+  const job = restored.entry.job
+  if (job.lastStatus === 'running') repairInterruptedRun(job, Date.now())
+  jobs.push(job)
   syncWatchers()
   persistAndBroadcast()
   return { ok: true, entry: restored.entry }

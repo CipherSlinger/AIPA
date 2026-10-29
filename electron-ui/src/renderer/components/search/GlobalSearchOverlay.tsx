@@ -45,8 +45,10 @@ import {
 } from './searchOriginFilter'
 import {
   filterResultsByMatchOrigin,
+  isLoadedSetPartial,
   isMatchFilterEmpty,
-  isSearchWindowCapped,
+  nextPageSize,
+  pagingCountKey,
   sortSearchResults,
   type SearchMatchFilter,
   type SearchSortOrder,
@@ -417,7 +419,19 @@ export default function GlobalSearchOverlay() {
   // arrived, firing a full-corpus scan nobody could see. Only an idle overlay
   // searches: editing the query (which stops a running turn or drops a stale
   // answer) or a later open resumes it.
-  const { results, status, searchedQuery } = useGlobalSessionSearch(query, askState === 'idle')
+  const {
+    results,
+    status,
+    searchedQuery,
+    total: totalHits,
+    hasMore,
+    ceilingReached,
+    loadingMore,
+    loadMoreFailed,
+    loadMore,
+    lastPage,
+    runId,
+  } = useGlobalSessionSearch(query, askState === 'idle')
 
   // Search hits carry no origin of their own; the session listing does. A hit
   // that is not listed stays unknown and shows no badge.
@@ -701,11 +715,13 @@ export default function GlobalSearchOverlay() {
     setAskScopeOn(deptFilter !== null || listScope !== null)
   }, [deptFilter, listScope])
 
-  // A new result set — or a different narrowing — starts at the best visible
-  // hit. A session-list refresh alone must not move the selection.
+  // A new query run — or a different narrowing — starts at the best visible
+  // hit. `runId` rather than `results`: a loaded page also changes `results`,
+  // and landing a page must leave the highlighted row (and the input's focus)
+  // exactly where the user had it. A session-list refresh alone moves nothing.
   useEffect(() => {
     setActive(0)
-  }, [results, matchFilter, originFilter, deptFilter, listScope, sortOrder])
+  }, [runId, matchFilter, originFilter, deptFilter, listScope, sortOrder])
   useEffect(() => {
     if (active >= flat.length) setActive(Math.max(0, flat.length - 1))
   }, [flat.length, active])
@@ -939,8 +955,22 @@ export default function GlobalSearchOverlay() {
       return
     }
     if (e.key === 'ArrowDown') {
-      if (flat.length === 0) return
+      // At the last loaded row, ArrowDown asks for the next page instead of
+      // wrapping to the top. That makes paging reachable without a mouse even
+      // when a filter has hidden every loaded row (flat is empty then). Focus
+      // stays on the input; the page appends below and the user keeps arrowing.
+      if (flat.length === 0) {
+        if (hasMore && !loadingMore) {
+          e.preventDefault()
+          loadMore()
+        }
+        return
+      }
       e.preventDefault()
+      if (active >= flat.length - 1 && hasMore && !loadingMore) {
+        loadMore()
+        return
+      }
       setActive(prev => (prev + 1) % flat.length)
     } else if (e.key === 'ArrowUp') {
       if (flat.length === 0) return
@@ -1029,6 +1059,20 @@ export default function GlobalSearchOverlay() {
   // sentence has to hard-code a second name for the same bucket. The coverage
   // lines inside the bar translate their own copies.
   const matchFilterLabel = t(`globalSearch.match.${matchFilter}`)
+  // The loaded rows are only part of what the query knows: either more pages
+  // can be fetched, or the scan's own ceiling stopped it. Every count below is
+  // over the loaded set, and the copy says so when this is true.
+  const partialLoaded = isLoadedSetPartial(hasMore, ceilingReached)
+  // How many rows the next page would actually add (the last page can be short).
+  const nextCount = nextPageSize(results.length, totalHits)
+  // Built here, not in the hook, because it must be translated. It changes only
+  // when a page lands, which is what the polite live region announces.
+  const pageAnnouncement = lastPage
+    ? t(
+        lastPage.added === 1 ? 'globalSearch.paging.announceOne' : 'globalSearch.paging.announce',
+        { added: lastPage.added, loaded: lastPage.loaded },
+      )
+    : ''
 
   return (
     <div
@@ -1357,7 +1401,10 @@ export default function GlobalSearchOverlay() {
             onOrderChange={setSortOrder}
             counts={matchFiltered.counts}
             hidden={matchFiltered.hidden}
-            windowCapped={isSearchWindowCapped(results.length)}
+            loaded={results.length}
+            total={totalHits}
+            hasMore={hasMore}
+            ceilingReached={ceilingReached}
           />
         )}
 
@@ -1868,15 +1915,25 @@ export default function GlobalSearchOverlay() {
                 {showMatchFilterEmpty && !showLoading && (
                   <div style={EMPTY_STYLE}>
                     <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                      {t('globalSearch.match.emptyTitle', { origin: matchFilterLabel })}
+                      {partialLoaded
+                        // Only the loaded rows were looked at; saying "no
+                        // matches for this query" would speak for matches the
+                        // filter has never seen.
+                        ? t('globalSearch.match.emptyLoadedTitle', {
+                            origin: matchFilterLabel,
+                            loaded: results.length,
+                          })
+                        : t('globalSearch.match.emptyTitle', { origin: matchFilterLabel })}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-                      {t(
-                        results.length === 1
-                          ? 'globalSearch.match.emptyHintOne'
-                          : 'globalSearch.match.emptyHint',
-                        { count: results.length },
-                      )}
+                      {partialLoaded
+                        ? t('globalSearch.match.emptyLoadedHint', { loaded: results.length })
+                        : t(
+                            results.length === 1
+                              ? 'globalSearch.match.emptyHintOne'
+                              : 'globalSearch.match.emptyHint',
+                            { count: results.length },
+                          )}
                     </div>
                     <button
                       type="button"
@@ -1892,12 +1949,19 @@ export default function GlobalSearchOverlay() {
                 {showFilterEmpty && !showLoading && (
                   <div style={EMPTY_STYLE}>
                     <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                      {t(
-                        results.length === 1
-                          ? 'globalSearch.originFilterEmptyOne'
-                          : 'globalSearch.originFilterEmpty',
-                        { count: results.length },
-                      )}
+                      {partialLoaded
+                        ? t(
+                            results.length === 1
+                              ? 'globalSearch.originFilterEmptyLoadedOne'
+                              : 'globalSearch.originFilterEmptyLoaded',
+                            { count: results.length },
+                          )
+                        : t(
+                            results.length === 1
+                              ? 'globalSearch.originFilterEmptyOne'
+                              : 'globalSearch.originFilterEmpty',
+                            { count: results.length },
+                          )}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
                       {t('globalSearch.originFilterEmptyHint')}
@@ -1916,12 +1980,19 @@ export default function GlobalSearchOverlay() {
                 {showDeptFilterEmpty && !showLoading && (
                   <div style={EMPTY_STYLE}>
                     <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                      {t(
-                        filtered.visible.length === 1
-                          ? 'globalSearch.dept.emptyOne'
-                          : 'globalSearch.dept.empty',
-                        { count: filtered.visible.length },
-                      )}
+                      {partialLoaded
+                        ? t(
+                            filtered.visible.length === 1
+                              ? 'globalSearch.dept.emptyLoadedOne'
+                              : 'globalSearch.dept.emptyLoaded',
+                            { count: filtered.visible.length },
+                          )
+                        : t(
+                            filtered.visible.length === 1
+                              ? 'globalSearch.dept.emptyOne'
+                              : 'globalSearch.dept.empty',
+                            { count: filtered.visible.length },
+                          )}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
                       {t('globalSearch.dept.emptyHint')}
@@ -2002,6 +2073,71 @@ export default function GlobalSearchOverlay() {
                 })}
               </div>
 
+              {/* Polite announcement for a page that just landed. The region
+                  is always mounted (an empty live region cannot announce), and
+                  its text changes only when rows are appended. Focus stays
+                  wherever the user left it — the input keeps the selection, or
+                  the button keeps focus; nothing is moved to a new row. */}
+              <div role="status" aria-live="polite" style={SR_ONLY_STYLE}>
+                {pageAnnouncement}
+              </div>
+
+              {/* Paging. The main process scans once per query and serves pages
+                  as slices of that one ordering, so asking for the next page
+                  costs a slice, never a second corpus walk. The button is a
+                  real button (Tab reaches it), and ArrowDown on the last row
+                  makes the same call, so paging never needs a mouse. */}
+              {askState === 'idle' && results.length > 0 && (
+                <div style={PAGER_STYLE}>
+                  {hasMore && (
+                    <button
+                      type="button"
+                      // Not `disabled`: a disabled element drops focus, and a
+                      // page landing under the user's cursor must not move it.
+                      // `loadMore` already ignores a second call while one runs.
+                      aria-disabled={loadingMore}
+                      onClick={loadMore}
+                      onKeyDown={e => {
+                        // Let the button keep Enter/Space for itself and keep
+                        // the arrow keys from moving the row selection behind
+                        // the pager while it is focused.
+                        if (
+                          e.key === 'ArrowDown' || e.key === 'ArrowUp'
+                          || e.key === 'Enter' || e.key === ' '
+                        ) e.stopPropagation()
+                      }}
+                      style={loadingMore ? { ...PAGER_BUTTON_STYLE, opacity: 0.7, cursor: 'default' } : PAGER_BUTTON_STYLE}
+                    >
+                      {loadingMore
+                        ? t('globalSearch.paging.loadingMore')
+                        : t(
+                            nextCount === 1 ? 'globalSearch.paging.showMoreOne' : 'globalSearch.paging.showMore',
+                            { count: nextCount },
+                          )}
+                    </button>
+                  )}
+                  <div style={PAGER_NOTE_STYLE}>
+                    {/* `pagingCountKey` decides between "of", "of at least" and
+                        "all": at the ceiling `total` is the ceiling, not the
+                        corpus, so "of 200" would state a total nobody measured. */}
+                    {t(pagingCountKey(hasMore, ceilingReached), {
+                      loaded: results.length,
+                      total: totalHits,
+                    })}
+                  </div>
+                  {ceilingReached && !hasMore && (
+                    <div style={PAGER_NOTE_STYLE}>
+                      {t('globalSearch.paging.ceiling', { ceiling: totalHits })}
+                    </div>
+                  )}
+                  {loadMoreFailed && (
+                    <div role="status" style={{ ...PAGER_NOTE_STYLE, color: 'var(--danger-text)' }}>
+                      {t('globalSearch.paging.failed')}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* After the transcript groups, and outside every session
                   filter: a workflow is not filed by origin or department, so
                   a filter that hides conversations must not hide it. */}
@@ -2044,12 +2180,19 @@ export default function GlobalSearchOverlay() {
               {askAvailable && <span>{t('askHistory.ctrlEnterHint')}</span>}
               {results.length > 0 && (
                 <span style={{ marginLeft: 'auto' }}>
-                  {t(
-                    listFiltered.visible.length === 1
-                      ? 'globalSearch.resultOne'
-                      : 'globalSearch.resultsCount',
-                    { count: listFiltered.visible.length },
-                  )}
+                  {listFiltered.visible.length !== results.length
+                    // The count is over the loaded rows only. Say so, rather
+                    // than let "3 results" read as the whole answer.
+                    ? t('globalSearch.paging.footerNarrowed', {
+                        visible: listFiltered.visible.length,
+                        loaded: results.length,
+                      })
+                    : t(
+                        results.length === 1
+                          ? 'globalSearch.resultOne'
+                          : 'globalSearch.resultsCount',
+                        { count: results.length },
+                      )}
                 </span>
               )}
             </>
@@ -2065,4 +2208,52 @@ export default function GlobalSearchOverlay() {
 const EMPTY_STYLE: React.CSSProperties = {
   padding: '28px 20px',
   textAlign: 'center',
+}
+
+/**
+ * The pager sits after the last conversation row, still inside the scroll box,
+ * so it is reached by scrolling rather than pinned over the rows. It belongs to
+ * the conversation list, never to the building-block sections below it.
+ */
+const PAGER_STYLE: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: 6,
+  padding: '12px 16px 18px',
+}
+
+const PAGER_BUTTON_STYLE: React.CSSProperties = {
+  padding: '5px 14px',
+  borderRadius: 999,
+  border: '1px solid var(--border)',
+  background: 'transparent',
+  color: 'var(--accent-text)',
+  fontSize: 12,
+  fontFamily: 'inherit',
+  cursor: 'pointer',
+}
+
+const PAGER_NOTE_STYLE: React.CSSProperties = {
+  fontSize: 10,
+  lineHeight: 1.5,
+  color: 'var(--text-muted)',
+  textAlign: 'center',
+}
+
+/**
+ * Visually hidden but still announced. The overlay is a dialog with no room
+ * for another status line, and the announcement exists for screen readers
+ * only; a sighted user reads the pager's own count.
+ */
+const SR_ONLY_STYLE: React.CSSProperties = {
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  margin: -1,
+  padding: 0,
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
+  border: 0,
 }

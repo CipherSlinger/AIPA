@@ -225,6 +225,66 @@ export interface AutomationRunChangedFiles {
 export type AutomationRunSkipReason = 'dept-budget'
 
 /**
+ * How a permission request raised by an unattended run was settled.
+ *
+ * `approved` and `denied` are the user's own answers to one request; neither is
+ * ever a rule for the job, and neither is persisted as one. `timeout` is the
+ * stated wait expiring with nobody there, `queue-full` and `run-busy` are the
+ * two structural refusals (the queue was full, or this run already had one
+ * request waiting), `run-ended` means the run finished or was stopped while the
+ * request was still held, and `interrupted` is the launch repair of a run that
+ * was waiting when the app quit.
+ */
+export type AutomationRunApprovalOutcome =
+  | 'approved'
+  | 'denied'
+  | 'timeout'
+  | 'queue-full'
+  | 'run-busy'
+  | 'run-ended'
+  | 'interrupted'
+
+/**
+ * One permission request a run held, as the record keeps it.
+ *
+ * `subject` is the engine's own description of what it asked for — tool name
+ * and command/path, verbatim — so a reader can check what was allowed without
+ * trusting a paraphrase. It is bounded only by the store's character ceiling.
+ * `answeredBy` is present exactly when a person answered; a timeout, a full
+ * queue, an ended run and a repair all say nobody did, which is a different
+ * fact from "the user said no".
+ */
+export interface AutomationRunApproval {
+  /** Epoch ms the run asked; the wait is measured from here. */
+  askedAt: number
+  subject: string
+  outcome: AutomationRunApprovalOutcome
+  /** `'user'` only for `approved` / `denied`; absent for every automatic answer. */
+  answeredBy?: 'user'
+  /** Epoch ms the wait ended. */
+  resolvedAt: number
+  /** Wall-clock wait in ms; 0 for the two structural refusals. */
+  waitedMs: number
+}
+
+/**
+ * A request a live run is holding right now.
+ *
+ * Persisted on the job while the wait lasts so the row can say "waiting for
+ * your answer since …" without a second IPC read, and so a launch can tell
+ * that the interrupted run was waiting rather than deny it after the fact.
+ * Cleared as soon as the request settles. One per run at most.
+ */
+export interface AutomationWaitingApproval {
+  /** The engine's request id; the answer must name it, never the job. */
+  requestId: string
+  /** Epoch ms the request was queued. */
+  since: number
+  /** The exact ask, verbatim, bounded by the store's ceiling. */
+  subject: string
+}
+
+/**
  * One finished run, kept on the job so the last few remain inspectable.
  *
  * The same record serves two readers: the settings row (time, outcome, spend,
@@ -290,6 +350,13 @@ export interface AutomationRunRecord {
    * followed": those runs had no chain to follow.
    */
   chain?: AutomationRunChain
+  /**
+   * Permission requests this run held while nobody was at the app, oldest
+   * first, capped. Absent on records written before the hold existed and on
+   * every skip (nothing ran). Present with `[]` never happens: only a request
+   * that was actually raised produces an entry.
+   */
+  approvals?: AutomationRunApproval[]
 }
 
 /**
@@ -466,6 +533,16 @@ export interface AutomationJob {
   sourceTitle?: string
   /** Local `YYYY-MM-DD` stamp of the day the job was drafted. */
   sourceDraftedAt?: string
+  /**
+   * The permission request this job's live run is holding right now.
+   *
+   * Written by the scheduler from the runner's own report, persisted so the
+   * state survives a restart, and cleared the moment the request settles. A
+   * value here while `lastStatus !== 'running'` is stale by construction — the
+   * view hides it, and launch repair names the interrupted wait instead of
+   * pretending it was denied.
+   */
+  waitingApproval?: AutomationWaitingApproval
   createdAt: number
   updatedAt: number
   /** Epoch ms of the next scheduled occurrence; null only for a dead cron. */
@@ -846,6 +923,16 @@ export interface AutomationRunRequest {
   outputStyle?: 'explanatory' | 'learning'
   /** Epoch ms after which the run is abandoned. */
   deadline: number
+  /**
+   * Reports the run's live permission wait, or `null` when it ends.
+   *
+   * The runner owns the wait (it is the only side holding the engine's
+   * request); the scheduler owns the job row, the store and the broadcast.
+   * Called on every transition — queued, answered, timed out, released — so
+   * there is exactly one writer for `job.waitingApproval`. Throwing here must
+   * never break the run, which is why the runner guards the call.
+   */
+  onApprovalWait?: (wait: AutomationWaitingApproval | null) => void
 }
 
 export interface AutomationRunOutcome {
@@ -879,4 +966,11 @@ export interface AutomationRunOutcome {
    * engine conversation existed, which is also when nothing could be observed.
    */
   changedFiles?: AutomationRunChangedFiles
+  /**
+   * Permission requests this run held, in the order they were asked. Carried on
+   * failures too: a request that was answered (or timed out) before the turn
+   * ended is still part of what happened. Absent when no request was raised,
+   * which is the same shape every record had before holds existed.
+   */
+  approvals?: AutomationRunApproval[]
 }
