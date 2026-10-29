@@ -1037,6 +1037,50 @@ export interface AutomationJobData {
   watchMissing?: boolean
 }
 
+/**
+ * A deleted job waiting in the holding area (`automation:trash:list`).
+ *
+ * The whole record is carried, because restoring puts it back as it was. The
+ * derived fields a live row shows — `running`, `pausedAll`, `actionMissing`,
+ * `failureStreak`, `spendWindow` — are deliberately absent: nothing is running,
+ * and those are answers about the live list, not about a record in a manifest.
+ */
+export interface TrashedJobEntryData {
+  /** The trash row's own id; the job's id lives inside `job`. */
+  id: string
+  job: Omit<AutomationJobData, 'running' | 'pausedAll' | 'actionMissing' | 'failureStreak' | 'spendWindow'>
+  deletedAt: number
+}
+
+export interface TrashedJobInfoData extends TrashedJobEntryData {
+  /** Epoch ms when the entry leaves for good. */
+  purgeAt: number
+}
+
+export type JobTrashErrorCode =
+  | 'not_found'
+  /** The record could not be read as a job; nothing was moved. */
+  | 'move_failed'
+  | 'write_failed'
+  /** The live list is already at its cap, so restoring would overflow it. */
+  | 'job_limit'
+  /** A live job already uses this id; a restore never overwrites or renumbers. */
+  | 'id_taken'
+
+export type JobTrashFailureData = { ok: false; code: JobTrashErrorCode; error: string }
+
+export type JobTrashListResultData =
+  | { ok: true; entries: TrashedJobInfoData[]; retentionDays: number }
+  | JobTrashFailureData
+
+export type JobTrashActionResultData =
+  | { ok: true; entry: TrashedJobEntryData }
+  | JobTrashFailureData
+
+export type JobTrashPurgeResultData =
+  | { ok: true; removed: number }
+  | JobTrashFailureData
+
 export interface AutomationLimitsData {
   minIntervalMinutes: number
   maxRunsPerHour: number
@@ -1750,8 +1794,23 @@ const electronAPI = {
     ipcRenderer.invoke('automation:clone', { id, name }) as Promise<AutomationMutationData>,
   automationUpdate: (id: string, input: AutomationInputData) =>
     ipcRenderer.invoke('automation:update', id, input) as Promise<AutomationMutationData>,
+  // The user's delete moves the job into the holding area and answers with the
+  // row it became. A refusal carries a `code` so the toast can say why nothing
+  // was deleted instead of reporting a success.
   automationDelete: (id: string) =>
-    ipcRenderer.invoke('automation:delete', id) as Promise<{ ok: boolean; error?: string }>,
+    ipcRenderer.invoke('automation:delete', id) as Promise<JobTrashActionResultData>,
+  // Recently deleted jobs. `automation:trash:list` rejects when the manifest
+  // cannot be read, so an outage is never dressed up as "nothing was deleted".
+  automationTrashList: () =>
+    ipcRenderer.invoke('automation:trash:list') as Promise<JobTrashListResultData>,
+  automationTrashRestore: (id: string) =>
+    ipcRenderer.invoke('automation:trash:restore', id) as Promise<JobTrashActionResultData>,
+  // Drops entries past the retention window. Safe to call on launch and when
+  // the section opens; entries exactly at the window are kept.
+  automationTrashPurge: () =>
+    ipcRenderer.invoke('automation:trash:purge') as Promise<JobTrashPurgeResultData>,
+  automationTrashRemove: (id: string) =>
+    ipcRenderer.invoke('automation:trash:remove', id) as Promise<JobTrashActionResultData>,
   automationSetEnabled: (id: string, enabled: boolean) =>
     ipcRenderer.invoke('automation:setEnabled', id, enabled) as Promise<AutomationMutationData>,
   automationRunNow: (id: string) =>

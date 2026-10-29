@@ -1,23 +1,26 @@
-// "Recently deleted" — the shared holding area for deleted workflows, skills
-// and conversations.
+// "Recently deleted" — the shared holding area for deleted workflows, skills,
+// conversations and scheduled jobs.
 //
-// All three deletes used to be instant and permanent. A workflow is only a pref
+// All four deletes used to be instant and permanent. A workflow is only a pref
 // record, so it is kept in `AppPrefs.trashedWorkflows`; a skill is a real
-// folder and a conversation is one or more transcript files, so main moves them
-// under userData and records them in a manifest. This section is the one place
-// the user sees all three, and it is also where the difference is spelled out:
-// a trashed skill or conversation can be restored only while its payload still
-// exists on disk.
+// folder, a conversation is one or more transcript files and a job is a record
+// in `automations.json`, so main moves or copies them under userData and records
+// them in a manifest. This section is the one place the user sees all four, and
+// it is also where the difference is spelled out: a trashed skill or
+// conversation can be restored only while its payload still exists on disk,
+// while a job — a record, not a file — is always restorable.
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Undo2, Trash2, Workflow as WorkflowIcon, Puzzle, MessageSquare } from 'lucide-react'
+import { Undo2, Trash2, Workflow as WorkflowIcon, Puzzle, MessageSquare, CalendarClock } from 'lucide-react'
 import { useT, useI18n } from '../../i18n'
 import { formatDateMedium } from '../../utils/formatDate'
 import { listSessionsShared } from '../../utils/sessionListShared'
 import { useSessionStore } from '../../store'
 import type { SessionListItem, TrashedWorkflow } from '../../types/app.types'
 import type {
+  JobTrashErrorCode,
   SessionTrashErrorCode,
   SkillTrashErrorCode,
+  TrashedJobInfoData,
   TrashedSessionInfoData,
   TrashedSkillInfoData,
 } from '../../../preload'
@@ -27,7 +30,7 @@ import { SectionHeader } from './EmployeesShared'
 import type { EmployeeSkillsState } from './EmployeesSkillsSection'
 import type { useWorkflowCrud } from './useWorkflowCrud'
 
-export type TrashKind = 'workflow' | 'skill' | 'session'
+export type TrashKind = 'workflow' | 'skill' | 'session' | 'job'
 
 export interface TrashRow {
   kind: TrashKind
@@ -44,17 +47,19 @@ export interface TrashRow {
 export type TrashActionOutcome = { ok: true } | { ok: false; message: string }
 
 /**
- * Merge the three kinds into one newest-first list. Kept pure and exported so
+ * Merge the four kinds into one newest-first list. Kept pure and exported so
  * the harness can assert the ordering and that an empty holding area yields no
  * rows at all — the section renders nothing in that case, not an empty box.
  *
- * `sessionEntries` is last and optional so the two older kinds keep the call
- * shape they had before conversations joined the list.
+ * `sessionEntries` and `jobEntries` are last and optional so the two older
+ * kinds keep the call shape they had before conversations and jobs joined the
+ * list.
  */
 export function buildTrashRows(
   skillEntries: TrashedSkillInfoData[],
   workflowEntries: TrashedWorkflow[],
   sessionEntries: TrashedSessionInfoData[] = [],
+  jobEntries: TrashedJobInfoData[] = [],
 ): TrashRow[] {
   const rows: TrashRow[] = [
     ...workflowEntries.map(entry => ({
@@ -83,6 +88,17 @@ export function buildTrashRows(
       purgeAt: entry.purgeAt,
       available: entry.available,
     })),
+    ...jobEntries.map(entry => ({
+      kind: 'job' as const,
+      // Restore and remove act on the trash row, not on the job's own id.
+      id: entry.id,
+      name: entry.job.name,
+      deletedAt: entry.deletedAt,
+      purgeAt: entry.purgeAt,
+      // A job is a record in a manifest, not a file: there is nothing on disk
+      // that can go missing, so a trashed job is always restorable.
+      available: true,
+    })),
   ]
   return rows.sort((a, b) => b.deletedAt - a.deletedAt)
 }
@@ -95,12 +111,15 @@ function kindBadge(kind: TrashKind): { color: string; background: string; border
       return { color: '#c4b5fd', background: 'rgba(167,139,250,0.14)', border: 'rgba(167,139,250,0.30)' }
     case 'session':
       return { color: '#7dd3fc', background: 'rgba(56,189,248,0.14)', border: 'rgba(56,189,248,0.30)' }
+    case 'job':
+      return { color: '#fbbf24', background: 'rgba(251,191,36,0.14)', border: 'rgba(251,191,36,0.30)' }
   }
 }
 
 function kindIcon(kind: TrashKind): React.ReactNode {
   if (kind === 'workflow') return <WorkflowIcon size={13} />
   if (kind === 'skill') return <Puzzle size={13} />
+  if (kind === 'job') return <CalendarClock size={13} />
   return <MessageSquare size={13} />
 }
 
@@ -163,9 +182,14 @@ function TrashRowView({ row, locale, first, onRestore, onDeleteForever }: {
   const canRestore = row.available && !busy
   const kindLabel = row.kind === 'workflow'
     ? t('trash.kindWorkflow')
-    : row.kind === 'skill' ? t('trash.kindSkill') : t('sessionTrash.kind')
+    : row.kind === 'skill'
+      ? t('trash.kindSkill')
+      : row.kind === 'job'
+        ? t('automation.trash.kind')
+        : t('sessionTrash.kind')
   // A skill was a folder; a conversation was a transcript file. Say which one
-  // is gone rather than reusing a sentence about folders.
+  // is gone rather than reusing a sentence about folders. A job is a record,
+  // so it never reaches this line.
   const unavailableLabel = row.kind === 'session'
     ? t('sessionTrash.unavailable')
     : t('trash.folderUnavailable')
@@ -264,6 +288,7 @@ export function TrashView({ rows, retentionDays, onRestore, onDeleteForever }: {
 
   const hasSkill = rows.some(row => row.kind === 'skill')
   const hasSession = rows.some(row => row.kind === 'session')
+  const hasJob = rows.some(row => row.kind === 'job')
 
   return (
     <section
@@ -284,6 +309,11 @@ export function TrashView({ rows, retentionDays, onRestore, onDeleteForever }: {
       {hasSession && (
         <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 10, marginLeft: 34, lineHeight: 1.45 }}>
           {t('sessionTrash.hint')}
+        </div>
+      )}
+      {hasJob && (
+        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 10, marginLeft: 34, lineHeight: 1.45 }}>
+          {t('automation.trash.hint')}
         </div>
       )}
       <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
@@ -314,6 +344,7 @@ export default function TrashSection({ crud, skillState }: {
   const t = useT()
   const [skillEntries, setSkillEntries] = useState<TrashedSkillInfoData[]>([])
   const [sessionEntries, setSessionEntries] = useState<TrashedSessionInfoData[]>([])
+  const [jobEntries, setJobEntries] = useState<TrashedJobInfoData[]>([])
   const [retentionDays, setRetentionDays] = useState(TRASH_RETENTION_DAYS)
   // Deleting a conversation changes the sidebar list; that is also the signal
   // that the conversation holding area changed.
@@ -344,6 +375,20 @@ export default function TrashSection({ crud, skillState }: {
     }
   }, [])
 
+  const refreshJobs = useCallback(async () => {
+    try {
+      const result = await window.electronAPI.automationTrashList()
+      if (result.ok) {
+        setJobEntries(result.entries)
+        setRetentionDays(result.retentionDays)
+      }
+    } catch (err) {
+      // A failed read must not be shown as "nothing was deleted"; the job rows
+      // simply stay as they were.
+      console.error('[trash] could not read the job trash:', err)
+    }
+  }, [])
+
   // Expired payloads under userData are the one thing this page can clean up
   // without being asked; each list is read after its purge so an expired row
   // never flashes on screen.
@@ -352,13 +397,22 @@ export default function TrashSection({ crud, skillState }: {
     Promise.all([
       window.electronAPI.skillsTrashPurge().catch(() => null),
       window.electronAPI.sessionsTrashPurge().catch(() => null),
+      window.electronAPI.automationTrashPurge().catch(() => null),
     ]).then(() => {
       if (cancelled) return
       void refreshSkills()
       void refreshSessions()
+      void refreshJobs()
     })
     return () => { cancelled = true }
-  }, [refreshSkills, refreshSessions])
+  }, [refreshSkills, refreshSessions, refreshJobs])
+
+  // Deleting or restoring a job rewrites the automation store, and the scheduler
+  // broadcasts that. Following the same signal keeps this list correct for a
+  // delete made in Settings without a manual refresh.
+  useEffect(() => {
+    return window.electronAPI.onAutomationChanged(() => { void refreshJobs() })
+  }, [refreshJobs])
 
   // Deleting or restoring a skill changes the installed grid; re-read the
   // holding area whenever that grid changes so a just-deleted skill appears.
@@ -453,6 +507,51 @@ export default function TrashSection({ crud, skillState }: {
     }
   }, [refreshSessions, failureForSession, t])
 
+  const failureForJob = useCallback((
+    code: JobTrashErrorCode | undefined,
+    error: string | undefined,
+  ): string => {
+    switch (code) {
+      // Restoring never overwrites and never renumbers: the live job with this
+      // id stays, and the trashed row stays with it.
+      case 'id_taken': return t('automation.trash.failure.idTaken')
+      case 'job_limit': return t('automation.trash.failure.jobLimit')
+      case 'not_found': return t('trash.failure.notFound')
+      case 'write_failed': return t('automation.trash.failure.writeFailed')
+      case 'move_failed': return t('automation.trash.failure.moveFailed')
+      default: return t('trash.failure.generic', { message: error || t('trash.failure.unknown') })
+    }
+  }, [t])
+
+  const restoreJob = useCallback(async (row: TrashRow): Promise<TrashActionOutcome> => {
+    try {
+      const result = await window.electronAPI.automationTrashRestore(row.id)
+      if (result.ok) {
+        // The scheduler has already re-armed the schedule from this instant and
+        // broadcast `automation:changed`, which is what makes the job appear in
+        // Settings; this list only has to lose the row.
+        await refreshJobs()
+        return { ok: true }
+      }
+      return { ok: false, message: failureForJob(result.code, result.error) }
+    } catch (err) {
+      return { ok: false, message: t('trash.failure.generic', { message: String(err) }) }
+    }
+  }, [refreshJobs, failureForJob, t])
+
+  const removeJob = useCallback(async (row: TrashRow): Promise<TrashActionOutcome> => {
+    try {
+      const result = await window.electronAPI.automationTrashRemove(row.id)
+      if (result.ok) {
+        await refreshJobs()
+        return { ok: true }
+      }
+      return { ok: false, message: failureForJob(result.code, result.error) }
+    } catch (err) {
+      return { ok: false, message: t('trash.failure.generic', { message: String(err) }) }
+    }
+  }, [refreshJobs, failureForJob, t])
+
   const restoreWorkflow = useCallback((row: TrashRow): Promise<TrashActionOutcome> => {
     const result = crud.restoreTrashedWorkflow(row.id)
     if (result.ok) return Promise.resolve({ ok: true })
@@ -473,18 +572,20 @@ export default function TrashSection({ crud, skillState }: {
   const handleRestore = useCallback((row: TrashRow) => {
     if (row.kind === 'skill') return restoreSkill(row)
     if (row.kind === 'session') return restoreSession(row)
+    if (row.kind === 'job') return restoreJob(row)
     return restoreWorkflow(row)
-  }, [restoreSkill, restoreSession, restoreWorkflow])
+  }, [restoreSkill, restoreSession, restoreJob, restoreWorkflow])
 
   const handleDeleteForever = useCallback((row: TrashRow) => {
     if (row.kind === 'skill') return removeSkill(row)
     if (row.kind === 'session') return removeSession(row)
+    if (row.kind === 'job') return removeJob(row)
     return removeWorkflow(row)
-  }, [removeSkill, removeSession, removeWorkflow])
+  }, [removeSkill, removeSession, removeJob, removeWorkflow])
 
   const rows = useMemo(
-    () => buildTrashRows(skillEntries, crud.trashedWorkflows, sessionEntries),
-    [skillEntries, crud.trashedWorkflows, sessionEntries],
+    () => buildTrashRows(skillEntries, crud.trashedWorkflows, sessionEntries, jobEntries),
+    [skillEntries, crud.trashedWorkflows, sessionEntries, jobEntries],
   )
 
   return (

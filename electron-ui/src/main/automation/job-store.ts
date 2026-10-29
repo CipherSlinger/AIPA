@@ -89,7 +89,14 @@ function normalizeTrigger(trigger: AutomationTrigger): AutomationTrigger {
   }
 }
 
-function normalizeJob(raw: unknown): AutomationJob | null {
+/**
+ * The single validator for a persisted job.
+ *
+ * Exported because the trash stores whole job records too, and a trashed row
+ * must pass exactly the same whitelist a live one does — a second copy of these
+ * checks would let the two disagree about what a job is.
+ */
+export function normalizeJob(raw: unknown): AutomationJob | null {
   if (!raw || typeof raw !== 'object') return null
   const job = raw as Record<string, unknown>
   if (typeof job.id !== 'string' || !job.id) return null

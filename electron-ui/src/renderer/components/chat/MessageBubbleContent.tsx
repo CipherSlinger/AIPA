@@ -89,7 +89,7 @@ export default React.memo(function MessageBubbleContent({
             {isCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
           </button>
           {isCollapsed && (
-            <span style={{ fontSize: 11, opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+            <span data-find-scope="" style={{ fontSize: 11, opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
               {(message.content || '').slice(0, 100).replace(/\n/g, ' ')}
             </span>
           )}
@@ -117,7 +117,10 @@ export default React.memo(function MessageBubbleContent({
                 {isMessageStreaming && thinking ? t('message.thinking') + '...' : t('message.thinking')}
               </button>
               {thinkingExpanded && (
-                <div style={{
+                // Thinking is only in the DOM while it is expanded, so marking
+                // it here means the find bar searches it exactly when the user
+                // can see it — collapsed reasoning is not a phantom match.
+                <div data-find-scope="" style={{
                   background: 'var(--accent-bg)',
                   border: '1px solid var(--accent-border)',
                   borderRadius: 8, padding: '8px 12px',
@@ -276,7 +279,7 @@ export default React.memo(function MessageBubbleContent({
           ) : message.content && (
             <div style={{ lineHeight: 1.6 }}>
               {isAssistant && showRawMarkdown ? (
-                <pre style={{
+                <pre data-find-scope="" style={{
                   whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                   fontSize: 12, lineHeight: 1.6,
                   color: 'var(--text-primary)',

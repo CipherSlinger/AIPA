@@ -10,6 +10,16 @@
 import type { RunUsage } from './run-usage'
 
 /**
+ * How many jobs one store may hold.
+ *
+ * Named here rather than left inline in `AUTOMATION_LIMITS.maxJobs` because the
+ * trash needs the same number when it decides whether a restore would overflow
+ * the list. Two copies of the cap would let a restore be refused at 50 while
+ * create still accepts at 50, or the reverse.
+ */
+export const MAX_AUTOMATION_JOBS = 50
+
+/**
  * A trigger with no calendar: the job runs when the watched path changes.
  *
  * `nextRunAt` stays null for such a job for its whole life — the next run is a

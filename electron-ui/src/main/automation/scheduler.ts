@@ -36,6 +36,7 @@ import { departmentIdForCreate, normalizeDepartmentId } from './job-department'
 import { normalizeJobProvenance } from './job-provenance'
 import { readAutomationStore, writeAutomationStore } from './job-store'
 import { MISSED_RUN_GRACE_MS, normalizeMissedRunPolicy, shouldSkipMissedRun } from './missed-policy'
+import { nextRunAfter } from './next-run'
 import { AUTOMATION_RETRY_POLICY, isPendingRetryExpired, nextRetryAfterFailure } from './retry-policy'
 import { appendRunRecord, countFailureStreak, createSkipRecord, MAX_RUN_ERROR_CHARS } from './run-history'
 import { addToLifetimeTotals } from './run-usage'
@@ -54,6 +55,9 @@ import { normalizeWatchDebounceMinutes, stopWatchers, syncWatchTriggers, watchAt
 import type { WatchHandlers } from './watcher'
 import { workflowPrompts } from './workflow-plan'
 import type { MainWorkflow, UiLocale } from './workflow-plan'
+import {
+  MAX_AUTOMATION_JOBS,
+} from './types'
 import type {
   AutomationAction,
   AutomationDeptBudget,
@@ -68,6 +72,8 @@ import type {
   AutomationRunSource,
   AutomationTrigger,
 } from './types'
+import { moveJobToTrash, restoreTrashedJob } from '../trash/job-trash'
+import type { JobTrashErrorCode, TrashedJobEntry } from '../trash/job-trash'
 
 const log = createLogger('automation-scheduler')
 
@@ -95,7 +101,9 @@ export const AUTOMATION_LIMITS: Omit<AutomationLimits, 'pausedAll'> = {
   minIntervalMinutes: 5,
   maxRunsPerHour: 12,
   maxConcurrentRuns: 2,
-  maxJobs: 50,
+  // The one home for the cap; the trash reads the same constant when it
+  // decides whether restoring a job would overflow the list.
+  maxJobs: MAX_AUTOMATION_JOBS,
   // The retry numbers have one home (`AUTOMATION_RETRY_POLICY`); this is the
   // read-only copy the UI uses for its copy, not a second policy.
   retry: {
@@ -174,18 +182,6 @@ function validateName(value: unknown): string {
   if (!name) throw new AutomationInputError('name_required')
   if (name.length > MAX_NAME_CHARS) throw new AutomationInputError('name_too_long')
   return name
-}
-
-function nextRunAfter(trigger: AutomationTrigger, after: number): number | null {
-  if (trigger.kind === 'cron') {
-    const next = nextFireTime(trigger.expr, new Date(after))
-    return next ? next.getTime() : null
-  }
-  // A watch job has no calendar. Its next run is the next file-system event,
-  // which this process cannot predict, so "never" is the only honest answer —
-  // and it is also what keeps the due-tick from ever choosing the job.
-  if (trigger.kind === 'watch') return null
-  return after + trigger.minutes * 60_000
 }
 
 function validateTrigger(value: AutomationTrigger): AutomationTrigger {
@@ -1474,6 +1470,16 @@ export function updateAutomationJob(id: string, input: AutomationInput): Automat
   }
 }
 
+/**
+ * Erase a job for good — no trash, no undo.
+ *
+ * This is not the user's delete path: that one is `trashAutomationJob` below,
+ * which keeps the record for the retention window. A plugin's job is different:
+ * it is the plugin's own bookkeeping, and a holding area the user browses would
+ * fill up with rows they never made and cannot meaningfully restore. So the
+ * plugin path erases, and this function deliberately knows nothing about
+ * ownership — it is the primitive both paths share.
+ */
 export function deleteAutomationJob(id: string): { ok: boolean; error?: string } {
   const index = jobs.findIndex(j => j.id === id)
   if (index < 0) return { ok: false, error: 'not_found' }
@@ -1516,6 +1522,60 @@ export function deleteAutomationJobForPlugin(
   if (!job) return { ok: false, error: 'not_found' }
   if (job.originPluginId !== pluginId) return { ok: false, error: 'not_owned' }
   return deleteAutomationJob(id)
+}
+
+export type AutomationTrashResult =
+  | { ok: true; entry: TrashedJobEntry }
+  | { ok: false; code: JobTrashErrorCode; error: string }
+
+/**
+ * The user's delete: the job goes into the shared holding area instead of
+ * disappearing.
+ *
+ * The record is written before anything is torn down. If the trash cannot take
+ * it, the job stays in the list and a run that is still going is not aborted for
+ * nothing — a failed delete must leave the user exactly where they were.
+ */
+export function trashAutomationJob(id: string): AutomationTrashResult {
+  const index = jobs.findIndex(job => job.id === id)
+  if (index < 0) return { ok: false, code: 'not_found', error: 'This job no longer exists' }
+  const job = jobs[index]
+
+  const moved = moveJobToTrash(job)
+  if (!moved.ok) return moved
+
+  // A deleted job's run has nothing left to write back into; stop it now that
+  // the record is safely in the trash.
+  if (running.has(id)) abortAutomationRun(id)
+  jobs.splice(index, 1)
+  // A deleted job must stop watching immediately; its watcher has no owner left
+  // to fire into.
+  syncWatchers()
+  persistAndBroadcast()
+  return { ok: true, entry: moved.entry }
+}
+
+/**
+ * Put a trashed job back where it was.
+ *
+ * The restored record is the manifest's, with only the schedule touched (see
+ * `restoreTrashedJob`). `syncWatchers` and the broadcast are what make the
+ * restore real without a restart: the settings list re-reads, and a watch job
+ * re-attaches its watcher.
+ */
+export function restoreAutomationJob(id: string): AutomationTrashResult {
+  const restored = restoreTrashedJob(id, {
+    existingIds: jobs.map(job => job.id),
+    // The list's own cap, so "restore is refused at 50" and "create is refused
+    // at 50" can never drift apart.
+    maxJobs: AUTOMATION_LIMITS.maxJobs,
+  })
+  if (!restored.ok) return restored
+
+  jobs.push(restored.entry.job)
+  syncWatchers()
+  persistAndBroadcast()
+  return { ok: true, entry: restored.entry }
 }
 
 export function setAutomationEnabled(id: string, enabled: boolean): AutomationMutationResult {

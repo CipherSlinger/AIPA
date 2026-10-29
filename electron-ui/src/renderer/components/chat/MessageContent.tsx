@@ -107,14 +107,17 @@ function extractText(children: React.ReactNode): string {
 export default React.memo(function MessageContent({ content, isUser, searchQuery, searchCaseSensitive }: Props) {
   if (isUser) {
     return (
-      <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, color: 'var(--text-primary)', fontSize: 13 }}>
+      // `data-find-scope` marks text the user actually sees; the find bar only
+      // reads nodes inside these markers, so markdown source, timestamps and
+      // tool cards cannot produce matches that are not on screen.
+      <div data-find-scope="" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, color: 'var(--text-primary)', fontSize: 13 }}>
         {searchQuery ? <HighlightedText text={content} query={searchQuery} caseSensitive={searchCaseSensitive} /> : content}
       </div>
     )
   }
 
   return (
-    <div className="markdown-body" style={{ color: 'var(--text-primary)', fontSize: 13, lineHeight: 1.7 }}>
+    <div data-find-scope="" className="markdown-body" style={{ color: 'var(--text-primary)', fontSize: 13, lineHeight: 1.7 }}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}

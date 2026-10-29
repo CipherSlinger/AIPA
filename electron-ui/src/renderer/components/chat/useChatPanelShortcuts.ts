@@ -7,7 +7,7 @@ import { useChatStore } from '../../store'
 export function useChatPanelShortcuts(
   exportConversation: () => void,
   copyConversation: () => void,
-  setSearchOpen: (open: boolean) => void,
+  onOpenFind: () => void,
   sendMessage: (text: string) => Promise<void>,
   abort: () => void,
 ) {
@@ -31,9 +31,13 @@ export function useChatPanelShortcuts(
         e.preventDefault()
         window.dispatchEvent(new CustomEvent('aipa:toggleStats'))
       }
-      if (e.ctrlKey && !e.shiftKey && e.key === 'f') {
+      // Ctrl+F / Cmd+F: find text in the conversation on screen. This used to
+      // open the message-level SearchBar, which only jumped between messages.
+      // The transcript find bar is what Ctrl+F means; the SearchBar stays
+      // reachable from the chat header's search button and the `/` shortcut.
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'f') {
         e.preventDefault()
-        setSearchOpen(true)
+        onOpenFind()
       }
       // Ctrl+Shift+F moved to useAppShortcuts: the overlay opens from any view,
       // and this hook only exists while ChatPanel is mounted.
@@ -102,7 +106,7 @@ export function useChatPanelShortcuts(
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [exportConversation, copyConversation, setSearchOpen, sendMessage, abort])
+  }, [exportConversation, copyConversation, onOpenFind, sendMessage, abort])
 
   // Listen for export trigger from CommandPalette
   useEffect(() => {

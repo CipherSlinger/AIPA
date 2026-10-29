@@ -3841,6 +3841,25 @@
       "missingTitle": "This job is filed under department id “{{id}}”, which is no longer in the org. Leave it selected to keep the filing, or pick another department to re-file it.",
       "rowTitle": "{{path}}\nFiled under this department. It does not change where the job runs or who did the work.",
       "rowMissingTitle": "Filed under department id “{{id}}”, which is no longer in the org. The filing is kept until you edit the job and choose a department."
+    },
+    "trash": {
+      "kind": "Scheduled job",
+      "hint": "A deleted job keeps its run history. Restoring puts it back with its schedule starting again from the moment of the restore.",
+      "deleted": "“{{name}}” moved to Recently deleted — restorable for {{days}} days.",
+      "undo": "Undo",
+      "undoAria": "Undo deleting “{{name}}”",
+      "restored": "“{{name}}” restored — its schedule starts again from now.",
+      "deleteRefused": "Nothing was deleted: {{error}}",
+      "restoreRefused": "Couldn't restore this job: {{error}}",
+      "failure": {
+        "notFound": "Can't restore — this job is no longer in Recently deleted.",
+        "idTaken": "Can't restore — another job already uses this job's id. Nothing was restored; remove or rename the other job first.",
+        "jobLimit": "Can't restore — the job list is full. Delete a job first.",
+        "writeFailed": "The Recently deleted record couldn't be updated, so nothing was changed.",
+        "moveFailed": "This job's record couldn't be read, so the job was left where it was.",
+        "unknown": "no reason was reported",
+        "generic": "That didn't work: {{message}}"
+      }
     }
   },
   "speculation": {
@@ -4235,5 +4254,16 @@
       "deleteFailed": "Couldn't delete this conversation: {{message}}"
     },
     "deleted": "Conversation moved to Recently deleted — you can restore it from there."
+  },
+  "find": {
+    "barLabel": "Find in conversation",
+    "placeholder": "Find in this conversation",
+    "inputLabel": "Find text in this conversation",
+    "counter": "{{current}} of {{total}}",
+    "noMatches": "No matches for “{{query}}”",
+    "emptyConversation": "This conversation is empty",
+    "previous": "Previous match",
+    "next": "Next match",
+    "close": "Close find bar"
   }
 }

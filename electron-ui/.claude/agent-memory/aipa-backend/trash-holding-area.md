@@ -1,12 +1,13 @@
 ---
 name: trash-holding-area
-description: Undoable deletes — skill, workflow and conversation holding areas, shared 30-day window, IPC surface, refusal codes, harness namespace rule
+description: Undoable deletes — skill, workflow, conversation and scheduled-job holding areas, shared 30-day window, IPC surface, refusal codes, harness namespace rule
 metadata:
   type: project
 ---
 
-Deletes of skills, workflows and conversations are undoable for 30 days
-(waves 68B and 69A). Three owners because the artefacts live in three places:
+Deletes of skills, workflows, conversations and scheduled jobs are undoable for
+30 days (waves 68B, 69A and 70A). Four owners because the artefacts live in four
+places:
 
 - **Skills** are folders. `src/main/trash/skill-trash.ts` moves the folder to
   `<userData>/trash/skills/<epoch>-<basename>/` and records it in
@@ -25,6 +26,19 @@ Deletes of skills, workflows and conversations are undoable for 30 days
   nested paths are collapsed so the folder carries its own JSONL. Both moves
   are all-or-nothing with rollback. Restore forgets the readers' summary caches
   (`forgetSessionCache`) so `session:list` sees the file without a restart.
+- **Scheduled jobs** are records. `src/main/trash/job-trash.ts` copies the whole
+  `AutomationJob` into `<userData>/trash/jobs.json` (`{ id, job, deletedAt }`);
+  nothing moves on disk. The record is validated by `normalizeJob` before being
+  written and on every read. A job deleted mid-run is stored as
+  `error`/`interrupted` (history appended from `recentRuns`), never `running`.
+  Restore refuses `id_taken` (never overwrite/renumber) then `job_limit`
+  (`MAX_AUTOMATION_JOBS` in `automation/types.ts`, shared with create),
+  re-arms `nextRunAt = nextRunAfter(trigger, now)` when enabled (`null` when
+  disabled), and always drops `pendingRetry`. `nextRunAfter` lives in
+  `automation/next-run.ts` so scheduler and trash cannot disagree.
+  **Asymmetry:** `plugin:automation:delete` → `deleteAutomationJobForPlugin` →
+  `deleteAutomationJob` still erases; only the user path
+  (`automation:delete` → `trashAutomationJob`) trashes.
 
 **Why:** all three deletes used to be instant and permanent (pref filter /
 `rm -rf` / `unlink`), so one misclick destroyed hand-written work.
@@ -56,16 +70,26 @@ rename→EXDEV copy+delete fallback; skill-trash and session-trash both import i
   and resolves `{ success:true, entry }` / `{ success:false, error, code }`;
   `not_found` replaces the old `false`. Preload: `sessionsTrash*`,
   `SessionTrashErrorCode`, `SessionDeleteResultData`.
-- UI: `TrashSection.tsx` (Employees page, below workflows) renders all three
+- Job IPC: `automation:trash:list|restore|purge|remove`; `automation:delete`
+  resolves `{ ok:true, entry }` / `{ ok:false, code, error }`
+  (`not_found|move_failed|write_failed|job_limit|id_taken`). Preload:
+  `automationTrashList/Restore/Purge/Remove`, `JobTrashErrorCode`,
+  `TrashedJobEntryData` (job typed as `Omit<AutomationJobData, running|pausedAll|
+  actionMissing|failureStreak|spendWindow>`). Launch purge in `App.tsx`.
+- UI: `TrashSection.tsx` (Employees page, below workflows) renders all four
   kinds together, shows "Removes on <formatDateMedium date>", per-row refusal
-  text, and returns `null` when empty. After a conversation restore it refreshes
-  the sidebar through `listSessionsShared()` + `useSessionStore.setSessions`.
+  text, and returns `null` when empty. Job rows follow `automation:changed`.
+  After a conversation restore it refreshes the sidebar through
+  `listSessionsShared()` + `useSessionStore.setSessions`. The job delete toast in
+  `SettingsAutomations.tsx` carries Undo (`UNDO_TOAST_MS`), whose restore also
+  works through `automation:trash:restore`.
 - **Harness namespace trap:** `.scratch/wave68b-undo-delete-harness/run.js`
   asserts every `'trash.*'` literal in `TrashSection.tsx` exists in the *wave
   68B fragment*, and must keep passing unchanged. Conversation copy therefore
-  lives under `sessionTrash.*` in the wave 69A fragment; adding another
-  `trash.*` key to that component breaks the older harness.
+  lives under `sessionTrash.*` and job copy under `automation.trash.*`; adding
+  another `trash.*` key to that component breaks the older harness.
 - Harnesses: `.scratch/wave68b-undo-delete-harness/` (17 checks),
-  `.scratch/wave69a-session-trash-harness/` (18 checks).
+  `.scratch/wave69a-session-trash-harness/` (18 checks),
+  `.scratch/wave70a-job-trash-harness/` (13 checks).
 
 Related: [[electron-main-ipc-conventions]].

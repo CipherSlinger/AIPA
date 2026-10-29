@@ -45,7 +45,9 @@ import type {
   AutomationLimitsData,
   AutomationMemoryDigestData,
   AutomationRunRecordData,
+  JobTrashErrorCode,
 } from '../../../preload'
+import { TRASH_RETENTION_DAYS, UNDO_TOAST_MS } from '../../lib/workflowTrash'
 import type { Persona } from '../../types/app.types'
 
 /** Which runs a job's history disclosure is currently showing, and how. */
@@ -322,6 +324,30 @@ export default function SettingsAutomations() {
     return translated === key ? code : translated
   }, [t])
 
+  /**
+   * Why a delete or a restore was refused, in the user's words.
+   *
+   * The codes come from the holding area, not from the scheduler, so they are
+   * spelled out here rather than looked up in `automation.errors.*`. `job_limit`
+   * deliberately does not print the number: the way out is deleting a job, not
+   * counting them.
+   */
+  const jobTrashFailure = useCallback((
+    code: JobTrashErrorCode | undefined,
+    error: string | undefined,
+  ): string => {
+    switch (code) {
+      case 'not_found': return t('automation.trash.failure.notFound')
+      case 'id_taken': return t('automation.trash.failure.idTaken')
+      case 'job_limit': return t('automation.trash.failure.jobLimit')
+      case 'write_failed': return t('automation.trash.failure.writeFailed')
+      case 'move_failed': return t('automation.trash.failure.moveFailed')
+      default: return t('automation.trash.failure.generic', {
+        message: error || t('automation.trash.failure.unknown'),
+      })
+    }
+  }, [t])
+
   /** One past run's outcome, in the same words the status line uses. */
   const runStatus = useCallback((record: AutomationRunRecordData): { text: string; color: string } => {
     if (record.status === 'success') return { text: t('automation.status.success'), color: 'var(--success-text)' }
@@ -591,15 +617,53 @@ export default function SettingsAutomations() {
     }
   }
 
+  /** The toast's Undo: put the job back from the holding area. */
+  const undoDeleteJob = async (job: AutomationJobData, trashId: string) => {
+    try {
+      const result = await window.electronAPI.automationTrashRestore(trashId)
+      if (!result.ok) {
+        addToast('error', t('automation.trash.restoreRefused', {
+          error: jobTrashFailure(result.code, result.error),
+        }))
+        return
+      }
+      // The list refreshes through `automation:changed`, and the schedule was
+      // re-armed from this instant — say so, or the next run would be expected
+      // at the time it had before the delete.
+      addToast('success', t('automation.trash.restored', { name: job.name }))
+    } catch (err) {
+      addToast('error', t('automation.trash.restoreRefused', { error: String(err) }))
+    }
+  }
+
+  /**
+   * Delete a job: it moves into the shared holding area, and the toast offers
+   * the one click that puts it back. A refusal is reported by the toast too —
+   * it names what went wrong, and nothing on the page has changed.
+   */
   const removeJob = async (job: AutomationJobData) => {
     setConfirmingId(null)
     setError(null)
     setBusyId(job.id)
     try {
       const result = await window.electronAPI.automationDelete(job.id)
-      if (!result.ok) setError(t('automation.errors.deleteFailed', { error: errorText(result.error ?? 'not_found') }))
+      if (!result.ok) {
+        addToast('error', t('automation.trash.deleteRefused', {
+          error: jobTrashFailure(result.code, result.error),
+        }))
+        return
+      }
+      // The row is gone, the job is not: undo acts on the trash row's own id.
+      addToast('info', t('automation.trash.deleted', {
+        name: job.name,
+        days: TRASH_RETENTION_DAYS,
+      }), UNDO_TOAST_MS, {
+        label: t('automation.trash.undo'),
+        ariaLabel: t('automation.trash.undoAria', { name: job.name }),
+        onClick: () => { void undoDeleteJob(job, result.entry.id) },
+      })
     } catch (err) {
-      setError(t('automation.errors.deleteFailed', { error: String(err) }))
+      addToast('error', t('automation.trash.deleteRefused', { error: String(err) }))
     } finally {
       setBusyId(null)
     }
@@ -1668,9 +1732,10 @@ export default function SettingsAutomations() {
 
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                     {confirmingId === job.id ? (
-                      // Deleting is irreversible and there is no undo, so the
-                      // confirmation replaces the row's actions instead of
-                      // opening a second dialog on top of the settings page.
+                      // Deleting now leaves the job in Recently deleted, but a
+                      // scheduled job disappearing is still worth a second
+                      // look: the confirmation replaces the row's actions
+                      // instead of opening a dialog on top of the page.
                       <>
                         <button
                           style={{ ...smallButtonStyle, borderColor: 'rgba(248,113,113,0.5)', color: 'var(--danger-text)' }}

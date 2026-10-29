@@ -6,6 +6,7 @@ import { useStreamJson } from '../../hooks/useStreamJson'
 import { useStreamingTimer } from '../../hooks/useStreamingTimer'
 import { useChatZoom } from '../../hooks/useChatZoom'
 import { useConversationSearch } from '../../hooks/useConversationSearch'
+import { useFindInChat } from '../../hooks/useFindInChat'
 import { useConversationStats } from '../../hooks/useConversationStats'
 import { useSessionChanges } from '../../hooks/useSessionChanges'
 import { useConversationExport } from './useConversationExport'
@@ -19,6 +20,7 @@ import SessionOriginLine from './SessionOriginLine'
 import MadeFromConversation from '../provenance/MadeFromConversation'
 import CatchUpCard from './CatchUpCard'
 import SearchBar from './SearchBar'
+import { FindInChatBar } from './FindInChatBar'
 import TaskQueuePanel from './TaskQueuePanel'
 import TaskDashboard from './TaskDashboard'
 import ThinkingIndicator from './ThinkingIndicator'
@@ -158,6 +160,23 @@ export default function ChatPanel() {
     toggleCaseSensitive, changeRoleFilter,
   } = useConversationSearch(messages)
 
+  // Find in the conversation on screen (wave 70B). It reads the transcript's
+  // DOM, so it lives with this panel: there is nothing to search in another
+  // view, and the bar is only ever opened from the shortcut.
+  const find = useFindInChat({
+    hasMessages: messages.length > 0,
+    messageCount: messages.length,
+    isStreaming,
+  })
+
+  // Two find surfaces over the same transcript would highlight it twice: the
+  // message-level SearchBar closes when the occurrence-level find bar opens.
+  const { openBar: openFindBar } = find
+  const handleOpenFind = useCallback(() => {
+    if (searchOpen) handleSearchClose()
+    openFindBar()
+  }, [searchOpen, handleSearchClose, openFindBar])
+
   const { exportConversation, exportBookmarks, copyConversation } = useConversationExport(
     messages, currentSessionId, currentSessionTitle, prefs.model, bookmarkedMessages, addToast,
   )
@@ -172,7 +191,7 @@ export default function ChatPanel() {
   // Export dialog state
   const [showExport, setShowExport] = useState(false)
 
-  useChatPanelShortcuts(() => setShowExport(true), copyConversation, setSearchOpen, sendMessage, abort)
+  useChatPanelShortcuts(() => setShowExport(true), copyConversation, handleOpenFind, sendMessage, abort)
 
   // "/" and Ctrl+Shift+F arrive as a store flag, not a DOM event: those
   // shortcuts also work from views where this panel is unmounted, so the
@@ -455,6 +474,21 @@ export default function ChatPanel() {
       {/* Token usage progress bar */}
       <TokenUsageBar />
 
+      {/* Find in this conversation (wave 70B). Docked to the top of the
+          transcript in normal flow, with no card shadow: it belongs to the
+          reading surface, not to the floating popups above it. */}
+      {find.open && (
+        <FindInChatBar
+          query={find.query}
+          state={find.state}
+          inputRef={find.inputRef}
+          onQueryChange={find.changeQuery}
+          onNext={find.next}
+          onPrev={find.prev}
+          onClose={find.closeBar}
+        />
+      )}
+
       {/* Search bar */}
       {searchOpen && (
         <SearchBar
@@ -627,6 +661,7 @@ export default function ChatPanel() {
             onRespondElicitation={respondElicitation}
             sessionId={currentSessionId}
             isStreaming={isStreaming}
+            findOpen={find.open}
             searchQuery={evidenceQuery ?? searchQuery}
             searchCaseSensitive={caseSensitive}
             highlightedMessageIdx={evidenceIndex ?? (searchMatches.length > 0 ? searchMatches[currentMatchIdx] : undefined)}

@@ -9,20 +9,22 @@ import { ipcMain } from 'electron'
 import {
   cloneAutomationJob,
   createAutomationJob,
-  deleteAutomationJob,
   listAutomationDeptBudgetReports,
   listAutomationJobs,
   previewAutomationSchedule,
+  restoreAutomationJob,
   runAutomationNow,
   setAutomationDeptBudget,
   setAutomationEnabled,
   setAutomationGlobalBudget,
   setAutomationPausedAll,
   syncAutomationDeptBudgets,
+  trashAutomationJob,
   updateAutomationJob,
 } from '../automation/scheduler'
 import { normalizeDeptSpendRequest, summarizeDeptSpend } from '../automation/spend-guard'
 import type { AutomationInput, AutomationTrigger } from '../automation/types'
+import { listTrashedJobs, purgeTrashedJobs, removeTrashedJob } from '../trash/job-trash'
 
 /**
  * Register without colliding with a handler left behind by a previous
@@ -138,7 +140,67 @@ export function registerAutomationHandlers(): void {
   ipcMain.handle('automation:update', (_event, id: string, input: AutomationInput) =>
     updateAutomationJob(String(id), input))
 
-  ipcMain.handle('automation:delete', (_event, id: string) => deleteAutomationJob(String(id)))
+  // The user's delete: to the holding area, not to nothing. A plugin's job is
+  // erased instead — see `deleteAutomationJobForPlugin` for why.
+  safeHandle('automation:delete', (_event, id: unknown) => {
+    try {
+      if (typeof id !== 'string' || !id) {
+        return { ok: false, code: 'not_found', error: 'No job was given' }
+      }
+      return trashAutomationJob(id)
+    } catch (err) {
+      console.error('[automation:delete]', err)
+      return { ok: false, code: 'write_failed', error: 'unexpected_error' }
+    }
+  })
+
+  // ── Recently deleted jobs ──
+  // Same result-object discipline as the rest of this surface: the section
+  // shows the named reason beside the row, and a refused restore must never be
+  // reported as a success.
+  safeHandle('automation:trash:list', () => {
+    try {
+      return listTrashedJobs()
+    } catch (err) {
+      console.error('[automation:trash:list]', err)
+      // An empty list would claim "nothing was deleted"; a rejected invoke lets
+      // the section say it could not read the holding area.
+      throw err
+    }
+  })
+
+  safeHandle('automation:trash:restore', (_event, id: unknown) => {
+    try {
+      if (typeof id !== 'string' || !id) {
+        return { ok: false, code: 'not_found', error: 'No item was given' }
+      }
+      return restoreAutomationJob(id)
+    } catch (err) {
+      console.error('[automation:trash:restore]', err)
+      return { ok: false, code: 'write_failed', error: 'unexpected_error' }
+    }
+  })
+
+  safeHandle('automation:trash:purge', () => {
+    try {
+      return purgeTrashedJobs()
+    } catch (err) {
+      console.error('[automation:trash:purge]', err)
+      return { ok: true, removed: 0 }
+    }
+  })
+
+  safeHandle('automation:trash:remove', (_event, id: unknown) => {
+    try {
+      if (typeof id !== 'string' || !id) {
+        return { ok: false, code: 'not_found', error: 'No item was given' }
+      }
+      return removeTrashedJob(id)
+    } catch (err) {
+      console.error('[automation:trash:remove]', err)
+      return { ok: false, code: 'write_failed', error: 'unexpected_error' }
+    }
+  })
 
   ipcMain.handle('automation:setEnabled', (_event, id: string, enabled: boolean) =>
     setAutomationEnabled(String(id), !!enabled))

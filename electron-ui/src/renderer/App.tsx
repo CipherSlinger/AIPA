@@ -105,6 +105,9 @@ export default function App() {
         // Deleted conversations are files under userData too; a user who never
         // opens the Employees page should still have a bounded holding area.
         window.electronAPI.sessionsTrashPurge().catch(() => { /* best effort */ })
+        // Deleted jobs are records in a manifest under userData; same window,
+        // same bounded holding area, same best-effort nudge.
+        window.electronAPI.automationTrashPurge().catch(() => { /* best effort */ })
 
         // Auto-populate default personas and workflows on first launch (Iteration 405)
         populateDefaultPresetsIfEmpty(all)

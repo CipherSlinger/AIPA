@@ -3841,6 +3841,25 @@
       "missingTitle": "这份任务归档在部门 id“{{id}}”下，该部门已不在组织架构中。保持选中即可保留归档；改选其他部门会重新归档。",
       "rowTitle": "{{path}}\n归属这个部门。这不改变任务在哪里运行，也不代表工作是谁做的。",
       "rowMissingTitle": "归档在部门 id“{{id}}”下，该部门已不在组织架构中。在你编辑任务并改选部门之前，归档会保留。"
+    },
+    "trash": {
+      "kind": "定时任务",
+      "hint": "被删除的定时任务保留着运行记录。恢复后，它的排期从恢复的那一刻重新开始。",
+      "deleted": "“{{name}}”已移入“最近删除”——可在 {{days}} 天内恢复。",
+      "undo": "撤销",
+      "undoAria": "撤销删除“{{name}}”",
+      "restored": "“{{name}}”已恢复——它的排期从此刻重新开始。",
+      "deleteRefused": "没有删除任何东西：{{error}}",
+      "restoreRefused": "没能恢复这个定时任务：{{error}}",
+      "failure": {
+        "notFound": "无法恢复——这个定时任务已不在“最近删除”中。",
+        "idTaken": "无法恢复——已有另一个任务使用这个任务的编号。什么都没有恢复；请先删除或重命名那个任务。",
+        "jobLimit": "无法恢复——定时任务列表已满。请先删除一个任务。",
+        "writeFailed": "“最近删除”的记录没能更新，所以什么都没有改动。",
+        "moveFailed": "读不出这个任务的记录，所以它留在了原处。",
+        "unknown": "没有给出原因",
+        "generic": "操作未能完成：{{message}}"
+      }
     }
   },
   "speculation": {
@@ -4235,5 +4254,16 @@
       "deleteFailed": "没能删掉这段对话：{{message}}"
     },
     "deleted": "对话已移入“最近删除”——在那里可以恢复。"
+  },
+  "find": {
+    "barLabel": "在对话中查找",
+    "placeholder": "在这段对话里查找",
+    "inputLabel": "在当前对话中查找文字",
+    "counter": "第 {{current}} 项，共 {{total}} 项",
+    "noMatches": "没有找到“{{query}}”",
+    "emptyConversation": "这段对话还是空的",
+    "previous": "上一个匹配",
+    "next": "下一个匹配",
+    "close": "关闭查找栏"
   }
 }

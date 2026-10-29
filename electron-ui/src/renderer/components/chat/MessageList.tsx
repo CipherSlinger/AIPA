@@ -44,6 +44,12 @@ interface Props {
   onRespondElicitation?: (requestId: string, result: Record<string, unknown>) => void
   sessionId?: string | null
   isStreaming?: boolean
+  /**
+   * The in-conversation find bar is open. It searches the transcript's DOM,
+   * so every row has to be mounted for its count to describe the whole
+   * conversation rather than whatever happened to be on screen.
+   */
+  findOpen?: boolean
   searchQuery?: string
   searchCaseSensitive?: boolean
   highlightedMessageIdx?: number
@@ -62,7 +68,7 @@ interface Props {
   restoreScrollTop?: number
 }
 
-export default function MessageList({ messages, onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, onRespondHookCallback, onRespondElicitation, sessionId, isStreaming, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, evidenceMessageIdx, onEdit, onFork, onBranch, onScrollTop, tabId, restoreScrollTop }: Props) {
+export default function MessageList({ messages, onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, onRespondHookCallback, onRespondElicitation, sessionId, isStreaming, findOpen, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, evidenceMessageIdx, onEdit, onFork, onBranch, onScrollTop, tabId, restoreScrollTop }: Props) {
   const resolvePlan = useChatStore(s => s.resolvePlan)
   const addToast = useUiStore(s => s.addToast)
   const rewindToMessage = useChatStore(s => s.rewindToMessage)
@@ -145,7 +151,11 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       if (item.type === 'engineSteps') return 22
       return 80
     },
-    overscan: 5,
+    // While the find bar is open, mount every row. The bar counts occurrences
+    // in the transcript's DOM; with virtualization on, a "3 of 12" would be a
+    // claim about rows that were never rendered or searched. Virtualization
+    // resumes when the bar closes, so this cost is paid only while searching.
+    overscan: findOpen ? items.length : 5,
   })
 
   const scrollState = useMessageListScroll(scrollContainerRef, messages, items, sessionId, isStreaming, virtualizer)
@@ -359,9 +369,12 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
       )}
       {/* Pinned messages strip (extracted — Iteration 403) */}
       <PinnedMessagesStrip messages={messages} items={items} virtualizer={virtualizer} />
+    {/* `data-find-transcript` marks the element the find bar walks. Only
+        rendered message text carries `data-find-scope` underneath it. */}
     <div
       ref={scrollContainerRef}
       onScroll={handleScroll}
+      data-find-transcript=""
       role="log"
       aria-label={t('a11y.conversationMessages')}
       aria-live="polite"
