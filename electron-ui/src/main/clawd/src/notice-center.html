@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Local-only page: no image, font, fetch or media sources. `'self'` is
+     needed solely so the sibling notice-center.js can load from the app
+     directory (the same policy settings.html uses); nothing leaves disk. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline' 'self'">
+<style>
+/* SAO HUD grammar shared with update-bubble.html and pet-menu.html: a
+   near-black translucent slab, cut corners, a faint grid and a scan sweep,
+   one accent per notice kind, uppercase monospace chrome. The window itself
+   is transparent — only the panel draws. */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+/* Author `display` rules outrank the UA [hidden] rule; make the attribute
+   authoritative for the empty state, hidden messages and filtered rows. */
+[hidden] { display: none !important; }
+html, body {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+  font-family: "Cascadia Code", "SF Mono", ui-monospace, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+:root {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --panel-bg: rgba(8, 14, 20, 0.92);
+  --text: #dff7f3;
+  --muted: #7fa8a2;
+  --accent: #3fe0c8;
+  --line: rgba(63, 224, 200, 0.28);
+  --line-soft: rgba(63, 224, 200, 0.045);
+  --scroll-thumb: rgba(63, 224, 200, 0.25);
+  --scroll-thumb-hover: rgba(63, 224, 200, 0.45);
+}
+
+body { padding: 8px; }
+
+/* ── Panel ────────────────────────────────────────────────────────────────── */
+.panel {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  padding: 12px 14px 14px;
+  color: var(--text);
+  background:
+    linear-gradient(var(--line-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line-soft) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(8, 14, 20, 0.92), rgba(4, 10, 14, 0.97));
+  background-size: 100% 22px, 22px 100%, 100% 100%;
+  border: 1px solid var(--line);
+  /* clip-path crops a box-shadow, so the outer glow is a filter on the panel;
+     the inset glow stays as a normal shadow. */
+  filter: drop-shadow(0 10px 26px rgba(0, 0, 0, 0.45));
+  box-shadow: inset 0 0 28px rgba(63, 224, 200, 0.05);
+  clip-path: polygon(
+    0 12px, 12px 0,
+    calc(100% - 18px) 0, 100% 18px,
+    100% calc(100% - 10px), calc(100% - 10px) 100%,
+    18px 100%, 0 calc(100% - 18px)
+  );
+  text-shadow: 0 0 12px rgba(63, 224, 200, 0.10);
+  opacity: 0;
+  transform: translateY(6px) scale(0.985);
+  transition: opacity 0.16s linear, transform 0.20s var(--ease);
+  outline: none;
+}
+.panel.visible { opacity: 1; transform: none; }
+
+/* A slow sweep of light. Purely decorative, so it sits under the content. */
+.scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 26%;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(63, 224, 200, 0.10), transparent);
+  animation: hudScan 5.5s linear infinite;
+}
+@keyframes hudScan {
+  0%   { transform: translateY(-120%); opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { transform: translateY(420%); opacity: 0; }
+}
+
+.head,
+.filters,
+.list,
+.empty { position: relative; z-index: 1; }
+
+/* ── Title bar ────────────────────────────────────────────────────────────── */
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px 9px;
+  border-bottom: 1px solid rgba(63, 224, 200, 0.14);
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.eyebrow::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  transform: rotate(45deg);
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  flex: none;
+}
+.count {
+  min-width: 18px;
+  padding: 1px 5px;
+  border: 1px solid rgba(63, 224, 200, 0.4);
+  border-radius: 1px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  color: var(--accent);
+}
+.count[data-zero="true"] {
+  opacity: 0.4;
+  border-color: rgba(127, 168, 162, 0.3);
+  color: var(--muted);
+}
+.spacer { flex: 1; }
+.ghost {
+  appearance: none;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  font: inherit;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 5px 6px;
+  cursor: pointer;
+  outline: none;
+  transition: color 140ms ease, opacity 140ms ease;
+}
+.ghost:hover:not(:disabled),
+.ghost:focus-visible:not(:disabled) {
+  color: var(--accent);
+  text-shadow: 0 0 10px rgba(63, 224, 200, 0.4);
+}
+.ghost:disabled { opacity: 0.35; cursor: default; }
+.close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(63, 224, 200, 0.18);
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: 0;
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+}
+.close:hover:not(:disabled),
+.close:focus-visible:not(:disabled) {
+  border-color: rgba(63, 224, 200, 0.6);
+  box-shadow: 0 0 12px rgba(63, 224, 200, 0.2);
+}
+
+/* ── Filter chips ─────────────────────────────────────────────────────────── */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 8px 2px;
+}
+.chip {
+  appearance: none;
+  background: rgba(63, 224, 200, 0.04);
+  border: 1px solid rgba(63, 224, 200, 0.18);
+  color: var(--muted);
+  font: inherit;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 4px 7px;
+  cursor: pointer;
+  outline: none;
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+.chip:hover { color: var(--text); }
+.chip:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+.chip[aria-selected="true"] {
+  color: var(--accent);
+  border-color: rgba(63, 224, 200, 0.6);
+  background: rgba(63, 224, 200, 0.12);
+  box-shadow: 0 0 12px rgba(63, 224, 200, 0.10);
+}
+
+/* ── Rows ──────────────────────────────────────────────────────────────────── */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.list::-webkit-scrollbar { width: 6px; }
+.list::-webkit-scrollbar-track { background: transparent; }
+.list::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 3px;
+}
+.list::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
+
+.row {
+  --k: var(--accent);
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 40px;
+  align-items: start;
+  gap: 9px;
+  padding: 8px 4px 8px 12px;
+  border: 1px solid transparent;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--k) 6%, transparent), transparent 62%);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+/* Accent rail. Kept out of the grid so it can bleed to the panel edge. */
+.row::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--k);
+  opacity: 0.55;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--k) 55%, transparent);
+}
+.row:hover {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--k) 13%, transparent), transparent 72%);
+  border-color: color-mix(in srgb, var(--k) 24%, transparent);
+}
+.row.selected,
+.row:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--k) 70%, transparent);
+  outline-offset: -1px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--k) 15%, transparent), transparent 78%);
+}
+
+.icon {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--k);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--k) 50%, transparent));
+}
+.icon svg { display: block; width: 100%; height: 100%; }
+
+.body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.title-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.dot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--k);
+  box-shadow: 0 0 7px var(--k);
+}
+.row[data-read="true"] .dot { opacity: 0; }
+.title {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text);
+}
+.row[data-read="true"] .title {
+  color: #c7e6e1;
+  font-weight: 600;
+  opacity: 0.9;
+}
+.msg {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.row[data-read="true"] .msg { opacity: 0.75; }
+
+.side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.time {
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.dismiss {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid rgba(127, 168, 162, 0.3);
+  border-radius: 1px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  outline: none;
+  opacity: 0;
+  transition: opacity 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+.row:hover .dismiss,
+.row.selected .dismiss,
+.row:focus-within .dismiss { opacity: 1; }
+.dismiss:hover,
+.dismiss:focus-visible {
+  color: #ff5d5d;
+  border-color: rgba(255, 93, 93, 0.6);
+  box-shadow: 0 0 10px rgba(255, 93, 93, 0.25);
+}
+
+/* One accent per kind, matching update-bubble.js. */
+.row[data-kind="system"]        { --k: #3fe0c8; }
+.row[data-kind="info"]          { --k: #58a6ff; }
+.row[data-kind="success"]       { --k: #57d98a; }
+.row[data-kind="warning"]       { --k: #f0b429; }
+.row[data-kind="error"]         { --k: #ff5d5d; }
+.row[data-kind="quest"]         { --k: #b98cff; }
+.row[data-kind="approval"]      { --k: #58a6ff; }
+.row[data-kind="clarification"] { --k: #3fe0c8; }
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
+.empty {
+  padding: 26px 0 30px;
+  text-align: center;
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel { transition: none; }
+  .scan { animation: none; }
+  .row,
+  .chip,
+  .dismiss,
+  .ghost { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="panel" id="panel" role="dialog" aria-label="Notice log" tabindex="-1">
+  <div class="scan" aria-hidden="true"></div>
+  <header class="head">
+    <span class="eyebrow" id="eyebrow">NOTICE LOG</span>
+    <span class="count" id="count" data-zero="true" aria-live="polite">0</span>
+    <span class="spacer"></span>
+    <button class="ghost clear" id="clearBtn" type="button"></button>
+    <button class="ghost close" id="closeBtn" type="button"></button>
+  </header>
+  <div class="filters" id="filters" role="tablist"></div>
+  <div class="list" id="list" role="list"></div>
+  <div class="empty" id="empty" hidden></div>
+</div>
+<script src="notice-center.js"></script>
+</body>
+</html>

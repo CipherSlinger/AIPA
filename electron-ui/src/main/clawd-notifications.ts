@@ -14,6 +14,8 @@
 //   - a repeated identical notice within a few seconds refreshes one record
 //     instead of stacking (the attention queue already coalesces its own
 //     kinds; this catches the transient notices that go around it);
+//   - records start unread and gain a `readAt` when the notice centre shows
+//     them, so the pet menu can carry an unread badge without a second store;
 //   - a corrupt file fails open to an empty history and is left on disk for
 //     inspection — losing the pet's memory must never stop the pet.
 import { app } from 'electron'
@@ -37,6 +39,12 @@ export interface ClawdNoticeRecord {
   detail?: string
   /** Epoch ms when it was shown. */
   at: number
+  /**
+   * Epoch ms when the notice centre first showed it. Absent means unread; the
+   * field is only ever added, never cleared, so "read" survives a refresh of a
+   * deduped notice and cannot flicker back to unread.
+   */
+  readAt?: number
   /** Openable AIPA session id, when the notice is about a conversation. */
   sessionId?: string
   /** Plugin that owns the job, for plugin notices. */
@@ -80,6 +88,11 @@ function normalizeRecord(value: unknown): ClawdNoticeRecord | null {
   if (!id || !title) return null
   const at = typeof raw.at === 'number' && Number.isFinite(raw.at) ? raw.at : 0
   if (at <= 0) return null
+  // Only a positive timestamp counts. Anything else (a hand-edited file, an
+  // older version) leaves the notice unread, which is the safe default.
+  const readAt = typeof raw.readAt === 'number' && Number.isFinite(raw.readAt) && raw.readAt > 0
+    ? raw.readAt
+    : undefined
   const detail = optionalText(raw.detail)
   const sessionId = optionalText(raw.sessionId, 200)
   const pluginId = optionalText(raw.pluginId, 200)
@@ -90,6 +103,7 @@ function normalizeRecord(value: unknown): ClawdNoticeRecord | null {
     title,
     message: cleanText(raw.message),
     at,
+    ...(readAt ? { readAt } : {}),
     ...(detail ? { detail } : {}),
     ...(sessionId ? { sessionId } : {}),
     ...(pluginId ? { pluginId } : {}),
@@ -190,6 +204,56 @@ export function recordClawdNotice(input: ClawdNoticeInput): ClawdNoticeRecord | 
 export function listClawdNotices(file?: string): ClawdNoticeRecord[] {
   const target = file ?? storePath()
   return target ? readStore(target).notices : []
+}
+
+/**
+ * Mark notices read. With no argument every unread record is marked; with an
+ * id list only those records are touched. Already-read records keep their
+ * original timestamp, so opening the centre twice does not rewrite the file or
+ * make the "read" moment move. Fail-open: a missing store is a no-op.
+ */
+export function markClawdNoticesRead(ids?: string[]): void {
+  const file = storePath()
+  if (!file) return
+  // An explicit empty list is "mark nothing", not "mark everything" — the
+  // distinction matters for an 'open' action that arrives without an id.
+  const wanted = Array.isArray(ids) ? new Set(ids.map(id => cleanText(id, 80)).filter(Boolean)) : null
+  if (wanted && wanted.size === 0) return
+
+  const store = readStore(file)
+  const now = Date.now()
+  let changed = false
+  for (const notice of store.notices) {
+    if (notice.readAt) continue
+    if (wanted && !wanted.has(notice.id)) continue
+    notice.readAt = now
+    changed = true
+  }
+  if (changed) writeStore(store, file)
+}
+
+/** How many records the user has not opened yet. */
+export function getUnreadClawdNoticeCount(): number {
+  const file = storePath()
+  if (!file) return 0
+  return readStore(file).notices.reduce((count, notice) => count + (notice.readAt ? 0 : 1), 0)
+}
+
+/**
+ * Forget one record by id. Used by the notice centre's per-row dismiss control,
+ * which removes a row rather than merely marking it read. Returns false when
+ * the id is unknown so the caller can skip a redundant repaint.
+ */
+export function removeClawdNotice(id: string): boolean {
+  const target = cleanText(id, 80)
+  if (!target) return false
+  const file = storePath()
+  if (!file) return false
+  const store = readStore(file)
+  const notices = store.notices.filter(notice => notice.id !== target)
+  if (notices.length === store.notices.length) return false
+  writeStore({ version: STORE_VERSION, notices }, file)
+  return true
 }
 
 /** Remove every record. The file is rewritten empty rather than deleted so a

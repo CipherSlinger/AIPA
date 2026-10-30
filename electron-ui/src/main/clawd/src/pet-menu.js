@@ -12,6 +12,10 @@
  * Failure policy: if the window cannot be created or the page cannot load, the
  * caller falls back to the native context menu. A quick menu that swallows the
  * right-click and then shows nothing would make the pet unusable.
+ *
+ * The second ring behind MORE is a renderer-only concern: the page swaps
+ * layers inside this same window, so no second window, no re-measure and no
+ * second reveal handshake are involved. Only the final petal id crosses IPC.
  */
 const { BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
@@ -207,14 +211,14 @@ module.exports = function initPetMenu(ctx) {
   /**
    * Close first, act second. An action that brings AIPA forward must not be
    * undone by the menu's own focus restore a moment later.
+   *
+   * Every petal — including the second ring behind MORE — is one action id.
+   * The nested ring itself lives in the renderer, so by the time anything
+   * arrives here it is already a decision, not a navigation step.
    */
   function finish(actionId) {
     close();
     setTimeout(() => {
-      if (actionId === "more") {
-        if (typeof ctx.onMore === "function") ctx.onMore();
-        return;
-      }
       if (typeof ctx.onAction === "function") ctx.onAction(actionId);
     }, 0);
   }

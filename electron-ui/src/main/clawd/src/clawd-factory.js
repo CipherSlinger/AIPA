@@ -903,18 +903,12 @@ function hasPetMenuCallback(name) {
 }
 
 function getPetMenuPayload() {
-  const state = {
-    canStop: callPetMenuCallback("isBusy") === true,
-    quiet: callPetMenuCallback("isQuiet") === true,
-    // STOP needs both the action and the state that enables it; anything else
-    // is an offer the user cannot take.
-    available: {
-      newChat: hasPetMenuCallback("newChat"),
-      openAipa: hasPetMenuCallback("openMain"),
-      stop: hasPetMenuCallback("stopTurn") && hasPetMenuCallback("isBusy"),
-      silence: hasPetMenuCallback("toggleSilence"),
-    },
-  };
+  // The unread count is read once per open. The menu renders a static badge;
+  // a count that moves while the ring is up is not worth a repaint channel.
+  const unreadRaw = callPetMenuCallback("unreadNotices");
+  const unreadNotices = typeof unreadRaw === "number" && isFinite(unreadRaw) && unreadRaw > 0
+    ? Math.floor(unreadRaw)
+    : 0;
   return {
     lang,
     labels: {
@@ -924,10 +918,35 @@ function getPetMenuPayload() {
       silence: t("petMenuSilence"),
       resume: t("petMenuResume"),
       more: t("petMenuMore"),
+      // Second ring behind MORE.
+      notices: t("petMenuNotices"),
+      settings: t("petMenuSettings"),
+      hidePet: t("petMenuHidePet"),
+      allCommands: t("petMenuAllCommands"),
+      back: t("petMenuBack"),
       close: t("petMenuClose"),
       nothingRunning: t("petMenuNothingRunning"),
     },
-    state,
+    state: {
+      canStop: callPetMenuCallback("isBusy") === true,
+      quiet: callPetMenuCallback("isQuiet") === true,
+    },
+    badges: {
+      notices: unreadNotices,
+    },
+    // A petal whose AIPA callback is missing is not rendered at all; anything
+    // else is an offer the user cannot take. `native` needs no callback — the
+    // pet's own context menu is always there.
+    available: {
+      newChat: hasPetMenuCallback("newChat"),
+      openAipa: hasPetMenuCallback("openMain"),
+      stop: hasPetMenuCallback("stopTurn") && hasPetMenuCallback("isBusy"),
+      silence: hasPetMenuCallback("toggleSilence"),
+      notices: hasPetMenuCallback("openNotices"),
+      settings: hasPetMenuCallback("openSettings"),
+      hide: hasPetMenuCallback("toggleHidden"),
+      native: true,
+    },
   };
 }
 
@@ -937,6 +956,11 @@ function handlePetMenuAction(actionId) {
     case "open-aipa": callPetMenuCallback("openMain"); break;
     case "stop": callPetMenuCallback("stopTurn"); break;
     case "silence": callPetMenuCallback("toggleSilence"); break;
+    // Second ring. `native` is the old MORE: the full menu, still complete.
+    case "notices": callPetMenuCallback("openNotices"); break;
+    case "settings": callPetMenuCallback("openSettings"); break;
+    case "hide": callPetMenuCallback("toggleHidden"); break;
+    case "native": showPetContextMenu(); break;
     default: break;
   }
 }
@@ -947,9 +971,8 @@ const _petMenuCtx = {
   getHitRectScreen,
   getPayload: () => getPetMenuPayload(),
   onAction: (actionId) => handlePetMenuAction(actionId),
-  // MORE is the escape hatch: the native menu still owns every command the
-  // pet ever had, so nothing the old right-click offered is lost.
-  onMore: () => showPetContextMenu(),
+  // MORE no longer ends here: it opens the second ring inside the menu window,
+  // and only the petal chosen there comes back as an action id.
   onUnavailable: () => showPetContextMenu(),
   guardAlwaysOnTop,
   reapplyMacVisibility,

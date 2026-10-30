@@ -6,7 +6,11 @@
 <style>
 /* SAO HUD grammar shared with update-bubble.html: near-black translucent
    panels, cut corners, one accent per action, uppercase monospace. The window
-   itself is transparent — only the ring, its petals and the centre orb draw. */
+   itself is transparent — only the ring, its petals and the centre orb draw.
+
+   Two levels, one surface. MORE opens a second ring inside this same window;
+   the levels cross-fade rather than swapping, so the menu reads as one
+   instrument opening a notch, not two menus in sequence. */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
   width: 100%;
@@ -21,6 +25,7 @@ body { position: relative; }
 
 :root {
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.46, 0.64, 1);
   --hud-text: #dff7f3;
   --hud-muted: #7fa8a2;
   --hud-accent: #3fe0c8;
@@ -37,6 +42,27 @@ body { position: relative; }
 }
 .ring.closing { opacity: 0; transform: scale(0.965); }
 .ring:focus { outline: none; }
+
+/* ── Levels ──────────────────────────────────────────────────────────────── */
+/* Each level owns its track and its petals. The inactive one stays in the DOM
+   (fading out still needs to be painted) but is inert, so Tab and the
+   accessibility tree never land on a petal that is not on screen. */
+.layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: scale(0.93);
+  pointer-events: none;
+  transition: opacity 110ms linear, transform 110ms var(--ease-out);
+}
+.layer.is-active {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+/* The nested ring arrives a beat slower and with a little overshoot: it is
+   the answer to a press, not the first thing the user sees. */
+.layer--nested { transition: opacity 140ms linear, transform 140ms var(--ease-spring); }
 
 /* ── Track ───────────────────────────────────────────────────────────────── */
 .track {
@@ -60,6 +86,18 @@ body { position: relative; }
   mask: radial-gradient(circle, transparent 64%, #000 66%);
   animation: sweep 5.5s linear infinite;
 }
+/* The inner track borrows the colour of the petal that opened it (MORE is
+   violet), so the second ring visibly belongs to the first. */
+.track--nested {
+  width: 144px;
+  height: 144px;
+  margin: -72px 0 0 -72px;
+  border-color: rgba(185, 140, 255, 0.16);
+}
+.track--nested::after {
+  background: conic-gradient(from 0deg, transparent 0 74%, rgba(185, 140, 255, 0.5) 86%, transparent 100%);
+}
+
 /* ── Petals ──────────────────────────────────────────────────────────────── */
 .petals { position: absolute; inset: 0; }
 .petal {
@@ -83,7 +121,7 @@ body { position: relative; }
   transition: filter 160ms ease;
 }
 .petal:hover,
-.petal:focus { filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 50%, transparent)); }
+.petal:focus-visible { filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 50%, transparent)); }
 
 /* Cut corners live on the children, not on the button: the button carries the
    hover glow as a filter, and a parent clip-path would crop that glow away. */
@@ -132,9 +170,9 @@ body { position: relative; }
   opacity: 0.35;
 }
 .petal:hover .edge,
-.petal:focus .edge { background: var(--accent); }
+.petal:focus-visible .edge { background: var(--accent); }
 .petal:hover .face,
-.petal:focus .face {
+.petal:focus-visible .face {
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--accent) 24%, transparent), transparent 68%),
     linear-gradient(180deg, rgba(11, 28, 32, 0.98), rgba(5, 14, 17, 0.99));
@@ -175,6 +213,30 @@ body { position: relative; }
   opacity: 0.65;
 }
 
+/* Unread count on MORE (outer) and NOTICES (nested): the outer pill is what
+   tells the user there is something behind the second level at all. */
+.petal .pill {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #ff5d5d;
+  box-shadow: 0 0 10px rgba(255, 93, 93, 0.45);
+  color: #170809;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+.petal .pill[hidden] { display: none; }
+
 /* A petal whose callback is missing is not rendered at all; a petal that is
    only disabled (STOP with no turn) keeps its place on the ring, dimmed. */
 .petal[aria-disabled="true"] { cursor: not-allowed; filter: none; }
@@ -186,7 +248,44 @@ body { position: relative; }
 .petal[aria-disabled="true"] .label { color: var(--hud-muted); opacity: 0.75; }
 .petal[aria-disabled="true"] .key { opacity: 0.4; }
 .petal[aria-disabled="true"]:hover,
-.petal[aria-disabled="true"]:focus { filter: none; }
+.petal[aria-disabled="true"]:focus-visible { filter: none; }
+
+/* ── Nested petals ───────────────────────────────────────────────────────── */
+/* One size down and pulled in to a 108px radius: the window is not resized
+   for the second level, so the whole nested ring has to fit the same square
+   as the outer one (it does — 165px of reach against a 210px half-window). */
+.petal--nested {
+  width: 124px;
+  height: 40px;
+  margin: -20px 0 0 -62px;
+}
+.petal--nested .edge {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 10px) 0,
+    100% 10px,
+    100% 100%,
+    10px 100%,
+    0 calc(100% - 10px)
+  );
+}
+.petal--nested .face {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 9px) 0,
+    100% 9px,
+    100% 100%,
+    9px 100%,
+    0 calc(100% - 9px)
+  );
+  gap: 6px;
+  padding: 0 9px;
+}
+.petal--nested .glyph { width: 14px; height: 14px; }
+/* "ALL COMMANDS" is the longest label and has to fit 84px of chip; 0.1em is
+   the widest tracking that does on a fallback font as well as Cascadia. */
+.petal--nested .label { font-size: 9.5px; letter-spacing: 0.1em; }
+.petal--nested .key { top: 2px; right: 6px; font-size: 6.5px; }
 
 /* ── Centre orb ──────────────────────────────────────────────────────────── */
 .orb {
@@ -240,6 +339,29 @@ body { position: relative; }
   color: var(--hud-muted);
 }
 
+/* Back affordance: on the second level the orb stops being "close" and
+   becomes "one level up", so it takes the violet of the petal that opened it. */
+.orb.is-back {
+  border-color: rgba(185, 140, 255, 0.6);
+  background: radial-gradient(circle at 50% 34%, rgba(185, 140, 255, 0.20), rgba(4, 11, 13, 0.97) 66%);
+  box-shadow: 0 0 24px rgba(185, 140, 255, 0.14), inset 0 0 20px rgba(185, 140, 255, 0.10);
+}
+.orb.is-back:hover,
+.orb.is-back:focus-visible {
+  border-color: #b98cff;
+  box-shadow: 0 0 34px rgba(185, 140, 255, 0.32), inset 0 0 24px rgba(185, 140, 255, 0.20);
+}
+.orb.is-back .orb-ring {
+  border-color: rgba(185, 140, 255, 0.15);
+  border-top-color: rgba(185, 140, 255, 0.75);
+}
+.orb.is-back .orb-label {
+  font-size: 19px;
+  line-height: 1;
+  letter-spacing: 0;
+  text-indent: 0;
+}
+
 .hint {
   position: absolute;
   left: 50%;
@@ -274,12 +396,15 @@ body { position: relative; }
 @keyframes sweep { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) {
+  /* No scale anywhere: levels appear and disappear by opacity alone. */
   .petal,
   .orb,
   .hint { animation: none; }
   .track::after,
   .orb-ring { animation: none; }
-  .ring { transition: opacity 80ms linear; }
+  .ring,
+  .ring.closing { transition: opacity 80ms linear; transform: none; }
+  .layer { transition: opacity 60ms linear; transform: none; }
   .petal,
   .petal .edge,
   .petal .face,
@@ -289,11 +414,17 @@ body { position: relative; }
 </head>
 <body>
 <div class="ring" id="ring" tabindex="-1" role="menu" aria-label="AIPA quick menu">
-  <div class="track" aria-hidden="true"></div>
-  <div class="petals" id="petals"></div>
+  <div class="layer layer--outer is-active" id="outerLayer">
+    <div class="track" aria-hidden="true"></div>
+    <div class="petals" id="petals"></div>
+  </div>
+  <div class="layer layer--nested" id="nestedLayer" aria-hidden="true">
+    <div class="track track--nested" aria-hidden="true"></div>
+    <div class="petals" id="nestedPetals"></div>
+  </div>
   <button class="orb" id="orb" type="button" aria-label="Close">
     <span class="orb-ring" aria-hidden="true"></span>
-    <span class="orb-label">AIPA</span>
+    <span class="orb-label" id="orbLabel">AIPA</span>
     <span class="orb-hint" id="orbHint">ESC</span>
   </button>
   <div class="hint" id="hint"></div>
@@ -304,12 +435,25 @@ body { position: relative; }
 
   var api = window.petMenuAPI || null;
   var ring = document.getElementById("ring");
+  var outerLayer = document.getElementById("outerLayer");
+  var nestedLayer = document.getElementById("nestedLayer");
   var layer = document.getElementById("petals");
+  var nestedLayerPetals = document.getElementById("nestedPetals");
   var orb = document.getElementById("orb");
+  var orbLabel = document.getElementById("orbLabel");
   var orbHint = document.getElementById("orbHint");
   var hint = document.getElementById("hint");
 
   var RADIUS = 140;
+  // Second ring: a chip's centre cannot sit on a circle, or a wide chip tucks
+  // its inner corner under the orb. Its inner edge does, and the centre
+  // distance follows from the angle.
+  var NESTED_CLEARANCE = 66;
+  var CHIP_HALF_W = 64;
+  var CHIP_HALF_H = 23;
+  // Every nested chip is the same 128x46 as an outer one, so the ring's reach
+  // stays inside the unchanged 420px window (~200px from centre at worst).
+
   var reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
   // Stroke-only glyphs: the accent colour is the only fill, so one icon set
@@ -321,22 +465,46 @@ body { position: relative; }
     bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.4a5.6 5.6 0 0 1 5.6 5.6v4.2l1.5 2.8H5L6.4 13.2V9A5.6 5.6 0 0 1 12 3.4z"/><path d="M9.8 18.6a2.3 2.3 0 0 0 4.4 0"/></svg>',
     bellOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.4a5.6 5.6 0 0 1 5.6 5.6v4.2l1.5 2.8H5L6.4 13.2V9A5.6 5.6 0 0 1 12 3.4z"/><path d="M9.8 18.6a2.3 2.3 0 0 0 4.4 0"/><path d="M3.4 20.6 20.6 3.4"/></svg>',
     more: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.6" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="18.4" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>',
+    gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M12 3.2v2.1M12 18.7v2.1M3.2 12h2.1M18.7 12h2.1M5.8 5.8l1.5 1.5M16.7 16.7l1.5 1.5M18.2 5.8l-1.5 1.5M7.3 16.7l-1.5 1.5"/></svg>',
+    hide: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 12S6.6 6.6 12 6.6 20.8 12 20.8 12s-3.4 5.4-8.8 5.4S3.2 12 3.2 12z"/><circle cx="12" cy="12" r="2.5"/><path d="M4.4 19.6 19.6 4.4"/></svg>',
   };
 
   // Fixed order = fixed shortcut numbers, even when a callback is missing and
   // its petal is not rendered. Angles start at the top and step by 72 degrees.
   var PETALS = [
-    { action: "new-chat", key: "1", label: "newChat", available: "newChat", accent: "#3fe0c8", glyph: "chat", angle: -90 },
-    { action: "open-aipa", key: "2", label: "openAipa", available: "openAipa", accent: "#58a6ff", glyph: "open", angle: -18 },
-    { action: "stop", key: "3", label: "stop", available: "stop", accent: "#ff5d5d", glyph: "stop", angle: 54 },
-    { action: "silence", key: "4", label: "silence", available: "silence", accent: "#f0b429", glyph: "bellOff", angle: 126 },
-    { action: "more", key: "5", label: "more", available: null, accent: "#b98cff", glyph: "more", angle: 198 },
+    { action: "new-chat", key: "1", label: "newChat", available: "newChat", accent: "#3fe0c8", glyph: "chat", angle: -90, fallback: "New Chat" },
+    { action: "open-aipa", key: "2", label: "openAipa", available: "openAipa", accent: "#58a6ff", glyph: "open", angle: -18, fallback: "Open AIPA" },
+    { action: "stop", key: "3", label: "stop", available: "stop", accent: "#ff5d5d", glyph: "stop", angle: 54, fallback: "Stop" },
+    { action: "silence", key: "4", label: "silence", available: "silence", accent: "#f0b429", glyph: "bellOff", angle: 126, fallback: "Silence" },
+    { action: "more", key: "5", label: "more", available: null, accent: "#b98cff", glyph: "more", angle: 198, fallback: "More" },
+  ];
+
+  // Second ring behind MORE. The first nested petal takes MORE's own angle
+  // (198°) and the rest step by 90°, so the petal the user just pressed is the
+  // one that stays under the cursor — the level opens where it was asked to.
+  var NESTED_PETALS = [
+    { action: "notices", key: "1", label: "notices", available: "notices", accent: "#b98cff", glyph: "bell", angle: 198, fallback: "Notices", badge: true },
+    { action: "settings", key: "2", label: "settings", available: "settings", accent: "#3fe0c8", glyph: "gear", angle: 288, fallback: "Settings" },
+    { action: "hide", key: "3", label: "hidePet", available: "hide", accent: "#58a6ff", glyph: "hide", angle: 18, fallback: "Hide Pet" },
+    // The old MORE: the pet's own context menu, still complete.
+    { action: "native", key: "4", label: "allCommands", available: "native", accent: "#8b98a5", glyph: "more", angle: 108, fallback: "All Commands" },
   ];
 
   var labels = {};
   var petals = [];
+  var nestedPetals = [];
+  // "outer" | "nested". Escape and click-away depend on it: from the nested
+  // ring Escape steps back, from the outer ring it closes the menu.
+  var view = "outer";
   var ready = false;
   var closing = false;
+
+  function nestedDistance(angle) {
+    var rad = (angle * Math.PI) / 180;
+    return NESTED_CLEARANCE +
+      Math.abs(Math.cos(rad)) * CHIP_HALF_W +
+      Math.abs(Math.sin(rad)) * CHIP_HALF_H;
+  }
 
   function setPosition(el, angle, radius) {
     var rad = (angle * Math.PI) / 180;
@@ -344,15 +512,89 @@ body { position: relative; }
     el.style.setProperty("--y", Math.round(Math.sin(rad) * radius) + "px");
   }
 
+  function makePetal(meta, radius, order, nested) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = nested ? "petal petal--nested" : "petal";
+    btn.dataset.action = meta.action;
+    btn.dataset.key = meta.key;
+    btn.setAttribute("role", "menuitem");
+    btn.setAttribute("aria-keyshortcuts", meta.key);
+    btn.style.setProperty("--i", String(order));
+    btn.style.setProperty("--accent", meta.accent);
+    setPosition(btn, meta.angle, nested ? nestedDistance(meta.angle) : radius);
+    btn.innerHTML =
+      '<span class="edge"></span>' +
+      '<span class="face">' +
+        '<span class="glyph">' + GLYPH[meta.glyph] + '</span>' +
+        '<span class="label"></span>' +
+        '<span class="key"></span>' +
+      '</span>' +
+      '<span class="pill" aria-hidden="true" hidden></span>';
+    btn.querySelector(".label").textContent = labels[meta.label] || meta.fallback || meta.action;
+    btn.querySelector(".key").textContent = meta.key;
+    btn.addEventListener("click", function (event) {
+      event.preventDefault();
+      choose(btn);
+    });
+    return btn;
+  }
+
+  // A count is only ever a count: capping the pill keeps the chip readable and
+  // says "more than nine" just as clearly as the real number would.
+  function setBadge(btn, count) {
+    if (!btn) return;
+    var pill = btn.querySelector(".pill");
+    if (!pill) return;
+    if (count > 0) {
+      pill.textContent = count > 9 ? "9+" : String(count);
+      pill.hidden = false;
+    } else {
+      pill.hidden = true;
+      pill.textContent = "";
+    }
+  }
+
+  function setLevel(el, active) {
+    el.classList.toggle("is-active", active);
+    el.setAttribute("aria-hidden", active ? "false" : "true");
+    // `inert` is what keeps Tab and assistive tech off the level that is not
+    // on screen; pointer-events alone would still let the keyboard reach it.
+    try { el.inert = !active; } catch (err) { /* pointer-events still covers the pointer path */ }
+  }
+
+  function closeHint() {
+    return (labels.close || "Close") + "  ·  ESC";
+  }
+
+  function backHint() {
+    return (labels.back || "Back") + "  ·  ESC";
+  }
+
+  function setOrbBack(back) {
+    orb.classList.toggle("is-back", back);
+    orbLabel.textContent = back ? "←" : "AIPA";
+    orbHint.textContent = "ESC";
+    orb.setAttribute("aria-label", back ? (labels.back || "Back") : (labels.close || "Close"));
+  }
+
   function build(payload) {
     var data = payload || {};
     labels = data.labels || {};
     var state = data.state || {};
-    var available = state.available || {};
+    // `available` lives at the top level; the older spot under `state` is still
+    // honoured so a payload from a half-updated factory cannot hide the ring.
+    var available = data.available || state.available || {};
+    var badges = data.badges || {};
+    var unread = typeof badges.notices === "number" && badges.notices > 0
+      ? Math.floor(badges.notices)
+      : 0;
     document.documentElement.lang = data.lang || "en";
 
     layer.textContent = "";
+    nestedLayerPetals.textContent = "";
     petals = [];
+    nestedPetals = [];
 
     var order = 0;
     for (var i = 0; i < PETALS.length; i++) {
@@ -360,45 +602,28 @@ body { position: relative; }
       // A petal whose AIPA callback does not exist is omitted instead of
       // throwing on click or offering an action that cannot run.
       if (meta.available && available[meta.available] === false) continue;
-
-      var btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "petal";
-      btn.dataset.action = meta.action;
-      btn.dataset.key = meta.key;
-      btn.setAttribute("role", "menuitem");
-      btn.setAttribute("aria-keyshortcuts", meta.key);
-      btn.style.setProperty("--i", String(order++));
-      btn.style.setProperty(
-        "--accent",
-        meta.action === "silence" && state.quiet ? "#57d98a" : meta.accent
-      );
-      setPosition(btn, meta.angle, RADIUS);
-      btn.innerHTML =
-        '<span class="edge"></span>' +
-        '<span class="face">' +
-          '<span class="glyph">' + GLYPH[meta.glyph] + '</span>' +
-          '<span class="label"></span>' +
-          '<span class="key"></span>' +
-        '</span>';
-      btn.querySelector(".label").textContent = meta.action === "silence" && state.quiet
-        ? (labels.resume || "RESUME")
-        : (labels[meta.label] || meta.action);
-      btn.querySelector(".key").textContent = meta.key;
-      btn.addEventListener("click", function (event) {
-        event.preventDefault();
-        choose(this.dataset.action);
-      });
+      var btn = makePetal(meta, RADIUS, order++, false);
+      if (meta.action === "more") setBadge(btn, unread);
       layer.appendChild(btn);
       petals.push(btn);
+    }
 
+    for (var j = 0; j < NESTED_PETALS.length; j++) {
+      var nested = NESTED_PETALS[j];
+      if (nested.available && available[nested.available] === false) continue;
+      var nbtn = makePetal(nested, 0, j, true);
+      if (nested.badge) setBadge(nbtn, unread);
+      nestedLayerPetals.appendChild(nbtn);
+      nestedPetals.push(nbtn);
     }
 
     applyState(state);
 
-    hint.textContent = (labels.close || "Close") + "  ·  ESC";
-    orb.setAttribute("aria-label", labels.close || "Close");
-    orbHint.textContent = "ESC";
+    view = "outer";
+    setLevel(outerLayer, true);
+    setLevel(nestedLayer, false);
+    setOrbBack(false);
+    hint.textContent = closeHint();
 
     // The menu is revealed only after this tick, so the first thing the user
     // sees is the finished ring, never an empty transparent window. A timer
@@ -432,14 +657,56 @@ body { position: relative; }
     try { ring.focus({ preventScroll: true }); } catch (err) { ring.focus(); }
   }
 
-  function choose(action) {
-    if (closing || !action) return;
-    var btn = null;
-    for (var i = 0; i < petals.length; i++) {
-      if (petals[i].dataset.action === action) { btn = petals[i]; break; }
+  function focusFirst(list) {
+    var usable = enabledPetals(list);
+    if (usable.length) { usable[0].focus(); return; }
+    focusRing();
+  }
+
+  /**
+   * MORE swaps levels in place instead of leaving the window. The outer ring
+   * fades out, the nested one fades in, and the orb turns into the way back.
+   */
+  function enterNested() {
+    if (view !== "outer" || closing) return;
+    // A second ring with nothing on it is a dead end. Every nested action can
+    // be unwired except `native`; if even that is gone, hand the user the
+    // native menu rather than an empty ring.
+    if (!enabledPetals(nestedPetals).length) {
+      dismiss("native");
+      return;
     }
-    if (btn && btn.getAttribute("aria-disabled") === "true") return;
-    dismiss(action);
+    view = "nested";
+    setLevel(nestedLayer, true);
+    setOrbBack(true);
+    hint.textContent = backHint();
+    // Focus moves off the MORE petal before the outer level goes aria-hidden:
+    // Chromium drops aria-hidden on an element that still contains focus. It
+    // lands on the ring, not on the first petal — the new level should arrive
+    // unlit, with the highlight following the user's own arrow keys.
+    focusRing();
+    setLevel(outerLayer, false);
+  }
+
+  function stepBack() {
+    if (view !== "nested" || closing) return;
+    view = "outer";
+    setLevel(outerLayer, true);
+    setOrbBack(false);
+    hint.textContent = closeHint();
+    focusRing();
+    setLevel(nestedLayer, false);
+  }
+
+  function choose(btn) {
+    if (closing || !btn) return;
+    if (btn.getAttribute("aria-disabled") === "true") return;
+    // MORE is navigation, not an action: it opens the second ring in place.
+    if (btn.dataset.action === "more") {
+      enterNested();
+      return;
+    }
+    dismiss(btn.dataset.action);
   }
 
   function dismiss(action) {
@@ -456,14 +723,18 @@ body { position: relative; }
     }, delay);
   }
 
-  function enabledPetals() {
-    return petals.filter(function (btn) {
+  function enabledPetals(list) {
+    return list.filter(function (btn) {
       return btn.getAttribute("aria-disabled") !== "true";
     });
   }
 
+  function activePetals() {
+    return view === "nested" ? nestedPetals : petals;
+  }
+
   function focusStep(direction) {
-    var list = enabledPetals();
+    var list = enabledPetals(activePetals());
     if (!list.length) return;
     var index = list.indexOf(document.activeElement);
     index = index < 0 ? 0 : (index + direction + list.length) % list.length;
@@ -474,14 +745,23 @@ body { position: relative; }
     if (!ready) return;
     if (event.key === "Escape") {
       event.preventDefault();
-      dismiss(null);
+      // Escape means "one level up": on the nested ring that is the outer
+      // ring, on the outer ring that is out.
+      if (view === "nested") stepBack();
+      else dismiss(null);
       return;
     }
-    if (event.key >= "1" && event.key <= "5") {
-      for (var i = 0; i < petals.length; i++) {
-        if (petals[i].dataset.key === event.key) {
+    if (view === "nested" && (event.key === "0" || event.key === "Backspace")) {
+      event.preventDefault();
+      stepBack();
+      return;
+    }
+    if (event.key >= "0" && event.key <= "9") {
+      var list = activePetals();
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].dataset.key === event.key) {
           event.preventDefault();
-          choose(petals[i].dataset.action);
+          choose(list[i]);
           return;
         }
       }
@@ -497,7 +777,8 @@ body { position: relative; }
   });
 
   // Click-away inside the window: the ring occupies the whole transparent
-  // surface, so anything that is not a petal or the orb means "close".
+  // surface, so anything that is not a petal or the orb means "close". That
+  // holds on the nested ring too — only Escape / the orb step back.
   document.addEventListener("pointerdown", function (event) {
     if (event.button !== 0 || !ready) return;
     var target = event.target;
@@ -509,7 +790,8 @@ body { position: relative; }
 
   orb.addEventListener("click", function (event) {
     event.preventDefault();
-    dismiss(null);
+    if (view === "nested") stepBack();
+    else dismiss(null);
   });
 
   window.addEventListener("focus", function () {
@@ -524,8 +806,15 @@ body { position: relative; }
     // so the ring can still be inspected without the factory.
     build({
       lang: "en",
-      labels: { newChat: "New Chat", openAipa: "Open AIPA", stop: "Stop", silence: "Silence", resume: "Resume", more: "More", close: "Close", nothingRunning: "No turn running" },
-      state: { canStop: false, quiet: false, available: {} },
+      labels: {
+        newChat: "New Chat", openAipa: "Open AIPA", stop: "Stop", silence: "Silence",
+        resume: "Resume", more: "More", notices: "Notices", settings: "Settings",
+        hidePet: "Hide Pet", allCommands: "All Commands", back: "Back",
+        close: "Close", nothingRunning: "No turn running",
+      },
+      state: { canStop: false, quiet: false },
+      badges: { notices: 3 },
+      available: {},
     });
   }
 })();

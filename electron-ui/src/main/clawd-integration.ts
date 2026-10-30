@@ -186,9 +186,28 @@ function petActivitySnapshot(): { phase: string; owner: string | null } | null {
 }
 
 /**
- * The six callbacks the pet's radial menu calls. Each one is independent, so
- * the factory can hide a petal whose callback is absent; `initClawdIntegration`
- * always supplies all six, but the pet is also loaded by harnesses.
+ * Where the pet is on screen, in screen coordinates. The notice log opens
+ * beside it, so the window a click summons never covers the thing that was
+ * clicked. Undefined while the pet is hidden or gone — the caller then falls
+ * back to its own default position.
+ */
+function petRect(): { x: number; y: number; width: number; height: number } | undefined {
+  try {
+    const { win, hitWin } = clawdInstance?.getWindows() ?? { win: null, hitWin: null }
+    // The hit window is the sprite, not the transparent stage around it: a
+    // panel anchored to the stage would float a sprite-width away from the pet.
+    const target = hitWin && !hitWin.isDestroyed() ? hitWin : win
+    if (!target || target.isDestroyed()) return undefined
+    return target.getBounds()
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * The callbacks the pet's radial menu calls. Each one is independent, so the
+ * factory can hide a petal whose callback is absent; `initClawdIntegration`
+ * always supplies them all, but the pet is also loaded by harnesses.
  */
 const petMenuCallbacks = {
   newChat: (): void => {
@@ -232,6 +251,46 @@ const petMenuCallbacks = {
     return quiet ? 'quiet' : 'loud'
   },
   isQuiet: (): boolean => isClawdQuietActive(),
+  /**
+   * The notice log, anchored to the pet so the window the user opens is beside
+   * the thing that told them about it. `require` at call time keeps the pet
+   * menu loadable in a build that has no notice centre.
+   */
+  openNotices: (): boolean => {
+    try {
+      const { openClawdNoticeCenter } = require('./clawd-notice-center') as {
+        openClawdNoticeCenter: (anchor?: { x: number; y: number; width: number; height: number }) => boolean
+      }
+      return openClawdNoticeCenter(petRect()) === true
+    } catch (err) {
+      log.warn('petMenu.openNotices failed:', String(err))
+      return false
+    }
+  },
+  /** The same Settings modal the app menu opens — one definition, one place to learn it. */
+  openSettings: (): void => {
+    withClawdMainWindow(win => {
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+      win.webContents.send('menu:openSettings')
+    })
+  },
+  /** Hide/show the pet, the same call the tray submenu makes. */
+  toggleHidden: (): void => {
+    try { clawdInstance?.toggleVisibility() } catch { /* pet already gone */ }
+  },
+  /** Badge count for the NOTICES petal and for MORE in the outer ring. */
+  unreadNotices: (): number => {
+    try {
+      const { getUnreadClawdNoticeCount } = require('./clawd-notice-center') as {
+        getUnreadClawdNoticeCount: () => number
+      }
+      return getUnreadClawdNoticeCount() || 0
+    } catch {
+      return 0
+    }
+  },
 }
 
 /**
@@ -860,6 +919,13 @@ export function showClawdNotice(
       message: payload.message,
       detail: payload.meta?.map(row => `${row.label}: ${row.value}`).join('\n'),
     })
+    // An open log should grow as the pet speaks, not only when reopened.
+    try {
+      const { refreshClawdNoticeCenter } = require('./clawd-notice-center') as {
+        refreshClawdNoticeCenter: () => void
+      }
+      refreshClawdNoticeCenter()
+    } catch { /* the log is not part of this build */ }
     return true
   } catch (err) {
     log.warn('showClawdNotice failed:', String(err))
@@ -934,6 +1000,12 @@ export function shutdownClawdIntegration(): void {
     const { cancelClawdBootGreeting } = require('./clawd-notice-sources')
     cancelClawdBootGreeting()
   } catch { /* module not loaded in this build path */ }
+  try {
+    const { closeClawdNoticeCenter } = require('./clawd-notice-center') as {
+      closeClawdNoticeCenter: () => void
+    }
+    closeClawdNoticeCenter()
+  } catch { /* the log is not part of this build */ }
   if (!clawdInstance) return
   try {
     if (globalThis.__clawdOnQuitHooks) {
