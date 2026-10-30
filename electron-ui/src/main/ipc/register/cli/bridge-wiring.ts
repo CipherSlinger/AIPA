@@ -20,6 +20,7 @@ import { dreamNoteTurnEnd, dreamNoteTurnCancelled } from '../../../memory/dream-
 import { notifyClawdState } from '../../../clawd-bridge'
 import { raiseAttention, resolveAttention } from '../../../clawd-attention'
 import { notePetActivity } from '../../../pet-activity'
+import { noteCompletedTurn } from '../../../usage/usage-store'
 import { getActiveSessionId, noteActiveSession } from '../../../active-session'
 import {
   clipDetail,
@@ -137,6 +138,79 @@ function wirePetActivity(bridge: EventEmitter, bridgeId: string): void {
   bridge.on('processExit', () => notePetActivity({ type: 'reset', bridgeId }))
 }
 
+/** One token reading from the wire, normalized to plain numbers. */
+interface TurnUsageReading {
+  inputTokens?: number
+  outputTokens?: number
+  cacheReadTokens?: number
+}
+
+/**
+ * The engine's usage object uses the same snake_case field names on both
+ * engines. Keep absent fields absent: a missing price or token reading is
+ * unknown, and turning it into zero here would make an unpriced turn look free.
+ */
+function readUsageReading(value: unknown): TurnUsageReading | null {
+  if (!value || typeof value !== 'object') return null
+  const usage = value as Record<string, unknown>
+  const pick = (key: string): number | undefined => {
+    const candidate = usage[key]
+    return typeof candidate === 'number' && Number.isFinite(candidate) ? candidate : undefined
+  }
+  const reading: TurnUsageReading = {
+    inputTokens: pick('input_tokens'),
+    outputTokens: pick('output_tokens'),
+    cacheReadTokens: pick('cache_read_input_tokens'),
+  }
+  return reading.inputTokens === undefined
+    && reading.outputTokens === undefined
+    && reading.cacheReadTokens === undefined
+    ? null
+    : reading
+}
+
+/** The session id a result belongs to, in the same vocabulary the task uses. */
+function resultSessionId(bridgeId: string, result: Record<string, unknown>): string | null {
+  for (const value of [result.codexThreadId, result.threadId, result.claudeSessionId]) {
+    if (typeof value === 'string' && value) return value
+  }
+  const event = result.event
+  if (event && typeof event === 'object') {
+    const fromEvent = (event as Record<string, unknown>).session_id
+    if (typeof fromEvent === 'string' && fromEvent) return fromEvent
+  }
+  return sessionForBridge(bridgeId)
+}
+
+/**
+ * Feed the usage ledger from the same turn events the pet strip follows.
+ *
+ * Registered only for user-facing bridges (the `internal` early return above),
+ * so a private background turn neither appears in a task's spend nor adds a row
+ * nobody can read. `tokenUsageUpdated` is kept as a fallback for a result
+ * envelope that omits usage; both engines send the reading on `result` today.
+ */
+function wireUsageLedger(bridge: EventEmitter, bridgeId: string): void {
+  // The turn's latest context reading, used only when `result` omits usage.
+  let latest: TurnUsageReading | null = null
+  bridge.on('tokenUsageUpdated', (d: { usage?: unknown }) => {
+    latest = readUsageReading(d?.usage) ?? latest
+  })
+  bridge.on('result', (d: Record<string, unknown>) => {
+    const sessionId = resultSessionId(bridgeId, d)
+    if (!sessionId) return
+    const reading = readUsageReading(d.usage) ?? latest
+    noteCompletedTurn(sessionId, {
+      inputTokens: reading?.inputTokens,
+      outputTokens: reading?.outputTokens,
+      cacheReadTokens: reading?.cacheReadTokens,
+      costUsd: d.totalCostUsd,
+    })
+    latest = null
+  })
+  bridge.on('processExit', () => { latest = null })
+}
+
 /** Wire a CodexBridge to the renderer, reusing the legacy channel names. */
 export function wireCodexBridge(
   bridge: import('../../../codex/codex-bridge').CodexBridge,
@@ -229,6 +303,9 @@ export function wireCodexBridge(
   // The pet's live activity strip. User-facing bridges only, like the state
   // notifications below: a background turn has no place on the strip.
   wirePetActivity(bridge, bridgeId)
+  // Spend accounting follows the same user-facing turns, and by the same rule a
+  // private background turn is not part of any conversation the user can open.
+  wireUsageLedger(bridge, bridgeId)
 
   // Thread goal + unarchive. Both are user-facing: a goal is a standing
   // objective the composer shows, and an unarchive puts a row back in the
@@ -417,6 +494,7 @@ export function wireStreamBridge(
   // Same live activity strip as the Codex path; the stream bridge exposes the
   // same turn/tool/result events, so one mapping serves both engines.
   wirePetActivity(bridge, bridgeId)
+  wireUsageLedger(bridge, bridgeId)
 
   bridge.on('textDelta', () => notifyClawdState('thinking', bridgeId))
   bridge.on('thinkingDelta', () => notifyClawdState('thinking', bridgeId))

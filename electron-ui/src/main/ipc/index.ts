@@ -37,6 +37,7 @@ import { registerRecruitHandlers } from './register/recruit-handlers'
 import { registerNavPluginHandlers } from './register/nav-plugin-handlers'
 import { registerAutomationHandlers } from './automation-handlers'
 import { registerTaskHandlers } from './task-handlers'
+import { registerUsageHandlers } from './usage-handlers'
 
 export { INTERNAL_BRIDGE_PREFIX } from './register/cli/send-message'
 
@@ -126,6 +127,7 @@ export function registerAllHandlers(
     // Tasks own a directory and its materials. Increment 1 is foundation only:
     // nothing here reads or writes a conversation, a department or workingDir.
     registerTaskHandlers(send)
+    registerUsageHandlers()
 
     // Background memory consolidation ("dream"). Created even while the
     // preference is off: the console must be able to show its state and turn

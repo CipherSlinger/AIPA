@@ -233,6 +233,17 @@ const i18n = {
     // the hint sits beside the ↑ key in the footer.
     quickCommandHistoryLabel: "Recent asks",
     quickCommandHistoryHint: "History",
+    // One-line capture bar: the tray row that opens it, its field, and the
+    // pet's confirmation notice.
+    taskCaptureMenu: "Capture task…",
+    taskCaptureEyebrow: "Capture task",
+    taskCapturePlaceholder: "What needs doing?",
+    taskCaptureSave: "Save",
+    taskCaptureCancel: "Cancel",
+    taskCaptureEmpty: "Enter a task first",
+    taskCaptureFailed: "Could not save the task",
+    taskCaptureSavedTitle: "Saved to Inbox",
+    taskCaptureSavedPill: "INBOX",
   },
   zh: {
     size: "大小",
@@ -432,6 +443,15 @@ const i18n = {
     quickCommandUntitledThread: "未命名对话",
     quickCommandHistoryLabel: "最近提问",
     quickCommandHistoryHint: "历史",
+    taskCaptureMenu: "快速记任务",
+    taskCaptureEyebrow: "快速记任务",
+    taskCapturePlaceholder: "要做什么？",
+    taskCaptureSave: "保存",
+    taskCaptureCancel: "取消",
+    taskCaptureEmpty: "请先输入任务内容",
+    taskCaptureFailed: "无法保存任务",
+    taskCaptureSavedTitle: "已存入收件箱",
+    taskCaptureSavedPill: "收件箱",
   },
   ko: {
     size: "크기",
@@ -631,6 +651,15 @@ const i18n = {
     quickCommandUntitledThread: "제목 없는 대화",
     quickCommandHistoryLabel: "최근 질문",
     quickCommandHistoryHint: "기록",
+    taskCaptureMenu: "작업 빠르게 기록…",
+    taskCaptureEyebrow: "작업 기록",
+    taskCapturePlaceholder: "무엇을 해야 하나요?",
+    taskCaptureSave: "저장",
+    taskCaptureCancel: "취소",
+    taskCaptureEmpty: "먼저 작업 내용을 입력하세요",
+    taskCaptureFailed: "작업을 저장할 수 없습니다",
+    taskCaptureSavedTitle: "받은함에 저장됨",
+    taskCaptureSavedPill: "받은함",
   },
 };
 

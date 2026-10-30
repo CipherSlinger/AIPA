@@ -5494,6 +5494,18 @@
       "dispatch": "Dispatch",
       "followup": "Follow-up"
     },
+    "spend": {
+      "title": "Spend",
+      "cost": "Cost",
+      "turns": "Turns",
+      "output": "Output tokens",
+      "turnsCount": "{{count}} turns",
+      "noUsage": "no usage recorded",
+      "costUnknown": "cost unknown",
+      "unknown": "Unknown",
+      "partial": "Some conversations have no recorded usage, so this is a lower bound.",
+      "rowTitle": "Known spend for this task"
+    },
     "history": "History",
     "historyEmpty": "No activity yet.",
     "historyRun": "Saved from an automation run ({{when}})",

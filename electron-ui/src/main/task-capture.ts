@@ -1,0 +1,453 @@
+/**
+ * task-capture — the pet's one-line "get this out of my head" bar.
+ *
+ * It is deliberately a separate window and page from the ASK bar: asking runs
+ * a turn, capturing files a task, and the two jobs must not grow into each
+ * other. Shape follows `quick-command.ts` for the same reasons: the window is
+ * created on demand and destroyed on close (a hidden window would keep a GPU
+ * surface and keep answering IPC), it anchors beside the pet and is clamped to
+ * that display's work area, and blur is click-away after a short arm.
+ *
+ * Saving goes straight to the main-side task store. The renderer never sees a
+ * task id or a path; it sends one line, and this module decides what a task is.
+ * The store's own validation is the only gate, so the bar can report the real
+ * failure instead of a generic "something went wrong".
+ */
+import { BrowserWindow, ipcMain } from 'electron'
+import path from 'path'
+import { createTask, type TaskView } from './tasks/task-store'
+import { refreshClawdTaskBadge } from './clawd-task-badge'
+import { showClawdNotice, withClawdMainWindow } from './clawd-integration'
+import type { IpcMainEvent, Rectangle } from 'electron'
+
+const WIDTH = 368
+/** Head, one field, a two-line reason and the footer, plus shadow padding. */
+const HEIGHT = 140
+const EDGE_MARGIN = 8
+const PET_GAP = 10
+// A local page either loads or it does not; this only guards the ready
+// handshake so a renderer that never reports back cannot leave an invisible,
+// focused window over the desktop.
+const REVEAL_TIMEOUT_MS = 900
+// The bar is revealed after it painted. A blur in the first moment is the owner
+// window losing activation, not the user clicking away.
+const BLUR_ARM_MS = 250
+// The same ceiling the store enforces. A longer line is kept up to here rather
+// than refused: the point of the bar is not to make the user edit a title.
+const TASK_TITLE_MAX = 200
+/** The notice is a confirmation, not the task list; it clips a long title. */
+const NOTICE_TITLE_MAX = 120
+const NOTICE_TTL_MS = 6000
+// Let the bar's focus hand-back settle before the notice window is first shown.
+const NOTICE_REVEAL_DELAY_MS = 120
+const isMac = process.platform === 'darwin'
+const isWin = process.platform === 'win32'
+const isLinux = process.platform === 'linux'
+const WIN_TOPMOST_LEVEL = 'pop-up-menu'
+const LINUX_WINDOW_TYPE = 'toolbar'
+
+export interface TaskCaptureLabels {
+  eyebrow: string
+  placeholder: string
+  save: string
+  cancel: string
+  empty: string
+  failed: string
+  savedTitle: string
+  savedPill: string
+}
+
+export interface TaskCaptureContext {
+  /** The pet's BrowserWindow, used as the anchor and the focus fallback. */
+  win: BrowserWindow | null
+  getNearestWorkArea: (cx: number, cy: number) => Rectangle
+  getHitRectScreen: (bounds: Rectangle) => { left: number; top: number; right: number; bottom: number } | null
+  getLang: () => string
+  getLabels: () => TaskCaptureLabels
+  getTheme: () => string
+  guardAlwaysOnTop?: (w: BrowserWindow) => void
+  reapplyMacVisibility?: () => void
+  hideFromTaskbar?: (w: BrowserWindow) => void
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value))
+}
+
+function cleanErrorText(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error ?? '')
+  return raw.replace(/^[A-Za-z]*Error:\s*/, '').trim()
+}
+
+/**
+ * One line, no control whitespace, bounded by the store's title cap. Trimming
+ * here is what makes a whitespace-only submit empty; the store would otherwise
+ * keep the spaces as a title.
+ */
+function normalizeTitle(raw: unknown): string {
+  if (typeof raw !== 'string') return ''
+  const collapsed = raw.replace(/\s+/g, ' ').trim()
+  if (collapsed.length <= TASK_TITLE_MAX) return collapsed
+  return collapsed.slice(0, TASK_TITLE_MAX).trimEnd()
+}
+
+function clipText(text: string, max: number): string {
+  const trimmed = text.trim()
+  if (trimmed.length <= max) return trimmed
+  return `${trimmed.slice(0, max).trimEnd()}…`
+}
+
+export default function initTaskCapture(ctx: TaskCaptureContext) {
+  let barWin: BrowserWindow | null = null
+  let previousFocus: BrowserWindow | null = null
+  let revealTimer: NodeJS.Timeout | null = null
+  let blurArmedAt = 0
+
+  function isOpen(): boolean {
+    return !!(barWin && !barWin.isDestroyed() && barWin.isVisible())
+  }
+
+  function sendToBar(channel: string, data: Record<string, unknown>): void {
+    if (!barWin || barWin.isDestroyed()) return
+    try {
+      barWin.webContents.send(channel, data)
+    } catch {
+      // The window went away between the guard and the send.
+    }
+  }
+
+  /**
+   * Above the pet's visible sprite when there is room, below it when there is
+   * not, and beside it only when the vertical band cannot fit at all. The
+   * result is always clamped to the work area of the pet's display: a pet near
+   * a monitor edge must not get half a text field.
+   */
+  function computeBounds(): Rectangle | null {
+    if (!ctx.win || ctx.win.isDestroyed()) return null
+    const bounds = ctx.win.getBounds()
+    const hit = typeof ctx.getHitRectScreen === 'function' ? ctx.getHitRectScreen(bounds) : null
+    const left = hit ? hit.left : bounds.x
+    const top = hit ? hit.top : bounds.y
+    const right = hit ? hit.right : bounds.x + bounds.width
+    const bottom = hit ? hit.bottom : bounds.y + bounds.height
+    const cx = Math.round((left + right) / 2)
+    const cy = Math.round((top + bottom) / 2)
+    const wa = ctx.getNearestWorkArea(cx, cy)
+    const minX = wa.x + EDGE_MARGIN
+    const maxX = wa.x + wa.width - WIDTH - EDGE_MARGIN
+    const minY = wa.y + EDGE_MARGIN
+    const maxY = wa.y + wa.height - HEIGHT - EDGE_MARGIN
+    let x = clamp(Math.round(cx - WIDTH / 2), minX, maxX)
+    let y: number | null = null
+
+    const above = top - HEIGHT - PET_GAP
+    if (above >= minY) {
+      y = above
+    } else {
+      const below = bottom + PET_GAP
+      if (below <= maxY) y = below
+    }
+    if (y === null) {
+      // No vertical room: place the bar beside the pet, right first.
+      const rightX = right + PET_GAP
+      if (rightX <= maxX) {
+        x = rightX
+        y = clamp(Math.round(cy - HEIGHT / 2), minY, maxY)
+      } else {
+        x = clamp(left - WIDTH - PET_GAP, minX, maxX)
+        y = clamp(Math.round(cy - HEIGHT / 2), minY, maxY)
+      }
+    }
+    // Electron centers a window whose x/y are fractional instead of honoring
+    // the position, and the pet's hit rect is measured in fractional pixels.
+    // Round both axes before they cross into BrowserWindow.
+    return {
+      x: Math.round(x),
+      y: Math.round(clamp(y, minY, maxY)),
+      width: WIDTH,
+      height: HEIGHT,
+    }
+  }
+
+  function reveal(): void {
+    if (!barWin || barWin.isDestroyed() || barWin.isVisible()) return
+    clearRevealTimer()
+    const focused = BrowserWindow.getFocusedWindow()
+    previousFocus = focused && focused !== barWin ? focused : null
+    // Applied before the first show: on Windows a transparent, focusable window
+    // otherwise gets a taskbar button for the fraction of a second it is up.
+    if (typeof ctx.hideFromTaskbar === 'function') ctx.hideFromTaskbar(barWin)
+    barWin.show()
+    barWin.focus()
+    blurArmedAt = Date.now() + BLUR_ARM_MS
+    if (isWin) barWin.setAlwaysOnTop(true, WIN_TOPMOST_LEVEL)
+    if (typeof ctx.reapplyMacVisibility === 'function') ctx.reapplyMacVisibility()
+  }
+
+  /**
+   * Destroy the bar. `restoreFocus` is what keeps dismissing the bar from
+   * handing the keyboard to AIPA: the window that owned focus when the bar
+   * opened gets it back, and only when there was none does the pet take it.
+   */
+  function close(restoreFocus = true): void {
+    clearRevealTimer()
+    blurArmedAt = 0
+    const win = barWin
+    barWin = null
+    if (win && !win.isDestroyed()) {
+      try { win.destroy() } catch (err) {
+        console.warn('Clawd: task capture destroy failed:', cleanErrorText(err))
+      }
+    }
+    const restore = previousFocus
+    previousFocus = null
+    if (!restoreFocus) return
+    const restoreTarget = restore && !restore.isDestroyed() && restore.isVisible()
+      ? restore
+      : (ctx.win && !ctx.win.isDestroyed() && ctx.win.isVisible() ? ctx.win : null)
+    if (restoreTarget) {
+      try { restoreTarget.focus() } catch { /* window may be on its way out */ }
+    }
+  }
+
+  /**
+   * Open the bar. Already open means "bring it back", not "close it": the
+   * shortcut is a way to capture, not a toggle that can silently swallow a
+   * half-typed task.
+   */
+  function open(): boolean {
+    if (barWin && !barWin.isDestroyed()) {
+      if (!barWin.isVisible()) {
+        reveal()
+      } else {
+        barWin.focus()
+      }
+      sendToBar('task-capture-focus', {})
+      return true
+    }
+    if (!ctx.win || ctx.win.isDestroyed()) return false
+
+    const bounds = computeBounds()
+    if (!bounds) return false
+    let labels: TaskCaptureLabels
+    try {
+      labels = ctx.getLabels()
+    } catch (err) {
+      console.warn('Clawd: task capture labels failed:', cleanErrorText(err))
+      return false
+    }
+
+    try {
+      barWin = new BrowserWindow({
+        ...bounds,
+        show: false,
+        frame: false,
+        transparent: true,
+        alwaysOnTop: !isMac,
+        resizable: false,
+        movable: false,
+        minimizable: false,
+        maximizable: false,
+        fullscreenable: false,
+        skipTaskbar: true,
+        hasShadow: false,
+        focusable: true,
+        ...(isLinux ? { type: LINUX_WINDOW_TYPE } : {}),
+        ...(isMac ? { type: 'panel', roundedCorners: false } : {}),
+        webPreferences: {
+          preload: path.join(__dirname, 'clawd', 'src', 'preload-task-capture.js'),
+          nodeIntegration: false,
+          contextIsolation: true,
+          backgroundThrottling: false,
+        },
+      })
+    } catch (err) {
+      barWin = null
+      console.warn('Clawd: task capture window creation failed:', cleanErrorText(err))
+      return false
+    }
+
+    if (isWin) barWin.setAlwaysOnTop(true, WIN_TOPMOST_LEVEL)
+    if (isLinux) barWin.setSkipTaskbar(true)
+    if (typeof ctx.guardAlwaysOnTop === 'function') ctx.guardAlwaysOnTop(barWin)
+
+    barWin.on('blur', () => {
+      // Click-away dismisses the bar. There is no in-flight save to protect:
+      // the store write is synchronous and closes the bar itself.
+      if (Date.now() < blurArmedAt) return
+      close(false)
+    })
+    barWin.on('closed', () => {
+      clearRevealTimer()
+      barWin = null
+      previousFocus = null
+    })
+
+    barWin.webContents.once('did-finish-load', () => {
+      if (!barWin || barWin.isDestroyed()) return
+      sendToBar('task-capture-show', {
+        lang: ctx.getLang(),
+        theme: ctx.getTheme() === 'clawd' ? 'clawd' : 'sao',
+        labels,
+      })
+    })
+    barWin.webContents.on('did-fail-load', (_event, _code, _desc, _url, isMainFrame) => {
+      if (isMainFrame === false) return
+      close()
+    })
+    barWin.webContents.on('render-process-gone', () => close())
+
+    barWin.loadFile(path.join(__dirname, 'clawd', 'src', 'task-capture.html'))
+
+    // If the page never reports that it painted, showing it would leave an
+    // invisible window that still swallows clicks and the keyboard.
+    revealTimer = setTimeout(() => close(false), REVEAL_TIMEOUT_MS)
+    revealTimer.unref?.()
+    return true
+  }
+
+  function clearRevealTimer(): void {
+    if (!revealTimer) return
+    clearTimeout(revealTimer)
+    revealTimer = null
+  }
+
+  function isSender(event: IpcMainEvent): boolean {
+    if (!barWin || barWin.isDestroyed()) return false
+    return BrowserWindow.fromWebContents(event.sender) === barWin
+  }
+
+  function showBarError(message: string, kind: 'error' | 'empty'): void {
+    sendToBar('task-capture-error', { message, kind })
+  }
+
+  /**
+   * Focus AIPA and open the Tasks view. The store was written from main, not
+   * through the IPC broadcast, so the open list is told before the view
+   * switches; otherwise the task the notice just announced could be missing
+   * from the list it opens.
+   */
+  function focusTasks(): void {
+    withClawdMainWindow(win => {
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+      win.webContents.send('tasks:changed')
+      win.webContents.send('menu:openTasks')
+    })
+    try { refreshClawdTaskBadge() } catch { /* pet gone */ }
+  }
+
+  function announceSaved(task: TaskView): void {
+    let labels: TaskCaptureLabels
+    try {
+      labels = ctx.getLabels()
+    } catch {
+      // The save happened; a missing translation cannot undo it. The task is
+      // in the store and the notice simply does not speak.
+      return
+    }
+    // The bar hands the keyboard back before this runs. That focus change is
+    // an OS round-trip: creating and showing a second top-level window in the
+    // same tick can leave it created but never painted. One beat later the
+    // owner window is settled and the notice's first show sticks.
+    const timer = setTimeout(() => {
+      showClawdNotice(
+        {
+          kind: 'success',
+          title: labels.savedTitle,
+          message: clipText(task.title, NOTICE_TITLE_MAX),
+          pill: labels.savedPill,
+          mode: 'done',
+          lang: ctx.getLang(),
+          clickAction: 'open',
+          typed: true,
+        },
+        NOTICE_TTL_MS,
+        action => {
+          if (action) focusTasks()
+        },
+        // The user just pressed Enter on this bar. A confirmation may speak
+        // while the pet is silenced or asleep; the gate exists to mute
+        // background noise, not to swallow the answer to a click.
+        { userInitiated: true },
+      )
+    }, NOTICE_REVEAL_DELAY_MS)
+    timer.unref?.()
+  }
+
+  function handleSave(event: IpcMainEvent, raw: unknown): void {
+    if (!isSender(event)) return
+    let labels: TaskCaptureLabels
+    try {
+      labels = ctx.getLabels()
+    } catch {
+      return
+    }
+    const title = normalizeTitle(raw)
+    if (!title) {
+      showBarError(labels.empty, 'empty')
+      return
+    }
+
+    let result: ReturnType<typeof createTask>
+    try {
+      result = createTask({ title })
+    } catch (err) {
+      const detail = cleanErrorText(err)
+      showBarError(detail ? `${labels.failed}: ${detail}` : labels.failed, 'error')
+      return
+    }
+    if (!result.ok) {
+      // Lead with what happened in the user's language; the store's message
+      // ("The task folder could not be created") is the detail, not the whole
+      // sentence. The bar stays up so the typed title is not lost.
+      const detail = result.error.trim()
+      showBarError(detail ? `${labels.failed}: ${detail}` : labels.failed, 'error')
+      return
+    }
+
+    // Saved. The bar has done its job; the notice carries the confirmation and
+    // the way into the Tasks view.
+    close(true)
+    announceSaved(result.task)
+  }
+
+  const handleReady = (event: IpcMainEvent) => {
+    if (!isSender(event)) return
+    reveal()
+  }
+  const handleSaveEvent = (event: IpcMainEvent, raw: unknown) => {
+    if (!isSender(event)) return
+    handleSave(event, raw)
+  }
+  const handleClose = (event: IpcMainEvent) => {
+    if (!isSender(event)) return
+    close()
+  }
+  const handleFocus = (event: IpcMainEvent) => {
+    if (!isSender(event)) return
+    if (barWin && !barWin.isDestroyed()) barWin.focus()
+  }
+
+  ipcMain.on('task-capture-ready', handleReady)
+  ipcMain.on('task-capture-save', handleSaveEvent)
+  ipcMain.on('task-capture-close', handleClose)
+  ipcMain.on('task-capture-focus', handleFocus)
+
+  function cleanup(): void {
+    close(false)
+    ipcMain.removeListener('task-capture-ready', handleReady)
+    ipcMain.removeListener('task-capture-save', handleSaveEvent)
+    ipcMain.removeListener('task-capture-close', handleClose)
+    ipcMain.removeListener('task-capture-focus', handleFocus)
+  }
+
+  return {
+    open,
+    close,
+    isOpen,
+    cleanup,
+    getWindow: () => barWin,
+  }
+}

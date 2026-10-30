@@ -289,6 +289,10 @@ let _petMenu = null;
 // tree (dist/main/quick-command.js).
 let _quickCommand = null;
 let _quickCommandChord = null;
+// Same lifecycle as the ASK bar, one level up in the compiled tree
+// (dist/main/task-capture.js). Own page, own window, own IPC.
+let _taskCapture = null;
+let _taskCaptureChord = null;
 let _taskBriefChord = null;
 // The quiet "needs you" count the AIPA side pushes in (0 = hide). Kept here so
 // a hit-window reload can restore the badge without waiting for the next push.
@@ -431,6 +435,57 @@ function unregisterQuickCommandShortcut() {
     globalShortcut.unregister(_quickCommandChord);
   } catch {}
   _quickCommandChord = null;
+}
+
+// The capture bar's summon chords, in priority order. T is the mnemonic; the
+// fallback drops modifiers only when another application already owns the
+// previous chord. Registration stops at the first success, the same discipline
+// as ASK and the brief: a second binding would open the bar twice.
+const TASK_CAPTURE_CHORDS = [
+  "CommandOrControl+Shift+Alt+T",
+  "CommandOrControl+Alt+T",
+  "CommandOrControl+Shift+T",
+];
+
+function openTaskCaptureFromShortcut() {
+  if (isQuitting || !win || win.isDestroyed()) return;
+  // The ring and the bar both own the keyboard while up. Opening the bar from
+  // the shortcut while the ring was open means "capture", so close the ring.
+  closePetMenu();
+  try {
+    getTaskCapture().open();
+  } catch (err) {
+    console.warn("Clawd: task capture could not open:", err && err.message);
+  }
+}
+
+function registerTaskCaptureShortcut() {
+  _taskCaptureChord = null;
+  for (const chord of TASK_CAPTURE_CHORDS) {
+    let claimed = false;
+    try {
+      claimed = globalShortcut.register(chord, openTaskCaptureFromShortcut);
+    } catch (err) {
+      console.warn(`Clawd: failed to register task capture shortcut ${chord}:`, err.message);
+    }
+    if (claimed) {
+      _taskCaptureChord = chord;
+      break;
+    }
+  }
+  if (!_taskCaptureChord) {
+    // Every candidate is owned elsewhere. The tray row remains the way in; the
+    // page has no shortcut hint of its own, so there is nothing stale to show.
+    console.warn("Clawd: task capture shortcut could not be claimed");
+  }
+}
+
+function unregisterTaskCaptureShortcut() {
+  if (!_taskCaptureChord) return;
+  try {
+    globalShortcut.unregister(_taskCaptureChord);
+  } catch {}
+  _taskCaptureChord = null;
 }
 
 // The task brief's summon chords, in priority order. B is the mnemonic; the
@@ -721,6 +776,7 @@ function reapplyMacVisibility() {
   apply(contextMenuOwner);
   apply(_petMenu && _petMenu.getWindow());
   apply(_quickCommand && _quickCommand.getWindow());
+  apply(_taskCapture && _taskCapture.getWindow());
 }
 
 // ── State machine ──
@@ -1355,6 +1411,43 @@ function getQuickCommand() {
   // `.default`; pet-menu.js is hand-written and exports the function directly.
   if (!_quickCommand) _quickCommand = require("../../quick-command").default(_quickCommandCtx);
   return _quickCommand;
+}
+
+// The capture bar's slice of the factory. It anchors on the pet, speaks the
+// pet's language and skin, and files a task instead of starting a turn.
+// Everything that validates and stores the title lives in the module.
+const _taskCaptureCtx = {
+  get win() { return win; },
+  getNearestWorkArea,
+  getHitRectScreen,
+  getLang: () => lang,
+  getTheme: () => {
+    try {
+      return require("./bubble-theme").getBubbleTheme();
+    } catch {
+      return "sao";
+    }
+  },
+  getLabels: () => ({
+    eyebrow: t("taskCaptureEyebrow"),
+    placeholder: t("taskCapturePlaceholder"),
+    save: t("taskCaptureSave"),
+    cancel: t("taskCaptureCancel"),
+    empty: t("taskCaptureEmpty"),
+    failed: t("taskCaptureFailed"),
+    savedTitle: t("taskCaptureSavedTitle"),
+    savedPill: t("taskCaptureSavedPill"),
+  }),
+  guardAlwaysOnTop,
+  reapplyMacVisibility,
+  hideFromTaskbar: (w) => forceHideFromTaskbarWin(w),
+};
+
+function getTaskCapture() {
+  // task-capture.ts is TypeScript-compiled CommonJS, same `.default` shape as
+  // quick-command.ts.
+  if (!_taskCapture) _taskCapture = require("../../task-capture").default(_taskCaptureCtx);
+  return _taskCapture;
 }
 
 /**
@@ -2378,6 +2471,7 @@ module.exports = function createClawdIntegration(aipaContext) {
     flushRuntimeStateToPrefs();
     unregisterToggleShortcut();
     unregisterQuickCommandShortcut();
+    unregisterTaskCaptureShortcut();
     unregisterTaskBriefShortcut();
     globalShortcut.unregisterAll();
     _perm.cleanup();
@@ -2392,6 +2486,10 @@ module.exports = function createClawdIntegration(aipaContext) {
     if (_quickCommand) {
       _quickCommand.cleanup();
       _quickCommand = null;
+    }
+    if (_taskCapture) {
+      _taskCapture.cleanup();
+      _taskCapture = null;
     }
     _aipaPetMenu = null;
     attentionActive = false;
@@ -2425,6 +2523,8 @@ module.exports = function createClawdIntegration(aipaContext) {
   registerToggleShortcut();
   // …and the second one: summon the quick command bar from anywhere.
   registerQuickCommandShortcut();
+  // …and the task capture bar, which files a task instead of starting a turn.
+  registerTaskCaptureShortcut();
   // …and the third: the task brief beside the pet.
   registerTaskBriefShortcut();
 
@@ -2572,6 +2672,17 @@ module.exports = function createClawdIntegration(aipaContext) {
     closePetMenu: () => closePetMenu(),
     /** Whether the radial menu window is currently visible. */
     isPetMenuOpen: () => !!(_petMenu && _petMenu.isOpen()),
+    /** Open the one-line task capture bar (shortcut / tray paths). */
+    openTaskCapture: () => {
+      if (isQuitting || !win || win.isDestroyed()) return false;
+      closePetMenu();
+      try {
+        return getTaskCapture().open() === true;
+      } catch (err) {
+        console.warn("Clawd: task capture could not open:", err && err.message);
+        return false;
+      }
+    },
     /** Get current pet size string (e.g. 'P:10') */
     getSize: () => currentSize,
     /** Set pet size (e.g. 'P:5', 'P:8', 'P:10', 'P:15') */

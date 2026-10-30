@@ -162,6 +162,8 @@ interface ClawdInstance {
   openPetMenu: () => boolean
   closePetMenu: () => void
   isPetMenuOpen: () => boolean
+  /** Open the one-line task capture bar; false when the pet is not up. */
+  openTaskCapture: () => boolean
 }
 
 const log = createLogger('clawd-integration')
@@ -1178,6 +1180,7 @@ export function showClawdNotice(
   payload: ClawdAttentionBubblePayload,
   ttlMs = 7000,
   onClick?: (action: string | null) => void,
+  options?: { userInitiated?: boolean },
 ): boolean {
   if (!clawdInstance) return false
   if (isClawdBubblesHidden() || isClawdPetHidden()) return false
@@ -1187,8 +1190,9 @@ export function showClawdNotice(
   if (isClawdAttentionActionable()) return false
   // A notice arriving while the pet is asleep would wake it for something the
   // user does not have to act on. Sleep and a timed silence are both explicit
-  // "leave me alone".
-  if (isClawdDoNotDisturb() || isClawdQuietActive()) return false
+  // "leave me alone". The exception is an answer the user just asked for by
+  // acting on the pet itself: silence mutes background noise, not a reply.
+  if (!options?.userInitiated && (isClawdDoNotDisturb() || isClawdQuietActive())) return false
   try {
     cancelClawdNotice()
     releaseActivityCard()
@@ -1473,6 +1477,12 @@ export function getClawdSubmenu(
             click: () => { setClawdQuietMinutes(0); onMenuAction?.() },
           },
         ],
+      },
+      {
+        label: petT('taskCaptureMenu'),
+        click: () => {
+          clawdInstance?.openTaskCapture()
+        },
       },
       { type: 'separator' },
       {

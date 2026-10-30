@@ -5494,6 +5494,18 @@
       "dispatch": "首次派发",
       "followup": "后续对话"
     },
+    "spend": {
+      "title": "花费",
+      "cost": "费用",
+      "turns": "轮次",
+      "output": "输出量",
+      "turnsCount": "{{count}} 轮",
+      "noUsage": "无用量记录",
+      "costUnknown": "费用未知",
+      "unknown": "未知",
+      "partial": "部分对话没有用量记录，因此这是已记录的下限。",
+      "rowTitle": "此任务的已记录花费"
+    },
     "history": "历史",
     "historyEmpty": "还没有动态。",
     "historyRun": "来自自动化运行（{{when}}）",

@@ -12,6 +12,7 @@ import {
   Building2,
   CheckCircle2,
   Clock,
+  Coins,
   FileText,
   FolderOpen,
   History,
@@ -41,15 +42,19 @@ import {
 } from '../../lib/taskDispatch'
 import { suggestDepartment } from '../../lib/taskRouting'
 import DepartmentSuggestionChip from './DepartmentSuggestionChip'
+import { formatTokens } from '../../utils/formatUtils'
 import {
   EDITABLE_STATUSES,
   formatBytes,
   formatTaskTime,
+  formatUsd,
   parseAutomationRunDetail,
   parseImportedFolderDetail,
   statusColor,
   statusLabelKey,
+  summarizeTaskSpend,
 } from './taskUi'
+import { useUsageEntries } from './useUsageEntries'
 
 interface TaskDetailProps {
   task: TaskRecordData
@@ -69,6 +74,16 @@ const RAIL_HEADING: React.CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 6,
   fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
   textTransform: 'uppercase', color: 'var(--text-muted)',
+}
+
+const SPEND_LABEL: React.CSSProperties = {
+  fontSize: 9, fontWeight: 600, letterSpacing: '0.05em',
+  textTransform: 'uppercase', color: 'var(--text-subtle)',
+}
+
+const SPEND_VALUE: React.CSSProperties = {
+  fontSize: 14, fontWeight: 600, color: 'var(--text-primary)',
+  fontVariantNumeric: 'tabular-nums',
 }
 
 export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetailProps) {
@@ -180,6 +195,15 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
     }),
     [task.title, task.materials, departments],
   )
+
+  // Spend is read from the main-process ledger, never derived from the
+  // transcript. Only the ids this task actually recorded are asked about.
+  const usageSessionIds = useMemo(
+    () => task.sessions.map(ref => ref.sessionId),
+    [task.sessions],
+  )
+  const usageEntries = useUsageEntries(usageSessionIds)
+  const spend = summarizeTaskSpend(usageSessionIds, usageEntries)
 
   const setDepartment = async (departmentId: string) => {
     setRouting(true)
@@ -320,6 +344,33 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
   const archived = task.status === 'archived'
   const purpose = taskDispatchPurpose(task)
   const brief = buildTaskBrief(task, purpose, t)
+
+  // A recorded conversation is named by its title when the session list has
+  // one; the placeholder `<system_context>` title is not a name, so the short
+  // id is the fallback. `no usage recorded` is not `$0.00`: a pre-ledger or
+  // unpriced turn is unknown spend.
+  const spendCost = spend.costUsd === null
+    ? t('tasks.spend.unknown')
+    : `${spend.costPartial ? '≥' : ''}${formatUsd(spend.costUsd) || '$0.00'}`
+  const spendTurns = spend.turns === null ? t('tasks.spend.unknown') : String(spend.turns)
+  const spendOutput = spend.outputTokens === null
+    ? t('tasks.spend.unknown')
+    : formatTokens(spend.outputTokens)
+
+  const conversationLabel = (ref: TaskSessionRefData): string => {
+    const listedTitle = sessionList.find(session => session.sessionId === ref.sessionId)?.title?.trim()
+    return listedTitle && !listedTitle.startsWith('<') ? listedTitle : ref.sessionId.slice(0, 8)
+  }
+
+  const conversationSpend = (ref: TaskSessionRefData): string => {
+    const entry = usageEntries.get(ref.sessionId)
+    if (!entry) return t('tasks.spend.noUsage')
+    const turns = t('tasks.spend.turnsCount', { count: entry.turns })
+    const cost = typeof entry.costUsd === 'number' && Number.isFinite(entry.costUsd)
+      ? (formatUsd(entry.costUsd) || '$0.00')
+      : t('tasks.spend.costUnknown')
+    return `${turns} · ${cost}`
+  }
 
   // The store records ids for routing; the timeline is for people. Resolve a
   // department id to its current name, and say plainly when that name no longer
@@ -772,6 +823,82 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
                   </div>
                 )}
               </div>
+
+              {/* What the task's conversations cost. Quiet by design: the
+                  same card grammar as dispatch, no new colour, and no block at
+                  all for a task that has never run a conversation. Unknown spend
+                  is named as unknown instead of being rounded to zero. */}
+              {task.sessions.length > 0 && (
+                <div
+                  data-task-spend
+                  style={{
+                    padding: '14px 16px 12px', borderRadius: 12,
+                    border: '1px solid var(--border)', background: 'var(--bg-secondary)',
+                    display: 'flex', flexDirection: 'column', gap: 10,
+                  }}
+                >
+                  <span style={RAIL_HEADING}>
+                    <Coins size={12} />
+                    {t('tasks.spend.title')}
+                  </span>
+
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24, flexWrap: 'wrap' }}>
+                    <div
+                      title={spend.costPartial ? t('tasks.spend.partial') : undefined}
+                      style={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+                    >
+                      <span style={SPEND_LABEL}>{t('tasks.spend.cost')}</span>
+                      <span data-task-spend-total style={SPEND_VALUE}>{spendCost}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <span style={SPEND_LABEL}>{t('tasks.spend.turns')}</span>
+                      <span style={SPEND_VALUE}>{spendTurns}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <span style={SPEND_LABEL}>{t('tasks.spend.output')}</span>
+                      <span style={SPEND_VALUE}>{spendOutput}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {task.sessions.slice().reverse().map((ref, index) => {
+                      const entry = usageEntries.get(ref.sessionId)
+                      const label = conversationLabel(ref)
+                      return (
+                        <div
+                          key={ref.sessionId}
+                          data-task-spend-session={ref.sessionId}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 8, minWidth: 0,
+                            padding: '6px 0',
+                            borderTop: index === 0 ? 'none' : '1px solid var(--border)',
+                          }}
+                        >
+                          <span style={{
+                            flexShrink: 0, border: '1px solid var(--border)', borderRadius: 5,
+                            padding: '0 4px', fontSize: 9, fontWeight: 600,
+                            color: 'var(--text-muted)',
+                          }}>
+                            {t(`tasks.sessionPurpose.${ref.purpose}`)}
+                          </span>
+                          <span title={label} style={{
+                            flex: 1, minWidth: 0, fontSize: 10.5, color: 'var(--text-secondary)',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>
+                            {label}
+                          </span>
+                          <span style={{
+                            flexShrink: 0, fontSize: 10, fontVariantNumeric: 'tabular-nums',
+                            color: entry ? 'var(--text-secondary)' : 'var(--text-subtle)',
+                          }}>
+                            {conversationSpend(ref)}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div style={{
                 padding: '16px 16px 14px', borderRadius: 12,

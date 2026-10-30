@@ -1,6 +1,6 @@
 // Small, pure helpers for the Tasks surface. Kept out of the components so
 // grouping and formatting are testable without mounting React.
-import type { TaskRecordData, TaskStatusData } from '../../../preload'
+import type { TaskRecordData, TaskStatusData, UsageEntryData } from '../../../preload'
 
 export interface TaskGroup {
   id: Exclude<TaskStatusData, 'assigned'>
@@ -83,6 +83,87 @@ export function formatBytes(bytes: number): string {
   const mb = kb / 1024
   if (mb < 1024) return `${mb.toFixed(mb < 10 ? 1 : 0)} MB`
   return `${(mb / 1024).toFixed(1)} GB`
+}
+
+/**
+ * The pet's spend precision: `$0.0042`, `$0.012`, `$1.25`. The same figure the
+ * user already reads beside the pet's turn card appears here, so one spend
+ * number never has two formats in the same app.
+ */
+export function formatUsd(usd: number): string {
+  if (!Number.isFinite(usd) || usd <= 0) return ''
+  if (usd < 0.01) return `$${usd.toFixed(4)}`
+  if (usd < 1) return `$${usd.toFixed(3)}`
+  return `$${usd.toFixed(2)}`
+}
+
+/**
+ * Sum what the ledger knows for a task's conversations.
+ *
+ * `null` means "nothing recorded" — the UI must say unknown, never `$0.00`.
+ * `costPartial` marks a priced sum that is only a lower bound because at least
+ * one conversation has no recorded usage (or no priced turn). The turn and
+ * output sums are over recorded conversations only; they are `null` when no
+ * conversation has a row at all, because zero turns is not the same as an
+ * unrecorded work history.
+ */
+export interface TaskSpendSummary {
+  costUsd: number | null
+  costPartial: boolean
+  turns: number | null
+  outputTokens: number | null
+}
+
+export function summarizeTaskSpend(
+  sessionIds: readonly string[],
+  entries: ReadonlyMap<string, UsageEntryData>,
+): TaskSpendSummary {
+  let cost = 0
+  let priced = 0
+  let unpriced = 0
+  let turns = 0
+  let outputTokens = 0
+  let recorded = 0
+
+  for (const sessionId of sessionIds) {
+    const entry = entries.get(sessionId)
+    if (!entry) {
+      unpriced += 1
+      continue
+    }
+    recorded += 1
+    turns += entry.turns
+    outputTokens += entry.outputTokens
+    if (typeof entry.costUsd === 'number' && Number.isFinite(entry.costUsd)) {
+      priced += 1
+      cost += entry.costUsd
+    } else {
+      unpriced += 1
+    }
+  }
+
+  return {
+    costUsd: priced > 0 ? cost : null,
+    costPartial: priced > 0 && unpriced > 0,
+    turns: recorded > 0 ? turns : null,
+    outputTokens: recorded > 0 ? outputTokens : null,
+  }
+}
+
+/**
+ * The task list's compact figure. Only a known priced sum earns a figure; a
+ * `≥` prefix says the rest of the task's conversations are unknown, so the row
+ * never presents a partial number as the whole bill.
+ */
+export function taskSpendLabel(
+  sessionIds: readonly string[],
+  entries: ReadonlyMap<string, UsageEntryData>,
+): string | null {
+  const summary = summarizeTaskSpend(sessionIds, entries)
+  if (summary.costUsd === null) return null
+  const value = formatUsd(summary.costUsd)
+  if (!value) return null
+  return summary.costPartial ? `≥${value}` : value
 }
 
 export function formatTaskTime(at: number, locale: 'en' | 'zh-CN'): string {

@@ -208,6 +208,25 @@ export interface TaskDeleteData {
   trashedTo?: string
 }
 
+// ── Usage ledger ────────────────────────────────────────────────────────
+// Mirrors src/main/usage/usage-store.ts. One row per conversation; the main
+// process accumulates it from the engine's own turn events. Absent fields mean
+// "not known", never zero: a pre-ledger or unpriced turn is unknown spend.
+
+export interface UsageEntryData {
+  sessionId: string
+  /** Latest context reading; replaced each turn, not summed. */
+  inputTokens: number
+  /** Sum of the output tokens of completed turns. */
+  outputTokens: number
+  cacheReadTokens?: number
+  /** Sum of the turns the engine priced; absent when none was priced. */
+  costUsd?: number
+  turns: number
+  firstAt: number
+  updatedAt: number
+}
+
 export type LegacyFolderStatusData = 'ok' | 'missing' | 'empty' | 'unreadable' | 'too_large'
 
 /** Read-only preflight for "import a legacy department folder as a task". */
@@ -2685,6 +2704,12 @@ const electronAPI = {
     ipcRenderer.on('tasks:changed', handler)
     return () => { ipcRenderer.removeListener('tasks:changed', handler) }
   },
+
+  // ── Usage ledger ────────────────────────
+  // Read-only: main records spend from the engine's turn events. Ids that have
+  // no row are simply absent, which the UI must show as unknown, not zero.
+  usageGetForSessions: (sessionIds: string[]) =>
+    ipcRenderer.invoke('usage:getForSessions', sessionIds) as Promise<UsageEntryData[]>,
 
   // ── Config / prefs ───────────────────────
   // `configRead`/`configWrite` have no renderer caller (the renderer uses the

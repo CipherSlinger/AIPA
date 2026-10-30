@@ -8,6 +8,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
   Archive,
+  Coins,
   FileText,
   Inbox,
   ListChecks,
@@ -30,7 +31,9 @@ import {
   groupTasks,
   statusColor,
   statusLabelKey,
+  taskSpendLabel,
 } from './taskUi'
+import { useUsageEntries } from './useUsageEntries'
 
 const HEADER_BUTTON: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
@@ -117,6 +120,18 @@ export default function TasksPanel() {
     () => groupTasks(tasks, query, showArchived),
     [tasks, query, showArchived],
   )
+  // One ledger read for every visible task. The list figure is only a label:
+  // the detail view owns the per-conversation breakdown.
+  const visibleSessionIds = useMemo(() => {
+    const ids: string[] = []
+    for (const group of groups) {
+      for (const task of group.tasks) {
+        for (const ref of task.sessions) ids.push(ref.sessionId)
+      }
+    }
+    return ids
+  }, [groups])
+  const usageEntries = useUsageEntries(visibleSessionIds)
   const selected = tasks.find(task => task.id === selectedTaskId) ?? null
   const activeCount = countActive(tasks)
   const deptOptions = useMemo(
@@ -318,6 +333,7 @@ export default function TasksPanel() {
 
                   {group.tasks.map(task => {
                     const active = task.id === selectedTaskId
+                    const spend = taskSpendLabel(task.sessions.map(ref => ref.sessionId), usageEntries)
                     return (
                       <button
                         key={task.id}
@@ -366,6 +382,18 @@ export default function TasksPanel() {
                             <FileText size={9} />
                             {task.materials.length}
                           </span>
+                          {/* Known priced spend only. A task with no priced
+                              conversation shows nothing rather than $0.00. */}
+                          {spend && (
+                            <span
+                              data-task-spend-row
+                              title={t('tasks.spend.rowTitle')}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}
+                            >
+                              <Coins size={9} />
+                              {spend}
+                            </span>
+                          )}
                           <span style={{ flex: 1 }} />
                           <span title={t('tasks.lastActivity', { when: formatTaskTime(task.updatedAt, resolvedLocale) })}>
                             {t('tasks.lastActivity', { when: formatTaskTime(task.updatedAt, resolvedLocale) })}
