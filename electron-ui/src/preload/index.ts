@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 type Unsubscribe = () => void
 
@@ -63,6 +63,109 @@ export interface SystemInitData {
   cwd: string
   skills: string[]
   plugins: string[]
+}
+
+// ── Tasks (increment 1) ────────────────────────────────────────────────
+// Mirrors src/main/tasks/task-store.ts. The main process is the authority; the
+// renderer only caches what these calls return.
+
+export type TaskStatusData =
+  | 'inbox'
+  | 'ready'
+  | 'assigned'
+  | 'in_progress'
+  | 'needs_you'
+  | 'done'
+  | 'archived'
+
+export type TaskMaterialSourceData =
+  | 'picker'
+  | 'drop'
+  | 'paste'
+  | 'import'
+  | 'automation'
+  | 'plugin'
+  | 'unknown'
+
+export interface TaskMaterialData {
+  id: string
+  name: string
+  /** Task-relative path, always `materials/<file name>` with forward slashes. */
+  relPath: string
+  size: number
+  mimeType?: string
+  addedAt: number
+  source: TaskMaterialSourceData
+  originPath?: string
+}
+
+export interface TaskSessionRefData {
+  sessionId: string
+  startedAt: number
+  purpose: 'dispatch' | 'followup'
+  personaId?: string
+}
+
+export type TaskEventKindData =
+  | 'created'
+  | 'material_added'
+  | 'material_removed'
+  | 'renamed'
+  | 'status_changed'
+  | 'moved'
+  | 'folder_missing'
+  | 'restored'
+
+export interface TaskEventData {
+  at: number
+  kind: TaskEventKindData
+  detail?: string
+}
+
+export interface TaskRecordData {
+  schemaVersion: number
+  id: string
+  title: string
+  slug: string
+  directory: string
+  status: TaskStatusData
+  /** Reserved for increment 2. */
+  departmentId: string | null
+  /** Reserved for increment 2. */
+  routedBy: 'user' | 'suggestion' | 'auto' | null
+  materials: TaskMaterialData[]
+  /** Reserved for increment 2. */
+  sessions: TaskSessionRefData[]
+  history: TaskEventData[]
+  createdAt: number
+  updatedAt: number
+  /** The task's directory could not be found; the record is still valid. */
+  missing: boolean
+}
+
+export interface TaskMutationData {
+  ok: boolean
+  code?: string
+  error?: string
+  task?: TaskRecordData
+}
+
+export interface TaskMaterialImportData {
+  ok: boolean
+  code?: string
+  error?: string
+  task?: TaskRecordData
+  added?: TaskMaterialData[]
+  errors?: Array<{ path: string; error: string }>
+}
+
+export interface TaskDeleteData {
+  ok: boolean
+  code?: string
+  error?: string
+  mode?: 'archived' | 'deleted'
+  task?: TaskRecordData
+  trashedTo?: string
 }
 
 /**
@@ -2451,6 +2554,46 @@ const electronAPI = {
     return () => { ipcRenderer.removeListener('automation:changed', handler) }
   },
 
+  // ── Tasks (increment 1) ──────────────────
+  // The main process owns `userData/tasks.json`; these calls read and mutate
+  // it. `tasks:changed` fires after a successful mutation from any window.
+  tasksList: () =>
+    ipcRenderer.invoke('tasks:list') as Promise<TaskRecordData[]>,
+  tasksGet: (id: string) =>
+    ipcRenderer.invoke('tasks:get', id) as Promise<TaskRecordData | null>,
+  tasksCreate: (input: { title: string; status?: TaskStatusData }) =>
+    ipcRenderer.invoke('tasks:create', input) as Promise<TaskMutationData>,
+  tasksUpdate: (id: string, patch: { title?: string; status?: TaskStatusData }) =>
+    ipcRenderer.invoke('tasks:update', id, patch) as Promise<TaskMutationData>,
+  tasksArchive: (id: string) =>
+    ipcRenderer.invoke('tasks:archive', id) as Promise<TaskMutationData>,
+  tasksRestore: (id: string) =>
+    ipcRenderer.invoke('tasks:restore', id) as Promise<TaskMutationData>,
+  // Delete archives by default; `deleteFiles: true` also moves the directory
+  // into the app's trash. The renderer never sends a path here.
+  tasksDelete: (id: string, options?: { deleteFiles?: boolean }) =>
+    ipcRenderer.invoke('tasks:delete', id, options) as Promise<TaskDeleteData>,
+  // `paths` are opaque source paths; main validates each against the allowed
+  // roots and copies (never links or moves) into `<task>/materials/`.
+  tasksAddMaterials: (
+    id: string,
+    input: { paths: string[]; source: TaskMaterialSourceData },
+  ) =>
+    ipcRenderer.invoke('tasks:addMaterials', id, input) as Promise<TaskMaterialImportData>,
+  tasksRemoveMaterial: (id: string, materialId: string) =>
+    ipcRenderer.invoke('tasks:removeMaterial', id, materialId) as Promise<TaskMutationData>,
+  tasksReveal: (id: string) =>
+    ipcRenderer.invoke('tasks:reveal', id) as Promise<{ ok: boolean; code?: string; error?: string }>,
+  // Pre-flight move only: the design makes the directory immutable after the
+  // first conversation, and increment 1 has no conversations yet.
+  tasksMove: (id: string, targetRoot: string) =>
+    ipcRenderer.invoke('tasks:move', id, targetRoot) as Promise<TaskMutationData>,
+  onTasksChanged: (cb: () => void): Unsubscribe => {
+    const handler = () => cb()
+    ipcRenderer.on('tasks:changed', handler)
+    return () => { ipcRenderer.removeListener('tasks:changed', handler) }
+  },
+
   // ── Config / prefs ───────────────────────
   // `configRead`/`configWrite` have no renderer caller (the renderer uses the
   // typed `configReadCLISettings` pair below). Retained because the wave82C
@@ -2500,6 +2643,13 @@ const electronAPI = {
     ipcRenderer.invoke('folders:forget', { dir }) as Promise<{ forgotten: boolean; folders: string[] }>,
   fsShowOpenFileDialog: (filters?: { name: string; extensions: string[] }[], multiSelections?: boolean) =>
     ipcRenderer.invoke('fs:showOpenFileDialog', { filters, multiSelections }),
+  /**
+   * Native path of a File dropped onto the window. Electron 32 removed the
+   * non-standard `File.path`; `webUtils` is the supported replacement and has
+   * to be called in the preload, where the File object is still native.
+   */
+  getPathForFile: (file: unknown) =>
+    webUtils.getPathForFile(file as Parameters<typeof webUtils.getPathForFile>[0]),
   fsShowSaveDialog: (defaultName: string, filters: { name: string; extensions: string[] }[]) =>
     ipcRenderer.invoke('fs:showSaveDialog', { defaultName, filters }),
   fsWriteFile: (filePath: string, content: string) =>

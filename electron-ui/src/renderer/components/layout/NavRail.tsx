@@ -2,6 +2,7 @@ import React from 'react'
 import {
   Archive,
   Building2,
+  ListChecks,
   Settings,
   User,
   UserCog,
@@ -254,6 +255,7 @@ export default function NavRail() {
   // when switching tabs because mainView was not cleared (Iteration 612 fix).
   const isHistoryActive = activeNavItem === 'history'
   const isDepartmentActive = activeNavItem === 'department'
+  const isTasksActive = activeNavItem === 'tasks'
   const isWorkflowsActive = activeNavItem === 'workflows'
   const isStreaming = useChatStore(s => s.isStreaming)
   const isSettingsActive = useUiStore(s => s.settingsModalOpen)
@@ -290,6 +292,17 @@ export default function NavRail() {
         transition: 'all 0.15s ease',
       }}
     >
+      {/* Tasks — task-owned work: its own folder and materials. First in the
+          rail, but it deliberately does not claim Ctrl+1: increment 1 adds the
+          surface without changing any department shortcut or behaviour. */}
+      <NavItem
+        icon={<ListChecks size={iconSize} strokeWidth={1.5} />}
+        label={t('tasks.title')}
+        isActive={isTasksActive}
+        onClick={() => setActiveNavItem('tasks')}
+        expanded={navExpanded}
+      />
+
       {/* Departments */}
       <NavItem
         icon={<Building2 size={iconSize} strokeWidth={1.5} />}

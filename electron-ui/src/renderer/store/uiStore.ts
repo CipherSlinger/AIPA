@@ -22,11 +22,12 @@ export interface ArchiveAskScopeSeed {
 export type SidebarTab = 'history' | 'files' | 'notes' | 'workflows' | 'changes'
 // 'skills' is kept as an alias: the Skills panel is now a section of the Employees
 // page, so entry points (Ctrl+4, /skills, command palette) resolve to 'workflows'.
-export type NavItem = 'chat' | 'department' | 'archive' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'changes' | 'run-activity' | `plugin:${string}`
+export type NavItem = 'chat' | 'department' | 'archive' | 'history' | 'files' | 'settings' | 'notes' | 'skills' | 'memory' | 'workflows' | 'changes' | 'run-activity' | 'tasks' | `plugin:${string}`
 export type MainView =
   | 'chat'
   | 'department'
   | 'archive'
+  | 'tasks'
   | 'workflows'
   | 'notes'
   | 'changes'
@@ -269,6 +270,12 @@ function resolveNav(_s: UiState, item: NavItem): NavPatch {
   // Department opens the department dashboard in main content area
   if (item === 'department') {
     return { activeNavItem: 'department', mainView: 'department', sidebarTab: 'history', sidebarOpen: false }
+  }
+  // Tasks is the task-owned work surface. It deliberately does not write
+  // `prefs.workingDir` or open a conversation: increment 1 is a record and a
+  // folder, not dispatch.
+  if (item === 'tasks') {
+    return { activeNavItem: 'tasks', mainView: 'tasks', sidebarOpen: false }
   }
   // Archive opens the company-wide task ledger
   if (item === 'archive') {

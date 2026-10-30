@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useChatStore, useUiStore } from '../../store'
+import { useChatStore, useTaskStore, useUiStore } from '../../store'
 import { usePluginStore } from '../../store/pluginStore'
 import { useTerminalStore } from '../../store/terminalStore'
 import { useT } from '../../i18n'
@@ -18,6 +18,7 @@ const NotesPanel = React.lazy(() => import('../notes/NotesPanel'))
 const SkillCreatorPage = React.lazy(() => import('../skills/SkillCreatorPage'))
 const SkillMarketplacePage = React.lazy(() => import('../skills/SkillMarketplacePage'))
 const DepartmentDashboard = React.lazy(() => import('../departments/DepartmentDashboard'))
+const TasksPanel = React.lazy(() => import('../tasks/TasksPanel'))
 const ArchivePanel = React.lazy(() => import('../archive/ArchivePanel'))
 const RunActivityPanel = React.lazy(() => import('../automation/RunActivityPanel'))
 const WorkflowPanel = React.lazy(() => import('../workflows/WorkflowPanel'))
@@ -93,6 +94,12 @@ export default function AppShell() {
         if (mainView === 'department') {
           // Escape from department dashboard goes to chat
           useUiStore.getState().setMainView('chat')
+        } else if (mainView === 'tasks') {
+          // First Escape leaves the open task detail; the list stays in front.
+          // A second one follows the other page views back to chat.
+          const tasks = useTaskStore.getState()
+          if (tasks.selectedTaskId) tasks.selectTask(null)
+          else useUiStore.getState().setActiveNavItem('chat')
         } else if (mainView === 'workflow-detail' || mainView === 'workflow-editor') {
           // Go back to workflows from workflow detail or editor
           useUiStore.getState().setActiveNavItem('workflows')
@@ -197,6 +204,12 @@ export default function AppShell() {
             <ErrorBoundary key={mainView} fallbackLabel="archive panel">
               <React.Suspense fallback={<PanelSkeleton />}>
                 <ArchivePanel />
+              </React.Suspense>
+            </ErrorBoundary>
+          ) : mainView === 'tasks' ? (
+            <ErrorBoundary key={mainView} fallbackLabel="tasks panel">
+              <React.Suspense fallback={<PanelSkeleton />}>
+                <TasksPanel />
               </React.Suspense>
             </ErrorBoundary>
           ) : mainView === 'run-activity' ? (

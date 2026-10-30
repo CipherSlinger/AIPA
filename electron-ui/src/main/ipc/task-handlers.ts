@@ -1,0 +1,124 @@
+/**
+ * IPC surface for tasks (increment 1: the task foundation).
+ *
+ * Every handler that names a task goes through the store's own lookup, so no
+ * handler can act on an id that is not in `tasks.json`. Every path arrives from
+ * the renderer as an opaque string and is validated by the store against the
+ * existing allowed-roots gate before it is read.
+ *
+ * Mutations broadcast `tasks:changed` only after they succeed. A failed call
+ * returns `{ ok: false, code, error }`: the renderer has to show the reason
+ * beside the control that caused it, and a rejected invoke would only surface
+ * as an opaque string.
+ */
+import { shell } from 'electron'
+import * as fs from 'fs'
+import { safeHandle } from './register/safe-handle'
+import { createLogger } from '../utils/logger'
+import {
+  addMaterials,
+  archiveTask,
+  createTask,
+  deleteTask,
+  getTask,
+  listTasks,
+  moveTask,
+  removeMaterial,
+  restoreTask,
+  updateTask,
+} from '../tasks/task-store'
+
+const log = createLogger('ipc:tasks')
+
+type Send = (channel: string, ...args: unknown[]) => void
+
+export function registerTaskHandlers(send: Send): void {
+  const changed = () => {
+    try { send('tasks:changed') } catch (err) { log.warn('tasks:changed broadcast failed:', String(err)) }
+  }
+
+  safeHandle('tasks:list', () => {
+    try {
+      return listTasks()
+    } catch (err) {
+      log.error('tasks:list failed:', String(err))
+      return []
+    }
+  })
+
+  safeHandle('tasks:get', (_event, id: unknown) => {
+    try {
+      return getTask(id)
+    } catch (err) {
+      log.error('tasks:get failed:', String(err))
+      return null
+    }
+  })
+
+  safeHandle('tasks:create', (_event, input: unknown) => {
+    const payload = input && typeof input === 'object' ? input as Record<string, unknown> : {}
+    const result = createTask({ title: payload.title, status: payload.status })
+    if (result.ok) changed()
+    return result
+  })
+
+  safeHandle('tasks:update', (_event, id: unknown, patch: unknown) => {
+    const payload = patch && typeof patch === 'object' ? patch as Record<string, unknown> : {}
+    const result = updateTask(id, { title: payload.title, status: payload.status })
+    if (result.ok) changed()
+    return result
+  })
+
+  safeHandle('tasks:archive', (_event, id: unknown) => {
+    const result = archiveTask(id)
+    if (result.ok) changed()
+    return result
+  })
+
+  safeHandle('tasks:restore', (_event, id: unknown) => {
+    const result = restoreTask(id)
+    if (result.ok) changed()
+    return result
+  })
+
+  safeHandle('tasks:delete', (_event, id: unknown, options: unknown) => {
+    const payload = options && typeof options === 'object' ? options as Record<string, unknown> : {}
+    const result = deleteTask(id, { deleteFiles: payload.deleteFiles })
+    if (result.ok) changed()
+    return result
+  })
+
+  safeHandle('tasks:addMaterials', (_event, id: unknown, input: unknown) => {
+    const payload = input && typeof input === 'object' ? input as Record<string, unknown> : {}
+    const result = addMaterials(id, payload.paths, payload.source)
+    if (result.ok) changed()
+    return result
+  })
+
+  safeHandle('tasks:removeMaterial', (_event, id: unknown, materialId: unknown) => {
+    const result = removeMaterial(id, materialId)
+    if (result.ok) changed()
+    return result
+  })
+
+  safeHandle('tasks:move', (_event, id: unknown, targetRoot: unknown) => {
+    const result = moveTask(id, targetRoot)
+    if (result.ok) changed()
+    return result
+  })
+
+  safeHandle('tasks:reveal', async (_event, id: unknown) => {
+    const task = getTask(id)
+    if (!task) return { ok: false, code: 'not_found', error: 'Unknown task' }
+    if (task.missing || !fs.existsSync(task.directory)) {
+      return { ok: false, code: 'folder_missing', error: "The task's folder is missing" }
+    }
+    try {
+      const error = await shell.openPath(task.directory)
+      return error ? { ok: false, code: 'open_failed', error } : { ok: true }
+    } catch (err) {
+      log.warn('tasks:reveal failed:', String(err))
+      return { ok: false, code: 'open_failed', error: String(err) }
+    }
+  })
+}

@@ -26,6 +26,8 @@ export { usePluginStore } from './pluginStore'
 export { useTerminalStore } from './terminalStore'
 export type { TerminalStatus, TerminalTab } from './terminalStore'
 
+export { useTaskStore } from './taskStore'
+
 // ── Session store ───────────────────────────────
 interface SessionState {
   sessions: SessionListItem[]
