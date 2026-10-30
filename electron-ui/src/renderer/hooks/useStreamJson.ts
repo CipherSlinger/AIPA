@@ -73,6 +73,10 @@ export function useStreamJson() {
   const sendMessageRef = useRef<((prompt: string) => Promise<unknown>) | null>(null)
   // Track when the user sends a message to calculate response duration
   const sendTimestampRef = useRef<number>(0)
+  // Whether the last `sendMessage` really started a turn. `null` before any
+  // send, so a Retry can never read a stale "true" from an older turn: it is
+  // written synchronously by every send path, before the promise resolves.
+  const lastSendStartedRef = useRef<boolean | null>(null)
   // Only warn once per session about context window nearing capacity
   const contextWarningShownRef = useRef<boolean>(false)
   // Snapshot of .consolidate-lock mtime at session start — used to detect dream completions
@@ -102,7 +106,10 @@ export function useStreamJson() {
    * a retry must be an ordinary turn in every respect except its missing echo.
    */
   const sendMessage = useCallback(async (prompt: string, attachments?: import('./useImagePaste').ImageAttachment[], fileAttachments?: import('./useImagePaste').FileAttachment[], options?: { appendUserMessage?: boolean }) => {
-    if (!prompt.trim() && (!attachments || attachments.length === 0) && (!fileAttachments || fileAttachments.length === 0)) return
+    if (!prompt.trim() && (!attachments || attachments.length === 0) && (!fileAttachments || fileAttachments.length === 0)) {
+      lastSendStartedRef.current = false
+      return
+    }
     const appendUserMessage = options?.appendUserMessage !== false
 
     // PERF: read latest store values at call time so sendMessage keeps a stable
@@ -464,6 +471,11 @@ export function useStreamJson() {
     // places in step. A refused send changes nothing, and the helper never
     // reports a bookkeeping failure over the turn itself.
     if (result?.success && activeTask) noteTaskTurnStarted(activeTask.id)
+    // Did a turn really start? The send path resolves `{success:false}` for a
+    // refused handshake without throwing, so the promise alone cannot tell a
+    // caller. Retry needs that answer; it reads this rather than widening the
+    // `Promise<void>` send contract every composer prop already depends on.
+    lastSendStartedRef.current = result?.success === true
   }, [stopStreamingAndReleaseSleep])
 
   // Keep ref in sync so IPC handler can call sendMessage without stale closure
@@ -496,13 +508,18 @@ export function useStreamJson() {
     state.setTurnErrorActive(errorMessageId, false)
     try {
       await sendMessage(text, undefined, undefined, { appendUserMessage: false })
-      return true
+      if (lastSendStartedRef.current === true) return true
+      // The engine refused the follow-up: no turn began, so the old failure is
+      // still the transcript's tail and its Retry must be offered again.
+      useChatStore.getState().setTurnErrorActive(errorMessageId, true)
+      stopStreamingAndReleaseSleep()
+      return false
     } catch {
       // Nothing left the renderer, so the offer was never answered.
       useChatStore.getState().setTurnErrorActive(errorMessageId, true)
       return false
     }
-  }, [sendMessage])
+  }, [sendMessage, stopStreamingAndReleaseSleep])
 
   /**
    * Send a message as guidance into the turn that is already running, instead

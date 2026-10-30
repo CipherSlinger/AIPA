@@ -690,6 +690,10 @@
     // IME composition owns Escape and the number row until the candidate
     // window closes; reacting mid-word would close the card or open a row.
     if (event.isComposing || event.keyCode === 229) return;
+    // Holding a chord must mean one action. Auto-repeat would fire it against
+    // whatever row now sits at that index after the list repainted — holding
+    // Alt+1 would finish task after task instead of one keypress.
+    if (event.repeat) return;
 
     if (event.key === "Escape") {
       event.preventDefault();

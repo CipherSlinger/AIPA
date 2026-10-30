@@ -202,6 +202,13 @@ interface UndoOffer {
   taskId: string
   title: string
   previous: TaskStatus
+  /**
+   * Why a `needs_you` task was waiting, captured before Done overwrote that
+   * status event. The reason lives only on the latest `status_changed` detail,
+   * so restoring the status without it would bring the row back unable to say
+   * what it is waiting for.
+   */
+  reason?: string
   expiresAt: number
 }
 let undoOffer: UndoOffer | null = null
@@ -830,7 +837,13 @@ function handleUndo(): ClawdTaskBriefPayload {
 
   let mutation: ReturnType<typeof updateTask> | null = null
   try {
-    mutation = updateTask(offer.taskId, { status: offer.previous })
+    // Restoring `needs_you` restores its reason too, or the row comes back
+    // saying it waits on the user but no longer saying why. The store only
+    // records a note alongside an actual status change, which this is.
+    mutation = updateTask(offer.taskId, {
+      status: offer.previous,
+      ...(offer.previous === 'needs_you' && offer.reason ? { note: offer.reason } : {}),
+    })
   } catch (err) {
     log.warn('Could not restore a finished task:', err)
   }
@@ -924,10 +937,23 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
         return withError(buildPayload(), petT('taskBriefDoneFailed'))
       }
 
+      // Already finished elsewhere, or this is the second click of a double
+      // click that landed before the row collapsed. There is nothing to
+      // finish and — crucially — nothing to undo, so no offer is armed; a
+      // `done -> done` write is a no-op in the store, and an Undo built on it
+      // would visibly do nothing while claiming the row had just finished.
+      if (task.status === 'done' || task.status === 'archived') {
+        return buildPayload()
+      }
+
       // Captured before the write: this is the exact status the task had when
       // the user pressed Done, including `needs_you`, which no history lookup
       // would have to reconstruct.
       const previous = task.status
+      // A waiting task's reason lives only on its latest `status_changed`
+      // event; the Done write replaces that event, so it has to be carried
+      // into the offer or Undo cannot put the row back as it was.
+      const reason = previous === 'needs_you' ? statusNote(task) : undefined
 
       let mutation: ReturnType<typeof updateTask> | null = null
       try {
@@ -944,6 +970,7 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
         taskId: task.id,
         title: task.title,
         previous,
+        ...(reason ? { reason } : {}),
         expiresAt: Date.now() + UNDO_WINDOW_MS,
       })
 

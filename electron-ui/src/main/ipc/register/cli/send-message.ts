@@ -118,6 +118,11 @@ export async function registerCodexSendMessage(
         return { success: true, sessionId: existingBridgeId }
       } catch (err) {
         dreamNoteTurnCancelled(existingBridgeId)
+        // The turn never started. Before this the renderer got a bare
+        // `{success:false}` and kept claiming a turn was running — no error
+        // row, no stop, a Retry button that had already been retired. The
+        // new-bridge path already reports a failed handshake this way.
+        sink('cli:error', { sessionId: existingBridgeId, error: String(err) })
         return { success: false, error: String(err) }
       }
     }
@@ -142,6 +147,9 @@ export async function registerCodexSendMessage(
         return { success: true, sessionId: live.bridgeId }
       } catch (err) {
         dreamNoteTurnCancelled(live.bridgeId)
+        // Same silent failure as the existing-bridge branch above: report it
+        // so the renderer leaves its streaming state and shows the reason.
+        sink('cli:error', { sessionId: live.bridgeId, error: String(err) })
         return { success: false, error: String(err) }
       }
     }

@@ -42,6 +42,7 @@ import {
   taskDispatchPurpose,
 } from '../../lib/taskDispatch'
 import { suggestDepartment } from '../../lib/taskRouting'
+import { useToday } from '../../hooks/useToday'
 import DepartmentSuggestionChip from './DepartmentSuggestionChip'
 import { formatTokens } from '../../utils/formatUtils'
 import {
@@ -51,7 +52,6 @@ import {
   formatDueDate,
   formatTaskTime,
   formatUsd,
-  todayLocalDay,
   parseAutomationRunDetail,
   parseImportedFolderDetail,
   parseStatusChangeDetail,
@@ -359,7 +359,9 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
     if (!result.ok) addToast('error', t('tasks.error.removeMaterial'))
   }
 
-  const today = todayLocalDay()
+  // Kept honest across midnight for the same reason as the list: a task due
+  // yesterday must stop saying "Due today" without waiting for a store event.
+  const today = useToday()
   const due = task.dueOn ? dueInfo(task.dueOn, today) : null
   const dueWarning = due?.state === 'overdue' || due?.state === 'today'
   const dueLabel = !task.dueOn

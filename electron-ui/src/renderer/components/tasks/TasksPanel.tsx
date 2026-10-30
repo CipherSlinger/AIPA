@@ -36,8 +36,8 @@ import {
   statusLabelKey,
   taskSpendLabel,
   taskWaitingReason,
-  todayLocalDay,
 } from './taskUi'
+import { useToday } from '../../hooks/useToday'
 import { useUsageEntries } from './useUsageEntries'
 
 const HEADER_BUTTON: React.CSSProperties = {
@@ -121,9 +121,9 @@ export default function TasksPanel() {
     return pushEscapeHandler(() => { setPendingDelete(null); setDeleteFiles(false) })
   }, [pendingDelete])
 
-  // One local clock read per render. Every row compares against the same day,
-  // so a list rendered across midnight cannot show two different "today"s.
-  const today = todayLocalDay()
+  // One local day for the whole list, refreshed when the day rolls over so a
+  // panel left open overnight stops calling yesterday "Today".
+  const today = useToday()
   const groups = useMemo(
     () => groupTasks(tasks, query, showArchived),
     [tasks, query, showArchived],
