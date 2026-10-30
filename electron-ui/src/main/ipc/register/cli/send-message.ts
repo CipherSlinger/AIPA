@@ -48,10 +48,20 @@ export function pickModelForEngine(
   return model
 }
 
+export interface CodexSendOptions {
+  /**
+   * Fail fast through `account/read` when Codex has no credentials. The pet's
+   * quick command bar uses this to show "not signed in" inline in the bar
+   * instead of creating a bridge that only fails after its first turn event.
+   */
+  requireAuth?: boolean
+}
+
 export async function registerCodexSendMessage(
   args: Record<string, unknown>,
   sink: BridgeSink,
   internal = false,
+  options: CodexSendOptions = {},
 ): Promise<{ success: boolean; sessionId?: string; error?: string }> {
   const existingBridgeId = args.activeBridgeId as string | undefined
   const prompt = args.prompt as string
@@ -163,6 +173,7 @@ export async function registerCodexSendMessage(
           }
         : {}),
       ...(args.ephemeral === true ? { ephemeral: true } : {}),
+      ...(options.requireAuth === true ? { requireAuth: true } : {}),
     },
   )
 

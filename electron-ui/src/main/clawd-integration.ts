@@ -106,6 +106,12 @@ export interface ClawdAttentionBubblePayload {
    * the same window instead of opening another one.
    */
   key?: string
+  /**
+   * The conversation this notice belongs to. Recorded with the notice so the
+   * log's "Open" row can focus that session later — the quick command reply is
+   * the first notice whose only useful target is a brand-new conversation.
+   */
+  sessionId?: string
 }
 
 // Clawd factory return type (CommonJS module, no TS declarations)
@@ -1113,6 +1119,9 @@ export function showClawdNotice(
       title: payload.title,
       message: payload.message,
       detail: payload.meta?.map(row => `${row.label}: ${row.value}`).join('\n'),
+      // Optional: a notice that points at a conversation (the quick command
+      // reply) stays openable from the log after its card has faded.
+      ...(payload.sessionId ? { sessionId: payload.sessionId } : {}),
     })
     // An open log should grow as the pet speaks, not only when reopened.
     try {

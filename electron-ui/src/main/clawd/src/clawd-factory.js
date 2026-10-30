@@ -283,6 +283,11 @@ let _aipaAttentionActivate = null;
 // the petal that would call it (see getPetMenuPayload).
 let _aipaPetMenu = null;
 let _petMenu = null;
+// Lazy like the radial menu: created on first use, destroyed on close, and
+// removed with the pet on quit. The module lives one level up in the compiled
+// tree (dist/main/quick-command.js).
+let _quickCommand = null;
+let _quickCommandChord = null;
 let tray = null;
 let contextMenuOwner = null;
 let currentSize = _settingsController.get("size");
@@ -369,6 +374,58 @@ function unregisterToggleShortcut() {
   try {
     globalShortcut.unregister(DEFAULT_TOGGLE_SHORTCUT);
   } catch {}
+}
+
+// The quick command bar's summon chords, in priority order. Q is the mnemonic;
+// the modifier stack changes only when another application already owns the
+// previous chord. Registering stops at the first success, the same discipline
+// claimSummonChord() applies to the app's own summon shortcut — trying a later
+// chord after one is bound would leave two accelerators firing one action.
+const QUICK_COMMAND_CHORDS = [
+  "CommandOrControl+Shift+Alt+Q",
+  "CommandOrControl+Alt+Q",
+  "CommandOrControl+Shift+Q",
+];
+
+function openQuickCommandFromShortcut() {
+  if (isQuitting || !win || win.isDestroyed()) return;
+  // The ring and the bar both own the keyboard while up. Opening the bar from
+  // the shortcut while the ring was open means "ask", so close the ring first.
+  closePetMenu();
+  try {
+    getQuickCommand().open();
+  } catch (err) {
+    console.warn("Clawd: quick command could not open:", err && err.message);
+  }
+}
+
+function registerQuickCommandShortcut() {
+  _quickCommandChord = null;
+  for (const chord of QUICK_COMMAND_CHORDS) {
+    let claimed = false;
+    try {
+      claimed = globalShortcut.register(chord, openQuickCommandFromShortcut);
+    } catch (err) {
+      console.warn(`Clawd: failed to register quick command shortcut ${chord}:`, err.message);
+    }
+    if (claimed) {
+      _quickCommandChord = chord;
+      break;
+    }
+  }
+  if (!_quickCommandChord) {
+    // Every candidate is owned elsewhere. The ASK petal remains the way in;
+    // saying nothing here would leave the feature looking broken.
+    console.warn("Clawd: quick command shortcut could not be claimed");
+  }
+}
+
+function unregisterQuickCommandShortcut() {
+  if (!_quickCommandChord) return;
+  try {
+    globalShortcut.unregister(_quickCommandChord);
+  } catch {}
+  _quickCommandChord = null;
 }
 
 function sendToRenderer(channel, ...args) {
@@ -595,6 +652,7 @@ function reapplyMacVisibility() {
   apply(_attentionBubble.getBubbleWindow());
   apply(contextMenuOwner);
   apply(_petMenu && _petMenu.getWindow());
+  apply(_quickCommand && _quickCommand.getWindow());
 }
 
 // ── State machine ──
@@ -1067,6 +1125,8 @@ function getPetMenuPayload() {
       allCommands: t("petMenuAllCommands"),
       // Third ring behind RECENT.
       recent: t("petMenuRecent"),
+      // Second-ring leaf: opens the quick command bar.
+      ask: t("petMenuAsk"),
       noRecentChats: t("petMenuNoRecentChats"),
       back: t("petMenuBack"),
       close: t("petMenuClose"),
@@ -1108,6 +1168,9 @@ function getPetMenuPayload() {
       // RECENT needs both halves: the list to draw and the action to open a
       // chip. Showing the ring with no way to open a session would be a dead end.
       recent: hasPetMenuCallback("recentSessions") && hasPetMenuCallback("openRecentSession"),
+      // ASK is owned by the pet itself (its own window), not by an AIPA
+      // callback, so it is always offered once the pet window exists.
+      ask: true,
     },
   };
 }
@@ -1123,6 +1186,12 @@ function handlePetMenuAction(actionId) {
     case "settings": callPetMenuCallback("openSettings"); break;
     case "hide": callPetMenuCallback("toggleHidden"); break;
     case "native": showPetContextMenu(); break;
+    // The pet's own bar — no AIPA callback involved.
+    case "ask":
+      try { getQuickCommand().open(); } catch (err) {
+        console.warn("Clawd: quick command could not open:", err && err.message);
+      }
+      break;
     default:
       // The RUNNING chip's id travels with the action, so a turn ending while
       // the ring is up cannot redirect the click to a different conversation.
@@ -1157,6 +1226,52 @@ const _petMenuCtx = {
 function getPetMenu() {
   if (!_petMenu) _petMenu = require("./pet-menu")(_petMenuCtx);
   return _petMenu;
+}
+
+// The quick command bar's slice of the factory. It anchors on the pet, speaks
+// the pet's language and skin, and asks the same "busy" question the STOP
+// petal does. Everything that turns a prompt into a turn lives in the module.
+const _quickCommandCtx = {
+  get win() { return win; },
+  getNearestWorkArea,
+  getHitRectScreen,
+  getLang: () => lang,
+  getTheme: () => {
+    try {
+      return require("./bubble-theme").getBubbleTheme();
+    } catch {
+      return "sao";
+    }
+  },
+  isBusy: () => callPetMenuCallback("isBusy") === true,
+  getLabels: () => ({
+    ask: t("quickCommandAsk"),
+    placeholder: t("quickCommandPlaceholder"),
+    send: t("quickCommandSend"),
+    cancel: t("quickCommandCancel"),
+    starting: t("quickCommandStarting"),
+    empty: t("quickCommandEmpty"),
+    busy: t("quickCommandBusy"),
+    failed: t("quickCommandFailed"),
+    turnFailed: t("quickCommandTurnFailed"),
+    replyTitle: t("quickCommandReplyTitle"),
+    replyPill: t("quickCommandReplyPill"),
+    noReply: t("quickCommandNoReply"),
+    errorTitle: t("quickCommandErrorTitle"),
+    errorPill: t("quickCommandErrorPill"),
+    metaTime: t("quickCommandMetaTime"),
+    metaTools: t("quickCommandMetaTools"),
+  }),
+  guardAlwaysOnTop,
+  reapplyMacVisibility,
+  hideFromTaskbar: (w) => forceHideFromTaskbarWin(w),
+};
+
+function getQuickCommand() {
+  // quick-command.ts is TypeScript-compiled CommonJS, so its factory sits on
+  // `.default`; pet-menu.js is hand-written and exports the function directly.
+  if (!_quickCommand) _quickCommand = require("../../quick-command").default(_quickCommandCtx);
+  return _quickCommand;
 }
 
 /**
@@ -2166,6 +2281,7 @@ module.exports = function createClawdIntegration(aipaContext) {
     isQuitting = true;
     flushRuntimeStateToPrefs();
     unregisterToggleShortcut();
+    unregisterQuickCommandShortcut();
     globalShortcut.unregisterAll();
     _perm.cleanup();
     _server.cleanup();
@@ -2175,6 +2291,10 @@ module.exports = function createClawdIntegration(aipaContext) {
     if (_petMenu) {
       _petMenu.cleanup();
       _petMenu = null;
+    }
+    if (_quickCommand) {
+      _quickCommand.cleanup();
+      _quickCommand = null;
     }
     _aipaPetMenu = null;
     attentionActive = false;
@@ -2206,6 +2326,8 @@ module.exports = function createClawdIntegration(aipaContext) {
 
   // Register global shortcut for toggling pet visibility
   registerToggleShortcut();
+  // …and the second one: summon the quick command bar from anywhere.
+  registerQuickCommandShortcut();
 
   // Construct log monitors
   try {
