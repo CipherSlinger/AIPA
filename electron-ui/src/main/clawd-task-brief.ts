@@ -18,7 +18,9 @@
  *   - a row opens the task's latest conversation, or the Tasks view when the
  *     task has no conversation yet;
  *   - a row's Start button dispatches the task instead: a chat tab in the task
- *     folder with the brief in the composer, and nothing sent.
+ *     folder with the brief in the composer, and nothing sent;
+ *   - a row's due marker moves the task to tomorrow in place, offering the old
+ *     day back through the same quiet Undo line a finish uses.
  *
  * Everything is fail-open: a missing store, a display query that throws while
  * Electron is still starting, or a window that never paints must never take the
@@ -79,10 +81,12 @@ export interface ClawdTaskBriefItem {
 }
 
 /**
- * The short-lived offer to put the most recently finished task back.
+ * The short-lived offer to put back what the most recent row action changed.
  *
- * It travels with the payload the Done action returns, so the card can draw
- * one quiet line without asking a second question. `previous` is the status the
+ * It travels with the payload that action returns, so the card can draw one
+ * quiet line without asking a second question. `kind` says which change is on
+ * offer — a finish restores the old status, a defer restores the old due day —
+ * and the page picks the matching line for it. `previous` is the status the
  * task had immediately before Done, captured by the main process, and
  * `expiresAt` is the moment main will refuse to restore it any more; the page
  * uses that same instant to hide the line, so a delayed paint cannot extend a
@@ -91,7 +95,8 @@ export interface ClawdTaskBriefItem {
 export interface ClawdTaskBriefUndo {
   id: string
   title: string
-  previous: TaskStatus
+  kind: 'done' | 'defer'
+  previous?: TaskStatus
   expiresAt: number
 }
 
@@ -128,7 +133,7 @@ export interface ClawdTaskBriefPayload {
   undo?: ClawdTaskBriefUndo
 }
 
-type BriefActionType = 'open' | 'start' | 'done' | 'undo' | 'open-tasks' | 'close'
+type BriefActionType = 'open' | 'start' | 'done' | 'defer' | 'undo' | 'open-tasks' | 'close'
 
 interface BriefAction {
   type?: unknown
@@ -196,14 +201,20 @@ let actionInFlight = false
 let claimedShortcut = ''
 
 /**
- * The single live post-Done offer. A finish replaces whatever was there before,
- * any other action drops it, and the timer drops it on its own. Keeping it in
- * one module-level slot is what makes "only the most recent finish" true: there
- * is nowhere for an older offer to hide.
+ * The single live offer from the most recent reversible row action — a finish
+ * or a due-day move. Either one replaces whatever was there before, any other
+ * action drops it, and the timer drops it on its own. Keeping it in one
+ * module-level slot is what makes "only the most recent action" true: there is
+ * nowhere for an older offer to hide, and the card never stacks two Undo lines.
  */
-interface UndoOffer {
+interface UndoOfferBase {
   taskId: string
   title: string
+  expiresAt: number
+}
+
+interface DoneUndoOffer extends UndoOfferBase {
+  kind: 'done'
   previous: TaskStatus
   /**
    * Why a `needs_you` task was waiting, captured before Done overwrote that
@@ -212,8 +223,19 @@ interface UndoOffer {
    * what it is waiting for.
    */
   reason?: string
-  expiresAt: number
 }
+
+interface DeferUndoOffer extends UndoOfferBase {
+  kind: 'defer'
+  /**
+   * The exact day the task carried before the move. Absent means the task had
+   * no due day at all, and Undo must restore that state rather than inventing
+   * one from today's date.
+   */
+  previousDueOn?: string
+}
+
+type UndoOffer = DoneUndoOffer | DeferUndoOffer
 let undoOffer: UndoOffer | null = null
 let undoTimer: NodeJS.Timeout | null = null
 
@@ -308,6 +330,14 @@ function briefLabels(): Record<string, string> {
     doneHint: petT('taskBriefDoneHint'),
     doneFailed: petT('taskBriefDoneFailed'),
     doneUndelivered: petT('taskBriefDoneUndelivered'),
+    // Pushing a due day is the second reversible row action. Its marker turns
+    // into a button, so the label and hint name the action; the line names the
+    // task it was moved for, exactly like the Done line does.
+    deferLabel: petT('taskBriefDeferLabel'),
+    deferHint: petT('taskBriefDeferHint'),
+    deferFailed: petT('taskBriefDeferFailed'),
+    deferLine: petT('taskBriefDeferLine'),
+    deferUndoFailed: petT('taskBriefDeferUndoFailed'),
     undoLine: petT('taskBriefUndoLine'),
     undo: petT('taskBriefUndo'),
     undoFailed: petT('taskBriefUndoFailed'),
@@ -435,7 +465,8 @@ function buildPayload(): ClawdTaskBriefPayload {
           undo: {
             id: offer.taskId,
             title: offer.title,
-            previous: offer.previous,
+            kind: offer.kind,
+            ...(offer.kind === 'done' ? { previous: offer.previous } : {}),
             expiresAt: offer.expiresAt,
           },
         }
@@ -830,12 +861,29 @@ function withError(payload: ClawdTaskBriefPayload, message: string): ClawdTaskBr
 }
 
 /**
- * Put the most recently finished task back.
+ * Tomorrow as a local `YYYY-MM-DD` day.
+ *
+ * The date is built from local calendar fields — `new Date(y, m, d + 1)` —
+ * rather than by adding 24 hours to tonight's instant. The constructor carries
+ * month and year rollover, and on a DST change day an instant plus 86400000
+ * can still land on the same calendar day (or skip the next one), which would
+ * silently write yesterday's or the wrong tomorrow into the store.
+ */
+function tomorrowLocalDay(): string {
+  const today = new Date()
+  const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+  const month = String(tomorrow.getMonth() + 1).padStart(2, '0')
+  const day = String(tomorrow.getDate()).padStart(2, '0')
+  return `${tomorrow.getFullYear()}-${month}-${day}`
+}
+
+/**
+ * Put back what the most recent reversible action changed.
  *
  * The offer itself is the permission slip: it is consumed before the first
  * store read, so a double press or a replay of the same action can only find
  * nothing and return the current card. A task that has moved on since the
- * finish (archived elsewhere, restored by another surface) is not silently
+ * action (archived elsewhere, restored by another surface) is not silently
  * overwritten — the row would be a different row by now — so the card states
  * that the restore did not land instead.
  */
@@ -854,7 +902,38 @@ function handleUndo(): ClawdTaskBriefPayload {
   } catch (err) {
     log.warn('Could not look up a task to restore:', err)
   }
-  if (!task || task.status !== 'done') {
+  if (!task) {
+    // Gone between the action and Undo: restoring would claim a return the
+    // store no longer agrees with. The line names which action it was
+    // offering, so the failure can too.
+    return withError(
+      buildPayload(),
+      petT(offer.kind === 'defer' ? 'taskBriefDeferUndoFailed' : 'taskBriefUndoFailed'),
+    )
+  }
+
+  if (offer.kind === 'defer') {
+    // A due day is a stored calendar day, not a status. The offer carries the
+    // exact prior value, and "no due day" must go back as an absent field, not
+    // as today's date: the store clears on `null`, while omitting the patch
+    // field would mean "leave it alone" and make Undo a silent no-op.
+    let mutation: ReturnType<typeof updateTask> | null = null
+    try {
+      mutation = updateTask(offer.taskId, { dueOn: offer.previousDueOn ?? null })
+    } catch (err) {
+      log.warn('Could not restore a task due day:', err)
+    }
+    if (!mutation || !mutation.ok) {
+      return withError(buildPayload(), petT('taskBriefDeferUndoFailed'))
+    }
+
+    const notified = notifyTasksChanged()
+    // The store changed here too, so the pet's badge must re-count it.
+    try { refreshClawdTaskBadge() } catch { /* pet gone */ }
+    return notified ? buildPayload() : withError(buildPayload(), petT('taskBriefUndoUndelivered'))
+  }
+
+  if (task.status !== 'done') {
     // Gone, archived, or changed by another surface between Done and Undo:
     // restoring would claim a return that the store no longer agrees with.
     return withError(buildPayload(), petT('taskBriefUndoFailed'))
@@ -992,6 +1071,7 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
       }
 
       armUndoOffer({
+        kind: 'done',
         taskId: task.id,
         title: task.title,
         previous,
@@ -1008,6 +1088,64 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
       payload.finished = task.id
       if (!notified) payload.error = petT('taskBriefDoneUndelivered')
       return payload
+    }
+    case 'defer': {
+      // Moving a due day is reversible but, unlike Done, the row stays on the
+      // card: the fresh payload re-sorts it under its new day and the quiet
+      // line offers the old day back. Cleared first so a stale offer can never
+      // outlive the gesture that replaced it.
+      clearUndoOffer()
+      let task: TaskView | undefined
+      try {
+        task = id ? listTasks().find(item => item.id === id) : undefined
+      } catch (err) {
+        log.warn('Could not look up a task to defer:', err)
+      }
+      if (!task) {
+        // Gone between paint and click. Nothing changed, so nothing is offered.
+        return withError(buildPayload(), petT('taskBriefDeferFailed'))
+      }
+      // The brief only shows on-desk work. A task finished or archived while the
+      // card was up has already left the desk; moving its day would be a write
+      // the user cannot see, so fail quietly rather than resurrect a row.
+      if (STATUS_ORDER[task.status] === undefined) {
+        return withError(buildPayload(), petT('taskBriefDeferFailed'))
+      }
+
+      // Captured before the write: `undefined` means the task had no due day,
+      // and Undo must be able to restore that exact absence.
+      const previousDueOn = task.dueOn
+      const tomorrow = tomorrowLocalDay()
+      // Already tomorrow: the store would record no change and an Undo built on
+      // it would visibly do nothing while claiming the day had moved. Same rule
+      // as pressing Done on a task that is already done.
+      if (previousDueOn === tomorrow) return buildPayload()
+
+      let mutation: ReturnType<typeof updateTask> | null = null
+      try {
+        mutation = updateTask(task.id, { dueOn: tomorrow })
+      } catch (err) {
+        log.warn('Could not move a task due day:', err)
+      }
+      if (!mutation || !mutation.ok) {
+        // A refused write leaves the row exactly as it was, and offers nothing.
+        return withError(buildPayload(), petT('taskBriefDeferFailed'))
+      }
+
+      armUndoOffer({
+        kind: 'defer',
+        taskId: task.id,
+        title: task.title,
+        ...(previousDueOn ? { previousDueOn } : {}),
+        expiresAt: Date.now() + UNDO_WINDOW_MS,
+      })
+
+      notifyTasksChanged()
+      // This path writes the store directly, so it never passes through the
+      // IPC broadcast closure that normally refreshes the pet's badge.
+      try { refreshClawdTaskBadge() } catch { /* pet gone */ }
+
+      return buildPayload()
     }
     case 'undo':
       return handleUndo()

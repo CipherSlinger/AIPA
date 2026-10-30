@@ -74,6 +74,11 @@
     doneHint: "Mark this task done",
     doneFailed: "Could not finish the task. Try again.",
     doneUndelivered: "Task finished, but AIPA was closed and its task list was not refreshed.",
+    deferLabel: "Move the due day to tomorrow",
+    deferHint: "Push this task to tomorrow",
+    deferFailed: "Could not move the due day. Try again.",
+    deferLine: "Due tomorrow · {name}",
+    deferUndoFailed: "Could not put the due day back. Try again.",
     undoLine: "Task done · {name}",
     undo: "Undo",
     undoFailed: "Could not restore the task. It may have been archived or changed since.",
@@ -95,6 +100,11 @@
   // True from the click until the answer paints. It is the page's half of the
   // "never write twice" rule; main holds the other half.
   var undoBusy = false;
+  // Set when a defer click is waiting for its answer. That action rebuilds the
+  // rows, so the button the user pressed is replaced; remembering which task
+  // it named lets the fresh row keep the focus instead of dropping it to the
+  // document and breaking keyboard flow.
+  var pendingDeferFocus = "";
 
   function labels() {
     return state.payload.labels;
@@ -159,6 +169,9 @@
         undo = {
           id: raw.id,
           title: typeof raw.title === "string" ? raw.title : "",
+          // Which change the line offers to put back. An older main sends no
+          // kind; its only offer was a finish, so that is the safe default.
+          kind: raw.kind === "defer" ? "defer" : "done",
           expiresAt: raw.expiresAt,
         };
       }
@@ -446,11 +459,22 @@
     // undated row adds nothing at all, not even a separator.
     var marker = dueMarker(task);
     if (marker) {
-      var due = document.createElement("span");
-      due.className = marker.warn ? "due due-warn" : "due";
+      // The marker is the row's third action: pressing it pushes the day to
+      // tomorrow. It stays a bare word — same text, colour and size as the
+      // marker it replaces — so the card still reads as a brief at a glance;
+      // only the pointer cursor and a hover/focus underline say it is pressable.
+      // It sits inside the row, so its click must stop before the row opens the
+      // task, exactly like Start and Done do from their sibling slot.
+      var due = document.createElement("button");
+      due.type = "button";
+      due.className = marker.warn ? "due defer due-warn" : "due defer";
       due.textContent = marker.text;
-      // The compact words are the glance; the exact stored day is the fact.
-      due.title = task.dueOn;
+      due.setAttribute("aria-label", labels().deferLabel || FALLBACK_LABELS.deferLabel);
+      due.title = labels().deferHint || labels().deferLabel || FALLBACK_LABELS.deferHint;
+      due.addEventListener("click", function (event) {
+        event.stopPropagation();
+        deferTask(task.id);
+      });
       meta.insertBefore(due, meta.firstChild);
       var dueSep = document.createElement("span");
       dueSep.className = "sep";
@@ -489,8 +513,10 @@
     row.addEventListener("click", function () { openTask(task.id); });
 
     // Start and Done sit beside the row rather than inside it: nesting a real
-    // <button> in the row's <button> is invalid markup. The wrapper is what
-    // anchors both affordances at the trailing edge.
+    // <button> in the row's <button> is invalid markup. The due marker above is
+    // the one exception — it has to ride the meta line to keep the row's height
+    // — so it is a nested button whose click is stopped before the row sees it.
+    // The wrapper is what anchors the trailing affordances at the row's edge.
     var wrap = document.createElement("div");
     wrap.className = "row-wrap";
     wrap.dataset.id = task.id;
@@ -531,7 +557,7 @@
   }
 
   /**
-   * Draw the one post-finish offer, or clear it.
+   * Draw the one post-action offer (a finish or a due-day move), or clear it.
    *
    * The line is a single in-flow row, so it grows the card by exactly its own
    * height and can never cover the footer. The title takes the remaining width
@@ -554,7 +580,11 @@
       return;
     }
 
-    var line = labels().undoLine || FALLBACK_LABELS.undoLine;
+    // One line, two verbs: a finish offers the old status back, a due-day move
+    // offers the old day. Both use the same Undo control and the same clock.
+    var line = offer.kind === "defer"
+      ? (labels().deferLine || FALLBACK_LABELS.deferLine)
+      : (labels().undoLine || FALLBACK_LABELS.undoLine);
     var name = offer.title || labels().untitled;
     undoTextEl.textContent = line.indexOf("{name}") !== -1
       ? line.replace("{name}", name)
@@ -726,12 +756,39 @@
         if (wraps[i].dataset.id === finished) { wrap = wraps[i]; break; }
       }
     }
-    if (wrap) animateRowOut(wrap, function () { render(payload, false); });
-    else render(payload, false);
+    if (wrap) {
+      animateRowOut(wrap, function () {
+        render(payload, false);
+        restoreDeferFocus();
+      });
+    } else {
+      render(payload, false);
+      restoreDeferFocus();
+    }
+  }
+
+  /**
+   * Put focus back on the defer button of the task that was just moved. The
+   * repaint rebuilds every row, so the pressed button is gone even though its
+   * row (possibly at a new position) is still here. `preventScroll` keeps the
+   * card from jumping; a task that left the desk simply gets no focus.
+   */
+  function restoreDeferFocus() {
+    if (!pendingDeferFocus) return;
+    var id = pendingDeferFocus;
+    pendingDeferFocus = "";
+    var wraps = listEl.querySelectorAll(".row-wrap");
+    for (var i = 0; i < wraps.length; i++) {
+      if (wraps[i].dataset.id !== id) continue;
+      var btn = wraps[i].querySelector(".defer");
+      if (!btn) return;
+      try { btn.focus({ preventScroll: true }); } catch (err) { btn.focus(); }
+      return;
+    }
   }
 
   function runAction(action) {
-    if (!api || !api.action) return;
+    if (!api || !api.action) { pendingDeferFocus = ""; return; }
     Promise.resolve(api.action(action))
       .then(function (payload) {
         if (payload) applyActionResult(payload);
@@ -739,6 +796,7 @@
       .catch(function () {
         // "open" destroys the window before replying; a rejected promise here
         // is the expected end of this renderer, not an error to surface.
+        pendingDeferFocus = "";
       });
   }
 
@@ -755,6 +813,12 @@
   function doneTask(id) {
     if (!id) return;
     runAction({ type: "done", id: id });
+  }
+
+  function deferTask(id) {
+    if (!id) return;
+    pendingDeferFocus = id;
+    runAction({ type: "defer", id: id });
   }
 
   function undoTask() {

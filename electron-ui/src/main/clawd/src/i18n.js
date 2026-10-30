@@ -240,6 +240,14 @@ const i18n = {
     taskBriefDoneHint: "Mark this task done",
     taskBriefDoneFailed: "Could not finish the task. Try again.",
     taskBriefDoneUndelivered: "Task finished, but AIPA was closed and its task list was not refreshed.",
+    // Push a row's due day out by one click, from the marker itself. The label
+    // is the marker's accessible name; the hint is its tooltip. Undo puts the
+    // old day back and says so in the same quiet line the Done undo uses.
+    taskBriefDeferLabel: "Move the due day to tomorrow",
+    taskBriefDeferHint: "Push this task to tomorrow",
+    taskBriefDeferFailed: "Could not move the due day. Try again.",
+    taskBriefDeferLine: "Due tomorrow · {name}",
+    taskBriefDeferUndoFailed: "Could not put the due day back. Try again.",
     // The quiet line after a finish. {name} is the task title, ellipsized by
     // the page when the line is too long; the Undo label is its own control.
     taskBriefUndoLine: "Task done · {name}",
@@ -501,6 +509,13 @@ const i18n = {
     taskBriefDoneHint: "把这项任务标记为完成",
     taskBriefDoneFailed: "无法完成任务，请重试。",
     taskBriefDoneUndelivered: "任务已完成，但 AIPA 已关闭，任务列表未能刷新。",
+    // 点一下行尾的日期标记，就把截止日推到明天；标签是它的无障碍名，提示是气泡。
+    // 撤销把原来那一天放回去，并沿用「已完成」那一行的安静提示条。
+    taskBriefDeferLabel: "把截止日改到明天",
+    taskBriefDeferHint: "把这个任务推到明天",
+    taskBriefDeferFailed: "没能改截止日，再试一次。",
+    taskBriefDeferLine: "已改到明天 · {name}",
+    taskBriefDeferUndoFailed: "没能把截止日恢复回去，再试一次。",
     taskBriefUndoLine: "任务已完成 · {name}",
     taskBriefUndo: "撤销",
     taskBriefUndoFailed: "无法恢复该任务，它可能已被归档或改动。",
@@ -747,6 +762,13 @@ const i18n = {
     taskBriefDoneHint: "이 작업을 완료로 표시",
     taskBriefDoneFailed: "작업을 완료하지 못했습니다. 다시 시도하세요.",
     taskBriefDoneUndelivered: "작업은 완료되었지만 AIPA가 닫혀 있어 작업 목록이 새로고침되지 않았습니다.",
+    // 행의 마감 표시를 누르면 마감일을 내일로 미룹니다. 라벨은 접근성 이름,
+    // 힌트는 툴팁입니다. 실행 취소는 원래 날짜를 되돌립니다.
+    taskBriefDeferLabel: "마감일을 내일로 옮기기",
+    taskBriefDeferHint: "이 작업을 내일로 미룹니다",
+    taskBriefDeferFailed: "마감일을 옮기지 못했습니다. 다시 시도하세요.",
+    taskBriefDeferLine: "내일 마감 · {name}",
+    taskBriefDeferUndoFailed: "마감일을 되돌리지 못했습니다. 다시 시도하세요.",
     taskBriefUndoLine: "작업 완료 · {name}",
     taskBriefUndo: "실행 취소",
     taskBriefUndoFailed: "작업을 복원할 수 없습니다. 보관되었거나 변경되었을 수 있습니다.",

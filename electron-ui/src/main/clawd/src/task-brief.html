@@ -427,6 +427,42 @@ body { padding: 8px; }
 }
 .meta .due.due-warn { color: var(--k-needs); }
 .panel[data-theme="clawd"] .meta .due { letter-spacing: 0.04em; }
+/* The due word is also the row's third action: pressing it moves the day to
+   tomorrow. As a real <button> it must be stripped back to the marker's exact
+   look — same font, size, colour, spacing and line box — so a dated row stays
+   exactly as tall as an undated one. No `font` shorthand here: it would reset
+   the tabular figures `.meta .due` sets. Only the cursor and a hover/focus
+   underline say the word can be pressed, and neither moves the line. */
+.meta .due.defer {
+  appearance: none;
+  display: inline;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  font-style: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  outline: none;
+}
+/* `color: inherit` would otherwise mute the warning states, so the overdue and
+   today tone is restated for the button at a higher specificity. */
+.meta .due.defer.due-warn { color: var(--k-needs); }
+.meta .due.defer:hover,
+.meta .due.defer:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.meta .due.defer:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 1px;
+}
 /* Why a needs-you task is waiting: one dim line, same ellipsis discipline as
    the title and meta, so a long engine message never grows the card. */
 .reason {
@@ -744,8 +780,9 @@ body { padding: 8px; }
   <div class="list" id="list"></div>
   <div class="empty" id="empty" hidden></div>
   <div class="error" id="error" role="status" aria-live="polite" hidden></div>
-  <!-- The short-lived way back from Done. One line in flow; the title
-       ellipsizes and the button keeps its size. -->
+  <!-- The short-lived way back from the last reversible row action — a finish
+       or a due-day move. One line in flow; the title ellipsizes and the button
+       keeps its size. -->
   <div class="undo" id="undo" hidden>
     <span class="undo-text" id="undoText" role="status" aria-live="polite"></span>
     <span class="undo-sep" aria-hidden="true">·</span>
