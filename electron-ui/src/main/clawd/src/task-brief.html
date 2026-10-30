@@ -259,9 +259,9 @@ body { padding: 8px; }
   align-items: start;
   gap: 8px;
   width: 100%;
-  /* Right padding reserves the Start button's lane, so the button never
-     overlaps the age and nothing shifts when it brightens. */
-  padding: 6px 30px 6px 10px;
+  /* Right padding reserves both trailing buttons' lane (Done then Start), so
+     neither overlaps the age and nothing shifts when they brighten. */
+  padding: 6px 52px 6px 10px;
   border: 1px solid transparent;
   border-radius: 0;
   background: linear-gradient(90deg, color-mix(in srgb, var(--k) 6%, transparent), transparent 62%);
@@ -295,7 +295,7 @@ body { padding: 8px; }
 }
 .panel[data-theme="clawd"] .row {
   border-radius: 8px;
-  padding: 7px 30px 7px 8px;
+  padding: 7px 52px 7px 8px;
   background: transparent;
 }
 .panel[data-theme="clawd"] .row::before { display: none; }
@@ -383,13 +383,14 @@ body { padding: 8px; }
   font-variant-numeric: tabular-nums;
 }
 
-/* Start: the row's trailing affordance. Quiet until the user is on the row —
-   a glance at the brief should still read as a brief — and the same inset
-   focus ring as `.open-tasks`, because the cut-corner clip crops an outer one. */
-.start {
+/* Start and Done: the row's trailing affordances, two 20px buttons in one
+   reserved lane. Quiet until the user is on the row — a glance at the brief
+   should still read as a brief — and the same inset focus ring as
+   `.open-tasks`, because the cut-corner clip crops an outer one. */
+.start,
+.done {
   appearance: none;
   position: absolute;
-  right: 4px;
   top: 50%;
   transform: translateY(-50%);
   display: inline-flex;
@@ -409,24 +410,41 @@ body { padding: 8px; }
   transition: opacity 140ms ease, color 140ms ease,
     background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
 }
+/* Done sits left of Start; Start keeps the outer edge it has always had. */
+.start { right: 4px; }
+.done { right: 28px; }
 .start svg { width: 9px; height: 9px; display: block; }
+.done svg { width: 10px; height: 10px; display: block; }
 .row-wrap:hover .start,
-.row-wrap:focus-within .start { opacity: 1; color: var(--text); }
+.row-wrap:hover .done,
+.row-wrap:focus-within .start,
+.row-wrap:focus-within .done { opacity: 1; color: var(--text); }
 .start:hover,
-.start:focus-visible {
+.start:focus-visible,
+.done:hover,
+.done:focus-visible {
   opacity: 1;
   color: var(--accent);
   border-color: color-mix(in srgb, var(--accent) 62%, transparent);
   background: color-mix(in srgb, var(--accent) 13%, transparent);
   box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 16%, transparent);
 }
-.panel[data-theme="sao"] .start:focus-visible {
+.panel[data-theme="sao"] .start:focus-visible,
+.panel[data-theme="sao"] .done:focus-visible {
   box-shadow: inset 0 0 0 1px var(--accent),
     0 0 12px color-mix(in srgb, var(--accent) 16%, transparent);
 }
-.panel[data-theme="clawd"] .start {
+.panel[data-theme="clawd"] .start,
+.panel[data-theme="clawd"] .done {
   border-radius: 6px;
   clip-path: none;
+}
+
+/* A finished row collapses before the fresh payload repaints beneath it, so
+   the card shrinks instead of snapping and the rows below glide up. */
+.row-wrap.leaving {
+  opacity: 0;
+  transition: height 180ms var(--ease), opacity 140ms ease;
 }
 
 .row[data-status="needs_you"]   { --k: var(--k-needs); }
@@ -446,6 +464,26 @@ body { padding: 8px; }
   opacity: 0.82;
 }
 .panel[data-theme="clawd"] .empty { letter-spacing: 0.08em; text-transform: none; font-size: 11px; }
+
+/* An action that did not land says so here, in the card's own type. It is a
+   status line rather than a toast: it stays until the next payload. */
+.error {
+  position: relative;
+  z-index: 1;
+  margin-top: 7px;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--k-needs) 34%, transparent);
+  background: color-mix(in srgb, var(--k-needs) 7%, transparent);
+  color: var(--k-needs);
+  font-size: 8.5px;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+}
+.panel[data-theme="clawd"] .error {
+  border-radius: 7px;
+  font-size: 10px;
+  letter-spacing: 0.01em;
+}
 
 /* ── Footer ───────────────────────────────────────────────────────────────── */
 .foot {
@@ -523,7 +561,9 @@ body { padding: 8px; }
   .row,
   .close,
   .start,
-  .open-tasks { transition: none; }
+  .done,
+  .open-tasks,
+  .row-wrap.leaving { transition: none; }
 }
 </style>
 </head>
@@ -539,6 +579,7 @@ body { padding: 8px; }
   </header>
   <div class="list" id="list"></div>
   <div class="empty" id="empty" hidden></div>
+  <div class="error" id="error" role="status" aria-live="polite" hidden></div>
   <footer class="foot">
     <button class="open-tasks" id="openTasksBtn" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"/><path d="m13 6 6 6-6 6"/></svg>

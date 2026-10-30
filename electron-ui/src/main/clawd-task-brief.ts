@@ -29,7 +29,8 @@ import * as path from 'path'
 import { getPref } from './config/config-manager'
 import { getClawdLanguage, withClawdMainWindow } from './clawd-integration'
 import { readDeptHandbookSnapshot } from './automation/dept-handbook-store'
-import { listTasks, type TaskRecord, type TaskStatus, type TaskView } from './tasks/task-store'
+import { listTasks, updateTask, type TaskRecord, type TaskStatus, type TaskView } from './tasks/task-store'
+import { refreshClawdTaskBadge } from './clawd-task-badge'
 import { safeHandle } from './ipc/register/safe-handle'
 import { createLogger } from './utils/logger'
 
@@ -83,9 +84,19 @@ export interface ClawdTaskBriefPayload {
   labels: Record<string, string>
   /** The summon chord actually claimed, or '' when every candidate was taken. */
   shortcut: string
+  /**
+   * Id of a task the page just finished. The fresh `tasks` list already omits
+   * it; this only tells the page which row to collapse before repainting.
+   */
+  finished?: string
+  /**
+   * One honest line about a row action that did not land. Absent on every
+   * ordinary refresh, so the page clears any previous note.
+   */
+  error?: string
 }
 
-type BriefActionType = 'open' | 'start' | 'open-tasks' | 'close'
+type BriefActionType = 'open' | 'start' | 'done' | 'open-tasks' | 'close'
 
 interface BriefAction {
   type?: unknown
@@ -186,6 +197,10 @@ function briefLabels(): Record<string, string> {
     justNow: petT('taskBriefJustNow'),
     start: petT('taskBriefStart'),
     startHint: petT('taskBriefStartHint'),
+    done: petT('taskBriefDone'),
+    doneHint: petT('taskBriefDoneHint'),
+    doneFailed: petT('taskBriefDoneFailed'),
+    doneUndelivered: petT('taskBriefDoneUndelivered'),
   }
 }
 
@@ -636,6 +651,26 @@ function focusAipa(target: AipaTarget): boolean {
   }
 }
 
+/**
+ * Tell AIPA's renderer the store changed, the same way the capture bar and
+ * notice centre do after mutating it. Guarded by `withClawdMainWindow`: a pet
+ * running with AIPA closed simply has nowhere to send, and the card reports
+ * that rather than pretending the app's list is current.
+ */
+function notifyTasksChanged(): boolean {
+  let sent = false
+  withClawdMainWindow(win => {
+    if (win.webContents.isDestroyed()) return
+    win.webContents.send('tasks:changed')
+    sent = true
+  })
+  return sent
+}
+
+function withError(payload: ClawdTaskBriefPayload, message: string): ClawdTaskBriefPayload {
+  return message ? { ...payload, error: message } : payload
+}
+
 function handleAction(action: unknown): ClawdTaskBriefPayload {
   const input = (action && typeof action === 'object' ? action : {}) as BriefAction
   const type = typeof input.type === 'string' ? input.type as BriefActionType : null
@@ -687,6 +722,43 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
       if (focusAipa({ startTaskId: task.id })) destroyWindow(false)
       else { actionInFlight = false; emitUpdate() }
       return buildPayload()
+    }
+    case 'done': {
+      // Finishing is the one row action that does not leave this card: the
+      // user may want to clear several rows in a row. Store first, then tell
+      // AIPA, then rebuild the payload the page will paint.
+      let task: TaskView | undefined
+      try {
+        task = id ? listTasks().find(item => item.id === id) : undefined
+      } catch (err) {
+        log.warn('Could not look up a task to finish:', err)
+      }
+      if (!task) {
+        // Gone between paint and click. Nothing in the store changed, so the
+        // row must not look finished: keep the card up and say so.
+        return withError(buildPayload(), petT('taskBriefDoneFailed'))
+      }
+
+      let mutation: ReturnType<typeof updateTask> | null = null
+      try {
+        mutation = updateTask(task.id, { status: 'done' })
+      } catch (err) {
+        log.warn('Could not finish a task:', err)
+      }
+      if (!mutation || !mutation.ok) {
+        // A refused write leaves the row exactly as it was.
+        return withError(buildPayload(), petT('taskBriefDoneFailed'))
+      }
+
+      const notified = notifyTasksChanged()
+      // This path writes the store directly, so it never passes through the
+      // IPC broadcast closure that normally refreshes the pet's badge.
+      try { refreshClawdTaskBadge() } catch { /* pet gone */ }
+
+      const payload = buildPayload()
+      payload.finished = task.id
+      if (!notified) payload.error = petT('taskBriefDoneUndelivered')
+      return payload
     }
     case 'open-tasks': {
       actionInFlight = true

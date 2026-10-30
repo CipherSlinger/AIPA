@@ -24,6 +24,7 @@
   var hintEl = document.getElementById("hint");
   var shortcutEl = document.getElementById("shortcut");
   var hintLabel = document.getElementById("hintLabel");
+  var errorEl = document.getElementById("error");
 
   var STATUSES = ["needs_you", "in_progress", "assigned", "ready", "inbox"];
   var STATUS_LABEL_KEY = {
@@ -54,6 +55,10 @@
     justNow: "now",
     start: "Start",
     startHint: "Start work on this task",
+    done: "Done",
+    doneHint: "Mark this task done",
+    doneFailed: "Could not finish the task. Try again.",
+    doneUndelivered: "Task finished, but AIPA was closed and its task list was not refreshed.",
   };
 
   var LOCALES = { en: "en-US", zh: "zh-CN", ko: "ko-KR" };
@@ -118,6 +123,9 @@
       theme: data.theme === "clawd" ? "clawd" : "sao",
       labels: merged,
       shortcut: typeof data.shortcut === "string" ? data.shortcut : "",
+      // An action may answer with one honest line about why it did not land.
+      // It lives on this payload only, so the next refresh clears it.
+      error: typeof data.error === "string" ? data.error : "",
     };
   }
 
@@ -175,6 +183,21 @@
       startTask(task.id);
     });
     return start;
+  }
+
+  function buildDoneButton(task) {
+    var done = document.createElement("button");
+    done.type = "button";
+    done.className = "done";
+    done.setAttribute("aria-label", labels().done);
+    done.title = labels().doneHint || labels().done;
+    done.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+    done.addEventListener("click", function (event) {
+      // Same sibling rule as Start: never let this click fall through to open.
+      event.stopPropagation();
+      doneTask(task.id);
+    });
+    return done;
   }
 
   function buildRow(task, index) {
@@ -250,12 +273,16 @@
     );
     row.addEventListener("click", function () { openTask(task.id); });
 
-    // The Start button sits beside the row rather than inside it: nesting a
-    // real <button> in the row's <button> is invalid markup. The wrapper is
-    // what anchors it at the trailing edge.
+    // Start and Done sit beside the row rather than inside it: nesting a real
+    // <button> in the row's <button> is invalid markup. The wrapper is what
+    // anchors both affordances at the trailing edge.
     var wrap = document.createElement("div");
     wrap.className = "row-wrap";
+    wrap.dataset.id = task.id;
     wrap.appendChild(row);
+    // Done is left of Start, so it is appended first: tab order then runs
+    // left-to-right across the pair.
+    wrap.appendChild(buildDoneButton(task));
     wrap.appendChild(buildStartButton(task));
     return wrap;
   }
@@ -281,6 +308,17 @@
     closeBtn.title = s.close;
     openTasksLabel.textContent = s.openTasks;
     panel.setAttribute("aria-label", s.eyebrow);
+
+    // One honest line about a row action that did not land. The card has no
+    // toast; this note sits where the footer begins and clears on the next
+    // payload, so a refusal can never masquerade as success.
+    if (state.payload.error) {
+      errorEl.textContent = state.payload.error;
+      errorEl.hidden = false;
+    } else {
+      errorEl.textContent = "";
+      errorEl.hidden = true;
+    }
 
     if (state.payload.shortcut) {
       shortcutEl.textContent = state.payload.shortcut;
@@ -340,11 +378,72 @@
     window.close();
   }
 
+  function prefersReducedMotion() {
+    try {
+      return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    } catch (err) {
+      return false;
+    }
+  }
+
+  /**
+   * Collapse one finished row before the fresh payload is painted. The row is
+   * already gone from that payload, so repainting first would snap the card
+   * shorter; letting the wrapper reach zero height lets the window follow it
+   * down and keeps the rows below from jumping. A short fallback timer covers
+   * a transition that never fires because the window was hidden mid-animation.
+   */
+  function animateRowOut(wrap, done) {
+    if (!wrap || prefersReducedMotion()) { done(); return; }
+    var height = wrap.getBoundingClientRect().height;
+    if (!height) { done(); return; }
+
+    var settled = false;
+    function finish() {
+      if (settled) return;
+      settled = true;
+      wrap.removeEventListener("transitionend", onEnd);
+      done();
+    }
+    function onEnd(event) {
+      if (event.target === wrap && event.propertyName === "height") finish();
+    }
+
+    wrap.style.height = height + "px";
+    wrap.style.overflow = "hidden";
+    // Force the starting height to settle before the transition class turns
+    // on, or the browser batches both styles and paints no animation at all.
+    void wrap.offsetHeight;
+    wrap.classList.add("leaving");
+    void wrap.offsetHeight;
+    wrap.style.height = "0px";
+    wrap.addEventListener("transitionend", onEnd);
+    setTimeout(finish, 260);
+  }
+
+  /**
+   * An action that finished a task names the row it removed. Keep that row on
+   * screen for one short collapse, then paint the payload the main process
+   * already rebuilt. Every other action repaints immediately.
+   */
+  function applyActionResult(payload) {
+    var finished = payload && typeof payload.finished === "string" ? payload.finished : "";
+    var wrap = null;
+    if (finished) {
+      var wraps = listEl.querySelectorAll(".row-wrap");
+      for (var i = 0; i < wraps.length; i++) {
+        if (wraps[i].dataset.id === finished) { wrap = wraps[i]; break; }
+      }
+    }
+    if (wrap) animateRowOut(wrap, function () { render(payload, false); });
+    else render(payload, false);
+  }
+
   function runAction(action) {
     if (!api || !api.action) return;
     Promise.resolve(api.action(action))
       .then(function (payload) {
-        if (payload) render(payload, false);
+        if (payload) applyActionResult(payload);
       })
       .catch(function () {
         // "open" destroys the window before replying; a rejected promise here
@@ -360,6 +459,11 @@
   function startTask(id) {
     if (!id) return;
     runAction({ type: "start", id: id });
+  }
+
+  function doneTask(id) {
+    if (!id) return;
+    runAction({ type: "done", id: id });
   }
 
   function openTasks() {
@@ -381,11 +485,15 @@
       closePanel();
       return;
     }
-    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    // Ctrl/Meta belong to the OS and the app; Alt and Shift are ours. Alt+digit
+    // is not claimed by any menu in this window (it has no menu bar, and the
+    // app template defines no Alt accelerator), so it reaches this handler.
+    if (event.ctrlKey || event.metaKey) return;
 
-    // Shift+1..4 starts a row; the bare digit still opens it. With Shift held
-    // `event.key` is the shifted glyph (Shift+1 is "!"), so the physical digit
-    // comes from `event.code` first and `event.key` is the fallback.
+    // Shift+1..4 starts a row, Alt+1..4 finishes it, the bare digit still opens
+    // it. With Shift held `event.key` is the shifted glyph (Shift+1 is "!"),
+    // and Alt+digit can vary by layout, so the physical digit comes from
+    // `event.code` first and `event.key` is the fallback.
     var digit = /^Digit([1-4])$/.exec(event.code || "");
     var index = digit
       ? Number(digit[1]) - 1
@@ -395,7 +503,8 @@
     var row = visibleRows()[index];
     if (!row) return;
     event.preventDefault();
-    if (event.shiftKey) startTask(row.dataset.id);
+    if (event.altKey) doneTask(row.dataset.id);
+    else if (event.shiftKey) startTask(row.dataset.id);
     else openTask(row.dataset.id);
   });
 
