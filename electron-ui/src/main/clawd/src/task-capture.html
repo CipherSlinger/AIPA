@@ -31,6 +31,7 @@ html, body {
   --field-bg: rgba(63, 224, 200, 0.035);
   --field-border: rgba(63, 224, 200, 0.16);
   --field-focus: rgba(63, 224, 200, 0.5);
+  --row-active: rgba(63, 224, 200, 0.08);
   --error: #ff8b8b;
   --warn: #f0b429;
   --panel-bg:
@@ -59,6 +60,7 @@ body[data-theme="clawd"] {
   --field-bg: rgba(0, 0, 0, 0.03);
   --field-border: rgba(0, 0, 0, 0.12);
   --field-focus: rgba(217, 119, 87, 0.55);
+  --row-active: rgba(0, 0, 0, 0.045);
   --error: #b42318;
   --warn: #a15c07;
   --panel-bg: linear-gradient(180deg, #fbfbfa, #f4f4f2);
@@ -78,6 +80,7 @@ body[data-theme="clawd"] {
     --field-bg: #09090b;
     --field-border: rgba(255, 255, 255, 0.08);
     --field-focus: rgba(217, 119, 87, 0.65);
+    --row-active: rgba(255, 255, 255, 0.06);
     --error: #fca5a5;
     --warn: #fbbf24;
     --panel-bg: linear-gradient(180deg, #1b1b1e, #18181b);
@@ -244,6 +247,76 @@ body[data-theme="clawd"] .field:focus-within { box-shadow: 0 0 0 3px rgba(217, 1
 }
 .error[data-kind="empty"] { color: var(--warn); border-left-color: var(--warn); }
 
+/* ── Remembered captures ─────────────────────────────────────────────────────
+   Shown only while the field is empty, so a user who never presses ↑ still
+   sees that the bar remembers. It is a quiet strip rather than a form
+   dropdown: hairline rows with the same accent rail as the brief rows. The
+   window grows by this block's measured height, so the panel never clips it
+   when main accepts the request; if it does not, the panel clips the strip. */
+.suggest {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  margin-top: 7px;
+}
+.suggest-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+}
+body[data-theme="clawd"] .suggest-list { gap: 2px; border-top: 0; }
+.suggest-row {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 28px;
+  padding: 0 8px 0 10px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  line-height: 28px;
+  letter-spacing: 0.01em;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 120ms ease;
+}
+.suggest-row:last-child { border-bottom: 0; }
+/* The same accent rail the brief rows use; it lights up on hover and while
+   Tab has the row. */
+.suggest-row::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 5px;
+  bottom: 5px;
+  width: 2px;
+  background: var(--accent);
+  opacity: 0.35;
+  transition: opacity 120ms ease;
+}
+.suggest-row:hover::before,
+.suggest-row:focus-visible::before { opacity: 0.65; }
+.suggest-row:hover,
+.suggest-row:focus-visible { background: var(--row-active); }
+.suggest-row:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  outline-offset: -1px;
+}
+body[data-theme="clawd"] .suggest-row::before { display: none; }
+body[data-theme="clawd"] .suggest-row {
+  font-size: 12px;
+  line-height: 28px;
+  border-bottom: 0;
+  border-radius: 6px;
+}
+
 .foot {
   display: flex;
   align-items: center;
@@ -275,6 +348,7 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .panel { transition: none; }
   .field { transition: none; }
+  .suggest-row { transition: none; }
   .scan { animation: none; opacity: 0.35; }
 }
 </style>
@@ -293,6 +367,9 @@ kbd {
            aria-label="Capture a task" />
   </form>
   <div class="error" id="error" role="alert" hidden></div>
+  <div class="suggest" id="suggest" hidden>
+    <div class="suggest-list" id="suggestList"></div>
+  </div>
   <div class="foot">
     <span class="hint"><kbd>Enter</kbd><span id="saveHint">Save</span></span>
     <span class="hint"><kbd>Esc</kbd><span id="cancelHint">Cancel</span></span>
@@ -311,6 +388,8 @@ kbd {
   var form = document.getElementById("form");
   var input = document.getElementById("input");
   var errorEl = document.getElementById("error");
+  var suggestEl = document.getElementById("suggest");
+  var suggestList = document.getElementById("suggestList");
   var saveHint = document.getElementById("saveHint");
   var cancelHint = document.getElementById("cancelHint");
 
@@ -339,6 +418,10 @@ kbd {
   var recallIndex = -1;
   // What the field held when the walk began, restored at the bottom.
   var draft = "";
+  // How many rows of history the strip may show. The whole list still walks.
+  var SUGGEST_LIMIT = 5;
+  // Last extra height sent to main, so an idle render does not spam resize.
+  var lastExtra = -1;
 
   function applyLabels() {
     eyebrow.textContent = labels.eyebrow;
@@ -355,6 +438,76 @@ kbd {
       var end = input.value.length;
       input.setSelectionRange(end, end);
     } catch (err) { /* not focusable yet */ }
+  }
+
+  /**
+   * The strip is a suggestion, never a mode: it exists only while there is
+   * something to remember and nothing typed. Any text in the field means the
+   * user is drafting, so the rows get out of the way.
+   */
+  function suggestVisible() {
+    return !saving && history.length > 0 && input.value.length === 0;
+  }
+
+  /**
+   * Ask main for exactly the room the strip occupies. Main owns the ceiling
+   * and the work-area clamp; the measurement is the page's real block height
+   * so a shorter list does not reserve five rows of empty space.
+   */
+  function requestExtraHeight() {
+    var extra = 0;
+    if (!suggestEl.hidden) {
+      var margin = parseFloat(window.getComputedStyle(suggestEl).marginTop) || 0;
+      extra = Math.round(suggestEl.getBoundingClientRect().height + margin);
+    }
+    if (extra === lastExtra) return;
+    lastExtra = extra;
+    if (api && typeof api.resize === "function") api.resize(extra);
+  }
+
+  function buildSuggestionRow(text, index) {
+    var row = document.createElement("button");
+    row.type = "button";
+    row.className = "suggest-row";
+    row.textContent = text;
+    // The row ellipsizes; the whole saved line stays reachable on hover.
+    row.title = text;
+    row.addEventListener("click", function (event) {
+      event.preventDefault();
+      insertFromSuggestion(index);
+    });
+    return row;
+  }
+
+  function renderSuggestions() {
+    if (!suggestVisible()) {
+      suggestEl.hidden = true;
+      if (suggestList.childNodes.length) suggestList.replaceChildren();
+      requestExtraHeight();
+      return;
+    }
+    suggestEl.hidden = false;
+    suggestList.replaceChildren();
+    for (var i = 0; i < history.length && i < SUGGEST_LIMIT; i++) {
+      suggestList.appendChild(buildSuggestionRow(history[i], i));
+    }
+    requestExtraHeight();
+  }
+
+  /**
+   * A click (or Enter on a Tab-focused row) fills the field; it never saves
+   * and never submits. The strip collapses on its own because the field is no
+   * longer empty, which also hands the extra height back to main.
+   */
+  function insertFromSuggestion(index) {
+    if (!history[index]) return;
+    recallIndex = -1;
+    draft = "";
+    input.value = history[index];
+    if (!errorEl.hidden) clearError();
+    try { input.focus(); } catch (err) { /* window may be going away */ }
+    placeCaretAtEnd();
+    renderSuggestions();
   }
 
   /**
@@ -382,11 +535,13 @@ kbd {
         recallIndex = -1;
         input.value = draft;
         placeCaretAtEnd();
+        renderSuggestions();
         return true;
       }
     }
     input.value = history[recallIndex];
     placeCaretAtEnd();
+    renderSuggestions();
     return true;
   }
 
@@ -447,12 +602,18 @@ kbd {
     }
     recallIndex = -1;
     draft = "";
+    lastExtra = -1;
 
     composing = false;
     imeEnter = false;
     saving = false;
     input.value = "";
     clearError();
+
+    // Run before ready(): the resize request reaches main ahead of the reveal
+    // handshake, so the bar is first shown at its final height rather than
+    // growing in front of the user.
+    renderSuggestions();
 
     panel.classList.add("visible");
     window.setTimeout(function () {
@@ -495,11 +656,14 @@ kbd {
   });
   input.addEventListener("input", function () {
     // Typing after a recall makes the field a draft again: the walk is a
-    // shortcut borrowed from the past, not a mode the field stays in.
+    // shortcut borrowed from the past, not a mode the field stays in. The
+    // remembered-titles strip is part of that borrowed mode: any text hides it
+    // and the window gives the extra room back.
     recallIndex = -1;
     draft = "";
     // A reason about the previous attempt stops applying once the line changes.
     if (!errorEl.hidden) clearError();
+    renderSuggestions();
   });
 
   document.addEventListener("keydown", function (event) {

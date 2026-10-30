@@ -24,6 +24,12 @@ import type { IpcMainEvent, Rectangle } from 'electron'
 const WIDTH = 368
 /** Head, one field, a two-line reason and the footer, plus shadow padding. */
 const HEIGHT = 146
+/**
+ * Ceiling on how much taller the remembered-titles strip may make the bar.
+ * Five rows plus the gap above them come to ~147 px; the slack covers the
+ * rounded skin. The page measures the real block, this is only the backstop.
+ */
+const MAX_EXTRA_HEIGHT = 200
 const EDGE_MARGIN = 8
 const PET_GAP = 10
 // A local page either loads or it does not; this only guards the ready
@@ -108,6 +114,14 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
   let previousFocus: BrowserWindow | null = null
   let revealTimer: NodeJS.Timeout | null = null
   let blurArmedAt = 0
+  /** Current window height: the no-list height unless the strip asked for room. */
+  let barHeight = HEIGHT
+  /**
+   * What the OS actually made of `HEIGHT` on creation. Windows has been seen
+   * to hand back two pixels more for a transparent frameless window; shrinking
+   * must return to that exact size, not to the requested constant.
+   */
+  let baseHeight = HEIGHT
   /** Saved capture titles, newest first. Reloaded at every open. */
   let history: string[] = []
 
@@ -199,8 +213,9 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
    * result is always clamped to the work area of the pet's display: a pet near
    * a monitor edge must not get half a text field.
    */
-  function computeBounds(): Rectangle | null {
+  function computeBounds(height = HEIGHT): Rectangle | null {
     if (!ctx.win || ctx.win.isDestroyed()) return null
+    const boxHeight = Math.max(HEIGHT, Math.round(height))
     const bounds = ctx.win.getBounds()
     const hit = typeof ctx.getHitRectScreen === 'function' ? ctx.getHitRectScreen(bounds) : null
     const left = hit ? hit.left : bounds.x
@@ -213,11 +228,11 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
     const minX = wa.x + EDGE_MARGIN
     const maxX = wa.x + wa.width - WIDTH - EDGE_MARGIN
     const minY = wa.y + EDGE_MARGIN
-    const maxY = wa.y + wa.height - HEIGHT - EDGE_MARGIN
+    const maxY = wa.y + wa.height - boxHeight - EDGE_MARGIN
     let x = clamp(Math.round(cx - WIDTH / 2), minX, maxX)
     let y: number | null = null
 
-    const above = top - HEIGHT - PET_GAP
+    const above = top - boxHeight - PET_GAP
     if (above >= minY) {
       y = above
     } else {
@@ -229,10 +244,10 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
       const rightX = right + PET_GAP
       if (rightX <= maxX) {
         x = rightX
-        y = clamp(Math.round(cy - HEIGHT / 2), minY, maxY)
+        y = clamp(Math.round(cy - boxHeight / 2), minY, maxY)
       } else {
         x = clamp(left - WIDTH - PET_GAP, minX, maxX)
-        y = clamp(Math.round(cy - HEIGHT / 2), minY, maxY)
+        y = clamp(Math.round(cy - boxHeight / 2), minY, maxY)
       }
     }
     // Electron centers a window whose x/y are fractional instead of honoring
@@ -242,8 +257,19 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
       x: Math.round(x),
       y: Math.round(clamp(y, minY, maxY)),
       width: WIDTH,
-      height: HEIGHT,
+      height: boxHeight,
     }
+  }
+
+  /** The work area of the display under the pet, and how tall a bar may get. */
+  function maxBarHeight(): number {
+    if (!ctx.win || ctx.win.isDestroyed()) return HEIGHT
+    const bounds = ctx.win.getBounds()
+    const hit = typeof ctx.getHitRectScreen === 'function' ? ctx.getHitRectScreen(bounds) : null
+    const cx = Math.round(hit ? (hit.left + hit.right) / 2 : bounds.x + bounds.width / 2)
+    const cy = Math.round(hit ? (hit.top + hit.bottom) / 2 : bounds.y + bounds.height / 2)
+    const wa = ctx.getNearestWorkArea(cx, cy)
+    return Math.max(HEIGHT, wa.height - EDGE_MARGIN * 2)
   }
 
   function reveal(): void {
@@ -269,6 +295,8 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
   function close(restoreFocus = true): void {
     clearRevealTimer()
     blurArmedAt = 0
+    barHeight = HEIGHT
+    baseHeight = HEIGHT
     const win = barWin
     barWin = null
     if (win && !win.isDestroyed()) {
@@ -305,6 +333,9 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
     if (!ctx.win || ctx.win.isDestroyed()) return false
 
     history = loadHistory()
+    // Every open starts at the no-list geometry. The page asks for more only
+    // when it has titles to show, and it asks before the reveal handshake.
+    barHeight = HEIGHT
     const bounds = computeBounds()
     if (!bounds) return false
     let labels: TaskCaptureLabels
@@ -345,6 +376,8 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
       return false
     }
 
+    baseHeight = barWin.getBounds().height
+    barHeight = baseHeight
     if (isWin) barWin.setAlwaysOnTop(true, WIN_TOPMOST_LEVEL)
     if (isLinux) barWin.setSkipTaskbar(true)
     if (typeof ctx.guardAlwaysOnTop === 'function') ctx.guardAlwaysOnTop(barWin)
@@ -515,11 +548,41 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
     if (!isSender(event)) return
     if (barWin && !barWin.isDestroyed()) barWin.focus()
   }
+  /**
+   * The remembered-titles strip asks for extra height and gives it back when
+   * it hides. The payload is a hint, not a size: main owns the ceiling and the
+   * work-area clamp, and re-anchors the bar to the pet so a grown window still
+   * stays beside it instead of drifting to another corner. A send from a
+   * window on its way out, or a refused setBounds, leaves the bar usable at
+   * whatever size it already had.
+   */
+  const handleResize = (event: IpcMainEvent, raw: unknown) => {
+    if (!isSender(event) || !barWin || barWin.isDestroyed()) return
+    const payload = raw && typeof raw === 'object' ? raw as Record<string, unknown> : null
+    const requested = payload && typeof payload.extra === 'number' ? payload.extra : 0
+    const extra = Number.isFinite(requested)
+      ? clamp(Math.round(requested), 0, MAX_EXTRA_HEIGHT)
+      : 0
+    // Zero means "give the room back", which must be the exact no-list size;
+    // with a list, add the strip to that same base so nothing clips.
+    const wanted = extra > 0 ? baseHeight + extra : baseHeight
+    const height = Math.min(wanted, Math.max(baseHeight, maxBarHeight()))
+    if (height === barHeight) return
+    const bounds = computeBounds(height)
+    if (!bounds) return
+    barHeight = height
+    try {
+      barWin.setBounds(bounds)
+    } catch (err) {
+      console.warn('Clawd: task capture resize failed:', cleanErrorText(err))
+    }
+  }
 
   ipcMain.on('task-capture-ready', handleReady)
   ipcMain.on('task-capture-save', handleSaveEvent)
   ipcMain.on('task-capture-close', handleClose)
   ipcMain.on('task-capture-focus', handleFocus)
+  ipcMain.on('task-capture-resize', handleResize)
 
   function cleanup(): void {
     close(false)
@@ -527,6 +590,7 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
     ipcMain.removeListener('task-capture-save', handleSaveEvent)
     ipcMain.removeListener('task-capture-close', handleClose)
     ipcMain.removeListener('task-capture-focus', handleFocus)
+    ipcMain.removeListener('task-capture-resize', handleResize)
   }
 
   return {
