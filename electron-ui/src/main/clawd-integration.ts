@@ -11,6 +11,7 @@ import * as path from 'path'
 import { getPref, setPref } from './config/config-manager'
 import { clearClawdNotices, listClawdNotices, recordClawdNotice } from './clawd-notifications'
 import { createLogger } from './utils/logger'
+import { isValidSessionId } from './utils/validate'
 import type { PetActivity } from './pet-activity'
 
 // Type declarations for global properties shared with clawd-factory.js
@@ -204,6 +205,64 @@ function petRect(): { x: number; y: number; width: number; height: number } | un
   }
 }
 
+/** The RECENT ring holds at most this many sessions: one per number key. */
+const RECENT_SESSION_LIMIT = 5
+/**
+ * A sanity cap, not a display width: the chip ellipsizes at its real width and
+ * keeps the whole string as its tooltip, so cutting to what fits would leave
+ * the tooltip with nothing to add. This only stops a pasted essay from riding
+ * along in every menu payload.
+ */
+const RECENT_LABEL_MAX = 90
+
+interface RecentSessionChip {
+  id: string
+  label: string
+  when: string
+}
+
+/**
+ * The radial menu is built on the main thread every time the pet is
+ * right-clicked, and listing sessions walks and stats every rollout file. The
+ * list only matters to the minute, so a short cache turns a repeat open into a
+ * no-op while still noticing a session started a moment ago.
+ */
+const RECENT_SESSIONS_TTL_MS = 15_000
+let recentSessionsCache: { at: number; items: RecentSessionChip[] } | null = null
+
+/**
+ * One line, no control whitespace. A prompt can be a paragraph, and this string
+ * is both the chip's text and its tooltip, so it is only capped at the point
+ * where it stops being a title at all.
+ */
+function recentSessionLabel(session: {
+  title?: string
+  lastPrompt?: string
+  project?: string
+  sessionId: string
+}): string {
+  const raw = (session.title || session.lastPrompt || session.project || session.sessionId || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!raw) return ''
+  return raw.length > RECENT_LABEL_MAX ? raw.slice(0, RECENT_LABEL_MAX) : raw
+}
+
+/**
+ * `5m` / `2h` / `3d`: compact and locale-independent. It is a HUD suffix, not a
+ * sentence, so it needs no per-language entry in the pet's string table.
+ */
+function recentSessionAge(timestamp: number, now: number): string {
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return ''
+  const age = now - timestamp
+  if (age < 60_000) return '<1m'
+  const minutes = Math.floor(age / 60_000)
+  if (minutes < 60) return `${minutes}m`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h`
+  return `${Math.floor(hours / 24)}d`
+}
+
 /**
  * The callbacks the pet's radial menu calls. Each one is independent, so the
  * factory can hide a petal whose callback is absent; `initClawdIntegration`
@@ -296,6 +355,64 @@ const petMenuCallbacks = {
     } catch {
       return 0
     }
+  },
+  /**
+   * The five Codex sessions the user touched most recently, for the RECENT
+   * ring. Loaded at call time: the reader walks the Codex store, which is real
+   * disk work and has no business running during app startup.
+   *
+   * Fail-open in every direction — no Codex store, a corrupt rollout, a reader
+   * that is absent from this build — because a menu must never fail to open
+   * over a listing it only offers as a convenience.
+   */
+  recentSessions: (): RecentSessionChip[] => {
+    const now = Date.now()
+    if (recentSessionsCache && now - recentSessionsCache.at < RECENT_SESSIONS_TTL_MS) {
+      return recentSessionsCache.items
+    }
+    try {
+      const { listSessions } = require('./codex/codex-session-reader') as {
+        listSessions: () => Array<{
+          sessionId: string
+          lastPrompt: string
+          timestamp: number
+          project: string
+          title?: string
+          archived?: boolean
+        }>
+      }
+      const items = listSessions()
+        .filter(session => session.archived !== true)
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .map(session => ({
+          id: session.sessionId,
+          label: recentSessionLabel(session),
+          when: recentSessionAge(session.timestamp, now),
+        }))
+        // A row that cannot be labelled is not worth a chip; the next session
+        // takes its place instead of leaving a blank slot on the ring.
+        .filter(session => !!session.id && !!session.label)
+        .slice(0, RECENT_SESSION_LIMIT)
+      recentSessionsCache = { at: now, items }
+      return items
+    } catch (err) {
+      log.warn('petMenu.recentSessions failed:', String(err))
+      return []
+    }
+  },
+  /** Focus AIPA and open the session chosen from the RECENT ring. */
+  openRecentSession: (sessionId: string): void => {
+    // The id arrives from a renderer, so hold it to the same shape the session
+    // store accepts before it travels any further.
+    if (!isValidSessionId(sessionId)) return
+    withClawdMainWindow(win => {
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+      // The same renderer entry point the tray's notice rows and the app menu
+      // use; the pet does not get its own way of opening a session.
+      win.webContents.send('menu:openSession', sessionId)
+    })
   },
 }
 

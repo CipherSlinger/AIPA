@@ -902,6 +902,37 @@ function hasPetMenuCallback(name) {
   return !!(_aipaPetMenu && typeof _aipaPetMenu[name] === "function");
 }
 
+// Session chips carry their id after this prefix. The menu's IPC still moves
+// exactly one action id, so the renderer never needs a second channel for what
+// is still "close the menu and open this conversation".
+const PET_MENU_SESSION_PREFIX = "session:";
+// One chip per finger shortcut on the third ring.
+const PET_MENU_SESSION_LIMIT = 5;
+
+/**
+ * The RECENT ring's data. Read once per open, and sanitized here rather than in
+ * the renderer: a half-updated AIPA callback must not be able to put a
+ * non-string into the chip's textContent or a non-string id into an action.
+ */
+function getPetMenuSessions() {
+  const raw = callPetMenuCallback("recentSessions");
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const item of raw) {
+    if (out.length >= PET_MENU_SESSION_LIMIT) break;
+    if (!item || typeof item !== "object") continue;
+    if (typeof item.id !== "string" || !item.id || seen.has(item.id)) continue;
+    seen.add(item.id);
+    out.push({
+      id: item.id,
+      label: typeof item.label === "string" ? item.label : "",
+      when: typeof item.when === "string" ? item.when : "",
+    });
+  }
+  return out;
+}
+
 function getPetMenuPayload() {
   // The unread count is read once per open. The menu renders a static badge;
   // a count that moves while the ring is up is not worth a repaint channel.
@@ -931,10 +962,16 @@ function getPetMenuPayload() {
       settings: t("petMenuSettings"),
       hidePet: t("petMenuHidePet"),
       allCommands: t("petMenuAllCommands"),
+      // Third ring behind RECENT.
+      recent: t("petMenuRecent"),
+      noRecentChats: t("petMenuNoRecentChats"),
       back: t("petMenuBack"),
       close: t("petMenuClose"),
       nothingRunning: t("petMenuNothingRunning"),
     },
+    // Absent on an older AIPA. The renderer reads a missing/empty list as
+    // "no recent chats" and still opens the third ring on the disabled chip.
+    sessions: getPetMenuSessions(),
     state: {
       canStop: callPetMenuCallback("isBusy") === true,
       quiet: callPetMenuCallback("isQuiet") === true,
@@ -955,6 +992,9 @@ function getPetMenuPayload() {
       settings: hasPetMenuCallback("openSettings"),
       hide: hasPetMenuCallback("toggleHidden"),
       native: true,
+      // RECENT needs both halves: the list to draw and the action to open a
+      // chip. Showing the ring with no way to open a session would be a dead end.
+      recent: hasPetMenuCallback("recentSessions") && hasPetMenuCallback("openRecentSession"),
     },
   };
 }
@@ -970,7 +1010,13 @@ function handlePetMenuAction(actionId) {
     case "settings": callPetMenuCallback("openSettings"); break;
     case "hide": callPetMenuCallback("toggleHidden"); break;
     case "native": showPetContextMenu(); break;
-    default: break;
+    default:
+      // Third ring. The id after the prefix is the Codex thread id, already
+      // validated by the session reader before it reached this payload.
+      if (actionId.startsWith(PET_MENU_SESSION_PREFIX)) {
+        callPetMenuCallback("openRecentSession", actionId.slice(PET_MENU_SESSION_PREFIX.length));
+      }
+      break;
   }
 }
 

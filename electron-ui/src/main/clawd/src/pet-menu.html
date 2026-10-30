@@ -60,9 +60,11 @@ body { position: relative; }
   transform: none;
   pointer-events: auto;
 }
-/* The nested ring arrives a beat slower and with a little overshoot: it is
-   the answer to a press, not the first thing the user sees. */
-.layer--nested { transition: opacity 140ms linear, transform 140ms var(--ease-spring); }
+/* The nested ring — and the session ring behind RECENT — arrives a beat slower
+   and with a little overshoot: it is the answer to a press, not the first thing
+   the user sees. */
+.layer--nested,
+.layer--sessions { transition: opacity 140ms linear, transform 140ms var(--ease-spring); }
 
 /* ── Track ───────────────────────────────────────────────────────────────── */
 .track {
@@ -317,6 +319,40 @@ body { position: relative; }
 .petal--nested .label { font-size: 9.5px; letter-spacing: 0.1em; }
 .petal--nested .key { top: 2px; right: 6px; font-size: 6.5px; }
 
+/* ── Session petals (third ring) ─────────────────────────────────────────── */
+/* Same 124x40 chip and the same clearance as the nested ring: a conversation
+   title is longer than an action label, and letting the chip grow to fit it
+   would push the outer edge past the window. The label truncates instead; the
+   age stays a fixed-width muted suffix so the text column is predictable. */
+.petal--session .face {
+  gap: 6px;
+  padding: 0 9px;
+}
+.petal--session .label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* The inherited 0.15em tracking is sized for two-word actions and spends
+     width a conversation title does not have; the chip ellipsizes the rest. */
+  letter-spacing: 0.04em;
+  font-size: 9.5px;
+}
+.petal--session .when {
+  flex: none;
+  font-size: 7.5px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  color: var(--hud-muted);
+  opacity: 0.85;
+}
+.petal--session .key { top: 2px; right: 6px; font-size: 6.5px; }
+/* The empty state is one disabled chip, not a blank ring: it keeps its place so
+   the level still reads as a ring and the way back is where the user left it. */
+.petal--empty .label { font-size: 8.5px; letter-spacing: 0.06em; }
+.petal--empty .when { display: none; }
+.petal[aria-disabled="true"] .when { opacity: 0.45; }
+
 /* ── Centre orb ──────────────────────────────────────────────────────────── */
 .orb {
   position: absolute;
@@ -459,6 +495,12 @@ body { position: relative; }
     <div class="track track--nested" aria-hidden="true"></div>
     <div class="petals" id="nestedPetals"></div>
   </div>
+  <div class="layer layer--sessions" id="sessionsLayer" aria-hidden="true">
+    <!-- The third ring borrows the nested track: same radius, same violet
+         family. Only one layer is visible at a time, so reusing it is exact. -->
+    <div class="track track--nested track--sessions" aria-hidden="true"></div>
+    <div class="petals" id="sessionPetals"></div>
+  </div>
   <button class="orb" id="orb" type="button" aria-label="Close">
     <span class="orb-ring" aria-hidden="true"></span>
     <span class="orb-label" id="orbLabel">AIPA</span>
@@ -474,8 +516,10 @@ body { position: relative; }
   var ring = document.getElementById("ring");
   var outerLayer = document.getElementById("outerLayer");
   var nestedLayer = document.getElementById("nestedLayer");
+  var sessionsLayer = document.getElementById("sessionsLayer");
   var layer = document.getElementById("petals");
   var nestedLayerPetals = document.getElementById("nestedPetals");
+  var sessionPetalsLayer = document.getElementById("sessionPetals");
   var orb = document.getElementById("orb");
   var orbLabel = document.getElementById("orbLabel");
   var orbHint = document.getElementById("orbHint");
@@ -490,6 +534,11 @@ body { position: relative; }
   var CHIP_HALF_H = 23;
   // Every nested chip is the same 128x46 as an outer one, so the ring's reach
   // stays inside the unchanged 420px window (~200px from centre at worst).
+  // The session ring uses the same chip size and the same rule.
+  var SESSION_START_ANGLE = 126; // RECENT's own angle (see NESTED_PETALS)
+  var SESSION_STEP = 72;
+  var SESSION_LIMIT = 5;
+  var SESSION_ACCENT = "#b98cff";
 
   var reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
@@ -502,6 +551,7 @@ body { position: relative; }
     bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.4a5.6 5.6 0 0 1 5.6 5.6v4.2l1.5 2.8H5L6.4 13.2V9A5.6 5.6 0 0 1 12 3.4z"/><path d="M9.8 18.6a2.3 2.3 0 0 0 4.4 0"/></svg>',
     bellOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.4a5.6 5.6 0 0 1 5.6 5.6v4.2l1.5 2.8H5L6.4 13.2V9A5.6 5.6 0 0 1 12 3.4z"/><path d="M9.8 18.6a2.3 2.3 0 0 0 4.4 0"/><path d="M3.4 20.6 20.6 3.4"/></svg>',
     more: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.6" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="18.4" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>',
+    history: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><path d="M12 6.8V12l3.6 2.2"/></svg>',
     gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M12 3.2v2.1M12 18.7v2.1M3.2 12h2.1M18.7 12h2.1M5.8 5.8l1.5 1.5M16.7 16.7l1.5 1.5M18.2 5.8l-1.5 1.5M7.3 16.7l-1.5 1.5"/></svg>',
     hide: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 12S6.6 6.6 12 6.6 20.8 12 20.8 12s-3.4 5.4-8.8 5.4S3.2 12 3.2 12z"/><circle cx="12" cy="12" r="2.5"/><path d="M4.4 19.6 19.6 4.4"/></svg>',
   };
@@ -517,21 +567,26 @@ body { position: relative; }
   ];
 
   // Second ring behind MORE. The first nested petal takes MORE's own angle
-  // (198°) and the rest step by 90°, so the petal the user just pressed is the
-  // one that stays under the cursor — the level opens where it was asked to.
+  // (198°); five petals now step by 72°, so the petal the user just pressed is
+  // still the one under the cursor — the level opens where it was asked to.
+  // Existing actions keep their numbers; RECENT takes the new fifth slot.
   var NESTED_PETALS = [
     { action: "notices", key: "1", label: "notices", available: "notices", accent: "#b98cff", glyph: "bell", angle: 198, fallback: "Notices", badge: true },
-    { action: "settings", key: "2", label: "settings", available: "settings", accent: "#3fe0c8", glyph: "gear", angle: 288, fallback: "Settings" },
-    { action: "hide", key: "3", label: "hidePet", available: "hide", accent: "#58a6ff", glyph: "hide", angle: 18, fallback: "Hide Pet" },
+    { action: "settings", key: "2", label: "settings", available: "settings", accent: "#3fe0c8", glyph: "gear", angle: 270, fallback: "Settings" },
+    { action: "hide", key: "3", label: "hidePet", available: "hide", accent: "#58a6ff", glyph: "hide", angle: 342, fallback: "Hide Pet" },
     // The old MORE: the pet's own context menu, still complete.
-    { action: "native", key: "4", label: "allCommands", available: "native", accent: "#8b98a5", glyph: "more", angle: 108, fallback: "All Commands" },
+    { action: "native", key: "4", label: "allCommands", available: "native", accent: "#8b98a5", glyph: "more", angle: 54, fallback: "All Commands" },
+    // RECENT is navigation like MORE, so it speaks the level-opener violet and
+    // its ring borrows the same colour.
+    { action: "recent", key: "5", label: "recent", available: "recent", accent: "#b98cff", glyph: "history", angle: 126, fallback: "Recent" },
   ];
 
   var labels = {};
   var petals = [];
   var nestedPetals = [];
-  // "outer" | "nested". Escape and click-away depend on it: from the nested
-  // ring Escape steps back, from the outer ring it closes the menu.
+  var sessionPetals = [];
+  // "outer" | "nested" | "sessions". Escape depends on it: each step goes one
+  // level back, and only the outer ring closes the menu.
   var view = "outer";
   var ready = false;
   var closing = false;
@@ -597,6 +652,49 @@ body { position: relative; }
       pill.hidden = true;
       pill.textContent = "";
     }
+  }
+
+  /**
+   * A session chip: the nested geometry without a glyph, so the conversation
+   * label gets the width, with the age as a muted suffix. The label lives in a
+   * flex child that may shrink; `overflow: hidden` + ellipsis in CSS is what
+   * keeps a long prompt from widening the chip past the ring.
+   */
+  function makeSessionPetal(meta, order) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "petal petal--nested petal--session" + (meta.disabled ? " petal--empty" : "");
+    btn.dataset.action = meta.action;
+    btn.setAttribute("role", "menuitem");
+    btn.style.setProperty("--i", String(order));
+    btn.style.setProperty("--accent", meta.accent);
+    setPosition(btn, meta.angle, nestedDistance(meta.angle));
+    if (meta.key) {
+      btn.dataset.key = meta.key;
+      btn.setAttribute("aria-keyshortcuts", meta.key);
+    }
+    btn.innerHTML =
+      '<span class="edge"></span>' +
+      '<span class="face">' +
+        '<span class="label"></span>' +
+        '<span class="when" aria-hidden="true"></span>' +
+        '<span class="key"></span>' +
+      '</span>';
+    btn.querySelector(".label").textContent = meta.label;
+    btn.querySelector(".when").textContent = meta.when || "";
+    btn.querySelector(".key").textContent = meta.key || "";
+    if (meta.disabled) {
+      // The empty state keeps its place on the ring but is not an offer.
+      btn.setAttribute("aria-disabled", "true");
+    } else {
+      // The full payload label is the tooltip: truncation is visual only.
+      btn.title = meta.label;
+      btn.addEventListener("click", function (event) {
+        event.preventDefault();
+        choose(btn);
+      });
+    }
+    return btn;
   }
 
   function setLevel(el, active) {
@@ -692,8 +790,10 @@ body { position: relative; }
 
     layer.textContent = "";
     nestedLayerPetals.textContent = "";
+    sessionPetalsLayer.textContent = "";
     petals = [];
     nestedPetals = [];
+    sessionPetals = [];
 
     var order = 0;
     for (var i = 0; i < PETALS.length; i++) {
@@ -716,11 +816,49 @@ body { position: relative; }
       nestedPetals.push(nbtn);
     }
 
+    // Third ring. The payload is expected to be already ordered newest-first
+    // and capped; the renderer repeats both rules so a stale or hand-built
+    // payload can never overflow the ring or duplicate a thread.
+    var sessions = Array.isArray(data.sessions) ? data.sessions : [];
+    var seenSessions = {};
+    for (var k = 0; k < sessions.length && sessionPetals.length < SESSION_LIMIT; k++) {
+      var session = sessions[k];
+      if (!session || typeof session.id !== "string" || !session.id) continue;
+      if (seenSessions[session.id]) continue;
+      seenSessions[session.id] = true;
+      var chip = makeSessionPetal({
+        action: "session:" + session.id,
+        key: String(sessionPetals.length + 1),
+        label: typeof session.label === "string" && session.label ? session.label : session.id,
+        when: typeof session.when === "string" ? session.when : "",
+        accent: SESSION_ACCENT,
+        angle: SESSION_START_ANGLE + sessionPetals.length * SESSION_STEP,
+      }, sessionPetals.length);
+      sessionPetalsLayer.appendChild(chip);
+      sessionPetals.push(chip);
+    }
+    if (!sessionPetals.length) {
+      // An empty ring would be a dead end with no explanation. One disabled
+      // chip says why, and the orb still steps back to the nested ring.
+      var emptyChip = makeSessionPetal({
+        action: "none",
+        key: "",
+        label: labels.noRecentChats || "No recent chats",
+        when: "",
+        accent: "#8b98a5",
+        angle: SESSION_START_ANGLE,
+        disabled: true,
+      }, 0);
+      sessionPetalsLayer.appendChild(emptyChip);
+      sessionPetals.push(emptyChip);
+    }
+
     applyState(state);
 
     view = "outer";
     setLevel(outerLayer, true);
     setLevel(nestedLayer, false);
+    setLevel(sessionsLayer, false);
     setOrbBack(false);
     hint.textContent = closeHint();
 
@@ -798,6 +936,23 @@ body { position: relative; }
     setLevel(outerLayer, false);
   }
 
+  /**
+   * RECENT swaps in the third ring the same way MORE opened the second. The
+   * session chips already share the nested geometry, so this is only a level
+   * change: no re-measure, no second window, and the orb stays the way back.
+   */
+  function enterSessions() {
+    if (view !== "nested" || closing) return;
+    view = "sessions";
+    setLevel(sessionsLayer, true);
+    setOrbBack(true);
+    hint.textContent = backHint();
+    // Same focus ordering as enterNested(): leave the RECENT petal before the
+    // nested level becomes inert, or Chromium refuses the aria-hidden.
+    focusRing();
+    setLevel(nestedLayer, false);
+  }
+
   function stepBack() {
     if (view !== "nested" || closing) return;
     view = "outer";
@@ -806,14 +961,32 @@ body { position: relative; }
     hint.textContent = closeHint();
     focusRing();
     setLevel(nestedLayer, false);
+    // Defensive: the sessions layer is already inactive on this path, but a
+    // later edit must not leave two levels marked active.
+    setLevel(sessionsLayer, false);
+  }
+
+  function stepBackSessions() {
+    if (view !== "sessions" || closing) return;
+    view = "nested";
+    setLevel(nestedLayer, true);
+    setOrbBack(true);
+    hint.textContent = backHint();
+    focusRing();
+    setLevel(sessionsLayer, false);
   }
 
   function choose(btn) {
     if (closing || !btn) return;
     if (btn.getAttribute("aria-disabled") === "true") return;
-    // MORE is navigation, not an action: it opens the second ring in place.
+    // MORE and RECENT are navigation, not actions: each opens the next ring
+    // in place, and only a leaf petal ends the menu.
     if (btn.dataset.action === "more") {
       enterNested();
+      return;
+    }
+    if (btn.dataset.action === "recent") {
+      enterSessions();
       return;
     }
     dismiss(btn.dataset.action);
@@ -840,7 +1013,14 @@ body { position: relative; }
   }
 
   function activePetals() {
+    if (view === "sessions") return sessionPetals;
     return view === "nested" ? nestedPetals : petals;
+  }
+
+  /** Escape / 0 / the orb move exactly one level back. */
+  function stepBackOne() {
+    if (view === "sessions") stepBackSessions();
+    else if (view === "nested") stepBack();
   }
 
   function focusStep(direction) {
@@ -855,18 +1035,24 @@ body { position: relative; }
     if (!ready) return;
     if (event.key === "Escape") {
       event.preventDefault();
-      // Escape means "one level up": on the nested ring that is the outer
-      // ring, on the outer ring that is out.
-      if (view === "nested") stepBack();
-      else dismiss(null);
+      // A held Escape must not walk the whole level stack on key repeat.
+      if (event.repeat) return;
+      // Escape means "one level up": sessions → nested → outer, and from the
+      // outer ring it closes the menu.
+      if (view === "outer") dismiss(null);
+      else stepBackOne();
       return;
     }
-    if (view === "nested" && (event.key === "0" || event.key === "Backspace")) {
+    if (view !== "outer" && (event.key === "0" || event.key === "Backspace")) {
       event.preventDefault();
-      stepBack();
+      if (event.repeat) return;
+      stepBackOne();
       return;
     }
     if (event.key >= "0" && event.key <= "9") {
+      // The same repeat rule matters here: holding the digit that opened a
+      // level would otherwise pick a chip on the level it just opened.
+      if (event.repeat) return;
       var list = activePetals();
       for (var i = 0; i < list.length; i++) {
         if (list[i].dataset.key === event.key) {
@@ -900,8 +1086,8 @@ body { position: relative; }
 
   orb.addEventListener("click", function (event) {
     event.preventDefault();
-    if (view === "nested") stepBack();
-    else dismiss(null);
+    if (view === "outer") dismiss(null);
+    else stepBackOne();
   });
 
   window.addEventListener("focus", function () {
@@ -919,9 +1105,17 @@ body { position: relative; }
       labels: {
         newChat: "New Chat", openAipa: "Open AIPA", stop: "Stop", silence: "Silence",
         resume: "Resume", more: "More", notices: "Notices", settings: "Settings",
-        hidePet: "Hide Pet", allCommands: "All Commands", back: "Back",
+        hidePet: "Hide Pet", allCommands: "All Commands", recent: "Recent",
+        noRecentChats: "No recent chats", back: "Back",
         close: "Close", nothingRunning: "No turn running",
       },
+      // Three rows so the third ring is inspectable without the factory; the
+      // real payload comes from AIPA's Codex session reader.
+      sessions: [
+        { id: "preview-1", label: "Refactor the pet menu ring", when: "5m" },
+        { id: "preview-2", label: "Investigate session resume", when: "2h" },
+        { id: "preview-3", label: "Polish notification centre", when: "3d" },
+      ],
       state: { canStop: false, quiet: false },
       badges: { notices: 3 },
       available: {},
