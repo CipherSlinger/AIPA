@@ -309,6 +309,10 @@ const i18n = {
     taskCaptureFailed: "Could not save the task",
     taskCaptureSavedTitle: "Saved to Inbox",
     taskCaptureSavedPill: "INBOX",
+    // Consecutive captures: the footer says how, and the line under the field
+    // confirms the save without closing the bar.
+    taskCaptureStayHint: "Shift+Enter saves and keeps this bar open",
+    taskCaptureSavedInline: "Saved · next one?",
     // The due-day tag under the capture field: its name for screen readers,
     // and the × that dismisses the day without touching the typed line.
     taskCaptureDueLabel: "Due date",
@@ -576,6 +580,9 @@ const i18n = {
     taskCaptureFailed: "无法保存任务",
     taskCaptureSavedTitle: "已存入收件箱",
     taskCaptureSavedPill: "收件箱",
+    // 连续记任务：脚注说明怎么继续，保存后的那行字确认已经记下、但栏不关。
+    taskCaptureStayHint: "Shift+Enter 保存后继续记下一条",
+    taskCaptureSavedInline: "已存入 · 下一条？",
     taskCaptureDueLabel: "截止日",
     taskCaptureDueClear: "移除截止日",
     // 快速记任务：那一行里的「日子」只是猜的，点一下日期可以改成
@@ -841,6 +848,9 @@ const i18n = {
     taskCaptureFailed: "작업을 저장할 수 없습니다",
     taskCaptureSavedTitle: "받은함에 저장됨",
     taskCaptureSavedPill: "받은함",
+    // 연속 기록: 하단 안내가 방법을 알려 주고, 저장 후에도 창은 닫히지 않습니다.
+    taskCaptureStayHint: "Shift+Enter로 저장하고 계속 기록",
+    taskCaptureSavedInline: "저장됨 · 다음 항목?",
     taskCaptureDueLabel: "마감일",
     taskCaptureDueClear: "마감일 지우기",
     // 빠른 기록: 줄에서 읽은 날짜는 추측이므로 날짜를 누르면

@@ -132,7 +132,7 @@ body[data-theme="sao"] .scan { display: block; }
   100% { transform: translateY(420%); opacity: 0; }
 }
 
-.head, .field, .error, .foot { position: relative; z-index: 1; }
+.head, .field, .error, .saved-inline, .foot { position: relative; z-index: 1; }
 
 .head {
   display: flex;
@@ -246,6 +246,27 @@ body[data-theme="clawd"] .field:focus-within { box-shadow: 0 0 0 3px rgba(217, 1
   -webkit-box-orient: vertical;
 }
 .error[data-kind="empty"] { color: var(--warn); border-left-color: var(--warn); }
+
+/* ── Saved, staying open ─────────────────────────────────────────────────────
+   Shift+Enter files the line without closing the bar, so the confirmation
+   lives inside it. It sits where the chips did, with the same accent rail the
+   remembered-captures strip uses, and is measured like every other block under
+   the field so the window grows to hold it instead of clipping it. It is a
+   confirmation, not a status: typing the next line takes it away. */
+.saved-inline {
+  flex: none;
+  margin-top: 6px;
+  padding-left: 7px;
+  border-left: 2px solid var(--accent);
+  font-size: 9.5px;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body[data-theme="clawd"] .saved-inline { font-size: 10.5px; }
 
 /* ── Recognised due day ─────────────────────────────────────────────────────
    A tag under the field, not a form. The typed line is never rewritten; the
@@ -517,25 +538,29 @@ body[data-theme="clawd"] .suggest-row {
   border-radius: 6px;
 }
 
+/* Three hints now share one line at 368 px. The type is a point smaller and
+   the tracking is gone so the Shift+Enter line fits without wrapping the bar
+   into a second row; the spacer still pushes the mark to the right edge. */
 .foot {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 3px;
   flex: none;
   margin-top: auto;
   padding: 7px 2px 0;
   border-top: 1px solid rgba(63, 224, 200, 0.14);
-  font-size: 8px;
+  font-size: 7px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0;
+  white-space: nowrap;
   text-transform: uppercase;
   color: var(--muted);
 }
 body[data-theme="clawd"] .foot { border-top-color: var(--line); }
-.hint { display: inline-flex; align-items: center; gap: 5px; }
+.hint { display: inline-flex; align-items: center; gap: 5px; flex: none; }
 kbd {
   font: inherit;
-  font-size: 8px;
+  font-size: 7px;
   padding: 1px 4px;
   border: 1px solid var(--field-border);
   border-radius: 2px;
@@ -591,12 +616,14 @@ kbd {
     <button class="due-preset" id="repeatPresetMonthly" type="button" data-repeat="monthly">Every month</button>
   </div>
   <div class="error" id="error" role="alert" hidden></div>
+  <div class="saved-inline" id="savedInline" role="status" hidden></div>
   <div class="suggest" id="suggest" hidden>
     <div class="suggest-list" id="suggestList"></div>
   </div>
   <div class="foot">
     <span class="hint"><kbd>Enter</kbd><span id="saveHint">Save</span></span>
     <span class="hint"><kbd>Esc</kbd><span id="cancelHint">Cancel</span></span>
+    <span class="hint"><span id="stayHint"></span></span>
     <span class="spacer2"></span>
     <span class="aipa">AIPA</span>
   </div>
@@ -612,6 +639,7 @@ kbd {
   var form = document.getElementById("form");
   var input = document.getElementById("input");
   var errorEl = document.getElementById("error");
+  var savedInlineEl = document.getElementById("savedInline");
   var suggestEl = document.getElementById("suggest");
   var suggestList = document.getElementById("suggestList");
   var chipsEl = document.getElementById("chips");
@@ -641,6 +669,7 @@ kbd {
   ];
   var saveHint = document.getElementById("saveHint");
   var cancelHint = document.getElementById("cancelHint");
+  var stayHintEl = document.getElementById("stayHint");
 
   var labels = {
     eyebrow: "Capture task",
@@ -649,6 +678,8 @@ kbd {
     cancel: "Cancel",
     empty: "Enter a task first",
     failed: "Could not save the task",
+    stayHint: "Shift+Enter saves and keeps this bar open",
+    savedInline: "Saved · next one?",
     savedTitle: "Saved to Inbox",
     savedPill: "INBOX",
     dueLabel: "Due date",
@@ -840,6 +871,17 @@ kbd {
       return localDay(d.y, d.m, d.d);
     }, false);
 
+    // Bare 下周 / 下星期 / 下礼拜 names the coming Monday-started week, the same
+    // day English "next week" does; before this it named no day at all. The
+    // weekday form above is offered first, so 下周一 still wins at the same
+    // index. A following number is left alone: "下周 5" is someone writing next
+    // week's Friday (or the 5th) by hand, and today+7 is neither, so it stays a
+    // line with no day rather than one with a wrong day.
+    offer(/(下周|下星期|下礼拜)(?!\s*\d)/.exec(text), function () {
+      var d = addDays(today, 7);
+      return localDay(d.y, d.m, d.d);
+    }, false);
+
     offer(/(\d{1,2})月(\d{1,2})[日号]/.exec(text), function (m) {
       return nextOccurrence(today, +m[1], +m[2]);
     }, true);
@@ -924,14 +966,27 @@ kbd {
     var found = [];
 
     function offer(re, value, weekdayOf) {
-      var match = re.exec(text);
-      if (!match) return;
-      found.push({
-        index: match.index,
-        phrase: match[0],
-        repeat: value,
-        weekday: typeof weekdayOf === "function" ? weekdayOf(match) : null
-      });
+      // A hyphen counts as a word boundary to \b, so "bi-weekly" and
+      // "semi-monthly" would otherwise read as bare cadences. A hyphen that
+      // follows a letter marks a compound, and the word after it is not a
+      // cadence of its own; "daily-ish" keeps its hyphen after the phrase, so
+      // it still counts. A rejected match is skipped so a later, genuine
+      // phrase in the same line can still win ("bi-weekly, then weekly").
+      var scan = new RegExp(re.source, re.flags.indexOf("g") < 0 ? re.flags + "g" : re.flags);
+      var match;
+      while ((match = scan.exec(text)) !== null) {
+        var afterCompoundHyphen = match.index >= 2 &&
+          text.charAt(match.index - 1) === "-" &&
+          /[A-Za-z]/.test(text.charAt(match.index - 2));
+        if (afterCompoundHyphen) continue;
+        found.push({
+          index: match.index,
+          phrase: match[0],
+          repeat: value,
+          weekday: typeof weekdayOf === "function" ? weekdayOf(match) : null
+        });
+        return;
+      }
     }
 
     offer(/\bevery\s+day\b/i, "daily");
@@ -951,9 +1006,13 @@ kbd {
     // form itself is the bound. The weekday form is offered separately from
     // the bare 每周 so the day it names is remembered even when the day scan
     // has no 周 to hold on to ("每星期五" has no bare 周五 match today).
+    // The qualifiers 末 / 底 / 初 / 中 fall outside these cadences, so they get
+    // no cadence rather than a wrong one: 周末 names two days, not a weekday a
+    // weekly series could repeat on, and 月底 / 月初 / 月中 name a point in the
+    // month that a same-day monthly series cannot honour.
     offer(/每天|每日|天天/, "daily");
-    offer(/每周|每星期|每礼拜/, "weekly");
-    offer(/每月|每个月/, "monthly");
+    offer(/每周(?!末)|每星期(?!末)|每礼拜(?!末)/, "weekly");
+    offer(/每月(?!底|初|中)|每个月/, "monthly");
     offer(/每(?:周|星期|礼拜)(?:周|星期|礼拜)?([一二三四五六日天])/, "weekly",
       function (m) { return WEEKDAY_ZH[m[1]]; });
 
@@ -985,20 +1044,25 @@ kbd {
   }
 
   /**
-   * The day a cadence needs when the line named no day of its own, so a
-   * repeating task can actually appear on the desk: daily and monthly land
-   * today; weekly lands on the weekday the phrase named (today counts when it
-   * is that weekday), otherwise today. An explicit day in the line always
-   * outranks this, so it is returned unchanged.
+   * The day a repeating task starts on. Daily and monthly land today; weekly
+   * lands on the weekday the phrase named (today counts when it is that
+   * weekday), otherwise today. An explicit day in the line outranks anything
+   * the cadence would invent — except that a weekly cadence naming a weekday
+   * starts on the first such weekday on or after the explicit day: "next week,
+   * every Friday" begins on the coming Friday, not on next week's Saturday.
    */
   function cadenceDay(parsed, today) {
     if (!parsed) return null;
-    // A day named in the line outranks anything the cadence would invent.
-    if (parsed.due) return parsed.due.date;
-    if (!parsed.repeat) return null;
-    if (parsed.repeat === "weekly" && parsed.weekday !== null && parsed.weekday !== undefined) {
-      return weekdayFrom(today, parsed.weekday);
+    var weeklyWeekday = parsed.repeat === "weekly" &&
+      parsed.weekday !== null && parsed.weekday !== undefined;
+    if (parsed.due) {
+      // The explicit day already being that weekday makes it the first
+      // occurrence, so "每周五" typed on a Friday starts today.
+      if (weeklyWeekday) return weekdayFrom(todayParts(parsed.due.date), parsed.weekday);
+      return parsed.due.date;
     }
+    if (!parsed.repeat) return null;
+    if (weeklyWeekday) return weekdayFrom(today, parsed.weekday);
     return localDay(today.y, today.m, today.d);
   }
   // </due-parser>
@@ -1033,7 +1097,13 @@ kbd {
         // The phrase text follows the choice, never the stale line phrase.
         due = { phrase: chosenDue.label, dueOn: chosenDue.dueOn, date: chosenDue.date };
       } else if (match) {
-        due = match;
+        // The cadence can move the day the series starts on (weekly + a named
+        // weekday), so the anchored day outranks the plain day phrase. The
+        // phrase stays exactly as typed; only the date it rides with changes.
+        var anchored = cadenceDay(parsed, today);
+        due = anchored
+          ? { phrase: match.phrase, dueOn: dueOnOf(anchored), date: anchored }
+          : match;
       } else {
         // A cadence with no day still needs a day to appear on the desk. Its
         // phrase is empty: the cadence chip beside this one already says why.
@@ -1220,6 +1290,10 @@ kbd {
     input.setAttribute("aria-label", labels.placeholder);
     saveHint.textContent = labels.save;
     cancelHint.textContent = labels.cancel;
+    stayHintEl.textContent = labels.stayHint;
+    // The line stays hidden until a stay-save puts it on screen; naming it here
+    // keeps the confirmation in the page's own language without a second send.
+    savedInlineEl.textContent = labels.savedInline;
     dueClear.setAttribute("aria-label", labels.dueClear);
     // The date button is named for what it opens, not for the date itself;
     // the chip's own label already carries the phrase and the day.
@@ -1248,7 +1322,12 @@ kbd {
    * user is drafting, so the rows get out of the way.
    */
   function suggestVisible() {
-    return !saving && history.length > 0 && input.value.length === 0;
+    // A stay-save leaves an empty field, but the just-saved line is already
+    // named above it. Showing the remembered list in the same breath would
+    // repeat that answer, grow the bar by a whole strip, and hand the eye a
+    // row to click when the user is meant to type the next line. The list
+    // comes back as soon as the field is emptied again by an edit.
+    return !saving && savedInlineEl.hidden && history.length > 0 && input.value.length === 0;
   }
 
   /** The real height a block adds to the panel, gap above it included. */
@@ -1267,7 +1346,8 @@ kbd {
   function requestExtraHeight() {
     // The chips share one row, so the row is the block: measuring each chip
     // would count the gap above it twice when both are showing.
-    var extra = blockHeight(chipsEl) + blockHeight(duePresets) + blockHeight(repeatPresets) + blockHeight(suggestEl);
+    var extra = blockHeight(chipsEl) + blockHeight(duePresets) + blockHeight(repeatPresets) +
+      blockHeight(savedInlineEl) + blockHeight(suggestEl);
     if (extra === lastExtra) return;
     lastExtra = extra;
     if (api && typeof api.resize === "function") api.resize(extra);
@@ -1395,7 +1475,13 @@ kbd {
     errorEl.hidden = false;
   }
 
-  function submit() {
+  /**
+   * `stay` is Shift+Enter: file the line and keep the bar up for the next one.
+   * The page never clears on its own — main owns the store and answers with
+   * `task-capture-saved`, so a refused write leaves the text and the reason
+   * exactly where they were for both keys.
+   */
+  function submit(stay) {
     if (saving) return;
     // Enter that commits an IME composition is not a save. The browser fires
     // `compositionend` between the keydown and this submit, so the flag read
@@ -1412,10 +1498,57 @@ kbd {
     if (!api) return;
     saving = true;
     // The typed line goes as typed; only the resolved day and cadence ride
-    // beside it. An absent cadence is not passed at all, never null: on create
-    // the store's contract is "absent means a one-off".
-    if (repeat) api.save(input.value, due ? due.dueOn : null, repeat);
-    else api.save(input.value, due ? due.dueOn : null);
+    // beside it. An absent cadence is passed as null and the preload omits it:
+    // on create the store's contract is "absent means a one-off".
+    api.save(input.value, due ? due.dueOn : null, repeat, stay === true);
+  }
+
+  /** The confirmation is not a status: the next edit takes it away. */
+  function hideSavedInline() {
+    if (savedInlineEl.hidden) return;
+    savedInlineEl.hidden = true;
+  }
+
+  /**
+   * Main accepted a stay-save. Start from the same state a fresh open has —
+   * empty field, no chips, walk at the draft — but keep the window and name
+   * what just happened. Main sends the new history so ↑ can recall the line
+   * that was filed moments ago, not a list frozen when the bar opened.
+   */
+  function applyStaySaved(payload) {
+    var data = payload || {};
+    saving = false;
+    composing = false;
+    imeEnter = false;
+    if (Array.isArray(data.history)) {
+      var next = [];
+      for (var h = 0; h < data.history.length && next.length < 20; h++) {
+        var item = data.history[h];
+        if (typeof item !== "string" || !item) continue;
+        next.push(item);
+      }
+      history = next;
+    }
+    recallIndex = -1;
+    draft = "";
+    draftChosenDue = null;
+    draftChosenRepeat = null;
+    due = null;
+    dueDismissed = false;
+    chosenDue = null;
+    repeat = null;
+    chosenRepeat = null;
+    duePresets.hidden = true;
+    dueDate.setAttribute("aria-expanded", "false");
+    repeatPresets.hidden = true;
+    repeatEl.setAttribute("aria-expanded", "false");
+    input.value = "";
+    clearError();
+    // Set before refresh(): the suggestion strip must see the confirmation and
+    // stay away, and the height request must include the line in one pass.
+    savedInlineEl.hidden = false;
+    refresh();
+    try { input.focus(); } catch (err) { /* window may be going away */ }
   }
 
   function show(payload) {
@@ -1463,6 +1596,7 @@ kbd {
     repeatEl.setAttribute("aria-expanded", "false");
     repeatEl.hidden = true;
     input.value = "";
+    savedInlineEl.hidden = true;
     clearError();
 
     // Run before ready(): the resize request reaches main ahead of the reveal
@@ -1479,7 +1613,7 @@ kbd {
 
   form.addEventListener("submit", function (event) {
     event.preventDefault();
-    submit();
+    submit(false);
   });
 
   input.addEventListener("compositionstart", function () {
@@ -1499,6 +1633,14 @@ kbd {
       }
       return;
     }
+    // Enter files and closes; Shift+Enter files and stays. Both go through the
+    // same submit, and preventDefault keeps the browser's implicit submission
+    // from producing a second save from the same keystroke.
+    if (event.key === "Enter") {
+      event.preventDefault();
+      submit(event.shiftKey === true);
+      return;
+    }
     // ↑ walks back through saved captures, ↓ walks forward and finally puts the
     // draft back. Both consume the key so the caret does not jump instead.
     if (event.key === "ArrowUp") {
@@ -1510,6 +1652,9 @@ kbd {
     }
   });
   input.addEventListener("input", function () {
+    // A stay-save's confirmation has done its job the moment the next line
+    // begins; it never lingers as a status.
+    hideSavedInline();
     // Typing after a recall makes the field a draft again: the walk is a
     // shortcut borrowed from the past, not a mode the field stays in. The
     // remembered-titles strip is part of that borrowed mode: any text hides it
@@ -1537,7 +1682,10 @@ kbd {
     dueEl.hidden = true;
     dueEl.removeAttribute("aria-label");
     hidePresets();
-    // The × removes the day only; a cadence chip beside it stays.
+    // The × removes the day only; a cadence chip beside it stays. When the day
+    // was derived from that cadence, this is the user's explicit override: the
+    // task lives on the desk as an undated repeating row, and its first Done
+    // rolls it forward from today.
     syncChips();
     requestExtraHeight();
   });
@@ -1692,6 +1840,7 @@ kbd {
 
   if (api) {
     api.onShow(show);
+    api.onSaved(applyStaySaved);
     api.onError(function (data) {
       saving = false;
       showError(data && data.message, data && data.kind);

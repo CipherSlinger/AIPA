@@ -65,6 +65,10 @@ export interface TaskCaptureLabels {
   cancel: string
   empty: string
   failed: string
+  /** Footer hint for Shift+Enter, which files the line and keeps the bar up. */
+  stayHint: string
+  /** The in-bar confirmation a stay-save leaves where the chips were. */
+  savedInline: string
   savedTitle: string
   savedPill: string
   dueLabel: string
@@ -488,6 +492,38 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
       win.webContents.send('tasks:changed')
       win.webContents.send('menu:openTasks')
     })
+  }
+
+  /**
+   * Focus AIPA and hand it the task just filed. This is the same hand-off the
+   * pet's brief uses for a row: `menu:openTask` carries only the id, and the
+   * renderer resolves the record itself (its latest conversation, or the
+   * record on the Tasks view when no turn has run yet). Returns false when the
+   * hand-off could not be delivered, which is the one case that falls through
+   * to the list.
+   */
+  function focusTask(taskId: string): boolean {
+    let handedOff = false
+    withClawdMainWindow(win => {
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+      try {
+        // The store was written from main, not through the IPC broadcast, so
+        // the open list hears about the new task before the record opens.
+        win.webContents.send('tasks:changed')
+        win.webContents.send('menu:openTask', taskId)
+        handedOff = true
+      } catch {
+        // The window went away between the guard and the send; the caller's
+        // fallback makes one fresh attempt at the Tasks view.
+      }
+    })
+    return handedOff
+  }
+
+  function openSavedTask(taskId: string): void {
+    if (!focusTask(taskId)) focusTasks()
     try { refreshClawdTaskBadge() } catch { /* pet gone */ }
   }
 
@@ -518,7 +554,9 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
         },
         NOTICE_TTL_MS,
         action => {
-          if (action) focusTasks()
+          // The confirmation points at the task it just made, not merely at
+          // the list it will appear in.
+          if (action) openSavedTask(task.id)
         },
         // The user just pressed Enter on this bar. A confirmation may speak
         // while the pet is silenced or asleep; the gate exists to mute
@@ -529,7 +567,13 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
     timer.unref?.()
   }
 
-  function handleSave(event: IpcMainEvent, raw: unknown, rawDue: unknown, rawRepeat: unknown): void {
+  function handleSave(
+    event: IpcMainEvent,
+    raw: unknown,
+    rawDue: unknown,
+    rawRepeat: unknown,
+    rawStay: unknown,
+  ): void {
     if (!isSender(event)) return
     let labels: TaskCaptureLabels
     try {
@@ -573,8 +617,18 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
     // line that did not become a task is never offered as a recall.
     rememberCapture(title)
 
+    // Shift+Enter: the line is filed, but the bar stays for the next one. The
+    // page clears itself only on this answer, so a refused write kept the text;
+    // and no pet notice is shown, because the confirmation lives in the bar.
+    if (rawStay === true) {
+      // The page's walk is local. Hand it the list main now holds so ↑ recalls
+      // the line filed a moment ago instead of the copy from the open.
+      sendToBar('task-capture-saved', { history: history.slice() })
+      return
+    }
+
     // Saved. The bar has done its job; the notice carries the confirmation and
-    // the way into the Tasks view.
+    // the way into the task it just created.
     close(true)
     announceSaved(result.task)
   }
@@ -583,9 +637,15 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
     if (!isSender(event)) return
     reveal()
   }
-  const handleSaveEvent = (event: IpcMainEvent, raw: unknown, rawDue: unknown, rawRepeat: unknown) => {
+  const handleSaveEvent = (
+    event: IpcMainEvent,
+    raw: unknown,
+    rawDue: unknown,
+    rawRepeat: unknown,
+    rawStay: unknown,
+  ) => {
     if (!isSender(event)) return
-    handleSave(event, raw, rawDue, rawRepeat)
+    handleSave(event, raw, rawDue, rawRepeat, rawStay)
   }
   const handleClose = (event: IpcMainEvent) => {
     if (!isSender(event)) return

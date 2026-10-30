@@ -1438,6 +1438,8 @@ const _taskCaptureCtx = {
     cancel: t("taskCaptureCancel"),
     empty: t("taskCaptureEmpty"),
     failed: t("taskCaptureFailed"),
+    stayHint: t("taskCaptureStayHint"),
+    savedInline: t("taskCaptureSavedInline"),
     savedTitle: t("taskCaptureSavedTitle"),
     savedPill: t("taskCaptureSavedPill"),
     dueLabel: t("taskCaptureDueLabel"),

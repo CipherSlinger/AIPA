@@ -16,6 +16,7 @@ function subscribe(channel, cb) {
 
 contextBridge.exposeInMainWorld("taskCaptureAPI", {
   onShow: (cb) => subscribe("task-capture-show", cb),
+  onSaved: (cb) => subscribe("task-capture-saved", cb),
   onError: (cb) => subscribe("task-capture-error", cb),
   onFocus: (cb) => subscribe("task-capture-focus", cb),
   ready: () => ipcRenderer.send("task-capture-ready"),
@@ -23,13 +24,20 @@ contextBridge.exposeInMainWorld("taskCaptureAPI", {
   // shape, so the page can only ever name a day it has already resolved.
   // `repeat` is sent only when a cadence is set: on create an absent argument
   // means a one-off, and main refuses any cadence it does not know.
-  save: (title, dueOn, repeat) =>
-    ipcRenderer.send(
-      "task-capture-save",
-      String(title || ""),
-      dueOn == null ? null : String(dueOn),
-      ...(repeat == null ? [] : [String(repeat)])
-    ),
+  // `stay` is Shift+Enter: main files the line without closing the bar. It is
+  // only appended when true, so an ordinary Enter keeps the wire shape it had.
+  // When a stay-save has no cadence, `null` holds the repeat position open for
+  // the flag (main reads null as absent).
+  save: (title, dueOn, repeat, stay) => {
+    const args = [String(title || ""), dueOn == null ? null : String(dueOn)]
+    if (repeat != null) {
+      args.push(String(repeat))
+      if (stay === true) args.push(true)
+    } else if (stay === true) {
+      args.push(null, true)
+    }
+    ipcRenderer.send("task-capture-save", ...args)
+  },
   close: () => ipcRenderer.send("task-capture-close"),
   // The page measures its remembered-titles strip; main owns the ceiling and
   // the work-area clamp, so this is only "I need this many more pixels".
