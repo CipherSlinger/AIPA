@@ -435,10 +435,14 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
   }
 
   const due = task.dueOn ? dueInfo(task.dueOn, today) : null
-  const dueWarning = due?.state === 'overdue' || due?.state === 'today'
+  // Finished work keeps its day but not the warning: it is no longer late.
+  const dueFinished = task.status === 'done' || task.status === 'archived'
+  const dueWarning = !dueFinished && (due?.state === 'overdue' || due?.state === 'today')
   const dueLabel = !task.dueOn
     ? t('tasks.due.none')
-    : due?.state === 'today'
+    : dueFinished
+      ? formatDueDate(task.dueOn, resolvedLocale)
+      : due?.state === 'today'
       ? t('tasks.due.today')
       : due?.state === 'overdue'
         ? t('tasks.due.overdue', { days: Math.abs(due.days) })
@@ -524,280 +528,316 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
       <style>{DUE_PRESET_STYLES}</style>
-      {/* Header */}
-      <div style={{
-        minHeight: 48, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8,
-        padding: '6px 14px', borderBottom: '1px solid var(--border)',
-        background: 'var(--popup-bg)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-      }}>
-        <button
-          type="button"
-          onClick={onBack}
-          title={t('tasks.back')}
-          aria-label={t('tasks.back')}
-          style={{ ...ICON_BUTTON, width: 28, padding: 0 }}
-        >
-          <ArrowLeft size={14} />
-        </button>
-
-        <input
-          ref={titleRef}
-          value={titleDraft}
-          onChange={e => setTitleDraft(e.target.value)}
-          onFocus={() => setTitleFocused(true)}
-          onBlur={() => { setTitleFocused(false); void commitTitle() }}
-          onKeyDown={e => {
-            if (e.key === 'Enter') { e.preventDefault(); titleRef.current?.blur() }
-          }}
-          aria-label={t('tasks.titleLabel')}
-          disabled={savingTitle}
-          style={{
-            minWidth: 120, flex: '1 1 220px', maxWidth: 520, height: 28,
-            border: '1px solid transparent',
-            borderRadius: 7, padding: '0 6px', boxSizing: 'border-box',
-            color: 'var(--text-primary)', fontSize: 14, fontWeight: 700,
-            outline: 'none',
-            borderColor: titleFocused ? 'var(--accent-border)' : 'transparent',
-            background: titleFocused ? 'var(--bg-input)' : 'transparent',
-          }}
-        />
-
-        <select
-          value={archived ? 'archived' : task.status}
-          onChange={e => { void setStatus(e.target.value as TaskStatusData) }}
-          disabled={archived}
-          aria-label={t('tasks.status')}
-          style={{
-            height: 26, borderRadius: 8, padding: '0 8px', fontSize: 11, fontWeight: 600,
-            color: statusColor(task.status),
-            border: '1px solid var(--border)', background: 'var(--bg-hover)',
-            cursor: archived ? 'default' : 'pointer', flexShrink: 0,
-          }}
-        >
-          {archived && <option value="archived">{t('tasks.statusLabel.archived')}</option>}
-          {EDITABLE_STATUSES.map(status => (
-            <option key={status} value={status}>{t(statusLabelKey(status))}</option>
-          ))}
-        </select>
-
-        {/* A due date is a local calendar day. Overdue and today are the only
-            states painted in the warning tone; future days and "no due date"
-            stay quiet so the header never cries wolf. The clear button only
-            exists when there is something to clear. */}
-        <span
-          ref={dueControlRef}
-          title={t('tasks.due.label')}
-          data-task-due-control
-          style={{
-            position: 'relative',
-            display: 'inline-flex', alignItems: 'center', gap: 4, height: 26,
-            padding: '0 4px 0 7px', borderRadius: 8, flexShrink: 0,
-            border: `1px solid ${dueFocused ? 'var(--accent-border)' : 'var(--border)'}`,
-            background: 'var(--bg-hover)',
-            color: dueWarning ? 'var(--warning)' : 'var(--text-secondary)',
-            fontSize: 11,
-          }}
-        >
-          {/* The calendar glyph is the trigger for the quick presets. Keeping
-              the trigger in the glyph's own slot means the crowded header
-              gains no width; the popover overlays the content below instead
-              of wrapping the header or shortening the title. */}
+      {/* Header. The title and the action cluster are two flex items in a
+          wrapping row: while the pane can hold both they sit on one line
+          exactly as before; when it cannot, the cluster moves to a second
+          line instead of running past the pane's right edge. The cluster
+          wraps internally too, so at very narrow widths its own controls
+          stay reachable rather than being clipped. */}
+      <div
+        data-task-detail-header
+        style={{
+          minHeight: 48, flexShrink: 0, display: 'flex', alignItems: 'center',
+          flexWrap: 'wrap', gap: 8,
+          padding: '6px 14px', borderBottom: '1px solid var(--border)',
+          background: 'var(--popup-bg)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+        }}
+      >
+        {/* Title row: back + title. It grows to take the slack while the
+            controls still fit beside it, and keeps its own line after they
+            wrap, so the title is never shortened to make room for a pill. */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          flex: '1 1 auto', minWidth: 0,
+        }}>
           <button
             type="button"
-            className="aipa-task-due-trigger"
-            onClick={() => setDueMenuOpen(open => !open)}
-            disabled={savingDue}
-            title={t('tasks.due.presets.title')}
-            aria-label={t('tasks.due.presets.title')}
-            aria-expanded={dueMenuOpen}
-            aria-controls={dueMenuOpen ? 'task-due-presets' : undefined}
-            data-task-due-trigger
-            style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 16, height: 18, padding: 0, marginLeft: -2,
-              border: 'none', borderRadius: 5, background: 'transparent',
-              color: 'inherit', flexShrink: 0,
-              cursor: savingDue ? 'default' : 'pointer',
-              opacity: savingDue ? 0.5 : 1,
-            }}
+            onClick={onBack}
+            title={t('tasks.back')}
+            aria-label={t('tasks.back')}
+            style={{ ...ICON_BUTTON, width: 28, padding: 0 }}
           >
-            <CalendarDays size={12} />
+            <ArrowLeft size={14} />
           </button>
-          <span
-            data-task-due-label
-            style={{ fontWeight: dueWarning ? 600 : 500, whiteSpace: 'nowrap' }}
-          >
-            {dueLabel}
-          </span>
+
           <input
-            type="date"
-            value={task.dueOn ?? ''}
-            min="2000-01-01"
-            max="2100-12-31"
-            disabled={savingDue}
-            onFocus={() => setDueFocused(true)}
-            onBlur={() => setDueFocused(false)}
-            onChange={e => { void setDueOn(e.target.value || null) }}
-            aria-label={t('tasks.due.label')}
-            data-task-due-input
+            ref={titleRef}
+            value={titleDraft}
+            onChange={e => setTitleDraft(e.target.value)}
+            onFocus={() => setTitleFocused(true)}
+            onBlur={() => { setTitleFocused(false); void commitTitle() }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { e.preventDefault(); titleRef.current?.blur() }
+            }}
+            aria-label={t('tasks.titleLabel')}
+            disabled={savingTitle}
             style={{
-              width: 112, height: 22, boxSizing: 'border-box',
-              border: 'none', outline: 'none', background: 'transparent',
-              color: 'inherit', fontSize: 10.5, colorScheme: 'dark',
-              cursor: savingDue ? 'default' : 'pointer',
+              minWidth: 120, flex: '1 1 220px', maxWidth: 520, height: 28,
+              border: '1px solid transparent',
+              borderRadius: 7, padding: '0 6px', boxSizing: 'border-box',
+              color: 'var(--text-primary)', fontSize: 14, fontWeight: 700,
+              outline: 'none',
+              borderColor: titleFocused ? 'var(--accent-border)' : 'transparent',
+              background: titleFocused ? 'var(--bg-input)' : 'transparent',
             }}
           />
-          {task.dueOn && (
-            <button
-              type="button"
-              onClick={() => { void setDueOn(null) }}
-              disabled={savingDue}
-              title={t('tasks.due.clear')}
-              aria-label={t('tasks.due.clear')}
-              data-task-due-clear
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: 18, height: 18, padding: 0, border: 'none', borderRadius: 5,
-                background: 'transparent', color: 'inherit',
-                cursor: savingDue ? 'default' : 'pointer', opacity: savingDue ? 0.5 : 1,
-              }}
-            >
-              <X size={10} />
-            </button>
-          )}
+        </div>
 
-          {dueMenuOpen && (
-            <div
-              id="task-due-presets"
-              role="group"
-              aria-label={t('tasks.due.presets.title')}
-              data-task-due-presets
-              style={{
-                position: 'absolute', top: 'calc(100% + 5px)', left: 0, zIndex: 40,
-                display: 'flex', flexDirection: 'column', gap: 3,
-                minWidth: 132, padding: 4, borderRadius: 9,
-                border: '1px solid var(--popup-border)', background: 'var(--popup-bg)',
-                backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
-              }}
-            >
-              {[
-                { key: 'today', day: today },
-                { key: 'tomorrow', day: tomorrowDay },
-                { key: 'nextWeek', day: nextWeekDay },
-              ].map(preset => (
-                <button
-                  key={preset.key}
-                  type="button"
-                  className="aipa-task-due-preset"
-                  onClick={() => chooseDuePreset(preset.day)}
-                  disabled={savingDue}
-                  aria-label={t(`tasks.due.presets.${preset.key}`)}
-                  data-task-due-preset={preset.key}
-                  style={{ ...DUE_PRESET_BUTTON, opacity: savingDue ? 0.5 : 1 }}
-                >
-                  {t(`tasks.due.presets.${preset.key}`)}
-                </button>
-              ))}
-              {task.dueOn && (
-                <button
-                  type="button"
-                  className="aipa-task-due-preset"
-                  onClick={() => chooseDuePreset(null)}
-                  disabled={savingDue}
-                  aria-label={t('tasks.due.clear')}
-                  data-task-due-preset="clear"
-                  style={{ ...DUE_PRESET_BUTTON, color: 'var(--text-muted)', opacity: savingDue ? 0.5 : 1 }}
-                >
-                  {t('tasks.due.clear')}
-                </button>
-              )}
-            </div>
-          )}
-        </span>
-
-        {/* Department is explicit attribution, never a working directory. The
-            empty option is a real choice: a task can be dispatched without a
-            department. A missing id is shown as missing rather than silently
-            rounded to the first department. */}
-        <span
-          title={t('tasks.departmentAttribution')}
+        {/* Action cluster: one line on wide panes, and its own wrapping lines
+            (status → due → department → folder → archive/delete) once it moves
+            below the title. It grows like the title group, so the spacer below
+            still takes the same share of the slack as it did when every control
+            sat directly in the header. */}
+        <div
+          data-task-detail-actions
           style={{
-            display: 'inline-flex', alignItems: 'center', gap: 4, height: 26,
-            padding: '0 4px 0 8px', borderRadius: 8, flexShrink: 0,
-            border: '1px solid var(--border)', background: 'var(--bg-hover)',
-            color: 'var(--text-secondary)', fontSize: 11,
+            display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8,
+            flex: '1 1 auto', minWidth: 0, maxWidth: '100%',
           }}
         >
-          {routing
-            ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
-            : <Building2 size={12} />}
           <select
-            value={task.departmentId ?? ''}
-            onChange={e => { void setDepartment(e.target.value) }}
-            disabled={routing}
-            aria-label={t('tasks.department')}
-            title={t('tasks.departmentAttribution')}
+            value={archived ? 'archived' : task.status}
+            onChange={e => { void setStatus(e.target.value as TaskStatusData) }}
+            disabled={archived}
+            aria-label={t('tasks.status')}
             style={{
-              maxWidth: 190, height: 24, border: 'none', outline: 'none',
-              background: 'transparent', color: 'inherit', fontSize: 11,
-              cursor: routing ? 'default' : 'pointer',
+              height: 26, borderRadius: 8, padding: '0 8px', fontSize: 11, fontWeight: 600,
+              color: statusColor(task.status),
+              border: '1px solid var(--border)', background: 'var(--bg-hover)',
+              cursor: archived ? 'default' : 'pointer', flexShrink: 0,
             }}
           >
-            <option value="">{t('tasks.departmentNone')}</option>
-            {deptOptions.map(option => (
-              <option key={option.id} value={option.id}>
-                {deptTreeOptionText(option)}
-              </option>
+            {archived && <option value="archived">{t('tasks.statusLabel.archived')}</option>}
+            {EDITABLE_STATUSES.map(status => (
+              <option key={status} value={status}>{t(statusLabelKey(status))}</option>
             ))}
-            {task.departmentId && !deptOptions.some(option => option.id === task.departmentId) && (
-              <option value={task.departmentId}>{t('tasks.departmentNotFound')}</option>
-            )}
           </select>
-        </span>
 
-        {suggestion && suggestion.departmentId !== task.departmentId && (
-          <DepartmentSuggestionChip
-            suggestion={suggestion}
-            disabled={routing}
-            onAccept={() => { void acceptSuggestion(suggestion.departmentId) }}
-          />
-        )}
+          {/* A due date is a local calendar day. Overdue and today are the only
+              states painted in the warning tone; future days and "no due date"
+              stay quiet so the header never cries wolf. The clear button only
+              exists when there is something to clear. */}
+          <span
+            ref={dueControlRef}
+            title={t('tasks.due.label')}
+            data-task-due-control
+            style={{
+              position: 'relative',
+              display: 'inline-flex', alignItems: 'center', gap: 4, height: 26,
+              padding: '0 4px 0 7px', borderRadius: 8, flexShrink: 0,
+              border: `1px solid ${dueFocused ? 'var(--accent-border)' : 'var(--border)'}`,
+              background: 'var(--bg-hover)',
+              color: dueWarning ? 'var(--warning)' : 'var(--text-secondary)',
+              fontSize: 11,
+            }}
+          >
+            {/* The calendar glyph is the trigger for the quick presets. Keeping
+                the trigger in the glyph's own slot means the crowded header
+                gains no width; the popover overlays the content below instead
+                of wrapping the header or shortening the title. */}
+            <button
+              type="button"
+              className="aipa-task-due-trigger"
+              onClick={() => setDueMenuOpen(open => !open)}
+              disabled={savingDue}
+              title={t('tasks.due.presets.title')}
+              aria-label={t('tasks.due.presets.title')}
+              aria-expanded={dueMenuOpen}
+              aria-controls={dueMenuOpen ? 'task-due-presets' : undefined}
+              data-task-due-trigger
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: 16, height: 18, padding: 0, marginLeft: -2,
+                border: 'none', borderRadius: 5, background: 'transparent',
+                color: 'inherit', flexShrink: 0,
+                cursor: savingDue ? 'default' : 'pointer',
+                opacity: savingDue ? 0.5 : 1,
+              }}
+            >
+              <CalendarDays size={12} />
+            </button>
+            <span
+              data-task-due-label
+              style={{ fontWeight: dueWarning ? 600 : 500, whiteSpace: 'nowrap' }}
+            >
+              {dueLabel}
+            </span>
+            <input
+              type="date"
+              value={task.dueOn ?? ''}
+              min="2000-01-01"
+              max="2100-12-31"
+              disabled={savingDue}
+              onFocus={() => setDueFocused(true)}
+              onBlur={() => setDueFocused(false)}
+              onChange={e => { void setDueOn(e.target.value || null) }}
+              aria-label={t('tasks.due.label')}
+              data-task-due-input
+              style={{
+                width: 112, height: 22, boxSizing: 'border-box',
+                border: 'none', outline: 'none', background: 'transparent',
+                color: 'inherit', fontSize: 10.5, colorScheme: 'dark',
+                cursor: savingDue ? 'default' : 'pointer',
+              }}
+            />
+            {task.dueOn && (
+              <button
+                type="button"
+                onClick={() => { void setDueOn(null) }}
+                disabled={savingDue}
+                title={t('tasks.due.clear')}
+                aria-label={t('tasks.due.clear')}
+                data-task-due-clear
+                style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: 18, height: 18, padding: 0, border: 'none', borderRadius: 5,
+                  background: 'transparent', color: 'inherit',
+                  cursor: savingDue ? 'default' : 'pointer', opacity: savingDue ? 0.5 : 1,
+                }}
+              >
+                <X size={10} />
+              </button>
+            )}
 
-        <span style={{ flex: 1 }} />
+            {dueMenuOpen && (
+              <div
+                id="task-due-presets"
+                role="group"
+                aria-label={t('tasks.due.presets.title')}
+                data-task-due-presets
+                style={{
+                  position: 'absolute', top: 'calc(100% + 5px)', left: 0, zIndex: 40,
+                  display: 'flex', flexDirection: 'column', gap: 3,
+                  minWidth: 132, padding: 4, borderRadius: 9,
+                  border: '1px solid var(--popup-border)', background: 'var(--popup-bg)',
+                  backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+                }}
+              >
+                {[
+                  { key: 'today', day: today },
+                  { key: 'tomorrow', day: tomorrowDay },
+                  { key: 'nextWeek', day: nextWeekDay },
+                ].map(preset => (
+                  <button
+                    key={preset.key}
+                    type="button"
+                    className="aipa-task-due-preset"
+                    onClick={() => chooseDuePreset(preset.day)}
+                    disabled={savingDue}
+                    aria-label={t(`tasks.due.presets.${preset.key}`)}
+                    data-task-due-preset={preset.key}
+                    style={{ ...DUE_PRESET_BUTTON, opacity: savingDue ? 0.5 : 1 }}
+                  >
+                    {t(`tasks.due.presets.${preset.key}`)}
+                  </button>
+                ))}
+                {task.dueOn && (
+                  <button
+                    type="button"
+                    className="aipa-task-due-preset"
+                    onClick={() => chooseDuePreset(null)}
+                    disabled={savingDue}
+                    aria-label={t('tasks.due.clear')}
+                    data-task-due-preset="clear"
+                    style={{ ...DUE_PRESET_BUTTON, color: 'var(--text-muted)', opacity: savingDue ? 0.5 : 1 }}
+                  >
+                    {t('tasks.due.clear')}
+                  </button>
+                )}
+              </div>
+            )}
+          </span>
 
-        <button
-          type="button"
-          onClick={reveal}
-          title={t('tasks.reveal')}
-          aria-label={t('tasks.reveal')}
-          style={ICON_BUTTON}
-        >
-          <FolderOpen size={13} />
-          {t('tasks.reveal')}
-        </button>
+          {/* Department is explicit attribution, never a working directory. The
+              empty option is a real choice: a task can be dispatched without a
+              department. A missing id is shown as missing rather than silently
+              rounded to the first department. */}
+          <span
+            title={t('tasks.departmentAttribution')}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4, height: 26,
+              padding: '0 4px 0 8px', borderRadius: 8, flexShrink: 0,
+              border: '1px solid var(--border)', background: 'var(--bg-hover)',
+              color: 'var(--text-secondary)', fontSize: 11,
+            }}
+          >
+            {routing
+              ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+              : <Building2 size={12} />}
+            <select
+              value={task.departmentId ?? ''}
+              onChange={e => { void setDepartment(e.target.value) }}
+              disabled={routing}
+              aria-label={t('tasks.department')}
+              title={t('tasks.departmentAttribution')}
+              style={{
+                maxWidth: 190, height: 24, border: 'none', outline: 'none',
+                background: 'transparent', color: 'inherit', fontSize: 11,
+                cursor: routing ? 'default' : 'pointer',
+              }}
+            >
+              <option value="">{t('tasks.departmentNone')}</option>
+              {deptOptions.map(option => (
+                <option key={option.id} value={option.id}>
+                  {deptTreeOptionText(option)}
+                </option>
+              ))}
+              {task.departmentId && !deptOptions.some(option => option.id === task.departmentId) && (
+                <option value={task.departmentId}>{t('tasks.departmentNotFound')}</option>
+              )}
+            </select>
+          </span>
 
-        {archived ? (
-          <button type="button" onClick={restore} title={t('tasks.restore')} aria-label={t('tasks.restore')} style={ICON_BUTTON}>
-            <RotateCcw size={13} />
-            {t('tasks.restore')}
+          {suggestion && suggestion.departmentId !== task.departmentId && (
+            <DepartmentSuggestionChip
+              suggestion={suggestion}
+              disabled={routing}
+              onAccept={() => { void acceptSuggestion(suggestion.departmentId) }}
+            />
+          )}
+
+          {/* The slack the title does not take collects here, exactly where the
+              header's spacer sat before the controls were grouped. */}
+          <span style={{ flex: 1 }} />
+
+          <button
+            type="button"
+            onClick={reveal}
+            title={t('tasks.reveal')}
+            aria-label={t('tasks.reveal')}
+            style={ICON_BUTTON}
+          >
+            <FolderOpen size={13} />
+            {t('tasks.reveal')}
           </button>
-        ) : (
-          <button type="button" onClick={archive} title={t('tasks.archive')} aria-label={t('tasks.archive')} style={ICON_BUTTON}>
-            <Archive size={13} />
-            {t('tasks.archive')}
-          </button>
-        )}
 
-        <button
-          type="button"
-          onClick={() => onRequestDelete(task)}
-          title={t('tasks.delete')}
-          aria-label={t('tasks.delete')}
-          style={{ ...ICON_BUTTON, color: 'var(--error)' }}
-        >
-          <Trash2 size={13} />
-        </button>
+          {/* Archive/restore and delete belong to one another: they wrap as a
+              pair, so a narrow header never leaves the trash alone on a line. */}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            {archived ? (
+              <button type="button" onClick={restore} title={t('tasks.restore')} aria-label={t('tasks.restore')} style={ICON_BUTTON}>
+                <RotateCcw size={13} />
+                {t('tasks.restore')}
+              </button>
+            ) : (
+              <button type="button" onClick={archive} title={t('tasks.archive')} aria-label={t('tasks.archive')} style={ICON_BUTTON}>
+                <Archive size={13} />
+                {t('tasks.archive')}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => onRequestDelete(task)}
+              title={t('tasks.delete')}
+              aria-label={t('tasks.delete')}
+              style={{ ...ICON_BUTTON, color: 'var(--error)' }}
+            >
+              <Trash2 size={13} />
+            </button>
+          </span>
+        </div>
       </div>
 
       {/* Why the task is waiting. The engine's last turn failed; this sits

@@ -17,8 +17,7 @@ import SearchDeptBadge from '../SearchDeptBadge'
 import { emphasise } from '../SearchResultRow'
 import type { TaskSearchHit } from '../searchTasks'
 import {
-  dueInfo,
-  formatDueDate,
+  dueRowMarker,
   statusColor,
   statusLabelKey,
   todayLocalDay,
@@ -117,16 +116,8 @@ export function TaskSearchGroup({ hits, query, active, onHover, onOpen }: Props)
       {hits.map((hit, index) => {
         const task = hit.task
         const selected = index === active
-        const due = task.dueOn ? dueInfo(task.dueOn, today) : null
-        const dueText = task.dueOn && due
-          ? due.state === 'overdue'
-            ? t('tasks.due.overdue', { days: Math.abs(due.days) })
-            : due.state === 'today'
-              ? t('tasks.due.todayShort')
-              : due.state === 'tomorrow'
-                ? t('tasks.due.tomorrow')
-                : formatDueDate(task.dueOn, resolvedLocale)
-          : null
+        const due = dueRowMarker(task, today, resolvedLocale, t)
+        const dueText = due ? due.text : null
         return (
           <div
             key={task.id}
@@ -229,14 +220,14 @@ export function TaskSearchGroup({ hits, query, active, onHover, onOpen }: Props)
                 {dueText && (
                   <span
                     data-search-task-due
-                    data-search-task-due-state={due?.state ?? 'future'}
+                    data-search-task-due-state={due ? due.tone : 'quiet'}
                     title={task.dueOn}
                     style={{
                       ...META_STYLE,
-                      color: due?.state === 'overdue'
+                      color: due && due.tone === 'overdue'
                         ? 'var(--warning)'
-                        : due?.state === 'today' ? 'var(--accent-text)' : 'var(--text-muted)',
-                      fontWeight: due?.state === 'overdue' || due?.state === 'today' ? 600 : 400,
+                        : due && due.tone === 'today' ? 'var(--accent-text)' : 'var(--text-muted)',
+                      fontWeight: due && due.tone !== 'quiet' ? 600 : 400,
                     }}
                   >
                     <CalendarDays size={9} aria-hidden="true" />

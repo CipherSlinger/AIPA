@@ -30,8 +30,7 @@ import { TaskGroupBySwitch } from './TaskGroupBySwitch'
 import type { DueGroupedTasks, TaskGroupBy } from './taskUi'
 import {
   countActive,
-  dueInfo,
-  formatDueDate,
+  dueRowMarker,
   formatTaskTime,
   groupTasks,
   groupTasksByDue,
@@ -383,16 +382,8 @@ export default function TasksPanel() {
                     const waitingReason = task.status === 'needs_you'
                       ? taskWaitingReason(task)
                       : undefined
-                    const due = task.dueOn ? dueInfo(task.dueOn, today) : null
-                    const dueText = due && task.dueOn
-                      ? due.state === 'overdue'
-                        ? t('tasks.due.overdue', { days: Math.abs(due.days) })
-                        : due.state === 'today'
-                          ? t('tasks.due.todayShort')
-                          : due.state === 'tomorrow'
-                            ? t('tasks.due.tomorrow')
-                            : formatDueDate(task.dueOn, resolvedLocale)
-                      : null
+                    const due = dueRowMarker(task, today, resolvedLocale, t)
+                    const dueText = due ? due.text : null
                     return (
                       <button
                         key={task.id}
@@ -442,14 +433,14 @@ export default function TasksPanel() {
                           {due && dueText && (
                             <span
                               data-task-due-row
-                              data-task-due-state={due.state}
+                              data-task-due-state={due.tone}
                               title={task.dueOn}
                               style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 3,
-                                color: due.state === 'overdue'
+                                color: due.tone === 'overdue'
                                   ? 'var(--warning)'
-                                  : due.state === 'today' ? 'var(--accent-text)' : 'var(--text-subtle)',
-                                fontWeight: due.state === 'overdue' || due.state === 'today' ? 600 : 400,
+                                  : due.tone === 'today' ? 'var(--accent-text)' : 'var(--text-subtle)',
+                                fontWeight: due.tone === 'quiet' ? 400 : 600,
                               }}
                             >
                               <CalendarDays size={9} />

@@ -326,6 +326,36 @@ export function formatDueDate(dueOn: string, locale: 'en' | 'zh-CN'): string {
   }
 }
 
+export type TranslateFn = (key: string, params?: Record<string, string | number>) => string
+
+/**
+ * What a task row's due marker says, and in which tone. A done or archived
+ * task keeps its day but shows it as a plain date: the deadline has already
+ * passed, and calling finished work "2d overdue" nags about nothing.
+ */
+export function dueRowMarker(
+  task: TaskRecordData,
+  today: string,
+  locale: 'en' | 'zh-CN',
+  t: TranslateFn,
+): { text: string; tone: 'overdue' | 'today' | 'quiet' } | null {
+  if (!task.dueOn) return null
+  const info = dueInfo(task.dueOn, today)
+  if (!info) return null
+  if (task.status === 'done' || task.status === 'archived') {
+    return { text: formatDueDate(task.dueOn, locale), tone: 'quiet' }
+  }
+  const text = info.state === 'overdue'
+    ? t('tasks.due.overdue', { days: Math.abs(info.days) })
+    : info.state === 'today'
+      ? t('tasks.due.todayShort')
+      : info.state === 'tomorrow'
+        ? t('tasks.due.tomorrow')
+        : formatDueDate(task.dueOn, locale)
+  const tone = info.state === 'overdue' ? 'overdue' : info.state === 'today' ? 'today' : 'quiet'
+  return { text, tone }
+}
+
 /**
  * The list's order inside one status group: dated work first, soonest first,
  * then undated work; ties keep the previous newest-activity order.
