@@ -306,16 +306,18 @@
    * a card with ordinary future work does not cry wolf.
    *
    * `deferrable` says whether pressing the marker could change anything. The
-   * marker's action writes tomorrow, so a row already due tomorrow would be a
-   * no-op; its word is a fact about the row, not a control. "Tomorrow" here is
-   * the same local calendar comparison that chooses the word below — there is
+   * marker's action writes tomorrow, so only a row due today or already late is
+   * a deferral: tomorrow would be a no-op, and a later day would be pulled
+   * *earlier* — which is not what "move the due day to tomorrow" promises. Those
+   * rows keep a plain word: a fact about the row, not a control. "Tomorrow" here
+   * is the same local calendar comparison that chooses the word below — there is
    * no second notion of the day anywhere on this page.
    */
   function dueMarker(task) {
     if (!task.dueOn) return null;
     var info = dueInfo(task.dueOn, todayLocalDay(new Date()));
     if (!info) return null;
-    var deferrable = info.state !== "tomorrow";
+    var deferrable = info.state === "overdue" || info.state === "today";
     if (info.state === "overdue") {
       var late = labels().dueLate || FALLBACK_LABELS.dueLate;
       return { text: late.replace("{n}", String(-info.days)), warn: true, deferrable: deferrable };
@@ -493,9 +495,10 @@
     // undated row adds nothing at all, not even a separator.
     var marker = dueMarker(task);
     if (marker) {
-      // The marker is the row's third action: pressing it pushes the day to
-      // tomorrow. It stays a bare word — same text, colour and size as the
-      // marker it replaces — so the card still reads as a brief at a glance;
+      // On a row due today or already late the marker is the row's third action:
+      // pressing it pushes the day to tomorrow. It stays a bare word — same
+      // text, colour and size as any other marker — so the card still reads as a
+      // brief at a glance;
       // only the pointer cursor and a hover/focus underline say it is pressable.
       // It sits inside the row, so its click must stop before the row opens the
       // task, exactly like Start and Done do from their sibling slot.
@@ -513,10 +516,11 @@
           deferTask(task.id);
         });
       } else {
-        // Already due tomorrow: the write would land on the day the row already
-        // has, so this is the same plain word an undated row's meta line uses —
-        // a box with no role, no tab stop and no action attached. A control
-        // here would promise a change it cannot make.
+        // Due tomorrow or later: the write would land on the day the row already
+        // has, or pull a future deadline earlier. Either way this is the same
+        // plain word an undated row's meta line uses — a box with no role, no
+        // tab stop and no action attached. A control here would promise a
+        // change it cannot make.
         due = document.createElement("span");
         due.className = marker.warn ? "due due-warn" : "due";
       }

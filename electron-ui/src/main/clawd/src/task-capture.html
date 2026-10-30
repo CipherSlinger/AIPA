@@ -251,6 +251,20 @@ body[data-theme="clawd"] .field:focus-within { box-shadow: 0 0 0 3px rgba(217, 1
    A tag under the field, not a form. The typed line is never rewritten; the
    tag only says which day will ride along with it. It hugs its own text, so
    an empty field still has the same width it always had. */
+/* The recognised day and cadence sit on one line under the field: they are
+   two answers to "when", not two stacked forms. The row carries the gap above
+   it so a bar with both chips still reserves exactly one chip's height. */
+.chips {
+  position: relative;
+  z-index: 1;
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  max-width: 100%;
+  margin-top: 7px;
+}
 .due {
   position: relative;
   z-index: 1;
@@ -261,7 +275,6 @@ body[data-theme="clawd"] .field:focus-within { box-shadow: 0 0 0 3px rgba(217, 1
   flex: none;
   max-width: 100%;
   height: 22px;
-  margin-top: 7px;
   padding: 0 3px 0 9px;
   border: 1px solid var(--field-border);
   background: var(--field-bg);
@@ -342,6 +355,32 @@ body[data-theme="clawd"] .due-clear {
 .due-clear:hover { color: var(--text); background: var(--row-active); }
 .due-clear:focus-visible {
   color: var(--text);
+  outline: 1px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  outline-offset: -1px;
+}
+
+/* ── Recognised cadence ──────────────────────────────────────────────────────
+   The same tag as the day, sitting beside it. It is the strip's trigger, so it
+   is a button; the shared `.due` skin keeps the two chips one object. */
+.repeat {
+  margin-top: 0;
+  padding: 0 9px;
+  color: var(--accent);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  outline: none;
+}
+body[data-theme="clawd"] .repeat { font-size: 11px; }
+.repeat:hover,
+.repeat:focus-visible {
+  color: var(--text);
+  box-shadow: inset 0 -1px 0 currentColor;
+}
+.repeat:focus-visible {
   outline: 1px solid color-mix(in srgb, var(--accent) 70%, transparent);
   outline-offset: -1px;
 }
@@ -528,16 +567,28 @@ kbd {
     <input id="input" type="text" spellcheck="false" autocomplete="off"
            aria-label="Capture a task" />
   </form>
-  <div class="due" id="due" hidden>
-    <span class="due-text"><span id="duePhrase"></span><span class="due-sep" aria-hidden="true"> · </span><button class="due-date" id="dueDate" type="button"
-            aria-haspopup="true" aria-expanded="false" aria-controls="duePresets"
-            aria-label="Change the due day"></button></span>
-    <button class="due-clear" id="dueClear" type="button">×</button>
+  <div class="chips" id="chips" hidden>
+    <div class="due" id="due" hidden>
+      <span class="due-text"><span id="duePhrase"></span><span class="due-sep" id="dueSep" aria-hidden="true"> · </span><button class="due-date" id="dueDate" type="button"
+              aria-haspopup="true" aria-expanded="false" aria-controls="duePresets"
+              aria-label="Change the due day"></button></span>
+      <button class="due-clear" id="dueClear" type="button">×</button>
+    </div>
+    <button class="due repeat" id="repeat" type="button"
+            aria-haspopup="true" aria-expanded="false" aria-controls="repeatPresets" hidden>
+      <span class="due-text" id="repeatText"></span>
+    </button>
   </div>
   <div class="due-presets" id="duePresets" role="group" aria-label="Change the due day" hidden>
     <button class="due-preset" id="duePresetToday" type="button" data-days="0">Today</button>
     <button class="due-preset" id="duePresetTomorrow" type="button" data-days="1">Tomorrow</button>
     <button class="due-preset" id="duePresetNextWeek" type="button" data-days="7">Next week</button>
+  </div>
+  <div class="due-presets" id="repeatPresets" role="group" aria-label="Change the repeat" hidden>
+    <button class="due-preset" id="repeatPresetNone" type="button" data-repeat="none">Doesn't repeat</button>
+    <button class="due-preset" id="repeatPresetDaily" type="button" data-repeat="daily">Every day</button>
+    <button class="due-preset" id="repeatPresetWeekly" type="button" data-repeat="weekly">Every week</button>
+    <button class="due-preset" id="repeatPresetMonthly" type="button" data-repeat="monthly">Every month</button>
   </div>
   <div class="error" id="error" role="alert" hidden></div>
   <div class="suggest" id="suggest" hidden>
@@ -563,11 +614,24 @@ kbd {
   var errorEl = document.getElementById("error");
   var suggestEl = document.getElementById("suggest");
   var suggestList = document.getElementById("suggestList");
+  var chipsEl = document.getElementById("chips");
   var dueEl = document.getElementById("due");
   var duePhrase = document.getElementById("duePhrase");
+  var dueSep = document.getElementById("dueSep");
   var dueDate = document.getElementById("dueDate");
   var dueClear = document.getElementById("dueClear");
   var duePresets = document.getElementById("duePresets");
+  var repeatEl = document.getElementById("repeat");
+  var repeatText = document.getElementById("repeatText");
+  var repeatPresets = document.getElementById("repeatPresets");
+  // The strip's four cadences, in reading order. `value` is the store's own
+  // vocabulary; null is "no repeat", which is not sent at all on create.
+  var repeatPresetButtons = [
+    { el: document.getElementById("repeatPresetNone"), value: null, key: "repeatNone" },
+    { el: document.getElementById("repeatPresetDaily"), value: "daily", key: "repeatDaily" },
+    { el: document.getElementById("repeatPresetWeekly"), value: "weekly", key: "repeatWeekly" },
+    { el: document.getElementById("repeatPresetMonthly"), value: "monthly", key: "repeatMonthly" }
+  ];
   // The strip's days, in reading order. `days` is a local calendar offset;
   // "next week" is today + 7, not "+7 × 86400000" — see choosePreset.
   var presetButtons = [
@@ -592,7 +656,13 @@ kbd {
     duePresets: "Change the due day",
     dueToday: "Today",
     dueTomorrow: "Tomorrow",
-    dueNextWeek: "Next week"
+    dueNextWeek: "Next week",
+    repeatLabel: "Repeat",
+    repeatNone: "Doesn't repeat",
+    repeatDaily: "Every day",
+    repeatWeekly: "Every week",
+    repeatMonthly: "Every month",
+    repeatPresets: "Change the repeat"
   };
 
   // The page's own language, used only to spell the recognised day.
@@ -607,6 +677,13 @@ kbd {
   // choice: the same phrase staying put must not undo the choice on the next
   // keystroke, but a different day typed into the line replaces it.
   var chosenDue = null;
+  // The cadence in force, or null. Rides along with the save as `repeat`.
+  var repeat = null;
+  // A cadence picked from the strip, or null. Mirrors chosenDue exactly: the
+  // line wins over the click, but the click survives typing while the line's
+  // cadence phrase has not changed. `repeat: null` is a real choice ("Doesn't
+  // repeat"), so the object's presence — not its value — says a choice exists.
+  var chosenRepeat = null;
 
   var composing = false;
   // True only for the keystroke that confirmed an IME composition. The submit
@@ -626,6 +703,9 @@ kbd {
   // choice was made on, so the walk carries the choice aside and puts it back
   // only when the draft itself comes back.
   var draftChosenDue = null;
+  // Same rule for the cadence: it belongs to the draft, not to a line recalled
+  // from before, and comes back only when the draft does.
+  var draftChosenRepeat = null;
   // How many rows of history the strip may show. The whole list still walks.
   var SUGGEST_LIMIT = 5;
   // Last extra height sent to main, so an idle render does not spam resize.
@@ -827,6 +907,100 @@ kbd {
     found.sort(function (a, b) { return a.index - b.index; });
     return found[0];
   }
+
+  // ── Repeat-cadence scan ────────────────────────────────────────────────────
+  // The same narrow discipline as the day scan: only the listed phrases, only
+  // as a phrase of their own, and the first one in the line wins. A cadence and
+  // a day may both be present; each is collected independently, so "每周五交
+  // 周报" gets Friday from the day scan and weekly from here.
+  //
+  // English "every day" must keep its space: "everyday" is ordinary prose and
+  // is never a cadence. "every <weekday>" borrows the day scan's capitalisation
+  // rule: full weekday names are unambiguous in any case, so "every friday"
+  // counts, while three-letter forms still need a capital ("every Fri" yes,
+  // "every fri" no — that is also the word "fri" in ordinary text).
+  function parseCadence(text) {
+    if (typeof text !== "string" || !text) return null;
+    var found = [];
+
+    function offer(re, value, weekdayOf) {
+      var match = re.exec(text);
+      if (!match) return;
+      found.push({
+        index: match.index,
+        phrase: match[0],
+        repeat: value,
+        weekday: typeof weekdayOf === "function" ? weekdayOf(match) : null
+      });
+    }
+
+    offer(/\bevery\s+day\b/i, "daily");
+    offer(/\bdaily\b/i, "daily");
+    offer(/\beach\s+day\b/i, "daily");
+    offer(/\bevery\s+week\b/i, "weekly");
+    offer(/\bweekly\b/i, "weekly");
+    offer(/\bevery\s+month\b/i, "monthly");
+    offer(/\bmonthly\b/i, "monthly");
+
+    offer(/\bevery\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i, "weekly",
+      function (m) { return WEEKDAY_EN[m[1].toLowerCase()]; });
+    offer(/\bevery\s+(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b/, "weekly",
+      function (m) { return WEEKDAY_EN[m[1].toLowerCase()]; });
+
+    // Chinese has no word boundaries; these are bound phrases, so the listed
+    // form itself is the bound. The weekday form is offered separately from
+    // the bare 每周 so the day it names is remembered even when the day scan
+    // has no 周 to hold on to ("每星期五" has no bare 周五 match today).
+    offer(/每天|每日|天天/, "daily");
+    offer(/每周|每星期|每礼拜/, "weekly");
+    offer(/每月|每个月/, "monthly");
+    offer(/每(?:周|星期|礼拜)(?:周|星期|礼拜)?([一二三四五六日天])/, "weekly",
+      function (m) { return WEEKDAY_ZH[m[1]]; });
+
+    offer(/매일/, "daily");
+    offer(/매주/, "weekly");
+    offer(/매월/, "monthly");
+
+    if (!found.length) return null;
+    // Earliest phrase wins; at the same index the longer phrase wins so
+    // "每星期五" is remembered as itself rather than as the bare 每星期.
+    found.sort(function (a, b) {
+      return a.index - b.index || b.phrase.length - a.phrase.length;
+    });
+    return found[0];
+  }
+
+  /**
+   * Both recognitions from one read of the line. The typed title is never
+   * rewritten; this only says what will ride along with it.
+   */
+  function parseCapture(text, today) {
+    var cadence = parseCadence(text);
+    return {
+      due: parseDue(text, today),
+      repeat: cadence ? cadence.repeat : null,
+      repeatPhrase: cadence ? cadence.phrase : null,
+      weekday: cadence ? cadence.weekday : null
+    };
+  }
+
+  /**
+   * The day a cadence needs when the line named no day of its own, so a
+   * repeating task can actually appear on the desk: daily and monthly land
+   * today; weekly lands on the weekday the phrase named (today counts when it
+   * is that weekday), otherwise today. An explicit day in the line always
+   * outranks this, so it is returned unchanged.
+   */
+  function cadenceDay(parsed, today) {
+    if (!parsed) return null;
+    // A day named in the line outranks anything the cadence would invent.
+    if (parsed.due) return parsed.due.date;
+    if (!parsed.repeat) return null;
+    if (parsed.repeat === "weekly" && parsed.weekday !== null && parsed.weekday !== undefined) {
+      return weekdayFrom(today, parsed.weekday);
+    }
+    return localDay(today.y, today.m, today.d);
+  }
   // </due-parser>
 
   /** The day as the bar spells it: 11月1日 / Nov 1 / 11월 1일. */
@@ -840,12 +1014,12 @@ kbd {
   }
 
   /**
-   * Re-read the line and show the day it names. Nothing here touches the
-   * input: no value rewrite, no selection, no focus.
+   * Show the day the line names, or the day a cadence lands on when the line
+   * named none. Nothing here touches the input: no value rewrite, no
+   * selection, no focus.
    */
-  function renderDue() {
-    var today = todayParts(new Date());
-    var match = parseDue(input.value, today);
+  function renderDue(parsed, today) {
+    var match = parsed.due;
     // A different recognised phrase replaces the chosen preset: the line now
     // names a day of its own. The phrase that was already there when the
     // preset was chosen does not, or one more keystroke would undo the choice.
@@ -860,6 +1034,11 @@ kbd {
         due = { phrase: chosenDue.label, dueOn: chosenDue.dueOn, date: chosenDue.date };
       } else if (match) {
         due = match;
+      } else {
+        // A cadence with no day still needs a day to appear on the desk. Its
+        // phrase is empty: the cadence chip beside this one already says why.
+        var derived = cadenceDay(parsed, today);
+        if (derived) due = { phrase: "", dueOn: dueOnOf(derived), date: derived };
       }
     }
     if (!due) {
@@ -870,9 +1049,48 @@ kbd {
       return;
     }
     duePhrase.textContent = due.phrase;
+    dueSep.hidden = !due.phrase;
     dueDate.textContent = formatChipDate(due.date, today);
-    dueEl.setAttribute("aria-label", labels.dueLabel + ": " + due.phrase + " · " + dueDate.textContent);
+    dueEl.setAttribute("aria-label", labels.dueLabel + ": " +
+      (due.phrase ? due.phrase + " · " + dueDate.textContent : dueDate.textContent));
     dueEl.hidden = false;
+  }
+
+  /** The chip's own name for a cadence value. */
+  function repeatLabelFor(value) {
+    if (value === "daily") return labels.repeatDaily;
+    if (value === "weekly") return labels.repeatWeekly;
+    if (value === "monthly") return labels.repeatMonthly;
+    return labels.repeatNone;
+  }
+
+  /**
+   * Show the cadence in force. The line outranks the manual pick exactly as it
+   * does for the day: a different cadence phrase in the line replaces the
+   * choice, while the same phrase survives further typing. A manual "Doesn't
+   * repeat" is a choice with a null value, so the chip disappears and the day
+   * chip beside it is left alone.
+   */
+  function renderRepeat(parsed) {
+    if (chosenRepeat && parsed.repeatPhrase !== chosenRepeat.fromPhrase) {
+      chosenRepeat = null;
+    }
+    repeat = chosenRepeat ? chosenRepeat.repeat : parsed.repeat;
+    if (!repeat) {
+      repeatEl.hidden = true;
+      repeatEl.removeAttribute("aria-label");
+      // Nothing to offer the four-row strip for once the chip is gone.
+      hideRepeatPresets();
+      return;
+    }
+    repeatText.textContent = repeatLabelFor(repeat);
+    repeatEl.setAttribute("aria-label", labels.repeatLabel + ": " + repeatText.textContent);
+    repeatEl.hidden = false;
+  }
+
+  /** The chip row exists only while at least one of its chips does. */
+  function syncChips() {
+    chipsEl.hidden = dueEl.hidden && repeatEl.hidden;
   }
 
   /**
@@ -911,6 +1129,8 @@ kbd {
 
   function openPresets() {
     if (!due || !duePresets.hidden) return;
+    // Two strips under the same field would stack two answers to "when".
+    hideRepeatPresets();
     duePresets.hidden = false;
     dueDate.setAttribute("aria-expanded", "true");
     // Name the day already in force, so the three offers are a choice and not a
@@ -943,6 +1163,56 @@ kbd {
     }
   }
 
+  function openRepeatPresets() {
+    if (!repeat || !repeatPresets.hidden) return;
+    // Mirrors the day strip: one open strip at a time.
+    hidePresets();
+    repeatPresets.hidden = false;
+    repeatEl.setAttribute("aria-expanded", "true");
+    // Name the cadence already in force, so the four offers are a choice and
+    // not a question the user has to answer by comparing labels.
+    for (var r = 0; r < repeatPresetButtons.length; r++) {
+      if (repeatPresetButtons[r].value === repeat) {
+        repeatPresetButtons[r].el.setAttribute("aria-current", "true");
+      } else {
+        repeatPresetButtons[r].el.removeAttribute("aria-current");
+      }
+    }
+    // A synthetic click does not focus the trigger the way a mouse press does,
+    // and the keyboard walk needs a deterministic starting point.
+    try { repeatEl.focus(); } catch (err) { /* window may be going away */ }
+    requestExtraHeight();
+  }
+
+  /** Close the strip and give its room back. Never touches the cadence. */
+  function hideRepeatPresets() {
+    if (repeatPresets.hidden) return;
+    repeatPresets.hidden = true;
+    repeatEl.setAttribute("aria-expanded", "false");
+    requestExtraHeight();
+  }
+
+  function closeRepeatPresets(restoreTrigger) {
+    hideRepeatPresets();
+    if (restoreTrigger) {
+      try { repeatEl.focus(); } catch (err) { /* window may be going away */ }
+    }
+  }
+
+  /**
+   * A pick is a correction to the cadence, never to the day: `null` clears the
+   * repeat only. The typed line is not rewritten, and the choice is remembered
+   * against the cadence phrase standing at this moment.
+   */
+  function chooseRepeat(value) {
+    var parsed = parseCapture(input.value, todayParts(new Date()));
+    chosenRepeat = { repeat: value, fromPhrase: parsed.repeatPhrase };
+    hideRepeatPresets();
+    refresh();
+    // Hand the keyboard back to the line, as the day strip does.
+    try { input.focus(); } catch (err) { /* window may be going away */ }
+  }
+
   function applyLabels() {
     eyebrow.textContent = labels.eyebrow;
     dest.textContent = labels.savedPill;
@@ -957,6 +1227,10 @@ kbd {
     duePresets.setAttribute("aria-label", labels.duePresets);
     for (var p = 0; p < presetButtons.length; p++) {
       presetButtons[p].el.textContent = labels[presetButtons[p].key];
+    }
+    repeatPresets.setAttribute("aria-label", labels.repeatPresets);
+    for (var r = 0; r < repeatPresetButtons.length; r++) {
+      repeatPresetButtons[r].el.textContent = labels[repeatPresetButtons[r].key];
     }
     panel.setAttribute("aria-label", labels.eyebrow);
   }
@@ -991,7 +1265,9 @@ kbd {
    * one-line due tag does not reserve a strip.
    */
   function requestExtraHeight() {
-    var extra = blockHeight(dueEl) + blockHeight(duePresets) + blockHeight(suggestEl);
+    // The chips share one row, so the row is the block: measuring each chip
+    // would count the gap above it twice when both are showing.
+    var extra = blockHeight(chipsEl) + blockHeight(duePresets) + blockHeight(repeatPresets) + blockHeight(suggestEl);
     if (extra === lastExtra) return;
     lastExtra = extra;
     if (api && typeof api.resize === "function") api.resize(extra);
@@ -999,7 +1275,12 @@ kbd {
 
   /** Everything below the field is derived from the line; draw it together. */
   function refresh() {
-    renderDue();
+    var today = todayParts(new Date());
+    var parsed = parseCapture(input.value, today);
+    renderDue(parsed, today);
+    renderRepeat(parsed);
+    syncChips();
+    requestExtraHeight();
     renderSuggestions();
   }
 
@@ -1042,9 +1323,11 @@ kbd {
     recallIndex = -1;
     draft = "";
     draftChosenDue = null;
-    // A suggestion is a line from before the draft; the draft's preset must not
-    // ride along with it.
+    draftChosenRepeat = null;
+    // A suggestion is a line from before the draft; the draft's presets must
+    // not ride along with it.
     chosenDue = null;
+    chosenRepeat = null;
     input.value = history[index];
     dueDismissed = false;
     if (!errorEl.hidden) clearError();
@@ -1063,8 +1346,9 @@ kbd {
     if (step < 0) {
       if (recallIndex < 0) {
         draft = input.value;
-        // The strip belongs to the draft, not to a line recalled from before.
+        // The strips belong to the draft, not to a line recalled from before.
         draftChosenDue = chosenDue;
+        draftChosenRepeat = chosenRepeat;
         recallIndex = 0;
       } else if (recallIndex < history.length - 1) {
         recallIndex += 1;
@@ -1079,8 +1363,9 @@ kbd {
       } else {
         recallIndex = -1;
         input.value = draft;
-        // Back on the draft, so its own choice comes back with it.
+        // Back on the draft, so its own choices come back with it.
         chosenDue = draftChosenDue;
+        chosenRepeat = draftChosenRepeat;
         dueDismissed = false;
         placeCaretAtEnd();
         refresh();
@@ -1090,6 +1375,7 @@ kbd {
     // A recalled entry is a different line: any preset chosen for the draft
     // stops applying, even when the entry happens to parse to the same day.
     chosenDue = null;
+    chosenRepeat = null;
     input.value = history[recallIndex];
     dueDismissed = false;
     placeCaretAtEnd();
@@ -1125,8 +1411,11 @@ kbd {
     }
     if (!api) return;
     saving = true;
-    // The typed line goes as typed; only the resolved day rides beside it.
-    api.save(input.value, due ? due.dueOn : null);
+    // The typed line goes as typed; only the resolved day and cadence ride
+    // beside it. An absent cadence is not passed at all, never null: on create
+    // the store's contract is "absent means a one-off".
+    if (repeat) api.save(input.value, due ? due.dueOn : null, repeat);
+    else api.save(input.value, due ? due.dueOn : null);
   }
 
   function show(payload) {
@@ -1157,6 +1446,7 @@ kbd {
     recallIndex = -1;
     draft = "";
     draftChosenDue = null;
+    draftChosenRepeat = null;
     lastExtra = -1;
 
     composing = false;
@@ -1165,8 +1455,13 @@ kbd {
     due = null;
     dueDismissed = false;
     chosenDue = null;
+    repeat = null;
+    chosenRepeat = null;
     duePresets.hidden = true;
     dueDate.setAttribute("aria-expanded", "false");
+    repeatPresets.hidden = true;
+    repeatEl.setAttribute("aria-expanded", "false");
+    repeatEl.hidden = true;
     input.value = "";
     clearError();
 
@@ -1242,6 +1537,8 @@ kbd {
     dueEl.hidden = true;
     dueEl.removeAttribute("aria-label");
     hidePresets();
+    // The × removes the day only; a cadence chip beside it stays.
+    syncChips();
     requestExtraHeight();
   });
 
@@ -1262,27 +1559,60 @@ kbd {
     })(presetButtons[pb]);
   }
 
-  // Clicking the panel anywhere else closes the strip but leaves the day
-  // showing; clicking the trigger is the toggle above.
+  // The cadence chip is the strip's trigger; a second click closes it.
+  repeatEl.addEventListener("click", function (event) {
+    event.preventDefault();
+    if (repeatPresets.hidden) openRepeatPresets();
+    else closeRepeatPresets(true);
+  });
+
+  for (var rb = 0; rb < repeatPresetButtons.length; rb++) {
+    (function (preset) {
+      preset.el.addEventListener("click", function (event) {
+        event.preventDefault();
+        chooseRepeat(preset.value);
+      });
+    })(repeatPresetButtons[rb]);
+  }
+
+  // Clicking the panel anywhere else closes an open strip but leaves the chips
+  // showing and unchanged; clicking a trigger is the toggle above.
   document.addEventListener("mousedown", function (event) {
-    if (duePresets.hidden) return;
-    if (duePresets.contains(event.target) || dueDate.contains(event.target)) return;
-    var active = document.activeElement;
-    hidePresets();
-    // If the strip had the keyboard, hand it back to the line rather than
-    // leaving focus on a button that just disappeared from the page.
-    if (duePresets.contains(active)) {
-      try { input.focus(); } catch (err) { /* window may be going away */ }
+    var target = event.target;
+    if (!duePresets.hidden &&
+        !duePresets.contains(target) && !dueDate.contains(target)) {
+      var active = document.activeElement;
+      hidePresets();
+      // If the strip had the keyboard, hand it back to the line rather than
+      // leaving focus on a button that just disappeared from the page.
+      if (duePresets.contains(active)) {
+        try { input.focus(); } catch (err) { /* window may be going away */ }
+      }
+    }
+    if (!repeatPresets.hidden &&
+        !repeatPresets.contains(target) && !repeatEl.contains(target)) {
+      var activeRepeat = document.activeElement;
+      hideRepeatPresets();
+      if (repeatPresets.contains(activeRepeat)) {
+        try { input.focus(); } catch (err) { /* window may be going away */ }
+      }
     }
   });
 
   document.addEventListener("keydown", function (event) {
+    // An IME owns the keys it is consuming: 229 is the legacy keyCode Chromium
+    // reports while it does. Such a key never picks, moves or closes anything.
+    var composingKey = event.isComposing || event.keyCode === 229;
     if (event.key === "Escape") {
       // While composing, Escape means "cancel the IME composition", not
       // "dismiss the bar".
-      if (event.isComposing) return;
+      if (composingKey) return;
       event.preventDefault();
-      // The strip is the innermost layer: Escape closes it before the bar.
+      // The strips are innermost: Escape closes one before the bar.
+      if (!repeatPresets.hidden) {
+        closeRepeatPresets(true);
+        return;
+      }
       if (!duePresets.hidden) {
         closePresets(true);
         return;
@@ -1290,6 +1620,43 @@ kbd {
       if (api) api.close();
       return;
     }
+    if (composingKey) return;
+
+    if (!repeatPresets.hidden) {
+      var activeRepeat = document.activeElement;
+      if (event.key === "Enter") {
+        // Enter picks the focused cadence. The real button click would also
+        // do it, but this keeps the keyboard path deterministic.
+        for (var re = 0; re < repeatPresetButtons.length; re++) {
+          if (repeatPresetButtons[re].el === activeRepeat) {
+            event.preventDefault();
+            chooseRepeat(repeatPresetButtons[re].value);
+            return;
+          }
+        }
+      }
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        // ←/→ step through the four cadences while the strip owns the keyboard.
+        // ↑/↓ stay with the input's history walk, as they do for the day strip.
+        var repeatInside = activeRepeat === repeatEl;
+        var repeatIndex = -1;
+        for (var ri = 0; ri < repeatPresetButtons.length; ri++) {
+          if (repeatPresetButtons[ri].el === activeRepeat) {
+            repeatInside = true;
+            repeatIndex = ri;
+          }
+        }
+        if (!repeatInside) return;
+        event.preventDefault();
+        var repeatNext = event.key === "ArrowRight"
+          ? (repeatIndex < 0 ? 0 : (repeatIndex + 1) % repeatPresetButtons.length)
+          : (repeatIndex < 0 ? repeatPresetButtons.length - 1
+            : (repeatIndex + repeatPresetButtons.length - 1) % repeatPresetButtons.length);
+        try { repeatPresetButtons[repeatNext].el.focus(); } catch (err) { /* window may be going away */ }
+        return;
+      }
+    }
+
     if (duePresets.hidden) return;
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
     // ←/→ step through the three days while the strip owns the keyboard. ↑/↓

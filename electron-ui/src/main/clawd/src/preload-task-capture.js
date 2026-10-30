@@ -21,11 +21,14 @@ contextBridge.exposeInMainWorld("taskCaptureAPI", {
   ready: () => ipcRenderer.send("task-capture-ready"),
   // `dueOn` is a bare local day ("YYYY-MM-DD") or null. Main refuses any other
   // shape, so the page can only ever name a day it has already resolved.
-  save: (title, dueOn) =>
+  // `repeat` is sent only when a cadence is set: on create an absent argument
+  // means a one-off, and main refuses any cadence it does not know.
+  save: (title, dueOn, repeat) =>
     ipcRenderer.send(
       "task-capture-save",
       String(title || ""),
-      dueOn == null ? null : String(dueOn)
+      dueOn == null ? null : String(dueOn),
+      ...(repeat == null ? [] : [String(repeat)])
     ),
   close: () => ipcRenderer.send("task-capture-close"),
   // The page measures its remembered-titles strip; main owns the ceiling and

@@ -319,6 +319,14 @@ const i18n = {
     taskCaptureDueToday: "Today",
     taskCaptureDueTomorrow: "Tomorrow",
     taskCaptureDueNextWeek: "Next week",
+    // A cadence read from the same line ("every Friday", "每天"). The tag opens
+    // the same kind of short strip the day uses, offering four settings.
+    taskCaptureRepeatLabel: "Repeat",
+    taskCaptureRepeatNone: "Doesn't repeat",
+    taskCaptureRepeatDaily: "Every day",
+    taskCaptureRepeatWeekly: "Every week",
+    taskCaptureRepeatMonthly: "Every month",
+    taskCaptureRepeatPresets: "Change the repeat",
   },
   zh: {
     size: "大小",
@@ -576,6 +584,14 @@ const i18n = {
     taskCaptureDueToday: "今天",
     taskCaptureDueTomorrow: "明天",
     taskCaptureDueNextWeek: "下周",
+    // 同一行里读出来的节奏（「每周五」「每天」）。标签点开和日期一样的小条，
+    // 四档：不重复 / 每天 / 每周 / 每月。
+    taskCaptureRepeatLabel: "重复",
+    taskCaptureRepeatNone: "不重复",
+    taskCaptureRepeatDaily: "每天",
+    taskCaptureRepeatWeekly: "每周",
+    taskCaptureRepeatMonthly: "每月",
+    taskCaptureRepeatPresets: "改重复",
   },
   ko: {
     size: "크기",
@@ -833,6 +849,14 @@ const i18n = {
     taskCaptureDueToday: "오늘",
     taskCaptureDueTomorrow: "내일",
     taskCaptureDueNextWeek: "다음 주",
+    // 같은 줄에서 읽은 반복("매주 금요일", "매일"). 태그를 누르면 날짜와 같은
+    // 방식의 짧은 목록이 열립니다. 네 가지: 반복 안 함 / 매일 / 매주 / 매월.
+    taskCaptureRepeatLabel: "반복",
+    taskCaptureRepeatNone: "반복 안 함",
+    taskCaptureRepeatDaily: "매일",
+    taskCaptureRepeatWeekly: "매주",
+    taskCaptureRepeatMonthly: "매월",
+    taskCaptureRepeatPresets: "반복 변경",
   },
 };
 

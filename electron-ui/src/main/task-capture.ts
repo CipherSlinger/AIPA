@@ -16,7 +16,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import fs from 'fs'
 import path from 'path'
-import { createTask, type TaskView } from './tasks/task-store'
+import { createTask, type TaskRepeat, type TaskView } from './tasks/task-store'
 import { refreshClawdTaskBadge } from './clawd-task-badge'
 import { showClawdNotice, withClawdMainWindow } from './clawd-integration'
 import type { IpcMainEvent, Rectangle } from 'electron'
@@ -74,6 +74,13 @@ export interface TaskCaptureLabels {
   dueToday: string
   dueTomorrow: string
   dueNextWeek: string
+  /** The cadence chip and its four-row strip. */
+  repeatLabel: string
+  repeatNone: string
+  repeatDaily: string
+  repeatWeekly: string
+  repeatMonthly: string
+  repeatPresets: string
 }
 
 export interface TaskCaptureContext {
@@ -119,6 +126,20 @@ const DUE_ON_SHAPE = /^\d{4}-\d{2}-\d{2}$/
 
 function normalizeDueOn(raw: unknown): string | undefined {
   return typeof raw === 'string' && DUE_ON_SHAPE.test(raw) ? raw : undefined
+}
+
+const REPEAT_VALUES: readonly TaskRepeat[] = ['daily', 'weekly', 'monthly']
+
+/**
+ * The page offers only the store's three cadences, but a bad sender still
+ * reaches this boundary. An unknown value is dropped like a malformed day:
+ * the capture is the point, the cadence is the bonus. Absent stays absent —
+ * on create the store reads that as a one-off, while null would be a clear.
+ */
+function normalizeRepeatArg(raw: unknown): TaskRepeat | undefined {
+  return typeof raw === 'string' && (REPEAT_VALUES as readonly string[]).includes(raw)
+    ? raw as TaskRepeat
+    : undefined
 }
 
 function clipText(text: string, max: number): string {
@@ -508,7 +529,7 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
     timer.unref?.()
   }
 
-  function handleSave(event: IpcMainEvent, raw: unknown, rawDue: unknown): void {
+  function handleSave(event: IpcMainEvent, raw: unknown, rawDue: unknown, rawRepeat: unknown): void {
     if (!isSender(event)) return
     let labels: TaskCaptureLabels
     try {
@@ -522,11 +543,17 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
       return
     }
 
+    const repeat = normalizeRepeatArg(rawRepeat)
     let result: ReturnType<typeof createTask>
     try {
       // The store is the calendar gate: a day this boundary lets through but
       // the store refuses surfaces as the bar's normal failed-save reason.
-      result = createTask({ title, dueOn: normalizeDueOn(rawDue) })
+      // `repeat` is spread in only when set, so a one-off is an absent field.
+      result = createTask({
+        title,
+        dueOn: normalizeDueOn(rawDue),
+        ...(repeat ? { repeat } : {}),
+      })
     } catch (err) {
       const detail = cleanErrorText(err)
       showBarError(detail ? `${labels.failed}: ${detail}` : labels.failed, 'error')
@@ -556,9 +583,9 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
     if (!isSender(event)) return
     reveal()
   }
-  const handleSaveEvent = (event: IpcMainEvent, raw: unknown, rawDue: unknown) => {
+  const handleSaveEvent = (event: IpcMainEvent, raw: unknown, rawDue: unknown, rawRepeat: unknown) => {
     if (!isSender(event)) return
-    handleSave(event, raw, rawDue)
+    handleSave(event, raw, rawDue, rawRepeat)
   }
   const handleClose = (event: IpcMainEvent) => {
     if (!isSender(event)) return

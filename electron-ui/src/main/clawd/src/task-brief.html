@@ -427,12 +427,14 @@ body { padding: 8px; }
 }
 .meta .due.due-warn { color: var(--k-needs); }
 .panel[data-theme="clawd"] .meta .due { letter-spacing: 0.04em; }
-/* The due word is also the row's third action: pressing it moves the day to
-   tomorrow. As a real <button> it must be stripped back to the marker's exact
-   look — same font, size, colour, spacing and line box — so a dated row stays
-   exactly as tall as an undated one. No `font` shorthand here: it would reset
-   the tabular figures `.meta .due` sets. Only the cursor and a hover/focus
-   underline say the word can be pressed, and neither moves the line. */
+/* On a row due today or already late the due word is also the row's third
+   action: pressing it moves the day to tomorrow. A future day stays a plain
+   `.due` span. As a real <button> the action must be stripped back to the
+   marker's exact look — same font, size, colour, spacing and line box — so a
+   dated row stays exactly as tall as an undated one. No `font` shorthand here:
+   it would reset the tabular figures `.meta .due` sets. Only the cursor and a
+   hover/focus underline say the word can be pressed, and neither moves the
+   line. */
 .meta .due.defer {
   appearance: none;
   display: inline;

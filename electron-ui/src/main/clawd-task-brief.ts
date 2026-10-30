@@ -15,12 +15,14 @@
  *     rectangle ever sits over the desktop;
  *   - blur is click-away, but blurs during the reveal and during an in-flight
  *     row action are ignored;
- *   - a row opens the task's latest conversation, or the Tasks view when the
- *     task has no conversation yet;
+ *   - a row opens the task's latest conversation, or the task's own record on
+ *     the Tasks view when it has no conversation yet;
  *   - a row's Start button dispatches the task instead: a chat tab in the task
  *     folder with the brief in the composer, and nothing sent;
- *   - a row's due marker moves the task to tomorrow in place, offering the old
- *     day back through the same quiet Undo line a finish uses;
+ *   - a row due today or already late has a due marker that moves the task to
+ *     tomorrow in place, offering the old day back through the same quiet Undo
+ *     line a finish uses; a future due day stays a plain word, because pushing
+ *     it to tomorrow would pull the deadline earlier, not defer it;
  *   - a row's Done on a repeating task completes the occurrence rather than the
  *     task: the row stays under its new day, and the same line offers the old
  *     day back.
@@ -368,9 +370,10 @@ function briefLabels(): Record<string, string> {
     doneHint: petT('taskBriefDoneHint'),
     doneFailed: petT('taskBriefDoneFailed'),
     doneUndelivered: petT('taskBriefDoneUndelivered'),
-    // Pushing a due day is the second reversible row action. Its marker turns
-    // into a button, so the label and hint name the action; the line names the
-    // task it was moved for, exactly like the Done line does.
+    // Pushing a due day is the second reversible row action. On a row due today
+    // or already late its marker is a button, so the label and hint name the
+    // action; the line names the task it was moved for, exactly like the Done
+    // line does.
     deferLabel: petT('taskBriefDeferLabel'),
     deferHint: petT('taskBriefDeferHint'),
     deferFailed: petT('taskBriefDeferFailed'),
@@ -1056,13 +1059,12 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
         actionInFlight = false
         return emitUpdate()
       }
-      // A row with a conversation opens that task's work (the renderer also
-      // selects the record); one still waiting for its first turn has nothing
-      // to open, so the Tasks list is the honest destination. Opening a draft
-      // from here would turn a glance at the card into an unsent message.
-      const focused = latestSessionId(task)
-        ? focusAipa({ taskId: task.id })
-        : focusAipa({ openTasks: true })
+      // Hand off the task record itself, never the bare Tasks view: the
+      // renderer's `openTaskById` opens the latest conversation when one exists
+      // and otherwise selects this record on the Tasks page. That keeps the row
+      // you clicked under the cursor, and still opens no draft — a glance at the
+      // card must not turn into an unsent message.
+      const focused = focusAipa({ taskId: task.id })
       if (focused) destroyWindow(false)
       else { actionInFlight = false; emitUpdate() }
       return buildPayload()
@@ -1198,13 +1200,16 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
       // and Undo must be able to restore that exact absence.
       const previousDueOn = task.dueOn
       const tomorrow = tomorrowLocalDay()
-      // Already tomorrow: the store would record no change and an Undo built on
-      // it would visibly do nothing while claiming the day had moved. Same rule
-      // as pressing Done on a task that is already done. This is checked before
-      // the previous offer is dropped, because a stale page (or a keyboard-driven
-      // press racing the repaint) may still send this gesture; writing nothing
-      // must not also take away the Undo line an earlier action earned.
-      if (previousDueOn === tomorrow) return buildPayload()
+      // Tomorrow or later: this gesture is not a deferral. Tomorrow would land
+      // on the day the row already has (an Undo built on it would visibly do
+      // nothing while claiming the day had moved); a later day would be pulled
+      // *earlier*, which is the opposite of what the marker says. The page only
+      // makes the marker interactive on rows due today or already late, but a
+      // stale card (or a keyboard-driven press racing the repaint) may still
+      // send this gesture. Refusing before the previous offer is dropped leaves
+      // an earlier action's Undo line untouched, exactly like the already-done
+      // rule on the finish path.
+      if (previousDueOn && previousDueOn >= tomorrow) return buildPayload()
 
       // The gesture really moves the row, replacing whatever offer came before;
       // a stale offer must not outlive the action that replaced it.
