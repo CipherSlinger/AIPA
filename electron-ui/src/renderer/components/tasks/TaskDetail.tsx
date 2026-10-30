@@ -10,6 +10,7 @@ import {
   Archive,
   ArrowLeft,
   Building2,
+  CalendarDays,
   CheckCircle2,
   Clock,
   Coins,
@@ -45,9 +46,12 @@ import DepartmentSuggestionChip from './DepartmentSuggestionChip'
 import { formatTokens } from '../../utils/formatUtils'
 import {
   EDITABLE_STATUSES,
+  dueInfo,
   formatBytes,
+  formatDueDate,
   formatTaskTime,
   formatUsd,
+  todayLocalDay,
   parseAutomationRunDetail,
   parseImportedFolderDetail,
   parseStatusChangeDetail,
@@ -106,6 +110,8 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
   const [titleDraft, setTitleDraft] = useState(task.title)
   const [titleFocused, setTitleFocused] = useState(false)
   const [savingTitle, setSavingTitle] = useState(false)
+  const [savingDue, setSavingDue] = useState(false)
+  const [dueFocused, setDueFocused] = useState(false)
   const [pasteOpen, setPasteOpen] = useState(false)
   const [pasteText, setPasteText] = useState('')
   const [importing, setImporting] = useState(false)
@@ -261,6 +267,16 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
     if (!result.ok) addToast('error', t('tasks.error.update'))
   }
 
+  // The native date input hands back '' when cleared, which is the store's
+  // `null` (no due day), not an empty string the store must guess at.
+  const setDueOn = async (value: string | null) => {
+    if ((task.dueOn ?? null) === value) return
+    setSavingDue(true)
+    const result = await updateTask(task.id, { dueOn: value })
+    setSavingDue(false)
+    if (!result.ok) addToast('error', result.error || t('tasks.error.update'))
+  }
+
   const importPaths = async (paths: string[], source: 'picker' | 'drop' | 'paste') => {
     if (paths.length === 0) return
     setImporting(true)
@@ -342,6 +358,19 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
     setPendingRemove(null)
     if (!result.ok) addToast('error', t('tasks.error.removeMaterial'))
   }
+
+  const today = todayLocalDay()
+  const due = task.dueOn ? dueInfo(task.dueOn, today) : null
+  const dueWarning = due?.state === 'overdue' || due?.state === 'today'
+  const dueLabel = !task.dueOn
+    ? t('tasks.due.none')
+    : due?.state === 'today'
+      ? t('tasks.due.today')
+      : due?.state === 'overdue'
+        ? t('tasks.due.overdue', { days: Math.abs(due.days) })
+        : due?.state === 'tomorrow'
+          ? t('tasks.due.tomorrow')
+          : formatDueDate(task.dueOn, resolvedLocale)
 
   const archived = task.status === 'archived'
   const purpose = taskDispatchPurpose(task)
@@ -475,6 +504,67 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
             <option key={status} value={status}>{t(statusLabelKey(status))}</option>
           ))}
         </select>
+
+        {/* A due date is a local calendar day. Overdue and today are the only
+            states painted in the warning tone; future days and "no due date"
+            stay quiet so the header never cries wolf. The clear button only
+            exists when there is something to clear. */}
+        <span
+          title={t('tasks.due.label')}
+          data-task-due-control
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4, height: 26,
+            padding: '0 4px 0 7px', borderRadius: 8, flexShrink: 0,
+            border: `1px solid ${dueFocused ? 'var(--accent-border)' : 'var(--border)'}`,
+            background: 'var(--bg-hover)',
+            color: dueWarning ? 'var(--warning)' : 'var(--text-secondary)',
+            fontSize: 11,
+          }}
+        >
+          <CalendarDays size={12} style={{ flexShrink: 0 }} />
+          <span
+            data-task-due-label
+            style={{ fontWeight: dueWarning ? 600 : 500, whiteSpace: 'nowrap' }}
+          >
+            {dueLabel}
+          </span>
+          <input
+            type="date"
+            value={task.dueOn ?? ''}
+            min="2000-01-01"
+            max="2100-12-31"
+            disabled={savingDue}
+            onFocus={() => setDueFocused(true)}
+            onBlur={() => setDueFocused(false)}
+            onChange={e => { void setDueOn(e.target.value || null) }}
+            aria-label={t('tasks.due.label')}
+            data-task-due-input
+            style={{
+              width: 112, height: 22, boxSizing: 'border-box',
+              border: 'none', outline: 'none', background: 'transparent',
+              color: 'inherit', fontSize: 10.5, colorScheme: 'dark',
+              cursor: savingDue ? 'default' : 'pointer',
+            }}
+          />
+          {task.dueOn && (
+            <button
+              type="button"
+              onClick={() => { void setDueOn(null) }}
+              disabled={savingDue}
+              title={t('tasks.due.clear')}
+              aria-label={t('tasks.due.clear')}
+              data-task-due-clear
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: 18, height: 18, padding: 0, border: 'none', borderRadius: 5,
+                background: 'transparent', color: 'inherit',
+                cursor: savingDue ? 'default' : 'pointer', opacity: savingDue ? 0.5 : 1,
+              }}
+            >
+              <X size={10} />
+            </button>
+          )}
+        </span>
 
         {/* Department is explicit attribution, never a working directory. The
             empty option is a real choice: a task can be dispatched without a

@@ -58,13 +58,13 @@ export function groupTasks(
     id: group.id,
     tasks: visible
       .filter(task => group.statuses.includes(task.status))
-      .sort((a, b) => b.updatedAt - a.updatedAt),
+      .sort(compareTasksWithinGroup),
   })).filter(group => group.tasks.length > 0)
 
   if (showArchived) {
     const archived = visible
       .filter(task => task.status === 'archived')
-      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .sort(compareTasksWithinGroup)
     if (archived.length > 0) groups.push({ id: 'archived', tasks: archived })
   }
 
@@ -174,6 +174,87 @@ export function formatTaskTime(at: number, locale: 'en' | 'zh-CN'): string {
   } catch {
     return new Date(at).toLocaleString()
   }
+}
+
+// ── Due days ─────────────────────────────────────────────────────────────
+// A due date is a local calendar day (`YYYY-MM-DD`), not an instant. These
+// helpers read the local clock for "today" and use UTC only to count whole
+// days between two stored days, so DST never turns a date into the wrong day.
+
+export type DueState = 'overdue' | 'today' | 'tomorrow' | 'future'
+
+export interface DueInfo {
+  state: DueState
+  /** Whole days from today; negative when overdue. */
+  days: number
+}
+
+/** Today as a local `YYYY-MM-DD` day. Call once per render and pass it down. */
+export function todayLocalDay(now: Date = new Date()): string {
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/** Parse a stored day into its calendar components; null when it is not one. */
+export function parseDueDay(value: string | null | undefined): { year: number; month: number; day: number } | null {
+  if (!value) return null
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return null
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+    return null
+  }
+  return { year, month, day }
+}
+
+/**
+ * Where a due day sits relative to `today`. Both are stored days, so the
+ * difference is counted in UTC to stay a whole number across DST boundaries.
+ */
+export function dueInfo(dueOn: string, today: string): DueInfo | null {
+  const target = parseDueDay(dueOn)
+  const base = parseDueDay(today)
+  if (!target || !base) return null
+  const targetMs = Date.UTC(target.year, target.month - 1, target.day)
+  const baseMs = Date.UTC(base.year, base.month - 1, base.day)
+  const days = Math.round((targetMs - baseMs) / 86400000)
+  const state: DueState = days < 0 ? 'overdue' : days === 0 ? 'today' : days === 1 ? 'tomorrow' : 'future'
+  return { state, days }
+}
+
+/** A short, locale-aware day label (`Oct 31` / `10月31日`), never a time. */
+export function formatDueDate(dueOn: string, locale: 'en' | 'zh-CN'): string {
+  const parsed = parseDueDay(dueOn)
+  if (!parsed) return dueOn
+  try {
+    // Local components keep the rendered day identical to the stored day; a
+    // `new Date('YYYY-MM-DD')` would parse as UTC midnight and shift west.
+    return new Date(parsed.year, parsed.month - 1, parsed.day)
+      .toLocaleDateString(locale, { month: 'short', day: 'numeric' })
+  } catch {
+    return dueOn
+  }
+}
+
+/**
+ * The list's order inside one status group: dated work first, soonest first,
+ * then undated work; ties keep the previous newest-activity order.
+ */
+export function compareTasksWithinGroup(a: TaskRecordData, b: TaskRecordData): number {
+  const aDue = a.dueOn
+  const bDue = b.dueOn
+  if (aDue && bDue) {
+    if (aDue !== bDue) return aDue < bDue ? -1 : 1
+    return b.updatedAt - a.updatedAt
+  }
+  if (aDue) return -1
+  if (bDue) return 1
+  return b.updatedAt - a.updatedAt
 }
 
 /** Tone colours shared by the row dot, the status pill and the detail header. */

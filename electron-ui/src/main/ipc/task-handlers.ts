@@ -64,7 +64,13 @@ export function registerTaskHandlers(send: Send): void {
 
   safeHandle('tasks:create', (_event, input: unknown) => {
     const payload = input && typeof input === 'object' ? input as Record<string, unknown> : {}
-    const result = createTask({ title: payload.title, status: payload.status })
+    const result = createTask({
+      title: payload.title,
+      status: payload.status,
+      // The store validates the day; this boundary only refuses shapes it
+      // cannot represent. A number, object or boolean is not a due date.
+      dueOn: payload.dueOn === null || typeof payload.dueOn === 'string' ? payload.dueOn : undefined,
+    })
     if (result.ok) changed()
     return result
   })
@@ -77,6 +83,9 @@ export function registerTaskHandlers(send: Send): void {
       // Only a string may reach the store; the store trims, collapses and
       // caps it. Anything else is simply not a note.
       note: typeof payload.note === 'string' ? payload.note : undefined,
+      // `null` clears the due date and is passed through as null; any other
+      // non-string is dropped so the store never has to coerce it.
+      dueOn: payload.dueOn === null || typeof payload.dueOn === 'string' ? payload.dueOn : undefined,
     })
     if (result.ok) changed()
     return result

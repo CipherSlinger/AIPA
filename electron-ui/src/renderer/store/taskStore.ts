@@ -24,10 +24,10 @@ interface TaskState {
   selectedTaskId: string | null
   load: () => Promise<void>
   selectTask: (id: string | null) => void
-  createTask: (title: string) => Promise<TaskMutationData>
+  createTask: (title: string, dueOn?: string | null) => Promise<TaskMutationData>
   updateTask: (
     id: string,
-    patch: { title?: string; status?: TaskStatusData; note?: string },
+    patch: { title?: string; status?: TaskStatusData; note?: string; dueOn?: string | null },
   ) => Promise<TaskMutationData>
   archiveTask: (id: string) => Promise<TaskMutationData>
   restoreTask: (id: string) => Promise<TaskMutationData>
@@ -88,9 +88,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   selectTask: (id) => set({ selectedTaskId: id }),
 
-  createTask: async (title) => {
+  createTask: async (title, dueOn) => {
     try {
-      const result = await window.electronAPI.tasksCreate({ title })
+      const result = await window.electronAPI.tasksCreate({ title, dueOn })
       if (result.ok && result.task) {
         set(state => ({
           tasks: replaceTask(state.tasks, result.task!),

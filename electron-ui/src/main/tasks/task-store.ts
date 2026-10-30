@@ -89,6 +89,7 @@ export type TaskEventKind =
   | 'material_removed'
   | 'renamed'
   | 'status_changed'
+  | 'due_changed'
   | 'moved'
   | 'folder_missing'
   | 'restored'
@@ -122,6 +123,13 @@ export interface TaskRecord {
   departmentId: string | null
   /** How `departmentId` was chosen. Increment 2 only writes 'user'. */
   routedBy: 'user' | 'suggestion' | 'auto' | null
+  /**
+   * The local calendar day work is owed, `YYYY-MM-DD`, never a timestamp. A
+   * deadline is a day, not an instant: the string compares correctly
+   * lexicographically and needs no timezone or DST arithmetic. Old records
+   * without the field are valid and mean "no due date".
+   */
+  dueOn?: string
   materials: TaskMaterial[]
   /** Conversations that ran in this task, in the order they started. */
   sessions: TaskSessionRef[]
@@ -389,10 +397,44 @@ export function addTextMaterial(id: unknown, input: TaskTextMaterialInput): Task
 
 const EVENT_KINDS = new Set<TaskEventKind>([
   'created', 'material_added', 'material_removed', 'renamed',
-  'status_changed', 'moved', 'folder_missing', 'restored',
+  'status_changed', 'due_changed', 'moved', 'folder_missing', 'restored',
   'routed', 'reassigned', 'session_started', 'from_automation',
   'imported_folder', 'from_notice',
 ])
+
+/**
+ * A due date is a calendar day, not an instant. The shape, the real-date check
+ * and the 2000–2100 window are all enforced here — the store is the only gate,
+ * so a caller cannot widen what the file may contain by skipping the UI.
+ */
+const DUE_ON_RE = /^\d{4}-\d{2}-\d{2}$/
+const DUE_ON_MIN = '2000-01-01'
+const DUE_ON_MAX = '2100-12-31'
+
+function normalizeDueOn(value: unknown): { ok: true; value: string | null } | { ok: false } {
+  if (value === null) return { ok: true, value: null }
+  if (typeof value !== 'string') return { ok: false }
+  if (!DUE_ON_RE.test(value) || value < DUE_ON_MIN || value > DUE_ON_MAX) return { ok: false }
+  const year = Number(value.slice(0, 4))
+  const month = Number(value.slice(5, 7))
+  const day = Number(value.slice(8, 10))
+  // `Date.UTC` normalizes 2026-02-30 to March, so a round-trip is the real
+  // calendar check. UTC is only the arithmetic here; the stored value stays a
+  // bare day and never becomes an instant.
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (
+    date.getUTCFullYear() !== year
+    || date.getUTCMonth() !== month - 1
+    || date.getUTCDate() !== day
+  ) return { ok: false }
+  return { ok: true, value }
+}
+
+/** A persisted due date that no longer validates is dropped, not the task. */
+function readDueOn(value: unknown): string | undefined {
+  const result = normalizeDueOn(value)
+  return result.ok && result.value ? result.value : undefined
+}
 
 const MATERIAL_SOURCES = new Set<TaskMaterialSource>([
   'picker', 'drop', 'paste', 'import', 'automation', 'plugin', 'unknown',
@@ -516,6 +558,7 @@ export function normalizeTask(raw: unknown): TaskRecord | null {
 
   const createdAt = finiteNumber(task.createdAt) ?? Date.now()
   const updatedAt = finiteNumber(task.updatedAt) ?? createdAt
+  const dueOn = readDueOn(task.dueOn)
 
   return {
     schemaVersion: TASK_SCHEMA_VERSION,
@@ -528,6 +571,7 @@ export function normalizeTask(raw: unknown): TaskRecord | null {
     routedBy: task.routedBy === 'user' || task.routedBy === 'suggestion' || task.routedBy === 'auto'
       ? task.routedBy
       : null,
+    ...(dueOn ? { dueOn } : {}),
     materials: Array.isArray(task.materials)
       ? task.materials.map(normalizeMaterial).filter((m): m is TaskMaterial => m !== null)
       : [],
@@ -728,13 +772,18 @@ export function getTask(id: unknown): TaskView | null {
   return record ? taskView(record) : null
 }
 
-export function createTask(input: { title?: unknown; status?: unknown }): TaskMutation {
+export function createTask(input: { title?: unknown; status?: unknown; dueOn?: unknown }): TaskMutation {
   const title = nonEmptyString(input?.title)
   if (!title) return failure('invalid_title', 'A task needs a title')
   if (title.length > 200) return failure('invalid_title', 'The title must be 200 characters or fewer')
 
   const status = isStatus(input?.status) ? input.status : 'inbox'
   if (status === 'archived') return failure('invalid_status', 'A new task cannot start archived')
+
+  // Validate before touching the disk: an invalid due date must leave no
+  // half-made folder behind.
+  const due = normalizeDueOn(input?.dueOn === undefined ? null : input.dueOn)
+  if (!due.ok) return failure('invalid_due', 'The due date must be a real calendar day (YYYY-MM-DD)')
 
   const root = tasksRoot()
   const now = Date.now()
@@ -760,6 +809,7 @@ export function createTask(input: { title?: unknown; status?: unknown }): TaskMu
     status,
     departmentId: null,
     routedBy: null,
+    ...(due.value ? { dueOn: due.value } : {}),
     materials: [],
     sessions: [],
     history: [{ at: now, kind: 'created' }],
@@ -803,7 +853,7 @@ function normalizeStatusNote(value: unknown): string | null {
 
 export function updateTask(
   id: unknown,
-  patch: { title?: unknown; status?: unknown; note?: unknown },
+  patch: { title?: unknown; status?: unknown; note?: unknown; dueOn?: unknown },
 ): TaskMutation {
   if (typeof id !== 'string' || !id) return failure('invalid_id', 'Unknown task')
   const store = readTaskStore()
@@ -830,6 +880,19 @@ export function updateTask(
       const note = normalizeStatusNote(patch?.note)
       const detail = `${next.status} -> ${patch.status}${note ? ` | ${note}` : ''}`
       next = appendEvent({ ...next, status: patch.status }, 'status_changed', detail)
+    }
+  }
+  if (patch?.dueOn !== undefined) {
+    const due = normalizeDueOn(patch.dueOn)
+    if (!due.ok) return failure('invalid_due', 'The due date must be a real calendar day (YYYY-MM-DD)')
+    const previous = next.dueOn ?? null
+    if (due.value !== previous) {
+      // `null` clears the field entirely; an absent `dueOn` and a due date of
+      // "none" are the same state, so the record never carries a null value.
+      const updated: TaskRecord = { ...next }
+      if (due.value === null) delete updated.dueOn
+      else updated.dueOn = due.value
+      next = appendEvent(updated, 'due_changed', `${previous ?? 'none'} -> ${due.value ?? 'none'}`)
     }
   }
 

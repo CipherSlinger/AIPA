@@ -5447,6 +5447,15 @@
     "archive": "归档",
     "restore": "恢复",
     "lastActivity": "更新于 {{when}}",
+    "due": {
+      "label": "截止日期",
+      "none": "无截止日期",
+      "today": "今天到期",
+      "todayShort": "今天",
+      "tomorrow": "明天",
+      "overdue": "逾期 {{days}} 天",
+      "clear": "清除截止日期"
+    },
     "missing": "文件夹缺失",
     "missingHint": "找不到任务的文件夹：{{path}}。记录仍然保留，没有删除任何东西。",
     "materials": "资料",
@@ -5544,6 +5553,7 @@
       "material_removed": "移除资料",
       "renamed": "重命名",
       "status_changed": "状态变更",
+      "due_changed": "截止日期变更",
       "moved": "移动文件夹",
       "folder_missing": "文件夹缺失",
       "restored": "已恢复",

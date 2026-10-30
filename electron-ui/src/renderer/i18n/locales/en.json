@@ -5447,6 +5447,15 @@
     "archive": "Archive",
     "restore": "Restore",
     "lastActivity": "Updated {{when}}",
+    "due": {
+      "label": "Due date",
+      "none": "No due date",
+      "today": "Due today",
+      "todayShort": "Today",
+      "tomorrow": "Tomorrow",
+      "overdue": "{{days}}d overdue",
+      "clear": "Clear due date"
+    },
     "missing": "Folder missing",
     "missingHint": "The task's folder could not be found at {{path}}. The record is still here, and nothing was deleted.",
     "materials": "Materials",
@@ -5544,6 +5553,7 @@
       "material_removed": "Material removed",
       "renamed": "Renamed",
       "status_changed": "Status changed",
+      "due_changed": "Due date changed",
       "moved": "Folder moved",
       "folder_missing": "Folder missing",
       "restored": "Restored",

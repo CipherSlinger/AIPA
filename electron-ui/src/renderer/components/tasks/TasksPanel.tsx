@@ -8,6 +8,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
   Archive,
+  CalendarDays,
   Coins,
   FileText,
   Inbox,
@@ -27,12 +28,15 @@ import DepartmentSuggestionChip from './DepartmentSuggestionChip'
 import TaskDetail from './TaskDetail'
 import {
   countActive,
+  dueInfo,
+  formatDueDate,
   formatTaskTime,
   groupTasks,
   statusColor,
   statusLabelKey,
   taskSpendLabel,
   taskWaitingReason,
+  todayLocalDay,
 } from './taskUi'
 import { useUsageEntries } from './useUsageEntries'
 
@@ -117,6 +121,9 @@ export default function TasksPanel() {
     return pushEscapeHandler(() => { setPendingDelete(null); setDeleteFiles(false) })
   }, [pendingDelete])
 
+  // One local clock read per render. Every row compares against the same day,
+  // so a list rendered across midnight cannot show two different "today"s.
+  const today = todayLocalDay()
   const groups = useMemo(
     () => groupTasks(tasks, query, showArchived),
     [tasks, query, showArchived],
@@ -340,6 +347,16 @@ export default function TasksPanel() {
                     const waitingReason = task.status === 'needs_you'
                       ? taskWaitingReason(task)
                       : undefined
+                    const due = task.dueOn ? dueInfo(task.dueOn, today) : null
+                    const dueText = due && task.dueOn
+                      ? due.state === 'overdue'
+                        ? t('tasks.due.overdue', { days: Math.abs(due.days) })
+                        : due.state === 'today'
+                          ? t('tasks.due.todayShort')
+                          : due.state === 'tomorrow'
+                            ? t('tasks.due.tomorrow')
+                            : formatDueDate(task.dueOn, resolvedLocale)
+                      : null
                     return (
                       <button
                         key={task.id}
@@ -384,6 +401,25 @@ export default function TasksPanel() {
                           fontSize: 9.5, color: 'var(--text-subtle)',
                         }}>
                           <span>{t(statusLabelKey(task.status))}</span>
+                          {/* A task with no due day grows no marker, so the
+                              row keeps exactly the shape it had before. */}
+                          {due && dueText && (
+                            <span
+                              data-task-due-row
+                              data-task-due-state={due.state}
+                              title={task.dueOn}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 3,
+                                color: due.state === 'overdue'
+                                  ? 'var(--warning)'
+                                  : due.state === 'today' ? 'var(--accent-text)' : 'var(--text-subtle)',
+                                fontWeight: due.state === 'overdue' || due.state === 'today' ? 600 : 400,
+                              }}
+                            >
+                              <CalendarDays size={9} />
+                              {dueText}
+                            </span>
+                          )}
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                             <FileText size={9} />
                             {task.materials.length}

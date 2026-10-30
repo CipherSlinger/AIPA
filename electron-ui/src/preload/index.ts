@@ -112,6 +112,7 @@ export type TaskEventKindData =
   | 'material_removed'
   | 'renamed'
   | 'status_changed'
+  | 'due_changed'
   | 'moved'
   | 'folder_missing'
   | 'restored'
@@ -138,6 +139,8 @@ export interface TaskRecordData {
   /** Attribution only; the task's folder is still its working directory. */
   departmentId: string | null
   routedBy: 'user' | 'suggestion' | 'auto' | null
+  /** Local calendar day work is owed (`YYYY-MM-DD`); absent means none. */
+  dueOn?: string
   materials: TaskMaterialData[]
   /** Conversations that ran in this task, oldest first. */
   sessions: TaskSessionRefData[]
@@ -2652,9 +2655,9 @@ const electronAPI = {
     ipcRenderer.invoke('tasks:list') as Promise<TaskRecordData[]>,
   tasksGet: (id: string) =>
     ipcRenderer.invoke('tasks:get', id) as Promise<TaskRecordData | null>,
-  tasksCreate: (input: { title: string; status?: TaskStatusData }) =>
+  tasksCreate: (input: { title: string; status?: TaskStatusData; dueOn?: string | null }) =>
     ipcRenderer.invoke('tasks:create', input) as Promise<TaskMutationData>,
-  tasksUpdate: (id: string, patch: { title?: string; status?: TaskStatusData; note?: string }) =>
+  tasksUpdate: (id: string, patch: { title?: string; status?: TaskStatusData; note?: string; dueOn?: string | null }) =>
     ipcRenderer.invoke('tasks:update', id, patch) as Promise<TaskMutationData>,
   tasksArchive: (id: string) =>
     ipcRenderer.invoke('tasks:archive', id) as Promise<TaskMutationData>,
