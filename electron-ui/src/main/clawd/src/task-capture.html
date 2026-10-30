@@ -558,12 +558,15 @@ kbd {
 
   /** A month/day with no year: the next occurrence, today included. */
   function nextOccurrence(today, month, day) {
-    var date = localDay(today.y, month, day);
-    if (!date) return null;
-    if (date.getTime() < new Date(today.y, today.m - 1, today.d).getTime()) {
-      return localDay(today.y + 1, month, day);
+    var base = new Date(today.y, today.m - 1, today.d).getTime();
+    // Feb 29 exists in only one year out of four, so walking one year forward
+    // would drop the most memorable date there is. The bound is small and
+    // finite; the localDay check still owns leap years (2100 is not one).
+    for (var y = today.y; y <= today.y + 8; y++) {
+      var date = localDay(y, month, day);
+      if (date && date.getTime() >= base) return date;
     }
-    return date;
+    return null;
   }
 
   function weekdayFrom(today, target) {
@@ -625,6 +628,9 @@ kbd {
     }, true);
 
     offer(/(下周|周)([一二三四五六日天])/.exec(text), function (m) {
+      // 上周五 is a day that has already been; pretending it is next week's
+      // Friday would put a wrong deadline on a note about the past.
+      if (m.index > 0 && text.charAt(m.index - 1) === "上") return null;
       var target = WEEKDAY_ZH[m[2]];
       var delta;
       if (m[1] === "下周") {
@@ -648,7 +654,17 @@ kbd {
       return localDay(d.y, d.m, d.d);
     }, false);
 
-    offer(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)\b/i.exec(text), function (m) {
+    // Full names are words of their own; the three-letter forms are also
+    // ordinary English ("buy a sun lamp", "I sat with the client"), so they
+    // only count when written the way a date is: capitalised.
+    offer(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.exec(text), function (m) {
+      // "last Friday" is behind us; a due day cannot point there.
+      if (/(?:last|previous|past)\s+$/i.test(text.slice(0, m.index))) return null;
+      return weekdayFrom(today, WEEKDAY_EN[m[1].toLowerCase()]);
+    }, false);
+
+    offer(/\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b/.exec(text), function (m) {
+      if (/(?:last|previous|past)\s+$/i.test(text.slice(0, m.index))) return null;
       return weekdayFrom(today, WEEKDAY_EN[m[1].toLowerCase()]);
     }, false);
 
@@ -662,18 +678,26 @@ kbd {
       return localDay(d.y, d.m, d.d);
     }, false);
 
-    // M/D and M-D, year optional. The scan walks past shapes it cannot use
-    // (and past the inside of an ISO day) instead of giving up on the line.
-    var mdRe = /(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?/g;
+    // M/D (year optional) and M-D-YYYY. A bare M-D is not a date here: "5-10
+    // min" and "2024-2025" are ranges far more often than they are days, and a
+    // wrong day rides into the saved task. Nor is a slash date followed by a
+    // unit — "2/3 of the budget", "5/8 cup" — a fraction, not a deadline. The
+    // scan walks past shapes it cannot use (and past the inside of an ISO day)
+    // instead of giving up on the line.
+    var MD_UNIT = /^\s*(?:%|percent|mins?\b|minutes?\b|h\b|hrs?\b|hours?\b|days?\b|weeks?\b|wks?\b|months?\b|x\b|times?\b|of\b|cups?\b|people\b|persons?\b|items?\b|pages?\b|chars?\b|words?\b|分|小时|天|周|个月|倍|人|页|字|条|次)/i;
+    var mdRe = /(\d{1,2})([\/-])(\d{1,2})(?:[\/-](\d{2,4}))?/g;
     var md;
     while ((md = mdRe.exec(text)) !== null) {
       if (isoEnd > 0 && md.index < isoEnd && md.index + md[0].length > iso.index) continue;
       if (!standalone(text, md.index, md[0].length)) continue;
-      var year = md[3] ? +md[3] : 0;
+      // The hyphen form needs its year to be a date at all.
+      if (md[2] === "-" && !md[4]) continue;
+      if (!md[4] && MD_UNIT.test(text.slice(md.index + md[0].length))) continue;
+      var year = md[4] ? +md[4] : 0;
       if (year && year < 100) year += 2000;
       var date = year
-        ? localDay(year, +md[1], +md[2])
-        : nextOccurrence(today, +md[1], +md[2]);
+        ? localDay(year, +md[1], +md[3])
+        : nextOccurrence(today, +md[1], +md[3]);
       if (!date) continue;
       found.push({
         index: md.index,

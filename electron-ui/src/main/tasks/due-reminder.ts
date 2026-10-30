@@ -370,10 +370,12 @@ export function checkDueReminder(nowMs: number, options: DueCheckOptions = {}): 
     return { status: 'suppressed', day, pending: pending.length, aggregate }
   }
 
-  // A new card is a fresher look at the same agenda; a pending "Later" has
-  // nothing left to add and is dropped, so two cards never compete for the
-  // same morning.
-  cancelDueSnooze()
+  // A pending "Later" is deliberately *not* cancelled here. This card covers
+  // only the tasks that were not announced yet (`pending`), so dropping the
+  // snooze would silently lose the user's "wait two hours" for everything it
+  // does cover — e.g. a task captured mid-morning raises its own card and the
+  // 08:00 agenda would never come back. The snooze re-raises the whole live
+  // agenda when it fires, whatever happened in between.
 
   const announced = { ...state.announced }
   for (const candidate of pending) announced[candidate.id] = day
