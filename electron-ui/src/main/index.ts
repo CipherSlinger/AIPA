@@ -5,6 +5,7 @@ import { initClawdIntegration, shutdownClawdIntegration, getClawdSubmenu } from 
 import { refreshClawdTaskBadge } from './clawd-task-badge'
 import { scheduleClawdBootGreeting } from './clawd-notice-sources'
 import { initClawdAttention, shutdownClawdAttention } from './clawd-attention'
+import { startDueReminder, stopDueReminder } from './tasks/due-reminder'
 import { abortAllPluginAi } from './plugins/plugin-services'
 import { listNavPlugins } from './plugins/nav-plugin-manager'
 import { decodePluginPath, pluginHost } from './plugins/plugin-url'
@@ -211,6 +212,16 @@ function createWindow(): void {
       rebuildTrayMenu()
     } catch (err) {
       log.warn('initClawdIntegration failed (non-fatal):', String(err))
+    }
+    // After the task store exists and attention can route a raise. The
+    // scheduler checks immediately (silent before 08:00), then on a daily
+    // timer aimed at the next local 08:00, a minute heartbeat and system
+    // resume. It never writes a task; it only reads the store and speaks
+    // through the attention queue.
+    try {
+      startDueReminder({ getQuitting: () => isQuitting })
+    } catch (err) {
+      log.warn('startDueReminder failed (non-fatal):', String(err))
     }
   })
 
@@ -1037,6 +1048,9 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   isQuitting = true
+  // Stop the due reminder first: its timers must not fire while the surfaces
+  // below are being torn down.
+  try { stopDueReminder() } catch { /* best-effort */ }
   // Run clawd cleanup hooks (registered during initClawdIntegration)
   try { shutdownClawdAttention() } catch { /* best-effort */ }
   try { shutdownClawdIntegration() } catch { /* best-effort */ }

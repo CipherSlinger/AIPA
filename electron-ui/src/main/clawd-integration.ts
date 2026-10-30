@@ -47,6 +47,8 @@ export type ClawdBubbleKind =
   | 'quest'
   | 'approval'
   | 'clarification'
+  /** A calm due-day reminder: not a failure, not an approval. */
+  | 'due'
 
 export type ClawdBubbleTheme = 'sao' | 'clawd'
 
@@ -813,6 +815,7 @@ const KIND_SOUND: Record<ClawdBubbleKind, 'system' | 'notify' | 'success' | 'war
   quest: 'notify',
   info: 'notify',
   system: 'notify',
+  due: 'notify',
 }
 
 /**

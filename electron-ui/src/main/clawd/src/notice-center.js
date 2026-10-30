@@ -44,6 +44,8 @@
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 20 6v6.2c0 4.3-3.2 7.6-8 9-4.8-1.4-8-4.7-8-9V6z"/><path d="m8.6 12.1 2.4 2.4 4.4-4.6"/></svg>',
     clarification:
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.4 9.2a2.7 2.7 0 0 1 5.2.9c0 1.8-2.6 2.2-2.6 3.7"/><circle cx="12" cy="17.1" r="0.9" fill="currentColor" stroke="none"/></svg>',
+    due:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><circle cx="12" cy="15.2" r="1.2" fill="currentColor" stroke="none"/></svg>',
   };
 
   var STRINGS = {
@@ -101,14 +103,17 @@
     en: {
       system: "SYSTEM", info: "INFO", success: "SUCCESS", warning: "WARNING",
       error: "ERROR", quest: "QUEST", approval: "APPROVAL", clarification: "INPUT",
+      due: "DUE",
     },
     zh: {
       system: "系统", info: "信息", success: "成功", warning: "警告",
       error: "错误", quest: "任务", approval: "审批", clarification: "询问",
+      due: "到期",
     },
     ko: {
       system: "시스템", info: "정보", success: "성공", warning: "경고",
       error: "오류", quest: "퀘스트", approval: "승인", clarification: "질문",
+      due: "마감",
     },
   };
 

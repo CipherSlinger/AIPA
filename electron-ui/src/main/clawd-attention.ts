@@ -10,10 +10,11 @@
  *   - scheduled work is being held    (a department's daily spending cap)
  *   - a plugin job finished           (plugin AI generate / plugin edit)
  *   - an automation run finished      (a hidden scheduled run)
+ *   - tasks fell due                  (one aggregated card a civilised morning)
  *
- * All six raise one record shape and share one queue, so there is exactly one
- * bubble on screen and exactly one delivery decision. Sources never talk to a
- * surface directly — they call `raiseAttention`.
+ * All of them raise one record shape and share one queue, so there is exactly
+ * one bubble on screen and exactly one delivery decision. Sources never talk to
+ * a surface directly — they call `raiseAttention`.
  *
  * Delivery rule (one decision for every kind):
  *   - window visible and focused: nothing is shown now; approvals/questions
@@ -52,6 +53,9 @@ import { BrowserWindow, Menu, Notification, app } from 'electron'
 import { getPref, getRawPref } from './config/config-manager'
 import { recordClawdNotice } from './clawd-notifications'
 import { createLogger } from './utils/logger'
+// Type-only: `due-reminder` calls `raiseAttention`, and this module must not
+// close that runtime cycle just to name the aggregate shape.
+import type { DueAggregate } from './tasks/due-reminder'
 import {
   getClawdLanguage,
   hideClawdAttentionBubble,
@@ -83,6 +87,7 @@ export type AttentionKind =
   | 'limit-hold'
   | 'plugin-done'
   | 'automation-done'
+  | 'task-due'
 
 export interface AttentionInput {
   kind: AttentionKind
@@ -96,6 +101,13 @@ export interface AttentionInput {
   detail?: string | null
   /** Plugin that owns the job (plugin-done / plugin failure). */
   pluginId?: string | null
+  /**
+   * The aggregate for a `task-due` card. The reminder raises one card for every
+   * newly due task, so the bubble needs counts rather than a name. Ignored by
+   * every other kind.
+   */
+  due?: DueAggregate
+
 }
 
 interface PluginJob {
@@ -110,6 +122,8 @@ interface AttentionItem {
   bridgeId: string | null
   pluginId: string | null
   detail: string | null
+  /** Counts for a `task-due` card; null for every other kind. */
+  due: DueAggregate | null
   /** Finished plugin jobs collapsed into this bubble; >1 means the click chooses. */
   plugins: PluginJob[]
   createdAt: number
@@ -158,6 +172,9 @@ const KIND_PRIORITY: Record<AttentionKind, number> = {
   'limit-hold': 3,
   'plugin-done': 4,
   'automation-done': 5,
+  // A reminder, not a failure: it waits behind anything that already needs an
+  // answer, but a morning should not lose it to a stale plugin toast.
+  'task-due': 6,
 }
 
 /** A burst of events becomes one bubble: wait for the quiet gap first. */
@@ -167,6 +184,11 @@ const SHOW_RETRY_MS = 15_000
 /** A failure older than this is no longer worth a bubble when the user returns. */
 const TRANSIENT_TTL_MS = 2 * 60 * 1000
 const PLUGIN_DONE_KEY = 'plugin-done:batch'
+/**
+ * One card, not a flood: every due task the same morning belongs to this one
+ * queue item, so a second raise updates its counts instead of stacking.
+ */
+const TASK_DUE_KEY = 'task-due:agenda'
 /** How long after a failed turn its own completion notification stays suppressed. */
 const FAILURE_SUPPRESSION_MS = 5000
 
@@ -311,6 +333,7 @@ export function raiseAttention(input: AttentionInput): boolean {
       bridgeId: null,
       pluginId: null,
       detail: null,
+      due: null,
       plugins: [],
       createdAt: now,
       count: 0,
@@ -336,13 +359,19 @@ export function raiseAttention(input: AttentionInput): boolean {
     return announceAttention(item, null)
   }
 
-  const key = attentionKey(input)
+  const key = input.kind === 'task-due' ? TASK_DUE_KEY : attentionKey(input)
   const existing = items.get(key)
   if (existing) {
     if (input.requestId) existing.requestIds.add(input.requestId)
     // Approvals/questions collapse to a count; failures and their repeats are
     // a single "this session is failing" fact.
     existing.count = Math.max(1, existing.requestIds.size, existing.count)
+    // A second due task found while the morning card is still queued updates
+    // that card's counts; it never becomes a second bubble.
+    if (input.kind === 'task-due' && input.due) {
+      existing.due = input.due
+      existing.count = Math.max(1, input.due.total)
+    }
     if (input.detail) existing.detail = input.detail
     existing.createdAt = now
     if (input.sessionId) existing.sessionId = input.sessionId
@@ -361,9 +390,10 @@ export function raiseAttention(input: AttentionInput): boolean {
     bridgeId: input.bridgeId || null,
     pluginId: input.pluginId || null,
     detail: input.detail || null,
+    due: input.kind === 'task-due' ? (input.due ?? null) : null,
     plugins: [],
     createdAt: now,
-    count: Math.max(1, requestIds.size),
+    count: input.kind === 'task-due' && input.due ? Math.max(1, input.due.total) : Math.max(1, requestIds.size),
     requestIds,
     lastShownAt: 0,
     recorded: false,
@@ -882,6 +912,8 @@ const KIND_BUBBLE: Record<AttentionKind, ClawdBubbleKind> = {
   'limit-hold': 'warning',
   'plugin-done': 'success',
   'automation-done': 'quest',
+  // A calm slate accent: the due card is a reminder, not a failure.
+  'task-due': 'due',
 }
 
 /** Approvals and questions wait for the user; the rest expire on their own. */
@@ -890,6 +922,9 @@ function isTransientKind(kind: AttentionKind): boolean {
 }
 
 function metaRows(item: AttentionItem): ClawdBubbleMetaRow[] {
+  // The due card already states its counts in one sentence; a REQUESTS row
+  // derived from `count` would misdescribe it as approvals.
+  if (item.kind === 'task-due') return []
   const rows: ClawdBubbleMetaRow[] = []
   if (item.sessionId) {
     rows.push({ label: t('attentionMetaSession'), value: item.sessionId.slice(0, 8) })
@@ -916,8 +951,11 @@ function queuePosition(item: AttentionItem): { index: number; total: number } {
 function buildPayload(item: AttentionItem): BuiltBubble {
   const count = Math.max(1, item.count)
   // A plugin batch is openable as a whole even though it names no single job;
-  // the click resolves through `openItem`, which offers a choice.
-  const openable = !!(item.sessionId || item.pluginId || item.plugins.length > 0)
+  // the click resolves through `openItem`, which offers a choice. A due card
+  // always opens the task brief (or the Tasks view) where its rows can be acted
+  // on; it names no conversation of its own.
+  const openable = item.kind === 'task-due' ||
+    !!(item.sessionId || item.pluginId || item.plugins.length > 0)
   const name = item.detail || ''
   const pluginJobCount = item.kind === 'plugin-done' ? item.plugins.length : 0
   const meta = metaRows(item)
@@ -978,6 +1016,33 @@ function buildPayload(item: AttentionItem): BuiltBubble {
         ? fmt(t('attentionAutomationDoneBody'), { name })
         : t('attentionAutomationDoneBodyGeneric')
       break
+    case 'task-due': {
+      // One card, one sentence. `due` is the aggregate over the tasks newly
+      // announced this day; `count` is the same total as a fallback.
+      title = t('attentionTaskDueTitle')
+      pill = t('attentionTaskDuePill')
+      const due = item.due ?? { total: count, today: count, overdue: 0, oldestOverdueDays: 0 }
+      if (due.overdue > 0 && due.today > 0) {
+        message = fmt(t('attentionTaskDueMixed'), { n: due.total, overdue: due.overdue })
+      } else if (due.overdue > 0) {
+        // Singular tasks and singular days each have their own sentence, so a
+        // card never says "1 tasks" or "1 days".
+        if (due.overdue === 1) {
+          message = due.oldestOverdueDays === 1
+            ? t('attentionTaskDueOverdueOneDay')
+            : fmt(t('attentionTaskDueOverdueOneDays'), { n: due.oldestOverdueDays })
+        } else {
+          message = due.oldestOverdueDays === 1
+            ? fmt(t('attentionTaskDueOverdueManyDay'), { n: due.overdue })
+            : fmt(t('attentionTaskDueOverdueManyDays'), { n: due.overdue, d: due.oldestOverdueDays })
+        }
+      } else {
+        message = due.today === 1
+          ? t('attentionTaskDueTodayOne')
+          : fmt(t('attentionTaskDueTodayMany'), { n: due.today })
+      }
+      break
+    }
   }
 
   const payload: ClawdAttentionBubblePayload = {
@@ -1002,9 +1067,11 @@ function buildPayload(item: AttentionItem): BuiltBubble {
     payload.actions = [{
       id: 'open',
       label: t(
-        pluginJobCount > 1
-          ? 'attentionChoosePlugin'
-          : item.pluginId ? 'attentionOpenPlugin' : 'attentionOpen',
+        item.kind === 'task-due'
+          ? 'attentionOpenTasks'
+          : pluginJobCount > 1
+            ? 'attentionChoosePlugin'
+            : item.pluginId ? 'attentionOpenPlugin' : 'attentionOpen',
       ),
       variant: 'primary',
     }]
@@ -1115,6 +1182,15 @@ function openMainWindow(): BrowserWindow | null {
 }
 
 function openItem(item: AttentionItem): void {
+  // The due card's destination is the task brief, not a conversation. It owns
+  // its own window and can be opened without summoning AIPA at all; if it
+  // cannot be created, fall back to the Tasks view through the same hand-off
+  // the notice centre uses.
+  if (item.kind === 'task-due') {
+    openDueTasks()
+    return
+  }
+
   // The window may have been closed to the dock. Recreate it through the app's
   // normal activation path, the same route the automation scheduler used.
   const win = openMainWindow()
@@ -1150,6 +1226,37 @@ function openItem(item: AttentionItem): void {
   if (win.isMinimized()) win.restore()
   if (!win.isVisible()) win.show()
   win.focus()
+}
+
+/**
+ * Open the rows behind a due card. The brief is the existing pet-side surface
+ * that lists the task desk, already ordered with dated work first and Today /
+ * overdue markers — exactly where a due row can be started or finished. It is
+ * loaded lazily because it lives beside the pet factory and imports this
+ * module's sibling surfaces, not because it is optional.
+ *
+ * If the brief cannot be created (assets missing, no pet install), the app's
+ * own Tasks view is the honest fallback. Both are existing destinations; this
+ * function never creates a second kind of window.
+ */
+function openDueTasks(): void {
+  try {
+    const { openClawdTaskBrief } = require('./clawd-task-brief') as {
+      openClawdTaskBrief: () => boolean
+    }
+    if (openClawdTaskBrief() === true) return
+  } catch (err) {
+    log.warn('Could not open the task brief for a due reminder:', String(err))
+  }
+
+  const win = openMainWindow()
+  if (!win) return
+  bringForward(win)
+  const deliver = (): void => {
+    if (!win.isDestroyed()) win.webContents.send('menu:openTasks')
+  }
+  if (win.webContents.isLoading()) win.webContents.once('did-finish-load', deliver)
+  else deliver()
 }
 
 /**
