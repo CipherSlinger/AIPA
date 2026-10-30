@@ -67,6 +67,8 @@ export interface TaskCaptureLabels {
   failed: string
   savedTitle: string
   savedPill: string
+  dueLabel: string
+  dueClear: string
 }
 
 export interface TaskCaptureContext {
@@ -101,6 +103,17 @@ function normalizeTitle(raw: unknown): string {
   const collapsed = raw.replace(/\s+/g, ' ').trim()
   if (collapsed.length <= TASK_TITLE_MAX) return collapsed
   return collapsed.slice(0, TASK_TITLE_MAX).trimEnd()
+}
+
+/**
+ * The page resolves the due day itself; this boundary only refuses shapes it
+ * cannot represent. A malformed day is dropped rather than failing the save:
+ * the typed line is what the user came for, the day is the bonus.
+ */
+const DUE_ON_SHAPE = /^\d{4}-\d{2}-\d{2}$/
+
+function normalizeDueOn(raw: unknown): string | undefined {
+  return typeof raw === 'string' && DUE_ON_SHAPE.test(raw) ? raw : undefined
 }
 
 function clipText(text: string, max: number): string {
@@ -490,7 +503,7 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
     timer.unref?.()
   }
 
-  function handleSave(event: IpcMainEvent, raw: unknown): void {
+  function handleSave(event: IpcMainEvent, raw: unknown, rawDue: unknown): void {
     if (!isSender(event)) return
     let labels: TaskCaptureLabels
     try {
@@ -506,7 +519,9 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
 
     let result: ReturnType<typeof createTask>
     try {
-      result = createTask({ title })
+      // The store is the calendar gate: a day this boundary lets through but
+      // the store refuses surfaces as the bar's normal failed-save reason.
+      result = createTask({ title, dueOn: normalizeDueOn(rawDue) })
     } catch (err) {
       const detail = cleanErrorText(err)
       showBarError(detail ? `${labels.failed}: ${detail}` : labels.failed, 'error')
@@ -536,9 +551,9 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
     if (!isSender(event)) return
     reveal()
   }
-  const handleSaveEvent = (event: IpcMainEvent, raw: unknown) => {
+  const handleSaveEvent = (event: IpcMainEvent, raw: unknown, rawDue: unknown) => {
     if (!isSender(event)) return
-    handleSave(event, raw)
+    handleSave(event, raw, rawDue)
   }
   const handleClose = (event: IpcMainEvent) => {
     if (!isSender(event)) return

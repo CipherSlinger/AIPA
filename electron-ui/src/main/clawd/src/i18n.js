@@ -287,6 +287,10 @@ const i18n = {
     taskCaptureFailed: "Could not save the task",
     taskCaptureSavedTitle: "Saved to Inbox",
     taskCaptureSavedPill: "INBOX",
+    // The due-day tag under the capture field: its name for screen readers,
+    // and the × that dismisses the day without touching the typed line.
+    taskCaptureDueLabel: "Due date",
+    taskCaptureDueClear: "Remove due date",
   },
   zh: {
     size: "大小",
@@ -521,6 +525,8 @@ const i18n = {
     taskCaptureFailed: "无法保存任务",
     taskCaptureSavedTitle: "已存入收件箱",
     taskCaptureSavedPill: "收件箱",
+    taskCaptureDueLabel: "截止日",
+    taskCaptureDueClear: "移除截止日",
   },
   ko: {
     size: "크기",
@@ -755,6 +761,8 @@ const i18n = {
     taskCaptureFailed: "작업을 저장할 수 없습니다",
     taskCaptureSavedTitle: "받은함에 저장됨",
     taskCaptureSavedPill: "받은함",
+    taskCaptureDueLabel: "마감일",
+    taskCaptureDueClear: "마감일 지우기",
   },
 };
 

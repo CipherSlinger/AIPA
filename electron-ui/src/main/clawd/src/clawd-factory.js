@@ -1440,6 +1440,8 @@ const _taskCaptureCtx = {
     failed: t("taskCaptureFailed"),
     savedTitle: t("taskCaptureSavedTitle"),
     savedPill: t("taskCaptureSavedPill"),
+    dueLabel: t("taskCaptureDueLabel"),
+    dueClear: t("taskCaptureDueClear"),
   }),
   guardAlwaysOnTop,
   reapplyMacVisibility,

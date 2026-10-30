@@ -19,7 +19,14 @@ contextBridge.exposeInMainWorld("taskCaptureAPI", {
   onError: (cb) => subscribe("task-capture-error", cb),
   onFocus: (cb) => subscribe("task-capture-focus", cb),
   ready: () => ipcRenderer.send("task-capture-ready"),
-  save: (title) => ipcRenderer.send("task-capture-save", String(title || "")),
+  // `dueOn` is a bare local day ("YYYY-MM-DD") or null. Main refuses any other
+  // shape, so the page can only ever name a day it has already resolved.
+  save: (title, dueOn) =>
+    ipcRenderer.send(
+      "task-capture-save",
+      String(title || ""),
+      dueOn == null ? null : String(dueOn)
+    ),
   close: () => ipcRenderer.send("task-capture-close"),
   // The page measures its remembered-titles strip; main owns the ceiling and
   // the work-area clamp, so this is only "I need this many more pixels".
