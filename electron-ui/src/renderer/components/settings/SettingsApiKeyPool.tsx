@@ -41,6 +41,11 @@ const POOL_LABEL_TEXT_STYLE: React.CSSProperties = {
 // the point is to reject whitespace and empty drafts, not to second-guess ids.
 const MODEL_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/
 
+// A base URL is either empty (official endpoint) or an absolute http(s)
+// address. The main process validates it again; this only keeps a clearly
+// wrong value out of the form so the Add button says why it is disabled.
+const BASE_URL_RE = /^https?:\/\/[^\s]+$/i
+
 // The pickers and the main process read one global catalogue, so the pool has
 // to hand them the same view a user sees: every key's models, in pool order
 // then first-seen order. Disabled keys count too — switching a key off must
@@ -73,6 +78,9 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
   const [apiKeyPool, setApiKeyPool] = useState<ApiKeyEntry[]>(prefs.apiKeyPool || [])
   const [newKeyLabel, setNewKeyLabel] = useState('')
   const [newKeyValue, setNewKeyValue] = useState('')
+  // Optional per-key endpoint (relay / proxy / gateway). Empty means the
+  // official host, so it is never required.
+  const [newKeyBaseUrl, setNewKeyBaseUrl] = useState('')
   // The key is saved before the catalogue call starts; this only prevents a
   // second add (and a duplicate fetch) while the first one is in flight.
   const [addingKey, setAddingKey] = useState(false)
@@ -112,7 +120,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
     if (panelLoading) return
     setPanelLoading(true)
     try {
-      const models = await window.electronAPI.modelsFetch(entry.apiKey)
+      const models = await window.electronAPI.modelsFetch(entry.apiKey, entry.baseUrl)
       // The row may have been deleted while the request was in flight; never
       // resurrect it just to attach its models.
       if (poolRef.current.some(k => k.id === entry.id)) setEntryModels(entry.id, models)
@@ -161,6 +169,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
       id: `key-${Date.now()}`,
       label: newKeyLabel.trim() || `Key ${apiKeyPool.length + 1}`,
       apiKey,
+      baseUrl: newKeyBaseUrl.trim() || undefined,
       enabled: true,
       exhausted: false,
       addedAt: Date.now(),
@@ -168,13 +177,14 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
     savePool([...apiKeyPool, entry])
     setNewKeyLabel('')
     setNewKeyValue('')
+    setNewKeyBaseUrl('')
     setAddingKey(true)
     try {
       // The key is already saved, so a failed catalogue call must only be
       // reported — never roll the key back. On success the result becomes this
       // key's own list; the global catalogue is then rebuilt as the union so
       // every dropdown sees it without waiting for a reload.
-      const models = await window.electronAPI.modelsFetch(entry.apiKey)
+      const models = await window.electronAPI.modelsFetch(entry.apiKey, entry.baseUrl)
       if (poolRef.current.some(k => k.id === entry.id)) setEntryModels(entry.id, models)
       useUiStore.getState().addToast('success', t('settings.modelsLoaded', { count: models.length }))
     } catch (err) {
@@ -193,14 +203,15 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
     e.target.value = ''
     try {
       // Try JSON array: [{label, apiKey}] or [{key}] or ["key1","key2"]. A
-      // baseUrl an older export carries is ignored — the key is the whole
-      // credential now, and there is no endpoint left to point it at.
+      // baseUrl (`baseUrl` or `base_url`) is the endpoint this key speaks to,
+      // so it is kept with the key rather than dropped.
       const parsed = JSON.parse(text)
       const arr = Array.isArray(parsed) ? parsed : [parsed]
       const entries: ApiKeyEntry[] = arr.map((item: any, i: number) => ({
         id: `key-${Date.now()}-${i}`,
         label: item.label || item.name || `Imported ${i + 1}`,
         apiKey: item.apiKey || item.key || item.api_key || (typeof item === 'string' ? item : ''),
+        baseUrl: item.baseUrl || item.base_url || undefined,
         enabled: true,
         exhausted: false,
         addedAt: Date.now(),
@@ -208,7 +219,8 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
       savePool([...apiKeyPool, ...entries])
     } catch {
       // Try plain text: one key per line, optionally "label=key" or "key,label".
-      // A third comma-separated field (the old base URL) is ignored.
+      // A third comma-separated field is that key's base URL; absent means the
+      // official endpoint.
       const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
       const entries: ApiKeyEntry[] = lines.map((line, i) => {
         const parts = line.split(',')
@@ -216,6 +228,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
           id: `key-${Date.now()}-${i}`,
           label: parts[1]?.trim() || `Key ${apiKeyPool.length + i + 1}`,
           apiKey: parts[0].trim(),
+          baseUrl: parts[2]?.trim() || undefined,
           enabled: true,
           exhausted: false,
           addedAt: Date.now(),
@@ -231,7 +244,11 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
     window.electronAPI.prefsSet('activeApiKeyId', null)
   }
 
-  const canAddKey = Boolean(newKeyValue.trim()) && !addingKey
+  // A non-empty base URL must look like an absolute http(s) address; an empty
+  // one is allowed and means the official endpoint.
+  const trimmedBaseUrl = newKeyBaseUrl.trim()
+  const baseUrlInvalid = trimmedBaseUrl.length > 0 && !BASE_URL_RE.test(trimmedBaseUrl)
+  const canAddKey = Boolean(newKeyValue.trim()) && !addingKey && !baseUrlInvalid
   const draftModelId = modelDraft.trim()
   const openKey = apiKeyPool.find(k => k.id === openKeyId)
   const canAddModel =
@@ -358,7 +375,7 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
             </div>
           )}
           {/* Add key form. Each field carries a persistent label: once the key
-              is masked there is no other way to tell the three apart. */}
+              is masked there is no other way to tell them apart. */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 6 }}>
             <label style={POOL_LABEL_STYLE}>
               <span style={POOL_LABEL_TEXT_STYLE}>{t('settings.keyLabel')}</span>
@@ -386,6 +403,26 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
                 autoCapitalize="off"
                 style={{ ...glassInputStyle, fontSize: 11 }}
               />
+            </label>
+            <label style={POOL_LABEL_STYLE}>
+              <span style={POOL_LABEL_TEXT_STYLE}>{t('settings.keyBaseUrl')}</span>
+              <input
+                value={newKeyBaseUrl}
+                onChange={(e) => setNewKeyBaseUrl(e.target.value)}
+                placeholder={t('settings.keyBaseUrlPlaceholder')}
+                aria-label={t('settings.keyBaseUrl')}
+                spellCheck={false}
+                autoCorrect="off"
+                autoCapitalize="off"
+                aria-invalid={baseUrlInvalid}
+                style={{ ...glassInputStyle, fontSize: 11 }}
+              />
+              <span style={{
+                fontSize: 10,
+                color: baseUrlInvalid ? 'var(--danger-text)' : 'var(--text-muted)',
+              }}>
+                {baseUrlInvalid ? t('settings.keyBaseUrlInvalid') : t('settings.keyBaseUrlHint')}
+              </span>
             </label>
             <button
               onClick={handleAddKey}

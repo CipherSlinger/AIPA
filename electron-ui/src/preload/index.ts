@@ -2461,9 +2461,12 @@ const electronAPI = {
   configGetLocale: () => ipcRenderer.invoke('config:getLocale'),
   configSetApiKey: (key: string) => ipcRenderer.invoke('config:setApiKey', key),
   // Models the given key can run. The key is optional: omit it to ask about
-  // the stored key. Rejects with `[no_key] …` when neither exists.
-  modelsFetch: (apiKey?: string) =>
-    ipcRenderer.invoke('models:fetch', { apiKey }) as Promise<AvailableModel[]>,
+  // the stored key. `baseUrl` is that key's own endpoint (relay / gateway);
+  // omit it to use the stored key's official/env endpoint. Rejects with
+  // `[no_key] …` when neither key exists and `[invalid_base_url] …` for a
+  // malformed base URL.
+  modelsFetch: (apiKey?: string, baseUrl?: string) =>
+    ipcRenderer.invoke('models:fetch', { apiKey, baseUrl }) as Promise<AvailableModel[]>,
   prefsGet: (key: string) => ipcRenderer.invoke('prefs:get', key),
   prefsSet: (key: string, value: unknown) => ipcRenderer.invoke('prefs:set', key, value),
   prefsGetAll: () => ipcRenderer.invoke('prefs:getAll'),

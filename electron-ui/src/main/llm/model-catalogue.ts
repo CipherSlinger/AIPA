@@ -16,16 +16,49 @@ export interface AvailableModel {
 
 const REQUEST_TIMEOUT_MS = 10_000
 const MAX_MODELS = 100
+const DEFAULT_BASE_URL = 'https://api.anthropic.com'
+const MAX_BASE_URL_LENGTH = 2048
+
+/**
+ * Resolve the endpoint a key's models are fetched from.
+ *
+ * An explicit base URL is the key's own relay/gateway, so it is validated here
+ * rather than trusted: a bare host without a scheme, or credentials embedded in
+ * the URL, would make the request fail in a way that looks like a bad key. An
+ * empty value means "not set on this key" and falls back to the process-wide
+ * `ANTHROPIC_BASE_URL` exactly as before.
+ */
+export function normalizeAnthropicBaseUrl(baseUrl?: string): string {
+  const explicit = (baseUrl ?? '').trim()
+  if (!explicit) {
+    return (process.env.ANTHROPIC_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, '')
+  }
+  const invalid = new Error('[invalid_base_url] Base URL 必须是 http:// 或 https:// 地址')
+  if (explicit.length > MAX_BASE_URL_LENGTH) throw invalid
+  let parsed: URL
+  try {
+    parsed = new URL(explicit)
+  } catch {
+    throw invalid
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw invalid
+  // A URL carrying a username/password would send a second credential in
+  // clear text to a host the user chose; refuse instead of silently using it.
+  if (parsed.username || parsed.password) throw invalid
+  return explicit.replace(/\/+$/, '')
+}
 
 /**
  * Ask the Anthropic Models API which models `apiKey` may use.
  *
- * The key travels only in the `x-api-key` header. It must never appear in an
- * error message or a log line, so failures are reported by HTTP status and the
- * API's own `error.message` — never the request headers or the raw body.
+ * `baseUrl` is the key's own endpoint (relay / proxy / self-hosted gateway);
+ * absent means the official host. The key travels only in the `x-api-key`
+ * header. It must never appear in an error message or a log line, so failures
+ * are reported by HTTP status and the API's own `error.message` — never the
+ * request headers or the raw body.
  */
-export async function fetchAnthropicModels(apiKey: string): Promise<AvailableModel[]> {
-  const base = (process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com').replace(/\/+$/, '')
+export async function fetchAnthropicModels(apiKey: string, baseUrl?: string): Promise<AvailableModel[]> {
+  const base = normalizeAnthropicBaseUrl(baseUrl)
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 

@@ -3,7 +3,7 @@ import { useChatStore, useDepartmentStore, usePrefsStore, useSessionStore } from
 import { ElicitationMessage, HookCallbackMessage, StandardChatMessage } from '../types/app.types'
 import { useUiStore } from '../store'
 import { getResolvedLocale, getT } from '../i18n'
-import { getActiveApiKey } from './streamJsonUtils'
+import { getActiveApiKey, getActiveKeyEntry } from './streamJsonUtils'
 import { useAutoCompact } from './useAutoCompact'
 import { useAutoMemory } from './useAutoMemory'
 import { assembleMemoryContextForTurn } from './promptMemory'
@@ -292,26 +292,39 @@ export function useStreamJson() {
     const effectiveCwd = resolvedCwd.source === 'none'
       ? await window.electronAPI.fsGetHome()
       : resolvedCwd.dir
-    const sendArgs = (promptText: string, input: unknown[] | undefined) => ({
-      prompt: promptText,
-      ...(input ? { input } : {}),
-      cwd: effectiveCwd,
-      sessionId: currentSessionId ?? undefined,
-      activeBridgeId: activeBridgeIdRef.current ?? undefined,
-      model: personaTurn.model,
-      // This conversation's resolved level; 'auto' means "let the engine
-      // decide", so it is not sent at all. The main process drops it again if
-      // the model that will run does not advertise it.
-      ...effortSendField(effectiveEffort),
-      env: {
-        // Provide both keys — CodexBridge uses OPENAI_API_KEY, legacy StreamBridge uses ANTHROPIC_API_KEY
-        ...(getActiveApiKey() ? { OPENAI_API_KEY: getActiveApiKey(), ANTHROPIC_API_KEY: getActiveApiKey() } : {}),
-      },
-      flags,
-      permissionMode: (useChatStore.getState().isPlanMode && prefs.permissionMode !== 'bypassPermissions')
-        ? 'plan'
-        : (prefs.permissionMode || 'default'),
-    })
+    const sendArgs = (promptText: string, input: unknown[] | undefined) => {
+      // Resolve the key and its endpoint once: both belong to the same pool
+      // entry, and reading the store per field could split them across an edit
+      // made while this turn was being assembled.
+      const activeKey = getActiveApiKey()
+      const activeBaseUrl = getActiveKeyEntry()?.baseUrl?.trim()
+      return {
+        prompt: promptText,
+        ...(input ? { input } : {}),
+        cwd: effectiveCwd,
+        sessionId: currentSessionId ?? undefined,
+        activeBridgeId: activeBridgeIdRef.current ?? undefined,
+        model: personaTurn.model,
+        // This conversation's resolved level; 'auto' means "let the engine
+        // decide", so it is not sent at all. The main process drops it again if
+        // the model that will run does not advertise it.
+        ...effortSendField(effectiveEffort),
+        env: {
+          // Provide both keys — CodexBridge uses OPENAI_API_KEY, legacy StreamBridge uses ANTHROPIC_API_KEY
+          ...(activeKey ? { OPENAI_API_KEY: activeKey, ANTHROPIC_API_KEY: activeKey } : {}),
+          // The key's own endpoint must travel with the key, or a relay key
+          // would be sent to the official host. An empty value is deliberately
+          // omitted: the child env allowlist already passes through an
+          // ANTHROPIC_BASE_URL the user exported, and sending '' would override
+          // it with nothing.
+          ...(activeKey && activeBaseUrl ? { ANTHROPIC_BASE_URL: activeBaseUrl } : {}),
+        },
+        flags,
+        permissionMode: (useChatStore.getState().isPlanMode && prefs.permissionMode !== 'bypassPermissions')
+          ? 'plan'
+          : (prefs.permissionMode || 'default'),
+      }
+    }
     let result: { success?: boolean; sessionId?: string; error?: string } | undefined
     try {
       result = await window.electronAPI.cliSendMessage(sendArgs(actualPrompt, codexInput))

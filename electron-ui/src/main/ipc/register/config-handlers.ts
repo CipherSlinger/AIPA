@@ -109,17 +109,19 @@ export function registerConfigHandlers(): void {
    * Load the models the current key supports and merge them into the persisted
    * catalogue. Called when a key is added in the API Key Pool. `apiKey` is
    * optional: a not-yet-saved key may be passed so its models can be previewed,
-   * otherwise the stored key is used.
+   * otherwise the stored key is used. `baseUrl` is that key's own endpoint when
+   * it has one; it is validated in `fetchAnthropicModels`, never passed through.
    *
    * The answer is only the freshly fetched list. The stored merge exists so the
    * pickers can still offer these models after a restart without a network call.
    */
-  safeHandle('models:fetch', async (_e, { apiKey }: { apiKey?: string } = {}) => {
+  safeHandle('models:fetch', async (_e, { apiKey, baseUrl }: { apiKey?: unknown; baseUrl?: unknown } = {}) => {
     const key = (typeof apiKey === 'string' ? apiKey.trim() : '') || getApiKey()
     if (!key) throw new Error('[no_key] 请先添加 API 密钥')
+    const endpoint = typeof baseUrl === 'string' ? baseUrl : undefined
 
     try {
-      const fetched = await fetchAnthropicModels(key)
+      const fetched = await fetchAnthropicModels(key, endpoint)
       // Copy before editing: the store returns the stored array itself, and
       // writing through it would bypass electron-store's own write path. The
       // copy also drops any duplicate ids an older store may carry.

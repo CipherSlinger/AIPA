@@ -61,6 +61,12 @@ export default function KeyModelsPanel({
 }: KeyModelsPanelProps) {
   const t = useT()
   const models = entry.models ?? []
+  // The endpoint is what the fetch will actually talk to, so it is shown even
+  // when it is the key's own relay. Split around the url so only the address
+  // is monospace — the label around it is prose and may sit on either side.
+  const endpoint = entry.baseUrl
+  const endpointText = endpoint ? t('settings.keyModelsEndpoint', { url: endpoint }) : ''
+  const endpointParts = endpoint ? endpointText.split(endpoint) : []
 
   const submitOnEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return
@@ -102,6 +108,24 @@ export default function KeyModelsPanel({
           onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
         ><X size={11} /></button>
       </div>
+
+      {endpoint && (
+        <div
+          title={endpoint}
+          style={{
+            fontSize: 10, color: 'var(--text-muted)', marginBottom: 8,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}
+        >
+          {endpointParts.length > 1 ? (
+            <>
+              {endpointParts[0]}
+              <span style={{ fontFamily: 'monospace' }}>{endpoint}</span>
+              {endpointParts.slice(1).join(endpoint)}
+            </>
+          ) : endpointText}
+        </div>
+      )}
 
       {loading && (
         <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: models.length ? 6 : 8 }}>

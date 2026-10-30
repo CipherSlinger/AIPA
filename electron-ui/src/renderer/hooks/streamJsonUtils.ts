@@ -1,4 +1,5 @@
 import { usePrefsStore } from '../store'
+import type { ApiKeyEntry } from '../types/app.types'
 
 export function sendCompletionNotification(title: string, summary: string, sessionId?: string) {
   if (document.hasFocus()) return  // Don't notify when window is focused
@@ -55,17 +56,28 @@ export function playCompletionSound() {
   }
 }
 
-/** Get the currently active API key from pool or fallback to single key */
-export function getActiveApiKey(): string {
+/**
+ * The pool entry the next turn will use, if any.
+ *
+ * Exactly the entry `getActiveApiKey` reads its key from: the entry named by
+ * `activeApiKeyId` when it is still enabled and has quota left, otherwise the
+ * first enabled entry. `undefined` means no pool entry is usable, and the
+ * single-key `prefs.apiKey` takes over.
+ */
+export function getActiveKeyEntry(): ApiKeyEntry | undefined {
   const prefs = usePrefsStore.getState().prefs
   const pool = prefs.apiKeyPool || []
   const enabledKeys = pool.filter(k => k.enabled && !k.exhausted)
-  if (enabledKeys.length > 0) {
-    // If activeApiKeyId is set and still valid, use it
-    const active = prefs.activeApiKeyId ? enabledKeys.find(k => k.id === prefs.activeApiKeyId) : null
-    return (active ?? enabledKeys[0]).apiKey
-  }
-  return prefs.apiKey || ''
+  if (enabledKeys.length === 0) return undefined
+  const active = prefs.activeApiKeyId ? enabledKeys.find(k => k.id === prefs.activeApiKeyId) : undefined
+  return active ?? enabledKeys[0]
+}
+
+/** Get the currently active API key from pool or fallback to single key */
+export function getActiveApiKey(): string {
+  // Pool key first; the single key is the fallback when no pool entry is
+  // usable. Same precedence as before, now derived from one entry lookup.
+  return getActiveKeyEntry()?.apiKey || usePrefsStore.getState().prefs.apiKey || ''
 }
 
 /** Mark current active pool key as exhausted and switch to next */

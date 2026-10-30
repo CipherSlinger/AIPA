@@ -406,7 +406,13 @@ export interface ApiKeyEntry {
   id: string           // unique id
   label: string        // display label (e.g. 'Key 1', 'Work Key')
   apiKey: string       // the API key
-  baseUrl?: string     // optional custom base URL (for OpenAI-compatible endpoints)
+  /**
+   * Optional Anthropic-compatible endpoint for this key (a relay, proxy or
+   * self-hosted gateway). Empty/absent means the official API host. The value
+   * belongs to the key: it goes with the key on every turn, so a relay key is
+   * never sent to api.anthropic.com.
+   */
+  baseUrl?: string
   enabled: boolean     // whether this key is enabled in the pool
   exhausted: boolean   // whether this key hit quota limit (auto-set on 402)
   addedAt: number      // epoch ms
