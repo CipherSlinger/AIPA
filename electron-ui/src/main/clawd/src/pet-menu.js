@@ -236,16 +236,40 @@ module.exports = function initPetMenu(ctx) {
     if (!isSender(event)) return;
     close();
   };
+  /**
+   * The RECENT ring asks for the conversation list on demand. Building it into
+   * every payload would put a session-store walk between the page loading and
+   * the menu appearing, inside the reveal budget. A reply that arrives after
+   * the menu closed is simply never sent.
+   */
+  const handleSessions = (event) => {
+    if (!isSender(event)) return;
+    let list = [];
+    try {
+      list = typeof ctx.getSessions === "function" ? ctx.getSessions() : [];
+    } catch (err) {
+      console.warn("Clawd: pet menu session list failed:", err.message);
+      list = [];
+    }
+    if (!menuWin || menuWin.isDestroyed()) return;
+    try {
+      menuWin.webContents.send("pet-menu-sessions", list);
+    } catch {
+      // The window went away between the guard and the send.
+    }
+  };
 
   ipcMain.on("pet-menu-ready", handleReady);
   ipcMain.on("pet-menu-action", handleAction);
   ipcMain.on("pet-menu-close", handleClose);
+  ipcMain.on("pet-menu-sessions", handleSessions);
 
   function cleanup() {
     close(false);
     ipcMain.removeListener("pet-menu-ready", handleReady);
     ipcMain.removeListener("pet-menu-action", handleAction);
     ipcMain.removeListener("pet-menu-close", handleClose);
+    ipcMain.removeListener("pet-menu-sessions", handleSessions);
   }
 
   return {

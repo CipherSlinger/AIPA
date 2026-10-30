@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld("noticeCenterAPI", {
   load: () => ipcRenderer.invoke("notice-center:load"),
   action: (action) => ipcRenderer.invoke("notice-center:action", action),
   onUpdate: (cb) => ipcRenderer.on("notice-center:update", (_event, payload) => cb(payload)),
-  close: () => ipcRenderer.send("notice-center:close"),
+  // `options.markRead === false` is the click-away margin: it closes the panel
+  // without claiming the user read the list.
+  close: (options) => ipcRenderer.send("notice-center:close", options),
   reportHeight: (height) => ipcRenderer.send("notice-center:report-height", height),
 });

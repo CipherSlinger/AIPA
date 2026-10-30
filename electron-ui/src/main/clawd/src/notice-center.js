@@ -560,13 +560,17 @@
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
-  function closePanel() {
+  // `markRead` is true for the two closes the user means as "done" (the × and
+  // Escape). The transparent margin is a click-away like any other: the main
+  // process leaves the unread state alone on blur, so the 8 px ring inside the
+  // window must not mean something different from a click just outside it.
+  function closePanel(markRead) {
     state.closing = true;
     if (heightFrame) {
       cancelAnimationFrame(heightFrame);
       heightFrame = null;
     }
-    if (api && api.close) { api.close(); return; }
+    if (api && api.close) { api.close(markRead === false ? { markRead: false } : undefined); return; }
     window.close();
   }
 
@@ -709,7 +713,7 @@
   document.addEventListener("pointerdown", function (event) {
     if (event.button !== 0) return;
     if (event.target === document.body || event.target === document.documentElement) {
-      closePanel();
+      closePanel(false);
     }
   });
 

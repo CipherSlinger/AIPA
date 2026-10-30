@@ -446,6 +446,101 @@ body { position: relative; }
   pointer-events: none;
 }
 
+/* ── Telemetry ───────────────────────────────────────────────────────────── */
+/* Two gauges parked on the hint line's baseline, in the lower corners. The
+   lowest outer petal ends at y≈346 in a 420px window and these start at 360,
+   so no petal angle can ever sit on top of a reading. The box is fixed and a
+   failed reading only flips `visibility` (never `display`), so the corners
+   never move when the data comes and goes. */
+.telemetry {
+  --bar-color: var(--hud-accent);
+  position: absolute;
+  top: calc(50% + 150px);
+  width: 84px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 8px;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  pointer-events: none;
+  animation: hintIn 420ms var(--ease-out) both;
+  animation-delay: 220ms;
+}
+.telemetry--cpu { left: 12px; }
+.telemetry--mem { right: 12px; --bar-color: #58a6ff; }
+.telemetry[data-empty="true"] { visibility: hidden; }
+.telemetry .gauge-label {
+  flex: none;
+  color: rgba(127, 168, 162, 0.78);
+  text-transform: uppercase;
+}
+.telemetry .gauge-track {
+  position: relative;
+  flex: 1 1 auto;
+  height: 3px;
+  background: color-mix(in srgb, var(--bar-color) 16%, transparent);
+  clip-path: polygon(
+    0 0,
+    calc(100% - 3px) 0,
+    100% 3px,
+    100% 100%,
+    0 100%
+  );
+}
+.telemetry .gauge-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--bar-color);
+  transform: scaleX(var(--bar-fill, 0));
+  transform-origin: left center;
+  transition: transform 520ms var(--ease-out);
+}
+.telemetry .gauge-value {
+  flex: none;
+  min-width: 22px;
+  text-align: right;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--bar-color);
+}
+
+/* ── Running indicator ───────────────────────────────────────────────────── */
+/* One small line just above the orb. The enabled STOP petal already says a
+   turn is running; this is a glance-level confirmation, so it stays quieter
+   than the ring and never draws a petal's accent. */
+.running {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 58px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 8px;
+  line-height: 1;
+  letter-spacing: 0.22em;
+  color: rgba(223, 247, 243, 0.66);
+  pointer-events: none;
+  animation: hintIn 300ms var(--ease-out) both;
+  animation-delay: 120ms;
+}
+/* The author display rule above would otherwise beat the UA [hidden] rule. */
+.running[hidden] { display: none; }
+.running .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--hud-accent);
+  box-shadow: 0 0 8px rgba(63, 224, 200, 0.7);
+  animation: runningPulse 1.8s ease-in-out infinite;
+}
+@keyframes runningPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(0.72); }
+}
+
 @keyframes petalIn {
   from { opacity: 0; transform: translate(var(--x), var(--y)) scale(0.80); }
   to   { opacity: 1; transform: translate(var(--x), var(--y)) scale(1); }
@@ -469,9 +564,15 @@ body { position: relative; }
   /* No scale anywhere: levels appear and disappear by opacity alone. */
   .petal,
   .orb,
-  .hint { animation: none; }
+  .hint,
+  .telemetry,
+  .running { animation: none; }
   .track::after,
   .orb-ring { animation: none; }
+  /* A gauge that eases between readings is motion; a gauge that steps is not. */
+  .telemetry .gauge-fill { transition: none; }
+  /* The dot still reads as "live": it keeps its glow, just without the pulse. */
+  .running .dot { animation: none; }
   .ring,
   .ring.closing { transition: opacity 80ms linear; transform: none; }
   .layer { transition: opacity 60ms linear; transform: none; }
@@ -506,6 +607,20 @@ body { position: relative; }
     <span class="orb-label" id="orbLabel">AIPA</span>
     <span class="orb-hint" id="orbHint">ESC</span>
   </button>
+  <div class="running" id="running" aria-hidden="true" hidden>
+    <span class="dot" aria-hidden="true"></span>
+    <span id="runningText">RUNNING</span>
+  </div>
+  <div class="telemetry telemetry--cpu" id="telemetryCpu" data-empty="true" aria-hidden="true">
+    <span class="gauge-label">CPU</span>
+    <span class="gauge-track"><span class="gauge-fill"></span></span>
+    <span class="gauge-value" id="cpuValue">--</span>
+  </div>
+  <div class="telemetry telemetry--mem" id="telemetryMem" data-empty="true" aria-hidden="true">
+    <span class="gauge-label">MEM</span>
+    <span class="gauge-track"><span class="gauge-fill"></span></span>
+    <span class="gauge-value" id="memValue">--</span>
+  </div>
   <div class="hint" id="hint"></div>
 </div>
 <script>
@@ -524,6 +639,12 @@ body { position: relative; }
   var orbLabel = document.getElementById("orbLabel");
   var orbHint = document.getElementById("orbHint");
   var hint = document.getElementById("hint");
+  var running = document.getElementById("running");
+  var runningText = document.getElementById("runningText");
+  var telemetryCpu = document.getElementById("telemetryCpu");
+  var telemetryMem = document.getElementById("telemetryMem");
+  var cpuValue = document.getElementById("cpuValue");
+  var memValue = document.getElementById("memValue");
 
   var RADIUS = 140;
   // Second ring: a chip's centre cannot sit on a circle, or a wide chip tucks
@@ -541,6 +662,24 @@ body { position: relative; }
   var SESSION_ACCENT = "#b98cff";
 
   var reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+  // HUD chrome the factory does not translate. The running indicator is drawn
+  // here, so its word lives here too — keyed off the same `lang` the rings use,
+  // which means no extra payload key and no i18n import.
+  var INLINE_LABELS = {
+    en: { running: "RUNNING", loading: "LOADING…" },
+    zh: { running: "运行中", loading: "载入中…" },
+    ko: { running: "실행 중", loading: "불러오는 중…" }
+  };
+  var CPU_ACCENT = "#3fe0c8";
+  var MEM_ACCENT = "#58a6ff";
+  var HOT_ACCENT = "#f0b429";
+  var HOT_PERCENT = 85;
+
+  function inlineLabel(key, fallback) {
+    var dict = INLINE_LABELS[document.documentElement.lang] || INLINE_LABELS.en;
+    return dict[key] || fallback || key;
+  }
 
   // Stroke-only glyphs: the accent colour is the only fill, so one icon set
   // reads at 18px on every petal accent.
@@ -594,6 +733,12 @@ body { position: relative; }
   // hint line is rebuilt on every level step, so it reads from here rather
   // than from the payload the outer ring was built with.
   var quietUntil = 0;
+  // The sessions ring is fetched on demand: listing conversations costs a walk
+  // of the session store in the main process, and that walk must not sit inside
+  // the menu's reveal budget. `sessionsBuilt` says the ring has real chips;
+  // `sessionsPending` keeps a second RECENT click from asking twice.
+  var sessionsBuilt = false;
+  var sessionsPending = false;
 
   function nestedDistance(angle) {
     var rad = (angle * Math.PI) / 180;
@@ -697,6 +842,66 @@ body { position: relative; }
     return btn;
   }
 
+  /**
+   * Paint the sessions ring. Newest-first order and the cap are repeated here
+   * so a stale or hand-built list can never overflow the ring or repeat a
+   * thread. With nothing to show, `noteText` (or the localized empty state)
+   * claims one slot: an unexplained empty ring would look broken.
+   */
+  function renderSessionChips(list, noteText) {
+    sessionPetalsLayer.textContent = "";
+    sessionPetals = [];
+    var sessions = Array.isArray(list) ? list : [];
+    var seen = {};
+    for (var i = 0; i < sessions.length && sessionPetals.length < SESSION_LIMIT; i++) {
+      var session = sessions[i];
+      if (!session || typeof session.id !== "string" || !session.id) continue;
+      if (seen[session.id]) continue;
+      seen[session.id] = true;
+      var chip = makeSessionPetal({
+        action: "session:" + session.id,
+        key: String(sessionPetals.length + 1),
+        label: typeof session.label === "string" && session.label ? session.label : session.id,
+        when: typeof session.when === "string" ? session.when : "",
+        accent: SESSION_ACCENT,
+        angle: SESSION_START_ANGLE + sessionPetals.length * SESSION_STEP,
+      }, sessionPetals.length);
+      sessionPetalsLayer.appendChild(chip);
+      sessionPetals.push(chip);
+    }
+    if (sessionPetals.length) return;
+    var note = makeSessionPetal({
+      action: "none",
+      key: "",
+      label: noteText || labels.noRecentChats || "No recent chats",
+      when: "",
+      accent: noteText ? SESSION_ACCENT : "#8b98a5",
+      angle: SESSION_START_ANGLE,
+      disabled: true,
+    }, 0);
+    sessionPetalsLayer.appendChild(note);
+    sessionPetals.push(note);
+  }
+
+  /**
+   * Ask the main process for the session list. It walks the session store, so
+   * it happens on the deliberate click into RECENT rather than when the ring
+   * opens — a right-click must never wait on the conversation history.
+   */
+  function requestSessions() {
+    sessionsPending = true;
+    renderSessionChips([], inlineLabel("loading", "LOADING…"));
+    if (api && api.requestSessions) {
+      api.requestSessions();
+      return;
+    }
+    // Standalone page: nothing will ever answer, so say "none" rather than
+    // leaving a loading chip spinning forever.
+    sessionsPending = false;
+    sessionsBuilt = true;
+    renderSessionChips([]);
+  }
+
   function setLevel(el, active) {
     el.classList.toggle("is-active", active);
     el.setAttribute("aria-hidden", active ? "false" : "true");
@@ -735,6 +940,31 @@ body { position: relative; }
     var hours = Math.floor(mins / 60);
     var rest = mins % 60;
     return rest ? hours + "h " + rest + "m" : hours + "h";
+  }
+
+  /**
+   * One gauge. `ratio` is 0–1 from the main process, or null/absent when the
+   * sample failed or came from a payload older than this renderer. A missing
+   * reading hides the bar by visibility so its fixed box stays put.
+   */
+  function paintTelemetryBar(bar, valueEl, ratio, accent) {
+    if (typeof ratio !== "number" || !isFinite(ratio)) {
+      bar.setAttribute("data-empty", "true");
+      return;
+    }
+    var clamped = Math.max(0, Math.min(1, ratio));
+    var pct = Math.round(clamped * 100);
+    bar.setAttribute("data-empty", "false");
+    bar.style.setProperty("--bar-color", pct > HOT_PERCENT ? HOT_ACCENT : accent);
+    bar.style.setProperty("--bar-fill", String(clamped));
+    valueEl.textContent = pct + "%";
+  }
+
+  /** `{ cpu, mem }` as fractions, either key possibly null. Entirely optional. */
+  function paintTelemetry(telemetry) {
+    var data = telemetry && typeof telemetry === "object" ? telemetry : {};
+    paintTelemetryBar(telemetryCpu, cpuValue, data.cpu, CPU_ACCENT);
+    paintTelemetryBar(telemetryMem, memValue, data.mem, MEM_ACCENT);
   }
 
   /**
@@ -787,6 +1017,7 @@ body { position: relative; }
       ? Math.floor(badges.notices)
       : 0;
     document.documentElement.lang = data.lang || "en";
+    runningText.textContent = inlineLabel("running", "RUNNING");
 
     layer.textContent = "";
     nestedLayerPetals.textContent = "";
@@ -816,44 +1047,20 @@ body { position: relative; }
       nestedPetals.push(nbtn);
     }
 
-    // Third ring. The payload is expected to be already ordered newest-first
-    // and capped; the renderer repeats both rules so a stale or hand-built
-    // payload can never overflow the ring or duplicate a thread.
-    var sessions = Array.isArray(data.sessions) ? data.sessions : [];
-    var seenSessions = {};
-    for (var k = 0; k < sessions.length && sessionPetals.length < SESSION_LIMIT; k++) {
-      var session = sessions[k];
-      if (!session || typeof session.id !== "string" || !session.id) continue;
-      if (seenSessions[session.id]) continue;
-      seenSessions[session.id] = true;
-      var chip = makeSessionPetal({
-        action: "session:" + session.id,
-        key: String(sessionPetals.length + 1),
-        label: typeof session.label === "string" && session.label ? session.label : session.id,
-        when: typeof session.when === "string" ? session.when : "",
-        accent: SESSION_ACCENT,
-        angle: SESSION_START_ANGLE + sessionPetals.length * SESSION_STEP,
-      }, sessionPetals.length);
-      sessionPetalsLayer.appendChild(chip);
-      sessionPetals.push(chip);
-    }
-    if (!sessionPetals.length) {
-      // An empty ring would be a dead end with no explanation. One disabled
-      // chip says why, and the orb still steps back to the nested ring.
-      var emptyChip = makeSessionPetal({
-        action: "none",
-        key: "",
-        label: labels.noRecentChats || "No recent chats",
-        when: "",
-        accent: "#8b98a5",
-        angle: SESSION_START_ANGLE,
-        disabled: true,
-      }, 0);
-      sessionPetalsLayer.appendChild(emptyChip);
-      sessionPetals.push(emptyChip);
+    // Third ring. The live menu fetches the list when RECENT is chosen (see
+    // `requestSessions`), so the payload normally carries none; the standalone
+    // page still embeds a sample, which is painted here.
+    sessionsBuilt = false;
+    sessionsPending = false;
+    var bootSessions = Array.isArray(data.sessions) ? data.sessions : [];
+    if (bootSessions.length) {
+      renderSessionChips(bootSessions);
+      sessionsBuilt = true;
     }
 
     applyState(state);
+    // Absent on an older factory: both bars read as "no telemetry" and hide.
+    paintTelemetry(data.telemetry);
 
     view = "outer";
     setLevel(outerLayer, true);
@@ -889,6 +1096,9 @@ body { position: relative; }
       left = until > now ? until - now : 0;
     }
     quietUntil = left > 0 ? until : 0;
+    // The dot says "a turn is running" only while STOP is live; otherwise it
+    // would claim work the user cannot stop.
+    running.hidden = !canStop;
     for (var i = 0; i < petals.length; i++) {
       var btn = petals[i];
       if (btn.dataset.action === "stop") {
@@ -943,6 +1153,7 @@ body { position: relative; }
    */
   function enterSessions() {
     if (view !== "nested" || closing) return;
+    if (!sessionsBuilt && !sessionsPending) requestSessions();
     view = "sessions";
     setLevel(sessionsLayer, true);
     setOrbBack(true);
@@ -1095,6 +1306,28 @@ body { position: relative; }
     if (document.activeElement === document.body) focusRing();
   });
 
+  // Main pushes a refreshed reading after the ring has been up a few seconds.
+  // Its own channel rather than a second `pet-menu-show`: a full payload would
+  // make the ring rebuild and drop back to the outer level mid-use.
+  if (api && api.onTelemetry) {
+    api.onTelemetry(function (telemetry) {
+      if (!ready || closing) return;
+      paintTelemetry(telemetry);
+    });
+  }
+
+  if (api && api.onSessions) {
+    api.onSessions(function (list) {
+      if (closing) return;
+      sessionsPending = false;
+      sessionsBuilt = true;
+      renderSessionChips(list);
+      // The ring just gained its real chips. Keep the level the user is on and
+      // hand the keyboard back to the ring so arrows and number keys work.
+      if (view === "sessions") focusRing();
+    });
+  }
+
   if (api && api.onShow) {
     api.onShow(build);
   } else {
@@ -1119,6 +1352,8 @@ body { position: relative; }
       state: { canStop: false, quiet: false },
       badges: { notices: 3 },
       available: {},
+      // Fixed readings so the gauges are inspectable outside Electron too.
+      telemetry: { cpu: 0.23, mem: 0.61 },
     });
   }
 })();

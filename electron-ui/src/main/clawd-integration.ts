@@ -1031,6 +1031,11 @@ export function showClawdNotice(
     cancelClawdNotice()
     releaseActivityCard()
     const ttl = clampNoticeTtl(ttlMs)
+    // This notice's own timer. The handle is what makes the continuation below
+    // safe: showing the *next* notice settles this card's promise synchronously,
+    // and by the time the continuation runs the next notice already owns
+    // `noticeTimer`. Clearing blindly would disarm that newer card instead.
+    let myTimer: NodeJS.Timeout | null = null
     void Promise.resolve(clawdInstance.showAttentionBubble({
       ...applyHudDefaults(payload),
       // Clamped to the same window as the hide timer: an unclamped countdown
@@ -1039,19 +1044,20 @@ export function showClawdNotice(
       requireAction: false,
     } as ClawdAttentionBubblePayload & { requireAction: false }))
       .then(action => {
-        // The card left the screen (clicked, replaced, or timed out). Its
-        // dismissal timer must die with it: left armed, it would fire later and
-        // pull down whatever card is up by then — typically the activity strip.
-        cancelClawdNotice()
+        // The card left the screen (clicked, replaced, or timed out). Its own
+        // dismissal timer must die with it, or it would fire later and pull
+        // down whatever card is up by then — typically the activity strip.
+        if (myTimer && noticeTimer === myTimer) cancelClawdNotice()
         // A notice needs no answer, but a click on it is still a shortcut: the
         // caller decides what "open" means (focus the window, open a session).
         if (action) onClick?.(action)
       })
       .catch(() => { /* the pet is gone; nothing left to clear */ })
-    noticeTimer = setTimeout(() => {
-      noticeTimer = null
+    myTimer = setTimeout(() => {
+      if (noticeTimer === myTimer) noticeTimer = null
       try { clawdInstance?.hideAttentionBubble() } catch { /* pet gone */ }
     }, ttl)
+    noticeTimer = myTimer
     recordClawdNotice({
       kind: payload.kind || 'system',
       title: payload.title,

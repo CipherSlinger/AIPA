@@ -550,9 +550,13 @@ function ensureIpc(): void {
     applyReportedHeight(height)
   })
 
-  ipcMain.on('notice-center:close', (event: Electron.IpcMainEvent) => {
+  ipcMain.on('notice-center:close', (event: Electron.IpcMainEvent, options: unknown) => {
     if (!isSender(event)) return
-    destroyWindow(true, true)
+    // The renderer says whether this close means "seen": the × and Escape do,
+    // the transparent margin around the panel does not — that is a click-away,
+    // and a click just outside the window blurs without marking anything.
+    const opts = (options && typeof options === 'object' ? options : {}) as { markRead?: unknown }
+    destroyWindow(true, opts.markRead !== false)
   })
 }
 

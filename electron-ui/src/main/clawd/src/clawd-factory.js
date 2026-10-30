@@ -14,6 +14,7 @@
 const { app, BrowserWindow, screen, Menu, ipcMain, globalShortcut, nativeTheme, dialog, shell } = require("electron");
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
 const { pathToFileURL } = require("url");
 const { applyStationaryCollectionBehavior } = require("./mac-window");
 const hitGeometry = require("./hit-geometry");
@@ -933,6 +934,88 @@ function getPetMenuSessions() {
   return out;
 }
 
+// ── Radial menu telemetry ──
+// Two gauges on the menu. Sampling happens at open time and once every few
+// seconds while the ring is up — never on a background poll, so a closed menu
+// costs nothing. Every reading is 0–1 or null; null hides the bar.
+const PET_MENU_TELEMETRY_MS = 4000;
+// The previous os.cpus() totals, kept at module scope so the next reading is a
+// delta over the real interval rather than since boot.
+let _cpuTotals = null;
+let _petMenuTelemetryTimer = null;
+
+function clampRatio(value) {
+  if (!(value > 0)) return 0;
+  return value > 1 ? 1 : value;
+}
+
+function readCpuTotals() {
+  const cpus = os.cpus();
+  if (!Array.isArray(cpus) || cpus.length === 0) return null;
+  let busy = 0;
+  let idle = 0;
+  for (const cpu of cpus) {
+    const times = cpu && cpu.times;
+    if (!times) continue;
+    busy += (times.user || 0) + (times.nice || 0) + (times.sys || 0) + (times.irq || 0);
+    idle += times.idle || 0;
+  }
+  const total = busy + idle;
+  return total > 0 ? { busy, idle, total, cores: cpus.length } : null;
+}
+
+// Baseline taken when the factory loads, so the first menu open already has an
+// interval to measure. Sampling only on open made the first reading meaningless:
+// the delta was a few milliseconds wide, and the load-average fallback is always
+// zero on Windows.
+_cpuTotals = readCpuTotals();
+
+/**
+ * CPU load as a fraction. With a previous sample this is the busy delta over
+ * the total delta of that interval; on the first call (nothing to subtract)
+ * it falls back to the one-minute load average spread over the cores.
+ */
+function getPetMenuCpuRatio() {
+  try {
+    const sample = readCpuTotals();
+    if (!sample) return null;
+    const prev = _cpuTotals;
+    _cpuTotals = sample;
+    if (prev) {
+      const busy = sample.busy - prev.busy;
+      const total = sample.total - prev.total;
+      // The kernel's CPU counters are monotonic in practice, but a negative
+      // or zero interval means the reading is unusable, not that the CPU idled.
+      if (total > 0 && busy >= 0) return clampRatio(busy / total);
+    }
+    const load = os.loadavg();
+    return clampRatio((Array.isArray(load) && load[0] > 0 ? load[0] : 0) / sample.cores);
+  } catch {
+    // os.cpus()/loadavg() should not throw, but a menu must not fail to open
+    // because a gauge could not read the machine.
+    return null;
+  }
+}
+
+/** Used physical memory as a fraction; null when Electron has no reading. */
+function getPetMenuMemoryRatio() {
+  try {
+    if (typeof process.getSystemMemoryInfo !== "function") return null;
+    const info = process.getSystemMemoryInfo();
+    if (!info || !(info.total > 0)) return null;
+    return clampRatio((info.total - info.free) / info.total);
+  } catch {
+    return null;
+  }
+}
+
+function getPetMenuTelemetry() {
+  return {
+    cpu: getPetMenuCpuRatio(),
+    mem: getPetMenuMemoryRatio(),
+  };
+}
+
 function getPetMenuPayload() {
   // The unread count is read once per open. The menu renders a static badge;
   // a count that moves while the ring is up is not worth a repaint channel.
@@ -969,14 +1052,19 @@ function getPetMenuPayload() {
       close: t("petMenuClose"),
       nothingRunning: t("petMenuNothingRunning"),
     },
-    // Absent on an older AIPA. The renderer reads a missing/empty list as
-    // "no recent chats" and still opens the third ring on the disabled chip.
-    sessions: getPetMenuSessions(),
+    // Deliberately not part of the payload: the session list costs a walk of
+    // the conversation store, and the menu must appear before that walk can
+    // time the reveal out. The renderer asks for it (`pet-menu-sessions`) only
+    // when RECENT is chosen. A renderer that still expects `sessions` here sees
+    // an empty ring with its "no recent chats" chip rather than a crash.
     state: {
       canStop: callPetMenuCallback("isBusy") === true,
       quiet: callPetMenuCallback("isQuiet") === true,
       quietUntil,
     },
+    // Optional for the renderer: an older pet-menu.html that does not know
+    // this key simply draws no gauges. `cpu`/`mem` are 0–1 or null.
+    telemetry: getPetMenuTelemetry(),
     badges: {
       notices: unreadNotices,
     },
@@ -1025,6 +1113,7 @@ const _petMenuCtx = {
   getNearestWorkArea,
   getHitRectScreen,
   getPayload: () => getPetMenuPayload(),
+  getSessions: () => getPetMenuSessions(),
   onAction: (actionId) => handlePetMenuAction(actionId),
   // MORE no longer ends here: it opens the second ring inside the menu window,
   // and only the petal chosen there comes back as an action id.
@@ -1039,10 +1128,58 @@ function getPetMenu() {
   return _petMenu;
 }
 
+/**
+ * Push a fresh gauge reading into the open menu. The menu's IPC surface is one
+ * payload in / one action out by design, so this calls the page hook directly
+ * rather than adding a channel for a value that is already optional in the
+ * payload. A page that predates the hook ignores the call.
+ */
+function pushPetMenuTelemetry() {
+  const menu = _petMenu && typeof _petMenu.getWindow === "function" ? _petMenu.getWindow() : null;
+  if (!menu || menu.isDestroyed()) {
+    stopPetMenuTelemetryRefresh();
+    return;
+  }
+  try {
+    menu.webContents.send("pet-menu-telemetry", getPetMenuTelemetry());
+  } catch {
+    stopPetMenuTelemetryRefresh();
+  }
+}
+
+function stopPetMenuTelemetryRefresh() {
+  if (!_petMenuTelemetryTimer) return;
+  clearInterval(_petMenuTelemetryTimer);
+  _petMenuTelemetryTimer = null;
+}
+
+function startPetMenuTelemetryRefresh() {
+  stopPetMenuTelemetryRefresh();
+  const menu = _petMenu && typeof _petMenu.getWindow === "function" ? _petMenu.getWindow() : null;
+  if (!menu || menu.isDestroyed()) return;
+  // The menu window is destroyed on close, so its own event is what guarantees
+  // the timer cannot outlive it — even on the click-away path the factory never
+  // hears about. A late event from a replaced window must not cancel the next
+  // menu's timer, hence the ownership check.
+  menu.once("closed", () => {
+    const current = _petMenu && typeof _petMenu.getWindow === "function" ? _petMenu.getWindow() : null;
+    if (current && current !== menu) return;
+    stopPetMenuTelemetryRefresh();
+  });
+  _petMenuTelemetryTimer = setInterval(pushPetMenuTelemetry, PET_MENU_TELEMETRY_MS);
+  _petMenuTelemetryTimer.unref?.();
+}
+
 function openPetMenu() {
   try {
-    return getPetMenu().open();
+    const opened = getPetMenu().open();
+    // `open()` also returns true when it just toggled an open menu shut; the
+    // refresh then has no window and stops itself.
+    if (opened) startPetMenuTelemetryRefresh();
+    else stopPetMenuTelemetryRefresh();
+    return opened;
   } catch (err) {
+    stopPetMenuTelemetryRefresh();
     console.warn("Clawd: pet menu could not open:", err && err.message);
     return false;
   }
@@ -1050,6 +1187,7 @@ function openPetMenu() {
 
 function closePetMenu() {
   if (!_petMenu) return;
+  stopPetMenuTelemetryRefresh();
   try {
     _petMenu.close();
   } catch (err) {
@@ -2002,6 +2140,7 @@ module.exports = function createClawdIntegration(aipaContext) {
     _server.cleanup();
     _updateBubble.cleanup();
     _attentionBubble.cleanup();
+    stopPetMenuTelemetryRefresh();
     if (_petMenu) {
       _petMenu.cleanup();
       _petMenu = null;
