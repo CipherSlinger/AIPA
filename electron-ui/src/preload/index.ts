@@ -147,6 +147,8 @@ export interface TaskRecordData {
   dueOn?: string
   /** How often the task repeats. Absent means a one-off. */
   repeat?: TaskRepeatData
+  /** "Every N days/weeks/months" for the repeat. Absent means N = 1. */
+  repeatEvery?: number
   materials: TaskMaterialData[]
   /** Conversations that ran in this task, oldest first. */
   sessions: TaskSessionRefData[]
@@ -2666,9 +2668,27 @@ const electronAPI = {
     ipcRenderer.invoke('tasks:list') as Promise<TaskRecordData[]>,
   tasksGet: (id: string) =>
     ipcRenderer.invoke('tasks:get', id) as Promise<TaskRecordData | null>,
-  tasksCreate: (input: { title: string; status?: TaskStatusData; dueOn?: string | null; repeat?: TaskRepeatData | null }) =>
+  tasksCreate: (input: {
+    title: string
+    status?: TaskStatusData
+    dueOn?: string | null
+    repeat?: TaskRepeatData | null
+    /** Interval for the cadence; `null`/absent means N = 1. */
+    repeatEvery?: number | null
+  }) =>
     ipcRenderer.invoke('tasks:create', input) as Promise<TaskMutationData>,
-  tasksUpdate: (id: string, patch: { title?: string; status?: TaskStatusData; note?: string; dueOn?: string | null; repeat?: TaskRepeatData | null }) =>
+  tasksUpdate: (id: string, patch: {
+    title?: string
+    status?: TaskStatusData
+    note?: string
+    dueOn?: string | null
+    repeat?: TaskRepeatData | null
+    /**
+     * With `repeat` stated, this re-states the interval (usually absent = N=1).
+     * Alone, it changes only the interval of a repeating task. `null` clears it.
+     */
+    repeatEvery?: number | null
+  }) =>
     ipcRenderer.invoke('tasks:update', id, patch) as Promise<TaskMutationData>,
   tasksArchive: (id: string) =>
     ipcRenderer.invoke('tasks:archive', id) as Promise<TaskMutationData>,

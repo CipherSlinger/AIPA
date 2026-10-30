@@ -34,6 +34,8 @@ import {
   formatTaskTime,
   groupTasks,
   groupTasksByDue,
+  repeatLabel,
+  repeatShortLabel,
   statusColor,
   statusLabelKey,
   taskSpendLabel,
@@ -449,14 +451,16 @@ export default function TasksPanel() {
                           )}
                           {/* Cadence is metadata, not a second deadline: plain
                               text in the row's quiet tone, no calendar glyph,
-                              and only for a task that actually repeats. */}
+                              and only for a task that actually repeats. The
+                              short figure is composed from repeat + interval,
+                              and the tooltip always names the full cadence. */}
                           {task.repeat && (
                             <span
                               data-task-repeat-row
-                              title={t(`tasks.repeat.${task.repeat}`)}
+                              title={repeatLabel(t, task.repeat, task.repeatEvery) ?? undefined}
                               style={{ color: 'var(--text-subtle)', fontWeight: 400 }}
                             >
-                              {t(`tasks.repeat.short.${task.repeat}`)}
+                              {repeatShortLabel(t, task.repeat, task.repeatEvery)}
                             </span>
                           )}
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>

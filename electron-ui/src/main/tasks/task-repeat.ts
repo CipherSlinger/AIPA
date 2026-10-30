@@ -12,6 +12,17 @@
 export const TASK_REPEATS = ['daily', 'weekly', 'monthly'] as const
 export type TaskRepeat = typeof TASK_REPEATS[number]
 
+/**
+ * The interval a cadence may carry: "every N days / weeks / months".
+ *
+ * N = 1 is the plain cadence and is stored as *absent*, not as the number 1, so
+ * the store keeps exactly one representation of "every week". 2 is the
+ * smallest meaningful interval ("every other week"); 99 is a generous ceiling
+ * that still keeps the arithmetic and the UI label bounded.
+ */
+export const MIN_REPEAT_EVERY = 2
+export const MAX_REPEAT_EVERY = 99
+
 const DAY_RE = /^(\d{4})-(\d{2})-(\d{2})$/
 
 export function isTaskRepeat(value: unknown): value is TaskRepeat {
@@ -27,6 +38,25 @@ export function normalizeRepeat(value: unknown): { ok: true; value: TaskRepeat |
   if (value === null) return { ok: true, value: null }
   if (isTaskRepeat(value)) return { ok: true, value }
   return { ok: false }
+}
+
+/**
+ * The interval carried by a cadence, or null when there is none.
+ *
+ * Anything that is not an integer 2..99 is absent rather than an error: the
+ * value arrives from an IPC boundary, a hand-edited store or a page that spoke
+ * before the field existed, and a one-off-looking "every week" is always the
+ * safe reading. `null` is deliberately *not* the representation of "no
+ * interval" in the stored record — an absent field is, so old records and
+ * cleared records are the same state.
+ */
+export function normalizeRepeatEvery(value: unknown): number | null {
+  return typeof value === 'number'
+    && Number.isInteger(value)
+    && value >= MIN_REPEAT_EVERY
+    && value <= MAX_REPEAT_EVERY
+    ? value
+    : null
 }
 
 interface CalendarDay {
@@ -60,17 +90,25 @@ function formatDay(date: Date): string {
  * day is then what the next step uses, so Feb 28 → 28 Mar rather than drifting
  * back to 31. A shorter target month clamps to its last day; it never rolls
  * over into the following month the way `new Date(y, m, 31)` would.
+ *
+ * `every` is the cadence's interval ("every 2 weeks"). It is clamped to an
+ * integer 1..99 here as well as at the store, because this function is also
+ * called directly by the renderer's type imports and by tests.
  */
 export function nextOccurrenceDay(
   fromDay: string | undefined,
   repeat: TaskRepeat,
   todayDay: string,
+  every: number = 1,
 ): string {
   const base = parseDay(fromDay ?? todayDay)
+  const interval = Number.isFinite(every)
+    ? Math.max(1, Math.min(MAX_REPEAT_EVERY, Math.floor(every)))
+    : 1
 
   if (repeat === 'monthly') {
-    // Month indices are 0-based; the current month plus one is `base.month`.
-    const targetIndex = base.month
+    // Month indices are 0-based: the occurrence's own month plus `interval`.
+    const targetIndex = base.month - 1 + interval
     const targetYear = base.year + Math.floor(targetIndex / 12)
     const targetMonth = targetIndex % 12
     // Day 0 of the following month is the last day of the target month.
@@ -78,7 +116,7 @@ export function nextOccurrenceDay(
     return formatDay(new Date(targetYear, targetMonth, Math.min(base.day, lastDay)))
   }
 
-  const step = repeat === 'daily' ? 1 : 7
+  const step = repeat === 'daily' ? interval : 7 * interval
   return formatDay(new Date(base.year, base.month - 1, base.day + step))
 }
 

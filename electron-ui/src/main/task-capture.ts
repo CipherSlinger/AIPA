@@ -17,6 +17,7 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import fs from 'fs'
 import path from 'path'
 import { createTask, type TaskRepeat, type TaskView } from './tasks/task-store'
+import { normalizeRepeatEvery } from './tasks/task-repeat'
 import { refreshClawdTaskBadge } from './clawd-task-badge'
 import { showClawdNotice, withClawdMainWindow } from './clawd-integration'
 import type { IpcMainEvent, Rectangle } from 'electron'
@@ -78,12 +79,17 @@ export interface TaskCaptureLabels {
   dueToday: string
   dueTomorrow: string
   dueNextWeek: string
-  /** The cadence chip and its four-row strip. */
+  /** The cadence chip and its five-row strip. */
   repeatLabel: string
   repeatNone: string
   repeatDaily: string
   repeatWeekly: string
   repeatMonthly: string
+  /** Interval labels behind `{n}` ("every 3 days") and the weekly ×2 phrase. */
+  repeatEveryDays: string
+  repeatEveryWeeks: string
+  repeatEveryMonths: string
+  repeatOtherWeek: string
   repeatPresets: string
 }
 
@@ -587,6 +593,7 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
     rawDue: unknown,
     rawRepeat: unknown,
     rawStay: unknown,
+    rawRepeatEvery: unknown,
   ): void {
     if (!isSender(event)) return
     let labels: TaskCaptureLabels
@@ -602,6 +609,9 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
     }
 
     const repeat = normalizeRepeatArg(rawRepeat)
+    // The page may send no interval, a number or null; only an integer 2..99
+    // reaches the store, which validates again and drops it without a cadence.
+    const repeatEvery = normalizeRepeatEvery(rawRepeatEvery)
     let result: ReturnType<typeof createTask>
     try {
       // The store is the calendar gate: a day this boundary lets through but
@@ -611,6 +621,7 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
         title,
         dueOn: normalizeDueOn(rawDue),
         ...(repeat ? { repeat } : {}),
+        ...(repeatEvery !== null ? { repeatEvery } : {}),
       })
     } catch (err) {
       const detail = cleanErrorText(err)
@@ -660,9 +671,10 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
     rawDue: unknown,
     rawRepeat: unknown,
     rawStay: unknown,
+    rawRepeatEvery: unknown,
   ) => {
     if (!isSender(event)) return
-    handleSave(event, raw, rawDue, rawRepeat, rawStay)
+    handleSave(event, raw, rawDue, rawRepeat, rawStay, rawRepeatEvery)
   }
   const handleClose = (event: IpcMainEvent) => {
     if (!isSender(event)) return

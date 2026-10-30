@@ -417,8 +417,10 @@ body[data-theme="clawd"] .repeat { font-size: 11px; }
   z-index: 1;
   align-self: flex-start;
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 4px;
   flex: none;
+  max-width: 100%;
   margin-top: 5px;
 }
 .due-preset {
@@ -613,6 +615,7 @@ kbd {
     <button class="due-preset" id="repeatPresetNone" type="button" data-repeat="none">Doesn't repeat</button>
     <button class="due-preset" id="repeatPresetDaily" type="button" data-repeat="daily">Every day</button>
     <button class="due-preset" id="repeatPresetWeekly" type="button" data-repeat="weekly">Every week</button>
+    <button class="due-preset" id="repeatPresetOtherWeek" type="button" data-repeat="weekly" data-every="2">Every other week</button>
     <button class="due-preset" id="repeatPresetMonthly" type="button" data-repeat="monthly">Every month</button>
   </div>
   <div class="error" id="error" role="alert" hidden></div>
@@ -652,13 +655,16 @@ kbd {
   var repeatEl = document.getElementById("repeat");
   var repeatText = document.getElementById("repeatText");
   var repeatPresets = document.getElementById("repeatPresets");
-  // The strip's four cadences, in reading order. `value` is the store's own
+  // The strip's five cadences, in reading order. `value` is the store's own
   // vocabulary; null is "no repeat", which is not sent at all on create.
+  // `every` is the interval that turns a cadence into "every N ...": only the
+  // other-week row carries one, and a row without it is the plain cadence.
   var repeatPresetButtons = [
-    { el: document.getElementById("repeatPresetNone"), value: null, key: "repeatNone" },
-    { el: document.getElementById("repeatPresetDaily"), value: "daily", key: "repeatDaily" },
-    { el: document.getElementById("repeatPresetWeekly"), value: "weekly", key: "repeatWeekly" },
-    { el: document.getElementById("repeatPresetMonthly"), value: "monthly", key: "repeatMonthly" }
+    { el: document.getElementById("repeatPresetNone"), value: null, every: null, key: "repeatNone" },
+    { el: document.getElementById("repeatPresetDaily"), value: "daily", every: null, key: "repeatDaily" },
+    { el: document.getElementById("repeatPresetWeekly"), value: "weekly", every: null, key: "repeatWeekly" },
+    { el: document.getElementById("repeatPresetOtherWeek"), value: "weekly", every: 2, key: "repeatOtherWeek" },
+    { el: document.getElementById("repeatPresetMonthly"), value: "monthly", every: null, key: "repeatMonthly" }
   ];
   // The strip's days, in reading order. `days` is a local calendar offset;
   // "next week" is today + 7, not "+7 × 86400000" — see choosePreset.
@@ -693,6 +699,10 @@ kbd {
     repeatDaily: "Every day",
     repeatWeekly: "Every week",
     repeatMonthly: "Every month",
+    repeatEveryDays: "Every {n} days",
+    repeatEveryWeeks: "Every {n} weeks",
+    repeatEveryMonths: "Every {n} months",
+    repeatOtherWeek: "Every other week",
     repeatPresets: "Change the repeat"
   };
 
@@ -710,10 +720,14 @@ kbd {
   var chosenDue = null;
   // The cadence in force, or null. Rides along with the save as `repeat`.
   var repeat = null;
+  // The interval in force beside `repeat`: 2 means "every other"/"every 2 ...",
+  // null means the plain cadence. n = 1 is never stored, it is the plain one.
+  var repeatEvery = null;
   // A cadence picked from the strip, or null. Mirrors chosenDue exactly: the
   // line wins over the click, but the click survives typing while the line's
   // cadence phrase has not changed. `repeat: null` is a real choice ("Doesn't
   // repeat"), so the object's presence — not its value — says a choice exists.
+  // `every` rides with the choice so "every other week" survives the keystroke.
   var chosenRepeat = null;
 
   var composing = false;
@@ -983,11 +997,46 @@ kbd {
   // rule: full weekday names are unambiguous in any case, so "every friday"
   // counts, while three-letter forms still need a capital ("every Fri" yes,
   // "every fri" no — that is also the word "fri" in ordinary text).
+  // A cadence may carry an interval: "every other week" is weekly with N = 2,
+  // "every 3 days" is daily with N = 3. N = 1 is the plain cadence and carries
+  // no interval, so only 2..99 ever ride with a task. The words run two..ten,
+  // the same small numbers people spell instead of type.
+  var NUMBER_WORDS = {
+    two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10
+  };
+  // Chinese counts the same way: 两 for two, 三四五六七八九十 for 3..10. 二 is
+  // the counting form and accepted alongside 两.
+  var NUMBER_ZH = {
+    "两": 2, "二": 2, "三": 3, "四": 4, "五": 5,
+    "六": 6, "七": 7, "八": 8, "九": 9, "十": 10
+  };
+
+  /**
+   * The interval a matched count means, or false when it is not a usable
+   * cadence interval at all (0, a fraction, past 99). 1 normalises to null:
+   * "every 1 week" is just "every week".
+   */
+  function intervalOf(token, words) {
+    var key = String(token).toLowerCase();
+    var n = Object.prototype.hasOwnProperty.call(words, key) ? words[key] : +key;
+    if (!isFinite(n) || n !== Math.floor(n) || n < 1 || n > 99) return false;
+    return n === 1 ? null : n;
+  }
+
+  function everyFrom(words, index) {
+    return function (m) { return intervalOf(m[index || 1], words); };
+  }
+
   function parseCadence(text) {
     if (typeof text !== "string" || !text) return null;
     var found = [];
 
-    function offer(re, value, weekdayOf) {
+    /**
+     * `everyOf`, when given, reads the interval out of the match. It may
+     * return false to reject the match (a rejected "every 0 days" must not
+     * stop a later, genuine phrase in the same line from winning).
+     */
+    function offer(re, value, weekdayOf, everyOf) {
       // A hyphen counts as a word boundary to \b, so "bi-weekly" and
       // "semi-monthly" would otherwise read as bare cadences. A hyphen that
       // follows a letter marks a compound, and the word after it is not a
@@ -997,6 +1046,7 @@ kbd {
       var scan = new RegExp(re.source, re.flags.indexOf("g") < 0 ? re.flags + "g" : re.flags);
       var match;
       while ((match = scan.exec(text)) !== null) {
+        if (match[0].length === 0) { scan.lastIndex += 1; continue; }
         var afterCompoundHyphen = match.index >= 2 &&
           text.charAt(match.index - 1) === "-" &&
           /[A-Za-z]/.test(text.charAt(match.index - 2));
@@ -1004,18 +1054,22 @@ kbd {
         // A link is one token, and nothing inside it is the user's own words:
         // "review https://example.com/weekly-report" is a task about a URL, not
         // a weekly series. Slashes, a scheme or a leading www. mark the token as
-        // a link; the phrase inside it is skipped like a compound's tail.
+        // a link; the phrase inside it is skipped like a compound's tail. The
+        // same rule keeps "https://x.dev/every-2-weeks" from starting a series.
         var tokenStart = match.index;
         while (tokenStart > 0 && !/\s/.test(text.charAt(tokenStart - 1))) tokenStart -= 1;
         var tokenEnd = match.index + match[0].length;
         while (tokenEnd < text.length && !/\s/.test(text.charAt(tokenEnd))) tokenEnd += 1;
         var token = text.slice(tokenStart, tokenEnd);
         if (token.indexOf("://") >= 0 || /www\./i.test(token) || token.indexOf("/") >= 0) continue;
+        var every = typeof everyOf === "function" ? everyOf(match) : null;
+        if (every === false) continue;
         found.push({
           index: match.index,
           phrase: match[0],
           repeat: value,
-          weekday: typeof weekdayOf === "function" ? weekdayOf(match) : null
+          weekday: typeof weekdayOf === "function" ? weekdayOf(match) : null,
+          every: every == null ? null : every
         });
         return;
       }
@@ -1028,6 +1082,20 @@ kbd {
     offer(/\bweekly\b/i, "weekly");
     offer(/\bevery\s+month\b/i, "monthly");
     offer(/\bmonthly\b/i, "monthly");
+
+    // Intervals. "every other week/day" is N = 2; "every N days/weeks/months"
+    // reads digits or the words two..ten. N = 1 is the plain cadence above and
+    // is normalised away, 0 and anything past 99 are not a cadence at all.
+    // Only "every other" is special-cased: "bi-weekly" stays unrecognised
+    // because English cannot agree on what it means.
+    offer(/\bevery\s+other\s+week\b/i, "weekly", null, function () { return 2; });
+    offer(/\bevery\s+other\s+day\b/i, "daily", null, function () { return 2; });
+    offer(/\bevery\s+(\d{1,2}|two|three|four|five|six|seven|eight|nine|ten)\s+days?\b/i,
+      "daily", null, everyFrom(NUMBER_WORDS));
+    offer(/\bevery\s+(\d{1,2}|two|three|four|five|six|seven|eight|nine|ten)\s+weeks?\b/i,
+      "weekly", null, everyFrom(NUMBER_WORDS));
+    offer(/\bevery\s+(\d{1,2}|two|three|four|five|six|seven|eight|nine|ten)\s+months?\b/i,
+      "monthly", null, everyFrom(NUMBER_WORDS));
 
     offer(/\bevery\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i, "weekly",
       function (m) { return WEEKDAY_EN[m[1].toLowerCase()]; });
@@ -1051,9 +1119,24 @@ kbd {
     offer(/每(?:周|星期|礼拜)(?:周|星期|礼拜)?([一二三四五六日天])(?![次回遍趟号])/, "weekly",
       function (m) { return WEEKDAY_ZH[m[1]]; });
 
+    // Chinese intervals. 每隔 is only ever read as the explicit 每隔一周 ("every
+    // other week"); 每隔一天 and the other shapes are left unread rather than
+    // guessed. The number may be a small character (两..十) or digits 1..99.
+    offer(/每隔一周/, "weekly", null, function () { return 2; });
+    offer(/每([两二三四五六七八九十]|\d{1,2})天/, "daily", null, everyFrom(NUMBER_ZH));
+    offer(/每([两二三四五六七八九十]|\d{1,2})周(?!末)/, "weekly", null, everyFrom(NUMBER_ZH));
+    offer(/每([两二三四五六七八九十]|\d{1,2})个月(?!末|底|初|中)/, "monthly", null,
+      everyFrom(NUMBER_ZH));
+
     offer(/매일/, "daily");
     offer(/매주/, "weekly");
     offer(/매월/, "monthly");
+
+    // Korean intervals: 격주 is every other week, N일/주/개월마다 is N = 2..99.
+    offer(/격주/, "weekly", null, function () { return 2; });
+    offer(/(\d{1,2})일마다/, "daily", null, everyFrom({}));
+    offer(/(\d{1,2})주마다/, "weekly", null, everyFrom({}));
+    offer(/(\d{1,2})개월마다/, "monthly", null, everyFrom({}));
 
     if (!found.length) return null;
     // Earliest phrase wins; at the same index the longer phrase wins so
@@ -1073,6 +1156,7 @@ kbd {
     return {
       due: parseDue(text, today),
       repeat: cadence ? cadence.repeat : null,
+      repeatEvery: cadence ? cadence.every : null,
       repeatPhrase: cadence ? cadence.phrase : null,
       weekday: cadence ? cadence.weekday : null
     };
@@ -1168,8 +1252,32 @@ kbd {
     dueEl.hidden = false;
   }
 
-  /** The chip's own name for a cadence value. */
-  function repeatLabelFor(value) {
+  // Chinese spells small intervals in characters: 每两天, 每三天 … 每十天. The
+  // counting form 二 is not used after 每 in everyday writing; 两 is.
+  var NUMBER_ZH_WORDS = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+
+  function repeatIntervalNumber(n) {
+    if (lang === "zh") {
+      if (n === 2) return "两";
+      if (n >= 3 && n <= 10) return NUMBER_ZH_WORDS[n];
+    }
+    return String(n);
+  }
+
+  /**
+   * The chip's own name for a cadence and its interval. Weekly ×2 has its own
+   * phrase ("every other week" / 每两周); every other interval is the cadence's
+   * template with `{n}` filled in. No interval means the plain cadence.
+   */
+  function repeatLabelFor(value, every) {
+    if (every && every >= 2) {
+      var template = null;
+      if (value === "weekly" && every === 2) template = labels.repeatOtherWeek;
+      else if (value === "daily") template = labels.repeatEveryDays;
+      else if (value === "weekly") template = labels.repeatEveryWeeks;
+      else if (value === "monthly") template = labels.repeatEveryMonths;
+      if (template) return template.replace("{n}", repeatIntervalNumber(every));
+    }
     if (value === "daily") return labels.repeatDaily;
     if (value === "weekly") return labels.repeatWeekly;
     if (value === "monthly") return labels.repeatMonthly;
@@ -1184,18 +1292,25 @@ kbd {
    * chip beside it is left alone.
    */
   function renderRepeat(parsed) {
+    // The phrase is the whole comparison: a pick survives further keystrokes
+    // while the line's cadence phrase stays put, and a new phrase — "every 3
+    // days" typed after picking "every other week" — replaces the pick whole,
+    // interval included.
     if (chosenRepeat && parsed.repeatPhrase !== chosenRepeat.fromPhrase) {
       chosenRepeat = null;
     }
     repeat = chosenRepeat ? chosenRepeat.repeat : parsed.repeat;
+    repeatEvery = repeat
+      ? (chosenRepeat ? chosenRepeat.every : parsed.repeatEvery) || null
+      : null;
     if (!repeat) {
       repeatEl.hidden = true;
       repeatEl.removeAttribute("aria-label");
-      // Nothing to offer the four-row strip for once the chip is gone.
+      // Nothing to offer the five-row strip for once the chip is gone.
       hideRepeatPresets();
       return;
     }
-    repeatText.textContent = repeatLabelFor(repeat);
+    repeatText.textContent = repeatLabelFor(repeat, repeatEvery);
     repeatEl.setAttribute("aria-label", labels.repeatLabel + ": " + repeatText.textContent);
     repeatEl.hidden = false;
   }
@@ -1281,10 +1396,13 @@ kbd {
     hidePresets();
     repeatPresets.hidden = false;
     repeatEl.setAttribute("aria-expanded", "true");
-    // Name the cadence already in force, so the four offers are a choice and
-    // not a question the user has to answer by comparing labels.
+    // Name the cadence already in force, so the five offers are a choice and
+    // not a question the user has to answer by comparing labels. Weekly ×2
+    // and plain weekly share a repeat value, so the interval decides between
+    // them: "every week" must not light up over an "every other week" task.
     for (var r = 0; r < repeatPresetButtons.length; r++) {
-      if (repeatPresetButtons[r].value === repeat) {
+      var presetEvery = repeatPresetButtons[r].every || null;
+      if (repeatPresetButtons[r].value === repeat && presetEvery === (repeatEvery || null)) {
         repeatPresetButtons[r].el.setAttribute("aria-current", "true");
       } else {
         repeatPresetButtons[r].el.removeAttribute("aria-current");
@@ -1314,11 +1432,16 @@ kbd {
   /**
    * A pick is a correction to the cadence, never to the day: `null` clears the
    * repeat only. The typed line is not rewritten, and the choice is remembered
-   * against the cadence phrase standing at this moment.
+   * against the cadence phrase standing at this moment. `every` rides with the
+   * choice: the other-week row picks weekly with N = 2, every other row N = 1.
    */
-  function chooseRepeat(value) {
+  function chooseRepeat(value, every) {
     var parsed = parseCapture(input.value, todayParts(new Date()));
-    chosenRepeat = { repeat: value, fromPhrase: parsed.repeatPhrase };
+    chosenRepeat = {
+      repeat: value,
+      every: value ? (every || null) : null,
+      fromPhrase: parsed.repeatPhrase
+    };
     hideRepeatPresets();
     refresh();
     // Hand the keyboard back to the line, as the day strip does.
@@ -1561,8 +1684,10 @@ kbd {
     pendingStayText = stay === true ? input.value : "";
     // The typed line goes as typed; only the resolved day and cadence ride
     // beside it. An absent cadence is passed as null and the preload omits it:
-    // on create the store's contract is "absent means a one-off".
-    api.save(input.value, due ? due.dueOn : null, repeat, stay === true);
+    // on create the store's contract is "absent means a one-off". The interval
+    // is the fifth argument and is null — never 0 — when the cadence is plain.
+    api.save(input.value, due ? due.dueOn : null, repeat, stay === true,
+      repeat ? (repeatEvery || null) : null);
   }
 
   /** The confirmation is not a status: the next edit takes it away. */
@@ -1608,6 +1733,7 @@ kbd {
       due = null;
       chosenDue = null;
       repeat = null;
+      repeatEvery = null;
       chosenRepeat = null;
       duePresets.hidden = true;
       dueDate.setAttribute("aria-expanded", "false");
@@ -1669,6 +1795,7 @@ kbd {
     dueDismissed = false;
     chosenDue = null;
     repeat = null;
+    repeatEvery = null;
     chosenRepeat = null;
     duePresets.hidden = true;
     dueDate.setAttribute("aria-expanded", "false");
@@ -1798,7 +1925,7 @@ kbd {
     (function (preset) {
       preset.el.addEventListener("click", function (event) {
         event.preventDefault();
-        chooseRepeat(preset.value);
+        chooseRepeat(preset.value, preset.every);
       });
     })(repeatPresetButtons[rb]);
   }
@@ -1858,13 +1985,13 @@ kbd {
         for (var re = 0; re < repeatPresetButtons.length; re++) {
           if (repeatPresetButtons[re].el === activeRepeat) {
             event.preventDefault();
-            chooseRepeat(repeatPresetButtons[re].value);
+            chooseRepeat(repeatPresetButtons[re].value, repeatPresetButtons[re].every);
             return;
           }
         }
       }
       if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-        // ←/→ step through the four cadences while the strip owns the keyboard.
+        // ←/→ step through the five cadences while the strip owns the keyboard.
         // ↑/↓ stay with the input's history walk, as they do for the day strip.
         var repeatInside = activeRepeat === repeatEl;
         var repeatIndex = -1;

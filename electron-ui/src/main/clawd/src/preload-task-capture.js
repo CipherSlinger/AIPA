@@ -22,21 +22,21 @@ contextBridge.exposeInMainWorld("taskCaptureAPI", {
   ready: () => ipcRenderer.send("task-capture-ready"),
   // `dueOn` is a bare local day ("YYYY-MM-DD") or null. Main refuses any other
   // shape, so the page can only ever name a day it has already resolved.
-  // `repeat` is sent only when a cadence is set: on create an absent argument
+  // `repeat` is null when no cadence is set: on create an absent/null argument
   // means a one-off, and main refuses any cadence it does not know.
-  // `stay` is Shift+Enter: main files the line without closing the bar. It is
-  // only appended when true, so an ordinary Enter keeps the wire shape it had.
-  // When a stay-save has no cadence, `null` holds the repeat position open for
-  // the flag (main reads null as absent).
-  save: (title, dueOn, repeat, stay) => {
-    const args = [String(title || ""), dueOn == null ? null : String(dueOn)]
-    if (repeat != null) {
-      args.push(String(repeat))
-      if (stay === true) args.push(true)
-    } else if (stay === true) {
-      args.push(null, true)
-    }
-    ipcRenderer.send("task-capture-save", ...args)
+  // `stay` is Shift+Enter: main files the line without closing the bar.
+  // `repeatEvery` is the interval for the cadence ("every 2 weeks"), or null
+  // when there is none. The five positions are always sent so the interval
+  // can never be mistaken for the Shift+Enter flag.
+  save: (title, dueOn, repeat, stay, repeatEvery) => {
+    ipcRenderer.send(
+      "task-capture-save",
+      String(title || ""),
+      dueOn == null ? null : String(dueOn),
+      repeat == null ? null : String(repeat),
+      stay === true,
+      repeatEvery == null ? null : Number(repeatEvery),
+    )
   },
   close: () => ipcRenderer.send("task-capture-close"),
   // The page measures its remembered-titles strip; main owns the ceiling and

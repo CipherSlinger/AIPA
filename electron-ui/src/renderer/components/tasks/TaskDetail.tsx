@@ -62,6 +62,8 @@ import {
   parseAutomationRunDetail,
   parseImportedFolderDetail,
   parseStatusChangeDetail,
+  repeatInterval,
+  repeatLabel,
   statusColor,
   statusLabelKey,
   summarizeTaskSpend,
@@ -94,14 +96,16 @@ const DUE_PRESET_BUTTON: React.CSSProperties = {
 }
 
 // The repeat choices, in one place: `null` is the store's "does not repeat",
-// and the rest are the same kebab-case values the record carries. The label
-// keys are written out so a missing string fails at build time rather than
-// rendering the key itself.
-const REPEAT_OPTIONS: Array<{ value: TaskRepeatData | null; labelKey: string }> = [
-  { value: null, labelKey: 'tasks.repeat.none' },
-  { value: 'daily', labelKey: 'tasks.repeat.daily' },
-  { value: 'weekly', labelKey: 'tasks.repeat.weekly' },
-  { value: 'monthly', labelKey: 'tasks.repeat.monthly' },
+// the rest are the same kebab-case values the record carries, and `every` is
+// the interval each choice means (N = 1 is plain, weekly ×2 is "every other
+// week"). The label keys are written out so a missing string fails at build
+// time rather than rendering the key itself.
+const REPEAT_OPTIONS: Array<{ value: TaskRepeatData | null; every: number; labelKey: string }> = [
+  { value: null, every: 1, labelKey: 'tasks.repeat.none' },
+  { value: 'daily', every: 1, labelKey: 'tasks.repeat.daily' },
+  { value: 'weekly', every: 1, labelKey: 'tasks.repeat.weekly' },
+  { value: 'weekly', every: 2, labelKey: 'tasks.repeat.everyOtherWeek' },
+  { value: 'monthly', every: 1, labelKey: 'tasks.repeat.monthly' },
 ]
 
 const RAIL_HEADING: React.CSSProperties = {
@@ -368,11 +372,18 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
 
   // Repeat rides the same store path as the due day. `null` is an explicit
   // "does not repeat"; omitting the field would leave the old cadence in
-  // place, so clearing must send `null` rather than `undefined`.
-  const setRepeat = async (value: TaskRepeatData | null) => {
-    if ((task.repeat ?? null) === value) return
+  // place, so clearing must send `null` rather than `undefined`. The interval
+  // travels with every click: restating the cadence without it would leave a
+  // task picked as "every other week" still on N = 2 after "every week" was
+  // chosen, so N = 1 is sent as `null` (the store's absent).
+  const setRepeat = async (value: TaskRepeatData | null, every: number) => {
+    const currentEvery = repeatInterval(task.repeat, task.repeatEvery)
+    if ((task.repeat ?? null) === value && (value === null || currentEvery === every)) return
     setSavingRepeat(true)
-    const result = await updateTask(task.id, { repeat: value })
+    const result = await updateTask(task.id, {
+      repeat: value,
+      repeatEvery: value !== null && every > 1 ? every : null,
+    })
     setSavingRepeat(false)
     if (!result.ok) addToast('error', result.error || t('tasks.error.update'))
   }
@@ -489,6 +500,15 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
         : due?.state === 'tomorrow'
           ? t('tasks.due.tomorrow')
           : formatDueDate(task.dueOn, resolvedLocale)
+
+  // The cadence the preset buttons can express, and whether this task is on
+  // one of them. A capture-bar task can carry an interval no preset offers
+  // (every 3 days, say); the quiet line under the group names it so the
+  // cadence never silently disappears, and choosing a preset replaces it.
+  const repeatEvery = repeatInterval(task.repeat, task.repeatEvery)
+  const repeatUnlisted = task.repeat != null
+    && !REPEAT_OPTIONS.some(option => option.value === task.repeat && option.every === repeatEvery)
+  const unlistedRepeatLabel = repeatUnlisted ? repeatLabel(t, task.repeat, repeatEvery) : null
 
   const archived = task.status === 'archived'
   const purpose = taskDispatchPurpose(task)
@@ -816,17 +836,21 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
                     {t('tasks.repeat.label')}
                   </span>
                   {REPEAT_OPTIONS.map(option => {
+                    // Two choices share `weekly`; the interval is what tells
+                    // "every week" apart from "every other week".
                     const selected = (task.repeat ?? null) === option.value
+                      && (option.value === null || repeatEvery === option.every)
                     return (
                       <button
-                        key={option.value ?? 'none'}
+                        key={`${option.value ?? 'none'}:${option.every}`}
                         type="button"
                         className="aipa-task-due-preset"
-                        onClick={() => { void setRepeat(option.value) }}
+                        onClick={() => { void setRepeat(option.value, option.every) }}
                         disabled={savingRepeat || savingDue}
                         aria-pressed={selected}
                         aria-label={t(option.labelKey)}
                         data-task-repeat-option={option.value ?? 'none'}
+                        data-task-repeat-every={option.every}
                         style={{
                           ...DUE_PRESET_BUTTON,
                           ...(selected
@@ -844,6 +868,17 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
                       </button>
                     )
                   })}
+                  {unlistedRepeatLabel && (
+                    <span
+                      data-task-repeat-current
+                      style={{
+                        padding: '2px 3px 1px', fontSize: 9.5, lineHeight: 1.5,
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      {t('tasks.repeat.current', { label: unlistedRepeatLabel })}
+                    </span>
+                  )}
                   <span style={{
                     padding: '2px 3px 1px', fontSize: 9.5, lineHeight: 1.5,
                     color: 'var(--text-subtle)',

@@ -34,6 +34,8 @@ interface TaskState {
       note?: string
       dueOn?: string | null
       repeat?: TaskRepeatData | null
+      /** Every N days/weeks/months; `null` restates N = 1. */
+      repeatEvery?: number | null
     },
   ) => Promise<TaskMutationData>
   archiveTask: (id: string) => Promise<TaskMutationData>

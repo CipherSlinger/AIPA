@@ -29,7 +29,7 @@ import { getPref } from '../config/config-manager'
 import { preserveCorruptFile } from '../utils/corrupt-file'
 import { createLogger } from '../utils/logger'
 import { getAllowedFsRoots, isPathInside, safePath } from '../utils/validate'
-import { localTodayDay, nextOccurrenceDay, normalizeRepeat } from './task-repeat'
+import { localTodayDay, nextOccurrenceDay, normalizeRepeat, normalizeRepeatEvery } from './task-repeat'
 import type { TaskRepeat } from './task-repeat'
 
 export { nextOccurrenceDay } from './task-repeat'
@@ -139,6 +139,12 @@ export interface TaskRecord {
   dueOn?: string
   /** How often the task repeats. Absent means a one-off. */
   repeat?: TaskRepeat
+  /**
+   * The cadence's interval: "every N days / weeks / months", N in 2..99.
+   * Absent means N = 1. It is only ever stored beside a `repeat`, never as 1
+   * and never as null, so one representation of "every week" exists.
+   */
+  repeatEvery?: number
   materials: TaskMaterial[]
   /** Conversations that ran in this task, in the order they started. */
   sessions: TaskSessionRef[]
@@ -467,6 +473,16 @@ function readRepeat(value: unknown): TaskRepeat | undefined {
   return result.ok && result.value ? result.value : undefined
 }
 
+/**
+ * The read-side twin of `readRepeat`: an interval only exists beside a
+ * cadence, and only as an integer 2..99. A stored 1, 0, "2", 3.5 or 100 is
+ * dropped to the plain cadence rather than making the row unreadable.
+ */
+export function readRepeatEvery(value: unknown, repeat: TaskRepeat | null | undefined): number | undefined {
+  if (!repeat) return undefined
+  return normalizeRepeatEvery(value) ?? undefined
+}
+
 const MATERIAL_SOURCES = new Set<TaskMaterialSource>([
   'picker', 'drop', 'paste', 'import', 'automation', 'plugin', 'unknown',
 ])
@@ -591,6 +607,7 @@ export function normalizeTask(raw: unknown): TaskRecord | null {
   const updatedAt = finiteNumber(task.updatedAt) ?? createdAt
   const dueOn = readDueOn(task.dueOn)
   const repeat = readRepeat(task.repeat)
+  const repeatEvery = readRepeatEvery(task.repeatEvery, repeat)
 
   return {
     schemaVersion: TASK_SCHEMA_VERSION,
@@ -605,6 +622,7 @@ export function normalizeTask(raw: unknown): TaskRecord | null {
       : null,
     ...(dueOn ? { dueOn } : {}),
     ...(repeat ? { repeat } : {}),
+    ...(repeatEvery ? { repeatEvery } : {}),
     materials: Array.isArray(task.materials)
       ? task.materials.map(normalizeMaterial).filter((m): m is TaskMaterial => m !== null)
       : [],
@@ -805,11 +823,22 @@ export function getTask(id: unknown): TaskView | null {
   return record ? taskView(record) : null
 }
 
+/**
+ * Spell a cadence for a history row: `none`, `weekly`, or `weekly x2`.
+ * The interval is part of the cadence a user chose, so a history row that
+ * omitted it would say "weekly" for both "every week" and "every other week".
+ */
+function repeatDetail(repeat: TaskRepeat | null | undefined, every: number | undefined): string {
+  if (!repeat) return 'none'
+  return every && every > 1 ? `${repeat} x${every}` : repeat
+}
+
 export function createTask(input: {
   title?: unknown
   status?: unknown
   dueOn?: unknown
   repeat?: unknown
+  repeatEvery?: unknown
 }): TaskMutation {
   const title = nonEmptyString(input?.title)
   if (!title) return failure('invalid_title', 'A task needs a title')
@@ -827,6 +856,9 @@ export function createTask(input: {
   // one-off task.
   const repeat = normalizeRepeat(input?.repeat === undefined ? null : input.repeat)
   if (!repeat.ok) return failure('invalid_repeat', 'The repeat must be daily, weekly or monthly')
+  // An interval is a modifier, never a reason to refuse the capture: a bad
+  // value is dropped to N = 1, and a value with no cadence is dropped entirely.
+  const repeatEvery = readRepeatEvery(input?.repeatEvery, repeat.value)
 
   const root = tasksRoot()
   const now = Date.now()
@@ -854,12 +886,13 @@ export function createTask(input: {
     routedBy: null,
     ...(due.value ? { dueOn: due.value } : {}),
     ...(repeat.value ? { repeat: repeat.value } : {}),
+    ...(repeatEvery ? { repeatEvery } : {}),
     materials: [],
     sessions: [],
     // Creation keeps its single `created` row; a repeat is recorded on that
     // row's detail rather than as a second event, so old readers still see
     // exactly one creation event.
-    history: [{ at: now, kind: 'created', ...(repeat.value ? { detail: `repeat: ${repeat.value}` } : {}) }],
+    history: [{ at: now, kind: 'created', ...(repeat.value ? { detail: `repeat: ${repeatDetail(repeat.value, repeatEvery)}` } : {}) }],
     createdAt: now,
     updatedAt: now,
   }
@@ -900,7 +933,7 @@ function normalizeStatusNote(value: unknown): string | null {
 
 export function updateTask(
   id: unknown,
-  patch: { title?: unknown; status?: unknown; note?: unknown; dueOn?: unknown; repeat?: unknown },
+  patch: { title?: unknown; status?: unknown; note?: unknown; dueOn?: unknown; repeat?: unknown; repeatEvery?: unknown },
 ): TaskMutation {
   if (typeof id !== 'string' || !id) return failure('invalid_id', 'Unknown task')
   const store = readTaskStore()
@@ -920,15 +953,39 @@ export function updateTask(
   if (patch?.repeat !== undefined) {
     const repeat = normalizeRepeat(patch.repeat)
     if (!repeat.ok) return failure('invalid_repeat', 'The repeat must be daily, weekly or monthly')
-    const previous = next.repeat ?? null
-    if (repeat.value !== previous) {
+    // A stated cadence re-states the whole thing: the interval becomes the
+    // normalized `repeatEvery` beside it (usually absent = N = 1). This is
+    // what lets the detail UI pick "every other week" and then "every week"
+    // and get N = 1 back, rather than keeping the stale interval.
+    const repeatEvery = readRepeatEvery(patch.repeatEvery, repeat.value ?? undefined)
+    const previousRepeat = next.repeat ?? null
+    const previousEvery = next.repeatEvery
+    if (repeat.value !== previousRepeat || repeatEvery !== previousEvery) {
       // Same shape as `dueOn`: null deletes the field rather than storing it,
       // so "absent" and "one-off" stay the single state the rest of the store
       // checks. Re-sending the current value is silent.
       const updated: TaskRecord = { ...next }
       if (repeat.value === null) delete updated.repeat
       else updated.repeat = repeat.value
-      next = appendEvent(updated, 'repeat_changed', `${previous ?? 'none'} -> ${repeat.value ?? 'none'}`)
+      if (repeatEvery) updated.repeatEvery = repeatEvery
+      else delete updated.repeatEvery
+      next = appendEvent(updated, 'repeat_changed',
+        `${repeatDetail(previousRepeat, previousEvery)} -> ${repeatDetail(repeat.value, repeatEvery)}`)
+    }
+  } else if (patch?.repeatEvery !== undefined) {
+    // Interval alone. Without a cadence it has no meaning, so a one-off ignores
+    // it; a repeating task changes only the N, and the change is still a
+    // `repeat_changed` row because the cadence the user sees changed.
+    if (next.repeat) {
+      const repeatEvery = readRepeatEvery(patch.repeatEvery, next.repeat)
+      if (repeatEvery !== next.repeatEvery) {
+        const previousEvery = next.repeatEvery
+        const updated: TaskRecord = { ...next }
+        if (repeatEvery) updated.repeatEvery = repeatEvery
+        else delete updated.repeatEvery
+        next = appendEvent(updated, 'repeat_changed',
+          `${repeatDetail(next.repeat, previousEvery)} -> ${repeatDetail(next.repeat, repeatEvery)}`)
+      }
     }
   }
   if (patch?.status !== undefined) {
@@ -940,7 +997,7 @@ export function updateTask(
         // caller (the brief's Done, the renderer's Done, anything future)
         // inherits this by asking the store, so no surface has to remember it.
         const previousDueOn = next.dueOn
-        const nextDueOn = nextOccurrenceDay(previousDueOn, next.repeat, localTodayDay())
+        const nextDueOn = nextOccurrenceDay(previousDueOn, next.repeat, localTodayDay(), next.repeatEvery ?? 1)
         // The occurrence is recorded before the day changes, so history still
         // says the work happened even though no status row was written.
         next = appendEvent({ ...next, dueOn: nextDueOn }, 'completed', previousDueOn)

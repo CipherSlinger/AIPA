@@ -1,6 +1,11 @@
 // Small, pure helpers for the Tasks surface. Kept out of the components so
 // grouping and formatting are testable without mounting React.
-import type { TaskRecordData, TaskStatusData, UsageEntryData } from '../../../preload'
+import type {
+  TaskRecordData,
+  TaskRepeatData,
+  TaskStatusData,
+  UsageEntryData,
+} from '../../../preload'
 
 export interface TaskGroup {
   id: Exclude<TaskStatusData, 'assigned'>
@@ -23,6 +28,87 @@ export const TASK_GROUPS: TaskGroup[] = [
 
 export function statusLabelKey(status: TaskStatusData): string {
   return `tasks.statusLabel.${status}`
+}
+
+// ── Repeat cadences ──────────────────────────────────────────────────────
+// A cadence is `repeat` plus an optional interval ("every N days/weeks/
+// months"). Main owns the normalization; these helpers only read it and are
+// defensive anyway, so a stale or hand-edited record cannot turn "every 3
+// days" into an invisible or mislabelled cadence.
+
+/**
+ * The interval a cadence is actually read as. An integer 2..99 counts; every
+ * other value, and a task with no cadence at all, is every one. This mirrors
+ * `readRepeatEvery` in the main-process store without importing it: the two
+ * builds have separate roots, exactly like `taskWaitingReason` below.
+ */
+export function repeatInterval(
+  repeat: TaskRepeatData | null | undefined,
+  every: number | null | undefined,
+): number {
+  if (!repeat) return 1
+  if (typeof every !== 'number' || !Number.isInteger(every)) return 1
+  return every >= 2 && every <= 99 ? every : 1
+}
+
+/** The counted label suffix for an interval > 1. */
+function everyLabelSuffix(repeat: TaskRepeatData): string {
+  switch (repeat) {
+    case 'daily': return 'everyDays'
+    case 'weekly': return 'everyWeeks'
+    case 'monthly': return 'everyMonths'
+  }
+}
+
+/**
+ * Label key for a cadence's full phrase, or `null` when the task does not
+ * repeat. Weekly ×2 has its own phrase ("every other week"); any other
+ * interval uses the counted key, and N = 1 keeps the plain cadence key.
+ */
+export function repeatLabelKey(
+  repeat: TaskRepeatData | null | undefined,
+  every: number | null | undefined,
+): string | null {
+  if (!repeat) return null
+  const n = repeatInterval(repeat, every)
+  if (n === 1) return `tasks.repeat.${repeat}`
+  if (repeat === 'weekly' && n === 2) return 'tasks.repeat.everyOtherWeek'
+  return `tasks.repeat.${everyLabelSuffix(repeat)}`
+}
+
+/** Label key for the task row's compact figure of the same cadence. */
+export function repeatShortLabelKey(
+  repeat: TaskRepeatData | null | undefined,
+  every: number | null | undefined,
+): string | null {
+  if (!repeat) return null
+  const n = repeatInterval(repeat, every)
+  if (n === 1) return `tasks.repeat.short.${repeat}`
+  if (repeat === 'weekly' && n === 2) return 'tasks.repeat.short.everyOtherWeek'
+  return `tasks.repeat.short.${everyLabelSuffix(repeat)}`
+}
+
+/**
+ * The full cadence phrase ("Every other week", "Every 3 days"). `{{n}}` is
+ * ignored by the keys that do not carry it, so one call shape serves all.
+ */
+export function repeatLabel(
+  t: TranslateFn,
+  repeat: TaskRepeatData | null | undefined,
+  every: number | null | undefined,
+): string | null {
+  const key = repeatLabelKey(repeat, every)
+  return key ? t(key, { n: repeatInterval(repeat, every) }) : null
+}
+
+/** The row's compact cadence figure ("2w", "3d"); null when it does not repeat. */
+export function repeatShortLabel(
+  t: TranslateFn,
+  repeat: TaskRepeatData | null | undefined,
+  every: number | null | undefined,
+): string | null {
+  const key = repeatShortLabelKey(repeat, every)
+  return key ? t(key, { n: repeatInterval(repeat, every) }) : null
 }
 
 /** Group id for a task status; archived is returned as itself when shown. */

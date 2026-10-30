@@ -73,6 +73,9 @@ export function registerTaskHandlers(send: Send): void {
       // The store validates the word strictly; this boundary only refuses a
       // shape it cannot represent.
       repeat: payload.repeat === null || typeof payload.repeat === 'string' ? payload.repeat : undefined,
+      // The store drops anything that is not an integer 2..99; `null` here
+      // means "no interval" and is normalized to absent there.
+      repeatEvery: payload.repeatEvery === null || typeof payload.repeatEvery === 'number' ? payload.repeatEvery : undefined,
     })
     if (result.ok) changed()
     return result
@@ -91,6 +94,9 @@ export function registerTaskHandlers(send: Send): void {
       dueOn: payload.dueOn === null || typeof payload.dueOn === 'string' ? payload.dueOn : undefined,
       // `null` clears it like `dueOn`; `undefined` leaves it alone.
       repeat: payload.repeat === null || typeof payload.repeat === 'string' ? payload.repeat : undefined,
+      // `undefined` leaves the interval alone; `null` (or an invalid number)
+      // clears it. The store owns the "re-state with repeat" semantics.
+      repeatEvery: payload.repeatEvery === null || typeof payload.repeatEvery === 'number' ? payload.repeatEvery : undefined,
     })
     if (result.ok) changed()
     return result

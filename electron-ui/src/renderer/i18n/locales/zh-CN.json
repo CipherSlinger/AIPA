@@ -5480,10 +5480,19 @@
       "daily": "每天",
       "weekly": "每周",
       "monthly": "每月",
+      "everyOtherWeek": "每两周",
+      "everyDays": "每 {{n}} 天",
+      "everyWeeks": "每 {{n}} 周",
+      "everyMonths": "每 {{n}} 个月",
+      "current": "当前：{{label}}",
       "short": {
         "daily": "每天",
         "weekly": "每周",
-        "monthly": "每月"
+        "monthly": "每月",
+        "everyOtherWeek": "两周",
+        "everyDays": "{{n}}天",
+        "everyWeeks": "{{n}}周",
+        "everyMonths": "{{n}}个月"
       },
       "hint": "完成一个重复任务时，它会挪到下一次，而不是被关掉。",
       "doneLine": "这次完成 · 下次 {{when}}"

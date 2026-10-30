@@ -344,6 +344,10 @@ const i18n = {
     taskCaptureRepeatDaily: "Every day",
     taskCaptureRepeatWeekly: "Every week",
     taskCaptureRepeatMonthly: "Every month",
+    taskCaptureRepeatEveryDays: "Every {n} days",
+    taskCaptureRepeatEveryWeeks: "Every {n} weeks",
+    taskCaptureRepeatEveryMonths: "Every {n} months",
+    taskCaptureRepeatOtherWeek: "Every other week",
     taskCaptureRepeatPresets: "Change the repeat",
   },
   zh: {
@@ -623,6 +627,10 @@ const i18n = {
     taskCaptureRepeatDaily: "每天",
     taskCaptureRepeatWeekly: "每周",
     taskCaptureRepeatMonthly: "每月",
+    taskCaptureRepeatEveryDays: "每{n}天",
+    taskCaptureRepeatEveryWeeks: "每{n}周",
+    taskCaptureRepeatEveryMonths: "每{n}个月",
+    taskCaptureRepeatOtherWeek: "每两周",
     taskCaptureRepeatPresets: "改重复",
   },
   ko: {
@@ -902,6 +910,10 @@ const i18n = {
     taskCaptureRepeatDaily: "매일",
     taskCaptureRepeatWeekly: "매주",
     taskCaptureRepeatMonthly: "매월",
+    taskCaptureRepeatEveryDays: "{n}일마다",
+    taskCaptureRepeatEveryWeeks: "{n}주마다",
+    taskCaptureRepeatEveryMonths: "{n}개월마다",
+    taskCaptureRepeatOtherWeek: "격주",
     taskCaptureRepeatPresets: "반복 변경",
   },
 };

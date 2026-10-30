@@ -5480,10 +5480,19 @@
       "daily": "Every day",
       "weekly": "Every week",
       "monthly": "Every month",
+      "everyOtherWeek": "Every other week",
+      "everyDays": "Every {{n}} days",
+      "everyWeeks": "Every {{n}} weeks",
+      "everyMonths": "Every {{n}} months",
+      "current": "Currently: {{label}}",
       "short": {
         "daily": "Daily",
         "weekly": "Weekly",
-        "monthly": "Monthly"
+        "monthly": "Monthly",
+        "everyOtherWeek": "2w",
+        "everyDays": "{{n}}d",
+        "everyWeeks": "{{n}}w",
+        "everyMonths": "{{n}}mo"
       },
       "hint": "Finishing a repeating task moves it to its next day instead of closing it.",
       "doneLine": "Done · next {{when}}"
