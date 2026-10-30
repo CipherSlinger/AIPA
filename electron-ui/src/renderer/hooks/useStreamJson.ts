@@ -317,7 +317,15 @@ export function useStreamJson() {
           // omitted: the child env allowlist already passes through an
           // ANTHROPIC_BASE_URL the user exported, and sending '' would override
           // it with nothing.
-          ...(activeKey && activeBaseUrl ? { ANTHROPIC_BASE_URL: activeBaseUrl } : {}),
+          //
+          // Both names carry the same value because the two sanitizers each
+          // pass only their own variable — Codex keeps OPENAI_BASE_URL, the
+          // Claude bridge keeps ANTHROPIC_BASE_URL. One relay base URL can
+          // therefore serve either flavour of endpoint without the engines
+          // seeing a variable meant for the other.
+          ...(activeKey && activeBaseUrl
+            ? { ANTHROPIC_BASE_URL: activeBaseUrl, OPENAI_BASE_URL: activeBaseUrl }
+            : {}),
         },
         flags,
         permissionMode: (useChatStore.getState().isPlanMode && prefs.permissionMode !== 'bypassPermissions')

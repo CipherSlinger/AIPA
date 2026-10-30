@@ -956,7 +956,7 @@
     "keyModelsRemoved": "Removed {{model}}",
     "keyBaseUrl": "Base URL",
     "keyBaseUrlPlaceholder": "https://api.anthropic.com (optional)",
-    "keyBaseUrlHint": "Leave empty for the official endpoint, or point a relay or gateway key at its own address.",
+    "keyBaseUrlHint": "Leave empty for the official endpoint, or point a relay, proxy or gateway key at its own address — Anthropic and OpenAI-compatible endpoints are both detected.",
     "keyBaseUrlInvalid": "Enter an address starting with http:// or https://",
     "keyModelsEndpoint": "Endpoint: {{url}}",
     "addKey": "Add Key",

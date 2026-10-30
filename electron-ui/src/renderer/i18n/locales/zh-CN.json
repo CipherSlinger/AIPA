@@ -956,7 +956,7 @@
     "keyModelsRemoved": "已移除 {{model}}",
     "keyBaseUrl": "Base URL",
     "keyBaseUrlPlaceholder": "https://api.anthropic.com（可选）",
-    "keyBaseUrlHint": "留空走官方地址；中转或自建网关的密钥填它自己的地址。",
+    "keyBaseUrlHint": "留空走官方地址；中转、代理或自建网关的密钥填它的地址——Anthropic 与 OpenAI 兼容接口都会自动识别。",
     "keyBaseUrlInvalid": "请填写 http:// 或 https:// 开头的地址",
     "keyModelsEndpoint": "接口：{{url}}",
     "addKey": "添加密钥",
