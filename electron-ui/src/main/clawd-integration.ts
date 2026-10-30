@@ -129,6 +129,8 @@ interface ClawdInstance {
   showAttentionBubble: (payload: ClawdAttentionBubblePayload) => Promise<string | null>
   hideAttentionBubble: () => void
   isAttentionBubbleVisible: () => boolean
+  /** Whether the card on screen still needs an answer (never replace it). */
+  isAttentionActionable: () => boolean
   getLanguage: () => string
   getBubblesHidden: () => boolean
   setBubblesHidden: (v: boolean) => void
@@ -705,6 +707,13 @@ export function showClawdActivity(activity: PetActivity): boolean {
     if (!alreadyVisible) {
       void Promise.resolve(handle)
         .then((action) => {
+          // The card left the screen — clicked away, or replaced. Whatever is
+          // left of this turn's strip is forgotten: a card the user dismissed
+          // must not be resurrected by the next heartbeat, and the next draw
+          // has to reattach its own click handler.
+          activityCardVisible = false
+          lastActivity = null
+          activityStartedAt = 0
           // A click on the strip is a shortcut to the app; there is no request
           // behind it to answer.
           if (action !== 'open') return
@@ -797,6 +806,11 @@ export function cancelClawdNotice(): void {
   noticeTimer = null
 }
 
+/** Same 2–20 s window the hide timer uses, so the bar and the card agree. */
+function clampNoticeTtl(ttlMs: number): number {
+  return Math.max(2000, Math.min(20_000, Math.round(ttlMs)))
+}
+
 /**
  * Show a passive notice (boot greeting, finished turn, context warning).
  * Returns false when the pet cannot speak or an actionable bubble is already
@@ -812,8 +826,9 @@ export function showClawdNotice(
   if (!clawdInstance) return false
   if (isClawdBubblesHidden() || isClawdPetHidden()) return false
   // The live activity strip is not actionable, so a real notice may replace it.
-  // Anything else on the window (an attention item) must not be replaced.
-  if (isClawdAttentionBubbleVisible() && !activityCardVisible) return false
+  // So may another notice: two turns finishing 3 s apart should not produce one
+  // pet card and one system toast. A real attention item must not be replaced.
+  if (isClawdAttentionActionable()) return false
   // A notice arriving while the pet is asleep would wake it for something the
   // user does not have to act on. Sleep and a timed silence are both explicit
   // "leave me alone".
@@ -821,8 +836,12 @@ export function showClawdNotice(
   try {
     cancelClawdNotice()
     releaseActivityCard()
+    const ttl = clampNoticeTtl(ttlMs)
     void Promise.resolve(clawdInstance.showAttentionBubble({
       ...applyHudDefaults(payload),
+      // Clamped to the same window as the hide timer: an unclamped countdown
+      // would keep draining after the card is gone, or finish long before it.
+      countdownMs: payload.countdownMs != null ? Math.min(payload.countdownMs, ttl) : payload.countdownMs,
       requireAction: false,
     } as ClawdAttentionBubblePayload & { requireAction: false }))
       .then(action => {
@@ -830,8 +849,7 @@ export function showClawdNotice(
         // caller decides what "open" means (focus the window, open a session).
         if (action) onClick?.(action)
       })
-      .catch(() => { /* pet gone */ })
-    const ttl = Math.max(2000, Math.min(20_000, Math.round(ttlMs)))
+      .catch(() => { /* the pet is gone; nothing left to clear */ })
     noticeTimer = setTimeout(() => {
       noticeTimer = null
       try { clawdInstance?.hideAttentionBubble() } catch { /* pet gone */ }
@@ -889,11 +907,33 @@ export function isClawdAttentionBubbleVisible(): boolean {
 }
 
 /**
+ * Whether the card on screen is still waiting for an answer. A permission
+ * prompt, a plan review or an elicitation is; a notice and the activity strip
+ * are not, and either of those may be replaced by something newer.
+ */
+export function isClawdAttentionActionable(): boolean {
+  if (!clawdInstance) return false
+  try {
+    return clawdInstance.isAttentionActionable()
+  } catch {
+    return false
+  }
+}
+
+/**
  * Shut down the embedded clawd instance and clean up.
  * Called when the user disables clawd in settings or on app quit.
  */
 export function shutdownClawdIntegration(): void {
   releaseActivityCard()
+  // Notice and boot timers outlive the instance. Left armed, they fire into
+  // whatever pet is created next — a fast relaunch would have its first card
+  // dismissed by a timer from the previous session.
+  cancelClawdNotice()
+  try {
+    const { cancelClawdBootGreeting } = require('./clawd-notice-sources')
+    cancelClawdBootGreeting()
+  } catch { /* module not loaded in this build path */ }
   if (!clawdInstance) return
   try {
     if (globalThis.__clawdOnQuitHooks) {

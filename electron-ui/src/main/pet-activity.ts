@@ -122,6 +122,11 @@ function sameActivity(a: PetActivity, b: PetActivity): boolean {
 
 /** A turn started on a bridge: the strip adopts it and forgets the last one. */
 function beginTurn(bridgeId?: string): void {
+  // A second start from the bridge that already owns the strip is not a new
+  // turn: older engines emit `message_start` per assistant message, and
+  // resetting here would snap TURN back to 00:00 and TOOLS to zero after every
+  // tool round. Only an idle strip, or a different bridge, starts a turn.
+  if (bridgeId && bridgeId === owner && activity.phase !== 'idle') return
   owner = bridgeId ?? owner
   activity = { phase: 'thinking', turnStartedAt: Date.now(), toolCount: 0 }
   finishedTools.clear()

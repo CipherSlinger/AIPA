@@ -153,6 +153,7 @@ module.exports = function initUpdateBubble(ctx) {
       measuredHeight = 0;
       activeKey = null;
       activeHandle = null;
+      notifyHidden();
       if (resolveAction) {
         const fallback = activePayload && activePayload.defaultAction != null ? activePayload.defaultAction : null;
         const resolver = resolveAction;
@@ -271,6 +272,19 @@ module.exports = function initUpdateBubble(ctx) {
     return activeHandle;
   }
 
+  /**
+   * Tell the owner the card left the screen, whichever side hid it.
+   *
+   * Without this the owner only learns about hides it performed itself, so a
+   * card the user clicked looked like it was still up: the owner kept refusing
+   * new cards and the hit window kept routing clicks to an item that no longer
+   * existed.
+   */
+  function notifyHidden() {
+    if (typeof ctx.onBubbleHidden !== "function") return;
+    try { ctx.onBubbleHidden(); } catch { /* owner gone */ }
+  }
+
   function hideUpdateBubble() {
     if (!bubble || bubble.isDestroyed()) return;
     // The card is leaving the screen; the next payload starts a fresh card
@@ -282,6 +296,7 @@ module.exports = function initUpdateBubble(ctx) {
     hideTimer = setTimeout(() => {
       if (bubble && !bubble.isDestroyed()) bubble.hide();
     }, 250);
+    notifyHidden();
   }
 
   function resolveCurrentAction(actionId) {

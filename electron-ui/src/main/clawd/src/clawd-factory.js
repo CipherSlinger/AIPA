@@ -385,8 +385,9 @@ function syncHitStateAfterLoad() {
     dndEnabled: doNotDisturb,
     // A single click on the pet opens the attention item instead of poking
     // it. The flag is synchronous state, not window visibility, so a click
-    // that lands before the bubble finishes loading still works.
-    attentionActive,
+    // that lands before the bubble finishes loading still works. Only an
+    // answerable card earns this: a passive card is not something to open.
+    attentionActive: actionableActive,
   });
 }
 
@@ -474,9 +475,14 @@ let menuOpen = false;
 let idlePaused = false;
 let forceEyeResend = false;
 let themeReloadInProgress = false;
-// True while an AIPA attention item is displayed. Kept apart from the bubble
-// window's visibility so the hit window can act on a click immediately.
+// True while a card is displayed in the attention bubble — actionable or not.
+// Kept apart from the bubble window's visibility so the hit window can act on a
+// click immediately.
 let attentionActive = false;
+// True only when that card is one the user can answer. A passive card (the live
+// activity strip, a notice) must not hijack a click on the pet: the pet stays a
+// pet, and clicking it still brings the terminal forward.
+let actionableActive = false;
 
 // ── Permission bubble ──
 const { isAgentEnabled: _isAgentEnabled, isAgentPermissionsEnabled: _isAgentPermissionsEnabled } = require("./agent-gate");
@@ -540,6 +546,15 @@ const _attentionBubbleCtx = {
   getHitRectScreen,
   guardAlwaysOnTop,
   reapplyMacVisibility,
+  // The card hid itself — the user clicked it, or its own hide animation ran.
+  // Clearing here is what lets the next card through and stops the hit window
+  // routing clicks to an item that is already gone.
+  onBubbleHidden: () => {
+    if (!attentionActive && !actionableActive) return;
+    attentionActive = false;
+    actionableActive = false;
+    syncHitStateAfterLoad();
+  },
 };
 const _attentionBubble = require("./update-bubble")(_attentionBubbleCtx);
 const {
@@ -1998,30 +2013,44 @@ module.exports = function createClawdIntegration(aipaContext) {
      * replaced by a newer one or the bubble was hidden.
      */
     showAttentionBubble: (payload) => {
-      // Any other bubble takes the screen: an open menu would sit on top of
-      // the card the user has to answer.
-      closePetMenu();
-      // A hidden pet stays hidden: the user asked it to go away, so a
-      // background alert must not resurrect it.
-      if (win && !win.isDestroyed() && !petHidden) win.showInactive();
-      attentionActive = true;
-      syncHitStateAfterLoad();
       // A transient notice passes `requireAction: false`; the attention queue
       // keeps the historical default of true. Spreading first and overriding
       // second would silently turn every old caller into a non-blocking card.
       const requireAction = payload && payload.requireAction === false ? false : true;
       const defaultAction = payload && payload.defaultAction !== undefined ? payload.defaultAction : null;
-      return showAttentionBubbleWindow({ ...payload, requireAction, defaultAction });
+      // Only an answerable card takes the screen from the menu. The live
+      // activity strip repaints every few seconds, and closing the menu on
+      // each refresh would make the STOP petal impossible to click — the one
+      // thing the menu exists for while a turn runs.
+      if (requireAction) closePetMenu();
+      // A hidden pet stays hidden: the user asked it to go away, so a
+      // background alert must not resurrect it.
+      if (win && !win.isDestroyed() && !petHidden) win.showInactive();
+      // Show first, flag second. Replacing a card settles the previous one
+      // synchronously, and that settle reports "hidden" — flagging before the
+      // call would have the new card clear its own state on arrival.
+      const handle = showAttentionBubbleWindow({ ...payload, requireAction, defaultAction });
+      attentionActive = true;
+      actionableActive = requireAction;
+      syncHitStateAfterLoad();
+      return handle;
     },
     /** Remove the attention bubble (app focused, queue drained, or shutdown). */
     hideAttentionBubble: () => {
       if (!attentionActive) return;
       attentionActive = false;
+      actionableActive = false;
       hideAttentionBubbleWindow();
       syncHitStateAfterLoad();
     },
     /** Whether an attention item is currently displayed (for the hit window). */
     isAttentionBubbleVisible: () => attentionActive,
+    /**
+     * Whether the card on screen is still waiting for the user. A passive
+     * notice or the activity strip is not: those may be replaced by a newer
+     * card, while an answerable one must never be.
+     */
+    isAttentionActionable: () => actionableActive && attentionActive,
     /** The pet's own UI language ("en" | "zh" | "ko"). */
     getLanguage: () => lang,
     /** Check if clawd windows are alive */

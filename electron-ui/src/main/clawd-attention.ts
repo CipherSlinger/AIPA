@@ -120,6 +120,12 @@ interface AttentionItem {
   /** Last time this item was actually on screen (0 = never). */
   lastShownAt: number
   /**
+   * Whether this item has already been written to the announcement history.
+   * The card is re-rendered whenever the queue changes (a "1/2" badge), and
+   * recording on every render turned one notice into several history rows.
+   */
+  recorded: boolean
+  /**
    * A native notification already owns this item while the pet cannot speak.
    * `pickNext` must skip it, or a pet window that starts later (or becomes
    * visible after a blur) would announce the same event a second time.
@@ -310,6 +316,7 @@ export function raiseAttention(input: AttentionInput): boolean {
       count: 0,
       requestIds: new Set<string>(),
       lastShownAt: 0,
+      recorded: false,
       nativePending: false,
     }
     // Keep every finished job, not just the last one: the bubble has to be
@@ -359,6 +366,7 @@ export function raiseAttention(input: AttentionInput): boolean {
     count: Math.max(1, requestIds.size),
     requestIds,
     lastShownAt: 0,
+    recorded: false,
     nativePending: false,
   }
   items.set(key, item)
@@ -597,7 +605,12 @@ function canSummon(): boolean {
   if (!win || win.isDestroyed()) return false
   if (isUserLooking()) return false
   if (!isClawdAttentionAvailable()) return false
+  // A timed silence ("Silence for…") is an explicit "leave me alone", the same
+  // as DND. It already suppresses the native notice through `isDndEnabled`, so
+  // leaving it out here would keep the pet popping cards while the OS went
+  // quiet — the opposite of what the user asked for.
   if (isClawdPetHidden() || isClawdDoNotDisturb() || isClawdBubblesHidden()) return false
+  if (isClawdQuietActive()) return false
   return true
 }
 
@@ -1014,15 +1027,19 @@ function show(item: AttentionItem, payload: BuiltBubble): void {
   currentSignature = payload.signature
   item.lastShownAt = Date.now()
   // The pet's own memory of what it announced. A dismissed bubble leaves no
-  // trace on screen, so the history is the only way back to it.
-  recordClawdNotice({
-    kind: payload.kind || 'system',
-    title: payload.title,
-    message: payload.message,
-    detail: payload.meta?.map(row => `${row.label}: ${row.value}`).join('\n'),
-    sessionId: item.sessionId,
-    pluginId: item.pluginId,
-  })
+  // trace on screen, so the history is the only way back to it. Once per item:
+  // a queue change re-renders the same card, it does not announce a new one.
+  if (!item.recorded) {
+    item.recorded = true
+    recordClawdNotice({
+      kind: payload.kind || 'system',
+      title: payload.title,
+      message: payload.message,
+      detail: payload.meta?.map(row => `${row.label}: ${row.value}`).join('\n'),
+      sessionId: item.sessionId,
+      pluginId: item.pluginId,
+    })
+  }
 
   const { signature: _signature, ...bubble } = payload
   // The factory sets requireAction/defaultAction; a superseded bubble resolves
