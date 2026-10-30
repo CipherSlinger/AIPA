@@ -21,4 +21,9 @@ then run the harness against `dist/main/index.js`; count IPC by swapping the
 entry in `ipcMain._invokeHandlers` (the renderer's contextBridge object is
 frozen, so wrapping `window.electronAPI` there does not stick); wait by
 polling for rendered rows rather than fixed sleeps on large transcripts; and
-capture `webContents.capturePage()` before/after for visual evidence.
+capture `webContents.capturePage()` before/after for visual evidence. Two
+gotchas: a window moved off-screen never repaints on Windows and `capturePage`
+then returns the first blank/skeleton frame, so keep the harness window visible
+(or show it inactive at a corner); and a fresh profile opens the first-run
+wizard, so seed `{ onboardingDone: true }` into the same prefs file or the
+screenshots only show the modal.
