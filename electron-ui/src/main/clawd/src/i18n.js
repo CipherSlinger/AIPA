@@ -105,6 +105,19 @@ const i18n = {
     attentionOpen: "Open session",
     attentionOpenPlugin: "Open plugin",
     attentionChoosePlugin: "Choose plugin",
+    // Small label/value rows on the HUD card: the session it belongs to, how
+    // many requests are folded into it, how many plugin jobs it covers.
+    attentionMetaSession: "SESSION",
+    attentionMetaRequests: "REQUESTS",
+    attentionMetaJobs: "JOBS",
+    // Passive notices: the settings preview and the launch greeting.
+    noticeTestTitle: "Systems check",
+    noticeTestPill: "TEST",
+    noticeTestBody: "Notifications are working. This is how a HUD alert looks.",
+    noticeBootTitle: "Link Start",
+    noticeBootPill: "ONLINE",
+    noticeBootBody: "AIPA is online and standing by.",
+    noticeDonePill: "READY",
   },
   zh: {
     size: "大小",
@@ -202,6 +215,16 @@ const i18n = {
     attentionOpen: "打开会话",
     attentionOpenPlugin: "打开插件",
     attentionChoosePlugin: "选择插件",
+    attentionMetaSession: "会话",
+    attentionMetaRequests: "待处理",
+    attentionMetaJobs: "任务",
+    noticeTestTitle: "系统自检",
+    noticeTestPill: "测试",
+    noticeTestBody: "通知工作正常。HUD 提示就是这个样子。",
+    noticeBootTitle: "链接开始",
+    noticeBootPill: "在线",
+    noticeBootBody: "AIPA 已上线，随时待命。",
+    noticeDonePill: "完成",
   },
   ko: {
     size: "크기",
@@ -299,6 +322,16 @@ const i18n = {
     attentionOpen: "세션 열기",
     attentionOpenPlugin: "플러그인 열기",
     attentionChoosePlugin: "플러그인 선택",
+    attentionMetaSession: "세션",
+    attentionMetaRequests: "요청",
+    attentionMetaJobs: "작업",
+    noticeTestTitle: "시스템 점검",
+    noticeTestPill: "테스트",
+    noticeTestBody: "알림이 정상 작동합니다. HUD 알림은 이렇게 표시됩니다.",
+    noticeBootTitle: "링크 스타트",
+    noticeBootPill: "온라인",
+    noticeBootBody: "AIPA가 온라인 상태입니다.",
+    noticeDonePill: "완료",
   },
 };
 

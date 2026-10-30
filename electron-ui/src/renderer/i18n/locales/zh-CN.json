@@ -1119,6 +1119,18 @@
     "petLanguageHint": "桌宠界面和菜单语言",
     "petAttentionAlerts": "通过桌宠提醒我",
     "petAttentionAlertsHint": "当 AIPA 在后台时，桌宠会弹出气泡提醒待审批、待回答、任务失败和插件任务完成。点击气泡可直接打开对应会话。",
+    "petBubbleTheme": "气泡风格",
+    "petBubbleThemeHint": "HUD 使用 SAO 风格的深色面板和分类配色；经典风格保留原来的浅色卡片。",
+    "petBubbleThemeSao": "HUD (SAO)",
+    "petBubbleThemeClawd": "经典",
+    "petBootGreeting": "启动问候",
+    "petBootGreetingHint": "AIPA 启动几秒后，桌宠会说一句话。",
+    "petTurnNotices": "播报完成的任务",
+    "petTurnNoticesHint": "当 AIPA 在后台而任务完成时，由桌宠气泡代替系统通知。",
+    "petTestNotice": "预览提示气泡",
+    "petNotices": "最近的通知",
+    "petNoticesEmpty": "还没有任何通知。",
+    "petClearNotices": "清空",
     "about": {
       "aiPersonalAssistant": "AI 个人助手",
       "links": "链接",
@@ -1841,6 +1853,7 @@
     "usage": "上下文: {{used}} / {{total}} ({{percent}}%)",
     "breakdown": "输入: {{input}} | 输出: {{output}} | 缓存: {{cache}}",
     "almostFull": "上下文窗口即将满载 ({{pct}}%)。建议开始新对话。",
+    "petTitle": "上下文即将用尽",
     "nearCapacity": "上下文窗口已使用 {{pct}}%。请在设置 > 行为中启用自动压缩。"
   },
   "changes": {

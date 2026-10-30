@@ -1,9 +1,38 @@
-import { app, BrowserWindow } from 'electron'
+import { app } from 'electron'
 import * as fs from 'fs'
 import * as path from 'path'
 import { isClawdRunning, launchClawd } from '../../clawd-bridge'
-import { getClawdInitError } from '../../clawd-integration'
+import {
+  applyClawdPetPref,
+  getClawdInitError,
+  getClawdLanguage,
+  showClawdNotice,
+  withClawdMainWindow,
+  type ClawdBubbleKind,
+} from '../../clawd-integration'
+import { clearClawdNotices, listClawdNotices } from '../../clawd-notifications'
+import { showClawdTestNotice } from '../../clawd-notice-sources'
 import { safeHandle } from './safe-handle'
+
+const NOTICE_KINDS: ClawdBubbleKind[] = [
+  'system', 'info', 'success', 'warning', 'error', 'quest', 'approval', 'clarification',
+]
+
+function cleanText(value: unknown, max = 600): string {
+  return typeof value === 'string' ? value.trim().slice(0, max) : ''
+}
+
+/** Focus the main window, optionally opening a session at the same time. */
+function bringAipaForward(sessionId: string | null): void {
+  withClawdMainWindow(win => {
+    if (win.isMinimized()) win.restore()
+    win.show()
+    win.focus()
+    if (sessionId) {
+      win.webContents.send('menu:openSession', sessionId)
+    }
+  })
+}
 
 // ----------------------------------------
 // Clawd desktop pet handlers (Iteration 615)
@@ -52,15 +81,81 @@ export function registerClawdHandlers(): void {
       prefs[key] = value
       fs.writeFileSync(prefsPath, JSON.stringify(prefs, null, 2))
 
-      // Notify the running clawd instance to apply the change immediately
-      // via its settings controller IPC handler
-      try {
-        const mainWindow = BrowserWindow.getAllWindows()[0]
-        if (mainWindow) {
-          mainWindow.webContents.send('clawd:prefsChanged', key, value)
-        }
-      } catch { /* best-effort */ }
+      // Apply to the running pet in-process. Writing the file alone was not
+      // enough: the live instance keeps its own copy and never re-reads it.
+      applyClawdPetPref(key, value)
 
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: String(err) }
+    }
+  })
+
+  /**
+   * Ask the pet to say something passive. Used by the renderer for events it
+   * already knows about (context running low, a background task finished) and
+   * by Settings to preview a notice. Returns `{ shown: false }` when the pet
+   * cannot speak right now — the caller keeps its own fallback.
+   */
+  safeHandle('clawd:notify', async (_e, input: {
+    kind?: string
+    title?: string
+    message?: string
+    detail?: string
+    pill?: string
+    ttlMs?: number
+    sessionId?: string
+    meta?: Array<{ label?: string; value?: string }>
+  }) => {
+    const title = cleanText(input?.title, 200)
+    const message = cleanText(input?.message)
+    if (!title) return { shown: false }
+    const kind = (NOTICE_KINDS as string[]).includes(String(input?.kind))
+      ? input?.kind as ClawdBubbleKind
+      : 'info'
+    const sessionId = cleanText(input?.sessionId, 200) || null
+    const meta = Array.isArray(input?.meta)
+      ? input.meta
+          .map(row => ({
+            label: cleanText(row?.label, 40),
+            value: cleanText(row?.value, 120),
+          }))
+          .filter(row => row.label && row.value)
+          .slice(0, 4)
+      : []
+    const ttlMs = typeof input?.ttlMs === 'number' && Number.isFinite(input.ttlMs)
+      ? input.ttlMs
+      : 7000
+    const shown = showClawdNotice({
+      kind,
+      title,
+      message,
+      pill: cleanText(input?.pill, 24),
+      mode: 'done',
+      lang: getClawdLanguage(),
+      clickAction: 'open',
+      typed: true,
+      ...(meta.length ? { meta } : {}),
+      countdownMs: ttlMs,
+    }, ttlMs, () => bringAipaForward(sessionId))
+    return { shown }
+  })
+
+  /** Preview the HUD card from Settings, with a progress bar and meta rows. */
+  safeHandle('clawd:testNotice', async () => ({ shown: showClawdTestNotice() }))
+
+  /** Newest-first history of everything the pet announced. */
+  safeHandle('clawd:notices', async () => {
+    try {
+      return { notices: listClawdNotices() }
+    } catch {
+      return { notices: [] }
+    }
+  })
+
+  safeHandle('clawd:clearNotices', async () => {
+    try {
+      clearClawdNotices()
       return { success: true }
     } catch (err) {
       return { success: false, error: String(err) }

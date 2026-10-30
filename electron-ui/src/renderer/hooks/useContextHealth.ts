@@ -10,6 +10,27 @@ const COST_THRESHOLD = 5.0          // warn at $5
 const CONTEXT_CRITICAL_PCT = 95     // always warn
 const CONTEXT_HIGH_PCT = 80         // warn only if auto-compact disabled
 
+/**
+ * Mirror an in-app warning onto the desktop pet when the user is not looking
+ * at AIPA. The toast is the primary surface; this is the same sentence on a
+ * surface that is visible from another app. The main process enforces DND,
+ * hidden bubbles and "do not replace an actionable card".
+ */
+function whisperToPet(title: string, message: string): void {
+  if (document.hasFocus()) return
+  if (usePrefsStore.getState().prefs.petAttentionAlerts === false) return
+  try {
+    void window.electronAPI.clawdNotify({
+      kind: 'warning',
+      title,
+      message,
+      ttlMs: 9000,
+    })
+  } catch {
+    // The pet is optional; a failed whisper must never break the app.
+  }
+}
+
 export function useContextHealth() {
   const t = useT()
   const shown = useRef<Set<string>>(new Set())
@@ -36,7 +57,9 @@ export function useContextHealth() {
       // Critical: > 95% regardless of auto-compact
       if (pct >= CONTEXT_CRITICAL_PCT && !shown.current.has('ctx-critical')) {
         shown.current.add('ctx-critical')
-        addToast('warning', t('context.almostFull', { pct: String(pct) }))
+        const text = t('context.almostFull', { pct: String(pct) })
+        addToast('warning', text)
+        whisperToPet(t('context.petTitle'), text)
       }
 
       // High: > 80% but only if auto-compact is disabled

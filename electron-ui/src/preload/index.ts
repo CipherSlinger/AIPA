@@ -3146,6 +3146,30 @@ const electronAPI = {
     ipcRenderer.invoke('clawd:getPrefs') as Promise<{ prefs: Record<string, unknown> }>,
   clawdSetPrefs: (key: string, value: unknown) =>
     ipcRenderer.invoke('clawd:setPrefs', key, value) as Promise<{ success: boolean; error?: string }>,
+  /** Ask the pet to show a passive HUD notice. `shown:false` when it cannot. */
+  clawdNotify: (payload: {
+    kind?: string
+    title: string
+    message?: string
+    detail?: string
+    pill?: string
+    ttlMs?: number
+    sessionId?: string
+    meta?: Array<{ label: string; value: string }>
+  }) => ipcRenderer.invoke('clawd:notify', payload) as Promise<{ shown: boolean }>,
+  /** Everything the pet announced, newest first (max 50). */
+  clawdNotices: () =>
+    ipcRenderer.invoke('clawd:notices') as Promise<{
+      notices: Array<{
+        id: string; kind: string; title: string; message: string
+        detail?: string; at: number; sessionId?: string; pluginId?: string; action?: string
+      }>
+    }>,
+  clawdClearNotices: () =>
+    ipcRenderer.invoke('clawd:clearNotices') as Promise<{ success: boolean; error?: string }>,
+  /** Preview the HUD card from Settings. */
+  clawdTestNotice: () =>
+    ipcRenderer.invoke('clawd:testNotice') as Promise<{ shown: boolean }>,
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)

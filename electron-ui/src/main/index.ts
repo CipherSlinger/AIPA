@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu, Tray, globalShortcut, nativeImage, shell, ses
 import path from 'path'
 import fs from 'fs'
 import { initClawdIntegration, shutdownClawdIntegration, getClawdSubmenu } from './clawd-integration'
+import { scheduleClawdBootGreeting } from './clawd-notice-sources'
 import { initClawdAttention, shutdownClawdAttention } from './clawd-attention'
 import { abortAllPluginAi } from './plugins/plugin-services'
 import { listNavPlugins } from './plugins/nav-plugin-manager'
@@ -193,6 +194,7 @@ function createWindow(): void {
       // getter, and events must be routable as soon as a bridge can raise one.
       initClawdAttention(() => mainWindow)
       initClawdIntegration(mainWindow)
+      scheduleClawdBootGreeting()
       rebuildTrayMenu()
     } catch (err) {
       log.warn('initClawdIntegration failed (non-fatal):', String(err))

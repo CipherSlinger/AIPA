@@ -50,6 +50,7 @@
 
 import { BrowserWindow, Menu, Notification, app } from 'electron'
 import { getPref, getRawPref } from './config/config-manager'
+import { recordClawdNotice } from './clawd-notifications'
 import { createLogger } from './utils/logger'
 import {
   getClawdLanguage,
@@ -58,8 +59,11 @@ import {
   isClawdBubblesHidden,
   isClawdDoNotDisturb,
   isClawdPetHidden,
+  isClawdQuietActive,
   setClawdAttentionActivateHandler,
   showClawdAttentionBubble,
+  type ClawdBubbleKind,
+  type ClawdBubbleMetaRow,
   type ClawdAttentionBubblePayload,
 } from './clawd-integration'
 
@@ -546,7 +550,9 @@ function isUserLooking(): boolean {
  */
 function isDndEnabled(): boolean {
   try {
-    return isClawdDoNotDisturb()
+    // Sleep (the pet's DND) and a timed "silence" are the same promise to the
+    // user: do not call me. Both silence the native fallback too.
+    return isClawdDoNotDisturb() || isClawdQuietActive()
   } catch {
     // A broken pet must not turn DND into a notification storm.
     return true
@@ -851,6 +857,49 @@ interface BuiltBubble extends ClawdAttentionBubblePayload {
   signature: string
 }
 
+/**
+ * Attention kind → bubble accent/icon vocabulary. The bubble decides what the
+ * kind looks like; this mapping only picks the word. `quest` is the scheduled
+ * job that finished, `error` the failed turn, `warning` the spending rail.
+ */
+const KIND_BUBBLE: Record<AttentionKind, ClawdBubbleKind> = {
+  approval: 'approval',
+  clarification: 'clarification',
+  failed: 'error',
+  'limit-hold': 'warning',
+  'plugin-done': 'success',
+  'automation-done': 'quest',
+}
+
+/** Approvals and questions wait for the user; the rest expire on their own. */
+function isTransientKind(kind: AttentionKind): boolean {
+  return kind !== 'approval' && kind !== 'clarification'
+}
+
+function metaRows(item: AttentionItem): ClawdBubbleMetaRow[] {
+  const rows: ClawdBubbleMetaRow[] = []
+  if (item.sessionId) {
+    rows.push({ label: t('attentionMetaSession'), value: item.sessionId.slice(0, 8) })
+  }
+  const requests = Math.max(1, item.count)
+  if (requests > 1) {
+    rows.push({ label: t('attentionMetaRequests'), value: String(requests) })
+  }
+  if (item.kind === 'plugin-done' && item.plugins.length > 1) {
+    rows.push({ label: t('attentionMetaJobs'), value: String(item.plugins.length) })
+  }
+  return rows
+}
+
+/** 1-based position of an item in the order the queue would show it. */
+function queuePosition(item: AttentionItem): { index: number; total: number } {
+  const ordered = [...items.values()]
+    .filter(entry => !entry.nativePending)
+    .sort((a, b) => KIND_PRIORITY[a.kind] - KIND_PRIORITY[b.kind] || a.createdAt - b.createdAt)
+  const index = ordered.indexOf(item)
+  return { index: index >= 0 ? index + 1 : 1, total: ordered.length }
+}
+
 function buildPayload(item: AttentionItem): BuiltBubble {
   const count = Math.max(1, item.count)
   // A plugin batch is openable as a whole even though it names no single job;
@@ -858,6 +907,8 @@ function buildPayload(item: AttentionItem): BuiltBubble {
   const openable = !!(item.sessionId || item.pluginId || item.plugins.length > 0)
   const name = item.detail || ''
   const pluginJobCount = item.kind === 'plugin-done' ? item.plugins.length : 0
+  const meta = metaRows(item)
+  const queue = queuePosition(item)
 
   let title = ''
   let pill = ''
@@ -923,6 +974,15 @@ function buildPayload(item: AttentionItem): BuiltBubble {
     message,
     pill,
     clickAction: openable ? 'open' : 'dismiss',
+    kind: KIND_BUBBLE[item.kind],
+    // Actionable cards must be readable at a glance; the rest may type out.
+    typed: isTransientKind(item.kind),
+  }
+  if (meta.length) payload.meta = meta
+  if (queue.total > 1) payload.queue = queue
+  if (isTransientKind(item.kind)) {
+    // The queue drops transient items after this long; the bar drains with it.
+    payload.countdownMs = Math.max(0, TRANSIENT_TTL_MS - (Date.now() - item.createdAt))
   }
   if (openable) {
     // One obvious affordance; clicking anywhere on the card does the same.
@@ -937,7 +997,15 @@ function buildPayload(item: AttentionItem): BuiltBubble {
     }]
   }
 
-  return { ...payload, signature: `${title}|${message}|${pill}|${payload.clickAction}` }
+  const signature = [
+    title,
+    message,
+    pill,
+    payload.clickAction,
+    `${queue.index}/${queue.total}`,
+    meta.map(row => `${row.label}:${row.value}`).join(';'),
+  ].join('|')
+  return { ...payload, signature }
 }
 
 function show(item: AttentionItem, payload: BuiltBubble): void {
@@ -945,6 +1013,16 @@ function show(item: AttentionItem, payload: BuiltBubble): void {
   current = item
   currentSignature = payload.signature
   item.lastShownAt = Date.now()
+  // The pet's own memory of what it announced. A dismissed bubble leaves no
+  // trace on screen, so the history is the only way back to it.
+  recordClawdNotice({
+    kind: payload.kind || 'system',
+    title: payload.title,
+    message: payload.message,
+    detail: payload.meta?.map(row => `${row.label}: ${row.value}`).join('\n'),
+    sessionId: item.sessionId,
+    pluginId: item.pluginId,
+  })
 
   const { signature: _signature, ...bubble } = payload
   // The factory sets requireAction/defaultAction; a superseded bubble resolves

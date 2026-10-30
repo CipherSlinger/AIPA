@@ -1877,7 +1877,12 @@ module.exports = function createClawdIntegration(aipaContext) {
       if (win && !win.isDestroyed() && !petHidden) win.showInactive();
       attentionActive = true;
       syncHitStateAfterLoad();
-      return showAttentionBubbleWindow({ ...payload, requireAction: true, defaultAction: null });
+      // A transient notice passes `requireAction: false`; the attention queue
+      // keeps the historical default of true. Spreading first and overriding
+      // second would silently turn every old caller into a non-blocking card.
+      const requireAction = payload && payload.requireAction === false ? false : true;
+      const defaultAction = payload && payload.defaultAction !== undefined ? payload.defaultAction : null;
+      return showAttentionBubbleWindow({ ...payload, requireAction, defaultAction });
     },
     /** Remove the attention bubble (app focused, queue drained, or shutdown). */
     hideAttentionBubble: () => {
@@ -1914,6 +1919,14 @@ module.exports = function createClawdIntegration(aipaContext) {
     getBubbleFollow: () => bubbleFollowPet,
     /** Check if the user hid bubbles in the pet's own settings */
     getBubblesHidden: () => hideBubbles,
+    /** Set whether bubbles are suppressed (AIPA settings panel path) */
+    setBubblesHidden: (v) => {
+      _settingsController.applyUpdate("hideBubbles", !!v);
+    },
+    /** Set the pet UI language ("en" | "zh" | "ko") */
+    setLanguage: (lang) => {
+      _settingsController.applyUpdate("lang", lang);
+    },
     /** Set whether bubbles follow pet */
     setBubbleFollow: (v) => {
       bubbleFollowPet = v;

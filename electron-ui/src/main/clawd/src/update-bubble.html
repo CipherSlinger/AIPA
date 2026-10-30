@@ -70,6 +70,7 @@ body { padding: 6px; }
 }
 
 .card {
+  position: relative;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 16px;
@@ -228,11 +229,288 @@ body { padding: 6px; }
 .btn-danger:hover:not(:disabled) {
   background: var(--danger-hover-bg);
 }
+
+/* ── HUD layer (shared additions) ──────────────────────────────────────────
+   The same DOM renders both the original card and the SAO HUD skin. New
+   elements stay quiet in the default theme (a muted eyebrow, a plain meta
+   line) and only become decorative when `data-theme="sao"` is set, so the
+   updater bubble and existing users see no change. */
+.eyebrow-row {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "Cascadia Code", "SF Mono", ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--hud-accent, #5b8dd9);
+}
+.eyebrow::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  transform: rotate(45deg);
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  flex-shrink: 0;
+}
+.queue-badge {
+  font-family: "Cascadia Code", "SF Mono", ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+.hud-icon {
+  display: none;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: var(--hud-accent, #5b8dd9);
+}
+.hud-icon svg { width: 22px; height: 22px; display: block; }
+.meta {
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 2px;
+}
+.meta-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: "Cascadia Code", "SF Mono", ui-monospace, monospace;
+  font-size: 10px;
+  line-height: 1.4;
+}
+.meta-label {
+  flex-shrink: 0;
+  min-width: 64px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-size: 9px;
+}
+.meta-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-main);
+}
+.progress-wrap {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+}
+.progress-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: "Cascadia Code", "SF Mono", ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.progress-value { color: var(--hud-accent, #5b8dd9); }
+.progress-track {
+  position: relative;
+  height: 4px;
+  overflow: hidden;
+  background: var(--cmd-bg);
+  border: 1px solid var(--cmd-border);
+}
+.progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: var(--hud-accent, #5b8dd9);
+  transition: width 0.4s var(--ease-spring);
+}
+.progress-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+  animation: hudShimmer 1.8s linear infinite;
+}
+@keyframes hudShimmer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+.countdown {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--hud-accent, #5b8dd9);
+  transform-origin: left center;
+  opacity: 0.75;
+}
+
+/* ── SAO skin ─────────────────────────────────────────────────────────────── */
+.card[data-theme="sao"] {
+  --card-bg: rgba(6, 15, 18, 0.94);
+  --card-border: rgba(63, 224, 200, 0.42);
+  --card-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
+  --card-inset: inset 0 0 28px rgba(63, 224, 200, 0.05);
+  --text-main: #dff7f3;
+  --text-muted: #7fa8a2;
+  --header-color: #eafffb;
+  --cmd-bg: rgba(63, 224, 200, 0.055);
+  --cmd-border: rgba(63, 224, 200, 0.18);
+  --cmd-color: #b8ded8;
+  --cmd-shadow: none;
+  --scroll-thumb: rgba(63, 224, 200, 0.25);
+  --scroll-thumb-hover: rgba(63, 224, 200, 0.4);
+  --deny-bg: rgba(63, 224, 200, 0.05);
+  --deny-color: #b8ded8;
+  --deny-border: rgba(63, 224, 200, 0.3);
+  --deny-hover-bg: rgba(63, 224, 200, 0.12);
+  --deny-hover-border: rgba(63, 224, 200, 0.55);
+  --primary-bg: #17a894;
+  --primary-hover-bg: #1fc4ac;
+  --danger-bg: #b83a3a;
+  --danger-hover-bg: #d24848;
+  --hud-accent: #3fe0c8;
+
+  position: relative;
+  border-radius: 2px;
+  border: 1px solid var(--card-border);
+  padding: 14px 18px 16px;
+  color: var(--text-main);
+  clip-path: polygon(
+    0 12px, 12px 0,
+    calc(100% - 20px) 0, 100% 20px,
+    100% calc(100% - 12px), calc(100% - 12px) 100%,
+    20px 100%, 0 calc(100% - 20px)
+  );
+  filter: drop-shadow(0 10px 26px rgba(0, 0, 0, 0.45));
+  text-shadow: 0 0 12px rgba(63, 224, 200, 0.12);
+  background-image:
+    linear-gradient(rgba(63, 224, 200, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(63, 224, 200, 0.035) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(6, 15, 18, 0.94), rgba(4, 11, 13, 0.97));
+  background-size: 100% 22px, 22px 100%, 100% 100%;
+}
+.card[data-theme="sao"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 28%;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(63, 224, 200, 0.10), transparent);
+  animation: hudScan 5.5s linear infinite;
+}
+@keyframes hudScan {
+  0%   { transform: translateY(-120%); opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { transform: translateY(420%); opacity: 0; }
+}
+.card[data-theme="sao"] .eyebrow-row { display: flex; }
+.card[data-theme="sao"] .hud-icon { display: block; }
+.card[data-theme="sao"] .meta { display: flex; }
+.card[data-theme="sao"] .progress-wrap { display: flex; }
+.card[data-theme="sao"] .header {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+.card[data-theme="sao"] .title {
+  font-family: "Cascadia Code", "SF Mono", ui-monospace, monospace;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.card[data-theme="sao"] .pill {
+  min-width: 0;
+  padding: 2px 7px;
+  border-radius: 1px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: var(--hud-accent);
+  font-family: "Cascadia Code", "SF Mono", ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  box-shadow: 0 0 12px rgba(63, 224, 200, 0.12);
+}
+.card[data-theme="sao"] .message {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-main);
+}
+.card[data-theme="sao"] .summary,
+.card[data-theme="sao"] .detail {
+  border-radius: 2px;
+}
+.card[data-theme="sao"] .btn {
+  border-radius: 1px;
+  font-family: "Cascadia Code", "SF Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-width: 1px;
+  border-style: solid;
+  border-color: transparent;
+  padding: 8px 0;
+  transition: all 0.18s ease;
+}
+.card[data-theme="sao"] .btn-primary {
+  border-color: rgba(63, 224, 200, 0.7);
+  box-shadow: 0 0 16px rgba(63, 224, 200, 0.18), inset 0 0 12px rgba(63, 224, 200, 0.12);
+}
+.card[data-theme="sao"] .btn-secondary {
+  border-color: rgba(63, 224, 200, 0.28);
+}
+.card[data-theme="sao"] .btn-danger {
+  border-color: rgba(255, 93, 93, 0.6);
+}
+.card[data-theme="sao"].clickable:hover {
+  border-color: rgba(63, 224, 200, 0.85);
+}
+
+/* Kind accents. `approval` and `clarification` are the two actionable kinds
+   the attention queue raises today; the rest are the new vocabulary. */
+.card[data-kind="system"]        { --hud-accent: #3fe0c8; }
+.card[data-kind="info"]          { --hud-accent: #58a6ff; }
+.card[data-kind="success"]       { --hud-accent: #57d98a; }
+.card[data-kind="warning"]       { --hud-accent: #f0b429; }
+.card[data-kind="error"]         { --hud-accent: #ff5d5d; }
+.card[data-kind="quest"]         { --hud-accent: #b98cff; }
+.card[data-kind="approval"]      { --hud-accent: #58a6ff; }
+.card[data-kind="clarification"] { --hud-accent: #3fe0c8; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card[data-theme="sao"]::after,
+  .progress-fill::after { animation: none; }
+  .card { transition: opacity 0.12s linear, transform 0.12s linear; }
+}
 </style>
 </head>
 <body>
 <div class="card" id="card">
+  <div class="eyebrow-row">
+    <span class="eyebrow" id="eyebrow"></span>
+    <span class="queue-badge" id="queueBadge"></span>
+  </div>
   <div class="header">
+    <div class="hud-icon" id="hudIcon"></div>
     <div class="title" id="title"></div>
     <div class="pill" id="modePill"></div>
   </div>
@@ -240,8 +518,17 @@ body { padding: 6px; }
     <div class="message" id="message"></div>
     <div class="version" id="version"></div>
   </div>
+  <div class="meta" id="meta"></div>
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-head">
+      <span id="progressLabel"></span>
+      <span class="progress-value" id="progressValue"></span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
   <div class="detail" id="detail"></div>
   <div class="actions" id="actions"></div>
+  <div class="countdown" id="countdown"></div>
 </div>
 <script>
 const card = document.getElementById("card");
@@ -251,6 +538,153 @@ const messageEl = document.getElementById("message");
 const versionEl = document.getElementById("version");
 const detailEl = document.getElementById("detail");
 const actionsEl = document.getElementById("actions");
+const eyebrowEl = document.getElementById("eyebrow");
+const queueBadgeEl = document.getElementById("queueBadge");
+const hudIconEl = document.getElementById("hudIcon");
+const metaEl = document.getElementById("meta");
+const progressWrapEl = document.getElementById("progressWrap");
+const progressLabelEl = document.getElementById("progressLabel");
+const progressValueEl = document.getElementById("progressValue");
+const progressFillEl = document.getElementById("progressFill");
+const countdownEl = document.getElementById("countdown");
+
+let typeTimer = null;
+let countdownFrame = null;
+let countdownStart = 0;
+let heightFrame = null;
+
+// One glyph per vocabulary word. Stroke-only so the accent colour is the only
+// fill and the icons read at 22px in both themes.
+const KIND_ICONS = {
+  system:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 20 7.4v9.2L12 21.2 4 16.6V7.4z"/><path d="M12 8v5"/><circle cx="12" cy="16.2" r="0.9" fill="currentColor" stroke="none"/></svg>',
+  info:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 10.5v6"/><circle cx="12" cy="7.2" r="0.9" fill="currentColor" stroke="none"/></svg>',
+  success:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m7.8 12.3 2.8 2.8 5.6-5.8"/></svg>',
+  warning:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.4 21.2 20H2.8z"/><path d="M12 9v5"/><circle cx="12" cy="17.1" r="0.9" fill="currentColor" stroke="none"/></svg>',
+  error:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.2 2.8h7.6l5.4 5.4v7.6l-5.4 5.4H8.2l-5.4-5.4V8.2z"/><path d="m9.2 9.2 5.6 5.6M14.8 9.2l-5.6 5.6"/></svg>',
+  quest:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 5h11l-1.8 3.5L16 12H5"/></svg>',
+  approval:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 20 6v6.2c0 4.3-3.2 7.6-8 9-4.8-1.4-8-4.7-8-9V6z"/><path d="m8.6 12.1 2.4 2.4 4.4-4.6"/></svg>',
+  clarification:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.4 9.2a2.7 2.7 0 0 1 5.2.9c0 1.8-2.6 2.2-2.6 3.7"/><circle cx="12" cy="17.1" r="0.9" fill="currentColor" stroke="none"/></svg>',
+};
+
+const EYEBROW_STRINGS = {
+  en: { system: "SYSTEM", info: "NOTICE", success: "NOTICE", warning: "ALERT", error: "ALERT", quest: "QUEST", approval: "ALERT", clarification: "INPUT" },
+  zh: { system: "系统", info: "通知", success: "通知", warning: "警报", error: "警报", quest: "任务", approval: "警报", clarification: "询问" },
+  ko: { system: "시스템", info: "알림", success: "알림", warning: "경고", error: "경고", quest: "퀘스트", approval: "경고", clarification: "입력" },
+};
+
+function eyebrowText(kind, lang) {
+  const dict = EYEBROW_STRINGS[lang] || EYEBROW_STRINGS.en;
+  return dict[kind] || "";
+}
+
+function clearTimers() {
+  if (typeTimer) { clearInterval(typeTimer); typeTimer = null; }
+  if (countdownFrame) { cancelAnimationFrame(countdownFrame); countdownFrame = null; }
+}
+
+function startTypewriter(text) {
+  messageEl.textContent = "";
+  if (!text) return;
+  const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduced) { messageEl.textContent = text; return; }
+  // Long bodies should not become a reading race: compress the whole reveal
+  // into at most ~1.1s, and never slower than 4ms/char.
+  const step = Math.max(4, Math.min(14, Math.round(1100 / Math.max(1, text.length))));
+  let i = 0;
+  typeTimer = setInterval(() => {
+    i += 1;
+    messageEl.textContent = text.slice(0, i);
+    if (i >= text.length) {
+      clearInterval(typeTimer);
+      typeTimer = null;
+      reportHeight();
+    }
+  }, step);
+}
+
+function renderIcon(kind) {
+  hudIconEl.innerHTML = kind ? (KIND_ICONS[kind] || KIND_ICONS.system) : "";
+}
+
+function renderMeta(meta) {
+  metaEl.innerHTML = "";
+  if (!Array.isArray(meta)) return;
+  for (const row of meta) {
+    if (!row || (!row.label && !row.value)) continue;
+    const line = document.createElement("div");
+    line.className = "meta-row";
+    const label = document.createElement("span");
+    label.className = "meta-label";
+    label.textContent = row.label || "";
+    const value = document.createElement("span");
+    value.className = "meta-value";
+    value.textContent = row.value || "";
+    line.append(label, value);
+    metaEl.appendChild(line);
+  }
+}
+
+function renderProgress(progress) {
+  if (!progress || typeof progress.value !== "number") return;
+  const max = typeof progress.max === "number" && progress.max > 0 ? progress.max : 1;
+  const pct = Math.max(0, Math.min(100, Math.round((progress.value / max) * 100)));
+  progressWrapEl.style.display = "flex";
+  progressLabelEl.textContent = progress.label || "";
+  progressLabelEl.style.display = progress.label ? "" : "none";
+  progressValueEl.textContent = `${pct}%`;
+  progressFillEl.style.width = `${pct}%`;
+}
+
+function startCountdown(ms) {
+  if (!ms || ms <= 0) return;
+  countdownEl.style.display = "block";
+  countdownStart = performance.now();
+  const tick = (now) => {
+    const t = Math.min(1, (now - countdownStart) / ms);
+    countdownEl.style.transform = `scaleX(${1 - t})`;
+    if (t < 1) countdownFrame = requestAnimationFrame(tick);
+  };
+  countdownFrame = requestAnimationFrame(tick);
+}
+
+// A small synthesized cue — no audio files, no licensing, and it fails silently
+// when the OS or Chromium refuses an AudioContext before the first gesture.
+let audioCtx = null;
+function playCue(sound) {
+  if (!sound || sound === "none") return;
+  try {
+    const Ctor = window.AudioContext || window.webkitAudioContext;
+    if (!Ctor) return;
+    if (!audioCtx) audioCtx = new Ctor();
+    if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+    const notes = sound === "error" ? [220, 165]
+      : sound === "warning" ? [440, 440]
+      : sound === "success" ? [523, 784]
+      : sound === "system" ? [660, 990]
+      : [587];
+    const now = audioCtx.currentTime;
+    notes.forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = sound === "error" ? "sawtooth" : "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, now + i * 0.09);
+      gain.gain.exponentialRampToValueAtTime(0.05, now + i * 0.09 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.09 + 0.08);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(now + i * 0.09);
+      osc.stop(now + i * 0.09 + 0.09);
+    });
+  } catch { /* audio is a bonus, never a precondition */ }
+}
 
 function modeLabel(mode, lang) {
   const ko = {
@@ -293,17 +727,49 @@ function disableButtons() {
 
 function show(payload) {
   const mode = payload.mode || "checking";
+  const lang = payload.lang || "en";
+  const kind = payload.kind || "";
+  clearTimers();
+
+  // The skin is opt-in per payload. An attention bubble names its theme; the
+  // updater (and anything older than this wave) keeps the original card.
+  card.dataset.theme = payload.theme === "sao" ? "sao" : "";
+  card.dataset.kind = kind;
+
+  eyebrowEl.textContent = payload.eyebrow || eyebrowText(kind, lang);
+  eyebrowEl.style.display = eyebrowEl.textContent ? "" : "none";
+  const queue = payload.queue;
+  queueBadgeEl.textContent = queue && queue.total > 1 ? `${queue.index || 1}/${queue.total}` : "";
+  renderIcon(kind);
+  renderMeta(payload.meta);
 
   titleEl.textContent = payload.title || "";
-  messageEl.textContent = payload.message || "";
   versionEl.textContent = payload.version ? `v${String(payload.version).replace(/^v/, "")}` : "";
   versionEl.style.display = payload.version ? "" : "none";
   detailEl.textContent = payload.detail || "";
   detailEl.style.display = payload.detail ? "block" : "none";
 
+  // Actionable cards are read under time pressure, so they never animate their
+  // body; everything else gets the HUD reveal.
+  const typed = card.dataset.theme === "sao"
+    && kind !== "approval"
+    && kind !== "clarification"
+    && payload.message
+    && payload.typed !== false;
+  if (typed) startTypewriter(String(payload.message));
+  else messageEl.textContent = payload.message || "";
+  messageEl.style.display = payload.message ? "" : "none";
+
+  if (payload.progress) renderProgress(payload.progress);
+  else progressWrapEl.style.display = "none";
+
+  countdownEl.style.display = "none";
+  countdownEl.style.transform = "scaleX(1)";
+  if (payload.countdownMs) startCountdown(payload.countdownMs);
+
   // Attention bubbles pass their own pill label; the updater keeps the
   // mode-derived one.
-  modePillEl.textContent = payload.pill || modeLabel(mode, payload.lang || "en");
+  modePillEl.textContent = payload.pill || modeLabel(mode, lang);
   modePillEl.dataset.mode = mode;
   card.dataset.mode = mode;
 
@@ -326,6 +792,7 @@ function show(payload) {
     const variant = action.variant || "secondary";
     btn.className = `btn btn-${variant}`;
     btn.textContent = action.label;
+    if (action.hint) btn.title = action.hint;
     btn.addEventListener("click", () => {
       disableButtons();
       window.updateBubbleAPI.choose(action.id);
@@ -335,12 +802,29 @@ function show(payload) {
 
   card.classList.remove("hiding");
   card.classList.add("visible");
+  playCue(payload.sound);
   reportHeight();
 }
 
 function hide() {
+  clearTimers();
   card.classList.remove("visible");
   card.classList.add("hiding");
+}
+
+// The typewriter and progress blocks change the card's height after `show`
+// reported it. One observer keeps the main-process window measurement honest
+// without every caller having to remember. Debounced into the next frame so a
+// burst of mutations produces one IPC message.
+if (typeof ResizeObserver === "function") {
+  const observer = new ResizeObserver(() => {
+    if (heightFrame) return;
+    heightFrame = requestAnimationFrame(() => {
+      heightFrame = null;
+      reportHeight();
+    });
+  });
+  observer.observe(card);
 }
 
 window.updateBubbleAPI.onShow(show);

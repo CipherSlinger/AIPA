@@ -1119,6 +1119,18 @@
     "petLanguageHint": "Language for the pet's UI and menus",
     "petAttentionAlerts": "Call Me Through the Pet",
     "petAttentionAlertsHint": "When AIPA is in the background, the pet shows a bubble for approvals, questions, failed tasks and finished plugin jobs. Click the bubble to open that session.",
+    "petBubbleTheme": "Bubble Style",
+    "petBubbleThemeHint": "HUD draws the dark SAO-style panel with kind accents; Classic keeps the plain card.",
+    "petBubbleThemeSao": "HUD (SAO)",
+    "petBubbleThemeClawd": "Classic",
+    "petBootGreeting": "Greeting at Launch",
+    "petBootGreetingHint": "The pet says a line a few seconds after AIPA starts.",
+    "petTurnNotices": "Announce Finished Turns",
+    "petTurnNoticesHint": "When a turn finishes while AIPA is in the background, the pet says so instead of the system notification.",
+    "petTestNotice": "Test announcement",
+    "petNotices": "Recent Announcements",
+    "petNoticesEmpty": "Nothing announced yet.",
+    "petClearNotices": "Clear",
     "about": {
       "aiPersonalAssistant": "AI Personal Assistant",
       "links": "Links",
@@ -1841,6 +1853,7 @@
     "usage": "Context: {{used}} / {{total}} ({{percent}}%)",
     "breakdown": "Input: {{input}} | Output: {{output}} | Cache: {{cache}}",
     "almostFull": "Context window almost full ({{pct}}%). Consider starting a new conversation.",
+    "petTitle": "Context running low",
     "nearCapacity": "Context window {{pct}}% full. Enable auto-compact in Settings > Behavior."
   },
   "changes": {

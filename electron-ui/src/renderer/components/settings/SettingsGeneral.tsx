@@ -42,6 +42,14 @@ export default function SettingsGeneral({
   const [clawdError, setClawdError] = useState<string | null>(null)
   // clawd pet settings
   const [petPrefs, setPetPrefs] = useState<Record<string, unknown>>({})
+  // The pet's own announcement history, newest first (max 50 in main).
+  const [petNotices, setPetNotices] = useState<Array<{ id: string; kind: string; title: string; at: number }>>([])
+
+  const reloadPetNotices = () => {
+    window.electronAPI.clawdNotices?.().then(r => {
+      if (r?.notices) setPetNotices(r.notices)
+    }).catch(() => {})
+  }
 
   // Load clawd pet prefs when clawd is enabled
   useEffect(() => {
@@ -49,6 +57,7 @@ export default function SettingsGeneral({
     window.electronAPI.clawdGetPrefs?.().then(r => {
       if (r?.prefs) setPetPrefs(r.prefs)
     }).catch(() => {})
+    reloadPetNotices()
   }, [local.clawdEnabled])
 
   // Helper to update a clawd pet pref
@@ -623,6 +632,41 @@ export default function SettingsGeneral({
                     </select>
                   </div>
 
+                  {/* Bubble skin — app pref: the main process stamps it onto
+                      every attention/notice payload. */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t('settings.petBubbleTheme')}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settings.petBubbleThemeHint')}</div>
+                    </div>
+                    <select
+                      value={local.petBubbleTheme === 'clawd' ? 'clawd' : 'sao'}
+                      onChange={e => updateLocal({ petBubbleTheme: e.target.value })}
+                      style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                    >
+                      <option value="sao">{t('settings.petBubbleThemeSao')}</option>
+                      <option value="clawd">{t('settings.petBubbleThemeClawd')}</option>
+                    </select>
+                  </div>
+
+                  {/* Boot greeting */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t('settings.petBootGreeting')}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settings.petBootGreetingHint')}</div>
+                    </div>
+                    <Toggle value={local.petBootGreeting !== false} onChange={v => updateLocal({ petBootGreeting: v })} />
+                  </div>
+
+                  {/* Finished-turn notices */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t('settings.petTurnNotices')}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settings.petTurnNoticesHint')}</div>
+                    </div>
+                    <Toggle value={local.petTurnNotices !== false} onChange={v => updateLocal({ petTurnNotices: v })} />
+                  </div>
+
                   {/* Background attention alerts — app pref, not a pet pref:
                       the main process owns the focus check and the queue. */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -676,6 +720,52 @@ export default function SettingsGeneral({
                       <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settings.petShowTrayHint')}</div>
                     </div>
                     <Toggle value={petPrefs.showTray !== false} onChange={v => updatePetPref('showTray', v)} />
+                  </div>
+
+                  {/* Announcement history — the pet's own memory of what it said */}
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, gap: 8 }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                        {t('settings.petNotices')}
+                      </div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          onClick={async () => {
+                            try { await window.electronAPI.clawdTestNotice?.() } catch { /* pet off */ }
+                            reloadPetNotices()
+                          }}
+                          style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer' }}
+                        >
+                          {t('settings.petTestNotice')}
+                        </button>
+                        <button
+                          onClick={async () => {
+                            try { await window.electronAPI.clawdClearNotices?.() } catch { /* ignore */ }
+                            setPetNotices([])
+                          }}
+                          disabled={petNotices.length === 0}
+                          style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, border: '1px solid var(--border)', background: 'transparent', color: petNotices.length ? 'var(--text-primary)' : 'var(--text-muted)', cursor: petNotices.length ? 'pointer' : 'default' }}
+                        >
+                          {t('settings.petClearNotices')}
+                        </button>
+                      </div>
+                    </div>
+                    {petNotices.length === 0 ? (
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settings.petNoticesEmpty')}</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 132, overflowY: 'auto' }}>
+                        {petNotices.slice(0, 8).map(n => (
+                          <div key={n.id} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: 11, minWidth: 0 }}>
+                            <span style={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                              {new Date(n.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {n.title}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

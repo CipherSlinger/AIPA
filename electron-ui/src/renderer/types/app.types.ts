@@ -381,6 +381,9 @@ export interface AppPrefs {
   disallowedTools?: string[]   // tools blocked from CLI via --disallowedTools (Iteration 527)
   clawdEnabled?: boolean       // show Clawd desktop pet that reacts to AI session state (Iteration 615)
   petAttentionAlerts?: boolean // summon the pet for background approvals/questions/failures/plugin completions (default true)
+  petBubbleTheme?: 'sao' | 'clawd' // pet bubble skin: HUD card vs plain card (default 'sao')
+  petBootGreeting?: boolean     // pet says a line a few seconds after launch (default true)
+  petTurnNotices?: boolean      // pet announces turns that finish while AIPA is in the background (default true)
   dreamConsolidationEnabled?: boolean // background memory consolidation passes (default true)
 }
 

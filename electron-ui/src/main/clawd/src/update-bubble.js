@@ -26,6 +26,14 @@ function deferMacFloatingVisibility(ctx, win) {
 
 function estimateHeight(payload) {
   let height = payload && payload.mode === "error" ? 220 : 150;
+  // The HUD skin adds an eyebrow row, optional meta rows and a progress block.
+  // A payload without `kind` is the updater card (or an older attention
+  // caller), and keeps the original estimate exactly.
+  if (payload && payload.kind) height += 18;
+  if (payload && Array.isArray(payload.meta) && payload.meta.length) {
+    height += payload.meta.length * 16 + 4;
+  }
+  if (payload && payload.progress) height += 34;
   if (payload && payload.message) {
     const messageLines = String(payload.message).split(/\r?\n/).length;
     height += Math.max(0, messageLines - 1) * 16;
@@ -228,7 +236,11 @@ module.exports = function initUpdateBubble(ctx) {
       send();
     }
 
-    if (!payload.requireAction) {
+    // A passive notice resolves at once. Unless it is clickable: then the
+    // promise stays open so the click still reaches the caller, and settles
+    // when the card is replaced or dismissed. The callers of a notice ignore
+    // the value, so this never blocks anything.
+    if (!payload.requireAction && !payload.clickAction) {
       resolveAction = null;
       return Promise.resolve(payload.defaultAction != null ? payload.defaultAction : null);
     }

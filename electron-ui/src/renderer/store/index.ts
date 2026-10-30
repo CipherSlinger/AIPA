@@ -142,6 +142,9 @@ const DEFAULT_PREFS: AppPrefs = {
   disallowedTools: [],
   clawdEnabled: true,
   petAttentionAlerts: true,
+  petBubbleTheme: 'sao' as const,
+  petBootGreeting: true,
+  petTurnNotices: true,
 }
 
 export const usePrefsStore = create<PrefsState>((set) => ({

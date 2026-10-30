@@ -2,7 +2,13 @@ import { ipcMain, BrowserWindow, desktopCapturer, powerSaveBlocker, dialog, app 
 import { createLogger } from '../utils/logger'
 import { getPref } from '../config/config-manager'
 import { shouldSuppressNativeNotification } from '../clawd-attention'
+import { getClawdLanguage, showClawdNotice } from '../clawd-integration'
 import { shortcutStatusSnapshot } from '../window/shortcut-status'
+
+const { createTranslator } = require('../clawd/src/i18n') as {
+  createTranslator: (getLang: () => string) => (key: string) => string
+}
+const petT = createTranslator(() => getClawdLanguage())
 
 const log = createLogger('ipc:window')
 
@@ -92,6 +98,28 @@ export function registerWindowHandlers(win: BrowserWindow): void {
     if (shouldSuppressNativeNotification(sessionId)) {
       log.debug('native notification suppressed — pet attention bubble is showing')
       return
+    }
+    // A finished turn while the user is elsewhere is the pet's best moment:
+    // a HUD card says what finished, and clicking it reopens the conversation.
+    // The native notification remains the fallback when the pet cannot speak.
+    if (getPref('petTurnNotices' as any) !== false && !win.isDestroyed() && !win.isFocused()) {
+      const shown = showClawdNotice({
+        kind: 'success',
+        title: opts.title,
+        message: opts.body,
+        pill: petT('noticeDonePill'),
+        mode: 'done',
+        lang: getClawdLanguage(),
+        clickAction: 'open',
+        typed: true,
+      }, 7000, () => {
+        if (win.isDestroyed()) return
+        if (win.isMinimized()) win.restore()
+        win.show()
+        win.focus()
+        if (sessionId) win.webContents.send('menu:openSession', sessionId)
+      })
+      if (shown) return
     }
     const { Notification } = require('electron')
     if (!Notification.isSupported()) return

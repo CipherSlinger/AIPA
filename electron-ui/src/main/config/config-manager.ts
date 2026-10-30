@@ -36,6 +36,29 @@ interface StoreSchema {
    */
   petAttentionAlerts: boolean
   /**
+   * Skin for the pet's attention/notice bubbles. `sao` is the HUD card (dark
+   * panel, clipped corners, eyebrow + accent by kind); `clawd` keeps the plain
+   * light card. Defaults to `sao` — the richer card is the point of the wave.
+   */
+  petBubbleTheme: 'sao' | 'clawd'
+  /**
+   * Say a short greeting from the pet a few seconds after launch. Off is for
+   * people who find the pet chatty; the bubble never replaces an attention
+   * card and respects DND and "hide bubbles".
+   */
+  petBootGreeting: boolean
+  /**
+   * Announce a turn that finished while AIPA was in the background. The pet
+   * card replaces the generic native notification; when the pet cannot speak
+   * the native one still appears, so this never loses the notice.
+   */
+  petTurnNotices: boolean
+  /**
+   * Epoch ms until which the pet keeps quiet (tray "Silence for…"). 0 means
+   * not silenced. A deadline rather than a timer so it survives a restart.
+   */
+  petQuietUntil: number
+  /**
    * Background memory consolidation ("dream"): turns idle conversations into
    * append-only project memory files. Default on; the Memory console exposes
    * the switch and its pass log.
@@ -86,6 +109,10 @@ const store = new Store<StoreSchema>({
     windowBounds: null,
     clawdEnabled: true,
     petAttentionAlerts: true,
+    petBubbleTheme: 'sao',
+    petBootGreeting: true,
+    petTurnNotices: true,
+    petQuietUntil: 0,
     dreamConsolidationEnabled: true,
     allowedFolders: [],
     pluginAiModels: {},
