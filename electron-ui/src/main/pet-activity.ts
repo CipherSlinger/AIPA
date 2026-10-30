@@ -24,6 +24,19 @@ const log = createLogger('pet-activity')
 
 export type PetActivityPhase = 'idle' | 'thinking' | 'tool' | 'awaiting' | 'error'
 
+/**
+ * Spend for the current turn, as the engine last reported it. Per-turn: the
+ * reducer drops it on `turn-start`/`reset` rather than accumulating, because
+ * the strip is about this turn and a session total would only ever grow.
+ */
+export interface PetActivityUsage {
+  inputTokens: number
+  outputTokens: number
+  cacheReadTokens: number
+  /** Model context window, when the engine names one. */
+  contextWindow?: number
+}
+
 export interface PetActivity {
   phase: PetActivityPhase
   /** Tool card name as the renderer knows it ("Bash", "Edit", …). */
@@ -34,6 +47,10 @@ export interface PetActivity {
   toolCount: number
   /** ≤80 chars from the tool input: the command, path or query. */
   preview?: string
+  /** Tokens the current turn has spent; absent until the engine reports one. */
+  usage?: PetActivityUsage
+  /** `totalCostUsd` for this turn, when the engine prices it. */
+  costUsd?: number
 }
 
 /**
@@ -51,6 +68,8 @@ export interface PetActivityEvent {
     | 'turn-error'
     | 'turn-complete'
     | 'reset'
+    | 'token-usage'
+    | 'cost'
   /** Bridge that raised the event; used only to keep concurrent turns apart. */
   bridgeId?: string
   toolId?: string
@@ -58,6 +77,13 @@ export interface PetActivityEvent {
   input?: Record<string, unknown>
   message?: string
   outcome?: string
+  /** `token-usage`: this turn's reading, already normalized by the wiring. */
+  inputTokens?: number
+  outputTokens?: number
+  cacheReadTokens?: number
+  contextWindow?: number
+  /** `cost`: `totalCostUsd`, when the engine prices the turn. */
+  costUsd?: number
 }
 
 /** A fast tool loop must not repaint the pet on every event. */
@@ -112,12 +138,31 @@ function normalizeToolName(value: string | undefined): string | undefined {
   return flat || undefined
 }
 
+/** Compare the two numbers, then the two optional readings, without spreading. */
+function sameUsage(a: PetActivityUsage | undefined, b: PetActivityUsage | undefined): boolean {
+  if (a === b) return true
+  if (!a || !b) return false
+  return a.inputTokens === b.inputTokens
+    && a.outputTokens === b.outputTokens
+    && a.cacheReadTokens === b.cacheReadTokens
+    && a.contextWindow === b.contextWindow
+}
+
 function sameActivity(a: PetActivity, b: PetActivity): boolean {
   return a.phase === b.phase
     && a.toolName === b.toolName
     && a.preview === b.preview
     && a.toolCount === b.toolCount
     && a.turnStartedAt === b.turnStartedAt
+    && a.costUsd === b.costUsd
+    && sameUsage(a.usage, b.usage)
+}
+
+/** Non-negative, integral token count from a possibly noisy wire number. */
+function tokenCount(value: number | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? Math.round(value)
+    : 0
 }
 
 /** A turn started on a bridge: the strip adopts it and forgets the last one. */
@@ -199,8 +244,42 @@ export function notePetActivity(event: PetActivityEvent): void {
       break
     case 'turn-error':
       if (activity.phase === 'idle') beginTurn(event.bridgeId)
-      activity = { ...activity, phase: 'error', preview: clipPreview(event.message) }
+      // The error card is terminal; a token reading from the failed attempt
+      // would be stale spend presented next to the failure.
+      activity = {
+        ...activity,
+        phase: 'error',
+        preview: clipPreview(event.message),
+        usage: undefined,
+        costUsd: undefined,
+      }
       break
+    case 'token-usage': {
+      // Spend belongs to a running turn. A reading that arrives while the
+      // strip is idle has no card to attach to, and a non-owner's reading was
+      // already dropped by the guard above.
+      if (activity.phase === 'idle' || activity.phase === 'error') break
+      const inputTokens = tokenCount(event.inputTokens)
+      const outputTokens = tokenCount(event.outputTokens)
+      if (!inputTokens && !outputTokens) break
+      activity = {
+        ...activity,
+        usage: {
+          inputTokens,
+          outputTokens,
+          cacheReadTokens: tokenCount(event.cacheReadTokens),
+          ...(tokenCount(event.contextWindow) > 0 ? { contextWindow: tokenCount(event.contextWindow) } : {}),
+        },
+      }
+      break
+    }
+    case 'cost': {
+      if (activity.phase === 'idle' || activity.phase === 'error') break
+      const costUsd = event.costUsd
+      if (typeof costUsd !== 'number' || !Number.isFinite(costUsd) || costUsd <= 0) break
+      activity = { ...activity, costUsd }
+      break
+    }
   }
 
   if (sameActivity(before, activity)) return

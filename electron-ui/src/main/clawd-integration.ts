@@ -846,6 +846,25 @@ function formatElapsed(ms: number): string {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 }
 
+/**
+ * Compact token count for the strip: `950`, `12.4k`, `1.2M`. One decimal is
+ * enough to tell turns apart without making the row jitter in width.
+ */
+function formatTokenCount(count: number): string {
+  const value = Math.max(0, count)
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1).replace(/\.0$/, '')}k`
+  return String(Math.round(value))
+}
+
+/** `$0.012`, `$0.0042`, `$1.25`: enough precision to read, not a ledger. */
+function formatUsd(usd: number): string {
+  if (!Number.isFinite(usd) || usd <= 0) return ''
+  if (usd < 0.01) return `$${usd.toFixed(4)}`
+  if (usd < 1) return `$${usd.toFixed(3)}`
+  return `$${usd.toFixed(2)}`
+}
+
 /** Reduce the live state into the quest/system HUD card the pet renders. */
 function buildActivityPayload(activity: PetActivity): ClawdAttentionBubblePayload {
   const lang = getClawdLanguage()
@@ -875,6 +894,19 @@ function buildActivityPayload(activity: PetActivity): ClawdAttentionBubblePayloa
   if (toolName) meta.push({ label: 'TOOL', value: toolName })
   if (activity.turnStartedAt) {
     meta.push({ label: 'TURN', value: formatElapsed(Date.now() - activity.turnStartedAt) })
+  }
+  // One compact spend row, only once the engine has actually counted tokens.
+  // An error card reports the failure, not what the failed attempt cost.
+  const usage = activity.phase === 'error' ? undefined : activity.usage
+  if (usage && (usage.inputTokens > 0 || usage.outputTokens > 0)) {
+    const cost = typeof activity.costUsd === 'number' ? formatUsd(activity.costUsd) : ''
+    meta.push({
+      // Literal like TOOL and TURN: the meta strip is the card's instrument
+      // face and keeps its English micro-labels in every language. The card's
+      // title and body are the parts that speak the user's language.
+      label: 'TOKENS',
+      value: `${formatTokenCount(usage.inputTokens)} → ${formatTokenCount(usage.outputTokens)}${cost ? ` · ${cost}` : ''}`,
+    })
   }
 
   // Stop needs an owner bridge to abort; a button that resolves to nothing is

@@ -93,10 +93,30 @@ function wirePetActivity(bridge: EventEmitter, bridgeId: string): void {
   bridge.on('toolResult', (d: { event?: { tool_use_id?: string } }) => {
     notePetActivity({ type: 'tool-finish', bridgeId, toolId: d?.event?.tool_use_id })
   })
-  bridge.on('result', (d: { outcome?: string; subtype?: string }) => {
+  bridge.on('result', (d: { outcome?: string; subtype?: string; totalCostUsd?: number }) => {
+    // The engine prices the turn only in its final envelope. Note the cost
+    // before the completion clears the strip: today the strip disappears with
+    // the turn, so this is the honest hook for a card that survives briefly
+    // longer, not an attempt to keep a completion card alive.
+    if (typeof d?.totalCostUsd === 'number') {
+      notePetActivity({ type: 'cost', bridgeId, costUsd: d.totalCostUsd })
+    }
     // `outcome` is the Codex vocabulary, `subtype` the Claude one. Both mean
     // "this turn is over"; the strip hides either way.
     notePetActivity({ type: 'turn-complete', bridgeId, outcome: d?.outcome ?? d?.subtype })
+  })
+  // Per-turn token reading. Codex emits `thread/tokenUsage/updated` while the
+  // turn runs; the bridge has already normalized `last` into Claude's usage
+  // vocabulary and dropped the zeroed pre-request event.
+  bridge.on('tokenUsageUpdated', (d: { usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; context_window?: number } }) => {
+    notePetActivity({
+      type: 'token-usage',
+      bridgeId,
+      inputTokens: d?.usage?.input_tokens,
+      outputTokens: d?.usage?.output_tokens,
+      cacheReadTokens: d?.usage?.cache_read_input_tokens,
+      contextWindow: d?.usage?.context_window,
+    })
   })
   bridge.on('turnError', (d: { willRetry?: boolean; message?: string }) => {
     // A retryable engine error is a reconnect, not a failed turn.
