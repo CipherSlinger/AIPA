@@ -49,13 +49,16 @@
  *
  * "Later"
  *   The card's secondary action asks this module to raise it again two hours
- *   later. That is a snooze of the announcement only: the daily memory is not
- *   written, the aggregate is rebuilt from the live store (a task finished in
+ *   later. That is a snooze of the announcement only: the announced memory is
+ *   untouched, the aggregate is rebuilt from the live store (a task finished in
  *   the meantime does not come back), and nothing is shown when nothing is
- *   due. One timer exists at most; a second "Later" replaces it, a new card
- *   from the reminder cancels it, and quitting clears it. The heartbeat and
- *   `powerMonitor` `resume` also fire an overdue snooze, so a machine that
- *   slept through the two hours still speaks on waking.
+ *   due. One timer exists at most; a second "Later" replaces it, a card raised
+ *   for other tasks does not disturb it, and quitting only drops the timer.
+ *   The deadline is stored in the same file, so closing the app for an hour
+ *   does not lose the wait; a deadline that passed while it was closed is
+ *   dropped instead of spoken late. The heartbeat and `powerMonitor` `resume`
+ *   also fire an overdue snooze, so a machine that slept through the two hours
+ *   still speaks on waking.
  *
  * This module never changes a task: no status writes, no due-date edits, no
  * moves. It only reads the store and talks to the attention queue.
@@ -95,8 +98,9 @@ export const DUE_ROWS_SHOWN = 3
 /**
  * The due card's secondary action ("Later") puts the same card back two hours
  * from now. This is a snooze of the *announcement*, not of the reminder memory:
- * the daily state file is never written by it, so tomorrow's 08:00 card is
- * exactly what it was before the user chose to wait.
+ * the `announced` record is untouched, so tomorrow's 08:00 card is exactly what
+ * it was before the user chose to wait. Only the deadline itself is stored, so
+ * the wait survives a restart.
  */
 export const DUE_SNOOZE_MS = 2 * 60 * 60 * 1000
 
@@ -141,6 +145,14 @@ interface DueReminderState {
   announced: Record<string, string>
   /** Diagnostics: the last day a card was actually raised. */
   lastAnnouncedDay?: string
+  /**
+   * Wall-clock ms of a pending "Later". Stored so the wait outlives the app:
+   * clicking Later and then closing AIPA for an hour must still bring the card
+   * back, and a deadline whose moment passed while the app was closed is not
+   * spoken late — it is dropped, because the next 08:00 card covers the same
+   * tasks anyway.
+   */
+  snoozeUntil?: number
 }
 
 export type DueCheckStatus =
@@ -264,6 +276,11 @@ function defaultStatePath(): string {
   return path.join(app.getPath('userData'), STATE_FILE)
 }
 
+/** The file this reminder reads and writes; a harness may point it elsewhere. */
+function statePath(): string {
+  return stateFile ?? defaultStatePath()
+}
+
 function isDay(value: unknown): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
 }
@@ -279,10 +296,14 @@ function readState(file: string): DueReminderState {
     for (const [id, day] of Object.entries(raw)) {
       if (id && isDay(day)) announced[id] = day
     }
+    const snoozeUntil = typeof parsed?.snoozeUntil === 'number' && Number.isFinite(parsed.snoozeUntil) && parsed.snoozeUntil > 0
+      ? parsed.snoozeUntil
+      : undefined
     return {
       version: STATE_VERSION,
       announced,
       ...(isDay(parsed?.lastAnnouncedDay) ? { lastAnnouncedDay: parsed.lastAnnouncedDay } : {}),
+      ...(snoozeUntil ? { snoozeUntil } : {}),
     }
   } catch (err) {
     if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
@@ -304,6 +325,21 @@ function writeState(file: string, state: DueReminderState): boolean {
     log.warn(`Could not write ${path.basename(file)}:`, err)
     return false
   }
+}
+
+/**
+ * Persist (or forget, with `null`) the pending "Later" deadline. The announced
+ * memory is carried over exactly as it is: a wait is about one card, and must
+ * neither re-announce today's tasks nor lose what this morning already said.
+ */
+function writeSnooze(file: string, deadline: number | null): boolean {
+  const state = readState(file)
+  return writeState(file, {
+    version: STATE_VERSION,
+    announced: state.announced,
+    ...(state.lastAnnouncedDay ? { lastAnnouncedDay: state.lastAnnouncedDay } : {}),
+    ...(deadline ? { snoozeUntil: deadline } : {}),
+  })
 }
 
 /**
@@ -383,6 +419,8 @@ export function checkDueReminder(nowMs: number, options: DueCheckOptions = {}): 
     version: STATE_VERSION,
     announced: pruneAnnounced(announced, tasks),
     lastAnnouncedDay: day,
+    // A wait the user asked for survives the card it was not about.
+    ...(state.snoozeUntil ? { snoozeUntil: state.snoozeUntil } : {}),
   })
   return { status: 'announced', day, pending: pending.length, aggregate, persisted }
 }
@@ -417,6 +455,9 @@ function raiseSnoozedCard(): void {
   // The timer may already be in the event loop when quit begins; a card must
   // not be raised for an app that is going away.
   if (!running || getQuitting()) return
+  // The wait is over, however it ended: the file must not re-arm it after a
+  // restart, or the same card would come back twice.
+  forgetSnoozeOnDisk()
   const now = readNow()
   const aggregate = currentDueAggregate(now)
   if (!aggregate) {
@@ -448,6 +489,29 @@ function fireSnoozeIfDue(): void {
 }
 
 /**
+ * Arm the one-shot timer for an absolute deadline. Unref'd like the scheduler's
+ * own timers, so a wait can never keep the app alive; a deadline already in the
+ * past fires on the next turn of the loop rather than being skipped.
+ */
+function armSnoozeUntil(deadline: number): void {
+  if (snoozeTimer) clearTimeout(snoozeTimer)
+  snoozeDueAt = deadline
+  snoozeTimer = setTimeout(() => {
+    snoozeTimer = null
+    snoozeDueAt = 0
+    raiseSnoozedCard()
+  }, Math.max(0, deadline - readNow()))
+  snoozeTimer.unref?.()
+}
+
+/** Remove the stored deadline, if one is there at all. */
+function forgetSnoozeOnDisk(): void {
+  const file = statePath()
+  if (!readState(file).snoozeUntil) return
+  writeSnooze(file, null)
+}
+
+/**
  * The card's secondary action. Replaces any pending snooze, so at most one
  * timer exists no matter how often the user asks to wait. Returns false when
  * the reminder is not running (the app is quitting or the reminder is off).
@@ -455,18 +519,18 @@ function fireSnoozeIfDue(): void {
 export function snoozeDueReminder(nowMs?: number): boolean {
   if (!running || getQuitting()) return false
   const now = typeof nowMs === 'number' ? nowMs : readNow()
-  cancelDueSnooze()
-  snoozeDueAt = now + DUE_SNOOZE_MS
-  snoozeTimer = setTimeout(() => {
-    snoozeTimer = null
-    snoozeDueAt = 0
-    raiseSnoozedCard()
-  }, DUE_SNOOZE_MS)
-  snoozeTimer.unref?.()
+  armSnoozeUntil(now + DUE_SNOOZE_MS)
+  // Written *before* the timer can fire: a crash in between must not lose the
+  // wait, and it must not fire it either — the file is read back on launch.
+  writeSnooze(statePath(), snoozeDueAt)
   return true
 }
 
-/** Drop a pending snooze (a new card was raised, or the app is quitting). */
+/**
+ * Drop a pending snooze from memory only. The stored deadline is deliberately
+ * left alone: this is called when the app is quitting, and the whole point of
+ * the file is that the wait survives a restart.
+ */
 export function cancelDueSnooze(): void {
   if (snoozeTimer) {
     clearTimeout(snoozeTimer)
@@ -481,11 +545,13 @@ export interface DueSnoozeStatus {
   dueAt: number
   /** How many snoozed cards were actually raised since the reminder started. */
   fired: number
+  /** How many waits were read back from the state file after a restart. */
+  restored: number
 }
 
 /** Diagnostics for the harness; no UI reads it. */
 export function getDueSnoozeStatus(): DueSnoozeStatus {
-  return { pending: snoozeTimer !== null, dueAt: snoozeDueAt, fired: snoozeFired }
+  return { pending: snoozeTimer !== null, dueAt: snoozeDueAt, fired: snoozeFired, restored: snoozeRestored }
 }
 
 // ── Scheduler ─────────────────────────────────────────────────────────────
@@ -522,6 +588,8 @@ let snoozeTimer: NodeJS.Timeout | null = null
 let snoozeDueAt = 0
 /** Diagnostics: how many snoozed cards were actually raised. */
 let snoozeFired = 0
+/** Diagnostics: how many waits were picked back up from the state file. */
+let snoozeRestored = 0
 
 function runScheduledCheck(): void {
   if (!running) return
@@ -531,10 +599,10 @@ function runScheduledCheck(): void {
     if (result.status === 'announced') {
       log.info(`Due reminder raised for ${result.pending} task(s) on ${result.day}`)
     }
-    // After the normal check: a card it just raised already cancelled the
-    // snooze, so this can never announce the same agenda twice. Anything left
-    // here is a wait that came due (normally the timer's job; this is the
-    // heartbeat / post-sleep safety net).
+    // After the normal check: a wait that came due is spoken even when neither
+    // timer fired (the heartbeat and post-sleep wake-up land here), and the
+    // daily check above cannot re-announce the same agenda — a task it names is
+    // already in `announced`, and the snooze re-reads the live store.
     fireSnoozeIfDue()
   } catch (err) {
     // A reminder must never take the main process down.
@@ -564,6 +632,27 @@ function armDailyCheck(): void {
 }
 
 /**
+ * Pick up a "Later" that was asked for before the app closed. A deadline still
+ * in the future is armed for the time that is left; one whose moment passed
+ * while nothing was running is dropped rather than spoken late — the tasks it
+ * named are still due, and the next 08:00 card (or the next check that finds
+ * them unannounced) is the honest place to say so.
+ */
+function restoreSnooze(now: number): void {
+  const file = statePath()
+  const stored = readState(file).snoozeUntil
+  if (!stored) return
+  if (stored <= now) {
+    writeSnooze(file, null)
+    log.info('Dropped a "Later" whose two hours passed while the app was closed')
+    return
+  }
+  armSnoozeUntil(stored)
+  snoozeRestored += 1
+  log.info(`Restored a pending "Later" for ${Math.round((stored - now) / 60000)} more minute(s)`)
+}
+
+/**
  * Start the reminder. Idempotent: a second call only refreshes nothing. The
  * immediate check is the "app just started and it is already past 08:00" case;
  * the attention pipeline still decides whether anything may be shown.
@@ -575,7 +664,11 @@ export function startDueReminder(options: DueReminderOptions = {}): void {
   stateFile = options.stateFile
   getQuitting = typeof options.getQuitting === 'function' ? options.getQuitting : () => false
   snoozeFired = 0
+  snoozeRestored = 0
 
+  // Before the first check, so a wait the user asked for in a previous run is
+  // back in the timers rather than looking like a deadline nobody remembers.
+  restoreSnooze(readNow())
   runScheduledCheck()
   armDailyCheck()
 
@@ -602,7 +695,8 @@ export function startDueReminder(options: DueReminderOptions = {}): void {
 export function stopDueReminder(): void {
   if (!running) return
   running = false
-  // Quitting drops a pending "Later" with the rest of the timers.
+  // Quitting drops the timer only; the stored deadline stays, so the wait is
+  // still there next launch (see `restoreSnooze`).
   cancelDueSnooze()
   if (tickTimer) {
     clearInterval(tickTimer)
