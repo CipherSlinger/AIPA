@@ -6,13 +6,14 @@
 // writable-field whitelist in cli-settings-manager.ts rejects all three, so the
 // controls persisted nothing. Edit those fields in ~/.claude/settings.json.
 // The providers sub-page is gone too: the key above is the only credential and
-// the model dropdown below is the built-in list, so a provider row would only
-// restate a choice this page already owns.
+// the model dropdown below is the built-in list plus whatever the key reports,
+// so a provider row would only restate a choice this page already owns.
 
 import React, { useState, useEffect } from 'react'
 import { Brain, Eye, EyeOff, Save } from 'lucide-react'
 import { useI18n } from '../../i18n'
-import { MODEL_OPTIONS, INPUT_STYLE } from './settingsConstants'
+import { usePrefsStore } from '../../store'
+import { buildModelCatalogue, catalogueModelLabel, INPUT_STYLE } from './settingsConstants'
 import SettingsGroup from './SettingsGroup'
 import SettingsApiKeyPool from './SettingsApiKeyPool'
 
@@ -34,6 +35,9 @@ export default function SettingsAIEngine({
   onSave,
 }: SettingsAIEngineProps) {
   const { t } = useI18n()
+  // Models the active key reported through the bridge. The built-in list stays
+  // the base; these are appended by `buildModelCatalogue`.
+  const availableModels = usePrefsStore(s => s.prefs.availableModels)
 
   // aiReplyLanguage — reads/writes `language` field in ~/.claude/settings.json via IPC
   const [aiReplyLanguage, setAiReplyLanguage] = useState<string>('')
@@ -92,7 +96,8 @@ export default function SettingsAIEngine({
 
         {field(t('settings.model'), (
           <select value={local.model} onChange={(e) => updateLocal({ model: e.target.value })} style={{ ...INPUT_STYLE }}>
-            {MODEL_OPTIONS.map((m) => <option key={m.id} value={m.id}>{t(m.labelKey)}</option>)}
+            {buildModelCatalogue(availableModels).map((m) =>
+              <option key={m.id} value={m.id}>{catalogueModelLabel(m, t)}</option>)}
           </select>
         ))}
 

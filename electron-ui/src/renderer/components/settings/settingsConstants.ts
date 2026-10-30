@@ -48,6 +48,40 @@ export const MODEL_OPTIONS: { id: string; labelKey: string }[] = [
   { id: 'claude-3-5-haiku-20241022',  labelKey: 'settings.models.haiku35' },
 ]
 
+export interface CatalogueModel {
+  id: string
+  /** Built-in entries carry a locale key; fetched-only entries carry a name. */
+  labelKey?: string
+  name?: string
+}
+
+/**
+ * Every model the current key can use, for any selection surface. The
+ * built-in list comes first so its localized labels and tier badges win;
+ * fetched entries follow in API order. Deduped by id, first occurrence wins —
+ * a fetched row for a built-in id would otherwise show twice with two labels.
+ */
+export function buildModelCatalogue(
+  availableModels?: readonly { id: string; name: string }[],
+): CatalogueModel[] {
+  const seen = new Set(MODEL_OPTIONS.map(m => m.id))
+  const fetched: CatalogueModel[] = []
+  for (const model of availableModels ?? []) {
+    if (!model?.id || seen.has(model.id)) continue
+    seen.add(model.id)
+    fetched.push({ id: model.id, name: model.name || model.id })
+  }
+  return [...MODEL_OPTIONS, ...fetched]
+}
+
+/** Localized label for a built-in entry, display name for a fetched one. */
+export function catalogueModelLabel(
+  model: CatalogueModel,
+  t: (key: string) => string,
+): string {
+  return model.labelKey ? t(model.labelKey) : (model.name || model.id)
+}
+
 export const FONT_FAMILIES: { id: string; label: string; labelKey?: string }[] = [
   { id: "'Cascadia Code', 'Fira Code', Consolas, monospace", label: 'Cascadia Code' },
   { id: "'Fira Code', Consolas, monospace",                  label: 'Fira Code' },

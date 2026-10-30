@@ -301,13 +301,16 @@ export interface PluginAiModelOption {
 }
 
 /**
- * The only models a plugin may offer.
+ * The built-in model catalogue, and the floor a plugin may offer.
  *
  * This must mirror `MODEL_OPTIONS` in
  * `src/renderer/components/settings/settingsConstants.ts`. The main process
  * cannot import renderer code (separate tsconfig/project), so the list is
  * duplicated by hand: adding or renaming a model there without updating this
  * list makes the toolbar picker and a saved work model disagree.
+ *
+ * Models the current API key reports are appended by `effectiveModelCatalogue()`
+ * below; these entries stay selectable offline and win on an id collision.
  *
  * `providerId` / `providerName` remain in the plugin-facing shape, but there is
  * no provider anymore. Every entry runs on the built-in Claude CLI, so they are
@@ -324,9 +327,30 @@ export const PLUGIN_AI_MODELS: readonly PluginAiModelOption[] = [
   { id: 'claude-3-5-haiku-20241022', name: 'Claude Haiku 3.5', providerId: 'default', providerName: '' },
 ]
 
-/** The built-in catalogue. Copies entries so no caller can mutate the shared list. */
+/**
+ * The built-in list first, then the models the current key reported, minus ids
+ * the built-in list already covers.
+ *
+ * Built-ins win on an id collision: their names are the curated ones mirrored
+ * by the renderer's `MODEL_OPTIONS`, and they have to keep working with no key
+ * or no network. The stored list only adds models this build predates.
+ */
+function effectiveModelCatalogue(): { id: string; name: string }[] {
+  const builtInIds = new Set(PLUGIN_AI_MODELS.map(m => m.id))
+  const stored = (getPref('availableModels') as { id: string; name: string }[] | undefined) ?? []
+  return [
+    ...PLUGIN_AI_MODELS.map(({ id, name }) => ({ id, name })),
+    ...stored.filter(model => !builtInIds.has(model.id)),
+  ]
+}
+
+/** The merged catalogue in the plugin-facing shape. Copies entries so no caller can mutate the shared list. */
 export function listPluginAiModels(): PluginAiModelOption[] {
-  return PLUGIN_AI_MODELS.map(model => ({ ...model }))
+  return effectiveModelCatalogue().map(model => ({
+    ...model,
+    providerId: 'default',
+    providerName: '',
+  }))
 }
 
 /**
@@ -334,9 +358,10 @@ export function listPluginAiModels(): PluginAiModelOption[] {
  *
  * The provider subsystem is gone, so there is no registry to consult: the API
  * key entered at the top of Settings → AI Engine is the only credential, and
- * the built-in list above is the only catalogue. With a key the turn runs on
- * the Claude CLI with that key and the chosen model; without one it falls back
- * to the read-only Codex path, which authenticates with Codex's own login.
+ * the merged catalogue above is the only source of model ids. With a key the
+ * turn runs on the Claude CLI with that key and the chosen model; without one
+ * it falls back to the read-only Codex path, which authenticates with Codex's
+ * own login.
  *
  * The stored key is only used when it is an Anthropic key. The settings field
  * accepts an OpenAI key too (that is what the Codex chat path forwards as
@@ -344,9 +369,9 @@ export function listPluginAiModels(): PluginAiModelOption[] {
  * working Codex profile into a guaranteed auth failure. In that case the turn
  * falls back to Codex, which authenticates with its own login.
  *
- * A model id the built-in list does not know (an empty choice, or an old
- * Codex id left in the app-wide pref) is dropped rather than forwarded: the
- * Claude CLI cannot run it, and its default is a better answer than an error.
+ * A model id the catalogue does not know (an empty choice, or an old Codex id
+ * left in the app-wide pref) is dropped rather than forwarded: the Claude CLI
+ * cannot run it, and its default is a better answer than an error.
  */
 function resolvePluginAiTarget(model?: string): { model: string; env: Record<string, string> } | null {
   const key = getApiKey()
@@ -355,7 +380,7 @@ function resolvePluginAiTarget(model?: string): { model: string; env: Record<str
   if (!anthropicKey && !authToken) return null
 
   const chosen = (model || '').trim()
-  const target = PLUGIN_AI_MODELS.some(m => m.id === chosen) ? chosen : ''
+  const target = effectiveModelCatalogue().some(m => m.id === chosen) ? chosen : ''
   const env: Record<string, string> = anthropicKey
     ? { ANTHROPIC_API_KEY: anthropicKey, CLAUDECODE: '' }
     : { ANTHROPIC_AUTH_TOKEN: authToken, CLAUDECODE: '' }
@@ -365,10 +390,10 @@ function resolvePluginAiTarget(model?: string): { model: string; env: Record<str
 /**
  * A plugin's saved "work model", as the toolbar and the plugin both read it.
  *
- * `available` is the honest part: a saved id that is no longer in the built-in
- * list is still returned so the picker can show the choice it cannot honour —
- * never a silent switch to another model. Its name is blank because the
- * built-in list is the only source of display names.
+ * `available` is the honest part: a saved id that is no longer in the merged
+ * catalogue is still returned so the picker can show the choice it cannot
+ * honour — never a silent switch to another model. Its name is blank because
+ * the catalogue is the only source of display names.
  */
 export interface PluginAiModelState {
   model: string
@@ -393,13 +418,13 @@ export function getPluginAiModel(pluginId: string): PluginAiModelState {
 
 /**
  * Save a plugin's work model. An empty id clears the choice; a non-empty id
- * must be one the built-in list offers, or the plugin would be pinned to a
+ * must be one the merged catalogue offers, or the plugin would be pinned to a
  * model the CLI cannot run and every `ai.generate` would fail later.
  */
 export function setPluginAiModel(pluginId: string, modelId: string): PluginAiModelState {
   const model = (modelId || '').trim()
-  if (model && !PLUGIN_AI_MODELS.some(m => m.id === model)) {
-    throw new Error(`[invalid_model] 模型 ${model} 不在内置模型列表中`)
+  if (model && !effectiveModelCatalogue().some(m => m.id === model)) {
+    throw new Error(`[invalid_model] 模型 ${model} 不在可用模型列表中`)
   }
 
   const saved = (getPref('pluginAiModels') as Record<string, string> | undefined) ?? {}

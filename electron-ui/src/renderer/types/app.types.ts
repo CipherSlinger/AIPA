@@ -296,9 +296,21 @@ export type PermissionMode = 'default' | 'acceptEdits' | 'dontAsk' | 'plan' | 'b
 /** Codex approval policy — maps to Codex CLI's approval modes */
 export type ApprovalMode = 'suggest' | 'auto-edit' | 'full-auto'
 
+/** A model the configured API key can actually use, as reported by the API. */
+export interface AvailableModel {
+  id: string
+  name: string
+}
+
 export interface AppPrefs {
   apiKey: string
   model: string
+  /**
+   * Models fetched for the configured key (merged by the main process into the
+   * persisted prefs). Built-in `MODEL_OPTIONS` stay the base catalogue; this is
+   * only the extra ids the key supports, and it can be absent before any fetch.
+   */
+  availableModels?: AvailableModel[]
   workingDir: string
   sidebarWidth: number
   terminalWidth: number

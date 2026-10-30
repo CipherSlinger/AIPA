@@ -18,6 +18,7 @@ import {
   resetAllPrefs,
 } from '../../config/config-manager'
 import { readCLISettings, writeCLISettings } from '../../config/cli-settings-manager'
+import { fetchAnthropicModels, type AvailableModel } from '../../llm/model-catalogue'
 import {
   addMcpServer,
   getMcpConfigInfo,
@@ -48,6 +49,9 @@ import {
 import { safeHandle } from './safe-handle'
 
 const log = createLogger('ipc:config')
+
+/** Ceiling for the persisted cross-key model list, so it cannot grow forever. */
+const MAX_STORED_MODELS = 200
 
 /** Replace every value in a key→secret map with a marker, keeping the keys. */
 function redactKeys(map: Record<string, string>): Record<string, string> {
@@ -98,6 +102,57 @@ export function registerConfigHandlers(): void {
     } catch (err) {
       log.warn('Invalid API key format rejected:', String(err))
       return { error: String(err) }
+    }
+  })
+
+  /**
+   * Load the models the current key supports and merge them into the persisted
+   * catalogue. Called when a key is added in the API Key Pool. `apiKey` is
+   * optional: a not-yet-saved key may be passed so its models can be previewed,
+   * otherwise the stored key is used.
+   *
+   * The answer is only the freshly fetched list. The stored merge exists so the
+   * pickers can still offer these models after a restart without a network call.
+   */
+  safeHandle('models:fetch', async (_e, { apiKey }: { apiKey?: string } = {}) => {
+    const key = (typeof apiKey === 'string' ? apiKey.trim() : '') || getApiKey()
+    if (!key) throw new Error('[no_key] 请先添加 API 密钥')
+
+    try {
+      const fetched = await fetchAnthropicModels(key)
+      // Copy before editing: the store returns the stored array itself, and
+      // writing through it would bypass electron-store's own write path. The
+      // copy also drops any duplicate ids an older store may carry.
+      const stored = getPref('availableModels')
+      const merged: AvailableModel[] = []
+      const byId = new Map<string, AvailableModel>()
+      for (const model of Array.isArray(stored) ? stored : []) {
+        if (!model || typeof model.id !== 'string' || byId.has(model.id)) continue
+        const entry = { id: model.id, name: model.name }
+        merged.push(entry)
+        byId.set(entry.id, entry)
+      }
+      for (const model of fetched) {
+        const existing = byId.get(model.id)
+        if (existing) {
+          // A fresh name replaces an older one: the API is the authority on
+          // what its models are called.
+          existing.name = model.name
+        } else {
+          // Newly seen ids are appended, so a model reported by one key
+          // survives a later fetch by a key that does not have it.
+          const entry = { ...model }
+          merged.push(entry)
+          byId.set(entry.id, entry)
+        }
+      }
+      // Keep the most recently seen entries; newly fetched ids were appended.
+      setPref('availableModels', merged.slice(-MAX_STORED_MODELS))
+      log.info(`models:fetch loaded ${fetched.length} models`)
+      return fetched
+    } catch (err) {
+      log.warn('models:fetch error:', err instanceof Error ? err.message : String(err))
+      throw err
     }
   })
 

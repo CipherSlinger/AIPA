@@ -718,8 +718,18 @@ export interface PluginAiEvent {
 }
 
 /**
- * A model a plugin may offer. The list is built into the main process and
- * mirrors the Settings model picker; `providerId` / `providerName` are legacy
+ * One model the current API key reports as available (`GET /v1/models`).
+ * `name` is the API's display name, falling back to the id. On an id collision
+ * the built-in catalogue stays authoritative.
+ */
+export interface AvailableModel {
+  id: string
+  name: string
+}
+
+/**
+ * A model a plugin may offer. The list is the built-in catalogue merged with
+ * the models the current key reported; `providerId` / `providerName` are legacy
  * fields that now always report `default` and an empty name.
  */
 export interface PluginAiModel {
@@ -732,8 +742,8 @@ export interface PluginAiModel {
 /**
  * A plugin's saved AI "work model", as the toolbar picker and the plugin read
  * it. `model: ''` means nothing is chosen. A non-empty `model` with
- * `available: false` is a saved choice no longer in the built-in list — shown
- * as-is so it is never silently swapped.
+ * `available: false` is a saved choice no longer in the available catalogue —
+ * shown as-is so it is never silently swapped.
  */
 export interface PluginAiModelState {
   model: string
@@ -2450,6 +2460,10 @@ const electronAPI = {
   configGetEnv: () => ipcRenderer.invoke('config:getEnv'),
   configGetLocale: () => ipcRenderer.invoke('config:getLocale'),
   configSetApiKey: (key: string) => ipcRenderer.invoke('config:setApiKey', key),
+  // Models the given key can run. The key is optional: omit it to ask about
+  // the stored key. Rejects with `[no_key] …` when neither exists.
+  modelsFetch: (apiKey?: string) =>
+    ipcRenderer.invoke('models:fetch', { apiKey }) as Promise<AvailableModel[]>,
   prefsGet: (key: string) => ipcRenderer.invoke('prefs:get', key),
   prefsSet: (key: string, value: unknown) => ipcRenderer.invoke('prefs:set', key, value),
   prefsGetAll: () => ipcRenderer.invoke('prefs:getAll'),

@@ -940,6 +940,8 @@
     "aiEngineProvidersLoading": "正在加载提供商设置…",
     "apiKeyPool": "API 密钥池",
     "apiKeyPoolHint": "添加多个密钥，配额耗尽时自动切换",
+    "modelsLoaded": "已加载 {{count}} 个可用模型",
+    "modelsLoadFailed": "模型列表加载失败：{{error}}",
     "addKey": "添加密钥",
     "importKeys": "从文件导入",
     "resetExhausted": "重置已耗尽",

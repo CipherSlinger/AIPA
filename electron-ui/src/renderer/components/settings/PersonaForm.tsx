@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useI18n } from '../../i18n'
-import { MODEL_OPTIONS, INPUT_STYLE } from './settingsConstants'
+import { usePrefsStore } from '../../store'
+import { buildModelCatalogue, catalogueModelLabel, INPUT_STYLE } from './settingsConstants'
 import { PERSONA_COLORS, EMOJI_PRESETS } from './personaConstants'
 
 interface PersonaFormProps {
@@ -46,6 +47,7 @@ export default function PersonaForm({
   formColor, setFormColor, formTone, setFormTone, onSubmit, onCancel,
 }: PersonaFormProps) {
   const { t } = useI18n()
+  const availableModels = usePrefsStore(s => s.prefs.availableModels)
   const canSubmit = formName.trim() && formPrompt.trim()
 
   const [focusedField, setFocusedField] = useState<string | null>(null)
@@ -136,8 +138,8 @@ export default function PersonaForm({
           border: focusedField === 'model' ? focusedBorder : restingBorder,
         }}
       >
-        {MODEL_OPTIONS.map(m => (
-          <option key={m.id} value={m.id}>{t(m.labelKey)}</option>
+        {buildModelCatalogue(availableModels).map(m => (
+          <option key={m.id} value={m.id}>{catalogueModelLabel(m, t)}</option>
         ))}
       </select>
 

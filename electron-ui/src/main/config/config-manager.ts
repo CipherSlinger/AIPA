@@ -57,6 +57,12 @@ interface StoreSchema {
    * plugin onto a different model.
    */
   pluginAiModels: Record<string, string>
+  /**
+   * Models the current API key reported as available. Kept between launches so
+   * the pickers still work offline; the built-in catalogue still wins on an id
+   * collision.
+   */
+  availableModels: { id: string; name: string }[]
 }
 
 const store = new Store<StoreSchema>({
@@ -83,6 +89,7 @@ const store = new Store<StoreSchema>({
     dreamConsolidationEnabled: true,
     allowedFolders: [],
     pluginAiModels: {},
+    availableModels: [],
   },
   // Removed hardcoded encryptionKey — API key is now encrypted via safeStorage
 })

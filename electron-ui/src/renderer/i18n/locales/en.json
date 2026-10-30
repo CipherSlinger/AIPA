@@ -940,6 +940,8 @@
     "aiEngineProvidersLoading": "Loading provider settings...",
     "apiKeyPool": "API Key Pool",
     "apiKeyPoolHint": "Add multiple keys for auto-failover when quota is exhausted",
+    "modelsLoaded": "Loaded {{count}} models the key can use",
+    "modelsLoadFailed": "Could not load models: {{error}}",
     "addKey": "Add Key",
     "importKeys": "Import from File",
     "resetExhausted": "Reset Exhausted",

@@ -5,7 +5,7 @@ import { useT } from '../../i18n'
 import { resolveWorkingDir } from '../../lib/workingDir'
 import FloatingPortal from '../ui/FloatingPortal'
 import { useClickOutside } from '../../hooks/useClickOutside'
-import { MODEL_OPTIONS } from '../settings/settingsConstants'
+import { MODEL_OPTIONS, buildModelCatalogue, catalogueModelLabel } from '../settings/settingsConstants'
 import type { CodexModelInfoData } from '../../../preload/index'
 
 interface ModelPickerProps {
@@ -60,6 +60,14 @@ export default function ModelPicker({ model }: ModelPickerProps) {
   const sessionPersonaId = useChatStore(s => s.sessionPersonaId)
   const sessionModelOverride = useChatStore(s => s.sessionModelOverride)
   const sessionPersona = usePrefsStore(s => (s.prefs.personas || []).find(p => p.id === sessionPersonaId))
+  const availableModels = usePrefsStore(s => s.prefs.availableModels)
+
+  // Fetched ids have no localized short name, so prefer the API's name for
+  // them; built-ins keep the compact "Sonnet 4.6" formatter.
+  const modelDisplayName = useCallback((modelId: string | undefined): string => {
+    const fetched = availableModels?.find(m => m.id === modelId)
+    return fetched?.name || getModelShortName(modelId)
+  }, [availableModels])
 
   const menuRef = useRef<HTMLDivElement>(null)
   useClickOutside(pickerRef, showPicker, useCallback(() => setShowPicker(false), []), [menuRef])
@@ -162,10 +170,10 @@ export default function ModelPicker({ model }: ModelPickerProps) {
     useChatStore.getState().setSessionModelOverride(undefined)
     const personaName = sessionPersona?.name || ''
     useUiStore.getState().addToast('info', t('chat.modelReturnsToPersona', {
-      model: getModelShortName(sessionPersona?.model),
+      model: modelDisplayName(sessionPersona?.model),
       persona: personaName,
     }))
-  }, [sessionPersona, t])
+  }, [sessionPersona, t, modelDisplayName])
 
   return (
     <div style={{ position: 'relative' }} ref={pickerRef}>
@@ -201,7 +209,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
           }
         }}
       >
-        <span>{getModelShortName(model)}</span>
+        <span>{modelDisplayName(model)}</span>
         {sessionPersona && sessionModelOverride && (
           <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.02em', opacity: 0.75 }}>
             {t('chat.modelOverrideTag')}
@@ -239,11 +247,11 @@ export default function ModelPicker({ model }: ModelPickerProps) {
               {sessionModelOverride
                 ? t('chat.modelOverrideActive', {
                     persona: sessionPersona.name,
-                    model: getModelShortName(sessionPersona.model),
+                    model: modelDisplayName(sessionPersona.model),
                   })
                 : t('chat.modelPersonaHint', {
                     persona: sessionPersona.name,
-                    model: getModelShortName(sessionPersona.model),
+                    model: modelDisplayName(sessionPersona.model),
                   })}
             </div>
           )}
@@ -262,7 +270,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.12)' }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
             >
-              &#8634; {t('chat.modelClearOverride', { model: getModelShortName(sessionPersona.model) })}
+              &#8634; {t('chat.modelClearOverride', { model: modelDisplayName(sessionPersona.model) })}
             </button>
           )}
 
@@ -367,17 +375,19 @@ export default function ModelPicker({ model }: ModelPickerProps) {
           )}
 
           {/* Non-Codex profiles run on the built-in Claude list shown in
-              Settings → AI Engine. No probe is needed: these are the ids the
-              default bridge accepts. */}
-          {pickMode === 'builtin' && MODEL_OPTIONS.map(opt => {
+              Settings → AI Engine, plus any ids the key reported. No probe is
+              needed: these are the ids the default bridge accepts. */}
+          {pickMode === 'builtin' && buildModelCatalogue(availableModels).map(opt => {
             const isActive = opt.id === model
-            const tier = getModelTier(opt.id)
+            // Tiers are a built-in notion. A fetched-only id gets its API name
+            // and raw id, but no badge we would have to guess.
+            const tier = opt.labelKey ? getModelTier(opt.id) : null
             return (
               <button
                 key={opt.id}
                 role="option"
                 aria-selected={isActive}
-                onClick={() => handleModelSwitch(opt.id)}
+                onClick={() => handleModelSwitch(opt.id, opt.labelKey ? undefined : opt.name)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -402,7 +412,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
                     color: isActive ? 'var(--accent-text)' : 'var(--text-primary)',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
-                    {t(opt.labelKey)}
+                    {catalogueModelLabel(opt, t)}
                   </span>
                   <span style={{
                     display: 'block', marginTop: 1, fontSize: 9,

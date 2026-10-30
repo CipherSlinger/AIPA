@@ -14,7 +14,7 @@ import { useChatStore, useSessionStore, useUiStore, usePrefsStore } from '../../
 import { useTerminalStore } from '../../store/terminalStore'
 import { clearTerminal } from '../terminal/terminalRegistry'
 import type { SidebarTab, NavItem } from '../../store'
-import { MODEL_OPTIONS } from '../settings/settingsConstants'
+import { MODEL_OPTIONS, buildModelCatalogue, catalogueModelLabel } from '../settings/settingsConstants'
 import type { SessionListItem } from '../../types/app.types'
 import { getWorkflowQueuePlan } from '../workflows/workflowConstants'
 import { errorCodeText } from '../workflows/scheduleSummary'
@@ -657,19 +657,24 @@ export function buildSlashCommands(args: Pick<CommandBuilderArgs, 't' | 'onClose
 
 export function buildModelCommands(args: Pick<CommandBuilderArgs, 't' | 'onClose'>): PaletteCommand[] {
   const { t, onClose } = args
-  return MODEL_OPTIONS.map(opt => ({
-    id: `model-${opt.id}`,
-    name: `${t('chat.switchModel')}: ${t(opt.labelKey)}`,
-    description: opt.id,
-    icon: <Cpu size={14} />,
-    action: () => {
-      usePrefsStore.getState().setPrefs({ model: opt.id })
-      window.electronAPI.prefsSet('model', opt.id)
-      useUiStore.getState().addToast('success', t('chat.modelSwitched', { model: t(opt.labelKey) }))
-      onClose()
-    },
-    category: 'model' as const,
-  }))
+  // Same merged catalogue as Settings → AI Engine and the chat model picker,
+  // so a model the key supports is switchable from every entry point.
+  return buildModelCatalogue(usePrefsStore.getState().prefs.availableModels).map(opt => {
+    const label = catalogueModelLabel(opt, t)
+    return {
+      id: `model-${opt.id}`,
+      name: `${t('chat.switchModel')}: ${label}`,
+      description: opt.id,
+      icon: <Cpu size={14} />,
+      action: () => {
+        usePrefsStore.getState().setPrefs({ model: opt.id })
+        window.electronAPI.prefsSet('model', opt.id)
+        useUiStore.getState().addToast('success', t('chat.modelSwitched', { model: label }))
+        onClose()
+      },
+      category: 'model' as const,
+    }
+  })
 }
 
 export function buildPersonaCommands(args: Pick<CommandBuilderArgs, 't' | 'onClose'>): PaletteCommand[] {

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { RefreshCw, ChevronDown } from 'lucide-react'
 import { usePrefsStore } from '../../store'
-import { MODEL_OPTIONS } from '../settings/settingsConstants'
+import { buildModelCatalogue, catalogueModelLabel } from '../settings/settingsConstants'
 import { useT } from '../../i18n'
 
 interface RegenerateButtonProps {
@@ -12,6 +12,7 @@ interface RegenerateButtonProps {
 
 export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }: RegenerateButtonProps) {
   const t = useT()
+  const availableModels = usePrefsStore(s => s.prefs.availableModels)
   const [showRegenModels, setShowRegenModels] = useState(false)
   const regenModelRef = useRef<HTMLDivElement>(null)
 
@@ -119,7 +120,7 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
             <div style={{ padding: '4px 12px 6px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
               {t('chat.regenerateWithModel')}
             </div>
-            {MODEL_OPTIONS.map(m => {
+            {buildModelCatalogue(availableModels).map(m => {
               const currentModel = usePrefsStore.getState().prefs.model || 'claude-sonnet-4-6'
               const isCurrent = m.id === currentModel
               return (
@@ -147,7 +148,7 @@ export default function RegenerateButton({ onRegenerate, onRegenerateWithModel }
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = isCurrent ? 'rgba(99,102,241,0.12)' : 'none' }}
                 >
-                  <span>{t(m.labelKey)}</span>
+                  <span>{catalogueModelLabel(m, t)}</span>
                   {isCurrent && <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{t('chat.currentModel')}</span>}
                 </button>
               )

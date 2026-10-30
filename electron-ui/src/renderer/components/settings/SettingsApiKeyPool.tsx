@@ -3,10 +3,9 @@
 
 import React, { useState, useRef } from 'react'
 import { Plus, Trash2, RefreshCw, Upload } from 'lucide-react'
-import { usePrefsStore } from '../../store'
+import { usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import type { ApiKeyEntry } from '../../types/app.types'
-import { INPUT_STYLE } from './settingsConstants'
 
 interface SettingsApiKeyPoolProps {
   field: (label: string, content: React.ReactNode, hint?: React.ReactNode) => React.ReactNode
@@ -44,6 +43,9 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
   const [apiKeyPool, setApiKeyPool] = useState<ApiKeyEntry[]>(prefs.apiKeyPool || [])
   const [newKeyLabel, setNewKeyLabel] = useState('')
   const [newKeyValue, setNewKeyValue] = useState('')
+  // The key is saved before the catalogue call starts; this only prevents a
+  // second add (and a duplicate fetch) while the first one is in flight.
+  const [addingKey, setAddingKey] = useState(false)
   const [hoveredRemove, setHoveredRemove] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -53,12 +55,13 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
     window.electronAPI.prefsSet('apiKeyPool', pool)
   }
 
-  const handleAddKey = () => {
-    if (!newKeyValue.trim()) return
+  const handleAddKey = async () => {
+    const apiKey = newKeyValue.trim()
+    if (!apiKey || addingKey) return
     const entry: ApiKeyEntry = {
       id: `key-${Date.now()}`,
       label: newKeyLabel.trim() || `Key ${apiKeyPool.length + 1}`,
-      apiKey: newKeyValue.trim(),
+      apiKey,
       enabled: true,
       exhausted: false,
       addedAt: Date.now(),
@@ -66,6 +69,26 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
     savePool([...apiKeyPool, entry])
     setNewKeyLabel('')
     setNewKeyValue('')
+    setAddingKey(true)
+    try {
+      // The key is already saved, so a failed catalogue call must only be
+      // reported — never roll the key back. `modelsFetch` merges the result
+      // into the persisted prefs itself; the store update is this window's
+      // copy so every model list re-renders without waiting for a reload.
+      const models = await window.electronAPI.modelsFetch(entry.apiKey)
+      setPrefs({ availableModels: models })
+      useUiStore.getState().addToast('success', t('settings.modelsLoaded', { count: models.length }))
+    } catch (err) {
+      // Error messages from the bridge are safe to show; never fall back to
+      // the key or the raw request. Electron prefixes a rejected handler with
+      // its channel name, which is noise in a toast.
+      const message = (err instanceof Error ? err.message : String(err))
+        .replace(/^Error invoking remote method '[^']+':\s*/, '')
+        .replace(/^Error:\s*/, '')
+      useUiStore.getState().addToast('error', t('settings.modelsLoadFailed', { error: message }))
+    } finally {
+      setAddingKey(false)
+    }
   }
 
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,6 +135,8 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
     setPrefs({ activeApiKeyId: undefined })
     window.electronAPI.prefsSet('activeApiKeyId', null)
   }
+
+  const canAddKey = Boolean(newKeyValue.trim()) && !addingKey
 
   return (
     <>
@@ -226,20 +251,21 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
             </label>
             <button
               onClick={handleAddKey}
-              disabled={!newKeyValue.trim()}
+              disabled={!canAddKey}
+              aria-busy={addingKey}
               style={{
-                background: newKeyValue.trim() ? 'var(--cta-gradient)' : 'var(--bg-hover)',
-                border: newKeyValue.trim() ? 'none' : '1px solid var(--border)',
+                background: canAddKey ? 'var(--cta-gradient)' : 'var(--bg-hover)',
+                border: canAddKey ? 'none' : '1px solid var(--border)',
                 borderRadius: 8, padding: '7px 14px',
-                color: newKeyValue.trim() ? '#ffffff' : 'var(--text-muted)',
-                cursor: newKeyValue.trim() ? 'pointer' : 'not-allowed',
+                color: canAddKey ? '#ffffff' : 'var(--text-muted)',
+                cursor: canAddKey ? 'pointer' : 'not-allowed',
                 fontSize: 12, fontWeight: 600,
                 display: 'flex', alignItems: 'center', gap: 4,
-                opacity: 1,
+                opacity: addingKey ? 0.7 : 1,
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                if (newKeyValue.trim()) {
+                if (canAddKey) {
                   e.currentTarget.style.filter = 'brightness(0.95)'
                   e.currentTarget.style.transform = 'translateY(-1px)'
                   e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'

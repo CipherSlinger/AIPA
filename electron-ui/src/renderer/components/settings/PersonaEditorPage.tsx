@@ -7,7 +7,7 @@ import { usePrefsStore, useUiStore } from '../../store'
 import { useI18n } from '../../i18n'
 import type { Persona } from '../../types/app.types'
 import { PERSONA_COLORS, EMOJI_PRESETS } from './personaConstants'
-import { MODEL_OPTIONS, INPUT_STYLE } from './settingsConstants'
+import { buildModelCatalogue, catalogueModelLabel, INPUT_STYLE } from './settingsConstants'
 import PersonCharacterIcon from '../workflows/PersonCharacterIcon'
 
 const EMPTY_PERSONAS: Persona[] = []
@@ -52,6 +52,7 @@ export default function PersonaEditorPage() {
   const editingId = useUiStore(s => s.editingPersonaId)
   const addToast = useUiStore(s => s.addToast)
   const personas = usePrefsStore(s => s.prefs.personas ?? EMPTY_PERSONAS)
+  const availableModels = usePrefsStore(s => s.prefs.availableModels)
   const existing = editingId ? personas.find(p => p.id === editingId) : null
 
   const [formName, setFormName] = useState('')
@@ -330,8 +331,8 @@ export default function PersonaEditorPage() {
               onFocus={e => { e.currentTarget.style.border = '1px solid rgba(99,102,241,0.45)'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(99,102,241,0.45)' }}
               onBlur={e => { e.currentTarget.style.border = '1px solid var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
             >
-              {MODEL_OPTIONS.map(m => (
-                <option key={m.id} value={m.id}>{t(m.labelKey)}</option>
+              {buildModelCatalogue(availableModels).map(m => (
+                <option key={m.id} value={m.id}>{catalogueModelLabel(m, t)}</option>
               ))}
             </select>
           </div>
