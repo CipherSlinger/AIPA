@@ -11,6 +11,7 @@ import {
   type ClawdBubbleKind,
 } from '../../clawd-integration'
 import { clearClawdNotices, listClawdNotices } from '../../clawd-notifications'
+import { openClawdNoticeCenter } from '../../clawd-notice-center'
 import { showClawdTestNotice } from '../../clawd-notice-sources'
 import { safeHandle } from './safe-handle'
 
@@ -150,6 +151,20 @@ export function registerClawdHandlers(): void {
       return { notices: listClawdNotices() }
     } catch {
       return { notices: [] }
+    }
+  })
+
+  /**
+   * Open the browsable notice log centre-right of the primary display. Unlike
+   * the pet's own menu it takes no anchor, because Settings is not next to the
+   * pet. `opened:false` means the window could not be created at all; a page
+   * that fails to load later closes itself.
+   */
+  safeHandle('clawd:openNoticeCenter', async () => {
+    try {
+      return { opened: openClawdNoticeCenter() }
+    } catch {
+      return { opened: false }
     }
   })
 

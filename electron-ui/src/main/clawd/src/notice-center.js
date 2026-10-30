@@ -255,6 +255,11 @@
     for (var i = 0; i < kinds.length; i++) {
       filtersEl.appendChild(chip(kinds[i], kindLabel(kinds[i])));
     }
+    // The strip scrolls sideways rather than wrapping: the kinds that are
+    // present depend on what the pet happened to say, so a second row would
+    // appear and disappear between days, shifting the whole list down. The
+    // right-edge mask tells the user there is more than what fits.
+    filtersEl.classList.toggle("is-overflow", filtersEl.scrollWidth > filtersEl.clientWidth + 2);
   }
 
   function buildRow(notice) {

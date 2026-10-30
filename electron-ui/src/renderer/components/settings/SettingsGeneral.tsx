@@ -51,6 +51,12 @@ export default function SettingsGeneral({
     }).catch(() => {})
   }
 
+  // Preload builds before the notice-log channel existed do not expose it;
+  // hide the button rather than rendering one that throws when clicked.
+  const openNoticeLog = typeof window.electronAPI.clawdOpenNotices === 'function'
+    ? window.electronAPI.clawdOpenNotices
+    : undefined
+
   // Load clawd pet prefs when clawd is enabled
   useEffect(() => {
     if (!local.clawdEnabled) return
@@ -740,6 +746,16 @@ export default function SettingsGeneral({
                         {t('settings.petNotices')}
                       </div>
                       <div style={{ display: 'flex', gap: 6 }}>
+                        {openNoticeLog && (
+                          <button
+                            onClick={async () => {
+                              try { await openNoticeLog() } catch { /* pet off */ }
+                            }}
+                            style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer' }}
+                          >
+                            {t('settings.general.openNoticeLog')}
+                          </button>
+                        )}
                         <button
                           onClick={async () => {
                             try { await window.electronAPI.clawdTestNotice?.() } catch { /* pet off */ }

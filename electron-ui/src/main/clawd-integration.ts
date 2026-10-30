@@ -617,6 +617,14 @@ let activityStartedAt = 0
  * out of the way", because the pet exposes one visibility flag for both.
  */
 let activityCardVisible = false
+/**
+ * Bumped every time a fresh activity card is shown. A card that is replaced
+ * settles its promise later — often while the *next* card is already on
+ * screen — so a continuation may only act if its own generation still owns the
+ * strip. Without this the first turn's closing callback disowned the second
+ * turn's card, and the strip blinked out every few seconds from then on.
+ */
+let activityCardGen = 0
 
 function clearActivityTimer(): void {
   if (!activityTimer) return
@@ -769,9 +777,13 @@ export function showClawdActivity(activity: PetActivity): boolean {
       requireAction: false,
       defaultAction: null,
     } as ClawdAttentionBubblePayload & { requireAction: false; defaultAction: null })
+    const gen = alreadyVisible ? activityCardGen : ++activityCardGen
     if (!alreadyVisible) {
       void Promise.resolve(handle)
         .then((action) => {
+          // A replacement settles this promise while its own card is already
+          // on screen; that newer card owns the strip and must not be disowned.
+          if (gen !== activityCardGen) return
           // The card left the screen — clicked away, or replaced. Whatever is
           // left of this turn's strip is forgotten: a card the user dismissed
           // must not be resurrected by the next heartbeat, and the next draw
@@ -910,6 +922,10 @@ export function showClawdNotice(
       requireAction: false,
     } as ClawdAttentionBubblePayload & { requireAction: false }))
       .then(action => {
+        // The card left the screen (clicked, replaced, or timed out). Its
+        // dismissal timer must die with it: left armed, it would fire later and
+        // pull down whatever card is up by then — typically the activity strip.
+        cancelClawdNotice()
         // A notice needs no answer, but a click on it is still a shortcut: the
         // caller decides what "open" means (focus the window, open a session).
         if (action) onClick?.(action)
@@ -1072,19 +1088,38 @@ export function getClawdSubmenu(
 
   // The last few things the pet said, so a notice the user missed is still
   // reachable without a separate window. Clicking one reopens its session.
-  const notices = listClawdNotices().slice(0, 6)
-  const recentItems: MenuItemConstructorOptions[] = notices.map(notice => ({
-    label: `${new Date(notice.at).toLocaleTimeString()} · ${notice.title}`,
-    click: () => {
-      withClawdMainWindow(win => {
-        if (win.isMinimized()) win.restore()
-        win.show()
-        win.focus()
-        if (notice.sessionId) win.webContents.send('menu:openSession', notice.sessionId)
-      })
+  // Five rows keep the menu usable beside the Clear item; the full history
+  // lives in the notice log, which is always the first entry.
+  const notices = listClawdNotices().slice(0, 5)
+  const recentItems: MenuItemConstructorOptions[] = [
+    {
+      label: isZh ? '打开通知记录…' : 'Open Notice Log…',
+      click: () => {
+        try {
+          // Call-time require keeps this menu loadable in builds without a
+          // notice centre, matching the pet menu's own openNotices().
+          const { openClawdNoticeCenter } = require('./clawd-notice-center') as {
+            openClawdNoticeCenter: () => boolean
+          }
+          openClawdNoticeCenter()
+        } catch (err) {
+          log.warn('Could not open notice log from the tray menu:', String(err))
+        }
+      },
     },
-  }))
-  if (!recentItems.length) {
+    ...notices.map(notice => ({
+      label: `${new Date(notice.at).toLocaleTimeString()} · ${notice.title}`,
+      click: () => {
+        withClawdMainWindow(win => {
+          if (win.isMinimized()) win.restore()
+          win.show()
+          win.focus()
+          if (notice.sessionId) win.webContents.send('menu:openSession', notice.sessionId)
+        })
+      },
+    })),
+  ]
+  if (!notices.length) {
     recentItems.push({
       label: isZh ? '（暂无通知）' : '(no announcements yet)',
       enabled: false,

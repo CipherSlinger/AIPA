@@ -313,8 +313,19 @@ function reveal(): void {
  *
  * `restoreFocus` is false on click-away and on "open a session": in both cases
  * the user has already chosen where focus belongs.
+ *
+ * `markRead` is set only on the two closes the user asked for. The visit is the
+ * read: leaving by the close button or Escape means every row has been on
+ * screen, so the unread badge and the UNREAD filter should both clear. It is
+ * deliberately not set on click-away (the user may have only glanced), on
+ * shutdown, on a failed load, or on replacement — none of those mean "seen".
+ * Marking here rather than on load keeps the unread dots meaningful *during*
+ * the visit, so the UNREAD filter the user just clicked still filters.
  */
-function destroyWindow(restoreFocus: boolean): void {
+function destroyWindow(restoreFocus: boolean, markRead = false): void {
+  if (markRead) {
+    try { markClawdNoticesRead() } catch (err) { log.warn('Could not mark notices read:', err) }
+  }
   clearRevealTimer()
   blurArmedAt = 0
 
@@ -506,7 +517,7 @@ function handleAction(action: unknown): ClawdNoticeCenterPayload {
       return emitUpdate()
     }
     case 'close': {
-      destroyWindow(true)
+      destroyWindow(true, true)
       return buildPayload()
     }
     default:
@@ -541,7 +552,7 @@ function ensureIpc(): void {
 
   ipcMain.on('notice-center:close', (event: Electron.IpcMainEvent) => {
     if (!isSender(event)) return
-    destroyWindow(true)
+    destroyWindow(true, true)
   })
 }
 
@@ -582,7 +593,11 @@ export function openClawdNoticeCenter(anchor?: ClawdNoticeCenterAnchor): boolean
   }
 }
 
-/** Close (and destroy) the notice centre. Safe to call when it is not open. */
+/**
+ * Close (and destroy) the notice centre. Safe to call when it is not open.
+ * This is the programmatic close — shutdown, or the pet going away — so it
+ * leaves the unread state alone; only the user's own close marks the log read.
+ */
 export function closeClawdNoticeCenter(): void {
   destroyWindow(true)
 }

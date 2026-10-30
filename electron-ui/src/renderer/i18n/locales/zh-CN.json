@@ -909,6 +909,9 @@
       "hooks": "钩子",
       "snippets": "片段"
     },
+    "general": {
+      "openNoticeLog": "打开通知记录"
+    },
     "groups": {
       "aiEngine": "AI 引擎",
       "prompts": "提示词",

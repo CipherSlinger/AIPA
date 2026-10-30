@@ -909,6 +909,9 @@
       "hooks": "Hooks",
       "snippets": "Snippets"
     },
+    "general": {
+      "openNoticeLog": "Open notice log"
+    },
     "groups": {
       "aiEngine": "AI Engine",
       "prompts": "Prompts",

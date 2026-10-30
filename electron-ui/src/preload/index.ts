@@ -3165,6 +3165,9 @@ const electronAPI = {
         detail?: string; at: number; sessionId?: string; pluginId?: string; action?: string
       }>
     }>,
+  /** Open the pet's notice log centre-right of the primary display. `opened:false` on failure. */
+  clawdOpenNotices: () =>
+    ipcRenderer.invoke('clawd:openNoticeCenter') as Promise<{ opened: boolean }>,
   clawdClearNotices: () =>
     ipcRenderer.invoke('clawd:clearNotices') as Promise<{ success: boolean; error?: string }>,
   /** Preview the HUD card from Settings. */
