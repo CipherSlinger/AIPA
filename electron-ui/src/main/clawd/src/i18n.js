@@ -125,7 +125,7 @@ const i18n = {
     noticeCenterCopy: "Copy",
     noticeCenterSaveTask: "Save as task",
     noticeCenterDismiss: "Dismiss",
-    noticeCenterOpenTasks: "Open Tasks",
+    noticeCenterOpenTasks: "Open task",
     noticeCenterExpand: "Expand notice",
     noticeCenterCollapse: "Collapse notice",
     noticeCenterActions: "Notice actions",

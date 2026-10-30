@@ -11,7 +11,7 @@
 // The task learns its conversation through `linkTaskSessionFromResult`, called
 // by the result handler only after a completed turn. That is the one place a
 // successful task turn turns into a `sessions[]` row.
-import type { TaskRecordData, TaskSessionRefData } from '../../preload'
+import type { TaskRecordData, TaskSessionRefData, TaskStatusData } from '../../preload'
 import type { SessionListItem } from '../types/app.types'
 import { useChatStore, useTaskStore, useUiStore } from '../store'
 import { getT } from '../i18n'
@@ -75,6 +75,31 @@ export function buildTaskBrief(
     lines.push('', t('tasks.briefFollowup'))
   }
   return lines.join('\n')
+}
+
+/**
+ * Statuses that a genuinely started turn may lift into `in_progress`.
+ *
+ * `needs_you` is deliberately absent: a decision the user owes must not be
+ * erased by the engine starting a turn. `done` and `archived` are closed work.
+ */
+const STARTABLE_STATUSES: ReadonlySet<TaskStatusData> = new Set(['inbox', 'ready', 'assigned'])
+
+/**
+ * Record that a task turn really started.
+ *
+ * Called from the send path only after the engine accepted the turn, so a
+ * refused or crashed send never moves the board. Bookkeeping is best effort: a
+ * failed write is logged and never surfaced as a turn error, and the next
+ * completed turn simply tries again.
+ */
+export function noteTaskTurnStarted(taskId: string): void {
+  if (!taskId) return
+  const task = useTaskStore.getState().tasks.find(item => item.id === taskId)
+  if (!task || !STARTABLE_STATUSES.has(task.status)) return
+  void useTaskStore.getState().updateTask(taskId, { status: 'in_progress' }).then(result => {
+    if (!result.ok) console.warn('[AIPA] Could not move the task to in progress:', result.error)
+  })
 }
 
 export type TaskDispatchOutcome =

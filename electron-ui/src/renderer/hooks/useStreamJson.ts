@@ -15,6 +15,7 @@ import { buildCodexImageInput, canSendCodexImages } from '../components/chat/ima
 import { engineNoticeStore } from '../components/chat/engineNoticeStore'
 import { autoApprovalReviewStore } from '../components/chat/autoApprovalReviewStore'
 import { clearEngineSteps } from '../components/chat/engineStepLog'
+import { noteTaskTurnStarted } from '../lib/taskDispatch'
 // The one answer to "which folder will this turn run in", shared with the
 // header, the terminal dock and the open path. A local fallback chain here is
 // how those surfaces came to disagree.
@@ -444,6 +445,12 @@ export function useStreamJson() {
       useChatStore.getState().markAttachmentsNotSent(userMsg.id, reason)
       useUiStore.getState().addToast('error', t('chat.imageAttachment.notSent', { reason }))
     }
+
+    // A turn that really started is what lifts a queued task into "in progress":
+    // the board should describe work that began without the user keeping two
+    // places in step. A refused send changes nothing, and the helper never
+    // reports a bookkeeping failure over the turn itself.
+    if (result?.success && activeTask) noteTaskTurnStarted(activeTask.id)
   }, [stopStreamingAndReleaseSleep])
 
   // Keep ref in sync so IPC handler can call sendMessage without stale closure
