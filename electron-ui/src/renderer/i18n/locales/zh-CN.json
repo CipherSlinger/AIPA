@@ -5454,7 +5454,13 @@
       "todayShort": "今天",
       "tomorrow": "明天",
       "overdue": "逾期 {{days}} 天",
-      "clear": "清除截止日期"
+      "clear": "清除截止日期",
+      "presets": {
+        "title": "快捷截止日期",
+        "today": "今天",
+        "tomorrow": "明天",
+        "nextWeek": "一周后"
+      }
     },
     "missing": "文件夹缺失",
     "missingHint": "找不到任务的文件夹：{{path}}。记录仍然保留，没有删除任何东西。",

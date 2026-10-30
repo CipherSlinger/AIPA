@@ -47,6 +47,7 @@ import DepartmentSuggestionChip from './DepartmentSuggestionChip'
 import { formatTokens } from '../../utils/formatUtils'
 import {
   EDITABLE_STATUSES,
+  addLocalDays,
   dueInfo,
   formatBytes,
   formatDueDate,
@@ -76,6 +77,16 @@ const ICON_BUTTON: React.CSSProperties = {
   cursor: 'pointer', flexShrink: 0,
 }
 
+// The preset rows reuse the header pill: 11 px, a quiet fill and border, and
+// no accent until hover or keyboard focus lands on one.
+const DUE_PRESET_BUTTON: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', height: 24, padding: '0 9px',
+  boxSizing: 'border-box', borderRadius: 6,
+  border: '1px solid var(--border)', background: 'var(--bg-hover)',
+  color: 'var(--text-secondary)', fontSize: 11, fontWeight: 500,
+  cursor: 'pointer', textAlign: 'left', whiteSpace: 'nowrap',
+}
+
 const RAIL_HEADING: React.CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 6,
   fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
@@ -91,6 +102,34 @@ const SPEND_VALUE: React.CSSProperties = {
   fontSize: 14, fontWeight: 600, color: 'var(--text-primary)',
   fontVariantNumeric: 'tabular-nums',
 }
+
+// Scoped to the due control. The calendar glyph is the preset trigger; hover
+// and focus are proved in CSS because the popover rows are a single surface
+// with the same grammar, and the whole lot goes quiet under reduced motion.
+const DUE_PRESET_STYLES = `
+  .aipa-task-due-trigger { transition: background-color 0.12s ease, color 0.12s ease; }
+  .aipa-task-due-trigger:hover:not(:disabled) {
+    background: var(--bg-active);
+    color: var(--text-primary);
+  }
+  .aipa-task-due-trigger:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .aipa-task-due-preset { transition: background-color 0.12s ease, border-color 0.12s ease; }
+  .aipa-task-due-preset:hover:not(:disabled) {
+    background: var(--bg-active);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+  }
+  .aipa-task-due-preset:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aipa-task-due-trigger, .aipa-task-due-preset { transition: none; }
+  }
+`
 
 export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetailProps) {
   const t = useT()
@@ -112,6 +151,7 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
   const [savingTitle, setSavingTitle] = useState(false)
   const [savingDue, setSavingDue] = useState(false)
   const [dueFocused, setDueFocused] = useState(false)
+  const [dueMenuOpen, setDueMenuOpen] = useState(false)
   const [pasteOpen, setPasteOpen] = useState(false)
   const [pasteText, setPasteText] = useState('')
   const [importing, setImporting] = useState(false)
@@ -126,6 +166,7 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
   const probedSessions = useRef<Set<string>>(new Set())
   const titleRef = useRef<HTMLInputElement>(null)
   const pasteRef = useRef<HTMLInputElement>(null)
+  const dueControlRef = useRef<HTMLSpanElement>(null)
 
   // A store refresh (another window, or our own mutation) is authoritative.
   useEffect(() => { setTitleDraft(task.title) }, [task.id, task.title])
@@ -154,6 +195,25 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
       setPasteText('')
     })
   }, [pasteOpen])
+
+  // The preset popover is a layer of its own: outside click and Escape close
+  // it, and Escape must close the popover before the view-level handler leaves
+  // the task list. A save closes it explicitly in `chooseDuePreset`.
+  useEffect(() => {
+    if (!dueMenuOpen) return
+    const onDown = (event: MouseEvent) => {
+      if (dueControlRef.current && !dueControlRef.current.contains(event.target as Node)) {
+        setDueMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [dueMenuOpen])
+
+  useEffect(() => {
+    if (!dueMenuOpen) return
+    return pushEscapeHandler(() => setDueMenuOpen(false))
+  }, [dueMenuOpen])
 
   // Resolve each recorded conversation once. A row in the sidebar wins (it is
   // the same store the session list uses); otherwise read the transcript file
@@ -362,6 +422,18 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
   // Kept honest across midnight for the same reason as the list: a task due
   // yesterday must stop saying "Due today" without waiting for a store event.
   const today = useToday()
+  const tomorrowDay = addLocalDays(today, 1)
+  const nextWeekDay = addLocalDays(today, 7)
+
+  // Presets write through the same store path as the date input. `today` is
+  // the same local day the label compares against, so "Tomorrow" means the
+  // day after the day the header is calling Today. A preset equal to the
+  // current due day falls into setDueOn's early return: no patch, no toast.
+  const chooseDuePreset = (value: string | null) => {
+    setDueMenuOpen(false)
+    void setDueOn(value)
+  }
+
   const due = task.dueOn ? dueInfo(task.dueOn, today) : null
   const dueWarning = due?.state === 'overdue' || due?.state === 'today'
   const dueLabel = !task.dueOn
@@ -451,6 +523,7 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+      <style>{DUE_PRESET_STYLES}</style>
       {/* Header */}
       <div style={{
         minHeight: 48, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8,
@@ -512,9 +585,11 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
             stay quiet so the header never cries wolf. The clear button only
             exists when there is something to clear. */}
         <span
+          ref={dueControlRef}
           title={t('tasks.due.label')}
           data-task-due-control
           style={{
+            position: 'relative',
             display: 'inline-flex', alignItems: 'center', gap: 4, height: 26,
             padding: '0 4px 0 7px', borderRadius: 8, flexShrink: 0,
             border: `1px solid ${dueFocused ? 'var(--accent-border)' : 'var(--border)'}`,
@@ -523,7 +598,31 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
             fontSize: 11,
           }}
         >
-          <CalendarDays size={12} style={{ flexShrink: 0 }} />
+          {/* The calendar glyph is the trigger for the quick presets. Keeping
+              the trigger in the glyph's own slot means the crowded header
+              gains no width; the popover overlays the content below instead
+              of wrapping the header or shortening the title. */}
+          <button
+            type="button"
+            className="aipa-task-due-trigger"
+            onClick={() => setDueMenuOpen(open => !open)}
+            disabled={savingDue}
+            title={t('tasks.due.presets.title')}
+            aria-label={t('tasks.due.presets.title')}
+            aria-expanded={dueMenuOpen}
+            aria-controls={dueMenuOpen ? 'task-due-presets' : undefined}
+            data-task-due-trigger
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 16, height: 18, padding: 0, marginLeft: -2,
+              border: 'none', borderRadius: 5, background: 'transparent',
+              color: 'inherit', flexShrink: 0,
+              cursor: savingDue ? 'default' : 'pointer',
+              opacity: savingDue ? 0.5 : 1,
+            }}
+          >
+            <CalendarDays size={12} />
+          </button>
           <span
             data-task-due-label
             style={{ fontWeight: dueWarning ? 600 : 500, whiteSpace: 'nowrap' }}
@@ -565,6 +664,55 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
             >
               <X size={10} />
             </button>
+          )}
+
+          {dueMenuOpen && (
+            <div
+              id="task-due-presets"
+              role="group"
+              aria-label={t('tasks.due.presets.title')}
+              data-task-due-presets
+              style={{
+                position: 'absolute', top: 'calc(100% + 5px)', left: 0, zIndex: 40,
+                display: 'flex', flexDirection: 'column', gap: 3,
+                minWidth: 132, padding: 4, borderRadius: 9,
+                border: '1px solid var(--popup-border)', background: 'var(--popup-bg)',
+                backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+              }}
+            >
+              {[
+                { key: 'today', day: today },
+                { key: 'tomorrow', day: tomorrowDay },
+                { key: 'nextWeek', day: nextWeekDay },
+              ].map(preset => (
+                <button
+                  key={preset.key}
+                  type="button"
+                  className="aipa-task-due-preset"
+                  onClick={() => chooseDuePreset(preset.day)}
+                  disabled={savingDue}
+                  aria-label={t(`tasks.due.presets.${preset.key}`)}
+                  data-task-due-preset={preset.key}
+                  style={{ ...DUE_PRESET_BUTTON, opacity: savingDue ? 0.5 : 1 }}
+                >
+                  {t(`tasks.due.presets.${preset.key}`)}
+                </button>
+              ))}
+              {task.dueOn && (
+                <button
+                  type="button"
+                  className="aipa-task-due-preset"
+                  onClick={() => chooseDuePreset(null)}
+                  disabled={savingDue}
+                  aria-label={t('tasks.due.clear')}
+                  data-task-due-preset="clear"
+                  style={{ ...DUE_PRESET_BUTTON, color: 'var(--text-muted)', opacity: savingDue ? 0.5 : 1 }}
+                >
+                  {t('tasks.due.clear')}
+                </button>
+              )}
+            </div>
           )}
         </span>
 

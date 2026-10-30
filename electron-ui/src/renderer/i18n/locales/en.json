@@ -5454,7 +5454,13 @@
       "todayShort": "Today",
       "tomorrow": "Tomorrow",
       "overdue": "{{days}}d overdue",
-      "clear": "Clear due date"
+      "clear": "Clear due date",
+      "presets": {
+        "title": "Quick due dates",
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "nextWeek": "Next week"
+      }
     },
     "missing": "Folder missing",
     "missingHint": "The task's folder could not be found at {{path}}. The record is still here, and nothing was deleted.",

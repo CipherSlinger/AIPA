@@ -197,6 +197,22 @@ export function todayLocalDay(now: Date = new Date()): string {
   return `${year}-${month}-${day}`
 }
 
+/**
+ * Add whole calendar days to a local `YYYY-MM-DD` day.
+ *
+ * The arithmetic is done on a local `Date` (`new Date(y, m - 1, d + n)`), not
+ * by adding `n * 86400000` milliseconds: on a DST transition a local day is 23
+ * or 25 hours long, and millisecond arithmetic would land on the neighbouring
+ * day. The local constructor normalises month/year rollovers (2026-12-31 + 1
+ * is 2027-01-01). An unparseable input is returned unchanged rather than
+ * guessed at.
+ */
+export function addLocalDays(day: string, n: number): string {
+  const parsed = parseDueDay(day)
+  if (!parsed) return day
+  return todayLocalDay(new Date(parsed.year, parsed.month - 1, parsed.day + n))
+}
+
 /** Parse a stored day into its calendar components; null when it is not one. */
 export function parseDueDay(value: string | null | undefined): { year: number; month: number; day: number } | null {
   if (!value) return null
