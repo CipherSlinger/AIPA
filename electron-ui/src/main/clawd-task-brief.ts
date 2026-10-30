@@ -97,8 +97,13 @@ export interface ClawdTaskBriefUndo {
 
 /** Everything the renderer needs for one paint. */
 export interface ClawdTaskBriefPayload {
+  /**
+   * Every active task on the desk, in card order. The page paints all of them
+   * and scrolls the list inside the card's height cap; nothing is truncated
+   * here, so `total` and `tasks.length` are always the same number.
+   */
   tasks: ClawdTaskBriefItem[]
-  /** Active tasks on the desk, including rows the four-row card cannot show. */
+  /** Active tasks on the desk. Always `tasks.length`; see above. */
   total: number
   /** Pet language: "en" | "zh" | "ko". */
   lang: string
@@ -130,9 +135,10 @@ interface BriefAction {
   id?: unknown
 }
 
-// Width is fixed; height follows the content between these bounds. Four rows
-// plus the header and footer stay well under the cap, and the cap keeps a
-// future row expansion from becoming a full-screen slab.
+// Width is fixed; height follows the content between these bounds. The page
+// reports the height its whole list wants; the window grows to meet it until
+// this cap, and past the cap the list scrolls inside the card. The cap is the
+// same ceiling the notice centre uses, so no pet surface becomes a slab.
 const WIDTH = 372
 const MIN_HEIGHT = 168
 const MAX_HEIGHT = 420
@@ -158,9 +164,6 @@ const isWin = process.platform === 'win32'
 const isLinux = process.platform === 'linux'
 const WIN_TOPMOST_LEVEL = 'pop-up-menu'
 const LINUX_WINDOW_TYPE = 'toolbar'
-
-/** How many rows fit under the cap without scrolling. */
-const ROW_LIMIT = 4
 
 /**
  * The order the desk answers in: something that needs the user first, then
@@ -289,6 +292,11 @@ function briefLabels(): Record<string, string> {
     shortcutHint: petT('taskBriefShortcutHint'),
     untitled: petT('taskBriefUntitled'),
     justNow: petT('taskBriefJustNow'),
+    // The quiet range line beside the count: which of the desk's tasks the
+    // number chords name ("1–4 of 9"), and the word appended when the card is
+    // too short to show them all. {start}/{end}/{total} are filled by the page.
+    range: petT('taskBriefRange'),
+    scroll: petT('taskBriefScroll'),
     // The due marker's words. A short future date is formatted by the page
     // from the stored day, so only the named states live in the table.
     dueToday: petT('taskBriefDueToday'),
@@ -411,9 +419,13 @@ function buildPayload(): ClawdTaskBriefPayload {
   const departments = departmentNames()
   const active = activeTasks(tasks)
   const offer = liveUndoOffer()
+  // The whole desk travels. The window's cap and the list's scroll are the
+  // only reasons a row is out of view, so the count and the rows it describes
+  // can never disagree.
+  const items = active.map(task => toItem(task, departments))
   return {
-    tasks: active.slice(0, ROW_LIMIT).map(task => toItem(task, departments)),
-    total: active.length,
+    tasks: items,
+    total: items.length,
     lang: petLanguage(),
     theme: petTheme(),
     labels: briefLabels(),
@@ -492,6 +504,17 @@ function clampAxis(value: number, areaStart: number, areaSize: number, size: num
 }
 
 /**
+ * The tallest the card may get on this display. The content ceiling is the
+ * maximum; the work area (which already excludes the taskbar) only lowers it,
+ * so the card can never extend under the taskbar or off the screen. A very
+ * short display therefore scrolls sooner instead of being cut off.
+ */
+function maxHeightFor(area: Electron.Rectangle): number {
+  const room = Math.max(MIN_HEIGHT, area.height - EDGE_MARGIN * 2)
+  return Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, room))
+}
+
+/**
  * Place the panel beside the pet: left first (the pet usually sits at the
  * bottom-right), then right, then above/below when both sides are too narrow.
  * Clamping is per-axis against the work area nearest the anchor, so a pet on a
@@ -503,7 +526,7 @@ function computeBounds(
   height: number,
 ): Electron.Rectangle {
   const area = workAreaFor(anchor)
-  const h = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, Math.round(height)))
+  const h = Math.max(MIN_HEIGHT, Math.min(maxHeightFor(area), Math.round(height)))
 
   if (!anchor) {
     return {
@@ -629,8 +652,10 @@ function applyReportedHeight(rawHeight: unknown): void {
   if (typeof rawHeight !== 'number' || !Number.isFinite(rawHeight)) return
 
   const current = briefWin.getBounds()
-  const height = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, Math.round(rawHeight)))
   const area = workAreaFor(lastAnchor)
+  // The page reports what the whole list wants; the cap (content ceiling and
+  // this display's work area) decides what it gets. The page scrolls the rest.
+  const height = Math.max(MIN_HEIGHT, Math.min(maxHeightFor(area), Math.round(rawHeight)))
   const x = clampAxis(current.x, area.x, area.width, WIDTH)
   // Keep the top edge stable while the panel grows; only pull it up when the
   // bottom would leave the work area.

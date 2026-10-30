@@ -89,7 +89,13 @@ body { padding: 8px; }
 /* ── Panel ────────────────────────────────────────────────────────────────── */
 .panel {
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: 100%;
+  /* The window's height is clamped by main to the content cap (420 px) and the
+     work area. The panel keeps itself inside whatever height it was given and
+     lets the list scroll, so a long desk never pushes the footer off-screen. */
+  max-height: calc(100vh - 16px);
   overflow: hidden;
   padding: 12px 14px 12px;
   color: var(--text);
@@ -150,6 +156,14 @@ body { padding: 8px; }
 .empty,
 .foot { position: relative; z-index: 1; }
 
+/* Only the list may shrink when the card is at its height cap; everything else
+   keeps its intrinsic size so the footer and the Undo line stay reachable. */
+.head,
+.empty,
+.error,
+.undo,
+.foot { flex: none; }
+
 /* ── Title bar ────────────────────────────────────────────────────────────── */
 .head {
   display: flex;
@@ -194,6 +208,19 @@ body { padding: 8px; }
 }
 .panel[data-theme="clawd"] .count { border-radius: 999px; }
 .count[data-zero="true"] { opacity: 0.55; }
+/* The quiet range line: which rows the number chords name and how many tasks
+   are on the desk. It sits beside the count rather than in the footer, so the
+   fact is where the card already states its count. */
+.range {
+  flex: none;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.panel[data-theme="clawd"] .range { font-weight: 600; letter-spacing: 0.02em; font-size: 10px; }
 .spacer { flex: 1; }
 .date {
   flex: none;
@@ -239,12 +266,36 @@ body { padding: 8px; }
     0 0 12px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-/* Rows */
+/* Rows. The list takes the card's remaining height and scrolls when the whole
+   desk is taller than the window's cap; `min-height: 0` is what lets a flex
+   child shrink below its content size instead of pushing the footer out. */
 .list {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 2px;
+  min-height: 0;
   padding-top: 7px;
+  overflow-x: hidden;
+  /* `scroll` rather than `auto`: the 3 px scrollbar lane is then present from
+     the start, so the trailing Start/Done buttons do not shift sideways at the
+     moment the list first overflows. The thumb stays invisible until used. */
+  overflow-y: scroll;
+  overscroll-behavior: contain;
+}
+/* The scrollbar lane is always reserved (3 px) so the rows' trailing Start and
+   Done buttons never shift when it appears. The thumb is transparent at rest
+   and fades in only while the user is actually scrolling — the card is a
+   glance, not a scroll box, unless it has to be. */
+.list::-webkit-scrollbar { width: 3px; }
+.list::-webkit-scrollbar-track { background: transparent; }
+.list::-webkit-scrollbar-thumb {
+  border-radius: 2px;
+  background: transparent;
+  transition: background 200ms linear;
+}
+.list.scrolling::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 42%, transparent);
 }
 /* The row and its Start button are siblings: a real <button> cannot legally
    live inside the row's own <button>. The wrapper only anchors the affordance
@@ -316,6 +367,9 @@ body { padding: 8px; }
   color: var(--muted);
 }
 .panel[data-theme="clawd"] .key { border-radius: 4px; font-size: 9px; }
+/* Rows past the fourth carry no number chord. Their slot stays so titles line
+   up, but no empty box is drawn that could read as a fifth shortcut. */
+.key.blank { border-color: transparent; }
 
 .body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .statusline {
@@ -667,6 +721,9 @@ body { padding: 8px; }
   .undo-btn,
   .open-tasks,
   .row-wrap.leaving { transition: none; }
+  /* The scrollbar's fade is the only motion the list adds; with reduced motion
+     the thumb simply appears while scrolling and disappears after. */
+  .list::-webkit-scrollbar-thumb { transition: none; }
 }
 </style>
 </head>
@@ -676,6 +733,10 @@ body { padding: 8px; }
   <header class="head">
     <span class="eyebrow" id="eyebrow">TASK BRIEF</span>
     <span class="count" id="count" data-zero="true" aria-live="polite">0</span>
+    <!-- Which of the desk's tasks the 1–4 chords name, e.g. "1–4 of 9"; the
+         scroll word is appended only while the list really scrolls. Hidden
+         when the whole card fits in four rows: there is nothing to qualify. -->
+    <span class="range" id="range" hidden></span>
     <span class="spacer"></span>
     <span class="date" id="date"></span>
     <button class="close" id="closeBtn" type="button" aria-label="Close">×</button>

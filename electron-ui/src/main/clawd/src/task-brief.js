@@ -2,10 +2,11 @@
  * task-brief.js — renderer for the pet's "Today" task card.
  *
  * The main process owns the task store, the window, positioning and focus.
- * This page asks for a payload, paints up to four rows, reports its measured
- * height so the window can size itself, and sends one action per gesture. It
- * never imports the app's locale JSON: the pet speaks en/zh/ko, and the payload
- * carries which one plus every string.
+ * This page asks for a payload, paints every row of the desk, reports the
+ * height the whole list wants so the window can grow to fit it (main clamps to
+ * the card's cap and work area, and the list then scrolls), and sends one
+ * action per gesture. It never imports the app's locale JSON: the pet speaks
+ * en/zh/ko, and the payload carries which one plus every string.
  */
 (function () {
   "use strict";
@@ -15,6 +16,7 @@
   var panel = document.getElementById("panel");
   var eyebrowEl = document.getElementById("eyebrow");
   var countEl = document.getElementById("count");
+  var rangeEl = document.getElementById("range");
   var dateEl = document.getElementById("date");
   var closeBtn = document.getElementById("closeBtn");
   var listEl = document.getElementById("list");
@@ -30,6 +32,11 @@
   var undoBtn = document.getElementById("undoBtn");
 
   var STATUSES = ["needs_you", "in_progress", "assigned", "ready", "inbox"];
+  // How many rows the number chords name. `1`–`4` have always meant the first
+  // four tasks on the desk, and they still do: the list scrolls the rest into
+  // view, but the chords keep naming the same four rows, which is exactly what
+  // the range indicator says. A row past the fourth gets no key badge.
+  var KEYED_ROWS = 4;
   var STATUS_LABEL_KEY = {
     needs_you: "needsYou",
     in_progress: "inProgress",
@@ -56,6 +63,8 @@
     shortcutHint: "open brief",
     untitled: "Untitled task",
     justNow: "now",
+    range: "{start}–{end} of {total}",
+    scroll: "scroll",
     dueToday: "TODAY",
     dueTomorrow: "TOMORROW",
     dueLate: "{n}D LATE",
@@ -126,6 +135,10 @@
     var total = typeof data.total === "number" && isFinite(data.total)
       ? Math.max(0, Math.round(data.total))
       : tasks.length;
+    // The count must never describe fewer rows than the page is holding; a
+    // truncated payload from an older main would otherwise lie in the other
+    // direction. The current main sends the whole desk, so this is a no-op.
+    total = Math.max(total, tasks.length);
     var incoming = data.labels && typeof data.labels === "object" ? data.labels : {};
     var merged = {};
     for (var key in FALLBACK_LABELS) {
@@ -283,6 +296,70 @@
     return Array.prototype.slice.call(listEl.querySelectorAll(".row"));
   }
 
+  // ── Range indicator ────────────────────────────────────────────────────────
+  // The count badge says how many tasks are on the desk; this line says which
+  // of them the 1–4 chords name, and whether there are more rows below the
+  // fold. It is hidden at four or fewer tasks because nothing there needs
+  // qualifying.
+
+  function rangeFact() {
+    var total = state.payload.total;
+    if (total <= KEYED_ROWS) return "";
+    var raw = labels().range || FALLBACK_LABELS.range;
+    return raw
+      .replace("{start}", "1")
+      .replace("{end}", String(KEYED_ROWS))
+      .replace("{total}", String(total));
+  }
+
+  /**
+   * True when an actual row sits outside the box showing it. The raw
+   * scrollHeight can exceed the client box by the list's own trailing padding;
+   * that is not a hidden row, so the indicator must not claim there is one.
+   */
+  function listScrolls() {
+    if (listEl.hidden || listEl.scrollHeight - listEl.clientHeight <= 1) return false;
+    var wraps = listEl.querySelectorAll(".row-wrap");
+    if (!wraps.length) return false;
+    var last = wraps[wraps.length - 1];
+    return last.offsetTop + last.offsetHeight > listEl.clientHeight + 1;
+  }
+
+  function rangeLine() {
+    var fact = rangeFact();
+    if (!fact) return "";
+    return listScrolls()
+      ? fact + " · " + (labels().scroll || FALLBACK_LABELS.scroll)
+      : fact;
+  }
+
+  /**
+   * Write the fact into the head and into the dialog's accessible name. The
+   * aria-label repeats it because a screen reader landing on the card should
+   * hear the same qualification the visible count carries, not just "Task
+   * brief". Called after every render and after every relayout: whether the
+   * list scrolls depends on the window height main just applied.
+   */
+  function updateRangeFact() {
+    var fact = rangeFact();
+    var line = fact ? rangeLine() : "";
+    rangeEl.textContent = line;
+    rangeEl.hidden = !fact;
+    var eyebrow = labels().eyebrow;
+    panel.setAttribute("aria-label", fact ? eyebrow + ", " + line : eyebrow);
+  }
+
+  /** Keep the scrollbar's thumb visible for a moment after real scrolling. */
+  var scrollTimer = null;
+  function markScrolling() {
+    listEl.classList.add("scrolling");
+    if (scrollTimer) clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(function () {
+      scrollTimer = null;
+      listEl.classList.remove("scrolling");
+    }, 650);
+  }
+
   function buildStartButton(task) {
     var start = document.createElement("button");
     start.type = "button";
@@ -328,10 +405,14 @@
     var rowTitle = task.title || labels().untitled;
     row.title = task.reason ? rowTitle + " — " + task.reason : rowTitle;
 
+    // Only the first four rows have a number chord. The rest keep the same
+    // leading slot (so titles stay aligned) but draw no badge, because a badge
+    // there would name a key that does nothing.
+    var keyed = index < KEYED_ROWS;
     var key = document.createElement("span");
-    key.className = "key";
+    key.className = keyed ? "key" : "key blank";
     key.setAttribute("aria-hidden", "true");
-    key.textContent = String(index + 1);
+    key.textContent = keyed ? String(index + 1) : "";
 
     var body = document.createElement("span");
     body.className = "body";
@@ -428,6 +509,11 @@
     listEl.hidden = !hasRows;
     emptyEl.hidden = hasRows;
     emptyEl.textContent = hasRows ? "" : labels().empty;
+    // A fresh desk starts at the top: the rows under the old scroll position
+    // are gone, and the range line names rows 1–4, which must be the visible
+    // ones when the card first paints.
+    listEl.scrollTop = 0;
+    updateRangeFact();
   }
 
   function clearUndoTimer() {
@@ -501,7 +587,8 @@
     closeBtn.setAttribute("aria-label", s.close);
     closeBtn.title = s.close;
     openTasksLabel.textContent = s.openTasks;
-    panel.setAttribute("aria-label", s.eyebrow);
+    // The card's aria-label is written by updateRangeFact(), which knows the
+    // range as well as the eyebrow.
 
     // One honest line about a row action that did not land. The card has no
     // toast; this note sits where the footer begins and clears on the next
@@ -531,9 +618,18 @@
     if (heightFrame) return;
     heightFrame = requestAnimationFrame(function () {
       heightFrame = null;
+      // The list may be scrolled: its client box is then shorter than its
+      // content, so the panel alone under-reports. Add back what the scroll
+      // hides to report what the whole desk wants; main clamps that to its cap
+      // and work area, and the list scrolls the difference.
+      updateRangeFact();
       if (!api || !api.reportHeight) return;
+      var rect = panel.getBoundingClientRect();
+      var hiddenByScroll = listEl.hidden
+        ? 0
+        : Math.max(0, listEl.scrollHeight - listEl.clientHeight);
       // The window adds its own 8px transparent margin on each side.
-      var height = Math.ceil(panel.getBoundingClientRect().height + 16);
+      var height = Math.ceil(rect.height + hiddenByScroll + 16);
       api.reportHeight(height);
     });
   }
@@ -686,6 +782,18 @@
   // browser's native click, so no new global chord is introduced.
   undoBtn.addEventListener("click", undoTask);
 
+  // The wheel is native on the list; this only reveals the auto-hidden thumb
+  // while the user is actually moving it.
+  listEl.addEventListener("scroll", markScrolling);
+
+  // Main sets the window height after each measurement. Whether the list
+  // scrolls depends on that height, so the range line's "scroll" word is
+  // refreshed here, not only at render time.
+  window.addEventListener("resize", function () {
+    updateRangeFact();
+    reportHeight();
+  });
+
   document.addEventListener("keydown", function (event) {
     // IME composition owns Escape and the number row until the candidate
     // window closes; reacting mid-word would close the card or open a row.
@@ -704,6 +812,26 @@
     // is not claimed by any menu in this window (it has no menu bar, and the
     // app template defines no Alt accelerator), so it reaches this handler.
     if (event.ctrlKey || event.metaKey) return;
+
+    // Scrolling the desk's overflow. These keys are only claimed while the
+    // list actually scrolls, never touch the number row, and are plain (no
+    // Alt/Shift) so they cannot shadow the row chords.
+    if (!event.altKey && !event.shiftKey && listScrolls()) {
+      var page = Math.max(40, listEl.clientHeight - 40);
+      var target = null;
+      if (event.key === "ArrowDown") target = listEl.scrollTop + 40;
+      else if (event.key === "ArrowUp") target = listEl.scrollTop - 40;
+      else if (event.key === "PageDown") target = listEl.scrollTop + page;
+      else if (event.key === "PageUp") target = listEl.scrollTop - page;
+      else if (event.key === "Home") target = 0;
+      else if (event.key === "End") target = listEl.scrollHeight;
+      if (target !== null) {
+        event.preventDefault();
+        // The browser clamps both ends, so a held key never overshoots.
+        listEl.scrollTop = target;
+        return;
+      }
+    }
 
     // Shift+1..4 starts a row, Alt+1..4 finishes it, the bare digit still opens
     // it. With Shift held `event.key` is the shifted glyph (Shift+1 is "!"),

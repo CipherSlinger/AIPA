@@ -211,6 +211,12 @@ const i18n = {
     taskBriefShortcutHint: "open brief",
     taskBriefUntitled: "Untitled task",
     taskBriefJustNow: "now",
+    // The quiet range beside the count: which rows the 1–4 chords name and how
+    // many active tasks are on the desk. `{start}`/`{end}` are row numbers and
+    // `{total}` is the desk count. The scroll word is appended only while the
+    // list really scrolls; a short card that fits everything says nothing.
+    taskBriefRange: "{start}–{end} of {total}",
+    taskBriefScroll: "scroll",
     // Due marker inside a row's meta line. `{n}` is whole days overdue; a
     // future day is formatted from the stored date by the page itself.
     taskBriefDueToday: "TODAY",
@@ -461,6 +467,8 @@ const i18n = {
     taskBriefShortcutHint: "打开简报",
     taskBriefUntitled: "未命名任务",
     taskBriefJustNow: "刚刚",
+    taskBriefRange: "{start}–{end}，共 {total} 条",
+    taskBriefScroll: "滚动",
     taskBriefDueToday: "今天",
     taskBriefDueTomorrow: "明天",
     taskBriefDueLate: "逾期 {n} 天",
@@ -693,6 +701,8 @@ const i18n = {
     taskBriefShortcutHint: "브리핑 열기",
     taskBriefUntitled: "제목 없는 작업",
     taskBriefJustNow: "방금",
+    taskBriefRange: "{start}–{end} / 총 {total}개",
+    taskBriefScroll: "스크롤",
     taskBriefDueToday: "오늘",
     taskBriefDueTomorrow: "내일",
     taskBriefDueLate: "{n}일 지남",
