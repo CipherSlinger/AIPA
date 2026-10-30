@@ -164,19 +164,21 @@ export function registerNavPluginHandlers(win: BrowserWindow, send: SendFn): voi
   // base URLs and every other config field stay on this side of the boundary.
   // Disabling every provider yields `[]` — there is always a list to render,
   // sometimes an empty one.
-  safeHandle('plugin:ai:models', (_e, { pluginId }: { pluginId: string }) => {
-    requirePermission(pluginId, 'ai')
+  // No `ai` gate here either: the toolbar opens this list for every plugin,
+  // while a plugin invoking it through the bridge is gated in PluginHostView.
+  safeHandle('plugin:ai:models', (_e, { pluginId: _pluginId }: { pluginId: string }) => {
     return listPluginAiModels()
   })
   // The plugin's host-chosen "work model". It is stored per plugin, so two
   // plugins can run on different models, and the toolbar and the plugin read
-  // the same value instead of each keeping its own copy.
+  // the same value instead of each keeping its own copy. These two do not ask
+  // for the `ai` permission: the toolbar sets them for every plugin (one
+  // toolbar layout, and the choice is the user's), while a plugin reaching the
+  // same value through the bridge is still gated by `ai` in PluginHostView.
   safeHandle('plugin:ai:model:get', (_e, { pluginId }: { pluginId: string }) => {
-    requirePermission(pluginId, 'ai')
     return getPluginAiModel(pluginId)
   })
   safeHandle('plugin:ai:model:set', (_e, { pluginId, model }: { pluginId: string; model?: string }) => {
-    requirePermission(pluginId, 'ai')
     const state = setPluginAiModel(pluginId, String(model ?? ''))
     // Push right after the write, from the saved state rather than the request:
     // every open surface (toolbar, plugin page) then sees the same stored value,
@@ -234,8 +236,11 @@ export function registerNavPluginHandlers(win: BrowserWindow, send: SendFn): voi
     args?: import('../../plugins/plugin-chat').PluginChatAskArgs
   }) => {
     // Route like chat / ai.generate: a gateway or compatible provider serves
-    // the turn on its own credentials; otherwise the default engine does.
-    const target = resolvePluginTurnTarget()
+    // the turn on its own credentials; otherwise the default engine does. The
+    // model is the plugin's work model — the same picker the toolbar shows —
+    // so a plugin that asks through `chat.ask` is not silently pinned to the
+    // default engine while its toolbar names something else.
+    const target = resolvePluginTurnTarget(getPluginAiModel(pluginId).model)
     const requestedSessionId = typeof args?.sessionId === 'string' ? args.sessionId.trim() : ''
     const answer = await askPluginChat(pluginId, args, (turn) => runInternalTurn({
       prompt: turn.prompt,

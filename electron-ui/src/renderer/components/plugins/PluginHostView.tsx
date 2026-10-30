@@ -227,12 +227,13 @@ export default function PluginHostView() {
     setModelOptionsLoading(false)
   }, [activePluginId])
 
-  const activePluginHasAi = plugin?.manifest.permissions?.includes('ai') ?? false
-
+  // Every plugin gets the picker: the toolbar is the same for every plugin, and
+  // the choice belongs to the host, not to a capability the plugin happens to
+  // declare. A plugin that never calls AI simply never spends it.
   // Read the saved model as soon as a plugin becomes active, not when the menu
   // first opens: the button must name the current model before anyone clicks.
   useEffect(() => {
-    if (!activeManifestId || !activePluginHasAi) return
+    if (!activeManifestId) return
     let live = true
     const read = () => {
       window.electronAPI.pluginAiModel(activeManifestId)
@@ -253,7 +254,7 @@ export default function PluginHostView() {
       live = false
       off()
     }
-  }, [activeManifestId, activePluginHasAi])
+  }, [activeManifestId])
 
   // Outside click / Escape close the mini menu. The listeners exist only while
   // it is open, so nothing outlives the menu, a plugin switch or unmount.
@@ -504,115 +505,115 @@ export default function PluginHostView() {
             {t('pluginHost.reload')}
           </button>
 
-          {/* Work model: only plugins that declared `ai` can call a model, so
-              only they get a picker. It sits between Reload and Source because
-              it describes what the plugin runs on, not the page itself. */}
-          {activePluginHasAi && (
-            <div ref={modelMenuRef} style={{ position: 'relative' }}>
-              <button
-                onClick={handleModelMenu}
-                title={t('pluginHost.modelTitle')}
-                aria-haspopup="listbox"
-                aria-expanded={modelMenuOpen}
+          {/* Work model: every plugin gets the same picker, whether or not it
+              calls AI today — the toolbar is one layout, and the choice is the
+              user's, not a capability the plugin declares. It sits between
+              Reload and Source because it describes what the plugin runs on,
+              not the page itself. */}
+          <div ref={modelMenuRef} style={{ position: 'relative' }}>
+            <button
+              onClick={handleModelMenu}
+              title={t('pluginHost.modelTitle')}
+              aria-haspopup="listbox"
+              aria-expanded={modelMenuOpen}
+              style={{
+                ...TOOLBAR_BTN,
+                background: modelMenuOpen ? 'rgba(99,102,241,0.14)' : 'transparent',
+                border: `1px solid ${modelMenuOpen ? 'rgba(99,102,241,0.45)' : 'var(--border)'}`,
+                color: modelMenuOpen ? 'var(--accent-text)' : 'var(--text-secondary)',
+              }}
+            >
+              <Cpu size={12} style={{ flexShrink: 0 }} />
+              <span style={{
+                maxWidth: 140,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
+                {aiModel?.model ? (aiModel.name || aiModel.model) : t('pluginHost.modelPick')}
+              </span>
+              <ChevronDown size={12} style={{ flexShrink: 0, opacity: 0.65 }} />
+            </button>
+
+            {modelMenuOpen && (
+              <div
+                role="listbox"
+                aria-label={t('pluginHost.modelTitle')}
                 style={{
-                  ...TOOLBAR_BTN,
-                  background: modelMenuOpen ? 'rgba(99,102,241,0.14)' : 'transparent',
-                  border: `1px solid ${modelMenuOpen ? 'rgba(99,102,241,0.45)' : 'var(--border)'}`,
-                  color: modelMenuOpen ? 'var(--accent-text)' : 'var(--text-secondary)',
+                  position: 'absolute',
+                  top: 'calc(100% + 6px)',
+                  right: 0,
+                  zIndex: 60,
+                  minWidth: 240,
+                  maxWidth: 320,
+                  maxHeight: 320,
+                  overflowY: 'auto',
+                  padding: 4,
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 8,
+                  boxShadow: '0 10px 28px rgba(0,0,0,0.18)',
                 }}
               >
-                <Cpu size={12} style={{ flexShrink: 0 }} />
-                <span style={{
-                  maxWidth: 140,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {aiModel?.model ? (aiModel.name || aiModel.model) : t('pluginHost.modelPick')}
-                </span>
-                <ChevronDown size={12} style={{ flexShrink: 0, opacity: 0.65 }} />
-              </button>
-
-              {modelMenuOpen && (
-                <div
-                  role="listbox"
-                  aria-label={t('pluginHost.modelTitle')}
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 6px)',
-                    right: 0,
-                    zIndex: 60,
-                    minWidth: 240,
-                    maxWidth: 320,
-                    maxHeight: 320,
-                    overflowY: 'auto',
-                    padding: 4,
-                    background: 'var(--bg-primary)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 8,
-                    boxShadow: '0 10px 28px rgba(0,0,0,0.18)',
-                  }}
+                <button
+                  role="option"
+                  aria-selected={!aiModel?.model}
+                  onClick={() => chooseModel('')}
+                  style={MODEL_MENU_ROW}
                 >
-                  <button
+                  <span style={MODEL_MENU_NAME}>{t('pluginHost.modelNone')}</span>
+                  {!aiModel?.model && <Check size={12} color="var(--accent-text)" style={{ flexShrink: 0 }} />}
+                </button>
+
+                {/* A saved model the current provider setup no longer offers
+                    stays visible as the current selection. It is not clickable
+                    because saving it again would be refused; clearing it is. */}
+                {aiModel?.model && !aiModel.available && (
+                  <div
                     role="option"
-                    aria-selected={!aiModel?.model}
-                    onClick={() => chooseModel('')}
-                    style={MODEL_MENU_ROW}
+                    aria-selected
+                    aria-disabled
+                    style={{ ...MODEL_MENU_ROW, cursor: 'default' }}
                   >
-                    <span style={MODEL_MENU_NAME}>{t('pluginHost.modelNone')}</span>
-                    {!aiModel?.model && <Check size={12} color="var(--accent-text)" style={{ flexShrink: 0 }} />}
-                  </button>
+                    <span style={MODEL_MENU_NAME}>{aiModel.name || aiModel.model}</span>
+                    <span style={MODEL_MENU_NOTE}>{t('pluginHost.modelUnavailable')}</span>
+                    <Check size={12} color="var(--accent-text)" style={{ flexShrink: 0 }} />
+                  </div>
+                )}
 
-                  {/* A saved model the current provider setup no longer offers
-                      stays visible as the current selection. It is not clickable
-                      because saving it again would be refused; clearing it is. */}
-                  {aiModel?.model && !aiModel.available && (
-                    <div
-                      role="option"
-                      aria-selected
-                      aria-disabled
-                      style={{ ...MODEL_MENU_ROW, cursor: 'default' }}
-                    >
-                      <span style={MODEL_MENU_NAME}>{aiModel.name || aiModel.model}</span>
-                      <span style={MODEL_MENU_NOTE}>{t('pluginHost.modelUnavailable')}</span>
-                      <Check size={12} color="var(--accent-text)" style={{ flexShrink: 0 }} />
-                    </div>
-                  )}
-
-                  {modelOptionsError ? (
-                    <div style={MODEL_MENU_NOTICE}>{modelOptionsError}</div>
-                  ) : modelOptionsLoading ? (
-                    <div style={MODEL_MENU_NOTICE}>{t('common.loading')}</div>
-                  ) : modelOptions === null ? null : modelOptions.length === 0 ? (
-                    <div style={MODEL_MENU_NOTICE}>
-                      <div style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{t('pluginHost.modelEmpty')}</div>
-                      <div style={{ marginTop: 2 }}>{t('pluginHost.modelEmptyHint')}</div>
-                    </div>
-                  ) : (
-                    modelOptions.map(option => {
-                      const selected = aiModel?.model === option.id
-                      return (
-                        <button
-                          key={option.id}
-                          role="option"
-                          aria-selected={selected}
-                          onClick={() => chooseModel(option.id)}
-                          style={MODEL_MENU_ROW}
-                        >
-                          <span style={MODEL_MENU_NAME}>{option.name || option.id}</span>
-                          {/* `default` means no provider owns the id: the turn
-                              runs on the default engine, so there is no provider
-                              name to print rather than a made-up one. */}
-                          {option.providerName && <span style={MODEL_MENU_NOTE}>{option.providerName}</span>}
-                          {selected && <Check size={12} color="var(--accent-text)" style={{ flexShrink: 0 }} />}
-                        </button>
-                      )
-                    })
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+                {modelOptionsError ? (
+                  <div style={MODEL_MENU_NOTICE}>{modelOptionsError}</div>
+                ) : modelOptionsLoading ? (
+                  <div style={MODEL_MENU_NOTICE}>{t('common.loading')}</div>
+                ) : modelOptions === null ? null : modelOptions.length === 0 ? (
+                  <div style={MODEL_MENU_NOTICE}>
+                    <div style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{t('pluginHost.modelEmpty')}</div>
+                    <div style={{ marginTop: 2 }}>{t('pluginHost.modelEmptyHint')}</div>
+                  </div>
+                ) : (
+                  modelOptions.map(option => {
+                    const selected = aiModel?.model === option.id
+                    return (
+                      <button
+                        key={option.id}
+                        role="option"
+                        aria-selected={selected}
+                        onClick={() => chooseModel(option.id)}
+                        style={MODEL_MENU_ROW}
+                      >
+                        <span style={MODEL_MENU_NAME}>{option.name || option.id}</span>
+                        {/* `default` means no provider owns the id: the turn
+                            runs on the default engine, so there is no provider
+                            name to print rather than a made-up one. */}
+                        {option.providerName && <span style={MODEL_MENU_NOTE}>{option.providerName}</span>}
+                        {selected && <Check size={12} color="var(--accent-text)" style={{ flexShrink: 0 }} />}
+                      </button>
+                    )
+                  })
+                )}
+              </div>
+            )}
+          </div>
 
           <button
             onClick={() => setShowSource(v => !v)}
