@@ -5497,6 +5497,7 @@
     "briefMaterialsHeading": "Materials in this task (copies inside materials/):",
     "briefMaterialsNone": "This task has no materials yet. Do not assume any file exists in materials/.",
     "briefMaterialRow": "- {{path}} (imported as {{name}})",
+    "briefDue": "Due: {{date}}",
     "briefInstruction": "Keep every file you create inside the task folder. Put deliverables in output/ and notes in notes/. Ask me before changing anything outside it.",
     "briefFollowup": "This is a follow-up conversation on the same task. The earlier conversations remain in the task's history.",
     "conversations": "Conversations",

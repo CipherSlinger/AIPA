@@ -374,7 +374,7 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
 
   const archived = task.status === 'archived'
   const purpose = taskDispatchPurpose(task)
-  const brief = buildTaskBrief(task, purpose, t)
+  const brief = buildTaskBrief(task, purpose, t, resolvedLocale)
   // Only a task that is still waiting has a reason worth showing. The engine
   // failed its last turn, so this is a decision waiting on the user, not a
   // mistake the user made: the banner stays quiet and names the engine's text.

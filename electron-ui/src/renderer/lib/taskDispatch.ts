@@ -14,7 +14,8 @@
 import type { TaskRecordData, TaskSessionRefData, TaskStatusData } from '../../preload'
 import type { SessionListItem } from '../types/app.types'
 import { useChatStore, useTaskStore, useUiStore } from '../store'
-import { getT } from '../i18n'
+import { getResolvedLocale, getT } from '../i18n'
+import { formatDueDate } from '../components/tasks/taskUi'
 import { openSessionCore, type TaskSessionContext } from '../components/departments/openSessionCore'
 
 export type TaskTurnPurpose = 'dispatch' | 'followup'
@@ -52,6 +53,7 @@ export function buildTaskBrief(
   task: TaskRecordData,
   purpose: TaskTurnPurpose,
   t: Translate,
+  resolvedLocale: 'en' | 'zh-CN',
 ): string {
   const lines: string[] = [
     t('tasks.briefHeading', { title: task.title }),
@@ -69,6 +71,12 @@ export function buildTaskBrief(
         ? `- ${material.relPath}`
         : t('tasks.briefMaterialRow', { path: material.relPath, name: material.name }))
     }
+  }
+  // The deadline is a constraint on the work, not a material. It sits as its
+  // own paragraph after the facts and before the folder rule, so the engine
+  // reads it beside the other constraint rather than inside the file list.
+  if (task.dueOn) {
+    lines.push('', t('tasks.briefDue', { date: formatDueDate(task.dueOn, resolvedLocale) }))
   }
   lines.push('', t('tasks.briefInstruction'))
   if (purpose === 'followup') {
@@ -134,7 +142,7 @@ export function dispatchTask(task: TaskRecordData, t: Translate): TaskDispatchOu
   useChatStore.getState().setTabCwd(tabId, task.directory)
   useUiStore.getState().setFromDepartment(false)
   useUiStore.getState().setActiveNavItem('chat')
-  useUiStore.getState().prefillComposer(buildTaskBrief(task, purpose, t))
+  useUiStore.getState().prefillComposer(buildTaskBrief(task, purpose, t, getResolvedLocale()))
   useUiStore.getState().requestInputFocus()
   return { ok: true, tabId, purpose }
 }

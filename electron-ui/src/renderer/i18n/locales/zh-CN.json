@@ -5497,6 +5497,7 @@
     "briefMaterialsHeading": "这个任务的资料（materials/ 中的副本）：",
     "briefMaterialsNone": "这个任务还没有资料。不要假设 materials/ 中存在任何文件。",
     "briefMaterialRow": "- {{path}}（导入时名为 {{name}}）",
+    "briefDue": "截止日：{{date}}",
     "briefInstruction": "你创建的所有文件都请放在任务文件夹内。交付物放在 output/，笔记放在 notes/。如果需要改动文件夹之外的内容，请先问我。",
     "briefFollowup": "这是同一任务的后续对话。之前的对话仍保留在任务历史中。",
     "conversations": "对话",

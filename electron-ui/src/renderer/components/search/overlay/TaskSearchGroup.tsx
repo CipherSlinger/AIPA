@@ -11,12 +11,18 @@
 // page's colours and labels so the two surfaces cannot disagree.
 
 import type { CSSProperties } from 'react'
-import { Building2, FileText, ListTodo } from 'lucide-react'
-import { useT } from '../../../i18n'
+import { Building2, CalendarDays, FileText, ListTodo } from 'lucide-react'
+import { useI18n } from '../../../i18n'
 import SearchDeptBadge from '../SearchDeptBadge'
 import { emphasise } from '../SearchResultRow'
 import type { TaskSearchHit } from '../searchTasks'
-import { statusColor, statusLabelKey } from '../../tasks/taskUi'
+import {
+  dueInfo,
+  formatDueDate,
+  statusColor,
+  statusLabelKey,
+  todayLocalDay,
+} from '../../tasks/taskUi'
 
 interface Props {
   hits: ReadonlyArray<TaskSearchHit>
@@ -87,7 +93,10 @@ function rowStyle(selected: boolean): CSSProperties {
 }
 
 export function TaskSearchGroup({ hits, query, active, onHover, onOpen }: Props) {
-  const t = useT()
+  const { t, resolvedLocale } = useI18n()
+  // "Today" is read once for the whole paint; a row's marker is a pure
+  // difference from this day, so two rows cannot disagree across midnight.
+  const today = todayLocalDay()
   if (hits.length === 0) return null
 
   return (
@@ -108,6 +117,16 @@ export function TaskSearchGroup({ hits, query, active, onHover, onOpen }: Props)
       {hits.map((hit, index) => {
         const task = hit.task
         const selected = index === active
+        const due = task.dueOn ? dueInfo(task.dueOn, today) : null
+        const dueText = task.dueOn && due
+          ? due.state === 'overdue'
+            ? t('tasks.due.overdue', { days: Math.abs(due.days) })
+            : due.state === 'today'
+              ? t('tasks.due.todayShort')
+              : due.state === 'tomorrow'
+                ? t('tasks.due.tomorrow')
+                : formatDueDate(task.dueOn, resolvedLocale)
+          : null
         return (
           <div
             key={task.id}
@@ -201,6 +220,27 @@ export function TaskSearchGroup({ hits, query, active, onHover, onOpen }: Props)
                     >
                       {t('tasks.departmentUnassigned')}
                     </span>
+                  </span>
+                )}
+                {/* A task with no due day grows no marker, so the row keeps
+                    exactly the shape and height it had before. Overdue is the
+                    only state painted in the warning tone; today uses the
+                    accent the Tasks page already gives it. */}
+                {dueText && (
+                  <span
+                    data-search-task-due
+                    data-search-task-due-state={due?.state ?? 'future'}
+                    title={task.dueOn}
+                    style={{
+                      ...META_STYLE,
+                      color: due?.state === 'overdue'
+                        ? 'var(--warning)'
+                        : due?.state === 'today' ? 'var(--accent-text)' : 'var(--text-muted)',
+                      fontWeight: due?.state === 'overdue' || due?.state === 'today' ? 600 : 400,
+                    }}
+                  >
+                    <CalendarDays size={9} aria-hidden="true" />
+                    {dueText}
                   </span>
                 )}
                 <span
