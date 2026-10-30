@@ -318,6 +318,42 @@ body { padding: 6px; }
   color: var(--text-main);
   font-variant-numeric: tabular-nums;
 }
+/* A due card's meta rows name real tasks, so the field-name treatment (upper-
+   case, fixed 64px gutter) would turn a title into a label. The title takes
+   the line and ellipsises; its short state stays quiet, right-aligned. */
+.meta-row.due { gap: 10px; }
+.meta-row.due .meta-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Prose, not a field value: the title takes the card's own face instead of
+     the diagnostics' monospace. */
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-main);
+}
+.meta-row.due .meta-value {
+  flex: none;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.meta-row.more { justify-content: flex-end; }
+.meta-row.more .meta-more {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
 .progress-wrap {
   display: none;
   flex-direction: column;
@@ -440,6 +476,9 @@ body { padding: 6px; }
 .card[data-theme="sao"] .eyebrow-row { display: flex; }
 .card[data-theme="sao"] .hud-icon { display: block; }
 .card[data-theme="sao"] .meta { display: flex; }
+/* A due card's rows are what the card is about, so they show in the default
+   skin too — otherwise the everyday card only ever says "3 tasks". */
+.meta.has-due { display: flex; }
 .card[data-theme="sao"] .progress-wrap { display: flex; }
 .card[data-theme="sao"] .header {
   display: grid;
@@ -646,14 +685,33 @@ function renderIcon(kind) {
 
 function renderMeta(meta) {
   metaEl.innerHTML = "";
+  // Task rows are the card's content, not its diagnostics: they show in every
+  // skin, while a session id or an elapsed time stays behind the HUD theme.
+  metaEl.classList.remove("has-due");
   if (!Array.isArray(meta)) return;
   for (const row of meta) {
     if (!row || (!row.label && !row.value)) continue;
+    if (row.variant === "due" || row.variant === "more") metaEl.classList.add("has-due");
     const line = document.createElement("div");
     line.className = "meta-row";
+    // `more` is one quiet count with no field name; it spans the row instead
+    // of opening a 64px label gutter that would push the number to the middle.
+    if (row.variant === "more") {
+      line.classList.add("more");
+      const more = document.createElement("span");
+      more.className = "meta-more";
+      more.textContent = row.value || "";
+      line.appendChild(more);
+      metaEl.appendChild(line);
+      continue;
+    }
+    // `due` keeps the label/value pair but draws it as a task row: the title
+    // on the left (ellipsised, full text in `title`) and its state on the right.
+    if (row.variant === "due") line.classList.add("due");
     const label = document.createElement("span");
     label.className = "meta-label";
     label.textContent = row.label || "";
+    if (row.title) label.title = row.title;
     const value = document.createElement("span");
     value.className = "meta-value";
     value.textContent = row.value || "";

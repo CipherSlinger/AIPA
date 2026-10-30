@@ -55,6 +55,17 @@ export type ClawdBubbleTheme = 'sao' | 'clawd'
 export interface ClawdBubbleMetaRow {
   label: string
   value: string
+  /**
+   * Full text for a row that may be ellipsised (a task title, never a field
+   * name). Exposed as the row's native tooltip.
+   */
+  title?: string
+  /**
+   * How the row is drawn. The default is the HUD's field/value line. `due`
+   * puts a task title on the left and its short due state on the right, still
+   * in the meta's quiet type; `more` is a full-width quiet count ("+2 more").
+   */
+  variant?: 'row' | 'due' | 'more'
 }
 
 export interface ClawdBubbleProgress {

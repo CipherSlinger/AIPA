@@ -27,7 +27,9 @@
  * Aggregation wording (built in `clawd-attention.ts`, which owns the pet's
  * string table): today-only says "N tasks are due today"; overdue-only names
  * the oldest overdue span; a mix says "N tasks are due — M overdue". One card
- * covers every newly-pending task; there is never one card per task.
+ * covers every newly-pending task; there is never one card per task. The
+ * aggregate also carries the first three titles (most overdue first) so the
+ * card can answer "which ones?" without opening the Tasks view.
  *
  * Once per day, honestly
  *   The state file (`userData/due-reminder.json`, tmp + rename) remembers, for
@@ -73,6 +75,20 @@ const STATE_FILE = 'due-reminder.json'
 /** A cap on a file that would otherwise keep every task id ever seen. */
 const MAX_STATE_ENTRIES = 500
 
+/**
+ * How many tasks one card may name. The sentence above still carries the full
+ * count; the rows are a glance, and three titles fit without turning a bubble
+ * into a list.
+ */
+export const DUE_ROWS_SHOWN = 3
+
+/** One task a `task-due` card can name: its title and how late it is. */
+export interface DueRow {
+  title: string
+  /** 0 means due today; 2 means the due day was two local days ago. */
+  daysOverdue: number
+}
+
 /** The shape handed to the attention queue's task-due case. */
 export interface DueAggregate {
   /** Every task in this card. */
@@ -83,10 +99,19 @@ export interface DueAggregate {
   overdue: number
   /** Whole local days between the oldest due day and today; 0 when none. */
   oldestOverdueDays: number
+  /**
+   * Up to `DUE_ROWS_SHOWN` tasks, in the list's order (most overdue first, then
+   * today's, ties by title). The bubble renders these as they are; it never
+   * re-sorts them.
+   */
+  rows: DueRow[]
+  /** Tasks the rows could not name: `total - rows.length`. */
+  more: number
 }
 
 export interface DueCandidate {
   id: string
+  title: string
   dueOn: string
   /** 0 means due today; 2 means the due day was two local days ago. */
   daysOverdue: number
@@ -166,9 +191,24 @@ export function collectDue(tasks: readonly TaskRecord[], today: string): DueCand
     if (!task.dueOn) continue
     if (task.status === 'done' || task.status === 'archived') continue
     if (task.dueOn > today) continue
-    due.push({ id: task.id, dueOn: task.dueOn, daysOverdue: daysBetween(task.dueOn, today) })
+    due.push({
+      id: task.id,
+      title: task.title,
+      dueOn: task.dueOn,
+      daysOverdue: daysBetween(task.dueOn, today),
+    })
   }
   return due
+}
+
+/**
+ * The one order this card uses, matching the Tasks list: dated work soonest
+ * first, so the most overdue task leads and today's follow; two tasks on the
+ * same day fall back to their titles so a repaint never reshuffles the rows.
+ */
+export function compareDueCandidates(a: DueCandidate, b: DueCandidate): number {
+  if (a.daysOverdue !== b.daysOverdue) return b.daysOverdue - a.daysOverdue
+  return a.title.localeCompare(b.title)
 }
 
 export function buildDueAggregate(candidates: readonly DueCandidate[]): DueAggregate {
@@ -183,7 +223,21 @@ export function buildDueAggregate(candidates: readonly DueCandidate[]): DueAggre
       today += 1
     }
   }
-  return { total: candidates.length, today, overdue, oldestOverdueDays }
+  // The order is computed here, once: the bubble's rows are already the rows
+  // of the Tasks list, capped to what a bubble can show.
+  const rows = candidates
+    .slice()
+    .sort(compareDueCandidates)
+    .slice(0, DUE_ROWS_SHOWN)
+    .map(candidate => ({ title: candidate.title, daysOverdue: candidate.daysOverdue }))
+  return {
+    total: candidates.length,
+    today,
+    overdue,
+    oldestOverdueDays,
+    rows,
+    more: Math.max(0, candidates.length - rows.length),
+  }
 }
 
 // ── The small main-owned state file ───────────────────────────────────────

@@ -103,8 +103,8 @@ export interface AttentionInput {
   pluginId?: string | null
   /**
    * The aggregate for a `task-due` card. The reminder raises one card for every
-   * newly due task, so the bubble needs counts rather than a name. Ignored by
-   * every other kind.
+   * newly due task, so the bubble needs counts plus the first few titles (the
+   * rows it can name). Ignored by every other kind.
    */
   due?: DueAggregate
 
@@ -922,9 +922,29 @@ function isTransientKind(kind: AttentionKind): boolean {
 }
 
 function metaRows(item: AttentionItem): ClawdBubbleMetaRow[] {
-  // The due card already states its counts in one sentence; a REQUESTS row
-  // derived from `count` would misdescribe it as approvals.
-  if (item.kind === 'task-due') return []
+  // The due card's sentence states the counts; these rows answer "which ones?"
+  // A REQUESTS row derived from `count` would still misdescribe it as approvals.
+  if (item.kind === 'task-due') {
+    const due = item.due
+    // Defensive: an aggregate built by an older caller may predate `rows`.
+    if (!due || !Array.isArray(due.rows) || due.rows.length === 0) return []
+    const dueRows: ClawdBubbleMetaRow[] = due.rows.map(row => ({
+      label: row.title,
+      value: row.daysOverdue > 0
+        ? fmt(t('attentionTaskDueRowLate'), { n: row.daysOverdue })
+        : t('attentionTaskDueRowToday'),
+      title: row.title,
+      variant: 'due',
+    }))
+    if (due.more > 0) {
+      dueRows.push({
+        label: '',
+        value: fmt(t('attentionTaskDueMore'), { n: due.more }),
+        variant: 'more',
+      })
+    }
+    return dueRows
+  }
   const rows: ClawdBubbleMetaRow[] = []
   if (item.sessionId) {
     rows.push({ label: t('attentionMetaSession'), value: item.sessionId.slice(0, 8) })
@@ -1021,7 +1041,9 @@ function buildPayload(item: AttentionItem): BuiltBubble {
       // announced this day; `count` is the same total as a fallback.
       title = t('attentionTaskDueTitle')
       pill = t('attentionTaskDuePill')
-      const due = item.due ?? { total: count, today: count, overdue: 0, oldestOverdueDays: 0 }
+      const due = item.due ?? {
+        total: count, today: count, overdue: 0, oldestOverdueDays: 0, rows: [], more: 0,
+      }
       if (due.overdue > 0 && due.today > 0) {
         message = fmt(t('attentionTaskDueMixed'), { n: due.total, overdue: due.overdue })
       } else if (due.overdue > 0) {
@@ -1102,7 +1124,9 @@ function show(item: AttentionItem, payload: BuiltBubble): void {
       kind: payload.kind || 'system',
       title: payload.title,
       message: payload.message,
-      detail: payload.meta?.map(row => `${row.label}: ${row.value}`).join('\n'),
+      // A due card's last row is only a count (`+2 more`), with no field name;
+      // joining it as ": +2 more" would read like a broken label.
+      detail: payload.meta?.map(row => (row.label ? `${row.label}: ${row.value}` : row.value)).join('\n'),
       sessionId: item.sessionId,
       pluginId: item.pluginId,
     })

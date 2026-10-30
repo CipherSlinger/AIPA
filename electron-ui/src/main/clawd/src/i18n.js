@@ -115,6 +115,13 @@ const i18n = {
     attentionTaskDueOverdueManyDay: "{n} tasks are overdue — oldest by 1 day.",
     attentionTaskDueOverdueManyDays: "{n} tasks are overdue — oldest by {d} days.",
     attentionTaskDueMixed: "{n} tasks are due — {overdue} overdue.",
+    // The card's title rows (up to three): the short state on the right, and
+    // the count of tasks that did not fit. The counts sentence above still
+    // names no task; these rows are the only place a title appears. `{n}` is
+    // whole days late / tasks left out.
+    attentionTaskDueRowToday: "today",
+    attentionTaskDueRowLate: "{n}d late",
+    attentionTaskDueMore: "+{n} more",
     attentionOpenTasks: "Open tasks",
     attentionOpen: "Open session",
     attentionOpenPlugin: "Open plugin",
@@ -394,6 +401,9 @@ const i18n = {
     attentionTaskDueOverdueManyDay: "有 {n} 个任务已逾期，最久的逾期 1 天。",
     attentionTaskDueOverdueManyDays: "有 {n} 个任务已逾期，最久的逾期 {d} 天。",
     attentionTaskDueMixed: "有 {n} 个任务到期，其中 {overdue} 个已逾期。",
+    attentionTaskDueRowToday: "今天",
+    attentionTaskDueRowLate: "逾期 {n} 天",
+    attentionTaskDueMore: "另 {n} 条",
     attentionOpenTasks: "打开任务",
     attentionOpen: "打开会话",
     attentionOpenPlugin: "打开插件",
@@ -630,6 +640,9 @@ const i18n = {
     attentionTaskDueOverdueManyDay: "작업 {n}개가 마감을 지났습니다. 가장 오래된 것은 1일 전입니다.",
     attentionTaskDueOverdueManyDays: "작업 {n}개가 마감을 지났습니다. 가장 오래된 것은 {d}일 전입니다.",
     attentionTaskDueMixed: "마감인 작업이 {n}개 있습니다 — {overdue}개는 기한이 지났습니다.",
+    attentionTaskDueRowToday: "오늘",
+    attentionTaskDueRowLate: "{n}일 지남",
+    attentionTaskDueMore: "+{n}개 더",
     attentionOpenTasks: "작업 열기",
     attentionOpen: "세션 열기",
     attentionOpenPlugin: "플러그인 열기",
