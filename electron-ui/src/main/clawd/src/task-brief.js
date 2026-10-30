@@ -56,6 +56,9 @@
     shortcutHint: "open brief",
     untitled: "Untitled task",
     justNow: "now",
+    dueToday: "TODAY",
+    dueTomorrow: "TOMORROW",
+    dueLate: "{n}D LATE",
     start: "Start",
     startHint: "Start work on this task",
     done: "Done",
@@ -108,6 +111,9 @@
       // Only the main process decides whether a reason exists; the page only
       // renders a non-empty string.
       reason: typeof value.reason === "string" ? value.reason.trim() : "",
+      // A due day is a stored calendar day, never an instant. A malformed value
+      // is dropped rather than formatted into a date that was never stored.
+      dueOn: typeof value.dueOn === "string" && parseDueDay(value.dueOn) ? value.dueOn : "",
       sessionId: typeof value.sessionId === "string" ? value.sessionId : "",
     };
   }
@@ -192,6 +198,87 @@
     }
   }
 
+  // ── Due days ───────────────────────────────────────────────────────────────
+  // These mirror `todayLocalDay` / `parseDueDay` / `dueInfo` in
+  // src/renderer/components/tasks/taskUi.ts. Main and the renderer have no
+  // shared source root, so the brief keeps its own copy, exactly as
+  // `statusNote()` mirrors `taskWaitingReason()`. Keep the arithmetic in step: a
+  // due date is a local calendar day, and the gap is counted in UTC so DST can
+  // never turn it into the wrong day.
+
+  /** Today as a local `YYYY-MM-DD` day. Read fresh on every paint. */
+  function todayLocalDay(now) {
+    var year = now.getFullYear();
+    var month = String(now.getMonth() + 1).padStart(2, "0");
+    var day = String(now.getDate()).padStart(2, "0");
+    return year + "-" + month + "-" + day;
+  }
+
+  /** Parse a stored day into calendar components; null when it is not one. */
+  function parseDueDay(value) {
+    if (!value) return null;
+    var match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!match) return null;
+    var year = Number(match[1]);
+    var month = Number(match[2]);
+    var day = Number(match[3]);
+    var date = new Date(Date.UTC(year, month - 1, day));
+    if (date.getUTCFullYear() !== year ||
+        date.getUTCMonth() !== month - 1 ||
+        date.getUTCDate() !== day) {
+      return null;
+    }
+    return { year: year, month: month, day: day };
+  }
+
+  /** Where a due day sits relative to today; `days` is negative when overdue. */
+  function dueInfo(dueOn, today) {
+    var target = parseDueDay(dueOn);
+    var base = parseDueDay(today);
+    if (!target || !base) return null;
+    var targetMs = Date.UTC(target.year, target.month - 1, target.day);
+    var baseMs = Date.UTC(base.year, base.month - 1, base.day);
+    var days = Math.round((targetMs - baseMs) / 86400000);
+    var state = days < 0 ? "overdue" : days === 0 ? "today" : days === 1 ? "tomorrow" : "future";
+    return { state: state, days: days };
+  }
+
+  /** A short future day (`NOV 5` / `11月5日`), never a time. */
+  function shortDueDay(dueOn) {
+    var parsed = parseDueDay(dueOn);
+    if (!parsed) return dueOn;
+    try {
+      return new Intl.DateTimeFormat(LOCALES[state.payload.lang] || LOCALES.en, {
+        month: "short",
+        day: "numeric",
+      }).format(new Date(parsed.year, parsed.month - 1, parsed.day)).toUpperCase();
+    } catch (err) {
+      return dueOn;
+    }
+  }
+
+  /**
+   * The compact marker for one row, or null when the row carries no due day.
+   * Overdue and today are the warning states; tomorrow and later stay muted so
+   * a card with ordinary future work does not cry wolf.
+   */
+  function dueMarker(task) {
+    if (!task.dueOn) return null;
+    var info = dueInfo(task.dueOn, todayLocalDay(new Date()));
+    if (!info) return null;
+    if (info.state === "overdue") {
+      var late = labels().dueLate || FALLBACK_LABELS.dueLate;
+      return { text: late.replace("{n}", String(-info.days)), warn: true };
+    }
+    if (info.state === "today") {
+      return { text: labels().dueToday || FALLBACK_LABELS.dueToday, warn: true };
+    }
+    if (info.state === "tomorrow") {
+      return { text: labels().dueTomorrow || FALLBACK_LABELS.dueTomorrow, warn: false };
+    }
+    return { text: shortDueDay(task.dueOn), warn: false };
+  }
+
   function visibleRows() {
     return Array.prototype.slice.call(listEl.querySelectorAll(".row"));
   }
@@ -271,6 +358,24 @@
     sep.textContent = "·";
     meta.appendChild(sep);
     meta.appendChild(document.createTextNode(materialLabel(task.materials)));
+
+    // The due marker rides the existing meta line, so it adds no row line and
+    // no height. It leads the line on purpose: a long department or material
+    // count may ellipsize, but the day the work is owed must stay legible. An
+    // undated row adds nothing at all, not even a separator.
+    var marker = dueMarker(task);
+    if (marker) {
+      var due = document.createElement("span");
+      due.className = marker.warn ? "due due-warn" : "due";
+      due.textContent = marker.text;
+      // The compact words are the glance; the exact stored day is the fact.
+      due.title = task.dueOn;
+      meta.insertBefore(due, meta.firstChild);
+      var dueSep = document.createElement("span");
+      dueSep.className = "sep";
+      dueSep.textContent = "·";
+      meta.insertBefore(dueSep, due.nextSibling);
+    }
 
     body.appendChild(statusline);
     body.appendChild(title);

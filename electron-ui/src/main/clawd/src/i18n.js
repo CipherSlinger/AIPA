@@ -197,6 +197,11 @@ const i18n = {
     taskBriefShortcutHint: "open brief",
     taskBriefUntitled: "Untitled task",
     taskBriefJustNow: "now",
+    // Due marker inside a row's meta line. `{n}` is whole days overdue; a
+    // future day is formatted from the stored date by the page itself.
+    taskBriefDueToday: "TODAY",
+    taskBriefDueTomorrow: "TOMORROW",
+    taskBriefDueLate: "{n}D LATE",
     // The per-row Start button: Dispatch without opening AIPA first. The hint
     // is its tooltip; the label is the accessible name.
     taskBriefStart: "Start",
@@ -432,6 +437,9 @@ const i18n = {
     taskBriefShortcutHint: "打开简报",
     taskBriefUntitled: "未命名任务",
     taskBriefJustNow: "刚刚",
+    taskBriefDueToday: "今天",
+    taskBriefDueTomorrow: "明天",
+    taskBriefDueLate: "逾期 {n} 天",
     taskBriefStart: "开始",
     taskBriefStartHint: "开始这项工作",
     taskBriefDone: "完成",
@@ -651,6 +659,9 @@ const i18n = {
     taskBriefShortcutHint: "브리핑 열기",
     taskBriefUntitled: "제목 없는 작업",
     taskBriefJustNow: "방금",
+    taskBriefDueToday: "오늘",
+    taskBriefDueTomorrow: "내일",
+    taskBriefDueLate: "{n}일 지남",
     taskBriefStart: "시작",
     taskBriefStartHint: "이 작업 시작",
     taskBriefDone: "완료",

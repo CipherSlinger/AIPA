@@ -69,6 +69,11 @@ export interface ClawdTaskBriefItem {
    * Read from the note on its latest `status_changed` event; absent otherwise.
    */
   reason?: string
+  /**
+   * The local calendar day (`YYYY-MM-DD`) work is owed, straight from the
+   * record. Absent means no due day — the two states are never conflated.
+   */
+  dueOn?: string
   /** Latest conversation on this task, when one has run. */
   sessionId?: string
 }
@@ -277,6 +282,11 @@ function briefLabels(): Record<string, string> {
     shortcutHint: petT('taskBriefShortcutHint'),
     untitled: petT('taskBriefUntitled'),
     justNow: petT('taskBriefJustNow'),
+    // The due marker's words. A short future date is formatted by the page
+    // from the stored day, so only the named states live in the table.
+    dueToday: petT('taskBriefDueToday'),
+    dueTomorrow: petT('taskBriefDueTomorrow'),
+    dueLate: petT('taskBriefDueLate'),
     start: petT('taskBriefStart'),
     startHint: petT('taskBriefStartHint'),
     done: petT('taskBriefDone'),
@@ -339,12 +349,25 @@ function statusNote(task: TaskRecord): string | undefined {
   return undefined
 }
 
+/**
+ * On-desk order. The status sections are unchanged; *inside* one section dated
+ * work comes first, soonest first, and undated work follows in the order it
+ * already had (newest activity). Two rows due the same day keep that same
+ * newest-activity order, so a tie never reshuffles itself between paints.
+ */
 function activeTasks(tasks: TaskView[]): TaskView[] {
   return tasks
     .filter(task => STATUS_ORDER[task.status] !== undefined)
     .sort((a, b) => {
       const rank = (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99)
-      return rank !== 0 ? rank : b.updatedAt - a.updatedAt
+      if (rank !== 0) return rank
+      if (a.dueOn && b.dueOn) {
+        if (a.dueOn !== b.dueOn) return a.dueOn < b.dueOn ? -1 : 1
+        return b.updatedAt - a.updatedAt
+      }
+      if (a.dueOn) return -1
+      if (b.dueOn) return 1
+      return b.updatedAt - a.updatedAt
     })
 }
 
@@ -364,6 +387,9 @@ function toItem(task: TaskView, departments: Map<string, string>): ClawdTaskBrie
     materials: task.materials.length,
     updatedAt: task.updatedAt,
     ...(reason ? { reason } : {}),
+    // Passed through untouched: the page decides how a day should read, and
+    // an absent field stays absent rather than becoming an empty string.
+    ...(task.dueOn ? { dueOn: task.dueOn } : {}),
     ...(sessionId ? { sessionId } : {}),
   }
 }

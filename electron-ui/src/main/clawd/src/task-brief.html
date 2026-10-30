@@ -360,6 +360,19 @@ body { padding: 8px; }
   font-variant-numeric: tabular-nums;
 }
 .meta .sep { opacity: 0.55; margin: 0 4px; }
+/* The due day rides the meta line at the meta's own size and line box, so a
+   dated row is exactly as tall as an undated one. Overdue and today take the
+   card's warning tone; later days stay muted. */
+.meta .due {
+  font-size: inherit;
+  line-height: inherit;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.meta .due.due-warn { color: var(--k-needs); }
+.panel[data-theme="clawd"] .meta .due { letter-spacing: 0.04em; }
 /* Why a needs-you task is waiting: one dim line, same ellipsis discipline as
    the title and meta, so a long engine message never grows the card. */
 .reason {
