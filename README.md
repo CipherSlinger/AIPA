@@ -262,6 +262,11 @@ Session handoffs land where they point: auto-resume, the welcome screen's contin
 
 ---
 
+### 🩹 The key was saved; the CLI had never started
+
+- **A Windows install with Git off the default path made every Claude CLI turn look like a bad key**: the CLI exits with code 1 unless it can find git-bash, and it only looks at `CLAUDE_CODE_GIT_BASH_PATH` or the usual install locations. Git here lives on `D:` and only its `usr\bin` is on `PATH`, so the variable was empty and the spawn died before it ever read the key — in chat through a gateway provider and in the work calendar's weekly report alike.
+- **Detection now happens in the one place every spawn passes through**: `sanitizeEnv()` fills `CLAUDE_CODE_GIT_BASH_PATH` on Windows when it is absent, deriving the Git root from `PATH` entries (`…\Git\cmd`, `\bin`, `\mingw64\bin`, `\usr\bin`) and falling back to the common install directories; an explicit value is preserved, non-Windows is untouched, and the lookup is cached. The test is the one that failed before: with a dummy key the CLI now gets past the bash check instead of exiting 1 at startup.
+
 ## 🤖 One Cockpit, Two Engines
 
 AIPA runs Codex as its primary engine and Claude Code as the fallback. The cockpit is deliberately engine-agnostic: the same tool cards, the same context meter and the same history should work whichever engine produced the turn. Codex had drifted into being a second-class citizen — the UI was there, but almost nothing populated it. This round closed that gap.

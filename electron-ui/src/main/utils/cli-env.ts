@@ -4,6 +4,8 @@
  * (AWS keys, GitHub tokens, etc.) from the parent process environment.
  */
 
+import { resolveGitBashPath } from './git-bash'
+
 const ALWAYS_PASS = new Set([
   'PATH',
   'PATHEXT',
@@ -74,6 +76,21 @@ export function sanitizeEnv(overrides: Record<string, string> = {}): Record<stri
       || CONDITIONAL_PASS.has(key) || CONDITIONAL_PASS.has(upperKey)
     if (allowed) {
       result[key] = value
+    }
+  }
+
+  // On Windows the CLI aborts with exit code 1 before doing any work unless it
+  // can find git-bash, which would make a perfectly valid API key look broken.
+  // Fill in a path we located ourselves, but never override an explicit value.
+  if (process.platform === 'win32') {
+    // Windows env keys are case-insensitive; find any casing before deciding.
+    const existingKey = Object.keys(result).find(
+      (k) => k.toUpperCase() === 'CLAUDE_CODE_GIT_BASH_PATH',
+    )
+    const explicit = existingKey !== undefined ? result[existingKey] : undefined
+    if (!explicit) {
+      const gitBash = resolveGitBashPath()
+      if (gitBash) result[existingKey ?? 'CLAUDE_CODE_GIT_BASH_PATH'] = gitBash
     }
   }
 
