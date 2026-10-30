@@ -31,7 +31,7 @@
           '<div class="kv">' +
             WC.L('<span class="k">任务</span><span>', '<span class="k">Tasks</span><span>') + counts.tasks.length + WC.L(' 条</span>', '</span>') +
             WC.L('<span class="k">报告</span><span>', '<span class="k">Reports</span><span>') + counts.reports.length + WC.L(' 份</span>', '</span>') +
-            WC.L('<span class="k">OKR</span><span>', '<span class="k">OKR sets</span><span>') + (counts.okrs || []).length + WC.L(' 份</span>', '</span>') +
+            WC.L('<span class="k">OKR</span><span>', '<span class="k">OKR sets</span><span>') + counts.okrs.length + WC.L(' 份</span>', '</span>') +
             WC.L('<span class="k">工作源</span><span>', '<span class="k">Work sources</span><span>') + counts.sources.length + WC.L(' 个</span>', '</span>') +
             WC.L('<span class="k">人天记录</span><span>', '<span class="k">Person-day entries</span><span>') + counts.personDays.length + WC.L(' 条</span>', '</span>') +
             WC.L('<span class="k">存储位置</span><span><code class="path">~/.aipa/plugin-data/aipa-work-calendar/</code></span>', '<span class="k">Location</span><span><code class="path">~/.aipa/plugin-data/aipa-work-calendar/</code></span>') +
@@ -58,15 +58,11 @@
     } else if (act === 'reset') {
       f('weeklyPrompt').value = store.DEFAULT_SETTINGS.weeklyPrompt
       f('monthlyPrompt').value = store.DEFAULT_SETTINGS.monthlyPrompt
-      f('okrPrompt').value = store.DEFAULT_SETTINGS.okrPrompt || ''
+      f('okrPrompt').value = store.DEFAULT_SETTINGS.okrPrompt
       AIPA.toast('info', WC.L('已恢复默认提示词，点击「保存设置」生效', 'Default prompts restored — click "Save settings" to apply'))
     } else if (act === 'export') {
-      var blob = new Blob([JSON.stringify(store.exportData(), null, 2)], { type: 'application/json' })
-      var a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = 'work-calendar-' + WC.date.todayKey() + '.json'
-      a.click()
-      setTimeout(function () { URL.revokeObjectURL(a.href) }, 1000)
+      WC.downloadFile(new Blob([JSON.stringify(store.exportData(), null, 2)], { type: 'application/json' }),
+        'work-calendar-' + WC.date.todayKey() + '.json')
     } else if (act === 'import') {
       f('file').click()
     }

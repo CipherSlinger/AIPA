@@ -357,4 +357,13 @@
     try { document.execCommand('copy') } catch (e) { /* ignore */ }
     ta.remove()
   }
+
+  /** Save a Blob under `filename` via a temporary object URL. */
+  WC.downloadFile = function (blob, filename) {
+    var a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = filename
+    a.click()
+    setTimeout(function () { URL.revokeObjectURL(a.href) }, 1000)
+  }
 })()

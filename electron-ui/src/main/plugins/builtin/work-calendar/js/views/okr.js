@@ -17,14 +17,14 @@
 
   /** Previous / current / next quarter, plus any other quarter that already has a set. */
   function periodOptions() {
-    var options = okr.quarterOptions(D.todayKey()).slice()
+    var options = okr.quarterOptions(D.todayKey())
     var keys = options.map(function (o) { return o.key })
     store.listOkrs().forEach(function (set) {
       if (keys.indexOf(set.periodKey) !== -1) return
       var p = okr.parsePeriodKey(set.periodKey)
       if (!p) return
       keys.push(p.key)
-      options.push({ key: p.key, label: p.label, from: p.from, to: p.to })
+      options.push(p)
     })
     options.sort(function (a, b) { return a.from.localeCompare(b.from) })
     return options
@@ -54,7 +54,7 @@
   }
 
   function renderObjective(o, i) {
-    var progress = okr.objectiveProgress(o) || { percent: null, scored: 0, total: 0 }
+    var progress = okr.objectiveProgress(o)
     var krs = (o.keyResults || []).map(function (k, j) {
       var unscored = k.percent == null
       return '<div class="okr-kr"><span class="okr-kr-idx">KR' + (j + 1) + '</span>' +
@@ -78,7 +78,7 @@
   }
 
   function renderSet(set, period) {
-    var progress = okr.setProgress(set) || { percent: null, scored: 0, total: 0 }
+    var progress = okr.setProgress(set)
     var band = okr.progressBand(progress.percent)
     var scored = progress.scored + '/' + progress.total
     var scoreText = (progress.percent == null ? WC.L('尚未评分', 'Unscored') : pctLabel(progress.percent)) +
@@ -87,12 +87,13 @@
     var fill = progress.percent == null ? '' :
       '<span class="okr-fill okr-fill-' + band + '" style="width:' + Math.max(0, Math.min(100, progress.percent)) + '%"></span>'
     var range = period ? period.from + WC.L(' 至 ', ' to ') + period.to : WC.esc(set.periodKey)
-    var source = set.source === 'ai' ? WC.L('AI 生成', 'AI generated') : WC.L('手写', 'Manual')
+    var isAi = set.source === 'ai'
+    var source = isAi ? WC.L('AI 生成', 'AI generated') : WC.L('手写', 'Manual')
     return '<div class="card okr-card">' +
         '<div class="okr-head"><div>' +
           '<div class="okr-title">' + WC.esc(set.title || (period ? period.label : set.periodKey)) + '</div>' +
           '<div class="okr-meta"><span>' + WC.esc(range) + '</span>' +
-            '<span class="badge ' + (set.source === 'ai' ? 'badge-accent' : '') + '">' + source + '</span>' +
+            '<span class="badge ' + (isAi ? 'badge-accent' : '') + '">' + source + '</span>' +
             WC.L('<span>更新于 ', '<span>Updated ') + D.fmtDateTime(set.updatedAt || set.createdAt) + '</span>' +
           '</div>' +
         '</div></div>' +
@@ -105,26 +106,12 @@
 
   /**
    * Cheap check that must agree with what generation will actually read:
-   * dated tasks whose span intersects the quarter, undated tasks created in it
-   * (store.getMaterial's second branch), or person-days starting inside it.
+   * store.tasksInPeriod is the same predicate getMaterial uses, plus the
+   * person-days that start inside the quarter.
    */
   function hasMaterial(period) {
-    if (!period) return false
-    var from = period.from
-    var to = period.to
-    if (store.tasksInRange(from, to).length) return true
-    var tasks = (store.state && store.state.tasks) || []
-    for (var i = 0; i < tasks.length; i++) {
-      var t = tasks[i]
-      if (!t || t.startDate || t.dueDate || !t.createdAt) continue
-      var created = D.toKey(new Date(t.createdAt))
-      if (created >= from && created <= to) return true
-    }
-    var rows = (store.state && store.state.personDays) || []
-    for (var j = 0; j < rows.length; j++) {
-      if (rows[j].weekStart >= from && rows[j].weekStart <= to) return true
-    }
-    return false
+    return store.tasksInPeriod(period.from, period.to).length > 0 ||
+      store.personDaysInRange(period.from, period.to).length > 0
   }
 
   function renderEmpty(period) {
@@ -152,11 +139,7 @@
     var options = periodOptions()
     if (!view.periodKey || !findOption(options, view.periodKey)) {
       var cur = currentPeriod()
-      view.periodKey = cur ? cur.key : (options.length ? options[0].key : '')
-    }
-    if (!options.length) {
-      view.root.innerHTML = pageHead(options) + WC.L('<div class="card empty">暂无可选季度</div>', '<div class="card empty">No quarter available</div>')
-      return
+      view.periodKey = cur ? cur.key : options[0].key
     }
     var period = findOption(options, view.periodKey)
     var set = store.findOkrByPeriod(view.periodKey)
@@ -272,7 +255,7 @@
           id: o.id || WC.uid(),
           title: String(o.title || '').trim(),
           keyResults: o.keyResults.map(function (k) {
-            return { id: k.id || WC.uid(), title: String(k.title || '').trim(), target: k.target, percent: k.percent }
+            return { id: k.id, title: String(k.title || '').trim(), target: k.target, percent: k.percent }
           }),
         }
       })
@@ -283,7 +266,7 @@
       var period = okr.parsePeriodKey(set.periodKey)
       var title = String(draft.title || '').trim() || (period ? period.label : '')
       WC.attempt(function () { return store.updateOkr(set.id, { title: title, objectives: objectives }) })
-        .then(function () { AIPA.toast('success', WC.L('OKR 已保存', 'OKR saved')); m.close(); render() })
+        .then(function () { AIPA.toast('success', WC.L('OKR 已保存', 'OKR saved')); m.close() })
         .catch(function (err) { AIPA.toast('error', WC.L('保存失败：', 'Failed to save: ') + WC.errMsg(err)) })
     }
 
@@ -317,12 +300,7 @@
   function exportMd(set) {
     var period = okr.parsePeriodKey(set.periodKey)
     var name = (set.title || (period ? period.label : set.periodKey) || 'okr').replace(/[\\/:*?"<>|\s]+/g, '_') + '.md'
-    var blob = new Blob([okr.toMarkdown(set)], { type: 'text/markdown;charset=utf-8' })
-    var a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = name
-    a.click()
-    setTimeout(function () { URL.revokeObjectURL(a.href) }, 1000)
+    WC.downloadFile(new Blob([okr.toMarkdown(set)], { type: 'text/markdown;charset=utf-8' }), name)
   }
 
   function removeSet(set) {
@@ -331,14 +309,15 @@
       { danger: true, okText: WC.L('删除', 'Delete') }).then(function (ok) {
       if (!ok) return
       WC.attempt(function () { return store.removeOkr(set.id) })
-        .then(function () { AIPA.toast('success', WC.L('删除成功', 'Deleted')); render() })
+        .then(function () { AIPA.toast('success', WC.L('删除成功', 'Deleted')) })
         .catch(function (err) { AIPA.toast('error', WC.L('删除失败：', 'Failed to delete: ') + WC.errMsg(err)) })
     })
   }
 
   function runGenerate(set) {
     var replace = !!set
-    var go = function () { gen.generateOkr(view.periodKey, { replace: replace }).then(render) }
+    // A successful save emits from the store, which refreshes the mounted view
+    var go = function () { gen.generateOkr(view.periodKey, { replace: replace }) }
     if (!replace) { go(); return }
     WC.confirm(WC.L('重新生成 OKR', 'Regenerate OKR'),
       WC.L('重新生成会用新的结果覆盖该季度已有的 OKR，原来的目标与评分会丢失。确定继续吗？',
@@ -360,8 +339,6 @@
     else if (act === 'chat') AIPA.sendPrompt(WC.L('请帮我完善这份 OKR：\n\n', 'Please help me refine this OKR:\n\n') + okr.toMarkdown(set))
     else if (act === 'delete') removeSet(set)
   }
-
-  if (gen && gen.onBusy) gen.onBusy(function () { if (view.root) render() })
 
   WC.views = WC.views || {}
   WC.views.okr = {

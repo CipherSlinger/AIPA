@@ -75,6 +75,14 @@ const LAZY_ONLY = new Set([
 // layer. They are listed by path so the lazy routes around them keep their own
 // chunks (a directory rule would drag the whole route into the eager bundle).
 // This is the set that is on the eager startup path today.
+//
+// The chat helpers below are pure modules that the stores and hooks depend on
+// even though they sit next to the chat components. They must stay here:
+// app-shared must not import from app-chat, because a chunk cycle lets a
+// module-scope initializer run before the other chunk assigns its bindings and
+// throws "Cannot access … before initialization" on the startup path — the
+// blank-window failure. Keeping these in the shared sink makes the edge
+// one-way no matter which layer imports them first.
 const SHARED_COMPONENTS = new Set([
   '/components/ui/Toast.tsx',
   '/components/ui/FloatingPortal.tsx',
@@ -90,6 +98,20 @@ const SHARED_COMPONENTS = new Set([
   '/components/departments/openSessionCore.ts',
   '/components/departments/deptUtils.ts',
   '/components/memory/memoryConstants.ts',
+  '/components/memory/useRememberCapture.ts',
+  '/components/chat/codexErrorText.ts',
+  '/components/chat/engineStepLog.ts',
+  '/components/chat/engineStepText.ts',
+  '/components/chat/engineNoticeStore.ts',
+  '/components/chat/hookRunView.ts',
+  '/components/chat/autoApprovalReviewStore.ts',
+  '/components/chat/threadStatusText.ts',
+  '/components/chat/fileChangePatch.ts',
+  '/components/chat/liveFilePatchStore.ts',
+  '/components/chat/imageAttachmentRules.ts',
+  '/components/chat/rateLimitView.ts',
+  '/components/chat/savedInterruptionStore.ts',
+  '/components/chat/workingDirNotice.ts',
 ])
 
 function appChunk(id: string): string | undefined {

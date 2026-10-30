@@ -375,8 +375,7 @@ table.grid tr:hover td { background: var(--hover); }
 .okr-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 4px; }
 .okr-progress { display: flex; align-items: center; gap: 12px; margin: 16px 0 4px; }
 .okr-track { flex: 1; height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
-.okr-fill { display: block; height: 100%; border-radius: 999px; background: var(--accent); transition: width .3s ease; }
-.okr-fill-none { background: var(--border-strong); }
+.okr-fill { display: block; height: 100%; border-radius: 999px; transition: width .3s ease; }
 .okr-fill-off { background: var(--danger); }
 .okr-fill-risk { background: #f59e0b; }
 .okr-fill-on { background: var(--accent); }

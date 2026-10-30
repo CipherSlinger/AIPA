@@ -60,12 +60,8 @@
       else if (act === 'copy') WC.copyText(report.content)
       else if (act === 'chat') AIPA.sendPrompt(WC.L('请帮我润色并完善下面这份', 'Please polish and improve this ') + WC.REPORT_TYPE[report.reportType] + WC.L('：\n\n', ':\n\n') + report.content)
       else if (act === 'export') {
-        var blob = new Blob([report.content], { type: 'text/markdown;charset=utf-8' })
-        var a = document.createElement('a')
-        a.href = URL.createObjectURL(blob)
-        a.download = report.title.replace(/[\\/:*?"<>|\s]+/g, '_') + '.md'
-        a.click()
-        setTimeout(function () { URL.revokeObjectURL(a.href) }, 1000)
+        WC.downloadFile(new Blob([report.content], { type: 'text/markdown;charset=utf-8' }),
+          report.title.replace(/[\\/:*?"<>|\s]+/g, '_') + '.md')
       } else if (act === 'save') {
         var title = m.el.querySelector('[data-f="title"]').value
         var content = m.el.querySelector('[data-f="content"]').value

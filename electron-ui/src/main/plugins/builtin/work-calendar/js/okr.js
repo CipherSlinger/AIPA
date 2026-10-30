@@ -74,14 +74,10 @@
     return makePeriod(d.getFullYear(), Math.floor(d.getMonth() / 3) + 1)
   }
 
-  function pick(period) {
-    return { key: period.key, label: period.label, from: period.from, to: period.to }
-  }
-
   /** Previous, current and next quarter for the given day (defaults to today). */
   function quarterOptions(todayKey) {
     var base = quarterOf(todayKey) || quarterOf(D.todayKey())
-    return [shiftPeriod(base, -1), base, shiftPeriod(base, 1)].map(pick)
+    return [shiftPeriod(base, -1), base, shiftPeriod(base, 1)]
   }
 
   // ── Prompt ────────────────────────────────────────────
@@ -124,11 +120,10 @@
     if (!period) return ''
     var prev = shiftPeriod(period, -1)
     var sets = Array.isArray(okrSets) ? okrSets : []
-    var set = null
-    for (var i = 0; i < sets.length; i++) {
-      var p = sets[i] && parsePeriodKey(sets[i].periodKey)
-      if (p && p.key === prev.key) { set = sets[i]; break }
-    }
+    var set = sets.find(function (s) {
+      var p = s && parsePeriodKey(s.periodKey)
+      return !!p && p.key === prev.key
+    })
     if (!set) return ''
 
     var lines = [String(set.title || '').trim() || prev.label]
@@ -198,16 +193,17 @@
     if (!raw.trim()) return failResult('empty', raw)
 
     var fence = /```[a-zA-Z]*\s*([\s\S]*?)```/.exec(raw)
+    var candidates = fence ? [fence[1], braceSlice(fence[1])] : []
+    candidates.push(braceSlice(raw))
     var attempts = []
-    if (fence) {
-      attempts.push(fence[1])
-      attempts.push(braceSlice(fence[1]))
-    }
-    attempts.push(braceSlice(raw))
+    candidates.forEach(function (c) {
+      var t = String(c == null ? '' : c).trim()
+      if (attempts.indexOf(t) === -1) attempts.push(t)
+    })
 
     var parsed
     for (var a = 0; a < attempts.length && parsed === undefined; a++) {
-      var res = tryParse(String(attempts[a]).trim())
+      var res = tryParse(attempts[a])
       if (res.ok) parsed = res.value
     }
     if (parsed === undefined) return failResult('no_json', raw)
@@ -311,6 +307,7 @@
   WC.okr = {
     INSTRUCTIONS: INSTRUCTIONS,
     DEFAULT_PROMPT: DEFAULT_PROMPT,
+    LIMITS: { objectives: MAX_OBJECTIVES, keyResults: MAX_KEY_RESULTS, title: MAX_TITLE },
     parsePeriodKey: parsePeriodKey,
     quarterOf: quarterOf,
     quarterOptions: quarterOptions,

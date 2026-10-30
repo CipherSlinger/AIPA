@@ -90,6 +90,12 @@
     var s = spanOf(task)
     return !!s && s.start <= to && s.end >= from
   }
+  /** Active in [from, to]: a span intersects it, or an undated task was created in it. */
+  function taskInPeriod(task, from, to) {
+    if (spanOf(task)) return spanIntersects(task, from, to)
+    var created = D.toKey(new Date(task.createdAt))
+    return created >= from && created <= to
+  }
 
   function assertMonday(weekStart) {
     if (!D.isDateKey(weekStart)) fail(WC.L('weekStart 参数非法，格式应为 YYYY-MM-DD', 'Invalid weekStart, expected YYYY-MM-DD'))
@@ -112,9 +118,7 @@
   }
 
   // ── OKR helpers ───────────────────────────────────────
-  var OKR_MAX_OBJECTIVES = 8
-  var OKR_MAX_KEY_RESULTS = 8
-  var OKR_MAX_TITLE = 300
+  var LIMITS = WC.okr.LIMITS
 
   function plain(v) { return v == null ? '' : String(v) }
 
@@ -171,6 +175,11 @@
 
     tasksInRange: function (from, to) {
       return state.tasks.filter(function (t) { return spanIntersects(t, from, to) })
+    },
+
+    /** Tasks active in the period — the same set getMaterial reports on. */
+    tasksInPeriod: function (from, to) {
+      return state.tasks.filter(function (t) { return taskInPeriod(t, from, to) })
     },
 
     listTasks: function (params) {
@@ -377,11 +386,7 @@
       if (!D.isDateKey(from) || !D.isDateKey(to)) return Promise.reject(new Error(WC.L('周期格式非法', 'Invalid period')))
       if (from > to) return Promise.reject(new Error(WC.L('start 不能晚于 end', 'start cannot be after end')))
       var today = D.todayKey()
-      var rows = state.tasks.filter(function (t) {
-        if (spanOf(t)) return spanIntersects(t, from, to)
-        var created = D.toKey(new Date(t.createdAt))
-        return created >= from && created <= to
-      })
+      var rows = store.tasksInPeriod(from, to)
       var material = {
         periodStart: from, periodEnd: to, totalCount: rows.length,
         completedTasks: [], inProgressTasks: [], overdueTasks: [], sourceMaterials: [],
@@ -426,9 +431,7 @@
     monthlyPersonDays: function (year, month) {
       var from = D.monthStart(year, month)
       var to = D.monthEnd(year, month)
-      var rows = state.personDays
-        .filter(function (p) { return p.weekStart >= from && p.weekStart <= to })
-        .sort(function (a, b) { return a.weekStart.localeCompare(b.weekStart) || a.createdAt.localeCompare(b.createdAt) })
+      var rows = store.personDaysInRange(from, to)
       var groups = []
       var total = 0
       rows.forEach(function (p) {
@@ -510,8 +513,8 @@
     },
 
     // ── OKRs ──────────────────────────────────────────
-    listOkrs: function (periodKey) {
-      var items = state.okrs.filter(function (o) { return !periodKey || o.periodKey === periodKey })
+    listOkrs: function () {
+      var items = state.okrs.slice()
       items.sort(function (a, b) {
         if (a.periodKey !== b.periodKey) return b.periodKey.localeCompare(a.periodKey)
         return b.createdAt.localeCompare(a.createdAt)
@@ -546,8 +549,6 @@
       var base = existing || { id: WC.uid(), createdAt: now }
       var record = Object.assign({}, base, {
         periodKey: period.key,
-        periodStart: period.from,
-        periodEnd: period.to,
         title: plain(dto.title).trim() || period.label + ' OKR',
         objectives: cloneObjectives(dto.objectives),
         source: source,
@@ -592,26 +593,26 @@
       if (!set || typeof set !== 'object') fail(WC.L('OKR 数据格式非法', 'Malformed OKR data'))
       var title = plain(set.title).trim()
       if (!title) fail(WC.L('OKR 标题不能为空', 'OKR title is required'))
-      if (title.length > OKR_MAX_TITLE) fail(WC.L('OKR 标题不能超过 300 个字符', 'OKR title must be at most 300 characters'))
+      if (title.length > LIMITS.title) fail(WC.L('OKR 标题不能超过 300 个字符', 'OKR title must be at most 300 characters'))
       if (!WC.okr.parsePeriodKey(set.periodKey)) fail(WC.L('OKR 周期格式应为 YYYY-QN，如 2026-Q4', 'OKR period must be YYYY-QN, e.g. 2026-Q4'))
       var objectives = set.objectives
       if (!Array.isArray(objectives) || !objectives.length) fail(WC.L('OKR 至少需要一个目标', 'An OKR needs at least one objective'))
-      if (objectives.length > OKR_MAX_OBJECTIVES) fail(WC.L('一个 OKR 最多 8 个目标', 'At most 8 objectives per OKR'))
+      if (objectives.length > LIMITS.objectives) fail(WC.L('一个 OKR 最多 8 个目标', 'At most 8 objectives per OKR'))
       objectives.forEach(function (o, i) {
         var n = i + 1
         if (!o || typeof o !== 'object' || Array.isArray(o)) fail(WC.L('第 ' + n + ' 个目标格式非法', 'Objective ' + n + ' is malformed'))
         var oTitle = plain(o.title).trim()
         if (!oTitle) fail(WC.L('第 ' + n + ' 个目标的标题不能为空', 'Objective ' + n + ' needs a title'))
-        if (oTitle.length > OKR_MAX_TITLE) fail(WC.L('目标标题不能超过 300 个字符', 'Objective titles must be at most 300 characters'))
+        if (oTitle.length > LIMITS.title) fail(WC.L('目标标题不能超过 300 个字符', 'Objective titles must be at most 300 characters'))
         if (!Array.isArray(o.keyResults)) fail(WC.L('第 ' + n + ' 个目标缺少关键结果列表', 'Objective ' + n + ' is missing its key-result list'))
-        if (o.keyResults.length > OKR_MAX_KEY_RESULTS) fail(WC.L('每个目标最多 8 个关键结果', 'At most 8 key results per objective'))
+        if (o.keyResults.length > LIMITS.keyResults) fail(WC.L('每个目标最多 8 个关键结果', 'At most 8 key results per objective'))
         o.keyResults.forEach(function (kr, j) {
           var m = j + 1
           if (!kr || typeof kr !== 'object' || Array.isArray(kr)) fail(WC.L('第 ' + n + ' 个目标的第 ' + m + ' 个关键结果格式非法', 'Key result ' + m + ' of objective ' + n + ' is malformed'))
           var krTitle = plain(kr.title).trim()
           if (!krTitle) fail(WC.L('关键结果标题不能为空', 'Key-result titles are required'))
-          if (krTitle.length > OKR_MAX_TITLE) fail(WC.L('关键结果标题不能超过 300 个字符', 'Key-result titles must be at most 300 characters'))
-          if (plain(kr.target).length > OKR_MAX_TITLE) fail(WC.L('关键结果的目标值不能超过 300 个字符', 'Key-result targets must be at most 300 characters'))
+          if (krTitle.length > LIMITS.title) fail(WC.L('关键结果标题不能超过 300 个字符', 'Key-result titles must be at most 300 characters'))
+          if (plain(kr.target).length > LIMITS.title) fail(WC.L('关键结果的目标值不能超过 300 个字符', 'Key-result targets must be at most 300 characters'))
           var p = kr.percent
           if (p !== null && !(typeof p === 'number' && isFinite(p) && p % 1 === 0 && p >= 0 && p <= 100)) {
             fail(WC.L('关键结果完成度必须是空（未评分）或 0-100 的整数', 'Key-result percent must be null (unscored) or an integer from 0 to 100'))
@@ -654,8 +655,8 @@
       if (!data || data.app !== 'aipa-work-calendar') fail(WC.L('不是工作日历导出的数据文件', 'Not a Work Calendar export file'))
       REQUIRED_COLLECTIONS.forEach(function (k) {
         if (!Array.isArray(data[k])) fail(WC.L('数据文件缺少 ', 'Data file is missing the ') + k + WC.L(' 字段', ' field'))
+        state[k] = data[k]
       })
-      REQUIRED_COLLECTIONS.forEach(function (k) { state[k] = data[k] })
       // A schema-v1 export has no okrs key; that is a valid old backup, not corruption
       state.okrs = Array.isArray(data.okrs) ? data.okrs : []
       if (data.settings) state.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings)
