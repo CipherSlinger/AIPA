@@ -509,6 +509,43 @@ body { padding: 8px; }
 }
 .row[data-read="true"] .msg { opacity: 0.8; }
 
+/* A notice that became a task carries a quiet chip on its title line. It is
+   information, not a control: meta-sized chrome with no hover/focus state, and
+   it never claims a row of its own. The label is flex:none and the chip refuses
+   to shrink below its content, so a squeezed row still says "Task" even when
+   the stored title has ellipsized down to nothing. The 14px height fits inside
+   the title line's existing 16px chevron, so a collapsed row does not grow. */
+.task-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  max-width: 46%;
+  height: 14px;
+  padding: 0 5px;
+  border: 1px solid color-mix(in srgb, var(--k) 22%, transparent);
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--k) 6%, transparent);
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.task-chip-label { flex: none; opacity: 0.78; }
+.task-chip-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #c7e6e1;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
 .side {
   display: flex;
   flex-direction: column;

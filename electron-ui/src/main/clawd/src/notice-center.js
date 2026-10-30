@@ -344,6 +344,58 @@
     filtersEl.classList.toggle("is-overflow", filtersEl.scrollWidth > filtersEl.clientWidth + 2);
   }
 
+  /**
+   * The quiet chip that names the task a notice became. It is inert by design:
+   * a span with no tab stop, no click handler and no hover state of its own,
+   * sitting inside the row's existing title line. The stored title is
+   * ellipsized; the short label is flex:none, so even when the title has no
+   * room left the chip shows "Task" rather than an empty box. The full title is
+   * always in `title`.
+   *
+   * Search deliberately ignores it: this row's haystack is title + message,
+   * and the chip is meta (like the expanded KIND/TIME facts), so adding it
+   * would make the filter mean something the rest of the meta does not.
+   */
+  function buildTaskChip(taskTitle) {
+    var labelText = petString("noticeCenterTaskChip");
+    var text = typeof taskTitle === "string" ? taskTitle.trim() : "";
+    var chip = document.createElement("span");
+    chip.className = "task-chip";
+    chip.title = text || labelText;
+    var label = document.createElement("span");
+    label.className = "task-chip-label";
+    label.textContent = labelText;
+    chip.appendChild(label);
+    if (text) {
+      var value = document.createElement("span");
+      value.className = "task-chip-title";
+      value.textContent = text;
+      chip.appendChild(value);
+    }
+    return chip;
+  }
+
+  /**
+   * Keep a saved row's chip honest without repainting the list: after "Save as
+   * task" the durable payload has not been re-rendered (that would close the
+   * open row), but the outcome carries the new task's title. `fallbackTitle` is
+   * only used when the notice object itself has not caught up yet.
+   */
+  function renderTaskChip(row, id, fallbackTitle) {
+    if (!row) return;
+    var titleLine = row.querySelector(".title-line");
+    if (!titleLine) return;
+    var notice = noticeById(id);
+    var taskId = notice && notice.taskId ? notice.taskId : (state.rowStatus[id] && state.rowStatus[id].taskId);
+    if (!taskId) return;
+    var stored = notice && typeof notice.taskTitle === "string" ? notice.taskTitle : "";
+    var title = stored.trim() ? stored : (typeof fallbackTitle === "string" ? fallbackTitle : "");
+    var existing = titleLine.querySelector(".task-chip");
+    var replacement = buildTaskChip(title);
+    if (existing) titleLine.replaceChild(replacement, existing);
+    else titleLine.insertBefore(replacement, titleLine.querySelector(".expand"));
+  }
+
   function buildRow(notice) {
     var s = strings();
     var expanded = state.expandedId === notice.id;
@@ -390,6 +442,11 @@
     });
     titleLine.appendChild(dot);
     titleLine.appendChild(title);
+    // A notice that already became a task says so before the row is opened.
+    // The chip stays inside the title line so the collapsed row's height is
+    // unchanged; it is a span, not a control, and clicks fall through to the
+    // row exactly as they do on the title itself.
+    if (notice.taskId) titleLine.appendChild(buildTaskChip(notice.taskTitle));
     titleLine.appendChild(expand);
 
     var message = document.createElement("span");
@@ -593,6 +650,12 @@
         runAction({ type: "open-task", id: id, taskId: taskId });
       });
       el.appendChild(open);
+    }
+    // Saving from this row is the one moment the payload is stale; the outcome
+    // carries the new task's title, so patch the chip in place instead of
+    // repainting the list and collapsing the open row.
+    if (status && status.taskId) {
+      renderTaskChip(el.closest ? el.closest(".row") : null, id, status.taskTitle);
     }
   }
 
@@ -891,7 +954,11 @@
   function applyOutcome(outcome) {
     if (!outcome || typeof outcome.id !== "string" || outcome.action !== "save-task") return;
     if (outcome.ok) {
-      setRowStatus(outcome.id, { kind: "task-created", taskId: outcome.taskId });
+      setRowStatus(outcome.id, {
+        kind: "task-created",
+        taskId: outcome.taskId,
+        taskTitle: outcome.taskTitle,
+      });
     } else {
       setRowStatus(outcome.id, { kind: "task-failed", code: outcome.code });
     }

@@ -126,6 +126,9 @@ const i18n = {
     noticeCenterSaveTask: "Save as task",
     noticeCenterDismiss: "Dismiss",
     noticeCenterOpenTasks: "Open task",
+    // Quiet label on the collapsed row's task chip: the chip's other half is
+    // the stored task title, so this is a noun, not a sentence.
+    noticeCenterTaskChip: "Task",
     noticeCenterExpand: "Expand notice",
     noticeCenterCollapse: "Collapse notice",
     noticeCenterActions: "Notice actions",
@@ -371,6 +374,7 @@ const i18n = {
     noticeCenterSaveTask: "存为任务",
     noticeCenterDismiss: "忽略",
     noticeCenterOpenTasks: "打开任务",
+    noticeCenterTaskChip: "任务",
     noticeCenterExpand: "展开通知",
     noticeCenterCollapse: "收起通知",
     noticeCenterActions: "通知操作",
@@ -589,6 +593,7 @@ const i18n = {
     noticeCenterSaveTask: "작업으로 저장",
     noticeCenterDismiss: "무시",
     noticeCenterOpenTasks: "작업 열기",
+    noticeCenterTaskChip: "작업",
     noticeCenterExpand: "알림 펼치기",
     noticeCenterCollapse: "알림 접기",
     noticeCenterActions: "알림 작업",

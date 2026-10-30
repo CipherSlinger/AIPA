@@ -82,6 +82,12 @@ export interface ClawdNoticeCenterItem {
    * restart and a reopened log.
    */
   taskId?: string
+  /**
+   * That task's stored title, so the collapsed row can name the destination
+   * before the user commits to the click. Resolved from the same one-pass
+   * `from_notice` scan as `taskId`; never read per row.
+   */
+  taskTitle?: string
 }
 
 /** Why a rendered action, if any, should change its row's transient status. */
@@ -211,7 +217,9 @@ function toItem(
     ...(record.sessionId ? { sessionId: record.sessionId } : {}),
     ...(meta.length ? { meta } : {}),
     canSaveTask: canSaveNotice(record),
-    ...(savedTask ? { taskId: savedTask.id } : {}),
+    // Both fields ride the same lookup: a row that can open its task can also
+    // name it, without a second scan of tasks.json.
+    ...(savedTask ? { taskId: savedTask.id, taskTitle: savedTask.title } : {}),
   }
 }
 
