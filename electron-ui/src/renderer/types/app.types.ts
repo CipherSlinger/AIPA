@@ -410,6 +410,13 @@ export interface ApiKeyEntry {
   enabled: boolean     // whether this key is enabled in the pool
   exhausted: boolean   // whether this key hit quota limit (auto-set on 402)
   addedAt: number      // epoch ms
+  /**
+   * Models this key can run, as fetched from /v1/models (never the stored
+   * union). The pool owns this list; the global `availableModels` prefs field
+   * is the deduped union of every entry's `models`, because that is what the
+   * model pickers and the main process read. Absent until a fetch succeeds.
+   */
+  models?: AvailableModel[]
 }
 
 export interface TextSnippet {
