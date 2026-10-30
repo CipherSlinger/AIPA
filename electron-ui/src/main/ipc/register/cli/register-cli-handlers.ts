@@ -34,6 +34,35 @@ const log = createLogger('ipc:cli')
 // CLI handlers — CodexBridge (primary) + legacy StreamBridge (fallback)
 // ----------------------------------------
 
+/**
+ * Stop the turn running on `sessionId`, with the same cleanup the renderer's
+ * stop button gets. Exported because the stop gesture also lives outside the
+ * renderer now (the pet's radial STOP petal); aborting a bridge directly would
+ * skip the attention bookkeeping and let a stopped turn surface as a failure.
+ * Returns false when nothing is live, so callers can report "nothing to stop".
+ */
+export function abortCliTurn(sessionId: string): boolean {
+  if (typeof sessionId !== 'string' || !sessionId) return false
+  // A stopped turn is not a failed one, and its pending approvals are moot.
+  markBridgeAborted(sessionId)
+  clearAttentionForBridge(sessionId)
+  // Release the dream pass's "turn in flight" gate even if the bridge never
+  // reports an exit; a stopped turn is not consolidated.
+  dreamNoteTurnCancelled(sessionId)
+  // Try CodexBridge first, then legacy
+  const codexBridge = codexBridgeManager.get(sessionId)
+  if (codexBridge) {
+    codexBridgeManager.abort(sessionId)
+    return true
+  }
+  const streamBridge = streamBridgeManager.get(sessionId)
+  if (streamBridge) {
+    streamBridgeManager.abort(sessionId)
+    return true
+  }
+  return false
+}
+
 export function registerCliHandlers(send: SendFn): void {
   ipcMain.handle('cli:sendMessage', async (_e, args) => {
     // Validate and sanitize renderer-supplied flags, model, cwd and resume id
@@ -103,19 +132,7 @@ export function registerCliHandlers(send: SendFn): void {
   })
 
   ipcMain.handle('cli:abort', (_e, sessionId) => {
-    // A stopped turn is not a failed one, and its pending approvals are moot.
-    markBridgeAborted(sessionId)
-    clearAttentionForBridge(sessionId)
-    // Release the dream pass's "turn in flight" gate even if the bridge never
-    // reports an exit; a stopped turn is not consolidated.
-    if (typeof sessionId === 'string') dreamNoteTurnCancelled(sessionId)
-    // Try CodexBridge first, then legacy
-    const codexBridge = codexBridgeManager.get(sessionId)
-    if (codexBridge) {
-      codexBridgeManager.abort(sessionId)
-      return
-    }
-    streamBridgeManager.abort(sessionId)
+    abortCliTurn(sessionId)
   })
 
   ipcMain.handle('cli:respondPermission', (_e, { sessionId, requestId, allowed }) => {

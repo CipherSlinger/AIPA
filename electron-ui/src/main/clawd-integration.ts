@@ -134,6 +134,9 @@ interface ClawdInstance {
   setBubblesHidden: (v: boolean) => void
   setLanguage: (lang: string) => void
   setBubbleTheme: (theme: string) => void
+  openPetMenu: () => boolean
+  closePetMenu: () => void
+  isPetMenuOpen: () => boolean
 }
 
 const log = createLogger('clawd-integration')
@@ -159,6 +162,74 @@ let attentionActivateHandler: (() => void) | null = null
 /** Register the handler that runs when the pet is clicked while attention is up. */
 export function setClawdAttentionActivateHandler(fn: (() => void) | null): void {
   attentionActivateHandler = fn
+}
+
+// ── Radial pet menu callbacks ──────────────────────────
+
+/**
+ * Read the activity reducer without a static import. `pet-activity` imports
+ * this module for its draw step, so a top-level import here would close a
+ * cycle at load time. By the moment a petal is clicked both modules exist.
+ */
+function petActivitySnapshot(): { phase: string; owner: string | null } | null {
+  try {
+    const mod = require('./pet-activity') as {
+      getPetActivity: () => PetActivity
+      getPetActivityOwner: () => string | null
+    }
+    return { phase: mod.getPetActivity().phase, owner: mod.getPetActivityOwner() }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The six callbacks the pet's radial menu calls. Each one is independent, so
+ * the factory can hide a petal whose callback is absent; `initClawdIntegration`
+ * always supplies all six, but the pet is also loaded by harnesses.
+ */
+const petMenuCallbacks = {
+  newChat: (): void => {
+    withClawdMainWindow(win => {
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+      // The same renderer entry point the app menu uses — one definition of
+      // "start a new conversation", not a second one for the pet.
+      win.webContents.send('menu:newSession')
+    })
+  },
+  openMain: (): void => {
+    withClawdMainWindow(win => {
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+    })
+  },
+  isBusy: (): boolean => {
+    const activity = petActivitySnapshot()
+    return !!activity && activity.phase !== 'idle'
+  },
+  stopTurn: (): boolean => {
+    const activity = petActivitySnapshot()
+    if (!activity || activity.phase === 'idle' || !activity.owner) return false
+    try {
+      const { abortCliTurn } = require('./ipc/register/cli/register-cli-handlers') as {
+        abortCliTurn: (sessionId: string) => boolean
+      }
+      return abortCliTurn(activity.owner) === true
+    } catch (err) {
+      log.warn('petMenu.stopTurn failed:', String(err))
+      return false
+    }
+  },
+  /** Thirty minutes each way. The value is a stored deadline, so it survives a restart. */
+  toggleSilence: (): 'quiet' | 'loud' => {
+    const quiet = !isClawdQuietActive()
+    setClawdQuietMinutes(quiet ? 30 : 0)
+    return quiet ? 'quiet' : 'loud'
+  },
+  isQuiet: (): boolean => isClawdQuietActive(),
 }
 
 /**
@@ -209,6 +280,9 @@ export function initClawdIntegration(mainWindow: BrowserWindow): void {
           log.warn('attention activate handler threw:', String(err))
         }
       },
+      // Right-click on the pet opens the radial quick menu. The factory
+      // wraps each call in try/catch and hides the petal when one is missing.
+      petMenu: petMenuCallbacks,
     })
 
     // The permission bubble is built by the pet, not by us, and reads its skin

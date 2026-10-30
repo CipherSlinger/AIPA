@@ -278,6 +278,10 @@ let _aipaMainWindow = null;  // AIPA main window, used as parent for taskbar mer
 // Module-level because the IPC handlers live in createWindow(), which is a
 // different scope than createClawdIntegration() where the callback arrives.
 let _aipaAttentionActivate = null;
+// AIPA callbacks for the radial pet menu. Optional: each missing entry hides
+// the petal that would call it (see getPetMenuPayload).
+let _aipaPetMenu = null;
+let _petMenu = null;
 let tray = null;
 let contextMenuOwner = null;
 let currentSize = _settingsController.get("size");
@@ -338,6 +342,7 @@ function togglePetVisibility() {
     reapplyMacVisibility();
     petHidden = false;
   } else {
+    closePetMenu();
     win.hide();
     if (hitWin && !hitWin.isDestroyed()) hitWin.hide();
     for (const perm of pendingPermissions) {
@@ -573,6 +578,7 @@ function reapplyMacVisibility() {
   apply(_updateBubble.getBubbleWindow());
   apply(_attentionBubble.getBubbleWindow());
   apply(contextMenuOwner);
+  apply(_petMenu && _petMenu.getWindow());
 }
 
 // ── State machine ──
@@ -706,7 +712,9 @@ const _serverCtx = {
   updateSession,
   resolvePermissionEntry,
   sendPermissionResponse,
-  showPermissionBubble,
+  // A permission card is the one bubble that must never be hidden behind an
+  // open menu, so the menu steps aside before the card is created.
+  showPermissionBubble: (...args) => { closePetMenu(); return showPermissionBubble(...args); },
   replyOpencodePermission,
   permLog,
 };
@@ -763,6 +771,10 @@ function startTopmostWatchdog() {
     const updateBubbleWin = _updateBubble.getBubbleWindow();
     if (updateBubbleWin && !updateBubbleWin.isDestroyed() && updateBubbleWin.isVisible()) {
       updateBubbleWin.setAlwaysOnTop(true, WIN_TOPMOST_LEVEL);
+    }
+    const petMenuWin = _petMenu && _petMenu.getWindow();
+    if (petMenuWin && !petMenuWin.isDestroyed() && petMenuWin.isVisible()) {
+      petMenuWin.setAlwaysOnTop(true, WIN_TOPMOST_LEVEL);
     }
   }, TOPMOST_WATCHDOG_MS);
 }
@@ -823,8 +835,10 @@ const _menuCtx = {
   set contextMenuOwner(v) { contextMenuOwner = v; },
   get contextMenu() { return contextMenu; },
   set contextMenu(v) { contextMenu = v; },
-  enableDoNotDisturb: () => enableDoNotDisturb(),
-  disableDoNotDisturb: () => disableDoNotDisturb(),
+  // A sleeping pet has nothing to offer through the quick menu, and the menu
+  // would otherwise outlive the pet it belongs to.
+  enableDoNotDisturb: () => { closePetMenu(); enableDoNotDisturb(); },
+  disableDoNotDisturb: () => { closePetMenu(); disableDoNotDisturb(); },
   enterMiniViaMenu: () => enterMiniViaMenu(),
   exitMiniMode: () => exitMiniMode(),
   getMiniMode: () => _mini.getMiniMode(),
@@ -853,6 +867,108 @@ const _menu = require("./menu")(_menuCtx);
 const { t, buildContextMenu, buildTrayMenu, rebuildAllMenus,
         showPetContextMenu, popupMenuAt, ensureContextMenuOwner,
         requestAppQuit, applyDockVisibility } = _menu;
+
+// ── Radial pet menu (SAO quick menu on right-click) ──
+// Every AIPA callback is optional and called through this shim: a pet menu
+// must never throw because one half of the app was not wired. A callback that
+// is missing hides its petal instead (see getPetMenuPayload).
+function callPetMenuCallback(name, ...args) {
+  const fn = _aipaPetMenu && _aipaPetMenu[name];
+  if (typeof fn !== "function") return undefined;
+  try {
+    return fn(...args);
+  } catch (err) {
+    console.warn(`Clawd: pet menu ${name} failed:`, err && err.message);
+    return undefined;
+  }
+}
+
+function hasPetMenuCallback(name) {
+  return !!(_aipaPetMenu && typeof _aipaPetMenu[name] === "function");
+}
+
+function getPetMenuPayload() {
+  const state = {
+    canStop: callPetMenuCallback("isBusy") === true,
+    quiet: callPetMenuCallback("isQuiet") === true,
+    // STOP needs both the action and the state that enables it; anything else
+    // is an offer the user cannot take.
+    available: {
+      newChat: hasPetMenuCallback("newChat"),
+      openAipa: hasPetMenuCallback("openMain"),
+      stop: hasPetMenuCallback("stopTurn") && hasPetMenuCallback("isBusy"),
+      silence: hasPetMenuCallback("toggleSilence"),
+    },
+  };
+  return {
+    lang,
+    labels: {
+      newChat: t("petMenuNewChat"),
+      openAipa: t("petMenuOpenAipa"),
+      stop: t("petMenuStop"),
+      silence: t("petMenuSilence"),
+      resume: t("petMenuResume"),
+      more: t("petMenuMore"),
+      close: t("petMenuClose"),
+      nothingRunning: t("petMenuNothingRunning"),
+    },
+    state,
+  };
+}
+
+function handlePetMenuAction(actionId) {
+  switch (actionId) {
+    case "new-chat": callPetMenuCallback("newChat"); break;
+    case "open-aipa": callPetMenuCallback("openMain"); break;
+    case "stop": callPetMenuCallback("stopTurn"); break;
+    case "silence": callPetMenuCallback("toggleSilence"); break;
+    default: break;
+  }
+}
+
+const _petMenuCtx = {
+  get win() { return win; },
+  getNearestWorkArea,
+  getHitRectScreen,
+  getPayload: () => getPetMenuPayload(),
+  onAction: (actionId) => handlePetMenuAction(actionId),
+  // MORE is the escape hatch: the native menu still owns every command the
+  // pet ever had, so nothing the old right-click offered is lost.
+  onMore: () => showPetContextMenu(),
+  onUnavailable: () => showPetContextMenu(),
+  guardAlwaysOnTop,
+  reapplyMacVisibility,
+  hideFromTaskbar: (w) => forceHideFromTaskbarWin(w),
+};
+
+function getPetMenu() {
+  if (!_petMenu) _petMenu = require("./pet-menu")(_petMenuCtx);
+  return _petMenu;
+}
+
+function openPetMenu() {
+  try {
+    return getPetMenu().open();
+  } catch (err) {
+    console.warn("Clawd: pet menu could not open:", err && err.message);
+    return false;
+  }
+}
+
+function closePetMenu() {
+  if (!_petMenu) return;
+  try {
+    _petMenu.close();
+  } catch (err) {
+    console.warn("Clawd: pet menu could not close:", err && err.message);
+  }
+}
+
+// Right-click lands here. If the radial menu cannot be built or loaded, the
+// native menu takes the click instead of it disappearing into nothing.
+function openPetMenuOrFallback() {
+  if (!openPetMenu()) showPetContextMenu();
+}
 
 const MENU_AFFECTING_KEYS = new Set([
   "lang", "soundMuted", "bubbleFollowPet", "hideBubbles", "showSessionId",
@@ -1255,7 +1371,7 @@ const _updaterCtx = {
   get miniMode() { return _mini.getMiniMode(); },
   get lang() { return lang; },
   t, rebuildAllMenus, updateLog,
-  showUpdateBubble: (payload) => showUpdateBubble(payload),
+  showUpdateBubble: (payload) => { closePetMenu(); return showUpdateBubble(payload); },
   hideUpdateBubble: () => hideUpdateBubble(),
   setUpdateVisualState: (kind) => _state.setUpdateVisualState(kind),
   applyState: (state, svgOverride) => applyState(state, svgOverride),
@@ -1457,7 +1573,7 @@ function createWindow() {
     });
   }
 
-  ipcMain.on("show-context-menu", showPetContextMenu);
+  ipcMain.on("show-context-menu", openPetMenuOrFallback);
 
   ipcMain.on("move-window-by", (event, dx, dy) => {
     if (_mini.getMiniMode() || _mini.getMiniTransitioning()) return;
@@ -1766,7 +1882,7 @@ function installTerminalFocusExtension() {
 module.exports = function createClawdIntegration(aipaContext) {
   // aipaContext: { mainWindow, isQuitting: () => boolean, onQuit: (fn) => void,
   //                onAttentionActivate?: () => void }
-  const { mainWindow, isQuitting: isAipaQuitting, onQuit, onAttentionActivate } = aipaContext
+  const { mainWindow, isQuitting: isAipaQuitting, onQuit, onAttentionActivate, petMenu } = aipaContext
 
   // Wire AIPA's quit state into clawd's isQuitting
   Object.defineProperty(global, '__clawdIsQuitting', {
@@ -1778,6 +1894,10 @@ module.exports = function createClawdIntegration(aipaContext) {
   _aipaMainWindow = mainWindow;
   // Pet clicks route through this while an attention bubble is up.
   _aipaAttentionActivate = typeof onAttentionActivate === "function" ? onAttentionActivate : null;
+  // Radial quick menu callbacks. Stored whole rather than validated entry by
+  // entry: the payload builder checks each name when the menu opens, so a
+  // later wiring change needs no new option on this side.
+  _aipaPetMenu = petMenu && typeof petMenu === "object" ? petMenu : null;
 
   // Register cleanup
   onQuit(() => {
@@ -1789,6 +1909,11 @@ module.exports = function createClawdIntegration(aipaContext) {
     _server.cleanup();
     _updateBubble.cleanup();
     _attentionBubble.cleanup();
+    if (_petMenu) {
+      _petMenu.cleanup();
+      _petMenu = null;
+    }
+    _aipaPetMenu = null;
     attentionActive = false;
     _state.cleanup();
     _tick.cleanup();
@@ -1826,6 +1951,7 @@ module.exports = function createClawdIntegration(aipaContext) {
     _codexMonitor = new CodexLogMonitor(codexAgent, (sid, state, event, extra) => {
       if (state === "codex-permission") {
         updateSession(sid, "notification", event, null, extra.cwd, null, null, null, "codex");
+        closePetMenu();
         showCodexNotifyBubble({ sessionId: sid, command: extra.permissionDetail?.command || "" });
         return;
       }
@@ -1872,6 +1998,9 @@ module.exports = function createClawdIntegration(aipaContext) {
      * replaced by a newer one or the bubble was hidden.
      */
     showAttentionBubble: (payload) => {
+      // Any other bubble takes the screen: an open menu would sit on top of
+      // the card the user has to answer.
+      closePetMenu();
       // A hidden pet stays hidden: the user asked it to go away, so a
       // background alert must not resurrect it.
       if (win && !win.isDestroyed() && !petHidden) win.showInactive();
@@ -1910,7 +2039,16 @@ module.exports = function createClawdIntegration(aipaContext) {
     /** Check if pet is currently in DND / sleep mode */
     isDoNotDisturb: () => doNotDisturb,
     /** Toggle DND / sleep mode */
-    toggleDoNotDisturb: () => doNotDisturb ? disableDoNotDisturb() : enableDoNotDisturb(),
+    toggleDoNotDisturb: () => {
+      closePetMenu();
+      return doNotDisturb ? disableDoNotDisturb() : enableDoNotDisturb();
+    },
+    /** Open the same radial menu a right-click opens (harness / tray paths). */
+    openPetMenu: () => openPetMenu(),
+    /** Close the radial menu if it is up. */
+    closePetMenu: () => closePetMenu(),
+    /** Whether the radial menu window is currently visible. */
+    isPetMenuOpen: () => !!(_petMenu && _petMenu.isOpen()),
     /** Get current pet size string (e.g. 'P:10') */
     getSize: () => currentSize,
     /** Set pet size (e.g. 'P:5', 'P:8', 'P:10', 'P:15') */

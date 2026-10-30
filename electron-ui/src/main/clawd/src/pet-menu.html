@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<style>
+/* SAO HUD grammar shared with update-bubble.html: near-black translucent
+   panels, cut corners, one accent per action, uppercase monospace. The window
+   itself is transparent — only the ring, its petals and the centre orb draw. */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+  font-family: "Cascadia Code", "SF Mono", ui-monospace, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+body { position: relative; }
+
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --hud-text: #dff7f3;
+  --hud-muted: #7fa8a2;
+  --hud-accent: #3fe0c8;
+  --accent: #3fe0c8;
+}
+
+.ring {
+  position: absolute;
+  inset: 0;
+  outline: none;
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 120ms linear, transform 140ms var(--ease-out);
+}
+.ring.closing { opacity: 0; transform: scale(0.965); }
+.ring:focus { outline: none; }
+
+/* ── Track ───────────────────────────────────────────────────────────────── */
+.track {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 202px;
+  height: 202px;
+  margin: -101px 0 0 -101px;
+  border-radius: 50%;
+  border: 1px dashed rgba(63, 224, 200, 0.16);
+  pointer-events: none;
+}
+.track::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 74%, rgba(63, 224, 200, 0.5) 86%, transparent 100%);
+  -webkit-mask: radial-gradient(circle, transparent 64%, #000 66%);
+  mask: radial-gradient(circle, transparent 64%, #000 66%);
+  animation: sweep 5.5s linear infinite;
+}
+/* ── Petals ──────────────────────────────────────────────────────────────── */
+.petals { position: absolute; inset: 0; }
+.petal {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 128px;
+  height: 46px;
+  margin: -23px 0 0 -64px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--hud-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  transform: translate(var(--x), var(--y));
+  animation: petalIn 280ms var(--ease-out) both;
+  animation-delay: calc(var(--i) * 45ms);
+  transition: filter 160ms ease;
+}
+.petal:hover,
+.petal:focus { filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 50%, transparent)); }
+
+/* Cut corners live on the children, not on the button: the button carries the
+   hover glow as a filter, and a parent clip-path would crop that glow away. */
+.petal .edge {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--accent) 38%, rgba(4, 11, 13, 0.55));
+  clip-path: polygon(
+    0 0,
+    calc(100% - 13px) 0,
+    100% 13px,
+    100% 100%,
+    13px 100%,
+    0 calc(100% - 13px)
+  );
+  transition: background 160ms ease;
+}
+.petal .face {
+  position: absolute;
+  inset: 1px;
+  clip-path: polygon(
+    0 0,
+    calc(100% - 12px) 0,
+    100% 12px,
+    100% 100%,
+    12px 100%,
+    0 calc(100% - 12px)
+  );
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 11px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent 58%),
+    linear-gradient(180deg, rgba(9, 23, 26, 0.97), rgba(4, 11, 13, 0.98));
+  transition: background 160ms ease;
+}
+.petal .face::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.35;
+}
+.petal:hover .edge,
+.petal:focus .edge { background: var(--accent); }
+.petal:hover .face,
+.petal:focus .face {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 24%, transparent), transparent 68%),
+    linear-gradient(180deg, rgba(11, 28, 32, 0.98), rgba(5, 14, 17, 0.99));
+}
+
+.petal .glyph {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 55%, transparent));
+}
+.petal .glyph svg { display: block; width: 100%; height: 100%; }
+.petal .text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.petal .label {
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--hud-text);
+  text-shadow: 0 0 10px rgba(223, 247, 243, 0.14);
+}
+.petal .key {
+  position: absolute;
+  top: 3px;
+  right: 7px;
+  font-size: 7px;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  color: var(--hud-muted);
+  opacity: 0.65;
+}
+
+/* A petal whose callback is missing is not rendered at all; a petal that is
+   only disabled (STOP with no turn) keeps its place on the ring, dimmed. */
+.petal[aria-disabled="true"] { cursor: not-allowed; filter: none; }
+.petal[aria-disabled="true"] .edge { background: rgba(127, 168, 162, 0.22); }
+.petal[aria-disabled="true"] .face {
+  background: linear-gradient(180deg, rgba(9, 19, 21, 0.95), rgba(5, 12, 14, 0.96));
+}
+.petal[aria-disabled="true"] .glyph { color: var(--hud-muted); opacity: 0.6; }
+.petal[aria-disabled="true"] .label { color: var(--hud-muted); opacity: 0.75; }
+.petal[aria-disabled="true"] .key { opacity: 0.4; }
+.petal[aria-disabled="true"]:hover,
+.petal[aria-disabled="true"]:focus { filter: none; }
+
+/* ── Centre orb ──────────────────────────────────────────────────────────── */
+.orb {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 78px;
+  height: 78px;
+  margin: -39px 0 0 -39px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--hud-accent) 55%, transparent);
+  background: radial-gradient(circle at 50% 34%, rgba(63, 224, 200, 0.20), rgba(4, 11, 13, 0.97) 66%);
+  color: var(--hud-text);
+  font: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  outline: none;
+  box-shadow: 0 0 24px rgba(63, 224, 200, 0.12), inset 0 0 20px rgba(63, 224, 200, 0.10);
+  animation: orbIn 300ms var(--ease-out) both;
+  animation-delay: 40ms;
+  transition: box-shadow 180ms ease, border-color 180ms ease;
+}
+.orb:hover,
+.orb:focus-visible {
+  border-color: var(--hud-accent);
+  box-shadow: 0 0 34px rgba(63, 224, 200, 0.30), inset 0 0 24px rgba(63, 224, 200, 0.20);
+}
+.orb-ring {
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  border: 1px solid rgba(63, 224, 200, 0.15);
+  border-top-color: rgba(63, 224, 200, 0.65);
+  animation: orbit 4.5s linear infinite;
+  pointer-events: none;
+}
+.orb-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
+}
+.orb-hint {
+  font-size: 7.5px;
+  letter-spacing: 0.2em;
+  text-indent: 0.2em;
+  color: var(--hud-muted);
+}
+
+.hint {
+  position: absolute;
+  left: 50%;
+  /* Just under the ring, not at the window edge: the window is larger than the
+     ring so the petals can glow, and a hint parked at the bottom read as
+     belonging to nothing. */
+  top: calc(50% + 152px);
+  transform: translateX(-50%);
+  font-size: 8px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(127, 168, 162, 0.75);
+  white-space: nowrap;
+  animation: hintIn 420ms var(--ease-out) both;
+  animation-delay: 180ms;
+  pointer-events: none;
+}
+
+@keyframes petalIn {
+  from { opacity: 0; transform: translate(var(--x), var(--y)) scale(0.80); }
+  to   { opacity: 1; transform: translate(var(--x), var(--y)) scale(1); }
+}
+@keyframes orbIn {
+  from { opacity: 0; transform: scale(0.82); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes hintIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes orbit { to { transform: rotate(360deg); } }
+@keyframes sweep { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .petal,
+  .orb,
+  .hint { animation: none; }
+  .track::after,
+  .orb-ring { animation: none; }
+  .ring { transition: opacity 80ms linear; }
+  .petal,
+  .petal .edge,
+  .petal .face,
+  .orb { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="ring" id="ring" tabindex="-1" role="menu" aria-label="AIPA quick menu">
+  <div class="track" aria-hidden="true"></div>
+  <div class="petals" id="petals"></div>
+  <button class="orb" id="orb" type="button" aria-label="Close">
+    <span class="orb-ring" aria-hidden="true"></span>
+    <span class="orb-label">AIPA</span>
+    <span class="orb-hint" id="orbHint">ESC</span>
+  </button>
+  <div class="hint" id="hint"></div>
+</div>
+<script>
+(function () {
+  "use strict";
+
+  var api = window.petMenuAPI || null;
+  var ring = document.getElementById("ring");
+  var layer = document.getElementById("petals");
+  var orb = document.getElementById("orb");
+  var orbHint = document.getElementById("orbHint");
+  var hint = document.getElementById("hint");
+
+  var RADIUS = 140;
+  var reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+  // Stroke-only glyphs: the accent colour is the only fill, so one icon set
+  // reads at 18px on every petal accent.
+  var GLYPH = {
+    chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4.2H4v11.6h4.6L12 20l3.4-4.2H20z"/><path d="M12 7.4v5M9.5 9.9h5"/></svg>',
+    open: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.4 4.6H4.2v12.6h12.6v-3.4"/><path d="M11.4 12.6 20.2 3.8M14.8 3.8h5.4v5.4"/></svg>',
+    stop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5.6" y="5.6" width="12.8" height="12.8" rx="1.2"/><path d="M9.4 12h5.2"/></svg>',
+    bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.4a5.6 5.6 0 0 1 5.6 5.6v4.2l1.5 2.8H5L6.4 13.2V9A5.6 5.6 0 0 1 12 3.4z"/><path d="M9.8 18.6a2.3 2.3 0 0 0 4.4 0"/></svg>',
+    bellOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.4a5.6 5.6 0 0 1 5.6 5.6v4.2l1.5 2.8H5L6.4 13.2V9A5.6 5.6 0 0 1 12 3.4z"/><path d="M9.8 18.6a2.3 2.3 0 0 0 4.4 0"/><path d="M3.4 20.6 20.6 3.4"/></svg>',
+    more: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.6" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="18.4" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>',
+  };
+
+  // Fixed order = fixed shortcut numbers, even when a callback is missing and
+  // its petal is not rendered. Angles start at the top and step by 72 degrees.
+  var PETALS = [
+    { action: "new-chat", key: "1", label: "newChat", available: "newChat", accent: "#3fe0c8", glyph: "chat", angle: -90 },
+    { action: "open-aipa", key: "2", label: "openAipa", available: "openAipa", accent: "#58a6ff", glyph: "open", angle: -18 },
+    { action: "stop", key: "3", label: "stop", available: "stop", accent: "#ff5d5d", glyph: "stop", angle: 54 },
+    { action: "silence", key: "4", label: "silence", available: "silence", accent: "#f0b429", glyph: "bellOff", angle: 126 },
+    { action: "more", key: "5", label: "more", available: null, accent: "#b98cff", glyph: "more", angle: 198 },
+  ];
+
+  var labels = {};
+  var petals = [];
+  var ready = false;
+  var closing = false;
+
+  function setPosition(el, angle, radius) {
+    var rad = (angle * Math.PI) / 180;
+    el.style.setProperty("--x", Math.round(Math.cos(rad) * radius) + "px");
+    el.style.setProperty("--y", Math.round(Math.sin(rad) * radius) + "px");
+  }
+
+  function build(payload) {
+    var data = payload || {};
+    labels = data.labels || {};
+    var state = data.state || {};
+    var available = state.available || {};
+    document.documentElement.lang = data.lang || "en";
+
+    layer.textContent = "";
+    petals = [];
+
+    var order = 0;
+    for (var i = 0; i < PETALS.length; i++) {
+      var meta = PETALS[i];
+      // A petal whose AIPA callback does not exist is omitted instead of
+      // throwing on click or offering an action that cannot run.
+      if (meta.available && available[meta.available] === false) continue;
+
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "petal";
+      btn.dataset.action = meta.action;
+      btn.dataset.key = meta.key;
+      btn.setAttribute("role", "menuitem");
+      btn.setAttribute("aria-keyshortcuts", meta.key);
+      btn.style.setProperty("--i", String(order++));
+      btn.style.setProperty(
+        "--accent",
+        meta.action === "silence" && state.quiet ? "#57d98a" : meta.accent
+      );
+      setPosition(btn, meta.angle, RADIUS);
+      btn.innerHTML =
+        '<span class="edge"></span>' +
+        '<span class="face">' +
+          '<span class="glyph">' + GLYPH[meta.glyph] + '</span>' +
+          '<span class="label"></span>' +
+          '<span class="key"></span>' +
+        '</span>';
+      btn.querySelector(".label").textContent = meta.action === "silence" && state.quiet
+        ? (labels.resume || "RESUME")
+        : (labels[meta.label] || meta.action);
+      btn.querySelector(".key").textContent = meta.key;
+      btn.addEventListener("click", function (event) {
+        event.preventDefault();
+        choose(this.dataset.action);
+      });
+      layer.appendChild(btn);
+      petals.push(btn);
+
+    }
+
+    applyState(state);
+
+    hint.textContent = (labels.close || "Close") + "  ·  ESC";
+    orb.setAttribute("aria-label", labels.close || "Close");
+    orbHint.textContent = "ESC";
+
+    // The menu is revealed only after this tick, so the first thing the user
+    // sees is the finished ring, never an empty transparent window. A timer
+    // rather than requestAnimationFrame: the window is still hidden here and a
+    // hidden page may not run animation frames at all.
+    window.setTimeout(function () {
+      ready = true;
+      if (api) api.ready();
+      focusRing();
+    }, 0);
+  }
+
+  function applyState(state) {
+    var data = state || {};
+    var quiet = !!data.quiet;
+    var canStop = !!data.canStop;
+    for (var i = 0; i < petals.length; i++) {
+      var btn = petals[i];
+      if (btn.dataset.action === "stop") {
+        btn.setAttribute("aria-disabled", canStop ? "false" : "true");
+        btn.title = canStop ? "" : (labels.nothingRunning || "");
+      }
+      if (btn.dataset.action === "silence") {
+        btn.querySelector(".label").textContent = quiet ? (labels.resume || "RESUME") : (labels.silence || "SILENCE");
+        btn.style.setProperty("--accent", quiet ? "#57d98a" : "#f0b429");
+      }
+    }
+  }
+
+  function focusRing() {
+    try { ring.focus({ preventScroll: true }); } catch (err) { ring.focus(); }
+  }
+
+  function choose(action) {
+    if (closing || !action) return;
+    var btn = null;
+    for (var i = 0; i < petals.length; i++) {
+      if (petals[i].dataset.action === action) { btn = petals[i]; break; }
+    }
+    if (btn && btn.getAttribute("aria-disabled") === "true") return;
+    dismiss(action);
+  }
+
+  function dismiss(action) {
+    if (closing) return;
+    closing = true;
+    ring.classList.add("closing");
+    // Fade first, then leave. The factory destroys the window on the other
+    // side of this message, so the two never fight over the fade.
+    var delay = reduceMotion ? 0 : 110;
+    window.setTimeout(function () {
+      if (!api) { window.close(); return; }
+      if (action) api.choose(action);
+      else api.close();
+    }, delay);
+  }
+
+  function enabledPetals() {
+    return petals.filter(function (btn) {
+      return btn.getAttribute("aria-disabled") !== "true";
+    });
+  }
+
+  function focusStep(direction) {
+    var list = enabledPetals();
+    if (!list.length) return;
+    var index = list.indexOf(document.activeElement);
+    index = index < 0 ? 0 : (index + direction + list.length) % list.length;
+    list[index].focus();
+  }
+
+  document.addEventListener("keydown", function (event) {
+    if (!ready) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      dismiss(null);
+      return;
+    }
+    if (event.key >= "1" && event.key <= "5") {
+      for (var i = 0; i < petals.length; i++) {
+        if (petals[i].dataset.key === event.key) {
+          event.preventDefault();
+          choose(petals[i].dataset.action);
+          return;
+        }
+      }
+      return;
+    }
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      event.preventDefault();
+      focusStep(1);
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      event.preventDefault();
+      focusStep(-1);
+    }
+  });
+
+  // Click-away inside the window: the ring occupies the whole transparent
+  // surface, so anything that is not a petal or the orb means "close".
+  document.addEventListener("pointerdown", function (event) {
+    if (event.button !== 0 || !ready) return;
+    var target = event.target;
+    if (target && target.closest && (target.closest(".petal") || target.closest(".orb"))) return;
+    dismiss(null);
+  });
+
+  document.addEventListener("contextmenu", function (event) { event.preventDefault(); });
+
+  orb.addEventListener("click", function (event) {
+    event.preventDefault();
+    dismiss(null);
+  });
+
+  window.addEventListener("focus", function () {
+    if (!ready || closing) return;
+    if (document.activeElement === document.body) focusRing();
+  });
+
+  if (api && api.onShow) {
+    api.onShow(build);
+  } else {
+    // Loaded outside Electron (screenshot harness): render a stand-in payload
+    // so the ring can still be inspected without the factory.
+    build({
+      lang: "en",
+      labels: { newChat: "New Chat", openAipa: "Open AIPA", stop: "Stop", silence: "Silence", resume: "Resume", more: "More", close: "Close", nothingRunning: "No turn running" },
+      state: { canStop: false, quiet: false, available: {} },
+    });
+  }
+})();
+</script>
+</body>
+</html>

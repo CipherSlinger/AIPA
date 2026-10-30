@@ -207,6 +207,16 @@ export function getPetActivity(): PetActivity {
   return { ...activity }
 }
 
+/**
+ * The bridge whose turn owns the strip, or null when idle. The pet's STOP
+ * petal needs this to stop exactly the turn the user is watching: the main
+ * process has no other "current conversation" notion, and aborting
+ * `firstLive()` could kill a different, idle bridge instead.
+ */
+export function getPetActivityOwner(): string | null {
+  return owner
+}
+
 /** Clear the strip and return to idle. Used on completion, failure and exit. */
 export function resetPetActivity(): void {
   if (drawTimer) {

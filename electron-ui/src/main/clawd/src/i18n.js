@@ -128,6 +128,15 @@ const i18n = {
     activityAwaitingBody: "The agent is waiting for your approval.",
     activityErrorTitle: "Agent error",
     activityErrorBody: "The agent hit an error.",
+    // Radial quick menu (right-click on the pet).
+    petMenuNewChat: "New Chat",
+    petMenuOpenAipa: "Open AIPA",
+    petMenuStop: "Stop",
+    petMenuSilence: "Silence",
+    petMenuResume: "Resume",
+    petMenuMore: "More",
+    petMenuClose: "Close",
+    petMenuNothingRunning: "No turn is running",
   },
   zh: {
     size: "大小",
@@ -243,6 +252,15 @@ const i18n = {
     activityAwaitingBody: "Agent 正在等待你的批准。",
     activityErrorTitle: "Agent 出错",
     activityErrorBody: "Agent 遇到了错误。",
+    // Radial quick menu (right-click on the pet).
+    petMenuNewChat: "新对话",
+    petMenuOpenAipa: "打开 AIPA",
+    petMenuStop: "停止",
+    petMenuSilence: "静默",
+    petMenuResume: "恢复提醒",
+    petMenuMore: "更多",
+    petMenuClose: "关闭",
+    petMenuNothingRunning: "没有正在运行的任务",
   },
   ko: {
     size: "크기",
@@ -358,6 +376,15 @@ const i18n = {
     activityAwaitingBody: "에이전트가 승인을 기다리고 있습니다.",
     activityErrorTitle: "에이전트 오류",
     activityErrorBody: "에이전트에서 오류가 발생했습니다.",
+    // Radial quick menu (right-click on the pet).
+    petMenuNewChat: "새 대화",
+    petMenuOpenAipa: "AIPA 열기",
+    petMenuStop: "중지",
+    petMenuSilence: "조용히",
+    petMenuResume: "알림 재개",
+    petMenuMore: "더보기",
+    petMenuClose: "닫기",
+    petMenuNothingRunning: "실행 중인 작업이 없습니다",
   },
 };
 
