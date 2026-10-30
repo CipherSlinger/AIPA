@@ -1528,6 +1528,23 @@ export function getClawdSubmenu(
           }
         },
       },
+      {
+        label: isZh ? '今日回顾…' : "Today's Wrap…",
+        click: () => {
+          // A manual command, like Week in Review above — available whether or
+          // not `petEveningWrap` is on, so a user can look back at 16:00
+          // without waiting for the 18:30 card. The call-time require keeps
+          // the menu loadable in a build without the task surface.
+          try {
+            const { raiseDayWrapNow } = require('./tasks/day-wrap') as {
+              raiseDayWrapNow: () => unknown
+            }
+            raiseDayWrapNow()
+          } catch (err) {
+            log.warn('Could not raise the evening wrap from the tray menu:', String(err))
+          }
+        },
+      },
       { type: 'separator' },
       {
         label: isZh ? '宠物大小' : 'Pet Size',

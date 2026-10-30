@@ -381,6 +381,42 @@ export function checkDayWrap(nowMs: number, options: DayWrapOptions = {}): DayWr
   return { status: 'announced', day: window.day, aggregate, persisted }
 }
 
+// ── On demand ─────────────────────────────────────────────────────────────
+
+/**
+ * Raise the same evening card right now, on the user's explicit request.
+ * Ignores the 18:30 gate and the `petEveningWrap` preference, and never writes
+ * the day-wrap state file: a preview the user asked for must not spend the
+ * evening's own card. Returns the aggregate that was raised, or null when the
+ * store could not be read. Silence rules inside `raiseAttention` (DND, timed
+ * silence, focus, the pet's alert switch) still apply.
+ *
+ * A day with nothing finished and nothing open is still the aggregate and not
+ * null, but no card is raised — there is nothing to say. Null is reserved for
+ * "the store could not be read", so the caller can tell a quiet day apart from
+ * a failure.
+ */
+export function raiseDayWrapNow(nowMs?: number): DayWrapAggregate | null {
+  const at = typeof nowMs === 'number' && Number.isFinite(nowMs) ? nowMs : Date.now()
+
+  let tasks: TaskRecord[]
+  try {
+    tasks = readTaskStore().tasks
+  } catch (err) {
+    log.warn('Could not read the task store for an on-demand evening wrap:', err)
+    return null
+  }
+
+  const aggregate = collectDayWrap(tasks, at)
+  if (aggregate.finished === 0 && aggregate.open === 0) return aggregate
+
+  // Nothing is persisted either way, so a suppressed preview leaves no trace
+  // and the evening's scheduled wrap still speaks once 18:30 arrives.
+  const delivered = raiseAttention({ kind: 'day-wrap', wrap: aggregate })
+  if (delivered) log.info(`Evening wrap raised on request for ${aggregate.day}`)
+  return aggregate
+}
+
 // ── Scheduler ─────────────────────────────────────────────────────────────
 
 export interface DayWrapStatusReport {

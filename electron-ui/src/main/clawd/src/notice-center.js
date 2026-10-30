@@ -23,7 +23,7 @@
   var listEl = document.getElementById("list");
   var emptyEl = document.getElementById("empty");
 
-  var KIND_ORDER = ["system", "info", "success", "warning", "error", "quest", "approval", "clarification"];
+  var KIND_ORDER = ["system", "info", "success", "warning", "error", "quest", "approval", "clarification", "due", "review"];
 
   // Stroke-only glyphs copied from the bubble vocabulary: the accent colour is
   // the only fill, so one icon set reads at 18px on every kind.
@@ -46,6 +46,10 @@
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.4 9.2a2.7 2.7 0 0 1 5.2.9c0 1.8-2.6 2.2-2.6 3.7"/><circle cx="12" cy="17.1" r="0.9" fill="currentColor" stroke="none"/></svg>',
     due:
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><circle cx="12" cy="15.2" r="1.2" fill="currentColor" stroke="none"/></svg>',
+    // A clock face with a counter-clockwise arrow: the weekly review and the
+    // evening wrap both ask the user to look back, never forward.
+    review:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 12A7.6 7.6 0 1 0 12 4.4"/><path d="M12 4.4l2.6 1.7M12 4.4l2.6-1.7"/><path d="M12 8.1V12l2.6 1.5"/></svg>',
   };
 
   var STRINGS = {
@@ -103,17 +107,17 @@
     en: {
       system: "SYSTEM", info: "INFO", success: "SUCCESS", warning: "WARNING",
       error: "ERROR", quest: "QUEST", approval: "APPROVAL", clarification: "INPUT",
-      due: "DUE",
+      due: "DUE", review: "REVIEW",
     },
     zh: {
       system: "系统", info: "信息", success: "成功", warning: "警告",
       error: "错误", quest: "任务", approval: "审批", clarification: "询问",
-      due: "到期",
+      due: "到期", review: "回顾",
     },
     ko: {
       system: "시스템", info: "정보", success: "성공", warning: "경고",
       error: "오류", quest: "퀘스트", approval: "승인", clarification: "질문",
-      due: "마감",
+      due: "마감", review: "회고",
     },
   };
 
