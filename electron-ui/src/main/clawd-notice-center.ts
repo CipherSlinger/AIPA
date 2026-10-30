@@ -43,6 +43,7 @@ import {
   appendTaskEvent,
   createTask,
   deleteTask,
+  findTaskBySessionId,
   getTask,
   listTasks,
 } from './tasks/task-store'
@@ -743,7 +744,16 @@ function handleAction(action: unknown): ClawdNoticeCenterPayload {
       if (id) {
         try { markClawdNoticesRead([id]) } catch (err) { log.warn('Could not mark notice read:', err) }
       }
-      const focused = focusAipaMainWindow({ sessionId: record?.sessionId })
+      // A conversation that belongs to a task opens that task: the log row is
+      // the work, not the thread. An unattributed session keeps the plain
+      // session hand-off.
+      let task: { id: string; title: string } | null = null
+      try {
+        task = findTaskBySessionId(record?.sessionId)
+      } catch (err) {
+        log.warn('Could not look up the task behind a notice:', err)
+      }
+      const focused = focusAipaMainWindow(task ? { taskId: task.id } : { sessionId: record?.sessionId })
       if (focused) {
         destroyWindow(false)
       } else {
