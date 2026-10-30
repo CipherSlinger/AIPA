@@ -478,8 +478,30 @@ body { padding: 6px; }
 .card[data-theme="sao"] .btn-secondary {
   border-color: rgba(63, 224, 200, 0.28);
 }
+/* The strip's Stop is a convenience, not the decision the card exists for:
+   it sits at the end of a hairline rule, outlined rather than filled, so a
+   running turn still reads as data with one switch on it. Only HUD cards have
+   a themed action row — the updater keeps its full-width buttons. */
+.card[data-theme="sao"] .actions {
+  justify-content: flex-end;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(63, 224, 200, 0.12);
+}
+.card[data-theme="sao"] .actions .btn {
+  flex: 0 0 auto;
+  min-width: 88px;
+  padding: 6px 14px;
+}
 .card[data-theme="sao"] .btn-danger {
-  border-color: rgba(255, 93, 93, 0.6);
+  background: rgba(255, 93, 93, 0.14);
+  color: #ff9b9b;
+  border-color: rgba(255, 93, 93, 0.55);
+  box-shadow: inset 0 0 12px rgba(255, 93, 93, 0.12);
+}
+.card[data-theme="sao"] .btn-danger:hover:not(:disabled) {
+  background: rgba(255, 93, 93, 0.26);
+  color: #ffd6d6;
 }
 .card[data-theme="sao"].clickable:hover {
   border-color: rgba(63, 224, 200, 0.85);
@@ -795,7 +817,10 @@ function show(payload) {
     btn.className = `btn btn-${variant}`;
     btn.textContent = action.label;
     if (action.hint) btn.title = action.hint;
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", (event) => {
+      // The card body is clickable when it has a clickAction; without this the
+      // button's click bubbles and sends the card action too (Stop + open).
+      event.stopPropagation();
       disableButtons();
       window.updateBubbleAPI.choose(action.id);
     });

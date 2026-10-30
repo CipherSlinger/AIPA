@@ -513,11 +513,23 @@ body { position: relative; }
 .running {
   position: absolute;
   left: 50%;
-  top: calc(50% - 58px);
+  /* Below the orb rather than above it: that half of the ring is empty, while
+     the line above the orb runs straight into the MORE and OPEN AIPA petals
+     as soon as it carries a conversation name. */
+  top: calc(50% + 72px);
   transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 6px;
+  /* A button, not a div: the dot is a status line until a conversation name
+     is known, at which point it becomes the click-through to that turn. The
+     button reset keeps both states looking like the same HUD line. */
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
   font-size: 8px;
   line-height: 1;
   letter-spacing: 0.22em;
@@ -528,6 +540,50 @@ body { position: relative; }
 }
 /* The author display rule above would otherwise beat the UA [hidden] rule. */
 .running[hidden] { display: none; }
+
+/* A named running conversation: same line, but now an offer. It stays quieter
+   than the ring — this is a shortcut, not a fifth petal. */
+.running.is-session {
+  pointer-events: auto;
+  cursor: pointer;
+  /* It sits inside the ring, below the orb, where the circle's chord is ~150 px
+     wide; a wider chip would reach out and overlap the SILENCE and STOP
+     petals. */
+  max-width: 168px;
+  padding: 3px 7px 3px 6px;
+  border: 1px solid rgba(63, 224, 200, 0.22);
+  border-radius: 4px;
+  /* The ring's own glow runs underneath this line, and a 5% tint let it shine
+     straight through the name. The chip is a dark cut-out of the ring instead:
+     legible over the arc without becoming a fourth petal. */
+  background: rgba(4, 18, 20, 0.82);
+  backdrop-filter: blur(3px);
+  z-index: 3;
+  transition: border-color 140ms linear, background 140ms linear;
+}
+.running.is-session:hover,
+.running.is-session:focus-visible {
+  border-color: rgba(63, 224, 200, 0.55);
+  background: rgba(10, 34, 36, 0.92);
+  outline: none;
+}
+.running-label {
+  min-width: 0;
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* A conversation name is prose, not HUD lettering: the wide tracking that
+     suits "RUNNING" turns a clipped prompt into a ribbon. */
+  letter-spacing: 0.04em;
+  color: rgba(223, 247, 243, 0.9);
+}
+.running-label[hidden] { display: none; }
+.running-label::before {
+  content: "·";
+  margin: 0 4px 0 2px;
+  color: rgba(223, 247, 243, 0.45);
+}
 .running .dot {
   width: 5px;
   height: 5px;
@@ -573,6 +629,9 @@ body { position: relative; }
   .telemetry .gauge-fill { transition: none; }
   /* The dot still reads as "live": it keeps its glow, just without the pulse. */
   .running .dot { animation: none; }
+  /* The chip's hover/focus tint is a state change, not decoration; it may
+     stay, but easing it is motion. */
+  .running.is-session { transition: none; }
   .ring,
   .ring.closing { transition: opacity 80ms linear; transform: none; }
   .layer { transition: opacity 60ms linear; transform: none; }
@@ -607,10 +666,11 @@ body { position: relative; }
     <span class="orb-label" id="orbLabel">AIPA</span>
     <span class="orb-hint" id="orbHint">ESC</span>
   </button>
-  <div class="running" id="running" aria-hidden="true" hidden>
+  <button class="running" id="running" type="button" aria-hidden="true" tabindex="-1" hidden>
     <span class="dot" aria-hidden="true"></span>
     <span id="runningText">RUNNING</span>
-  </div>
+    <span class="running-label" id="runningLabel" hidden></span>
+  </button>
   <div class="telemetry telemetry--cpu" id="telemetryCpu" data-empty="true" aria-hidden="true">
     <span class="gauge-label">CPU</span>
     <span class="gauge-track"><span class="gauge-fill"></span></span>
@@ -641,6 +701,7 @@ body { position: relative; }
   var hint = document.getElementById("hint");
   var running = document.getElementById("running");
   var runningText = document.getElementById("runningText");
+  var runningLabel = document.getElementById("runningLabel");
   var telemetryCpu = document.getElementById("telemetryCpu");
   var telemetryMem = document.getElementById("telemetryMem");
   var cpuValue = document.getElementById("cpuValue");
@@ -733,6 +794,12 @@ body { position: relative; }
   // hint line is rebuilt on every level step, so it reads from here rather
   // than from the payload the outer ring was built with.
   var quietUntil = 0;
+  // `{ id, label }` of the conversation the running turn belongs to, or null.
+  // Captured with the payload: the chip must keep pointing at the conversation
+  // the menu showed even if another turn starts while the ring is open.
+  var runningSession = null;
+  // Whether STOP is live, kept so a late label can repaint the same state.
+  var canStopNow = false;
   // The sessions ring is fetched on demand: listing conversations costs a walk
   // of the session store in the main process, and that walk must not sit inside
   // the menu's reveal budget. `sessionsBuilt` says the ring has real chips;
@@ -1059,6 +1126,12 @@ body { position: relative; }
     }
 
     applyState(state);
+    // The RUNNING chip knows which conversation but not yet its name: naming it
+    // walks the session store, which this reveal must not wait on. Ask for the
+    // same listing the RECENT ring uses; the name fills in when it lands.
+    if (runningSession && runningSession.id && !runningSession.label && !sessionsBuilt && !sessionsPending) {
+      requestSessions();
+    }
     // Absent on an older factory: both bars read as "no telemetry" and hide.
     paintTelemetry(data.telemetry);
 
@@ -1080,10 +1153,74 @@ body { position: relative; }
     }, 0);
   }
 
+  /**
+   * The line above the orb. It says "a turn is running" only while STOP is
+   * live — otherwise it would claim work the user cannot stop. When the main
+   * process also named the conversation, the line becomes a chip that opens
+   * it. With no name (an older payload, a session id not known yet) it stays
+   * the decorative status text it always was: no tab stop, no pointer target.
+   */
+  function paintRunning(canStop) {
+    running.hidden = !canStop;
+    var session = canStop ? runningSession : null;
+    var clickable = !!(session && session.id);
+    running.classList.toggle("is-session", clickable);
+    // The action carries the id; the factory opens exactly this conversation.
+    running.dataset.action = clickable ? "running-session:" + session.id : "";
+    // A focusable button behind aria-hidden is an accessibility trap. The
+    // status-only state is therefore removed from the tab order as well.
+    running.tabIndex = clickable ? 0 : -1;
+    running.setAttribute("aria-hidden", clickable ? "false" : "true");
+    runningText.textContent = inlineLabel("running", "RUNNING");
+    if (!clickable) {
+      runningLabel.hidden = true;
+      runningLabel.textContent = "";
+      running.removeAttribute("title");
+      running.removeAttribute("aria-label");
+      return;
+    }
+    if (session.label) {
+      runningLabel.textContent = session.label;
+      runningLabel.hidden = false;
+      // The full name is the tooltip: the CSS ellipsis is visual only, the same
+      // rule the session chips follow.
+      running.title = (labels.runningIn || "Running in this conversation") + " · " + session.label;
+    } else {
+      // The conversation is known, its name is still on its way (see
+      // `adoptRunningLabel`). The chip is already the click-through; only the
+      // word after it waits.
+      runningLabel.hidden = true;
+      runningLabel.textContent = "";
+      running.title = labels.runningIn || "Running in this conversation";
+    }
+    running.setAttribute("aria-label", running.title);
+  }
+
+  /**
+   * Fill the RUNNING chip's name from the listing the RECENT ring asks for.
+   * Naming a conversation costs a walk of the session store, so the payload
+   * carries the id alone and this fills in the rest once the list lands. Only
+   * the label is taken: the id was fixed when the menu opened, so a turn that
+   * ended meanwhile cannot redirect the chip to a different conversation.
+   */
+  function adoptRunningLabel(list) {
+    if (!runningSession || runningSession.label || !runningSession.id) return;
+    if (!Array.isArray(list)) return;
+    for (var i = 0; i < list.length; i++) {
+      var item = list[i];
+      if (item && item.id === runningSession.id && typeof item.label === "string" && item.label) {
+        runningSession.label = item.label;
+        paintRunning(canStopNow);
+        return;
+      }
+    }
+  }
+
   function applyState(state) {
     var data = state || {};
     var quiet = !!data.quiet;
     var canStop = !!data.canStop;
+    canStopNow = canStop;
     // A payload from an older factory has no `quietUntil` at all. Anything that
     // is not a usable instant reads as "unknown", so the petal falls back to
     // exactly what it rendered before the countdown existed.
@@ -1096,9 +1233,19 @@ body { position: relative; }
       left = until > now ? until - now : 0;
     }
     quietUntil = left > 0 ? until : 0;
+    // The conversation name arrives with the state. Sanitized here too: the
+    // payload is another process's data and the chip writes it into the DOM.
+    var named = data.runningSession;
+    runningSession = named && typeof named === "object"
+      && typeof named.id === "string" && named.id
+      ? {
+          id: named.id,
+          label: typeof named.label === "string" ? named.label : "",
+        }
+      : null;
     // The dot says "a turn is running" only while STOP is live; otherwise it
     // would claim work the user cannot stop.
-    running.hidden = !canStop;
+    paintRunning(canStop);
     for (var i = 0; i < petals.length; i++) {
       var btn = petals[i];
       if (btn.dataset.action === "stop") {
@@ -1289,7 +1436,7 @@ body { position: relative; }
   document.addEventListener("pointerdown", function (event) {
     if (event.button !== 0 || !ready) return;
     var target = event.target;
-    if (target && target.closest && (target.closest(".petal") || target.closest(".orb"))) return;
+    if (target && target.closest && (target.closest(".petal") || target.closest(".orb") || target.closest(".running"))) return;
     dismiss(null);
   });
 
@@ -1299,6 +1446,15 @@ body { position: relative; }
     event.preventDefault();
     if (view === "outer") dismiss(null);
     else stepBackOne();
+  });
+
+  // The RUNNING chip is a click-through, not a level: close the menu and let
+  // the factory open the conversation it named. `dataset.action` is empty in
+  // the status-only state, which the pointer-events rule already makes inert.
+  running.addEventListener("click", function (event) {
+    event.preventDefault();
+    if (closing || !running.dataset.action) return;
+    dismiss(running.dataset.action);
   });
 
   window.addEventListener("focus", function () {
@@ -1322,6 +1478,9 @@ body { position: relative; }
       sessionsPending = false;
       sessionsBuilt = true;
       renderSessionChips(list);
+      // The same reply names the running conversation, when this payload was
+      // the one that asked for it.
+      adoptRunningLabel(list);
       // The ring just gained its real chips. Keep the level the user is on and
       // hand the keyboard back to the ring so arrows and number keys work.
       if (view === "sessions") focusRing();

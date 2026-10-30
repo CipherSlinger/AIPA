@@ -148,6 +148,9 @@ const i18n = {
     petMenuBack: "Back",
     petMenuClose: "Close",
     petMenuNothingRunning: "No turn is running",
+    // Tooltip of the RUNNING chip: the line above the orb gains a conversation
+    // name and becomes a shortcut to it.
+    petMenuRunningIn: "Running in this conversation",
   },
   zh: {
     size: "大小",
@@ -280,6 +283,7 @@ const i18n = {
     petMenuBack: "返回",
     petMenuClose: "关闭",
     petMenuNothingRunning: "没有正在运行的任务",
+    petMenuRunningIn: "正在此对话中运行",
   },
   ko: {
     size: "크기",
@@ -412,6 +416,7 @@ const i18n = {
     petMenuBack: "뒤로",
     petMenuClose: "닫기",
     petMenuNothingRunning: "실행 중인 작업이 없습니다",
+    petMenuRunningIn: "이 대화에서 실행 중",
   },
 };
 

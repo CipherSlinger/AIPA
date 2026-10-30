@@ -907,6 +907,10 @@ function hasPetMenuCallback(name) {
 // exactly one action id, so the renderer never needs a second channel for what
 // is still "close the menu and open this conversation".
 const PET_MENU_SESSION_PREFIX = "session:";
+// The RUNNING chip carries the conversation it *displayed*. By the time it is
+// clicked the turn may have ended or another one may have begun, and the user
+// must open what they saw, not whatever is current.
+const PET_MENU_RUNNING_PREFIX = "running-session:";
 // One chip per finger shortcut on the third ring.
 const PET_MENU_SESSION_LIMIT = 5;
 
@@ -1030,6 +1034,22 @@ function getPetMenuPayload() {
   const quietUntil = typeof quietUntilRaw === "number" && isFinite(quietUntilRaw) && quietUntilRaw > 0
     ? Math.floor(quietUntilRaw)
     : 0;
+  // The conversation the running turn belongs to, when the main process can
+  // name one. Sanitized here like the session chips: a half-updated callback
+  // must not put a non-string into the chip's label or its action id. Null (no
+  // turn, unknown session, missing callback) keeps the plain RUNNING line.
+  const runningRaw = callPetMenuCallback("runningSession");
+  const runningSession = runningRaw && typeof runningRaw === "object"
+    && typeof runningRaw.id === "string" && runningRaw.id
+    ? {
+        id: runningRaw.id,
+        // An empty label is a real state: the id is known, the name is not yet
+        // (the main process refuses to walk the session store on the reveal
+        // path). The page draws the plain RUNNING line and upgrades it when
+        // the lazy listing arrives.
+        label: typeof runningRaw.label === "string" ? runningRaw.label.trim() : "",
+      }
+    : null;
   return {
     lang,
     labels: {
@@ -1051,6 +1071,9 @@ function getPetMenuPayload() {
       back: t("petMenuBack"),
       close: t("petMenuClose"),
       nothingRunning: t("petMenuNothingRunning"),
+      // Tooltip of the named RUNNING chip; the word RUNNING itself is drawn
+      // by the menu page (INLINE_LABELS), like the rest of the HUD chrome.
+      runningIn: t("petMenuRunningIn"),
     },
     // Deliberately not part of the payload: the session list costs a walk of
     // the conversation store, and the menu must appear before that walk can
@@ -1061,6 +1084,8 @@ function getPetMenuPayload() {
       canStop: callPetMenuCallback("isBusy") === true,
       quiet: callPetMenuCallback("isQuiet") === true,
       quietUntil,
+      // Absent on an older main process; the menu then shows its plain dot.
+      runningSession,
     },
     // Optional for the renderer: an older pet-menu.html that does not know
     // this key simply draws no gauges. `cpu`/`mem` are 0–1 or null.
@@ -1099,6 +1124,12 @@ function handlePetMenuAction(actionId) {
     case "hide": callPetMenuCallback("toggleHidden"); break;
     case "native": showPetContextMenu(); break;
     default:
+      // The RUNNING chip's id travels with the action, so a turn ending while
+      // the ring is up cannot redirect the click to a different conversation.
+      if (actionId.startsWith(PET_MENU_RUNNING_PREFIX)) {
+        callPetMenuCallback("openRecentSession", actionId.slice(PET_MENU_RUNNING_PREFIX.length));
+        break;
+      }
       // Third ring. The id after the prefix is the Codex thread id, already
       // validated by the session reader before it reached this payload.
       if (actionId.startsWith(PET_MENU_SESSION_PREFIX)) {

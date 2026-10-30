@@ -187,6 +187,25 @@ function petActivitySnapshot(): { phase: string; owner: string | null } | null {
 }
 
 /**
+ * Abort the turn the pet is currently showing. Shared by the radial menu's
+ * Stop petal and the activity strip's Stop button, so the two can never
+ * disagree about what "stop this turn" means.
+ */
+function stopActivityTurn(): boolean {
+  const activity = petActivitySnapshot()
+  if (!activity || activity.phase === 'idle' || !activity.owner) return false
+  try {
+    const { abortCliTurn } = require('./ipc/register/cli/register-cli-handlers') as {
+      abortCliTurn: (sessionId: string) => boolean
+    }
+    return abortCliTurn(activity.owner) === true
+  } catch (err) {
+    log.warn('stopActivityTurn failed:', String(err))
+    return false
+  }
+}
+
+/**
  * Where the pet is on screen, in screen coordinates. The notice log opens
  * beside it, so the window a click summons never covers the thing that was
  * clicked. Undefined while the pet is hidden or gone — the caller then falls
@@ -290,17 +309,36 @@ const petMenuCallbacks = {
     const activity = petActivitySnapshot()
     return !!activity && activity.phase !== 'idle'
   },
-  stopTurn: (): boolean => {
+  stopTurn: (): boolean => stopActivityTurn(),
+  /**
+   * The conversation behind the running turn, for the menu's RUNNING chip.
+   * The strip's owner is the only "current turn" the main process knows; the
+   * bridge→session map turns it into something `menu:openSession` can open.
+   *
+   * The label is deliberately left empty: naming the conversation means
+   * walking the session store, and this runs on the menu's reveal path — the
+   * very cost the RECENT ring was moved off it for. The page fills the name in
+   * from the listing it already asks for lazily, a few dozen milliseconds
+   * after the ring is up. Null in every direction that cannot produce a useful
+   * chip — no turn, no session id yet (a fresh Claude turn reveals it only at
+   * the result), a failed lookup — so the menu keeps its plain status line
+   * instead of offering a click that would open nothing.
+   */
+  runningSession: (): { id: string; label: string } | null => {
     const activity = petActivitySnapshot()
-    if (!activity || activity.phase === 'idle' || !activity.owner) return false
+    if (!activity || activity.phase === 'idle' || !activity.owner) return null
     try {
-      const { abortCliTurn } = require('./ipc/register/cli/register-cli-handlers') as {
-        abortCliTurn: (sessionId: string) => boolean
+      // Call-time require, like petActivitySnapshot(): bridge-state reaches
+      // clawd-attention, which reaches this module. Lazy keeps that cycle
+      // closed at load time; by a menu open every module is initialized.
+      const { sessionForBridge } = require('./ipc/register/cli/bridge-state') as {
+        sessionForBridge: (bridgeId: string) => string | null
       }
-      return abortCliTurn(activity.owner) === true
+      const id = sessionForBridge(activity.owner)
+      return id ? { id, label: '' } : null
     } catch (err) {
-      log.warn('petMenu.stopTurn failed:', String(err))
-      return false
+      log.warn('petMenu.runningSession failed:', String(err))
+      return null
     }
   },
   /** Thirty minutes each way. The value is a stored deadline, so it survives a restart. */
@@ -833,6 +871,10 @@ function buildActivityPayload(activity: PetActivity): ClawdAttentionBubblePayloa
     meta.push({ label: 'TURN', value: formatElapsed(Date.now() - activity.turnStartedAt) })
   }
 
+  // Stop needs an owner bridge to abort; a button that resolves to nothing is
+  // worse than no button. An error card is terminal, so the turn is over.
+  const canStop = activity.phase !== 'error' && !!petActivitySnapshot()?.owner
+
   return {
     // Stable key: every refresh replaces this one card instead of opening a
     // second bubble window.
@@ -843,6 +885,9 @@ function buildActivityPayload(activity: PetActivity): ClawdAttentionBubblePayloa
     mode: activity.phase === 'error' ? 'error' : 'attention',
     lang,
     clickAction: 'open',
+    actions: canStop
+      ? [{ id: 'stop', label: petT('petMenuStop'), variant: 'danger' }]
+      : undefined,
     kind,
     eyebrow: 'AGENT',
     meta,
@@ -908,14 +953,19 @@ export function showClawdActivity(activity: PetActivity): boolean {
           activityCardVisible = false
           lastActivity = null
           activityStartedAt = 0
-          // A click on the strip is a shortcut to the app; there is no request
-          // behind it to answer.
-          if (action !== 'open') return
-          withClawdMainWindow((win) => {
-            if (win.isMinimized()) win.restore()
-            win.show()
-            win.focus()
-          })
+          // A click on the card body is a shortcut to the app; the Stop button
+          // aborts through the same path as the radial menu. The bubble owner
+          // hides the card before the action arrives, which is the feedback —
+          // cleanup stays with the turn's own result/exit.
+          if (action === 'stop') {
+            stopActivityTurn()
+          } else if (action === 'open') {
+            withClawdMainWindow((win) => {
+              if (win.isMinimized()) win.restore()
+              win.show()
+              win.focus()
+            })
+          }
         })
         .catch(() => { /* pet gone */ })
     }
