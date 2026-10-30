@@ -15,6 +15,12 @@
  * parking the turn for ten minutes on a card no window can resolve. It is
  * persisted (`ephemeral:false`) so the reply's session id is a real
  * conversation the notice can open.
+ *
+ * By default the ask continues the conversation the user has open in AIPA: the
+ * target is resolved once, when the bar opens, from `active-session.ts` (the
+ * renderer's "I opened this" signal plus the turns it sent). The chip says
+ * which decision Enter will make, and one click flips it for that ask only.
+ * With no trustworthy target the bar says NEW CONVERSATION, exactly as before.
  */
 import { BrowserWindow, ipcMain } from 'electron'
 import path from 'path'
@@ -24,6 +30,7 @@ import { getAllowedFsRoots, isValidSessionId, safePath } from './utils/validate'
 import { registerCodexSendMessage } from './ipc/register/cli/send-message'
 import { abortCliTurn } from './ipc/register/cli/register-cli-handlers'
 import { showClawdNotice, withClawdMainWindow } from './clawd-integration'
+import { resolveQuickCommandTarget, type QuickCommandTarget } from './active-session'
 import type { BridgeSink } from './ipc/register/types'
 import type { IpcMainEvent, Rectangle } from 'electron'
 
@@ -63,6 +70,18 @@ export interface QuickCommandLabels {
   errorPill: string
   metaTime: string
   metaTools: string
+  /** `CONTINUE · <name>` chip on the open bar. */
+  continueChip: string
+  /** `NEW CONVERSATION` chip. */
+  newChip: string
+  switchToNew: string
+  switchToContinue: string
+  /** A remembered thread the engine refused on resume. */
+  continueFailed: string
+  /** CONTINUE was requested after the target had gone. */
+  continueUnavailable: string
+  /** Fallback name when the store knows the thread but has no title yet. */
+  untitledThread: string
 }
 
 export interface QuickCommandContext {
@@ -82,6 +101,8 @@ export interface QuickCommandContext {
 interface PendingStart {
   cancelled: boolean
   bridgeId: string | null
+  /** Thread this turn was asked to continue; a last-resort notice target. */
+  targetId: string | null
   /** Per Codex item id; the last item with text is the final answer. */
   texts: Map<string, string>
   lastTextItem: string
@@ -122,6 +143,12 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
   let starting: PendingStart | null = null
   /** Turns whose bar has closed but whose result has not arrived yet. */
   const running = new Map<string, PendingStart>()
+  /**
+   * The conversation this bar offered when it opened, or null for NEW. Held
+   * here (not trusted from the page) so a submitted target always belongs to
+   * the bar the user saw; reset on every open/close, never sticky.
+   */
+  let target: QuickCommandTarget | null = null
 
   function clearRevealTimer(): void {
     if (!revealTimer) return
@@ -225,6 +252,8 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
   function close(restoreFocus = true): void {
     clearRevealTimer()
     blurArmedAt = 0
+    // The per-ask choice dies with the bar.
+    target = null
     const win = barWin
     barWin = null
     // A start still in flight is cancelled with the bar. The turn may already
@@ -242,11 +271,11 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
     const restore = previousFocus
     previousFocus = null
     if (!restoreFocus) return
-    const target = restore && !restore.isDestroyed() && restore.isVisible()
+    const restoreTarget = restore && !restore.isDestroyed() && restore.isVisible()
       ? restore
       : (ctx.win && !ctx.win.isDestroyed() && ctx.win.isVisible() ? ctx.win : null)
-    if (target) {
-      try { target.focus() } catch { /* window may be on its way out */ }
+    if (restoreTarget) {
+      try { restoreTarget.focus() } catch { /* window may be on its way out */ }
     }
   }
 
@@ -268,6 +297,16 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
     if (!ctx.win || ctx.win.isDestroyed()) return false
     const bounds = computeBounds()
     if (!bounds) return false
+    // Resolve once, before the window exists: the chip and whatever the submit
+    // resolves to must describe the same conversation even if the renderer
+    // reports a switch while the bar is up. A lookup failure degrades to NEW,
+    // never to a guess.
+    try {
+      target = resolveQuickCommandTarget()
+    } catch (err) {
+      target = null
+      console.warn('Clawd: quick command target lookup failed:', cleanErrorText(err))
+    }
     let labels: QuickCommandLabels
     try {
       labels = ctx.getLabels()
@@ -321,6 +360,7 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
       clearRevealTimer()
       barWin = null
       previousFocus = null
+      target = null
     })
 
     barWin.webContents.once('did-finish-load', () => {
@@ -330,6 +370,14 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
         theme: ctx.getTheme() === 'clawd' ? 'clawd' : 'sao',
         labels,
         busy: busyNow(),
+        // One word for the decision, one human name for what it will touch.
+        // The page never sends an id back; it only says which half of the chip
+        // the user chose, and main resolves that against this captured target.
+        target: {
+          canContinue: !!target,
+          mode: target ? 'continue' : 'new',
+          label: target ? (target.label || target.id.slice(0, 8)) : '',
+        },
       })
     })
     barWin.webContents.on('did-fail-load', (_event, _code, _desc, _url, isMainFrame) => {
@@ -411,12 +459,30 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
     })
   }
 
+  /**
+   * A quick turn is single-shot. Keeping its internal app-server alive would
+   * leave one idle process per ask, and a later CONTINUE that resumes the same
+   * thread would race a server still holding the thread's old in-memory state.
+   * Abort is deferred one tick so the bridge's remaining result listeners (the
+   * notice, dream bookkeeping) finish before the process goes away.
+   */
+  function reapBridge(bridgeId: string | null): void {
+    if (!bridgeId) return
+    setImmediate(() => {
+      try { abortCliTurn(bridgeId) } catch { /* already gone */ }
+    })
+  }
+
   function finishTurn(attempt: PendingStart, data: Record<string, unknown>): void {
     if (attempt.done) return
     attempt.done = true
     if (attempt.bridgeId) running.delete(attempt.bridgeId)
+    reapBridge(attempt.bridgeId)
     const labels = ctx.getLabels()
-    const sessionRaw = data.claudeSessionId ?? data.codexThreadId
+    // The engine's reported thread wins; a resumed turn's requested id is the
+    // honest fallback if an older build omits it, so the notice still opens the
+    // conversation that actually ran.
+    const sessionRaw = data.claudeSessionId ?? data.codexThreadId ?? attempt.targetId
     const sessionId = typeof sessionRaw === 'string' && isValidSessionId(sessionRaw) ? sessionRaw : ''
     const subtype = typeof data.subtype === 'string' ? data.subtype : 'unknown'
 
@@ -487,19 +553,34 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
    * `cli:steerTurn` requires, and merging a fresh question into a turn this
    * bar cannot name would answer the wrong conversation.
    *
-   * There is no trustworthy main-side "last thread id" either, so every ask is
-   * a new Codex conversation. The reply notice carries its thread id, which is
-   * what makes click-to-open land on the right one.
+   * The page sends `{ prompt, mode }`; a bare string is the old one-payload
+   * contract and means "the target this bar opened with". CONTINUE supplies the
+   * thread id captured at open, NEW supplies none. The page never names an id.
    */
   async function handleSubmit(raw: unknown): Promise<void> {
     if (starting) return
-    const prompt = typeof raw === 'string' ? raw.trim() : ''
+    const payload = raw && typeof raw === 'object' ? raw as Record<string, unknown> : null
+    const prompt = typeof raw === 'string'
+      ? raw.trim()
+      : (typeof payload?.prompt === 'string' ? payload.prompt.trim() : '')
     if (!prompt) {
       showBarError(ctx.getLabels().empty, 'empty')
       return
     }
     if (busyNow()) {
       showBarError(ctx.getLabels().busy, 'busy')
+      return
+    }
+
+    // The page names the choice it displayed. Anything else (a stale page, a
+    // malformed payload) falls back to what this bar opened with.
+    const rawMode = payload?.mode
+    const mode = rawMode === 'continue' || rawMode === 'new'
+      ? rawMode
+      : (target ? 'continue' : 'new')
+    const continueId = mode === 'continue' ? target?.id ?? null : null
+    if (mode === 'continue' && !continueId) {
+      showBarError(ctx.getLabels().continueUnavailable, 'error')
       return
     }
 
@@ -516,6 +597,7 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
     const attempt: PendingStart = {
       cancelled: false,
       bridgeId: null,
+      targetId: continueId,
       texts: new Map(),
       lastTextItem: '',
       toolCount: 0,
@@ -531,6 +613,8 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
         {
           prompt,
           cwd,
+          // Only CONTINUE resumes; NEW omits the id exactly as before.
+          ...(continueId ? { sessionId: continueId } : {}),
           model: getPref('model'),
           permissionMode: getPref('permissionMode'),
           // Persist the thread: the reply notice opens it afterwards.
@@ -562,9 +646,23 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
       // Lead with what happened in the user's own language; the engine's
       // message ("not signed in", "Process exited with code 1") is detail, not
       // the whole sentence. Keep the bar open so the prompt is not lost.
+      //
+      // A refused resume is not a generic start failure: say which promise
+      // broke and stay on CONTINUE. The engine rejects before any new thread
+      // exists, so nothing was silently started under the CONTINUE label; the
+      // user can click the chip to NEW and press Enter again.
       const detail = cleanErrorText(result.error)
-      showBarError(detail ? `${ctx.getLabels().failed}: ${detail}` : ctx.getLabels().failed, 'error')
+      const lead = continueId
+        ? ctx.getLabels().continueFailed
+        : ctx.getLabels().failed
+      showBarError(detail ? `${lead}: ${detail}` : lead, 'error')
       return
+    }
+
+    if (attempt.done) {
+      // finishTurn ran before this promise resolved, so the bridge was never
+      // registered in `running`; reap it here instead.
+      reapBridge(result.sessionId || null)
     }
 
     attempt.bridgeId = result.sessionId || null

@@ -50,6 +50,23 @@ export function useStreamJson() {
   extractMemoriesRef.current = tryExtractMemories
 
   const activeBridgeIdRef = useRef<string | null>(null)
+  // A task tab owns its bridge, because the hook's single ref describes the
+  // last turn sent from any conversation. Without this, dispatching a task
+  // after using chat elsewhere could attach the task's first turn to the
+  // previous conversation's thread. The narrow selectors keep ad-hoc tabs on
+  // the existing ref-only behaviour.
+  const activeTaskTabId = useChatStore(s => {
+    const tab = s.tabs.find(item => item.id === s.activeTabId)
+    return tab?.task ? tab.id : null
+  })
+  const activeTaskTabBridgeId = useChatStore(s => {
+    const tab = s.tabs.find(item => item.id === s.activeTabId)
+    return tab?.task ? tab.bridgeId ?? null : null
+  })
+  useEffect(() => {
+    if (!activeTaskTabId) return
+    activeBridgeIdRef.current = activeTaskTabBridgeId
+  }, [activeTaskTabId, activeTaskTabBridgeId])
   // Keep a ref to sendMessage so it can be called from the IPC event handler without stale closure
   const sendMessageRef = useRef<((prompt: string) => Promise<unknown>) | null>(null)
   // Track when the user sends a message to calculate response duration
@@ -303,7 +320,17 @@ export function useStreamJson() {
         ...(input ? { input } : {}),
         cwd: effectiveCwd,
         sessionId: currentSessionId ?? undefined,
-        activeBridgeId: activeBridgeIdRef.current ?? undefined,
+        // A task tab may only reuse the bridge it owns, and only while it is
+        // still showing that conversation. The hook-wide ref still describes
+        // whichever conversation sent last (or one the user just left); after
+        // "new conversation" (Ctrl+N) the tab keeps its folder but has no
+        // current session, so it must not inherit the old bridge. Ad-hoc tabs
+        // are unchanged.
+        activeBridgeId: currentTab?.task
+          ? (currentSessionId && currentTab.sessionId === currentSessionId
+              ? currentTab.bridgeId
+              : undefined)
+          : activeBridgeIdRef.current ?? undefined,
         model: personaTurn.model,
         // This conversation's resolved level; 'auto' means "let the engine
         // decide", so it is not sent at all. The main process drops it again if
@@ -379,6 +406,12 @@ export function useStreamJson() {
 
     if (result?.success && result.sessionId) {
       activeBridgeIdRef.current = result.sessionId
+      // Keep the tab's own bridge in step with the turn that just started, so a
+      // follow-up in this task conversation reuses it while a follow-up task
+      // dispatch (a new tab with no bridge) starts clean.
+      if (currentTab?.task) {
+        useChatStore.getState().setTabBridgeId(currentTab.id, result.sessionId)
+      }
       // Only this bridge's deltas may enter the streaming buffer.
       useChatStore.getState().setStreamSession(result.sessionId)
     } else if (result && !result.success && imageAttachments.length > 0) {

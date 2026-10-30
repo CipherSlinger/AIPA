@@ -12,7 +12,8 @@ import { codexBridgeManager } from '../../../codex/codex-bridge'
 import { streamBridgeManager } from '../../../pty/stream-bridge'
 import { dreamNoteTurnStart, dreamNoteTurnCancelled } from '../../../memory/dream-runtime'
 import { sanitizeCodexInput } from '../../attachment-handlers'
-import { noteBridgeSession, trackBridge } from './bridge-state'
+import { clearActiveSession, noteActiveSession } from '../../../active-session'
+import { noteBridgeSession, sessionForBridge, trackBridge } from './bridge-state'
 import { wireCodexBridge, wireStreamBridge } from './bridge-wiring'
 import type { BridgeSink } from '../types'
 
@@ -48,6 +49,21 @@ export function pickModelForEngine(
   return model
 }
 
+/**
+ * Remember which conversation a user-facing turn belongs to. A new
+ * conversation has no id until the engine names it, so the previous pointer is
+ * dropped rather than letting a quick ask continue the wrong thread. Internal
+ * turns own no conversation and never call this.
+ */
+function noteTurnConversation(args: Record<string, unknown>, activeBridgeId: string | null): void {
+  const provided = typeof args.sessionId === 'string' && args.sessionId.trim()
+    ? args.sessionId.trim()
+    : ''
+  const known = provided || (activeBridgeId ? sessionForBridge(activeBridgeId) : null)
+  if (known) noteActiveSession(known)
+  else clearActiveSession()
+}
+
 export interface CodexSendOptions {
   /**
    * Fail fast through `account/read` when Codex has no credentials. The pet's
@@ -77,6 +93,8 @@ export async function registerCodexSendMessage(
   // `/compact` is a renderer-side command; Codex exposes it as thread/compact/start.
   // Sending the literal string would just make the model talk about a slash command.
   const isCompact = /^\/compact\b/.test(prompt.trim())
+
+  if (!internal) noteTurnConversation(args, existingBridgeId ?? null)
 
   // Reuse existing bridge for follow-up messages (never for a background turn,
   // which must not join a user conversation's thread).
@@ -209,6 +227,7 @@ export async function registerLegacySendMessage(
   const permissionMode = args.permissionMode as string | undefined
 
   const existingBridgeId = args.activeBridgeId as string | undefined
+  if (!internal) noteTurnConversation(args, existingBridgeId ?? null)
   if (existingBridgeId && !internal && streamBridgeManager.get(existingBridgeId)) {
     const bridge = streamBridgeManager.get(existingBridgeId)!
     dreamNoteTurnStart(existingBridgeId, typeof args.cwd === 'string' ? args.cwd : undefined)

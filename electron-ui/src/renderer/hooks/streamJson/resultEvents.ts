@@ -8,6 +8,7 @@ import { engineNoticeStore } from '../../components/chat/engineNoticeStore'
 import { autoApprovalReviewStore } from '../../components/chat/autoApprovalReviewStore'
 import { sendCompletionNotification, playCompletionSound } from '../streamJsonUtils'
 import { isResultForActiveConversation } from './guards'
+import { linkTaskSessionFromResult } from '../../lib/taskDispatch'
 import type { StreamJsonEventContext } from './eventContext'
 
 /**
@@ -210,6 +211,11 @@ export function handleResultEvent(event: string, data: any, ctx: StreamJsonEvent
       if (runningItem) doneState.markQueueItemDone(runningItem.id)
       return true
     }
+    // A completed turn in a task tab *is* the task's conversation. The link runs
+    // only past the success gate above: a stopped or failed attempt must not
+    // become the row the task shows as its work. The helper reads the active
+    // tab's binding and is a no-op for every conversation outside a task.
+    if (claudeSessionId) linkTaskSessionFromResult(claudeSessionId)
     // Completion notification
     sendCompletionNotification(
       'AIPA',

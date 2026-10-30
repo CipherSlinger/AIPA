@@ -1,5 +1,5 @@
 /**
- * Main-owned durable state for tasks (increment 1: the task foundation).
+ * Main-owned durable state for tasks.
  *
  * A task is the unit of work that owns a directory: its materials are copies
  * inside that directory, not references to wherever the user happened to keep
@@ -7,11 +7,12 @@
  * jobs, the file lives under userData and is written atomically (tmp + rename)
  * so a renderer preference save can never overwrite a task edit.
  *
- * There is deliberately no dependency on departments, sessions, dispatch or
- * `prefs.workingDir` here: this increment adds a place to create, see and
- * manage tasks, and nothing else may change because of it. The `departmentId`
- * and `sessions` fields are reserved for increment 2 and are never written by
- * the current UI.
+ * Increment 2 records two things here that the renderer observes rather than
+ * invents: the conversations that ran for a task (`sessions`, linked after a
+ * completed turn) and the department a task is filed under (`departmentId`,
+ * attribution only). Neither is a working directory — `directory` is the only
+ * folder a task's turns run in, and this module never reads or writes
+ * `prefs.workingDir`.
  *
  * Failure discipline: a missing store file, a corrupt store file and a missing
  * task directory are all normal states. Reading never throws. A malformed row
@@ -68,7 +69,12 @@ export interface TaskMaterial {
   originPath?: string
 }
 
-/** Reserved for increment 2; kept in the schema so records survive the upgrade. */
+/**
+ * A conversation that ran for this task. `startedAt` is the main-process clock
+ * at the moment the successful turn was reported, never a renderer timestamp:
+ * the record is what survives a restart, so it must not depend on a clock the
+ * window can lose.
+ */
 export interface TaskSessionRef {
   sessionId: string
   startedAt: number
@@ -85,6 +91,9 @@ export type TaskEventKind =
   | 'moved'
   | 'folder_missing'
   | 'restored'
+  | 'routed'
+  | 'reassigned'
+  | 'session_started'
 
 export interface TaskEvent {
   at: number
@@ -101,12 +110,16 @@ export interface TaskRecord {
   /** Absolute task directory. The only absolute path stored on the record. */
   directory: string
   status: TaskStatus
-  /** Reserved for increment 2 (department routing). */
+  /**
+   * Attribution, not a working directory: the task folder is where its turns
+   * run, and this only records who the task is filed under. Null is a valid
+   * state — a task never has to belong to a department.
+   */
   departmentId: string | null
-  /** Reserved for increment 2. */
+  /** How `departmentId` was chosen. Increment 2 only writes 'user'. */
   routedBy: 'user' | 'suggestion' | 'auto' | null
   materials: TaskMaterial[]
-  /** Reserved for increment 2. */
+  /** Conversations that ran in this task, in the order they started. */
   sessions: TaskSessionRef[]
   history: TaskEvent[]
   createdAt: number
@@ -127,6 +140,13 @@ export type TaskMutation = { ok: true; task: TaskView } | TaskFailure
 export type TaskDeleteResult =
   | { ok: true; task?: TaskView; mode: 'archived' | 'deleted'; trashedTo?: string }
   | TaskFailure
+/** What the renderer reports once a turn in a task tab completed successfully. */
+export interface TaskSessionLinkInput {
+  sessionId?: unknown
+  purpose?: unknown
+  personaId?: unknown
+}
+
 export type TaskMaterialImportResult =
   | {
       ok: true
@@ -139,6 +159,7 @@ export type TaskMaterialImportResult =
 const EVENT_KINDS = new Set<TaskEventKind>([
   'created', 'material_added', 'material_removed', 'renamed',
   'status_changed', 'moved', 'folder_missing', 'restored',
+  'routed', 'reassigned', 'session_started',
 ])
 
 const MATERIAL_SOURCES = new Set<TaskMaterialSource>([
@@ -531,6 +552,92 @@ export function updateTask(
   return { ok: true, task: taskView(next) }
 }
 
+/**
+ * File a task under a department, or clear that filing. Attribution only:
+ * the task's `directory` is untouched, and no status changes because a task
+ * was routed. `departmentId` is whatever the renderer's org tree calls an id;
+ * the store does not import the renderer-owned tree, so an id that no longer
+ * exists is kept rather than silently rewritten.
+ *
+ * `routed` is the first filing, `reassigned` every later change (including
+ * clearing). Re-choosing the current department is a no-op, so the history
+ * cannot fill with rows that did not change anything.
+ */
+export function routeTask(id: unknown, departmentId: unknown): TaskMutation {
+  if (typeof id !== 'string' || !id) return failure('invalid_id', 'Unknown task')
+  let nextDepartmentId: string | null
+  if (departmentId === null || departmentId === undefined) {
+    nextDepartmentId = null
+  } else {
+    nextDepartmentId = nonEmptyString(departmentId)
+    if (!nextDepartmentId) return failure('invalid_department', 'Unknown department')
+    if (nextDepartmentId.length > 200) return failure('invalid_department', 'Unknown department')
+  }
+
+  const store = readTaskStore()
+  const current = store.tasks.find(task => task.id === id)
+  if (!current) return failure('not_found', 'Unknown task')
+  if (current.departmentId === nextDepartmentId) return { ok: true, task: taskView(current) }
+
+  const kind: TaskEventKind = nextDepartmentId && !current.departmentId ? 'routed' : 'reassigned'
+  const next = appendEvent({
+    ...current,
+    departmentId: nextDepartmentId,
+    routedBy: nextDepartmentId ? 'user' : null,
+  }, kind, nextDepartmentId ?? undefined)
+
+  replaceTask(store, next)
+  if (!writeTaskStore(store)) return failure('write_failed', 'The task could not be saved')
+  writeTaskMirror(next)
+  return { ok: true, task: taskView(next) }
+}
+
+/**
+ * Record the conversation a completed turn in a task tab actually produced.
+ *
+ * Called by the renderer only after a *successful* turn, so a failed or stopped
+ * attempt never becomes the task's conversation. The renderer may report the
+ * same thread twice (a result echo, a reload); the record keeps one row per
+ * session id and says success rather than appending a duplicate. The purpose
+ * is the renderer's statement of what the turn was for — `dispatch` for the
+ * task's first conversation, `followup` for a new one started later on the
+ * same task.
+ */
+export function linkTaskSession(id: unknown, input: TaskSessionLinkInput): TaskMutation {
+  if (typeof id !== 'string' || !id) return failure('invalid_id', 'Unknown task')
+  const sessionId = nonEmptyString(input?.sessionId)
+  if (!sessionId) return failure('invalid_session', 'A conversation id is required')
+  if (sessionId.length > 200) return failure('invalid_session', 'A conversation id is required')
+  const purpose = input?.purpose === 'dispatch' || input?.purpose === 'followup'
+    ? input.purpose
+    : null
+  if (!purpose) return failure('invalid_purpose', 'A conversation purpose is required')
+  const personaId = nonEmptyString(input?.personaId)
+
+  const store = readTaskStore()
+  const current = store.tasks.find(task => task.id === id)
+  if (!current) return failure('not_found', 'Unknown task')
+  if (current.sessions.some(session => session.sessionId === sessionId)) {
+    return { ok: true, task: taskView(current) }
+  }
+
+  const session: TaskSessionRef = {
+    sessionId,
+    startedAt: Date.now(),
+    purpose,
+    ...(personaId ? { personaId } : {}),
+  }
+  const next = appendEvent({
+    ...current,
+    sessions: [...current.sessions, session],
+  }, 'session_started', purpose)
+
+  replaceTask(store, next)
+  if (!writeTaskStore(store)) return failure('write_failed', 'The task could not be saved')
+  writeTaskMirror(next)
+  return { ok: true, task: taskView(next) }
+}
+
 export function archiveTask(id: unknown): TaskMutation {
   if (typeof id !== 'string' || !id) return failure('invalid_id', 'Unknown task')
   const store = readTaskStore()
@@ -778,8 +885,10 @@ export function removeMaterial(id: unknown, materialId: unknown): TaskMutation {
 
 /**
  * Move the task directory to a new parent, before any conversation exists.
- * Increment 1 has no turns, so this is the free pre-flight move described in
- * the design; increment 2 must stop offering it once a session has started.
+ * Once a conversation has run, its cwd is recorded in the engine's rollout and
+ * the task record points at this folder; moving it would make both wrong, so
+ * the store refuses instead of moving the ground under a session. The UI never
+ * offered this after increment 2 either.
  */
 export function moveTask(id: unknown, targetRoot: unknown): TaskMutation {
   if (typeof id !== 'string' || !id) return failure('invalid_id', 'Unknown task')
@@ -789,6 +898,9 @@ export function moveTask(id: unknown, targetRoot: unknown): TaskMutation {
   const store = readTaskStore()
   const current = store.tasks.find(task => task.id === id)
   if (!current) return failure('not_found', 'Unknown task')
+  if (current.sessions.length > 0) {
+    return failure('has_sessions', 'The task folder cannot move after its first conversation')
+  }
   if (folderMissing(current.directory)) return failure('folder_missing', "The task's folder is missing")
   if (!isOwnedDirectory(current)) {
     return failure('invalid_directory', "The task's folder does not belong to this task")

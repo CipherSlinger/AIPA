@@ -18,8 +18,11 @@ import {
   type WorkingDirSource,
 } from '../../lib/workingDir'
 
-/** Where the folder named on the line came from. `recorded` is the transcript's own record. */
-export type WorkingDirChipSource = WorkingDirSource | 'recorded'
+/**
+ * Where the folder named on the line came from. `recorded` is the transcript's
+ * own record; `task` is the directory of the task the open tab belongs to.
+ */
+export type WorkingDirChipSource = WorkingDirSource | 'recorded' | 'task'
 
 export interface WorkingDirChipInput {
   /** The open tab's override — picked here, or restored from the conversation. */
@@ -32,6 +35,14 @@ export interface WorkingDirChipInput {
   recordedCwd?: string | null
   /** The recorded folder the open path proved missing for this conversation. */
   goneDir?: string | null
+  /**
+   * The open tab belongs to a task. A task's folder is the task directory, and
+   * the send path reads the tab override — not the transcript — so that folder
+   * is what the line must name. A task conversation cannot be moved by a pick:
+   * the task owns its folder, and moving it would leave the task pointing at a
+   * directory its next turn no longer runs in.
+   */
+  taskFolder?: boolean
 }
 
 export interface WorkingDirChipView {
@@ -46,6 +57,8 @@ export interface WorkingDirChipView {
   source: WorkingDirChipSource
   /** What a pick can mean for the conversation on screen. */
   target: FolderTarget
+  /** true when a pick cannot change anything — a task's folder is fixed. */
+  locked: boolean
 }
 
 function trimmed(value: string | null | undefined): string {
@@ -58,6 +71,37 @@ export function workingDirChipModel(input: WorkingDirChipInput): WorkingDirChipV
     globalDir: input.globalDir,
     homeDir: input.homeDir,
   })
+
+  // A task tab answers the question differently: the next turn runs in the
+  // task directory regardless of what the transcript recorded, so a recorded
+  // folder (or a verdict that it is gone) is not the folder this line stands
+  // for. The task directory is also the one folder a pick must not move, hence
+  // `locked`. No folder means no line — never a global fallback that would
+  // name a directory the task does not use.
+  if (input.taskFolder) {
+    const dir = trimmed(input.tabCwd)
+    if (!dir) {
+      return {
+        visible: false,
+        state: 'normal',
+        dir: '',
+        label: '',
+        source: 'none',
+        target: 'this_conversation',
+        locked: true,
+      }
+    }
+    return {
+      visible: true,
+      state: 'normal',
+      dir,
+      label: workingDirLabel(dir, input.homeDir),
+      source: 'task',
+      target: 'this_conversation',
+      locked: true,
+    }
+  }
+
   const gone = trimmed(input.goneDir)
 
   // A folder the open path proved missing is the one fact worth showing even
@@ -73,6 +117,7 @@ export function workingDirChipModel(input: WorkingDirChipInput): WorkingDirChipV
       label: workingDirLabel(gone, input.homeDir),
       source: 'recorded',
       target: 'new_conversation',
+      locked: false,
     }
   }
 
@@ -90,6 +135,7 @@ export function workingDirChipModel(input: WorkingDirChipInput): WorkingDirChipV
       label: workingDirLabel(recorded, input.homeDir),
       source: 'recorded',
       target: 'new_conversation',
+      locked: false,
     }
   }
 
@@ -103,6 +149,7 @@ export function workingDirChipModel(input: WorkingDirChipInput): WorkingDirChipV
       // Nothing is shown in this state, but a pick's meaning does not depend on
       // whether the line is visible: a record still means "new conversation".
       target: folderChangeTarget(input.recordedCwd),
+      locked: false,
     }
   }
 
@@ -113,5 +160,6 @@ export function workingDirChipModel(input: WorkingDirChipInput): WorkingDirChipV
     label: workingDirLabel(resolved.dir, input.homeDir),
     source: resolved.source,
     target: folderChangeTarget(input.recordedCwd),
+    locked: false,
   }
 }

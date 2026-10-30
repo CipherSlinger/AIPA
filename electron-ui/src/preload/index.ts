@@ -65,7 +65,7 @@ export interface SystemInitData {
   plugins: string[]
 }
 
-// ── Tasks (increment 1) ────────────────────────────────────────────────
+// ── Tasks (increments 1–2) ──────────────────────────────────────────────
 // Mirrors src/main/tasks/task-store.ts. The main process is the authority; the
 // renderer only caches what these calls return.
 
@@ -115,6 +115,9 @@ export type TaskEventKindData =
   | 'moved'
   | 'folder_missing'
   | 'restored'
+  | 'routed'
+  | 'reassigned'
+  | 'session_started'
 
 export interface TaskEventData {
   at: number
@@ -129,12 +132,11 @@ export interface TaskRecordData {
   slug: string
   directory: string
   status: TaskStatusData
-  /** Reserved for increment 2. */
+  /** Attribution only; the task's folder is still its working directory. */
   departmentId: string | null
-  /** Reserved for increment 2. */
   routedBy: 'user' | 'suggestion' | 'auto' | null
   materials: TaskMaterialData[]
-  /** Reserved for increment 2. */
+  /** Conversations that ran in this task, oldest first. */
   sessions: TaskSessionRefData[]
   history: TaskEventData[]
   createdAt: number
@@ -148,6 +150,13 @@ export interface TaskMutationData {
   code?: string
   error?: string
   task?: TaskRecordData
+}
+
+export interface TaskSessionLinkData {
+  sessionId: string
+  /** What the completed turn was for. */
+  purpose: 'dispatch' | 'followup'
+  personaId?: string
 }
 
 export interface TaskMaterialImportData {
@@ -2463,6 +2472,14 @@ const electronAPI = {
     return () => ipcRenderer.removeListener('session:askHistoryProgress', handler)
   },
   sessionDetectInterruption: (sessionId: string) => ipcRenderer.invoke('session:detectInterruption', { sessionId }),
+  /**
+   * Report which conversation the chat view is showing, or null for a new
+   * draft. Main uses it only to decide whether the pet's quick command should
+   * CONTINUE that conversation or start a new one. Main validates the id, so
+   * this cannot pin an arbitrary path as a continuation target.
+   */
+  sessionSetActive: (sessionId: string | null, label?: string) =>
+    ipcRenderer.send('session:setActive', { sessionId, label }),
   sessionGetStats: () => ipcRenderer.invoke('session:getStats'),
   /** Returns mtime (ms) of .consolidate-lock — used to detect dream completions */
   sessionGetDreamMtime: () => ipcRenderer.invoke('session:getDreamMtime') as Promise<number>,
@@ -2554,7 +2571,7 @@ const electronAPI = {
     return () => { ipcRenderer.removeListener('automation:changed', handler) }
   },
 
-  // ── Tasks (increment 1) ──────────────────
+  // ── Tasks (increments 1–2) ───────────────
   // The main process owns `userData/tasks.json`; these calls read and mutate
   // it. `tasks:changed` fires after a successful mutation from any window.
   tasksList: () =>
@@ -2584,10 +2601,17 @@ const electronAPI = {
     ipcRenderer.invoke('tasks:removeMaterial', id, materialId) as Promise<TaskMutationData>,
   tasksReveal: (id: string) =>
     ipcRenderer.invoke('tasks:reveal', id) as Promise<{ ok: boolean; code?: string; error?: string }>,
-  // Pre-flight move only: the design makes the directory immutable after the
-  // first conversation, and increment 1 has no conversations yet.
+  // Pre-flight move only: the store refuses once a conversation has run, so
+  // the folder under a recorded session cannot be moved away from it.
   tasksMove: (id: string, targetRoot: string) =>
     ipcRenderer.invoke('tasks:move', id, targetRoot) as Promise<TaskMutationData>,
+  // Record the conversation a completed turn produced. Main dedupes by session
+  // id and stamps `startedAt` with its own clock.
+  tasksLinkSession: (id: string, input: TaskSessionLinkData) =>
+    ipcRenderer.invoke('tasks:linkSession', id, input) as Promise<TaskMutationData>,
+  // Attribution only: `null` clears the filing. The task folder is untouched.
+  tasksRoute: (id: string, departmentId: string | null) =>
+    ipcRenderer.invoke('tasks:route', id, departmentId) as Promise<TaskMutationData>,
   onTasksChanged: (cb: () => void): Unsubscribe => {
     const handler = () => cb()
     ipcRenderer.on('tasks:changed', handler)

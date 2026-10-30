@@ -12,6 +12,7 @@ import { getPref, setPref } from './config/config-manager'
 import { clearClawdNotices, listClawdNotices, recordClawdNotice } from './clawd-notifications'
 import { createLogger } from './utils/logger'
 import { isValidSessionId } from './utils/validate'
+import { clearActiveSession } from './active-session'
 import type { PetActivity } from './pet-activity'
 
 // Type declarations for global properties shared with clawd-factory.js
@@ -301,6 +302,7 @@ const petMenuCallbacks = {
       win.focus()
       // The same renderer entry point the app menu uses — one definition of
       // "start a new conversation", not a second one for the pet.
+      clearActiveSession()
       win.webContents.send('menu:newSession')
     })
   },

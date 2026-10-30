@@ -20,6 +20,7 @@ import { dreamNoteTurnEnd, dreamNoteTurnCancelled } from '../../../memory/dream-
 import { notifyClawdState } from '../../../clawd-bridge'
 import { raiseAttention, resolveAttention } from '../../../clawd-attention'
 import { notePetActivity } from '../../../pet-activity'
+import { getActiveSessionId, noteActiveSession } from '../../../active-session'
 import {
   clipDetail,
   forgetBridge,
@@ -152,6 +153,12 @@ export function wireCodexBridge(
     // The thread id is what `openSessionCore` can open; learn it as soon as a
     // turn reports it so a later approval bubble is clickable.
     noteBridgeSession(bridgeId, d.codexThreadId ?? d.threadId)
+    // A turn can finish after the user moved elsewhere. Fill an unknown view
+    // only; never steal the pointer from a conversation they switched to.
+    if (!internal && !getActiveSessionId()) {
+      const threadId = d.codexThreadId ?? d.threadId
+      if (typeof threadId === 'string') noteActiveSession(threadId)
+    }
     markBridgeResult(bridgeId)
     // Map codexThreadId → claudeSessionId for renderer compatibility
     const mapped = { ...d, claudeSessionId: d.codexThreadId ?? d.threadId }
@@ -185,6 +192,12 @@ export function wireCodexBridge(
   bridge.on('patchUpdated', (d) => sink('cli:patchUpdated', d))
   bridge.on('threadStarted', (d) => {
     noteBridgeSession(bridgeId, d.threadId)
+    // A new user-facing conversation is named here first. Fill an unknown view
+    // only: a thread/start response can land after the user switched tabs, and
+    // the view's own report must win.
+    if (!internal && typeof d.threadId === 'string' && !getActiveSessionId()) {
+      noteActiveSession(d.threadId)
+    }
     sink('cli:threadStarted', d)
   })
   bridge.on('threadClosed', (d) => sink('cli:threadClosed', d))
@@ -371,6 +384,12 @@ export function wireStreamBridge(
     // Claude only reveals its session id on the result envelope; approvals can
     // precede it, so the queue is re-keyed here.
     noteBridgeSession(bridgeId, d.claudeSessionId ?? d.event?.session_id)
+    // Fill an unknown view only; a result that lands after the user moved must
+    // not drag the pointer back to a finished conversation.
+    if (!internal && !getActiveSessionId()) {
+      const sessionId = d.claudeSessionId ?? d.event?.session_id ?? sessionForBridge(bridgeId)
+      if (typeof sessionId === 'string') noteActiveSession(sessionId)
+    }
     markBridgeResult(bridgeId)
     sink('cli:result', d)
   })

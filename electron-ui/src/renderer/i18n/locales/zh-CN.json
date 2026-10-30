@@ -159,6 +159,8 @@
       "sourceGlobal": "新对话的默认文件夹",
       "sourceHome": "主目录——还没有设置工作文件夹",
       "sourceRecorded": "记录在本对话的转写里",
+      "sourceTask": "任务文件夹——这个任务的工作目录",
+      "taskFolderHint": "这段对话属于一个任务，因此始终在任务文件夹中运行。",
       "clickHint": "点击更改文件夹",
       "goneHint": "这个文件夹已不存在，点击查看选项",
       "popoverRecordedTitle": "本对话在 {{path}} 中运行",
@@ -5433,6 +5435,34 @@
     "conversation": "对话",
     "conversationEmpty": "分派功能上线后，这个任务的对话会显示在这里。目前任务只拥有自己的文件夹和资料。",
     "conversationReserved": "为下一个增量预留",
+    "department": "部门",
+    "departmentNone": "不指定部门",
+    "departmentNotFound": "部门已不存在",
+    "departmentAttribution": "部门只用于归属标注。对话仍在任务文件夹中运行，不会使用部门文件夹。",
+    "dispatch": "派发",
+    "dispatchFollowup": "继续派发",
+    "dispatchHint": "打开聊天，并把这段说明预填到输入框。在你按下发送之前，不会发送任何内容。",
+    "dispatchFollowupHint": "在同一个任务文件夹中开启新对话，并把说明预填到输入框。之前的对话仍保留在下方。",
+    "dispatchFollowupNew": "这次继续派发会开启新对话，不会接着之前的对话。",
+    "dispatchBlockedMissing": "任务文件夹缺失。在文件夹恢复之前，对话无法在其中运行。",
+    "dispatchDepartmentOptional": "不选部门也可以派发。部门只是任务上的标注，不是工作运行所在的文件夹。",
+    "briefPreview": "将填入输入框的内容",
+    "briefHeading": "任务：{{title}}",
+    "briefFolder": "请在这个任务的文件夹内工作——本次对话的工作目录：\n{{directory}}",
+    "briefMaterialsHeading": "这个任务的资料（materials/ 中的副本）：",
+    "briefMaterialsNone": "这个任务还没有资料。不要假设 materials/ 中存在任何文件。",
+    "briefMaterialRow": "- {{path}}（导入时名为 {{name}}）",
+    "briefInstruction": "你创建的所有文件都请放在任务文件夹内。交付物放在 output/，笔记放在 notes/。如果需要改动文件夹之外的内容，请先问我。",
+    "briefFollowup": "这是同一任务的后续对话。之前的对话仍保留在任务历史中。",
+    "conversations": "对话",
+    "conversationsEmpty": "还没有对话。派发这个任务，就会在它的文件夹中开始一个对话。",
+    "conversationOpen": "打开对话",
+    "conversationChecking": "正在检查对话文件…",
+    "conversationMissing": "对话文件缺失",
+    "sessionPurpose": {
+      "dispatch": "首次派发",
+      "followup": "后续对话"
+    },
     "history": "历史",
     "historyEmpty": "还没有动态。",
     "event": {
@@ -5443,7 +5473,10 @@
       "status_changed": "状态变更",
       "moved": "移动文件夹",
       "folder_missing": "文件夹缺失",
-      "restored": "已恢复"
+      "restored": "已恢复",
+      "routed": "已指定部门",
+      "reassigned": "已更改部门",
+      "session_started": "对话已开始"
     },
     "error": {
       "load": "无法读取任务。",
@@ -5455,7 +5488,12 @@
       "materials": "无法添加文件。",
       "removeMaterial": "无法移除资料。",
       "reveal": "无法打开文件夹。",
-      "missing": "任务的文件夹缺失。"
+      "missing": "任务的文件夹缺失。",
+      "route": "无法保存部门。",
+      "linkSession": "对话已完成，但未能加入任务。再次发送即可重试，或检查任务文件是否可写。",
+      "openConversation": "无法打开对话。",
+      "dispatchMissing": "任务文件夹缺失，无法派发。",
+      "tabLimit": "打开的标签页太多。请关闭一个后重试。"
     }
   }
 }

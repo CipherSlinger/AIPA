@@ -1,32 +1,44 @@
 // The task detail view: header (title/status/department/folder/archive),
-// materials rail, a conversation area reserved for increment 2, and the
-// append-only history timeline.
+// materials rail, dispatch + conversations, and the append-only history.
 //
-// This file never starts a conversation and never writes `prefs.workingDir`.
-// "Dispatch" is increment 2; the centre pane says so instead of pretending a
-// button exists.
+// Dispatch is visible: it opens the chat on a tab whose cwd is this task's
+// folder and fills the composer; the user presses send. This file never sends
+// a turn itself and never writes `prefs.workingDir`.
 import React, { useEffect, useRef, useState } from 'react'
 import {
   AlertTriangle,
   Archive,
   ArrowLeft,
   Building2,
+  CheckCircle2,
   Clock,
   FileText,
   FolderOpen,
   History,
+  Loader2,
   MessageSquare,
   Paperclip,
   Plus,
   RotateCcw,
+  Send,
   Trash2,
   Upload,
   X,
 } from 'lucide-react'
-import type { TaskRecordData, TaskStatusData } from '../../../preload'
-import { useTaskStore, useUiStore } from '../../store'
+import type { TaskEventData, TaskRecordData, TaskSessionRefData, TaskStatusData } from '../../../preload'
+import { useDepartmentStore, useSessionStore, useTaskStore, useUiStore } from '../../store'
+import type { SessionListItem } from '../../types/app.types'
 import { useI18n, useT } from '../../i18n'
 import { pushEscapeHandler } from '../ui/escapeStack'
+import { deptTreeOptionText, deptTreeOptions } from '../departments/deptUtils'
+import {
+  buildTaskBrief,
+  dispatchTask,
+  openTaskConversation,
+  sessionListItemFor,
+  taskConversationTitle,
+  taskDispatchPurpose,
+} from '../../lib/taskDispatch'
 import {
   EDITABLE_STATUSES,
   formatBytes,
@@ -65,6 +77,10 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
   const addMaterials = useTaskStore(s => s.addMaterials)
   const removeMaterial = useTaskStore(s => s.removeMaterial)
   const revealTask = useTaskStore(s => s.revealTask)
+  const routeTask = useTaskStore(s => s.routeTask)
+  const departments = useDepartmentStore(s => s.departments)
+  const sessionList = useSessionStore(s => s.sessions)
+  const deptOptions = deptTreeOptions(departments, resolvedLocale)
 
   const [titleDraft, setTitleDraft] = useState(task.title)
   const [titleFocused, setTitleFocused] = useState(false)
@@ -74,6 +90,13 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
   const [importing, setImporting] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [pendingRemove, setPendingRemove] = useState<string | null>(null)
+  const [routing, setRouting] = useState(false)
+  // Whether each recorded conversation can still be opened. A task row is not
+  // evidence that its rollout file exists: it may have been deleted (and
+  // trashed) after the turn, and saying "conversation" over a dead link would
+  // be a lie. `checking` is the honest state while the file is being read.
+  const [presence, setPresence] = useState<Record<string, 'checking' | 'present' | 'missing'>>({})
+  const probedSessions = useRef<Set<string>>(new Set())
   const titleRef = useRef<HTMLInputElement>(null)
   const pasteRef = useRef<HTMLInputElement>(null)
 
@@ -104,6 +127,67 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
       setPasteText('')
     })
   }, [pasteOpen])
+
+  // Resolve each recorded conversation once. A row in the sidebar wins (it is
+  // the same store the session list uses); otherwise read the transcript file
+  // directly. An empty or failed read is reported as missing, not hidden.
+  useEffect(() => {
+    if (task.sessions.length === 0) return
+    const listed = new Set(sessionList.map(session => session.sessionId))
+    let disposed = false
+    setPresence(prev => {
+      const next = { ...prev }
+      for (const ref of task.sessions) {
+        if (listed.has(ref.sessionId)) next[ref.sessionId] = 'present'
+        else if (!next[ref.sessionId]) next[ref.sessionId] = 'checking'
+      }
+      return next
+    })
+    for (const ref of task.sessions) {
+      if (listed.has(ref.sessionId)) {
+        probedSessions.current.add(ref.sessionId)
+        continue
+      }
+      if (probedSessions.current.has(ref.sessionId)) continue
+      probedSessions.current.add(ref.sessionId)
+      void window.electronAPI.sessionLoad(ref.sessionId)
+        .then(raw => {
+          if (disposed) return
+          setPresence(prev => ({
+            ...prev,
+            [ref.sessionId]: Array.isArray(raw) && raw.length > 0 ? 'present' : 'missing',
+          }))
+        })
+        .catch(() => {
+          if (disposed) return
+          setPresence(prev => ({ ...prev, [ref.sessionId]: 'missing' }))
+        })
+    }
+    return () => { disposed = true }
+  }, [task.id, task.sessions, sessionList])
+
+  const setDepartment = async (departmentId: string) => {
+    setRouting(true)
+    const result = await routeTask(task.id, departmentId || null)
+    setRouting(false)
+    if (!result.ok) addToast('error', result.error || t('tasks.error.route'))
+  }
+
+  const dispatch = () => {
+    const result = dispatchTask(task, t)
+    if (!result.ok) addToast('error', result.error)
+  }
+
+  const openConversation = async (ref: TaskSessionRefData) => {
+    if (presence[ref.sessionId] !== 'present') return
+    const listed: SessionListItem | undefined = sessionList.find(session => session.sessionId === ref.sessionId)
+    const result = await openTaskConversation(
+      task,
+      ref,
+      listed ?? sessionListItemFor(ref.sessionId, task.title),
+    )
+    if (!result.ok) addToast('error', result.error || t('tasks.error.openConversation'))
+  }
 
   const commitTitle = async () => {
     const next = titleDraft.trim()
@@ -209,6 +293,25 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
   }
 
   const archived = task.status === 'archived'
+  const purpose = taskDispatchPurpose(task)
+  const brief = buildTaskBrief(task, purpose, t)
+
+  // The store records ids for routing; the timeline is for people. Resolve a
+  // department id to its current name, and say plainly when that name no longer
+  // exists instead of printing a UUID.
+  const historyDetail = (event: TaskEventData): string | undefined => {
+    if (!event.detail) return undefined
+    if (event.kind === 'routed' || event.kind === 'reassigned') {
+      return deptOptions.find(option => option.id === event.detail)?.label
+        ?? t('tasks.departmentNotFound')
+    }
+    if (event.kind === 'session_started') {
+      return event.detail === 'dispatch' || event.detail === 'followup'
+        ? t(`tasks.sessionPurpose.${event.detail}`)
+        : event.detail
+    }
+    return event.detail
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
@@ -268,23 +371,44 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
           ))}
         </select>
 
-        {/* Department is a processor choice, not part of increment 1. The chip
-            is present so the header has its final shape, and disabled so it
-            cannot imply routing that does not exist yet. */}
+        {/* Department is explicit attribution, never a working directory. The
+            empty option is a real choice: a task can be dispatched without a
+            department. A missing id is shown as missing rather than silently
+            rounded to the first department. */}
         <span
-          title={t('tasks.departmentLater')}
-          aria-disabled="true"
+          title={t('tasks.departmentAttribution')}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 4, height: 26,
-            padding: '0 8px', borderRadius: 8, flexShrink: 0,
-            border: '1px dashed var(--border)', background: 'transparent',
-            color: 'var(--text-muted)', fontSize: 11, opacity: 0.8,
+            padding: '0 4px 0 8px', borderRadius: 8, flexShrink: 0,
+            border: '1px solid var(--border)', background: 'var(--bg-hover)',
+            color: 'var(--text-secondary)', fontSize: 11,
           }}
         >
-          <Building2 size={12} />
-          {task.departmentId
-            ? task.departmentId
-            : t('tasks.departmentUnassigned')}
+          {routing
+            ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+            : <Building2 size={12} />}
+          <select
+            value={task.departmentId ?? ''}
+            onChange={e => { void setDepartment(e.target.value) }}
+            disabled={routing}
+            aria-label={t('tasks.department')}
+            title={t('tasks.departmentAttribution')}
+            style={{
+              maxWidth: 190, height: 24, border: 'none', outline: 'none',
+              background: 'transparent', color: 'inherit', fontSize: 11,
+              cursor: routing ? 'default' : 'pointer',
+            }}
+          >
+            <option value="">{t('tasks.departmentNone')}</option>
+            {deptOptions.map(option => (
+              <option key={option.id} value={option.id}>
+                {deptTreeOptionText(option)}
+              </option>
+            ))}
+            {task.departmentId && !deptOptions.some(option => option.id === task.departmentId) && (
+              <option value={task.departmentId}>{t('tasks.departmentNotFound')}</option>
+            )}
+          </select>
         </span>
 
         <span style={{ flex: 1 }} />
@@ -501,45 +625,181 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
           )}
         </aside>
 
-        {/* Conversation area — intentionally empty in increment 1. */}
+        {/* Conversations and dispatch. Dispatch only fills the composer; the
+            send happens in the chat view, by the user. */}
         <section style={{
           flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center', padding: 24,
-          background: 'var(--bg-chat)',
+          background: 'var(--bg-chat)', overflow: 'hidden',
         }}>
-          <div style={{
-            width: '100%', maxWidth: 460, padding: '26px 24px', borderRadius: 14,
-            border: '1px dashed var(--border)', background: 'var(--bg-secondary)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9,
-            textAlign: 'center',
-          }}>
-            <span style={{
-              width: 34, height: 34, borderRadius: 10, display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-              background: 'var(--accent-bg)', border: '1px solid var(--accent-border)',
+          <div style={{ flex: 1, overflowY: 'auto', padding: '18px 22px 24px' }}>
+            <div style={{
+              width: '100%', maxWidth: 680, margin: '0 auto',
+              display: 'flex', flexDirection: 'column', gap: 18,
             }}>
-              <MessageSquare size={16} color="var(--accent-text)" />
-            </span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-              {t('tasks.conversation')}
-            </span>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-              {t('tasks.conversationEmpty')}
-            </span>
-            <span style={{
-              fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
-              color: 'var(--text-subtle)', border: '1px solid var(--border)',
-              borderRadius: 6, padding: '2px 6px',
-            }}>
-              {t('tasks.conversationReserved')}
-            </span>
-            <span title={task.directory} style={{
-              marginTop: 2, fontSize: 10, color: 'var(--text-subtle)',
-              maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap', direction: 'rtl',
-            }}>
-              {task.directory}
-            </span>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <span style={RAIL_HEADING}>
+                    <MessageSquare size={12} />
+                    {t('tasks.conversations')}
+                    <span style={{ color: 'var(--text-subtle)', fontWeight: 500 }}>
+                      {task.sessions.length}
+                    </span>
+                  </span>
+                </div>
+                {task.sessions.length === 0 ? (
+                  <div style={{
+                    padding: '14px 12px', borderRadius: 9, border: '1px dashed var(--border)',
+                    color: 'var(--text-muted)', fontSize: 11, lineHeight: 1.6,
+                  }}>
+                    {t('tasks.conversationsEmpty')}
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {task.sessions.slice().reverse().map(ref => {
+                      const state = presence[ref.sessionId] ?? 'checking'
+                      const openable = state === 'present'
+                      const listed = sessionList.find(session => session.sessionId === ref.sessionId)
+                      const title = taskConversationTitle(listed?.title, task.title)
+                      return (
+                        <button
+                          key={ref.sessionId}
+                          type="button"
+                          disabled={!openable}
+                          onClick={() => { void openConversation(ref) }}
+                          title={openable ? t('tasks.conversationOpen') : undefined}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 9,
+                            width: '100%', padding: '8px 10px', borderRadius: 9,
+                            border: '1px solid var(--border)', background: 'var(--bg-secondary)',
+                            textAlign: 'left', cursor: openable ? 'pointer' : 'default',
+                            opacity: state === 'missing' ? 0.8 : 1,
+                          }}
+                        >
+                          <span style={{
+                            width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            border: '1px solid var(--border)',
+                            background: state === 'missing' ? 'rgba(251,191,36,0.10)' : 'var(--accent-bg)',
+                            color: state === 'missing' ? 'var(--warning)' : 'var(--accent-text)',
+                          }}>
+                            {state === 'present'
+                              ? <CheckCircle2 size={13} />
+                              : state === 'checking'
+                                ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+                                : <AlertTriangle size={13} />}
+                          </span>
+                          <span style={{ flex: 1, minWidth: 0 }}>
+                            <span style={{
+                              display: 'block', fontSize: 11.5, fontWeight: 600,
+                              color: 'var(--text-primary)', overflow: 'hidden',
+                              textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            }}>
+                              {title}
+                            </span>
+                            <span style={{
+                              display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+                              marginTop: 2, fontSize: 9, color: 'var(--text-subtle)',
+                            }}>
+                              <span style={{
+                                border: '1px solid var(--border)', borderRadius: 5,
+                                padding: '0 4px', fontWeight: 600,
+                              }}>
+                                {t(`tasks.sessionPurpose.${ref.purpose}`)}
+                              </span>
+                              <span>{formatTaskTime(ref.startedAt, resolvedLocale)}</span>
+                              {state === 'checking' && <span>{t('tasks.conversationChecking')}</span>}
+                              {state === 'missing' && (
+                                <span style={{ color: 'var(--warning)' }}>{t('tasks.conversationMissing')}</span>
+                              )}
+                            </span>
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div style={{
+                padding: '16px 16px 14px', borderRadius: 12,
+                border: '1px solid var(--border)', background: 'var(--bg-secondary)',
+                display: 'flex', flexDirection: 'column', gap: 10,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{
+                    width: 28, height: 28, borderRadius: 8, display: 'inline-flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    background: 'var(--accent-bg)', border: '1px solid var(--accent-border)',
+                  }}>
+                    <Send size={13} color="var(--accent-text)" />
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{
+                      display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)',
+                    }}>
+                      {purpose === 'dispatch' ? t('tasks.dispatch') : t('tasks.dispatchFollowup')}
+                    </span>
+                    <span style={{ display: 'block', marginTop: 2, fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                      {purpose === 'dispatch' ? t('tasks.dispatchHint') : t('tasks.dispatchFollowupHint')}
+                    </span>
+                  </span>
+                </div>
+
+                <div>
+                  <div style={{ ...RAIL_HEADING, marginBottom: 5 }}>
+                    {t('tasks.briefPreview')}
+                  </div>
+                  <pre
+                    aria-label={t('tasks.briefPreview')}
+                    style={{
+                      margin: 0, padding: '9px 10px', borderRadius: 8,
+                      border: '1px solid var(--border)', background: 'var(--bg-chat)',
+                      color: 'var(--text-secondary)', fontSize: 10.5, lineHeight: 1.55,
+                      fontFamily: 'inherit', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                      maxHeight: 210, overflowY: 'auto',
+                    }}
+                  >
+                    {brief}
+                  </pre>
+                </div>
+
+                {purpose === 'followup' && (
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                    {t('tasks.dispatchFollowupNew')}
+                  </div>
+                )}
+
+                {task.missing ? (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '7px 9px',
+                    borderRadius: 7, background: 'rgba(251,191,36,0.08)',
+                    color: 'var(--warning)', fontSize: 10.5,
+                  }}>
+                    <AlertTriangle size={12} />
+                    {t('tasks.dispatchBlockedMissing')}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={dispatch}
+                    aria-label={purpose === 'dispatch' ? t('tasks.dispatch') : t('tasks.dispatchFollowup')}
+                    style={{
+                      alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center',
+                      gap: 6, height: 30, padding: '0 13px', borderRadius: 8,
+                      border: '1px solid var(--accent-border)', background: 'var(--accent-bg)',
+                      color: 'var(--accent-text)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
+                    }}
+                  >
+                    <Send size={12} />
+                    {purpose === 'dispatch' ? t('tasks.dispatch') : t('tasks.dispatchFollowup')}
+                  </button>
+                )}
+
+                <div style={{ fontSize: 9.5, color: 'var(--text-subtle)', lineHeight: 1.5 }}>
+                  {t('tasks.dispatchDepartmentOptional')}
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -561,34 +821,37 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
                 {t('tasks.historyEmpty')}
               </div>
             ) : (
-              task.history.slice().reverse().map((event, index) => (
-                <div key={`${event.at}-${index}`} style={{
-                  display: 'flex', gap: 7, padding: '5px 0',
-                  borderBottom: index === task.history.length - 1 ? 'none' : '1px solid var(--border)',
-                }}>
-                  <span style={{
-                    width: 6, height: 6, borderRadius: '50%', marginTop: 4, flexShrink: 0,
-                    background: event.kind === 'folder_missing' ? 'var(--warning)' : 'var(--accent)',
-                  }} />
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 10.5, color: 'var(--text-secondary)', lineHeight: 1.35 }}>
-                      {t(`tasks.event.${event.kind}`)}
-                    </div>
-                    {event.detail && (
-                      <div title={event.detail} style={{
-                        fontSize: 9, color: 'var(--text-subtle)', marginTop: 1,
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>
-                        {event.detail}
+              task.history.map((event, index) => {
+                const detail = historyDetail(event)
+                return (
+                  <div key={`${event.at}-${index}`} style={{
+                    display: 'flex', gap: 7, padding: '5px 0',
+                    borderBottom: index === task.history.length - 1 ? 'none' : '1px solid var(--border)',
+                  }}>
+                    <span style={{
+                      width: 6, height: 6, borderRadius: '50%', marginTop: 4, flexShrink: 0,
+                      background: event.kind === 'folder_missing' ? 'var(--warning)' : 'var(--accent)',
+                    }} />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 10.5, color: 'var(--text-secondary)', lineHeight: 1.35 }}>
+                        {t(`tasks.event.${event.kind}`)}
                       </div>
-                    )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 2, fontSize: 9, color: 'var(--text-subtle)' }}>
-                      <Clock size={8} />
-                      {formatTaskTime(event.at, resolvedLocale)}
+                      {detail && (
+                        <div title={detail} style={{
+                          fontSize: 9, color: 'var(--text-subtle)', marginTop: 1,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                          {detail}
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 2, fontSize: 9, color: 'var(--text-subtle)' }}>
+                        <Clock size={8} />
+                        {formatTaskTime(event.at, resolvedLocale)}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                )
+              })
             )}
           </div>
         </aside>

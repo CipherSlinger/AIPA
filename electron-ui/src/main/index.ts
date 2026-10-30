@@ -16,6 +16,7 @@ import { ptyManager } from './pty/pty-manager'
 import { listSessions } from './sessions/session-reader'
 import { saveNow as saveSessionIndexNow } from './sessions/session-index-cache'
 import { getPref, setPref } from './config/config-manager'
+import { clearActiveSession } from './active-session'
 import { claimSummonChord, summonWindowActions, type SummonChord } from './window/summon'
 import {
   CLIPBOARD_QUICK_ACTION_CHORD,
@@ -133,6 +134,12 @@ function createWindow(): void {
   }
 
   mainWindow = new BrowserWindow(windowOptions)
+
+  // A renderer reload makes the chat view unknown. A conversation the renderer
+  // restores re-reports itself through `session:detectInterruption` or
+  // `session:setActive`; keeping the previous pointer would let the pet's quick
+  // command label a fresh draft with the conversation from before the reload.
+  mainWindow.webContents.on('did-start-loading', () => clearActiveSession())
 
   // Restore maximized state after window is created
   if (savedBounds?.isMaximized) {
@@ -458,7 +465,7 @@ function rebuildAppMenu(recentSessionItems: Electron.MenuItemConstructorOptions[
     {
       label: 'File',
       submenu: [
-        { label: 'New Session', accelerator: 'CmdOrCtrl+N', click: () => mainWindow?.webContents.send('menu:newSession') },
+        { label: 'New Session', accelerator: 'CmdOrCtrl+N', click: () => { clearActiveSession(); mainWindow?.webContents.send('menu:newSession') } },
         { label: 'Open Folder...', accelerator: 'CmdOrCtrl+O', click: () => mainWindow?.webContents.send('menu:openFolder') },
         {
           label: 'Recent Sessions',
@@ -673,6 +680,7 @@ function rebuildTrayMenu(options: { reuseSessionCache?: boolean } = {}): void {
       click: () => {
         mainWindow?.show()
         mainWindow?.focus()
+        clearActiveSession()
         mainWindow?.webContents.send('menu:newSession')
       },
     },

@@ -159,6 +159,8 @@
       "sourceGlobal": "Default folder for new conversations",
       "sourceHome": "Home directory — no working folder has been set",
       "sourceRecorded": "Recorded in this conversation's transcript",
+      "sourceTask": "Task folder — where this task's work happens",
+      "taskFolderHint": "This conversation belongs to a task, so it always runs in the task folder.",
       "clickHint": "Click to change the folder",
       "goneHint": "This folder no longer exists. Click for options.",
       "popoverRecordedTitle": "This conversation runs in {{path}}",
@@ -5433,6 +5435,34 @@
     "conversation": "Conversation",
     "conversationEmpty": "This task's conversation will appear here once dispatch lands. For now the task owns its folder and materials only.",
     "conversationReserved": "Reserved for the next increment",
+    "department": "Department",
+    "departmentNone": "No department",
+    "departmentNotFound": "Department no longer exists",
+    "departmentAttribution": "Department is attribution only. Conversations still run in the task folder, never the department folder.",
+    "dispatch": "Dispatch",
+    "dispatchFollowup": "Follow up",
+    "dispatchHint": "Opens the chat with this brief already in the composer. Nothing is sent until you press send there.",
+    "dispatchFollowupHint": "Opens a new conversation in the same task folder, with the brief in the composer. The earlier conversation stays below.",
+    "dispatchFollowupNew": "This follow-up starts a new conversation in the task folder; it does not resume the earlier one.",
+    "dispatchBlockedMissing": "The task folder is missing. A conversation cannot run in it until the folder is back.",
+    "dispatchDepartmentOptional": "You can dispatch without a department. A department is a label on the task, not the folder the work runs in.",
+    "briefPreview": "What will be filled in",
+    "briefHeading": "Task: {{title}}",
+    "briefFolder": "Work inside this task's folder — this conversation's working directory:\n{{directory}}",
+    "briefMaterialsHeading": "Materials in this task (copies inside materials/):",
+    "briefMaterialsNone": "This task has no materials yet. Do not assume any file exists in materials/.",
+    "briefMaterialRow": "- {{path}} (imported as {{name}})",
+    "briefInstruction": "Keep every file you create inside the task folder. Put deliverables in output/ and notes in notes/. Ask me before changing anything outside it.",
+    "briefFollowup": "This is a follow-up conversation on the same task. The earlier conversations remain in the task's history.",
+    "conversations": "Conversations",
+    "conversationsEmpty": "No conversation yet. Dispatch this task to start one in its folder.",
+    "conversationOpen": "Open conversation",
+    "conversationChecking": "Checking the conversation file…",
+    "conversationMissing": "Conversation file is missing",
+    "sessionPurpose": {
+      "dispatch": "Dispatch",
+      "followup": "Follow-up"
+    },
     "history": "History",
     "historyEmpty": "No activity yet.",
     "event": {
@@ -5443,7 +5473,10 @@
       "status_changed": "Status changed",
       "moved": "Folder moved",
       "folder_missing": "Folder missing",
-      "restored": "Restored"
+      "restored": "Restored",
+      "routed": "Department assigned",
+      "reassigned": "Department changed",
+      "session_started": "Conversation started"
     },
     "error": {
       "load": "Could not read tasks.",
@@ -5455,7 +5488,12 @@
       "materials": "The files could not be added.",
       "removeMaterial": "The material could not be removed.",
       "reveal": "The folder could not be opened.",
-      "missing": "The task's folder is missing."
+      "missing": "The task's folder is missing.",
+      "route": "The department could not be saved.",
+      "linkSession": "The conversation finished but could not be added to the task. Send again to retry, or check that the task file is writable.",
+      "openConversation": "The conversation could not be opened.",
+      "dispatchMissing": "The task folder is missing, so it cannot be dispatched.",
+      "tabLimit": "Too many tabs are open. Close one and try again."
     }
   }
 }

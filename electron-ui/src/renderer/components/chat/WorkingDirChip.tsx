@@ -43,6 +43,7 @@ function sourceLabelKey(source: WorkingDirChipSource): string | null {
     case 'global': return 'chat.workingDir.sourceGlobal'
     case 'home': return 'chat.workingDir.sourceHome'
     case 'recorded': return 'chat.workingDir.sourceRecorded'
+    case 'task': return 'chat.workingDir.sourceTask'
     case 'none': return null
   }
 }
@@ -54,6 +55,14 @@ export default function WorkingDirChip({ sessionId }: Props) {
   // Primitive selectors: a tab's title or snapshot changing must not re-render
   // a line that only cares about its folder.
   const tabCwd = useChatStore(s => s.tabs.find(tab => tab.id === s.activeTabId)?.cwd ?? '')
+  // null = not a task tab, so the ordinary recorded-folder precedence below
+  // still applies to ad-hoc conversations. The task folder is the folder the
+  // send path uses even after the conversation has a transcript, so the line
+  // must name it rather than the folder the rollout happened to record.
+  const taskTabCwd = useChatStore(s => {
+    const tab = s.tabs.find(item => item.id === s.activeTabId)
+    return tab?.task ? (tab.cwd ?? '') : null
+  })
   const activeTabId = useChatStore(s => s.activeTabId)
   const recordedCwd = useSessionStore(s =>
     (sessionId ? s.sessions.find(item => item.sessionId === sessionId)?.cwd : '') ?? '',
@@ -66,7 +75,14 @@ export default function WorkingDirChip({ sessionId }: Props) {
     () => null,
   )
 
-  const view = workingDirChipModel({ tabCwd, globalDir, homeDir, recordedCwd, goneDir })
+  const view = workingDirChipModel({
+    tabCwd: taskTabCwd ?? tabCwd,
+    globalDir,
+    homeDir,
+    recordedCwd,
+    goneDir,
+    taskFolder: taskTabCwd !== null,
+  })
   // The transcript is the authority on where a recorded conversation runs; the
   // tab's folder only describes what a *new* conversation would inherit.
   const recordedFolder = goneDir || recordedCwd || ''
@@ -169,14 +185,18 @@ export default function WorkingDirChip({ sessionId }: Props) {
 
   const isGone = view.state === 'gone'
   const sourceKey = sourceLabelKey(view.source)
-  const title = isGone
-    ? `${view.dir}\n${t('chat.workingDir.goneHint')}`
-    : [view.dir, sourceKey ? t(sourceKey) : '', t('chat.workingDir.clickHint')].filter(Boolean).join('\n')
+  const title = view.locked
+    ? `${view.dir}\n${t('chat.workingDir.taskFolderHint')}`
+    : isGone
+      ? `${view.dir}\n${t('chat.workingDir.goneHint')}`
+      : [view.dir, sourceKey ? t(sourceKey) : '', t('chat.workingDir.clickHint')].filter(Boolean).join('\n')
 
   // Every click opens the popover, drafts included: the OS dialog is a long walk
   // to a path the app may already have, so it moves behind a Browse row instead
-  // of being the first and only thing a click can do.
+  // of being the first and only thing a click can do. A task's folder is the
+  // exception: the task owns it, so there is no honest pick to offer.
   const openOnClick = () => {
+    if (view.locked) return
     const next = isGone ? 'gone' : view.target === 'new_conversation' ? 'recorded' : 'draft'
     setPopover(open => (open ? null : next))
   }
@@ -212,6 +232,7 @@ export default function WorkingDirChip({ sessionId }: Props) {
         onClick={openOnClick}
         title={title}
         aria-label={title}
+        aria-disabled={view.locked || undefined}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -227,12 +248,18 @@ export default function WorkingDirChip({ sessionId }: Props) {
           lineHeight: '12px',
           fontFamily: 'inherit',
           color: isGone ? 'rgba(251,191,36,0.92)' : 'var(--text-muted)',
-          cursor: 'pointer',
+          cursor: view.locked ? 'default' : 'pointer',
           textAlign: 'left',
           transition: 'color 0.15s ease',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = isGone ? '#fbbf24' : 'var(--text-secondary)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = isGone ? 'rgba(251,191,36,0.92)' : 'var(--text-muted)' }}
+        onMouseEnter={(e) => {
+          if (view.locked) return
+          e.currentTarget.style.color = isGone ? '#fbbf24' : 'var(--text-secondary)'
+        }}
+        onMouseLeave={(e) => {
+          if (view.locked) return
+          e.currentTarget.style.color = isGone ? 'rgba(251,191,36,0.92)' : 'var(--text-muted)'
+        }}
       >
         {isGone
           ? <AlertTriangle size={11} style={{ flexShrink: 0 }} />

@@ -38,6 +38,32 @@ export interface TabSnapshot {
   draftDepartmentId: string | undefined
 }
 
+/**
+ * A tab that belongs to a task. The binding is what lets the task learn its
+ * conversation: after a completed turn, the result handler reads it and records
+ * `taskId` + `purpose` on the task record. `linked` flips once that row exists,
+ * so a reload or a result echo cannot append the same session twice.
+ *
+ * The task folder is carried by `TabInfo.cwd` and wins over the global folder;
+ * `purpose` is only what a *new* conversation in this tab would be recorded as.
+ */
+export interface TaskTabBinding {
+  taskId: string
+  purpose: 'dispatch' | 'followup'
+  linked: boolean
+}
+
+export interface TaskTabParams {
+  taskId: string
+  title: string
+  /** The task directory. This tab's turns run here, never in a department folder. */
+  directory: string
+  /** Purpose a new conversation in this tab would be recorded with. */
+  purpose: 'dispatch' | 'followup'
+  /** True when the tab is opening an already-recorded conversation. */
+  linked?: boolean
+}
+
 export interface TabInfo {
   id: string
   sessionId: string | null
@@ -45,6 +71,15 @@ export interface TabInfo {
   snapshot: TabSnapshot | null  // null = this tab's state is "live" (in the flat chatStore fields)
   /** Per-tab working directory override. undefined = fall back to global prefs.workingDir */
   cwd?: string
+  /** Present only on tabs opened for a task. */
+  task?: TaskTabBinding
+  /**
+   * The bridge that owns this tab's current conversation. Only task tabs read
+   * and write it: an ad-hoc tab keeps using the hook's single active bridge,
+   * while a task tab must never inherit a bridge from the conversation the
+   * user was looking at before it.
+   */
+  bridgeId?: string
 }
 
 // ── Codex turn diff (turn/diff/updated) ──────────
@@ -223,6 +258,22 @@ const MANUAL_TITLE_KEY_PREFIX = 'aipa:session-manual-title:'
 
 // Module-level cache for scroll positions — avoids Zustand re-renders on every scroll event
 const tabScrollTopCache = new Map<string, number>()
+
+/**
+ * Report which conversation the chat view is showing to the main process, so
+ * the pet's quick command can continue it by default instead of opening a new
+ * thread per ask. A draft (new chat, task tab without a session yet) reports
+ * `null` and clears the pointer. The call is fire-and-forget: the quick command
+ * bar degrades to "new conversation" when main has no target, and a renderer
+ * without the bridge (older preload, test harness) must not throw here.
+ */
+function reportActiveSession(sessionId: string | null | undefined, title?: string | null): void {
+  try {
+    window.electronAPI?.sessionSetActive?.(sessionId ?? null, title ?? undefined)
+  } catch {
+    // The bar falls back to a new conversation; nothing in the view depends on it.
+  }
+}
 /** Read the cached scrollTop for a tab (used by TabBar/ChatPanel to restore scroll) */
 export function getTabScrollTop(tabId: string): number {
   return tabScrollTopCache.get(tabId) ?? 0
@@ -581,6 +632,49 @@ interface ChatState {
   updateTabTitle: (tabId: string, title: string) => void
   /** Set (or clear) the per-tab working directory override */
   setTabCwd: (tabId: string, cwd: string | undefined) => void
+  /**
+   * Open (or reuse) a task's draft tab: a new conversation whose cwd is the
+   * task folder and whose first successful turn is recorded on the task.
+   * Snapshots the conversation being left so it stays reachable, then clears
+   * the live view. Returns '' at the tab limit; the caller must say so.
+   */
+  openTaskDraftTab: (params: TaskTabParams) => string
+  /**
+   * Put the active view on a task tab, creating one only when the task has no
+   * tab yet. Used when opening a recorded conversation; the caller loads the
+   * transcript afterwards. Any bridge owned by the tab is forgotten, so a turn
+   * from another conversation can never be reused here.
+   */
+  ensureTaskTab: (params: TaskTabParams) => string
+  /** Record which conversation this tab now shows (after a link or a load). */
+  setTabSession: (tabId: string, sessionId: string, title?: string) => void
+  /** Mark whether the task record already names this tab's conversation. */
+  setTabTaskLinked: (tabId: string, linked: boolean) => void
+  /** Remember (or forget) the bridge that owns this task tab's conversation. */
+  setTabBridgeId: (tabId: string, bridgeId: string | undefined) => void
+}
+
+/**
+ * Freeze the live conversation into a tab snapshot. The shape is the same one
+ * `switchTab` writes, so leaving a conversation for a task tab and coming back
+ * restores exactly what switching tabs would have restored.
+ */
+function snapshotOf(state: ChatState, tabId: string): TabSnapshot {
+  return {
+    messages: state.messages,
+    sessionId: state.currentSessionId,
+    sessionTitle: state.currentSessionTitle,
+    scrollTop: tabScrollTopCache.get(tabId) ?? 0,
+    totalSessionCost: state.totalSessionCost,
+    lastCost: state.lastCost,
+    lastUsage: state.lastUsage,
+    lastContextUsage: state.lastContextUsage,
+    modelUsage: state.modelUsage,
+    sessionPersonaId: state.sessionPersonaId,
+    sessionModelOverride: state.sessionModelOverride,
+    sessionEffortOverride: state.sessionEffortOverride,
+    draftDepartmentId: state.draftDepartmentId,
+  }
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -951,6 +1045,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       lastResultUuid: null,
       fastModeState: null,
     })
+    // A cleared view has no conversation; the pet's quick command must not
+    // continue the one that was just wiped.
+    reportActiveSession(null)
   },
   loadHistory: (messages) => {
     recountUserMessages(messages)
@@ -1420,6 +1517,115 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }))
   },
 
+  openTaskDraftTab: (params) => {
+    const state = get()
+    // Reuse the task's own unsent draft, if it still has one. A tab that has
+    // already linked a conversation is not a draft: dispatching again from the
+    // task means a new conversation in the same folder, which needs its own
+    // bridge and its own row.
+    const reusable = state.tabs.find(tab =>
+      tab.task?.taskId === params.taskId
+      && tab.task.purpose === params.purpose
+      && !tab.task.linked
+      && tab.sessionId === null
+    )
+    if (reusable) {
+      if (state.activeTabId !== reusable.id) state.switchTab(reusable.id)
+      get().setTabCwd(reusable.id, params.directory)
+      return reusable.id
+    }
+    if (state.tabs.length >= 8) return ''
+
+    // Preserve the conversation being left before the live fields are reset.
+    // A live tab becomes a snapshot; a conversation with no tab at all becomes
+    // the initial tab, exactly as openTab would have made it.
+    let tabs = state.tabs
+    if (state.activeTabId) {
+      tabs = tabs.map(tab => tab.id === state.activeTabId && tab.snapshot === null
+        ? { ...tab, snapshot: snapshotOf(state, tab.id) }
+        : tab)
+    } else if (tabs.length === 0 && (state.messages.length > 0 || state.currentSessionId)) {
+      const initialId = `tab-${Date.now()}-init`
+      tabs = [{
+        id: initialId,
+        sessionId: state.currentSessionId,
+        title: state.currentSessionTitle || 'Chat',
+        snapshot: snapshotOf(state, initialId),
+      }]
+    }
+
+    const tabId = `tab-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+    const newTab: TabInfo = {
+      id: tabId,
+      sessionId: null,
+      title: params.title,
+      snapshot: null,
+      cwd: params.directory,
+      task: { taskId: params.taskId, purpose: params.purpose, linked: params.linked === true },
+    }
+    // clearMessages is the store's new-conversation reset: it parks a turn that
+    // is still streaming as an orphan, so the previous conversation's late
+    // deltas cannot land in this task view.
+    get().clearMessages()
+    set({ tabs: [...tabs, newTab], activeTabId: tabId })
+    return tabId
+  },
+
+  ensureTaskTab: (params) => {
+    const state = get()
+    const existing = state.tabs.find(tab => tab.task?.taskId === params.taskId)
+    if (existing) {
+      if (state.activeTabId !== existing.id) state.switchTab(existing.id)
+      set(s => ({
+        tabs: s.tabs.map(tab => tab.id === existing.id
+          ? {
+              ...tab,
+              cwd: params.directory,
+              // A bridge belongs to one conversation. Opening another
+              // conversation in this tab must not leave the old one attached.
+              bridgeId: undefined,
+              task: {
+                taskId: params.taskId,
+                purpose: params.purpose,
+                linked: params.linked ?? true,
+              },
+            }
+          : tab),
+      }))
+      return existing.id
+    }
+    return get().openTaskDraftTab(params)
+  },
+
+  setTabSession: (tabId, sessionId, title) => {
+    set(s => ({
+      tabs: s.tabs.map(tab => tab.id === tabId
+        ? { ...tab, sessionId, ...(title ? { title } : {}) }
+        : tab),
+    }))
+    // A tab that just learned its conversation is the view's conversation when
+    // it is the active one; report only then, so a background tab cannot steal
+    // the pointer from what the user is looking at.
+    const state = get()
+    if (state.activeTabId === tabId) {
+      reportActiveSession(sessionId, title ?? state.currentSessionTitle)
+    }
+  },
+
+  setTabTaskLinked: (tabId, linked) => {
+    set(s => ({
+      tabs: s.tabs.map(tab => tab.id === tabId && tab.task
+        ? { ...tab, task: { ...tab.task, linked } }
+        : tab),
+    }))
+  },
+
+  setTabBridgeId: (tabId, bridgeId) => {
+    set(s => ({
+      tabs: s.tabs.map(tab => tab.id === tabId ? { ...tab, bridgeId } : tab),
+    }))
+  },
+
   openTab: (sessionId, title, messages) => {
     const state = get()
     // Check if already open in a tab
@@ -1689,6 +1895,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // retires it even on this fallback path.
       set({ tabs: updatedTabs, activeTabId: tabId, threadStatus: null, threadGoal: null })
     }
+
+    // The view moved: tell main which conversation is on screen, or that this
+    // tab is still a draft (a task tab before its first turn). The pet's quick
+    // command continues whatever this says.
+    const restored = targetTab.snapshot
+    reportActiveSession(
+      restored ? restored.sessionId : targetTab.sessionId,
+      restored ? restored.sessionTitle : targetTab.title,
+    )
   },
 
   nextTab: () => {

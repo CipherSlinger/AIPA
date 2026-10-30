@@ -188,6 +188,37 @@ function meaningfulPreview(raw: string | undefined): string {
 }
 
 /**
+ * The cheap one-line answer the pet's quick command needs: does this id still
+ * name a Codex thread, and what should its chip call it?
+ *
+ * The session index is the source: one append-only file with the user's thread
+ * name and the CLI's prompt preview. `listSessions()` walks every rollout, which
+ * is far too expensive on the ASK hotkey. Only when the index knows the thread
+ * but carries neither a name nor a preview does this parse its rollout.
+ *
+ * A live bridge is checked by the caller as well: a thread exists before its
+ * first rollout line is flushed. An index row without a readable rollout still
+ * counts as existing — deletion removes the row too, and a stale row makes the
+ * bar offer CONTINUE that the engine then honestly rejects, never a silent new
+ * thread under that label.
+ */
+export function codexSessionTarget(sessionId: string): { exists: boolean; label: string } {
+  if (!isValidSessionId(sessionId)) return { exists: false, label: '' }
+  const entry = readSessionIndex().find(item => sessionIndexId(item) === sessionId)
+  const name = deriveTitle(entry?.thread_name || entry?.name || '')
+  if (name) return { exists: true, label: name }
+  const preview = deriveTitle(meaningfulPreview(entry?.preview))
+  if (preview) return { exists: true, label: preview }
+  const filePath = findSessionFile(sessionId)
+  if (filePath && isSessionPathSafe(filePath)) {
+    const item = parseSessionFile(filePath)
+    if (item) return { exists: true, label: deriveTitle(item.title || item.lastPrompt || '') }
+  }
+  if (entry) return { exists: true, label: '' }
+  return { exists: false, label: '' }
+}
+
+/**
  * Does this id name a Codex thread? Rename must know before it spawns an
  * app-server: a Claude session id is also a UUID, and asking Codex about it
  * costs a process plus a "thread not found" round trip.

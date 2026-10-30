@@ -9,6 +9,7 @@ import type {
   TaskMaterialImportData,
   TaskMutationData,
   TaskRecordData,
+  TaskSessionLinkData,
   TaskStatusData,
 } from '../../preload'
 
@@ -27,6 +28,10 @@ interface TaskState {
   addMaterials: (id: string, paths: string[], source: 'picker' | 'drop' | 'paste') => Promise<TaskMaterialImportData>
   removeMaterial: (id: string, materialId: string) => Promise<TaskMutationData>
   revealTask: (id: string) => Promise<{ ok: boolean; error?: string }>
+  /** Record a completed conversation on the task. Main dedupes by session id. */
+  linkSession: (id: string, input: TaskSessionLinkData) => Promise<TaskMutationData>
+  /** File the task under a department (or clear it); attribution only. */
+  routeTask: (id: string, departmentId: string | null) => Promise<TaskMutationData>
 }
 
 let loadSeq = 0
@@ -167,6 +172,30 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   revealTask: async (id) => {
     try {
       return await window.electronAPI.tasksReveal(id)
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  },
+
+  linkSession: async (id, input) => {
+    try {
+      const result = await window.electronAPI.tasksLinkSession(id, input)
+      if (result.ok && result.task) {
+        set(state => ({ tasks: replaceTask(state.tasks, result.task!) }))
+      }
+      return result
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  },
+
+  routeTask: async (id, departmentId) => {
+    try {
+      const result = await window.electronAPI.tasksRoute(id, departmentId)
+      if (result.ok && result.task) {
+        set(state => ({ tasks: replaceTask(state.tasks, result.task!) }))
+      }
+      return result
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) }
     }

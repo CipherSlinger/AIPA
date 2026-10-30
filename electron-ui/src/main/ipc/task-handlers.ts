@@ -1,5 +1,6 @@
 /**
- * IPC surface for tasks (increment 1: the task foundation).
+ * IPC surface for tasks (increment 1: the task foundation; increment 2:
+ * conversation links and explicit department routing).
  *
  * Every handler that names a task goes through the store's own lookup, so no
  * handler can act on an id that is not in `tasks.json`. Every path arrives from
@@ -21,10 +22,12 @@ import {
   createTask,
   deleteTask,
   getTask,
+  linkTaskSession,
   listTasks,
   moveTask,
   removeMaterial,
   restoreTask,
+  routeTask,
   updateTask,
 } from '../tasks/task-store'
 
@@ -103,6 +106,27 @@ export function registerTaskHandlers(send: Send): void {
 
   safeHandle('tasks:move', (_event, id: unknown, targetRoot: unknown) => {
     const result = moveTask(id, targetRoot)
+    if (result.ok) changed()
+    return result
+  })
+
+  // Increment 2: a completed turn in a task tab becomes one row on the task.
+  // The input is validated by the store; the handler only unwraps it.
+  safeHandle('tasks:linkSession', (_event, id: unknown, input: unknown) => {
+    const payload = input && typeof input === 'object' ? input as Record<string, unknown> : {}
+    const result = linkTaskSession(id, {
+      sessionId: payload.sessionId,
+      purpose: payload.purpose,
+      personaId: payload.personaId,
+    })
+    if (result.ok) changed()
+    return result
+  })
+
+  // Explicit department routing. `null` clears the filing; the task folder and
+  // status are deliberately not touched.
+  safeHandle('tasks:route', (_event, id: unknown, departmentId: unknown) => {
+    const result = routeTask(id, departmentId === undefined ? null : departmentId)
     if (result.ok) changed()
     return result
   })

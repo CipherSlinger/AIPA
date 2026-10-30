@@ -15,21 +15,47 @@ import type { SessionListItem } from '../../types/app.types'
 import { parseSessionMessages } from '../sessions/sessionUtils'
 import { readSessionModelOverride } from '../../lib/sessionModel'
 import { readSessionEffortOverride } from '../../lib/sessionEffort'
-import { sessionWorkingDir, workingDirPresence } from '../../lib/workingDir'
+import { sessionOpenDir, workingDirPresence } from '../../lib/workingDir'
 import { savedInterruptionStore } from '../chat/savedInterruptionStore'
 import { workingDirGoneStore } from '../chat/workingDirNotice'
+
+/** What a task contributes when one of its conversations is reopened. */
+export interface TaskSessionContext {
+  taskId: string
+  title: string
+  /** The task folder. It wins over the session's recorded cwd. */
+  directory: string
+  purpose: 'dispatch' | 'followup'
+}
 
 /**
  * @param origin where the user is opening from. Only the department views get the
  * chat header's "back to department" button — the header hardcodes that
  * destination, so claiming the archive as the origin would send the user
- * somewhere they never were.
+ * somewhere they never were. `task` gets its own origin so a task conversation
+ * never claims to be a department one.
+ * @param task present when the conversation is being opened for a task. Its
+ * directory wins over both the transcript cwd and any department folder.
  */
 export async function openSessionCore(
   session: SessionListItem,
   deptDirectory: string,
-  origin: 'department' | 'archive' = 'department',
+  origin: 'department' | 'archive' | 'task' = 'department',
+  task?: TaskSessionContext,
 ): Promise<void> {
+  // Make sure the conversation has a tab *before* the folder decision below.
+  // Without one, the only place left to put the cwd would be the global
+  // preference — which must never be how a task's folder is chosen. A tab also
+  // carries the task binding that keeps the conversation attached to its task.
+  if (task) {
+    useChatStore.getState().ensureTaskTab({
+      taskId: task.taskId,
+      title: task.title,
+      directory: task.directory,
+      purpose: task.purpose,
+      linked: true,
+    })
+  }
   useUiStore.getState().setMainView('chat')
   useUiStore.getState().closeSettingsModal()
   useUiStore.getState().setFromDepartment(origin === 'department')
@@ -66,12 +92,14 @@ export async function openSessionCore(
   if (effortOverride) useChatStore.getState().setSessionEffortOverride(effortOverride)
   useUiStore.getState().clearUnreadForSession(session.sessionId)
 
-  // Restore the folder too. A Codex transcript records where it ran; that
-  // record beats the department it was filed under, because a department is a
-  // grouping while the cwd is where the work happened. With neither, clear the
-  // tab override: leaving it alone is how a reopened conversation silently
-  // inherited the folder of whatever was open before it.
-  const desired = sessionWorkingDir(session.cwd, deptDirectory)
+  // Restore the folder too. A task directory wins over everything: the task is
+  // the folder of work, while the transcript's cwd may predate it and a
+  // department is only attribution. Outside a task, a Codex transcript's
+  // recorded cwd beats the department it was filed under, because a department
+  // is a grouping while the cwd is where the work happened. With neither,
+  // clear the tab override so the conversation does not silently inherit the
+  // folder of whatever was open before it.
+  const desired = sessionOpenDir(session.cwd, deptDirectory, task?.directory)
   const activeTabId = useChatStore.getState().activeTabId
   if (activeTabId) {
     // The tab is the per-conversation override the send path reads, so this is
@@ -79,10 +107,18 @@ export async function openSessionCore(
     // global preference here — the old behaviour — moved every other
     // conversation's default without saying so.
     useChatStore.getState().setTabCwd(activeTabId, desired)
-  } else if (deptDirectory) {
+    // The tab now shows a recorded conversation, so name it. This is also what
+    // makes a follow-up turn pass its own bridge to the engine instead of the
+    // bridge of whatever was open before.
+    if (task) {
+      useChatStore.getState().setTabSession(activeTabId, loadedSessionId, session.title || task.title)
+    }
+  } else if (!task && deptDirectory) {
     // No tab is open to carry the folder (the panel is not the active view).
     // The old global fallback is all that is left, kept so opening a session
-    // from a roster still lands somewhere sensible instead of nowhere.
+    // from a roster still lands somewhere sensible instead of nowhere. A task
+    // never takes this path: its folder is carried by its tab, and writing the
+    // global preference would move every other conversation's default.
     usePrefsStore.getState().setPrefs({ workingDir: deptDirectory })
     window.electronAPI.prefsSet('workingDir', deptDirectory)
   }

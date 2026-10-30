@@ -178,6 +178,61 @@ body[data-theme="clawd"] .eyebrow::before { box-shadow: none; border-radius: 1px
   color: var(--muted);
 }
 
+/* ── Target chip ─────────────────────────────────────────────────────────────
+   One control, one word: does Enter continue the conversation the user is in,
+   or start a new one? The name is the thread title when the store has one.
+   With no target this is a disabled label, not a dead button. */
+.target {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 240px;
+  flex: 0 1 auto;
+  padding: 2px 6px;
+  border: 1px solid var(--field-border);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+body[data-theme="clawd"] .target {
+  border-radius: 7px;
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.target:hover:not(:disabled),
+.target:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+  outline: none;
+}
+.target[data-mode="continue"] { border-color: var(--line); color: var(--text); }
+.target[data-mode="continue"] .target-mode { color: var(--accent); }
+.target:disabled { cursor: default; }
+.target:disabled:hover { border-color: var(--field-border); color: var(--muted); }
+.target[data-mode="continue"]:disabled:hover { color: var(--text); }
+.target-mode { flex: none; }
+.target-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  opacity: 0.88;
+}
+.target-dot { flex: none; opacity: 0.55; }
+.target-swap { flex: none; font-size: 9px; opacity: 0.55; }
+
 /* ── Input ────────────────────────────────────────────────────────────────── */
 .field {
   display: flex;
@@ -296,6 +351,7 @@ kbd {
 
 @media (prefers-reduced-motion: reduce) {
   .panel { transition: none; }
+  .target { transition: none; }
   .scan { animation: none; opacity: 0.35; }
   .progress span { animation: none; width: 100%; opacity: 0.35; }
 }
@@ -306,6 +362,12 @@ kbd {
   <div class="scan" aria-hidden="true"></div>
   <div class="head">
     <span class="eyebrow" id="eyebrow">ASK</span>
+    <button class="target" id="target" type="button" data-mode="new">
+      <span class="target-mode" id="targetMode">New conversation</span>
+      <span class="target-dot" id="targetDot" aria-hidden="true" hidden>·</span>
+      <span class="target-name" id="targetName" hidden></span>
+      <span class="target-swap" id="targetSwap" aria-hidden="true" hidden>⇄</span>
+    </button>
     <span class="spacer"></span>
     <span class="status" id="status" aria-live="polite"></span>
   </div>
@@ -337,6 +399,11 @@ kbd {
   var progress = document.getElementById("progress");
   var sendHint = document.getElementById("sendHint");
   var cancelHint = document.getElementById("cancelHint");
+  var targetEl = document.getElementById("target");
+  var targetMode = document.getElementById("targetMode");
+  var targetDot = document.getElementById("targetDot");
+  var targetName = document.getElementById("targetName");
+  var targetSwap = document.getElementById("targetSwap");
 
   var labels = {
     ask: "Quick command",
@@ -354,7 +421,14 @@ kbd {
     errorTitle: "Quick command failed",
     errorPill: "ERROR",
     metaTime: "TIME",
-    metaTools: "TOOLS"
+    metaTools: "TOOLS",
+    continueChip: "Continue",
+    newChip: "New conversation",
+    switchToNew: "Click to start a new conversation",
+    switchToContinue: "Click to continue this conversation",
+    continueFailed: "Could not continue this conversation",
+    continueUnavailable: "That conversation can no longer be continued. Start a new one instead.",
+    untitledThread: "Untitled conversation"
   };
 
   var ready = false;
@@ -363,6 +437,9 @@ kbd {
   // True only for the keystroke that confirmed an IME composition. The submit
   // event fires during that same keydown, before the flag can be cleared.
   var imeEnter = false;
+  // Captured by main on open, reset on every open. The page only chooses a
+  // mode; it never sees or sends the thread id.
+  var target = { canContinue: false, mode: "new", label: "" };
 
   function applyLabels() {
     eyebrow.textContent = labels.ask;
@@ -371,6 +448,27 @@ kbd {
     sendHint.textContent = labels.send;
     cancelHint.textContent = labels.cancel;
     panel.setAttribute("aria-label", labels.ask);
+  }
+
+  /**
+   * Paint the one-word decision. `CONTINUE · <name>` when the captured target
+   * exists, otherwise `NEW CONVERSATION`. The chip is a real button only when
+   * there is something to switch to; with one state it is a disabled label and
+   * still says what Enter will do.
+   */
+  function renderTarget() {
+    var cont = target.canContinue && target.mode === "continue";
+    var name = cont ? (target.label || labels.untitledThread) : "";
+    targetEl.dataset.mode = cont ? "continue" : "new";
+    targetMode.textContent = cont ? labels.continueChip : labels.newChip;
+    targetName.textContent = name;
+    targetName.hidden = !name;
+    targetDot.hidden = !name;
+    targetSwap.hidden = !target.canContinue;
+    targetEl.title = cont
+      ? labels.switchToNew
+      : (target.canContinue ? labels.switchToContinue : "");
+    targetEl.disabled = pending || !target.canContinue;
   }
 
   function clearError() {
@@ -397,6 +495,8 @@ kbd {
       // text still in place so the user can correct and retry.
       try { input.focus(); } catch (err) { /* window is going away */ }
     }
+    // A pending turn owns the target; the choice must not change mid-flight.
+    renderTarget();
   }
 
   function submit() {
@@ -416,7 +516,9 @@ kbd {
     }
     if (!api) return;
     setPending(true);
-    api.submit(value);
+    // Defensive: a stale mode can never ask main to continue without a target.
+    var mode = target.canContinue && target.mode === "continue" ? "continue" : "new";
+    api.submit(value, mode);
   }
 
   function show(payload) {
@@ -432,6 +534,15 @@ kbd {
     document.body.dataset.theme = data.theme === "clawd" ? "clawd" : "sao";
     applyLabels();
 
+    // Every open starts on main's default (CONTINUE only when it can name a
+    // live, still-existing thread). The choice is per ask, never sticky.
+    var incoming = data.target || {};
+    target = {
+      canContinue: incoming.canContinue === true,
+      mode: incoming.mode === "continue" && incoming.canContinue === true ? "continue" : "new",
+      label: typeof incoming.label === "string" ? incoming.label : ""
+    };
+
     pending = false;
     composing = false;
     input.value = "";
@@ -439,6 +550,7 @@ kbd {
     progress.hidden = true;
     status.textContent = "";
     clearError();
+    renderTarget();
     // A busy user-facing turn is a precondition, not a failed attempt: say so
     // up front, but leave the field usable in case that turn stops meanwhile.
     if (data.busy === true) showError(labels.busy, "busy");
@@ -454,6 +566,19 @@ kbd {
   form.addEventListener("submit", function (event) {
     event.preventDefault();
     submit();
+  });
+
+  // One click flips the decision. Activating the chip with Enter is a button
+  // click, not a form submit, so the field's IME guard is untouched. An error
+  // that described the previous choice is cleared; "busy"/"empty" are
+  // preconditions and stay.
+  targetEl.addEventListener("click", function (event) {
+    event.preventDefault();
+    if (pending || !target.canContinue) return;
+    target.mode = target.mode === "continue" ? "new" : "continue";
+    if (errorEl.dataset.kind === "error") clearError();
+    renderTarget();
+    try { input.focus(); } catch (err) { /* window may be going away */ }
   });
 
   input.addEventListener("compositionstart", function () {

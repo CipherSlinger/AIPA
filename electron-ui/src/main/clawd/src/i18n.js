@@ -170,6 +170,15 @@ const i18n = {
     quickCommandErrorPill: "ERROR",
     quickCommandMetaTime: "TIME",
     quickCommandMetaTools: "TOOLS",
+    // Target chip: whether Enter continues the open conversation or starts a
+    // new one. The HUD skin uppercases the chip in CSS.
+    quickCommandContinueChip: "Continue",
+    quickCommandNewChip: "New conversation",
+    quickCommandSwitchToNew: "Click to start a new conversation",
+    quickCommandSwitchToContinue: "Click to continue this conversation",
+    quickCommandContinueFailed: "Could not continue this conversation",
+    quickCommandContinueUnavailable: "That conversation can no longer be continued. Start a new one instead.",
+    quickCommandUntitledThread: "Untitled conversation",
   },
   zh: {
     size: "大小",
@@ -320,6 +329,13 @@ const i18n = {
     quickCommandErrorPill: "错误",
     quickCommandMetaTime: "耗时",
     quickCommandMetaTools: "工具",
+    quickCommandContinueChip: "继续",
+    quickCommandNewChip: "新对话",
+    quickCommandSwitchToNew: "点击开始新对话",
+    quickCommandSwitchToContinue: "点击继续此对话",
+    quickCommandContinueFailed: "无法继续此对话",
+    quickCommandContinueUnavailable: "该对话已无法继续，请改为开始新对话。",
+    quickCommandUntitledThread: "未命名对话",
   },
   ko: {
     size: "크기",
@@ -470,6 +486,13 @@ const i18n = {
     quickCommandErrorPill: "오류",
     quickCommandMetaTime: "시간",
     quickCommandMetaTools: "도구",
+    quickCommandContinueChip: "이어서",
+    quickCommandNewChip: "새 대화",
+    quickCommandSwitchToNew: "클릭하여 새 대화 시작",
+    quickCommandSwitchToContinue: "클릭하여 이 대화 이어가기",
+    quickCommandContinueFailed: "이 대화를 이어갈 수 없습니다",
+    quickCommandContinueUnavailable: "이 대화를 더 이상 이어갈 수 없습니다. 새 대화를 시작하세요.",
+    quickCommandUntitledThread: "제목 없는 대화",
   },
 };
 

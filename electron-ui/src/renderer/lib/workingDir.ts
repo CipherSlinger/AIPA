@@ -66,6 +66,27 @@ export function sessionWorkingDir(
 }
 
 /**
+ * The single decision for "which folder does this opened conversation run in
+ * when it was opened *for a task*?".
+ *
+ * The task directory wins over both the transcript's recorded cwd and the
+ * department the task is filed under. A task is a folder of work; a department
+ * is attribution. If the conversation is attached to a task, letting a stale
+ * rollout cwd (or a department directory) decide would move the next turn out
+ * of the folder the user believes the task owns. Only when there is no task
+ * context does this fall back to the ordinary session/department rule.
+ */
+export function sessionOpenDir(
+  sessionCwd: string | null | undefined,
+  deptDirectory: string | null | undefined,
+  taskDirectory: string | null | undefined,
+): string | undefined {
+  const fromTask = trimmed(taskDirectory)
+  if (fromTask) return fromTask
+  return sessionWorkingDir(sessionCwd, deptDirectory)
+}
+
+/**
  * A path reduced to what two of them can be compared on: the same folder
  * spelled with a trailing separator or different case is the same folder, and
  * telling the user it changed would be a lie. Windows is case-insensitive;

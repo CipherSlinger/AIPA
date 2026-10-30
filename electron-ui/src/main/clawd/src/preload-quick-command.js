@@ -21,6 +21,11 @@ contextBridge.exposeInMainWorld("quickCommandAPI", {
   onError: (cb) => subscribe("quick-command-error", cb),
   onFocus: (cb) => subscribe("quick-command-focus", cb),
   ready: () => ipcRenderer.send("quick-command-ready"),
-  submit: (text) => ipcRenderer.send("quick-command-submit", String(text || "")),
+  // The page states its choice, never an id: main holds the captured target.
+  submit: (text, mode) =>
+    ipcRenderer.send("quick-command-submit", {
+      prompt: String(text || ""),
+      mode: mode === "continue" ? "continue" : "new",
+    }),
   close: () => ipcRenderer.send("quick-command-close"),
 });
