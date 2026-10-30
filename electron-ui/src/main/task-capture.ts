@@ -479,6 +479,20 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
   }
 
   /**
+   * Tell an open AIPA that the store changed, without taking focus. The store
+   * was written here, in main, so no IPC mutation broadcasted it; the list, the
+   * counts and the pet's badge would otherwise keep the copy they read before
+   * the capture. The stay path needs this most: the bar keeps the keyboard, so
+   * nothing else in the app is going to notice the new tasks until the user
+   * switches to AIPA by hand.
+   */
+  function notifyTasksChanged(): void {
+    withClawdMainWindow(win => {
+      if (!win.isDestroyed()) win.webContents.send('tasks:changed')
+    })
+  }
+
+  /**
    * Focus AIPA and open the Tasks view. The store was written from main, not
    * through the IPC broadcast, so the open list is told before the view
    * switches; otherwise the task the notice just announced could be missing
@@ -624,6 +638,9 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
       // The page's walk is local. Hand it the list main now holds so ↑ recalls
       // the line filed a moment ago instead of the copy from the open.
       sendToBar('task-capture-saved', { history: history.slice() })
+      // The bar stays in front; an open Tasks view would otherwise not learn
+      // about this entry until some other mutation broadcasted a change.
+      notifyTasksChanged()
       return
     }
 

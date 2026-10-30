@@ -576,6 +576,9 @@ body { padding: 6px; }
 /* A deadline is a reminder, not a failure: a calm slate, quieter than the
    info blue and never the warning amber. */
 .card[data-kind="due"]           { --hud-accent: #8ea9c9; }
+/* The week's summary: warm gold, so a Monday morning can tell "here is what
+   you did" apart from "here is what is late" at a glance. */
+.card[data-kind="review"]        { --hud-accent: #e0b25c; }
 
 @media (prefers-reduced-motion: reduce) {
   .card[data-theme="sao"]::after,
@@ -662,12 +665,15 @@ const KIND_ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.4 9.2a2.7 2.7 0 0 1 5.2.9c0 1.8-2.6 2.2-2.6 3.7"/><circle cx="12" cy="17.1" r="0.9" fill="currentColor" stroke="none"/></svg>',
   due:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><circle cx="12" cy="15.2" r="1.2" fill="currentColor" stroke="none"/></svg>',
+  // The same calendar, checked off: a week that has already happened.
+  review:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><path d="m9 14.7 2 2 4-4.2"/></svg>',
 };
 
 const EYEBROW_STRINGS = {
-  en: { system: "SYSTEM", info: "NOTICE", success: "NOTICE", warning: "ALERT", error: "ALERT", quest: "QUEST", approval: "ALERT", clarification: "INPUT", due: "DUE" },
-  zh: { system: "系统", info: "通知", success: "通知", warning: "警报", error: "警报", quest: "任务", approval: "警报", clarification: "询问", due: "到期" },
-  ko: { system: "시스템", info: "알림", success: "알림", warning: "경고", error: "경고", quest: "퀘스트", approval: "경고", clarification: "입력", due: "마감" },
+  en: { system: "SYSTEM", info: "NOTICE", success: "NOTICE", warning: "ALERT", error: "ALERT", quest: "QUEST", approval: "ALERT", clarification: "INPUT", due: "DUE", review: "REVIEW" },
+  zh: { system: "系统", info: "通知", success: "通知", warning: "警报", error: "警报", quest: "任务", approval: "警报", clarification: "询问", due: "到期", review: "一周" },
+  ko: { system: "시스템", info: "알림", success: "알림", warning: "경고", error: "경고", quest: "퀘스트", approval: "경고", clarification: "입력", due: "마감", review: "주간" },
 };
 
 function eyebrowText(kind, lang) {

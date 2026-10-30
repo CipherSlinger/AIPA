@@ -56,6 +56,7 @@ import { createLogger } from './utils/logger'
 // Type-only: `due-reminder` calls `raiseAttention`, and this module must not
 // close that runtime cycle just to name the aggregate shape.
 import type { DueAggregate } from './tasks/due-reminder'
+import type { ReviewAggregate } from './tasks/weekly-review'
 import {
   getClawdLanguage,
   hideClawdAttentionBubble,
@@ -88,6 +89,7 @@ export type AttentionKind =
   | 'plugin-done'
   | 'automation-done'
   | 'task-due'
+  | 'task-review'
 
 export interface AttentionInput {
   kind: AttentionKind
@@ -107,7 +109,11 @@ export interface AttentionInput {
    * rows it can name). Ignored by every other kind.
    */
   due?: DueAggregate
-
+  /**
+   * The aggregate for a `task-review` card: the week's finished tasks and the
+   * desk as it stands at the moment of the card. Ignored by every other kind.
+   */
+  review?: ReviewAggregate
 }
 
 interface PluginJob {
@@ -124,6 +130,8 @@ interface AttentionItem {
   detail: string | null
   /** Counts for a `task-due` card; null for every other kind. */
   due: DueAggregate | null
+  /** Counts for a `task-review` card; null for every other kind. */
+  review: ReviewAggregate | null
   /** Finished plugin jobs collapsed into this bubble; >1 means the click chooses. */
   plugins: PluginJob[]
   createdAt: number
@@ -175,6 +183,9 @@ const KIND_PRIORITY: Record<AttentionKind, number> = {
   // A reminder, not a failure: it waits behind anything that already needs an
   // answer, but a morning should not lose it to a stale plugin toast.
   'task-due': 6,
+  // The week behind the user, not the day in front of them: it waits for the
+  // due card, but a Monday morning should still say it.
+  'task-review': 7,
 }
 
 /** A burst of events becomes one bubble: wait for the quiet gap first. */
@@ -189,6 +200,11 @@ const PLUGIN_DONE_KEY = 'plugin-done:batch'
  * queue item, so a second raise updates its counts instead of stacking.
  */
 const TASK_DUE_KEY = 'task-due:agenda'
+/**
+ * One review card per week, so a re-check after a suppressed raise updates the
+ * same queue item instead of stacking a second summary.
+ */
+const TASK_REVIEW_KEY = 'task-review:week'
 /** How long after a failed turn its own completion notification stays suppressed. */
 const FAILURE_SUPPRESSION_MS = 5000
 
@@ -334,6 +350,7 @@ export function raiseAttention(input: AttentionInput): boolean {
       pluginId: null,
       detail: null,
       due: null,
+      review: null,
       plugins: [],
       createdAt: now,
       count: 0,
@@ -359,7 +376,9 @@ export function raiseAttention(input: AttentionInput): boolean {
     return announceAttention(item, null)
   }
 
-  const key = input.kind === 'task-due' ? TASK_DUE_KEY : attentionKey(input)
+  const key = input.kind === 'task-due'
+    ? TASK_DUE_KEY
+    : input.kind === 'task-review' ? TASK_REVIEW_KEY : attentionKey(input)
   const existing = items.get(key)
   if (existing) {
     if (input.requestId) existing.requestIds.add(input.requestId)
@@ -372,6 +391,7 @@ export function raiseAttention(input: AttentionInput): boolean {
       existing.due = input.due
       existing.count = Math.max(1, input.due.total)
     }
+    if (input.kind === 'task-review' && input.review) existing.review = input.review
     if (input.detail) existing.detail = input.detail
     existing.createdAt = now
     if (input.sessionId) existing.sessionId = input.sessionId
@@ -391,6 +411,7 @@ export function raiseAttention(input: AttentionInput): boolean {
     pluginId: input.pluginId || null,
     detail: input.detail || null,
     due: input.kind === 'task-due' ? (input.due ?? null) : null,
+    review: input.kind === 'task-review' ? (input.review ?? null) : null,
     plugins: [],
     createdAt: now,
     count: input.kind === 'task-due' && input.due ? Math.max(1, input.due.total) : Math.max(1, requestIds.size),
@@ -914,11 +935,30 @@ const KIND_BUBBLE: Record<AttentionKind, ClawdBubbleKind> = {
   'automation-done': 'quest',
   // A calm slate accent: the due card is a reminder, not a failure.
   'task-due': 'due',
+  // The week's summary gets its own warm accent: it is neither a reminder nor
+  // a success, and should not wear the due card's urgent slate.
+  'task-review': 'review',
 }
 
 /** Approvals and questions wait for the user; the rest expire on their own. */
 function isTransientKind(kind: AttentionKind): boolean {
   return kind !== 'approval' && kind !== 'clarification'
+}
+
+/**
+ * The short weekday of a stored local day, in the pet's language. The review
+ * names the day a task was finished rather than repeating its count: "what I
+ * got done, and when" is the sentence a weekly card is for.
+ */
+function weekdayShort(day: string): string {
+  const [year, month, date] = day.split('-').map(Number)
+  if (!year || !month || !date) return ''
+  try {
+    return new Intl.DateTimeFormat(lang, { weekday: 'short' }).format(new Date(year, month - 1, date))
+  } catch {
+    // A runtime without Intl weekday data: the row keeps its title alone.
+    return ''
+  }
 }
 
 function metaRows(item: AttentionItem): ClawdBubbleMetaRow[] {
@@ -944,6 +984,27 @@ function metaRows(item: AttentionItem): ClawdBubbleMetaRow[] {
       })
     }
     return dueRows
+  }
+  // The review's rows are the opposite question: which tasks were finished,
+  // and on which day. They share the due card's task-row look (`variant:
+  // 'due'`) because they are the card's content, not its diagnostics.
+  if (item.kind === 'task-review') {
+    const review = item.review
+    if (!review || !Array.isArray(review.rows) || review.rows.length === 0) return []
+    const reviewRows: ClawdBubbleMetaRow[] = review.rows.map(row => ({
+      label: row.title,
+      value: weekdayShort(row.day),
+      title: row.title,
+      variant: 'due',
+    }))
+    if (review.more > 0) {
+      reviewRows.push({
+        label: '',
+        value: fmt(t('attentionReviewMore'), { n: review.more }),
+        variant: 'more',
+      })
+    }
+    return reviewRows
   }
   const rows: ClawdBubbleMetaRow[] = []
   if (item.sessionId) {
@@ -974,7 +1035,7 @@ function buildPayload(item: AttentionItem): BuiltBubble {
   // the click resolves through `openItem`, which offers a choice. A due card
   // always opens the task brief (or the Tasks view) where its rows can be acted
   // on; it names no conversation of its own.
-  const openable = item.kind === 'task-due' ||
+  const openable = item.kind === 'task-due' || item.kind === 'task-review' ||
     !!(item.sessionId || item.pluginId || item.plugins.length > 0)
   const name = item.detail || ''
   const pluginJobCount = item.kind === 'plugin-done' ? item.plugins.length : 0
@@ -1065,6 +1126,37 @@ function buildPayload(item: AttentionItem): BuiltBubble {
       }
       break
     }
+    case 'task-review': {
+      // Two sentences at most: what the week produced, then what is still on
+      // the desk. `finished` counts occurrences, so a daily habit that ran
+      // five times is five — the week's own arithmetic, not a task total.
+      title = t('attentionReviewTitle')
+      pill = t('attentionReviewPill')
+      const review = item.review ?? {
+        finished: 0, finishedTasks: 0, open: 0, overdue: 0, rows: [], more: 0, weekStart: '',
+      }
+      const finished = review.finished > 0
+        ? (review.finished === 1
+          ? t('attentionReviewFinishedOne')
+          : fmt(t('attentionReviewFinishedMany'), { n: review.finished }))
+        : t('attentionReviewNothingFinished')
+      let desk: string
+      if (review.open === 0) {
+        desk = t('attentionReviewDeskClear')
+      } else if (review.open === 1) {
+        desk = review.overdue > 0 ? t('attentionReviewDeskOpenOneLate') : t('attentionReviewDeskOpenOne')
+      } else {
+        desk = review.overdue > 0
+          ? fmt(t('attentionReviewDeskOpenManyLate'), { n: review.open, overdue: review.overdue })
+          : fmt(t('attentionReviewDeskOpenMany'), { n: review.open })
+      }
+      // Two sentences, one space between them in the languages that use one;
+      // Chinese and Japanese already close a sentence with a full stop and do
+      // not want a space after it.
+      const glue = lang === 'zh' || lang === 'ja' ? '' : ' '
+      message = `${finished}${glue}${desk}`
+      break
+    }
   }
 
   const payload: ClawdAttentionBubblePayload = {
@@ -1089,7 +1181,7 @@ function buildPayload(item: AttentionItem): BuiltBubble {
     payload.actions = [{
       id: 'open',
       label: t(
-        item.kind === 'task-due'
+        item.kind === 'task-due' || item.kind === 'task-review'
           ? 'attentionOpenTasks'
           : pluginJobCount > 1
             ? 'attentionChoosePlugin'
@@ -1238,7 +1330,7 @@ function openItem(item: AttentionItem): void {
   // its own window and can be opened without summoning AIPA at all; if it
   // cannot be created, fall back to the Tasks view through the same hand-off
   // the notice centre uses.
-  if (item.kind === 'task-due') {
+  if (item.kind === 'task-due' || item.kind === 'task-review') {
     openDueTasks()
     return
   }
@@ -1281,7 +1373,8 @@ function openItem(item: AttentionItem): void {
 }
 
 /**
- * Open the rows behind a due card. The brief is the existing pet-side surface
+ * Open the rows behind a due card (or the week a review card just summarised).
+ * The brief is the existing pet-side surface
  * that lists the task desk, already ordered with dated work first and Today /
  * overdue markers — exactly where a due row can be started or finished. It is
  * loaded lazily because it lives beside the pet factory and imports this

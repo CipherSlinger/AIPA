@@ -6,6 +6,7 @@ import { refreshClawdTaskBadge } from './clawd-task-badge'
 import { scheduleClawdBootGreeting } from './clawd-notice-sources'
 import { initClawdAttention, shutdownClawdAttention } from './clawd-attention'
 import { startDueReminder, stopDueReminder } from './tasks/due-reminder'
+import { startWeeklyReview, stopWeeklyReview } from './tasks/weekly-review'
 import { abortAllPluginAi } from './plugins/plugin-services'
 import { listNavPlugins } from './plugins/nav-plugin-manager'
 import { decodePluginPath, pluginHost } from './plugins/plugin-url'
@@ -222,6 +223,15 @@ function createWindow(): void {
       startDueReminder({ getQuitting: () => isQuitting })
     } catch (err) {
       log.warn('startDueReminder failed (non-fatal):', String(err))
+    }
+    // The once-a-week look back at the week that just ended, on the same
+    // scheduler discipline (Monday 08:00, a minute heartbeat, resume). It
+    // only reads the store and speaks through the attention queue; it never
+    // writes a task.
+    try {
+      startWeeklyReview({ getQuitting: () => isQuitting })
+    } catch (err) {
+      log.warn('startWeeklyReview failed (non-fatal):', String(err))
     }
   })
 
@@ -1051,6 +1061,7 @@ app.on('before-quit', () => {
   // Stop the due reminder first: its timers must not fire while the surfaces
   // below are being torn down.
   try { stopDueReminder() } catch { /* best-effort */ }
+  try { stopWeeklyReview() } catch { /* best-effort */ }
   // Run clawd cleanup hooks (registered during initClawdIntegration)
   try { shutdownClawdAttention() } catch { /* best-effort */ }
   try { shutdownClawdIntegration() } catch { /* best-effort */ }

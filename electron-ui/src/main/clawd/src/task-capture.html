@@ -724,6 +724,12 @@ kbd {
   // sending two. Main closes the window on success and sends a reason on
   // failure, which clears it.
   var saving = false;
+  // The line a Shift+Enter save is currently writing, and whether the user
+  // already pressed Shift+Enter again on a *different* line while it was in
+  // flight. The write is one synchronous store call but the answer comes back
+  // through IPC, and a fast typist can be on the next sentence by then.
+  var pendingStayText = "";
+  var queuedStay = false;
   // Newest first. Main sends it on every open; the walk never outlives the bar.
   var history = [];
   // -1 = the draft; 0 = newest saved capture. Increasing walks back in time.
@@ -761,6 +767,19 @@ kbd {
     sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6
   };
   var OFFSET_ZH = { "今天": 0, "明天": 1, "后天": 2, "大后天": 3 };
+  // The bar's own name for a weekday, Sunday first. Used only when a weekly
+  // cadence has moved the day the line named ("tomorrow, every Friday"), so
+  // the chip names the day it will actually use instead of contradicting it.
+  var WEEKDAY_NAMES = {
+    zh: ["周日", "周一", "周二", "周三", "周四", "周五", "周六"],
+    ko: ["일", "월", "화", "수", "목", "금", "토"],
+    en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  };
+
+  function weekdayName(date) {
+    var names = WEEKDAY_NAMES[lang] || WEEKDAY_NAMES.en;
+    return names[date.getDay()] || "";
+  }
 
   function pad2(n) {
     return (n < 10 ? "0" : "") + n;
@@ -854,7 +873,10 @@ kbd {
       return localDay(d.y, d.m, d.d);
     }, true);
 
-    offer(/(下周|周)([一二三四五六日天])/.exec(text), function (m) {
+    // The lookahead keeps a count from reading as a weekday: 每周三次 is "three
+    // times a week", not "every Wednesday", and 周四天 would be a stray case of
+    // the same shape. 下周三 still matches, because 次/回/遍/趟 cannot follow it.
+    offer(/(下周|周)([一二三四五六日天])(?![次回遍趟号])/.exec(text), function (m) {
       // 上周五 is a day that has already been; pretending it is next week's
       // Friday would put a wrong deadline on a note about the past.
       if (m.index > 0 && text.charAt(m.index - 1) === "上") return null;
@@ -979,6 +1001,16 @@ kbd {
           text.charAt(match.index - 1) === "-" &&
           /[A-Za-z]/.test(text.charAt(match.index - 2));
         if (afterCompoundHyphen) continue;
+        // A link is one token, and nothing inside it is the user's own words:
+        // "review https://example.com/weekly-report" is a task about a URL, not
+        // a weekly series. Slashes, a scheme or a leading www. mark the token as
+        // a link; the phrase inside it is skipped like a compound's tail.
+        var tokenStart = match.index;
+        while (tokenStart > 0 && !/\s/.test(text.charAt(tokenStart - 1))) tokenStart -= 1;
+        var tokenEnd = match.index + match[0].length;
+        while (tokenEnd < text.length && !/\s/.test(text.charAt(tokenEnd))) tokenEnd += 1;
+        var token = text.slice(tokenStart, tokenEnd);
+        if (token.indexOf("://") >= 0 || /www\./i.test(token) || token.indexOf("/") >= 0) continue;
         found.push({
           index: match.index,
           phrase: match[0],
@@ -1012,8 +1044,11 @@ kbd {
     // month that a same-day monthly series cannot honour.
     offer(/每天|每日|天天/, "daily");
     offer(/每周(?!末)|每星期(?!末)|每礼拜(?!末)/, "weekly");
-    offer(/每月(?!底|初|中)|每个月/, "monthly");
-    offer(/每(?:周|星期|礼拜)(?:周|星期|礼拜)?([一二三四五六日天])/, "weekly",
+    // 每个月 is the same phrase with a measure word; it needs the same guard, or
+    // 每个月末 becomes a monthly series that starts today.
+    offer(/每月(?!底|初|中)|每个月(?!末|底|初|中)/, "monthly");
+    // A following count is not a weekday: 每周三次 is "three times a week".
+    offer(/每(?:周|星期|礼拜)(?:周|星期|礼拜)?([一二三四五六日天])(?![次回遍趟号])/, "weekly",
       function (m) { return WEEKDAY_ZH[m[1]]; });
 
     offer(/매일/, "daily");
@@ -1098,11 +1133,18 @@ kbd {
         due = { phrase: chosenDue.label, dueOn: chosenDue.dueOn, date: chosenDue.date };
       } else if (match) {
         // The cadence can move the day the series starts on (weekly + a named
-        // weekday), so the anchored day outranks the plain day phrase. The
-        // phrase stays exactly as typed; only the date it rides with changes.
+        // weekday), so the anchored day outranks the plain day phrase. When it
+        // moves the day, the typed phrase would contradict the date beside it —
+        // "tomorrow · Nov 6" with tomorrow being Thursday — so the chip names
+        // the weekday it will actually use. The input text is never touched.
         var anchored = cadenceDay(parsed, today);
+        var anchoredDay = anchored ? dueOnOf(anchored) : "";
         due = anchored
-          ? { phrase: match.phrase, dueOn: dueOnOf(anchored), date: anchored }
+          ? {
+              phrase: anchoredDay === dueOnOf(match.date) ? match.phrase : weekdayName(anchored),
+              dueOn: anchoredDay,
+              date: anchored
+            }
           : match;
       } else {
         // A cadence with no day still needs a day to appear on the desk. Its
@@ -1400,6 +1442,8 @@ kbd {
    */
   function insertFromSuggestion(index) {
     if (!history[index]) return;
+    // A suggestion is a line being started, not the one just filed.
+    hideSavedInline();
     recallIndex = -1;
     draft = "";
     draftChosenDue = null;
@@ -1423,6 +1467,9 @@ kbd {
    */
   function recallHistory(step) {
     if (history.length === 0) return false;
+    // Recalling a line is starting the next one; the confirmation belongs to
+    // the line that was filed and must not sit under a different sentence.
+    hideSavedInline();
     if (step < 0) {
       if (recallIndex < 0) {
         draft = input.value;
@@ -1482,7 +1529,16 @@ kbd {
    * exactly where they were for both keys.
    */
   function submit(stay) {
-    if (saving) return;
+    if (saving) {
+      // A second Shift+Enter while the first line is still being written: only
+      // a *different* line is a new entry. The same text is the key repeating
+      // (or a double press) on the line already in flight and must not be filed
+      // twice; a genuinely new line waits for the write and goes right after.
+      if (stay === true && pendingStayText && input.value.trim() && input.value !== pendingStayText) {
+        queuedStay = true;
+      }
+      return;
+    }
     // Enter that commits an IME composition is not a save. The browser fires
     // `compositionend` between the keydown and this submit, so the flag read
     // alone is not enough; `imeEnter` remembers the exact keystroke.
@@ -1491,12 +1547,18 @@ kbd {
       return;
     }
     if (!input.value.trim()) {
+      // "Enter a task first" and "Saved · next one?" under one another describe
+      // two different lines at once; the empty field is the newer fact.
+      hideSavedInline();
       showError(labels.empty, "empty");
       try { input.focus(); } catch (err) { /* window may be going away */ }
       return;
     }
     if (!api) return;
     saving = true;
+    // Kept so the answer can tell "nothing was typed meanwhile" from "the next
+    // line is already under way" — clearing the field blindly would eat it.
+    pendingStayText = stay === true ? input.value : "";
     // The typed line goes as typed; only the resolved day and cadence ride
     // beside it. An absent cadence is passed as null and the preload omits it:
     // on create the store's contract is "absent means a one-off".
@@ -1517,6 +1579,14 @@ kbd {
    */
   function applyStaySaved(payload) {
     var data = payload || {};
+    // What was filed, and whether the next line is already under way. The field
+    // is not cleared while the write is in flight, so a fast typist can be two
+    // sentences ahead by the time this runs; clearing then would eat the line
+    // they are writing. The chips and the field reset only when the field still
+    // holds exactly the text that was filed.
+    var submitted = pendingStayText;
+    var startedNext = input.value !== "" && input.value !== submitted;
+    pendingStayText = "";
     saving = false;
     composing = false;
     imeEnter = false;
@@ -1533,22 +1603,30 @@ kbd {
     draft = "";
     draftChosenDue = null;
     draftChosenRepeat = null;
-    due = null;
     dueDismissed = false;
-    chosenDue = null;
-    repeat = null;
-    chosenRepeat = null;
-    duePresets.hidden = true;
-    dueDate.setAttribute("aria-expanded", "false");
-    repeatPresets.hidden = true;
-    repeatEl.setAttribute("aria-expanded", "false");
-    input.value = "";
+    if (!startedNext) {
+      due = null;
+      chosenDue = null;
+      repeat = null;
+      chosenRepeat = null;
+      duePresets.hidden = true;
+      dueDate.setAttribute("aria-expanded", "false");
+      repeatPresets.hidden = true;
+      repeatEl.setAttribute("aria-expanded", "false");
+      input.value = "";
+    }
     clearError();
     // Set before refresh(): the suggestion strip must see the confirmation and
     // stay away, and the height request must include the line in one pass.
     savedInlineEl.hidden = false;
     refresh();
     try { input.focus(); } catch (err) { /* window may be going away */ }
+    // A line Shift+Entered while this one was in flight is a real entry the user
+    // already asked to file. It waited for this write; it does not wait longer.
+    if (queuedStay) {
+      queuedStay = false;
+      if (input.value.trim()) submit(true);
+    }
   }
 
   function show(payload) {
@@ -1585,6 +1663,8 @@ kbd {
     composing = false;
     imeEnter = false;
     saving = false;
+    pendingStayText = "";
+    queuedStay = false;
     due = null;
     dueDismissed = false;
     chosenDue = null;
@@ -1843,6 +1923,10 @@ kbd {
     api.onSaved(applyStaySaved);
     api.onError(function (data) {
       saving = false;
+      // A refused write ends the stay cycle: the field still holds the line the
+      // user is writing now, and nothing is filed behind their back.
+      pendingStayText = "";
+      queuedStay = false;
       showError(data && data.message, data && data.kind);
       try { input.focus(); } catch (err) { /* not focusable */ }
     });

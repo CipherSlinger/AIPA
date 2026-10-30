@@ -49,6 +49,8 @@ export type ClawdBubbleKind =
   | 'clarification'
   /** A calm due-day reminder: not a failure, not an approval. */
   | 'due'
+  /** The once-a-week summary of the week that just ended. */
+  | 'review'
 
 export type ClawdBubbleTheme = 'sao' | 'clawd'
 
@@ -827,6 +829,7 @@ const KIND_SOUND: Record<ClawdBubbleKind, 'system' | 'notify' | 'success' | 'war
   info: 'notify',
   system: 'notify',
   due: 'notify',
+  review: 'notify',
 }
 
 /**
