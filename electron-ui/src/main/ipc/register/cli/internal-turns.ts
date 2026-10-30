@@ -150,9 +150,8 @@ export async function runInternalTurn(
     engineKind = engine.kind
     useCodex = engine.kind === 'codex'
     if (engine.kind === 'claude') {
-      // Provider credentials/URLs must reach the child, exactly as they do for
-      // `provider:sendMessage`. Legacy credentials are also passed explicitly
-      // so the bridge cannot fall back to the other engine.
+      // The resolved engine's credentials must reach the child. They are also
+      // passed explicitly so the bridge cannot fall back to the other engine.
       engineEnv = { ...explicitEnv, ...engine.env }
     }
   }

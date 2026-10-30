@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Sparkles, Key, ChevronLeft, ArrowRight, Check, Loader2 } from 'lucide-react'
+import { Sparkles, Key, ChevronLeft, ArrowRight, Check } from 'lucide-react'
 import { useT } from '../../i18n'
 
 interface OnboardingWizardProps {
@@ -11,61 +11,12 @@ const STEP_ICONS = [Sparkles, Key] as const
 export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [step, setStep] = useState<1 | 2>(1)
   const [apiKey, setApiKey] = useState('')
-  const [token, setToken] = useState('')
-  const [baseUrl, setBaseUrl] = useState('')
   const [inputFocused, setInputFocused] = useState<string | null>(null)
-  const [loadingModels, setLoadingModels] = useState(false)
   const t = useT()
 
   const handleComplete = async () => {
     if (apiKey.trim()) {
       await window.electronAPI.configSetApiKey(apiKey)
-    }
-    // Sync apiKey / token / baseUrl to the claude-cli provider config so the Providers page shows them
-    if (apiKey.trim() || token.trim() || baseUrl.trim()) {
-      const configs = await window.electronAPI.providerListConfigs()
-      const claudeCli = configs.find((c: any) => c.id === 'claude-cli')
-      const providerEntry = claudeCli ?? {
-        id: 'claude-cli',
-        name: 'Claude CLI',
-        enabled: true,
-        apiKey: '',
-        authToken: '',
-        baseUrl: '',
-      }
-      const updated = {
-        ...providerEntry,
-        ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
-        ...(token.trim() ? { authToken: token.trim() } : {}),
-        ...(baseUrl.trim() ? { baseUrl: baseUrl.trim() } : {}),
-        // Infer scenario: gateway when token or baseUrl is provided (takes precedence over apiKey)
-        scenario: (token.trim() || baseUrl.trim()) ? 'gateway' : 'official',
-        enabled: true,
-      }
-      await window.electronAPI.providerUpsert(updated)
-
-      // Auto-fetch models from the API and set the first one as default
-      if (updated.scenario === 'gateway' && baseUrl.trim()) {
-        setLoadingModels(true)
-        try {
-          const result = await (window.electronAPI as any).providerFetchRemoteModels({
-            baseUrl: baseUrl.trim(),
-            providerId: 'claude-cli',
-            apiKey: apiKey.trim() || undefined,
-            authToken: token.trim() || undefined,
-          })
-          if (result.success && result.models && result.models.length > 0) {
-            // Set the first model as default
-            await window.electronAPI.prefsSet('model', result.models[0])
-          }
-        } catch {
-          // Silently ignore — model fetch failure should not block onboarding
-        }
-        setLoadingModels(false)
-      }
-
-      // Notify mounted SettingsProviders to re-fetch (it may be already mounted in the channel panel)
-      window.dispatchEvent(new CustomEvent('aipa:providerUpdated'))
     }
     await window.electronAPI.prefsSet('onboardingDone', true)
     onComplete()
@@ -78,8 +29,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
 
   const StepIcon = STEP_ICONS[step - 1]
   const iconColor = '#818cf8'
-  // Step 2 is valid when either API key or auth token is filled
-  const step2Valid = apiKey.trim().length > 0 || token.trim().length > 0
+  // The key is the only thing this step can save; an empty field is a skip.
+  const step2Valid = apiKey.trim().length > 0
 
   return (
     <div style={styles.overlay}>
@@ -201,7 +152,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
           </div>
         )}
 
-        {/* Step 2: API Key + Token + Base URL */}
+        {/* Step 2: API Key */}
         {step === 2 && (
           <div className="onboard-step-content" key="step2" style={styles.stepContent}>
             <h1 style={styles.title}>{t('onboarding.enterApiKey')}</h1>
@@ -226,45 +177,6 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 onBlur={() => setInputFocused(null)}
                 autoFocus
               />
-            </div>
-
-            {/* Token */}
-            <div style={styles.fieldGroup}>
-              <label style={styles.fieldLabel}>{t('onboarding.tokenLabel')}</label>
-              <input
-                type="password"
-                placeholder={t('onboarding.tokenPlaceholder')}
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                style={{
-                  ...styles.input,
-                  borderColor: inputFocused === 'token' ? 'rgba(99,102,241,0.5)' : 'var(--border)',
-                  boxShadow: inputFocused === 'token' ? 'rgba(99,102,241,0.50) 0 0 0 2px' : 'none',
-                }}
-                onFocus={() => setInputFocused('token')}
-                onBlur={() => setInputFocused(null)}
-              />
-              <span style={styles.fieldHint}>{t('onboarding.tokenHint')}</span>
-            </div>
-
-            {/* Base URL */}
-            <div style={styles.fieldGroup}>
-              <label style={styles.fieldLabel}>{t('onboarding.baseUrlLabel')}</label>
-              <input
-                type="text"
-                placeholder={t('onboarding.baseUrlPlaceholder')}
-                value={baseUrl}
-                onChange={(e) => setBaseUrl(e.target.value)}
-                style={{
-                  ...styles.input,
-                  borderColor: inputFocused === 'baseUrl' ? 'rgba(99,102,241,0.5)' : 'var(--border)',
-                  boxShadow: inputFocused === 'baseUrl' ? 'rgba(99,102,241,0.50) 0 0 0 2px' : 'none',
-                  fontFamily: 'monospace',
-                }}
-                onFocus={() => setInputFocused('baseUrl')}
-                onBlur={() => setInputFocused(null)}
-              />
-              <span style={styles.fieldHint}>{t('onboarding.baseUrlHint')}</span>
             </div>
 
             <a
@@ -305,9 +217,9 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   cursor: step2Valid ? 'pointer' : 'not-allowed',
                 }}
                 onClick={() => step2Valid && handleComplete()}
-                disabled={!step2Valid || loadingModels}
+                disabled={!step2Valid}
                 onMouseEnter={e => {
-                  if (step2Valid && !loadingModels) {
+                  if (step2Valid) {
                     e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.35)'
                     e.currentTarget.style.transform = 'translateY(-1px)'
                     e.currentTarget.style.filter = 'brightness(1.08)'
@@ -319,10 +231,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   e.currentTarget.style.filter = 'none'
                 }}
               >
-                {loadingModels
-                  ? <><Loader2 size={16} style={{ marginRight: 6, verticalAlign: 'middle', animation: 'spin 1s linear infinite' }} /> {t('onboarding.loadingModels')}</>
-                  : <>{t('onboarding.startChatting')} <ArrowRight size={16} style={{ marginLeft: 6, verticalAlign: 'middle' }} /></>
-                }
+                {t('onboarding.startChatting')} <ArrowRight size={16} style={{ marginLeft: 6, verticalAlign: 'middle' }} />
               </button>
             </div>
             <button

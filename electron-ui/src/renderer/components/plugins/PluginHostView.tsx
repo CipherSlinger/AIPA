@@ -42,8 +42,8 @@ const INVOKE_METHODS: Record<string, {
     }),
   },
   'ai.abort': { permission: 'ai', call: (api, id, p) => api.pluginAiAbort(id, String(p?.requestId || '')) },
-  // The models a plugin may offer: enabled providers only, credentials stripped
-  // by main. The plugin still decides which one a generation should use.
+  // The models a plugin may offer: the built-in list, credentials stripped by
+  // main. The plugin still decides which one a generation should use.
   'ai.models': { permission: 'ai', call: (api, id) => api.pluginAiModels(id) },
   // The user's work-model choice for this plugin, set from the toolbar. `get`
   // lets the plugin discover it; `set` lets the plugin change it, and main

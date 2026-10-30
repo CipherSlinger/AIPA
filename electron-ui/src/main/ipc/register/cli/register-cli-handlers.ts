@@ -204,11 +204,11 @@ export function registerCliHandlers(send: SendFn): void {
 
   // ── Engine routing ──────────────────────────────────
   // The model picker may only offer what the engine that will run the next
-  // turn actually accepts: Codex's own catalog on a Codex profile, the legacy
-  // provider groups otherwise. `resolveAuxiliaryEngine` answers from
+  // turn actually accepts: Codex's own catalog on a Codex profile, the
+  // built-in Claude models otherwise. `resolveAuxiliaryEngine` answers from
   // credentials and installed binaries, so it is a cheap read with no spawn.
-  // Its `env` is deliberately dropped here — it carries the provider key and
-  // has no business crossing the context bridge — and a failed probe reports
+  // Its `env` is deliberately dropped here — it carries the API key and has
+  // no business crossing the context bridge — and a failed probe reports
   // "none" instead of throwing into the renderer.
   safeHandle('engine:getActive', () => {
     try {

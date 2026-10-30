@@ -37,8 +37,8 @@ export function registerSpeculationHandlers(): void {
     if (engine.kind !== 'claude') {
       return { id, error: 'engine_unavailable' }
     }
-    // Provider credentials/URLs must reach the child; renderer-provided vars
-    // still win, mirroring how chat routing passes its env.
+    // The resolved engine's credentials must reach the child; renderer-provided
+    // vars still win, mirroring how chat routing passes its env.
     const effectiveEnv = { ...engine.env, ...(env || {}) }
     // Abort any previous speculation with the same id
     speculationManager.abort(id)

@@ -37,12 +37,6 @@ const POOL_LABEL_TEXT_STYLE: React.CSSProperties = {
   color: 'var(--text-muted)',
 }
 
-const POOL_HELPER_STYLE: React.CSSProperties = {
-  fontSize: 10,
-  color: 'var(--text-subtle)',
-  lineHeight: 1.35,
-}
-
 export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
   const t = useT()
   const setPrefs = usePrefsStore(s => s.setPrefs)
@@ -50,7 +44,6 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
   const [apiKeyPool, setApiKeyPool] = useState<ApiKeyEntry[]>(prefs.apiKeyPool || [])
   const [newKeyLabel, setNewKeyLabel] = useState('')
   const [newKeyValue, setNewKeyValue] = useState('')
-  const [newKeyBaseUrl, setNewKeyBaseUrl] = useState('')
   const [hoveredRemove, setHoveredRemove] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -66,7 +59,6 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
       id: `key-${Date.now()}`,
       label: newKeyLabel.trim() || `Key ${apiKeyPool.length + 1}`,
       apiKey: newKeyValue.trim(),
-      baseUrl: newKeyBaseUrl.trim() || undefined,
       enabled: true,
       exhausted: false,
       addedAt: Date.now(),
@@ -74,7 +66,6 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
     savePool([...apiKeyPool, entry])
     setNewKeyLabel('')
     setNewKeyValue('')
-    setNewKeyBaseUrl('')
   }
 
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,21 +74,23 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
     const text = await file.text()
     e.target.value = ''
     try {
-      // Try JSON array: [{label, apiKey, baseUrl}] or [{key}] or ["key1","key2"]
+      // Try JSON array: [{label, apiKey}] or [{key}] or ["key1","key2"]. A
+      // baseUrl an older export carries is ignored — the key is the whole
+      // credential now, and there is no endpoint left to point it at.
       const parsed = JSON.parse(text)
       const arr = Array.isArray(parsed) ? parsed : [parsed]
       const entries: ApiKeyEntry[] = arr.map((item: any, i: number) => ({
         id: `key-${Date.now()}-${i}`,
         label: item.label || item.name || `Imported ${i + 1}`,
         apiKey: item.apiKey || item.key || item.api_key || (typeof item === 'string' ? item : ''),
-        baseUrl: item.baseUrl || item.base_url || undefined,
         enabled: true,
         exhausted: false,
         addedAt: Date.now(),
       })).filter((e: ApiKeyEntry) => e.apiKey)
       savePool([...apiKeyPool, ...entries])
     } catch {
-      // Try plain text: one key per line, optionally "label=key" or "key,label,baseUrl"
+      // Try plain text: one key per line, optionally "label=key" or "key,label".
+      // A third comma-separated field (the old base URL) is ignored.
       const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
       const entries: ApiKeyEntry[] = lines.map((line, i) => {
         const parts = line.split(',')
@@ -105,7 +98,6 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
           id: `key-${Date.now()}-${i}`,
           label: parts[1]?.trim() || `Key ${apiKeyPool.length + i + 1}`,
           apiKey: parts[0].trim(),
-          baseUrl: parts[2]?.trim() || undefined,
           enabled: true,
           exhausted: false,
           addedAt: Date.now(),
@@ -231,21 +223,6 @@ export default function SettingsApiKeyPool({ field }: SettingsApiKeyPoolProps) {
                 autoCapitalize="off"
                 style={{ ...glassInputStyle, fontSize: 11 }}
               />
-            </label>
-            <label style={POOL_LABEL_STYLE}>
-              <span style={POOL_LABEL_TEXT_STYLE}>{t('settings.keyBaseUrl')}</span>
-              <input
-                value={newKeyBaseUrl}
-                onChange={(e) => setNewKeyBaseUrl(e.target.value)}
-                placeholder="https://api.example.com/v1"
-                aria-label={t('settings.keyBaseUrl')}
-                aria-describedby="key-base-url-hint"
-                spellCheck={false}
-                autoCorrect="off"
-                autoCapitalize="off"
-                style={{ ...glassInputStyle, fontSize: 11 }}
-              />
-              <span id="key-base-url-hint" style={POOL_HELPER_STYLE}>{t('settings.keyBaseUrlHint')}</span>
             </label>
             <button
               onClick={handleAddKey}

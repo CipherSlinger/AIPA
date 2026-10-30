@@ -1,5 +1,5 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { ChevronDown, Settings } from 'lucide-react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { useChatStore, usePrefsStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { resolveWorkingDir } from '../../lib/workingDir'
@@ -10,24 +10,6 @@ import type { CodexModelInfoData } from '../../../preload/index'
 
 interface ModelPickerProps {
   model: string | undefined
-}
-
-interface ModelInfo {
-  id: string
-  name: string
-  provider: string
-  capabilities?: {
-    vision?: boolean
-    code?: boolean
-    reasoning?: boolean
-  }
-}
-
-interface ProviderGroup {
-  providerId: string
-  providerName: string
-  healthStatus?: 'healthy' | 'degraded' | 'down'
-  models: ModelInfo[]
 }
 
 /** Get short model display name: "claude-sonnet-4-6" -> "Sonnet 4.6" */
@@ -44,18 +26,6 @@ function getModelShortName(modelId: string | undefined): string {
   }
   // For non-Claude models, just return the name
   return modelId.split('/').pop()?.split('-').slice(0, 3).join('-') || modelId
-}
-
-const HEALTH_DOT_COLORS: Record<string, string> = {
-  healthy: '#22c55e',
-  degraded: '#fbbf24',
-  down: '#f87171',
-}
-
-const CAPABILITY_COLORS: Record<string, string> = {
-  vision: '#a78bfa',
-  code: '#6366f1',
-  reasoning: '#fbbf24',
 }
 
 type ModelTier = 'haiku' | 'sonnet' | 'opus'
@@ -78,13 +48,11 @@ export default function ModelPicker({ model }: ModelPickerProps) {
   const t = useT()
   const [showPicker, setShowPicker] = useState(false)
   const pickerRef = useRef<HTMLDivElement>(null)
-  const [providerGroups, setProviderGroups] = useState<ProviderGroup[]>([])
-  const [loadFailed, setLoadFailed] = useState(false)
   // What the open menu is allowed to offer. `probing` means the engine has not
-  // answered yet — deliberately render no list rather than the Claude
+  // answered yet — deliberately render no list rather than the built-in Claude
   // fallback, which would be a lie on a Codex profile. `codexLoading` is the
   // Codex catalogue call, which can take seconds on a cold app-server.
-  const [pickMode, setPickMode] = useState<'probing' | 'codexLoading' | 'codex' | 'legacy'>('probing')
+  const [pickMode, setPickMode] = useState<'probing' | 'codexLoading' | 'codex' | 'builtin'>('probing')
   const [codexModels, setCodexModels] = useState<CodexModelInfoData[]>([])
 
   // A persona-bound conversation runs on the persona's model unless the user
@@ -97,62 +65,11 @@ export default function ModelPicker({ model }: ModelPickerProps) {
   useClickOutside(pickerRef, showPicker, useCallback(() => setShowPicker(false), []), [menuRef])
 
   // Load the list the active engine can actually run when the dropdown opens.
-  // Codex profiles get Codex's own catalogue; every other profile keeps the
-  // provider groups. Any failure falls back silently to the provider groups,
-  // and only then to the static Claude list, so the menu always opens.
+  // Codex profiles get Codex's own catalogue; every other profile gets the
+  // built-in Claude list, because that is what the default bridge runs.
   useEffect(() => {
     if (!showPicker) return
     let cancelled = false
-
-    const loadProviderModels = async () => {
-      try {
-        const [configs, models, healthStatuses] = await Promise.all([
-          window.electronAPI.providerListConfigs(),
-          window.electronAPI.providerListModels(),
-          window.electronAPI.providerHealthStatuses(),
-        ])
-
-        if (cancelled) return
-
-        // Build health map
-        const healthMap: Record<string, string> = {}
-        for (const s of healthStatuses as { providerId: string; status: string }[]) {
-          healthMap[s.providerId] = s.status
-        }
-
-        // Group models by provider
-        const groups: ProviderGroup[] = []
-        const configMap = new Map<string, { name: string; id: string }>()
-        for (const c of configs as { id: string; name: string; enabled: boolean }[]) {
-          if (c.enabled) configMap.set(c.id, c)
-        }
-
-        const modelsByProvider = new Map<string, ModelInfo[]>()
-        for (const m of models as ModelInfo[]) {
-          const providerId = m.provider
-          if (!modelsByProvider.has(providerId)) {
-            modelsByProvider.set(providerId, [])
-          }
-          modelsByProvider.get(providerId)!.push(m)
-        }
-
-        for (const [providerId, providerModels] of modelsByProvider) {
-          const cfg = configMap.get(providerId)
-          groups.push({
-            providerId,
-            providerName: cfg?.name || providerId,
-            healthStatus: healthMap[providerId] as ProviderGroup['healthStatus'],
-            models: providerModels,
-          })
-        }
-
-        if (cancelled) return
-        setProviderGroups(groups)
-        setLoadFailed(false)
-      } catch {
-        if (!cancelled) setLoadFailed(true)
-      }
-    }
 
     const loadModels = async () => {
       setPickMode('probing')
@@ -163,7 +80,8 @@ export default function ModelPicker({ model }: ModelPickerProps) {
         const active = await window.electronAPI.engineGetActive()
         if (active?.kind === 'codex' || active?.kind === 'none') engineKind = active.kind
       } catch {
-        // No engine probe available: keep the pre-existing provider behaviour.
+        // No engine probe available: the built-in Claude list is the honest
+        // fallback, since that is what the default send path uses.
       }
       if (cancelled) return
 
@@ -197,8 +115,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
         if (cancelled) return
       }
 
-      setPickMode('legacy')
-      await loadProviderModels()
+      setPickMode('builtin')
     }
 
     loadModels()
@@ -207,7 +124,7 @@ export default function ModelPicker({ model }: ModelPickerProps) {
 
   // `label` lets a Codex row carry its own display name into the toast; the
   // persisted value stays `modelId`, so persona/override/prefs routing is
-  // identical to a provider row.
+  // identical to a built-in row.
   const handleModelSwitch = useCallback((modelId: string, label?: string) => {
     setShowPicker(false)
     const shortName = label || getModelShortName(modelId)
@@ -249,25 +166,6 @@ export default function ModelPicker({ model }: ModelPickerProps) {
       persona: personaName,
     }))
   }, [sessionPersona, t])
-
-  const handleManageProviders = useCallback(() => {
-    setShowPicker(false)
-    useUiStore.getState().setActiveNavItem('settings')
-  }, [])
-
-  // Fallback: use Claude-only MODEL_OPTIONS if multi-provider load fails
-  const fallbackGroups = useMemo<ProviderGroup[]>(() => [{
-    providerId: 'claude-cli',
-    providerName: 'Claude (CLI)',
-    models: MODEL_OPTIONS.map(opt => ({
-      id: opt.id,
-      name: opt.id,
-      provider: 'claude-cli',
-      capabilities: { vision: true, code: true, reasoning: true },
-    })),
-  }], [])
-
-  const displayGroups = loadFailed || providerGroups.length === 0 ? fallbackGroups : providerGroups
 
   return (
     <div style={{ position: 'relative' }} ref={pickerRef}>
@@ -468,120 +366,58 @@ export default function ModelPicker({ model }: ModelPickerProps) {
             </div>
           )}
 
-          {pickMode === 'legacy' && displayGroups.map((group, groupIdx) => (
-            <div key={group.providerId}>
-              {/* Provider section header */}
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '8px 12px 2px', fontSize: 10, fontWeight: 700,
-                textTransform: 'uppercase', letterSpacing: '0.07em',
-                color: 'var(--text-muted)',
-              }}>
-                {/* Health dot */}
-                {group.healthStatus && (
+          {/* Non-Codex profiles run on the built-in Claude list shown in
+              Settings → AI Engine. No probe is needed: these are the ids the
+              default bridge accepts. */}
+          {pickMode === 'builtin' && MODEL_OPTIONS.map(opt => {
+            const isActive = opt.id === model
+            const tier = getModelTier(opt.id)
+            return (
+              <button
+                key={opt.id}
+                role="option"
+                aria-selected={isActive}
+                onClick={() => handleModelSwitch(opt.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  width: '100%',
+                  textAlign: 'left',
+                  background: isActive ? 'rgba(99,102,241,0.12)' : 'transparent',
+                  border: 'none',
+                  borderLeft: isActive ? '2px solid rgba(99,102,241,0.60)' : '2px solid transparent',
+                  padding: '8px 12px 8px 22px',
+                  cursor: 'pointer',
+                  color: isActive ? 'var(--accent-text)' : 'var(--text-primary)',
+                  borderRadius: 7,
+                  transition: 'all 0.15s ease',
+                  gap: 6,
+                }}
+                onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.borderLeftColor = 'rgba(99,102,241,0.40)' } }}
+                onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent' } }}
+              >
+                <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{
-                    width: 6, height: 6, borderRadius: '50%',
-                    background: HEALTH_DOT_COLORS[group.healthStatus] || 'var(--text-muted)',
-                    flexShrink: 0,
-                  }} />
-                )}
-                <span>{group.providerName}</span>
-              </div>
+                    display: 'block', fontWeight: 600, fontSize: 13,
+                    color: isActive ? 'var(--accent-text)' : 'var(--text-primary)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {t(opt.labelKey)}
+                  </span>
+                  <span style={{
+                    display: 'block', marginTop: 1, fontSize: 9,
+                    color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {opt.id}
+                  </span>
+                </span>
 
-              {/* Models in this provider */}
-              {group.models.map(m => {
-                const isActive = m.id === model
-                const tier = getModelTier(m.id)
-                return (
-                  <button
-                    key={m.id}
-                    role="option"
-                    aria-selected={isActive}
-                    onClick={() => handleModelSwitch(m.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      width: '100%',
-                      textAlign: 'left',
-                      background: isActive ? 'rgba(99,102,241,0.12)' : 'transparent',
-                      border: 'none',
-                      borderLeft: isActive ? '2px solid rgba(99,102,241,0.60)' : '2px solid transparent',
-                      padding: '8px 12px 8px 22px',
-                      cursor: 'pointer',
-                      color: isActive ? 'var(--accent-text)' : 'var(--text-primary)',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      borderRadius: 7,
-                      transition: 'all 0.15s ease',
-                      gap: 6,
-                      fontVariantNumeric: 'tabular-nums',
-                    }}
-                    onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.borderLeftColor = 'rgba(99,102,241,0.40)' } }}
-                    onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent' } }}
-                  >
-                    <span style={{ flex: 1, fontWeight: 600, fontSize: 13, color: isActive ? 'var(--accent-text)' : 'var(--text-primary)' }}>{m.name}</span>
-
-                    {/* Tier badge */}
-                    {tier && <span style={TIER_STYLES[tier]}>{tier.charAt(0).toUpperCase() + tier.slice(1)}</span>}
-
-                    {/* Capability tags */}
-                    <span style={{ display: 'flex', gap: 3 }}>
-                      {m.capabilities?.vision && (
-                        <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'var(--border)', color: 'var(--text-muted)', fontWeight: 600 }}>
-                          {t('provider.capabilities.vision')}
-                        </span>
-                      )}
-                      {m.capabilities?.code && (
-                        <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'var(--border)', color: 'var(--text-muted)', fontWeight: 600 }}>
-                          {t('provider.capabilities.code')}
-                        </span>
-                      )}
-                      {m.capabilities?.reasoning && (
-                        <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: 'rgba(99,102,241,0.14)', color: 'var(--accent-text)', fontWeight: 700 }}>
-                          {t('provider.capabilities.reasoning')}
-                        </span>
-                      )}
-                    </span>
-
-                    {isActive && <span style={{ fontSize: 14, color: 'var(--accent-text)' }}>&#10003;</span>}
-                  </button>
-                )
-              })}
-
-              {/* Separator between provider groups */}
-              {groupIdx < displayGroups.length - 1 && (
-                <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
-              )}
-            </div>
-          ))}
-
-          {/* Manage Providers link */}
-          <div style={{ borderTop: '1px solid var(--border)', marginTop: 4, paddingTop: 2 }}>
-            <button
-              onClick={handleManageProviders}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                width: '100%', textAlign: 'left',
-                padding: '7px 12px',
-                background: 'transparent', border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer', fontSize: 11,
-                borderRadius: 7,
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--bg-hover)'
-                e.currentTarget.style.color = 'var(--text-secondary)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.color = 'var(--text-muted)'
-              }}
-            >
-              <Settings size={12} />
-              {t('provider.manageProviders')}
-            </button>
-          </div>
+                {tier && <span style={TIER_STYLES[tier]}>{tier.charAt(0).toUpperCase() + tier.slice(1)}</span>}
+                {isActive && <span style={{ fontSize: 14, color: 'var(--accent-text)' }}>&#10003;</span>}
+              </button>
+            )
+          })}
         </div>
         </FloatingPortal>
       )}

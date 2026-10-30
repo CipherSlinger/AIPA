@@ -371,13 +371,13 @@ export interface CodexHookListGroupData {
 
 /**
  * Which engine the next chat turn will use (see `resolveAuxiliaryEngine` in
- * the main process). Deliberately omits the Claude `env`: it carries the
- * provider's credentials, which must stay out of the renderer.
+ * the main process). Deliberately omits the Claude `env`: it carries the API
+ * key, which must stay out of the renderer.
  */
 export interface ActiveEngineData {
   kind: 'codex' | 'claude' | 'none'
-  /** `claude` only: a third-party provider, or the legacy Anthropic login. */
-  source?: 'legacy' | 'provider'
+  /** `claude` only: the legacy Anthropic login / app API key. */
+  source?: 'legacy'
   /** `none` only: why no engine can authenticate. */
   reason?: string
 }
@@ -717,7 +717,11 @@ export interface PluginAiEvent {
   message?: string
 }
 
-/** A model offered to a plugin by one of its enabled providers. */
+/**
+ * A model a plugin may offer. The list is built into the main process and
+ * mirrors the Settings model picker; `providerId` / `providerName` are legacy
+ * fields that now always report `default` and an empty name.
+ */
 export interface PluginAiModel {
   id: string
   name: string
@@ -728,8 +732,8 @@ export interface PluginAiModel {
 /**
  * A plugin's saved AI "work model", as the toolbar picker and the plugin read
  * it. `model: ''` means nothing is chosen. A non-empty `model` with
- * `available: false` is a saved choice no enabled provider offers any more —
- * shown as-is so it is never silently swapped.
+ * `available: false` is a saved choice no longer in the built-in list — shown
+ * as-is so it is never silently swapped.
  */
 export interface PluginAiModelState {
   model: string
@@ -2882,22 +2886,6 @@ const electronAPI = {
     const handler = () => cb()
     ipcRenderer.on('backup:changed', handler)
     return () => { ipcRenderer.removeListener('backup:changed', handler) }
-  },
-
-  // ── Providers (multi-model support) ────
-  providerListConfigs: () => ipcRenderer.invoke('provider:listConfigs'),
-  providerListModels: () => ipcRenderer.invoke('provider:listModels'),
-  providerUpsert: (config: unknown) => ipcRenderer.invoke('provider:upsert', config),
-  providerRemove: (providerId: string) => ipcRenderer.invoke('provider:remove', providerId),
-  providerHealthCheck: () => ipcRenderer.invoke('provider:healthCheck'),
-  providerHealthStatuses: () => ipcRenderer.invoke('provider:healthStatuses'),
-  providerSendMessage: (args: unknown) => ipcRenderer.invoke('provider:sendMessage', args),
-  providerFetchRemoteModels: (args: unknown) => ipcRenderer.invoke('provider:fetchRemoteModels', args),
-
-  onProviderFailover: (cb: (data: { fromProvider: string; toProvider: string; reason: string }) => void): Unsubscribe => {
-    const handler = (_: unknown, data: { fromProvider: string; toProvider: string; reason: string }) => cb(data)
-    ipcRenderer.on('provider:failover', handler)
-    return () => ipcRenderer.removeListener('provider:failover', handler)
   },
 
   // ── Memory ──────────────────────────────────────────────────────────────

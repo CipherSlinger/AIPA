@@ -17,8 +17,6 @@ import {
   getAllPrefs,
   resetAllPrefs,
 } from '../../config/config-manager'
-import { redactProviderSecrets } from '../../providers'
-import type { ModelProviderConfig } from '../../providers'
 import { readCLISettings, writeCLISettings } from '../../config/cli-settings-manager'
 import {
   addMcpServer,
@@ -56,6 +54,26 @@ function redactKeys(map: Record<string, string>): Record<string, string> {
   return Object.fromEntries(Object.keys(map).map(k => [k, '***']))
 }
 
+/**
+ * Strip credentials from the legacy provider records older builds saved in
+ * prefs. The provider subsystem is gone and nothing reads these any more, but
+ * the records remain in the user's store — no migration deletes user data — so
+ * the IPC boundary must keep redacting them in case an older renderer asks.
+ */
+function redactSavedProviders(providers: unknown[]): unknown[] {
+  return providers.map(entry => {
+    if (!entry || typeof entry !== 'object') return entry
+    const { apiKey, authToken, ...rest } = entry as Record<string, unknown>
+    return {
+      ...rest,
+      apiKey: '',
+      authToken: '',
+      hasApiKey: Boolean(apiKey),
+      hasAuthToken: Boolean(authToken),
+    }
+  })
+}
+
 // ----------------------------------------
 // Config handlers
 // ----------------------------------------
@@ -90,9 +108,7 @@ export function registerConfigHandlers(): void {
       if (key === 'apiKeyEncrypted' || key === 'apiKey') return ''
       if (key === 'modelProviders') {
         const providers = getPref('modelProviders')
-        return Array.isArray(providers)
-          ? redactProviderSecrets(providers as ModelProviderConfig[])
-          : []
+        return Array.isArray(providers) ? redactSavedProviders(providers) : []
       }
       return getPref(key)
     } catch (err) { log.warn('prefs:get error:', String(err)); return null }
@@ -136,7 +152,7 @@ export function registerConfigHandlers(): void {
       return {
         ...safe,
         modelProviders: Array.isArray(modelProviders)
-          ? redactProviderSecrets(modelProviders as ModelProviderConfig[])
+          ? redactSavedProviders(modelProviders)
           : [],
       }
     } catch (err) { log.warn('prefs:getAll error:', String(err)); return {} }

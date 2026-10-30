@@ -19,7 +19,10 @@ interface StoreSchema {
   verbose: boolean
   theme: 'vscode' | 'light' | 'system' | 'modern' | 'minimal'
   onboardingDone: boolean
-  // Multi-model provider support (Iteration 301)
+  // Multi-model provider support (Iteration 301). The provider subsystem is
+  // gone: AI now runs only on the app API key plus the built-in model list.
+  // These fields stay so existing stores keep their shape and no migration
+  // deletes what the user configured; nothing reads them any more.
   modelProviders: unknown[]
   activeProviderId: string
   // Window state persistence (Iteration 325)
@@ -49,7 +52,7 @@ interface StoreSchema {
   /**
    * Each plugin's host-chosen AI "work model", pluginId → model id. An entry
    * exists only while a model is chosen: clearing the picker removes the key.
-   * A saved id that no provider offers any more is kept rather than reverted —
+   * A saved id that is no longer in the built-in model list is kept rather than reverted —
    * the picker reports it as unavailable instead of silently swapping the
    * plugin onto a different model.
    */

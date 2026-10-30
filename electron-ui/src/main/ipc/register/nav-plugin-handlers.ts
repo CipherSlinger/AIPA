@@ -158,12 +158,9 @@ export function registerNavPluginHandlers(win: BrowserWindow, send: SendFn): voi
     if (picked) registerAllowedRoot(picked)
     return picked
   })
-  // Models a plugin may ask the user to pick, deduplicated by id and labelled
-  // with the engine that will actually serve the turn (see
-  // `listPluginAiModels`). Only enabled providers contribute; credentials,
-  // base URLs and every other config field stay on this side of the boundary.
-  // Disabling every provider yields `[]` — there is always a list to render,
-  // sometimes an empty one.
+  // Models a plugin may ask the user to pick (see `listPluginAiModels`). The
+  // list is the built-in catalogue shared with Settings, so it is never empty
+  // and carries no credentials — only ids and display names.
   // No `ai` gate here either: the toolbar opens this list for every plugin,
   // while a plugin invoking it through the bridge is gated in PluginHostView.
   safeHandle('plugin:ai:models', (_e, { pluginId: _pluginId }: { pluginId: string }) => {
@@ -235,11 +232,10 @@ export function registerNavPluginHandlers(win: BrowserWindow, send: SendFn): voi
     pluginId: string
     args?: import('../../plugins/plugin-chat').PluginChatAskArgs
   }) => {
-    // Route like chat / ai.generate: a gateway or compatible provider serves
-    // the turn on its own credentials; otherwise the default engine does. The
-    // model is the plugin's work model — the same picker the toolbar shows —
-    // so a plugin that asks through `chat.ask` is not silently pinned to the
-    // default engine while its toolbar names something else.
+    // Route like `ai.generate`: with an app API key the turn runs on the Claude
+    // CLI with the plugin's work model; without one it falls back to whatever
+    // engine Codex can authenticate with. The model is the same picker the
+    // toolbar shows, so `chat.ask` and `ai.generate` do not silently disagree.
     const target = resolvePluginTurnTarget(getPluginAiModel(pluginId).model)
     const requestedSessionId = typeof args?.sessionId === 'string' ? args.sessionId.trim() : ''
     const answer = await askPluginChat(pluginId, args, (turn) => runInternalTurn({

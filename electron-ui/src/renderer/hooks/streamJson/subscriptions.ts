@@ -1,10 +1,10 @@
 /**
- * The four non-`cli:*` subscriptions the stream hook registers alongside the
- * event listener. Moved verbatim (wave 75C) from `useStreamJson`'s effect;
- * the registration order and the cleanup order are unchanged. Returns one
- * cleanup that removes them in the order the effect used to.
+ * The non-`cli:*` subscriptions the stream hook registers alongside the event
+ * listener. Moved verbatim (wave 75C) from `useStreamJson`'s effect; the
+ * registration order and the cleanup order are unchanged. Returns one cleanup
+ * that removes them in the order the effect used to.
  */
-import { useChatStore, useUiStore } from '../../store'
+import { useChatStore } from '../../store'
 import type { StreamJsonEventContext } from './eventContext'
 
 export function subscribeStreamJsonListeners(ctx: StreamJsonEventContext): () => void {
@@ -18,13 +18,6 @@ export function subscribeStreamJsonListeners(ctx: StreamJsonEventContext): () =>
       planContent: data.planContent,
       planFilePath: data.planFilePath,
     })
-  })
-
-  // Listen for provider failover events
-  const unsubFailover = window.electronAPI.onProviderFailover((data) => {
-    useUiStore.getState().addToast('warning',
-      `Failover: ${data.fromProvider} -> ${data.toProvider}. ${data.reason}`
-    )
   })
 
   // Listen for tab-close abort event (Iteration 515)
@@ -47,7 +40,6 @@ export function subscribeStreamJsonListeners(ctx: StreamJsonEventContext): () =>
   window.addEventListener('aipa:sendMessage', handleSendMessage)
 
   return () => {
-    unsubFailover()
     unsubPlanApproval?.()
     window.removeEventListener('aipa:abortStream', handleAbortStream)
     window.removeEventListener('aipa:sendMessage', handleSendMessage)

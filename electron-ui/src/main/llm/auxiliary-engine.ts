@@ -17,19 +17,15 @@
  *   1. Codex — the primary engine. A Settings key (the one the chat path
  *      forwards as OPENAI_API_KEY), an OPENAI_API_KEY in the environment, or
  *      Codex's own ChatGPT login.
- *   2. Active provider — an explicitly selected non-Claude provider. The
- *      legacy CLI is the transport for that provider (same as
- *      `provider:sendMessage`), so it is only usable when that CLI exists.
- *   3. Legacy Claude CLI — an Anthropic key/token or a Claude Code login.
- *   4. Nothing — the feature stays off rather than spawning a process that
+ *   2. Legacy Claude CLI — the Anthropic key entered at the top of Settings, an
+ *      Anthropic key/token in the environment, or a Claude Code login.
+ *   3. Nothing — the feature stays off rather than spawning a process that
  *      cannot authenticate.
  */
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { getApiKey, getPref } from '../config/config-manager'
-import { providerRegistry } from '../providers'
-import { buildCliEnv } from '../providers/types'
+import { getApiKey } from '../config/config-manager'
 import { getCodexPath } from '../codex/codex-resolver'
 import { tryGetCliPath } from '../utils/cli-path'
 import { createLogger } from '../utils/logger'
@@ -38,8 +34,8 @@ const log = createLogger('aux-engine')
 
 export type AuxiliaryEngine =
   | { kind: 'codex' }
-  /** `provider` means the CLI carries a third-party provider's base URL/key. */
-  | { kind: 'claude'; source: 'legacy' | 'provider'; env: Record<string, string> }
+  /** The legacy Claude CLI, authenticated by an Anthropic key or a Claude login. */
+  | { kind: 'claude'; source: 'legacy'; env: Record<string, string> }
   | { kind: 'none'; reason: string }
 
 let loggedUnavailableFor: string | null = null
@@ -89,20 +85,8 @@ export function resolveAuxiliaryEngine(): AuxiliaryEngine {
     return { kind: 'codex' }
   }
 
-  // The user explicitly picked a provider. It is still driven through the
-  // legacy CLI, so a missing binary means the feature is off rather than an
-  // HTTP call the app has no other implementation for.
-  const activeProviderId = getPref('activeProviderId')
-  if (activeProviderId && activeProviderId !== 'claude-cli') {
-    const config = providerRegistry.getConfig(activeProviderId)
-    if (config?.enabled) {
-      const env = buildCliEnv(config)
-      if ((env.ANTHROPIC_API_KEY || env.ANTHROPIC_AUTH_TOKEN) && tryGetCliPath()) {
-        return { kind: 'claude', source: 'provider', env }
-      }
-    }
-  }
-
+  // Claude is the only fallback transport, so a missing binary means the
+  // feature is off rather than an HTTP call the app has no implementation for.
   const claudeLoggedIn = fileExists(claudeCredentialsFile())
   if ((hasAnthropicEnv || keyIsAnthropic || claudeLoggedIn) && tryGetCliPath()) {
     // Presence of the key (even an empty string for an OAuth-only login) is

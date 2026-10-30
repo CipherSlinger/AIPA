@@ -66,15 +66,11 @@ export function checkImageCandidate(candidate: ImageCandidate, currentCount: num
 }
 
 /**
- * Images may only ride a turn the Codex bridge will run. A third-party
- * provider route is a separate send API with no file input, so it is excluded
- * even when the active engine reports Codex.
+ * Images may only ride a turn the Codex bridge will run — it is the only send
+ * path that accepts `localImage` input.
  */
-export function canSendCodexImages(
-  engineKind: 'codex' | 'claude' | 'none',
-  routing: 'claude-cli' | 'provider',
-): boolean {
-  return engineKind === 'codex' && routing !== 'provider'
+export function canSendCodexImages(engineKind: 'codex' | 'claude' | 'none'): boolean {
+  return engineKind === 'codex'
 }
 
 export type CodexImageInput =

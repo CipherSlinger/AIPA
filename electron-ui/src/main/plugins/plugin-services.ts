@@ -12,9 +12,7 @@ import type { EventEmitter } from 'events'
 import { net } from 'electron'
 import { CodexBridge, CodexAuthError } from '../codex/codex-bridge'
 import { StreamBridge } from '../pty/stream-bridge'
-import { buildCliEnv, migrateProviderConfig, type ModelProviderConfig } from '../providers/types'
-import { providerRegistry } from '../providers'
-import { getPref, setPref } from '../config/config-manager'
+import { getApiKey, getPref, setPref } from '../config/config-manager'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('plugin-services')
@@ -295,30 +293,6 @@ export function pluginAiCwd(): string {
   return cwd
 }
 
-/**
- * Which provider should serve a plugin AI turn, and with which model.
- *
- * Mirrors the chat's `resolveProvider()`: when the requested model (or the
- * app's active model) belongs to an enabled provider other than the built-in
- * Claude CLI — i.e. an AI gateway or a compatible endpoint — that provider
- * serves the turn. Without this, a gateway-only setup fails the Codex auth
- * check even though chat works, because plugin AI never saw the gateway.
- *
- * The resolved model is returned too: a gateway usually serves only the models
- * it advertises, so the CLI must be told which one to ask for.
- */
-function resolvePluginAiTarget(model?: string): { config: ModelProviderConfig; model: string } | null {
-  const target = (model || '').trim() || (getPref('model') || '').trim()
-  if (!target) return null
-  const saved = (getPref('modelProviders') as unknown[] | undefined) ?? []
-  for (const entry of saved) {
-    const config = migrateProviderConfig(entry as Record<string, unknown>)
-    if (config.id === 'claude-cli' || !config.enabled) continue
-    if ((config.models ?? []).some(m => m.id === target)) return { config, model: target }
-  }
-  return null
-}
-
 export interface PluginAiModelOption {
   id: string
   name: string
@@ -327,42 +301,74 @@ export interface PluginAiModelOption {
 }
 
 /**
- * The model list a plugin may offer, one entry per id.
+ * The only models a plugin may offer.
  *
- * The same id can be declared by several enabled providers (the built-in
- * Claude CLI and a gateway often advertise the same Claude ids). Deduplicating
- * keeps the first declaration's display name, but the label must name the
- * engine that will actually serve the turn — `resolvePluginAiTarget` skips the
- * built-in Claude CLI on purpose, so a "Claude (Anthropic)" label would lie
- * about a turn that runs on the gateway or the Codex fallback. An id with no
- * provider target (only `claude-cli` owns it, or none does) is reported as
- * `default` with no provider name, which the plugin labels as the default
- * engine. Credentials and base URLs never appear here.
+ * This must mirror `MODEL_OPTIONS` in
+ * `src/renderer/components/settings/settingsConstants.ts`. The main process
+ * cannot import renderer code (separate tsconfig/project), so the list is
+ * duplicated by hand: adding or renaming a model there without updating this
+ * list makes the toolbar picker and a saved work model disagree.
+ *
+ * `providerId` / `providerName` remain in the plugin-facing shape, but there is
+ * no provider anymore. Every entry runs on the built-in Claude CLI, so they are
+ * always the `default` sentinel and an empty name. Credentials never appear.
  */
+export const PLUGIN_AI_MODELS: readonly PluginAiModelOption[] = [
+  { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', providerId: 'default', providerName: '' },
+  { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', providerId: 'default', providerName: '' },
+  { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', providerId: 'default', providerName: '' },
+  { id: 'claude-opus-4', name: 'Claude Opus 4', providerId: 'default', providerName: '' },
+  { id: 'claude-sonnet-4-5', name: 'Claude Sonnet 4.5', providerId: 'default', providerName: '' },
+  { id: 'claude-3-7-sonnet-20250219', name: 'Claude Sonnet 3.7', providerId: 'default', providerName: '' },
+  { id: 'claude-3-5-sonnet-20241022', name: 'Claude Sonnet 3.5', providerId: 'default', providerName: '' },
+  { id: 'claude-3-5-haiku-20241022', name: 'Claude Haiku 3.5', providerId: 'default', providerName: '' },
+]
+
+/** The built-in catalogue. Copies entries so no caller can mutate the shared list. */
 export function listPluginAiModels(): PluginAiModelOption[] {
-  const seen = new Set<string>()
-  const models: PluginAiModelOption[] = []
-  for (const config of providerRegistry.getAllConfigs()) {
-    if (!config.enabled) continue
-    for (const model of config.models ?? []) {
-      if (!model.id || seen.has(model.id)) continue
-      seen.add(model.id)
-      const target = resolvePluginAiTarget(model.id)
-      models.push(target
-        ? { id: model.id, name: model.name, providerId: target.config.id, providerName: target.config.name }
-        : { id: model.id, name: model.name, providerId: 'default', providerName: '' })
-    }
-  }
-  return models
+  return PLUGIN_AI_MODELS.map(model => ({ ...model }))
+}
+
+/**
+ * Which engine serves a plugin AI turn, and how that engine authenticates.
+ *
+ * The provider subsystem is gone, so there is no registry to consult: the API
+ * key entered at the top of Settings → AI Engine is the only credential, and
+ * the built-in list above is the only catalogue. With a key the turn runs on
+ * the Claude CLI with that key and the chosen model; without one it falls back
+ * to the read-only Codex path, which authenticates with Codex's own login.
+ *
+ * The stored key is only used when it is an Anthropic key. The settings field
+ * accepts an OpenAI key too (that is what the Codex chat path forwards as
+ * `OPENAI_API_KEY`), and handing such a key to the Claude CLI would turn a
+ * working Codex profile into a guaranteed auth failure. In that case the turn
+ * falls back to Codex, which authenticates with its own login.
+ *
+ * A model id the built-in list does not know (an empty choice, or an old
+ * Codex id left in the app-wide pref) is dropped rather than forwarded: the
+ * Claude CLI cannot run it, and its default is a better answer than an error.
+ */
+function resolvePluginAiTarget(model?: string): { model: string; env: Record<string, string> } | null {
+  const key = getApiKey()
+  const authToken = process.env.ANTHROPIC_AUTH_TOKEN || ''
+  const anthropicKey = key.startsWith('sk-ant-') ? key : ''
+  if (!anthropicKey && !authToken) return null
+
+  const chosen = (model || '').trim()
+  const target = PLUGIN_AI_MODELS.some(m => m.id === chosen) ? chosen : ''
+  const env: Record<string, string> = anthropicKey
+    ? { ANTHROPIC_API_KEY: anthropicKey, CLAUDECODE: '' }
+    : { ANTHROPIC_AUTH_TOKEN: authToken, CLAUDECODE: '' }
+  return { model: target, env }
 }
 
 /**
  * A plugin's saved "work model", as the toolbar and the plugin both read it.
  *
- * `available` is the honest part: a saved id that no enabled provider offers
- * any more is still returned (with its old display name when the id is still
- * somewhere in the list) so the picker can show the choice it cannot honour —
- * never a silent switch to another model.
+ * `available` is the honest part: a saved id that is no longer in the built-in
+ * list is still returned so the picker can show the choice it cannot honour —
+ * never a silent switch to another model. Its name is blank because the
+ * built-in list is the only source of display names.
  */
 export interface PluginAiModelState {
   model: string
@@ -387,13 +393,13 @@ export function getPluginAiModel(pluginId: string): PluginAiModelState {
 
 /**
  * Save a plugin's work model. An empty id clears the choice; a non-empty id
- * must be one the list currently offers, or the plugin would be pinned to
- * something no provider can run and every `ai.generate` would fail later.
+ * must be one the built-in list offers, or the plugin would be pinned to a
+ * model the CLI cannot run and every `ai.generate` would fail later.
  */
 export function setPluginAiModel(pluginId: string, modelId: string): PluginAiModelState {
   const model = (modelId || '').trim()
-  if (model && !listPluginAiModels().some(m => m.id === model)) {
-    throw new Error(`[invalid_model] 模型 ${model} 不在已启用的提供商中`)
+  if (model && !PLUGIN_AI_MODELS.some(m => m.id === model)) {
+    throw new Error(`[invalid_model] 模型 ${model} 不在内置模型列表中`)
   }
 
   const saved = (getPref('pluginAiModels') as Record<string, string> | undefined) ?? {}
@@ -408,25 +414,24 @@ export function setPluginAiModel(pluginId: string, modelId: string): PluginAiMod
 }
 
 /**
- * Provider routing for a plugin turn, in the shape an internal turn needs.
+ * The same routing decision in the shape an internal turn needs.
  *
  * Kept next to `resolvePluginAiTarget` so `chat.ask` and `ai.generate` cannot
- * drift: a gateway-only setup works for one capability and fails the other's
- * Codex auth check otherwise. Null means "let the default engine run it".
+ * drift: both switch engines on the same key, or one capability works while the
+ * other hits a Codex auth check with no OpenAI credential. Null means "let the
+ * default engine run it" (the plugin has no key and the Codex login, if any,
+ * decides).
  */
 export function resolvePluginTurnTarget(model?: string): { model: string; env: Record<string, string> } | null {
-  const target = resolvePluginAiTarget(model)
-  if (!target) return null
-  return { model: target.model, env: { ...buildCliEnv(target.config), CLAUDECODE: '' } }
+  return resolvePluginAiTarget(model)
 }
 
 /**
  * Run one ephemeral generation and stream the agent's text back.
  *
- * Routing follows the active provider config: gateway / compatible setups run
- * through the Claude CLI on that provider's own credentials, everything else
- * falls back to a one-shot read-only Codex turn. Neither path keeps a session,
- * so plugin generations never show up in chat history.
+ * With the app key the turn runs through the Claude CLI on that key; without
+ * one it falls back to a one-shot read-only Codex turn. Neither path keeps a
+ * session, so plugin generations never show up in chat history.
  */
 export async function startPluginAi(args: PluginAiArgs, emit: (e: PluginAiEvent) => void): Promise<void> {
   const { requestId } = args
@@ -434,15 +439,15 @@ export async function startPluginAi(args: PluginAiArgs, emit: (e: PluginAiEvent)
 
   const target = resolvePluginAiTarget(args.model)
   return target
-    ? startProviderAi(args, emit, target.config, target.model)
+    ? startClaudeCliAi(args, emit, target.env, target.model)
     : startCodexAi(args, emit)
 }
 
-/** Provider path — Claude CLI carrying the provider's env (base URL + token). */
-async function startProviderAi(
+/** Claude CLI path — `env` carries the app's Anthropic key (see `resolvePluginAiTarget`). */
+async function startClaudeCliAi(
   args: PluginAiArgs,
   emit: (e: PluginAiEvent) => void,
-  config: ModelProviderConfig,
+  env: Record<string, string>,
   model: string
 ): Promise<void> {
   const { requestId } = args
@@ -491,7 +496,7 @@ async function startProviderAi(
       prompt: args.prompt,
       cwd: pluginAiCwd(),
       model,
-      env: { ...buildCliEnv(config), CLAUDECODE: '' },
+      env,
       permissionMode: 'bypassPermissions',
       flags: [
         '--tools', '',
@@ -524,7 +529,7 @@ async function startProviderAi(
       })
 }
 
-/** Codex path — used when no gateway / compatible provider owns the model. */
+/** Codex path — used when the app has no Anthropic key to run the Claude CLI. */
 async function startCodexAi(args: PluginAiArgs, emit: (e: PluginAiEvent) => void): Promise<void> {
   const { requestId } = args
   const bridge = new CodexBridge(`plugin-ai-${requestId}`)
@@ -597,7 +602,7 @@ async function startCodexAi(args: PluginAiArgs, emit: (e: PluginAiEvent) => void
       requestId,
       type: 'error',
       message: err instanceof CodexAuthError
-        ? 'Codex 尚未登录，也未配置 OpenAI API Key。请在 AIPA 设置中填写 API Key，或在「模型提供商」中把网关 / 兼容接口设为当前模型，或执行 codex login 后重试'
+        ? 'Codex 尚未登录。请在 AIPA 设置中填写 API Key，或执行 codex login 后重试'
         : `启动 Codex 失败：${err instanceof Error ? err.message : String(err)}`,
     })
   }

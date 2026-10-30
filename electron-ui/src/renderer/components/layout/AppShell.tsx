@@ -86,9 +86,9 @@ export default function AppShell() {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation()
-        // A nested layer inside the current view — the provider edit drawer in
-        // Settings, the model picker, and friends — claims Escape before the
-        // view itself does, so the key peels off one layer at a time.
+        // A nested layer inside the current view — an overlay in Settings, the
+        // model picker, and friends — claims Escape before the view itself
+        // does, so the key peels off one layer at a time.
         if (runTopEscape()) return
         if (mainView === 'department') {
           // Escape from department dashboard goes to chat

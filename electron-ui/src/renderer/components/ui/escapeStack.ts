@@ -5,7 +5,7 @@
  * `keydown` listener on `window` when it mounts, so it always fires before any
  * listener a nested overlay adds later — Escape would close the whole view
  * instead of the innermost layer (e.g. it would leave Settings entirely rather
- * than just closing the provider edit drawer).
+ * than just closing the open overlay).
  *
  * Usage — push a handler while your layer is open, and let the view-level
  * handler consult the stack before acting on the key:

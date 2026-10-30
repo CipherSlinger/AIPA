@@ -35,8 +35,8 @@ export function isInternalBridgeId(id: unknown): boolean {
  * Suggestions and memory extraction take the model from renderer prefs, which
  * describes the *chat* engine. A Claude id sent to Codex's `thread/start` is
  * rejected as an unknown model, so it is dropped there and Codex uses its own
- * default. The Claude bridge is left alone: provider scenarios deliberately
- * pass non-Claude model ids through `ANTHROPIC_MODEL`/`--model`.
+ * default. The Claude bridge is left alone: the installed CLI may understand
+ * ids outside the Codex catalogue.
  */
 export function pickModelForEngine(
   model: string | undefined,

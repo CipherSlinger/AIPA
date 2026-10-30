@@ -29,7 +29,6 @@ import { registerAttachmentHandlers } from './attachment-handlers'
 import { registerShellHandlers } from './register/shell-handlers'
 import { registerWindowHandlers } from './window-handlers'
 import { registerSkillsHandlers } from './skills-handlers'
-import { registerProviderHandlers } from './provider-handlers'
 import { registerDiagnosticsHandlers } from './diagnostics-handlers'
 import { registerBackupHandlers } from './backup-handlers'
 import { registerSpeculationHandlers } from './register/speculation-handlers'
@@ -111,7 +110,6 @@ export function registerAllHandlers(
     registerShellHandlers(win, send)
     registerWindowHandlers(win)
     registerSkillsHandlers()
-    registerProviderHandlers(win, send)
     registerDiagnosticsHandlers()
     registerBackupHandlers(send)
     registerSpeculationHandlers()

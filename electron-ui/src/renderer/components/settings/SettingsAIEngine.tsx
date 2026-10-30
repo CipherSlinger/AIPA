@@ -1,21 +1,20 @@
 // SettingsAIEngine — AI Engine settings tab (Iteration 652)
 // Contains model selector, API key, advisor model, thinking mode, max turns,
 // budget limit, AI reply language — moved from SettingsGeneral.
-// Provider / API-key config (SettingsProviders) renders as a sub-section of the
-// same group, above the page's save button.
 // Iteration 688: added appendSystemPrompt textarea.
 // The apiKeyHelper / outputStyle / availableModels inputs were removed: the
 // writable-field whitelist in cli-settings-manager.ts rejects all three, so the
 // controls persisted nothing. Edit those fields in ~/.claude/settings.json.
+// The providers sub-page is gone too: the key above is the only credential and
+// the model dropdown below is the built-in list, so a provider row would only
+// restate a choice this page already owns.
 
-import React, { useState, useEffect, Suspense } from 'react'
-import { Brain, Eye, EyeOff, Save, Cpu } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Brain, Eye, EyeOff, Save } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import { MODEL_OPTIONS, INPUT_STYLE } from './settingsConstants'
 import SettingsGroup from './SettingsGroup'
 import SettingsApiKeyPool from './SettingsApiKeyPool'
-
-const SettingsProviders = React.lazy(() => import('./SettingsProviders'))
 
 interface SettingsAIEngineProps {
   local: any
@@ -90,30 +89,6 @@ export default function SettingsAIEngine({
         )}
 
         <SettingsApiKeyPool field={field} />
-
-        {/* Providers sit above Model — this is where a key gets added and where
-            the resulting list of every configured key lives. */}
-        <div style={{ paddingTop: 14, paddingBottom: 14, borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
-            textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6,
-          }}>
-            <Cpu size={12} />
-            {t('settings.groups.providers')}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 10 }}>
-            {t('settings.aiEngineProvidersDesc')}
-          </div>
-
-          <Suspense fallback={
-            <div style={{ padding: 20, color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>
-              {t('settings.aiEngineProvidersLoading')}
-            </div>
-          }>
-            <SettingsProviders />
-          </Suspense>
-        </div>
 
         {field(t('settings.model'), (
           <select value={local.model} onChange={(e) => updateLocal({ model: e.target.value })} style={{ ...INPUT_STYLE }}>

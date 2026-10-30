@@ -1,33 +1,5 @@
 import { usePrefsStore } from '../store'
 
-/**
- * Check if the current model should be routed to a configured third-party provider.
- *
- * Provider configs no longer carry a `type` field — they use `scenario`
- * (official/gateway/compat) since the "unify all providers through the Claude CLI"
- * refactor. The built-in `claude-cli` provider is scenario 'official' and is served
- * by the normal Codex/StreamBridge path, so it must be skipped here; otherwise its
- * own models (including the default claude-sonnet-4-6) take the provider branch,
- * which requires a providerId this caller does not send.
- */
-export async function resolveProvider(modelId: string | undefined): Promise<{ type: 'claude-cli' } | { type: 'provider'; providerId: string }> {
-  if (!modelId) return { type: 'claude-cli' }
-  try {
-    const configs = await window.electronAPI.providerListConfigs()
-    for (const config of configs as { id: string; scenario?: string; models: { id: string }[]; enabled: boolean }[]) {
-      if (!config.enabled) continue
-      // The built-in Claude entry is executed by the standard CLI path.
-      if (config.id === 'claude-cli' || config.scenario === 'official') continue
-      if (config.models.some(m => m.id === modelId)) {
-        return { type: 'provider', providerId: config.id }
-      }
-    }
-  } catch {
-    // Fallback to Claude CLI if provider system is unavailable
-  }
-  return { type: 'claude-cli' }
-}
-
 export function sendCompletionNotification(title: string, summary: string, sessionId?: string) {
   if (document.hasFocus()) return  // Don't notify when window is focused
   if (usePrefsStore.getState().prefs.desktopNotifications === false) return

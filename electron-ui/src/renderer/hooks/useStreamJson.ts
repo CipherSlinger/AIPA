@@ -3,7 +3,7 @@ import { useChatStore, useDepartmentStore, usePrefsStore, useSessionStore } from
 import { ElicitationMessage, HookCallbackMessage, StandardChatMessage } from '../types/app.types'
 import { useUiStore } from '../store'
 import { getResolvedLocale, getT } from '../i18n'
-import { resolveProvider, getActiveApiKey } from './streamJsonUtils'
+import { getActiveApiKey } from './streamJsonUtils'
 import { useAutoCompact } from './useAutoCompact'
 import { useAutoMemory } from './useAutoMemory'
 import { assembleMemoryContextForTurn } from './promptMemory'
@@ -138,15 +138,12 @@ export function useStreamJson() {
     // Image delivery is decided here, at the turn boundary, from the same
     // engine probe the composer uses. A credentials change between attaching
     // and pressing send must not turn into a silent "sent" claim.
-    const routing = await resolveProvider(personaTurn.model)
     const activeEngine = await window.electronAPI.engineGetActive().catch(() => ({ kind: 'none' as const }))
     const imageAttachments = (attachments || []).filter(a => typeof a.path === 'string' && a.path.length > 0)
     const imagesDeliverable = imageAttachments.length > 0 &&
-      canSendCodexImages(activeEngine.kind, routing.type)
+      canSendCodexImages(activeEngine.kind)
     const imageNotSentReason = imageAttachments.length > 0 && !imagesDeliverable
-      ? (activeEngine.kind === 'codex'
-          ? t('chat.imageAttachment.providerUnavailable')
-          : t('chat.imageAttachment.codexOnly'))
+      ? t('chat.imageAttachment.codexOnly')
       : undefined
 
     // The user's row keeps the thumbnails and the reason they could not be
@@ -174,11 +171,7 @@ export function useStreamJson() {
     // Record which engine owns this turn. The composer may only steer a Codex
     // turn, and it must never infer that from whatever credential the picker
     // shows later: credentials can change while the turn is still running.
-    // The provider branch never reaches CodexBridge, whatever the credential
-    // probe says, so it is never steerable.
-    useChatStore.getState().beginLiveTurn(
-      routing.type === 'provider' || activeEngine.kind !== 'codex' ? 'legacy' : 'codex',
-    )
+    useChatStore.getState().beginLiveTurn(activeEngine.kind === 'codex' ? 'codex' : 'legacy')
     // Prevent system idle sleep while streaming (if enabled in prefs)
     if (prefs.preventSleep !== false && window.electronAPI?.windowPreventSleep) {
       window.electronAPI.windowPreventSleep(true)
@@ -288,58 +281,6 @@ export function useStreamJson() {
       actualPrompt = systemPrefix + prompt
     }
 
-    // Route by the model this conversation's persona selected, not by whatever
-    // another conversation last wrote into global prefs.
-    if (routing.type === 'provider') {
-      // Non-Claude provider: use providerSendMessage IPC
-      // Build conversation history for context
-      const existingMsgs = useChatStore.getState().messages
-      const contextMessages = existingMsgs
-        .filter(m => m.role === 'user' || m.role === 'assistant')
-        .slice(-20) // Last 20 messages for context
-        .map(m => ({
-          role: m.role as string,
-          content: (m as StandardChatMessage).content || '',
-        }))
-      // Remove the last user message since it's sent as the prompt
-      if (contextMessages.length > 0 && contextMessages[contextMessages.length - 1].role === 'user') {
-        contextMessages.pop()
-      }
-
-      const systemPrompt = systemPromptParts.length > 0 ? systemPromptParts.join('\n\n') : undefined
-
-      try {
-        const result = await window.electronAPI.providerSendMessage({
-          providerId: routing.providerId,
-          prompt: actualPrompt,
-          model: personaTurn.model || 'gpt-4o',
-          systemPrompt,
-          messages: contextMessages,
-          maxTokens: 4096,
-          temperature: 0.7,
-        })
-
-        if (result?.success && result.sessionId) {
-          activeBridgeIdRef.current = result.sessionId
-          // Provider bridges publish on the same cli:* channels; declare them as
-          // the active stream so the store guard does not drop their deltas.
-          useChatStore.getState().setStreamSession(result.sessionId)
-        } else if (!result?.success) {
-          // The provider branch returns before any bridge exists, so no
-          // cli:error/cli:messageEnd will arrive. Surface the failure and
-          // release the streaming lock, otherwise the composer stays disabled.
-          useUiStore.getState().addToast('error', result?.error || t('error.unknownError'))
-          stopStreamingAndReleaseSleep()
-        }
-
-        return result
-      } catch (err) {
-        useUiStore.getState().addToast('error', String(err))
-        stopStreamingAndReleaseSleep()
-        throw err
-      }
-    }
-
     // Send via cliSendMessage (CodexBridge handles OpenAI, StreamBridge handles Claude)
     const chatState = useChatStore.getState()
     const currentTab = chatState.tabs.find(tab => tab.id === chatState.activeTabId)
@@ -426,8 +367,6 @@ export function useStreamJson() {
       useChatStore.getState().markAttachmentsNotSent(userMsg.id, reason)
       useUiStore.getState().addToast('error', t('chat.imageAttachment.notSent', { reason }))
     }
-
-    return result
   }, [stopStreamingAndReleaseSleep])
 
   // Keep ref in sync so IPC handler can call sendMessage without stale closure
@@ -639,8 +578,8 @@ export function useStreamJson() {
       handleThreadEvent(event, data, ctx)
     })
 
-    // Plan approval, provider failover and the two window events: the same
-    // subscriptions in the same order, behind one cleanup.
+    // Plan approval and the two window events: the same subscriptions in the
+    // same order, behind one cleanup.
     const unsubListeners = subscribeStreamJsonListeners(ctx)
 
     return () => {
