@@ -46,22 +46,29 @@ export function dirToSlug(dir: string): string {
 }
 
 /**
- * Index departments by their slug, so a session can find the department that
- * owns it in one lookup.
+ * Index departments by their legacy folder. A node without one is a processor
+ * and owns no directory, so it is skipped here — the task index, not this
+ * legacy join, is how its conversations find it.
  */
 export function deptBySlug(departments: Department[]): Map<string, Department> {
   const map = new Map<string, Department>()
-  for (const dept of departments) map.set(dirToSlug(dept.directory), dept)
+  for (const dept of departments) {
+    if (typeof dept.directory !== 'string' || !dept.directory) continue
+    map.set(dirToSlug(dept.directory), dept)
+  }
   return map
 }
 
 /**
- * Index departments by their normalised directory path. Used when the engine
- * reports a real cwd (Codex), which is more trustworthy than a slug.
+ * Index departments by their normalised legacy directory path. Used when the
+ * engine reports a real cwd (Codex), which is more trustworthy than a slug.
  */
 export function deptByNormDir(departments: Department[], homeDir?: string): Map<string, Department> {
   const map = new Map<string, Department>()
-  for (const dept of departments) map.set(normalizePath(dept.directory, homeDir), dept)
+  for (const dept of departments) {
+    if (typeof dept.directory !== 'string' || !dept.directory) continue
+    map.set(normalizePath(dept.directory, homeDir), dept)
+  }
   return map
 }
 

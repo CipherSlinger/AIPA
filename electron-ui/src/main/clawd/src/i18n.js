@@ -179,6 +179,10 @@ const i18n = {
     quickCommandContinueFailed: "Could not continue this conversation",
     quickCommandContinueUnavailable: "That conversation can no longer be continued. Start a new one instead.",
     quickCommandUntitledThread: "Untitled conversation",
+    // Remembered asks. The label heads the recent-asks list under the input;
+    // the hint sits beside the ↑ key in the footer.
+    quickCommandHistoryLabel: "Recent asks",
+    quickCommandHistoryHint: "History",
   },
   zh: {
     size: "大小",
@@ -336,6 +340,8 @@ const i18n = {
     quickCommandContinueFailed: "无法继续此对话",
     quickCommandContinueUnavailable: "该对话已无法继续，请改为开始新对话。",
     quickCommandUntitledThread: "未命名对话",
+    quickCommandHistoryLabel: "最近提问",
+    quickCommandHistoryHint: "历史",
   },
   ko: {
     size: "크기",
@@ -493,6 +499,8 @@ const i18n = {
     quickCommandContinueFailed: "이 대화를 이어갈 수 없습니다",
     quickCommandContinueUnavailable: "이 대화를 더 이상 이어갈 수 없습니다. 새 대화를 시작하세요.",
     quickCommandUntitledThread: "제목 없는 대화",
+    quickCommandHistoryLabel: "최근 질문",
+    quickCommandHistoryHint: "기록",
   },
 };
 

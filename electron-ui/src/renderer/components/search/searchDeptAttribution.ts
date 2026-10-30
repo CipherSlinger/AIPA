@@ -1,14 +1,16 @@
 // Which org node a global-search hit belongs to.
 //
 // Search hits carry no department of their own. The session listing does: a
-// session is filed under a node by its working folder (the same directory join
-// the archive and the dashboards use), or by a manual filing the user made.
-// This module joins a hit's `sessionId` to that listing and then to the tree,
+// session is attributed by the routed department of the task that recorded it,
+// by its legacy working folder, or by a manual filing the user made. This
+// module joins a hit's `sessionId` to that listing and then to the tree,
 // producing one of four honest answers:
 //
 //   attributed   — the session is listed and resolves to a live node, either
-//                  because the user filed it there (`filedBy: 'you'`) or
-//                  because its folder belongs to that node (`filedBy: 'folder'`)
+//                  because the user filed it there (`filedBy: 'you'`),
+//                  because its task is routed there (`filedBy: 'task'`), or
+//                  because its legacy folder belongs to that node
+//                  (`filedBy: 'folder'`)
 //   removed      — the user filed it under a node that no longer exists; the
 //                  remembered name is all that is left, and the folder is
 //                  deliberately NOT used instead
@@ -25,6 +27,7 @@
 // is client-side so it can never start a scan or race the result sequencing.
 
 import type { Department, FilingMap, OrgNodeKind } from '../../store/departmentStore'
+import type { TaskRecordData } from '../../../preload'
 import {
   deptDisplayName,
   deptTreeOptionText,
@@ -53,14 +56,18 @@ export type DeptAttribution =
     /** Names from the tree root down to the node, for the tooltip. */
     path: string
     kind: OrgNodeKind
-    /** The folders this node owns; shown so the filing stays auditable. */
-    directory: string
+    /**
+     * The legacy folder this node owns, shown so a folder-based filing stays
+     * auditable. Absent for a processor that owns no folder.
+     */
+    directory?: string
     /**
      * Why the node is this one: `'you'` means the user filed the conversation
-     * by hand and it overrode the folder; `'folder'` means the directory join.
-     * The chip must not present the first as evidence of where work ran.
+     * by hand and it overrode everything else; `'task'` means the conversation's
+     * task is routed here; `'folder'` means the legacy directory join. The chip
+     * must not present a non-folder reason as evidence of where work ran.
      */
-    filedBy: 'you' | 'folder'
+    filedBy: 'you' | 'task' | 'folder'
   }
   /**
    * A manual filing outlived its node. `label` is the node's name at filing
@@ -80,6 +87,8 @@ export interface DeptAttributionInput {
   homeDir?: string
   /** Manual overrides of the folder join, by session id. */
   filings?: Readonly<FilingMap>
+  /** Tasks, so a conversation recorded by one attributes by `departmentId`. */
+  tasks?: ReadonlyArray<Pick<TaskRecordData, 'id' | 'departmentId' | 'sessions'>>
 }
 
 /**
@@ -93,10 +102,10 @@ export interface DeptAttributionInput {
 export function buildDeptAttributionMap(
   input: DeptAttributionInput,
 ): Map<string, DeptAttribution> {
-  // One lookup for the whole pass: the folder join and the manual-filing
-  // precedence are both answered by the same resolver the archive and the
-  // handoff dialog use.
-  const lookup = buildDeptLookup(input.departments, input.homeDir)
+  // One lookup for the whole pass: the task index, the folder join and the
+  // manual-filing precedence are all answered by the same resolver the archive
+  // and the handoff dialog use.
+  const lookup = buildDeptLookup(input.departments, input.homeDir, input.tasks)
   const sessionById = new Map<string, DeptSessionRef>()
   for (const session of input.sessions) sessionById.set(session.sessionId, session)
 
@@ -106,7 +115,7 @@ export function buildDeptAttributionMap(
     label: string
     path: string
     kind: OrgNodeKind
-    directory: string
+    directory?: string
   }>()
   const metaFor = (node: Department) => {
     const cached = nodeMeta.get(node.id)
@@ -145,7 +154,11 @@ export function buildDeptAttributionMap(
       state: 'attributed',
       nodeId: resolution.dept.id,
       ...metaFor(resolution.dept),
-      filedBy: resolution.source === 'filed' ? 'you' : 'folder',
+      filedBy: resolution.source === 'filed'
+        ? 'you'
+        : resolution.source === 'task'
+          ? 'task'
+          : 'folder',
     })
   }
   return out
@@ -212,14 +225,15 @@ export interface DeptSessionScope {
  * is `rootId` or a descendant, in the listing's order.
  *
  * Membership is the same resolution the per-row chip uses (manual filing
- * first, then the folder join), so the answer's corpus and the chip on a hit
- * cannot disagree. A conversation filed into the subtree from elsewhere is in
- * scope; one filed away is not, even if its folder sits inside the subtree. A
- * filing whose node was deleted belongs to no live subtree. A session that is
- * unlisted contributes nothing; `project` is a lossy display label and is
- * never used as a guess (the slug/cwd join is the only evidence from a
- * folder). Duplicate listing rows collapse to their first occurrence, and the
- * cap keeps the scope bounded without changing which node a session belongs to.
+ * first, then the task's routed department, then the legacy folder join), so
+ * the answer's corpus and the chip on a hit cannot disagree. A conversation
+ * routed into the subtree from elsewhere is in scope; one routed away is not,
+ * even if its folder sits inside the subtree. A filing or task whose node was
+ * deleted belongs to no live subtree. A session that is unlisted contributes
+ * nothing; `project` is a lossy display label and is never used as a guess (the
+ * slug/cwd join is the only evidence from a folder). Duplicate listing rows
+ * collapse to their first occurrence, and the cap keeps the scope bounded
+ * without changing which node a session belongs to.
  */
 export function sessionIdsInDeptTree(
   sessions: ReadonlyArray<DeptSessionRef>,
@@ -227,11 +241,12 @@ export function sessionIdsInDeptTree(
   rootId: string,
   homeDir?: string,
   filings?: Readonly<FilingMap>,
+  tasks?: ReadonlyArray<Pick<TaskRecordData, 'id' | 'departmentId' | 'sessions'>>,
 ): DeptSessionScope {
   const subtree = subtreeNodeIds(departments, rootId)
   if (subtree.size === 0) return { ids: [], total: 0, truncated: false }
 
-  const lookup = buildDeptLookup(departments, homeDir)
+  const lookup = buildDeptLookup(departments, homeDir, tasks)
   // First occurrence wins: the listing can repeat a session (a title and a
   // content hit, or a refresh that appended rather than replaced), and the
   // later copy must not move it to another node.

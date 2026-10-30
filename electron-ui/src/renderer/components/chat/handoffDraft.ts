@@ -1,6 +1,8 @@
 // Draft the note that travels with a conversation handed to another department.
 //
-// The note is built only from verbatim excerpts of the transcript. There is no
+// The note is built only from verbatim excerpts of the transcript. It names the
+// source, never a destination folder: a department is a processor, and the work
+// stays in its task directory. There is no
 // model call and no summarising: a fabricated summary would read like the
 // source department's own words while silently dropping the caveats that made
 // them true. Excerpts, provenance and the "you have no context" line are the
@@ -45,7 +47,6 @@ export interface HandoffDraft {
   sourceDirectory: string
   sourceDeptPath: string | null
   targetLabel: string
-  targetPath: string
   /** Local calendar day, `YYYY-MM-DD`. */
   date: string
   /** True when at least one excerpt hit its cap. */
@@ -59,7 +60,6 @@ export interface BuildHandoffDraftInput {
   sourceDirectory?: string
   sourceDeptPath?: string | null
   targetLabel: string
-  targetPath: string
   /** Epoch ms; the harness passes a fixed value so the date is stable. */
   now?: number
 }
@@ -70,7 +70,6 @@ export interface BuildHandoffDraftInput {
  */
 export interface HandoffLabels {
   heading: string
-  targetFolder: string
   sourceTitle: string
   untitled: string
   sourceSession: string
@@ -201,7 +200,6 @@ export function buildHandoffDraft(input: BuildHandoffDraftInput): HandoffDraft {
     sourceDirectory: input.sourceDirectory ?? '',
     sourceDeptPath: clean(input.sourceDeptPath),
     targetLabel: input.targetLabel,
-    targetPath: input.targetPath,
     date: localDate(input.now ?? Date.now()),
     clipped: !!(
       firstRequest?.clipped ||
@@ -233,9 +231,11 @@ function compose(
   budgets: { first: number; latest: number; reply: number },
 ): { text: string; cut: boolean } {
   const targetLabel = field(draft.targetLabel)
+  // Deliberately no target folder: a department is a processor, and a handoff
+  // moves attribution, not work. Naming a directory here would tell the receiver
+  // to run somewhere the task does not own.
   const blocks: string[] = [
     fill(labels.heading, { target: targetLabel }),
-    fill(labels.targetFolder, { path: field(draft.targetPath) }),
   ]
 
   const provenance: string[] = [

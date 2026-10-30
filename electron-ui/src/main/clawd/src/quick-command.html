@@ -32,6 +32,8 @@ html, body {
   --field-bg: rgba(63, 224, 200, 0.035);
   --field-border: rgba(63, 224, 200, 0.16);
   --field-focus: rgba(63, 224, 200, 0.5);
+  --row-line: rgba(63, 224, 200, 0.1);
+  --row-active: rgba(63, 224, 200, 0.09);
   --error: #ff8b8b;
   --warn: #f0b429;
   --panel-bg:
@@ -62,6 +64,8 @@ body[data-theme="clawd"] {
   --field-bg: rgba(0, 0, 0, 0.03);
   --field-border: rgba(0, 0, 0, 0.12);
   --field-focus: rgba(217, 119, 87, 0.55);
+  --row-line: rgba(0, 0, 0, 0.08);
+  --row-active: rgba(0, 0, 0, 0.05);
   --error: #b42318;
   --warn: #a15c07;
   --panel-bg: linear-gradient(180deg, #fbfbfa, #f4f4f2);
@@ -81,6 +85,8 @@ body[data-theme="clawd"] {
     --field-bg: #09090b;
     --field-border: rgba(255, 255, 255, 0.08);
     --field-focus: rgba(217, 119, 87, 0.65);
+    --row-line: rgba(255, 255, 255, 0.07);
+    --row-active: rgba(255, 255, 255, 0.07);
     --error: #fca5a5;
     --warn: #fbbf24;
     --panel-bg: linear-gradient(180deg, #1b1b1e, #18181b);
@@ -298,6 +304,110 @@ body[data-theme="clawd"] .field:focus-within { box-shadow: 0 0 0 3px rgba(217, 1
 .error[data-kind="empty"] { color: var(--warn); border-left-color: var(--warn); }
 .error[data-kind="busy"] { color: var(--warn); border-left-color: var(--warn); }
 
+/* ── Recent asks ──────────────────────────────────────────────────────────────
+   Shown only while the field is empty. The micro-label and hairline rows use
+   the same HUD grammar as the meta rows; the window grows by this block's
+   measured height so the panel never clips it. */
+.suggest {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  margin-top: 7px;
+}
+.suggest-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px 4px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.suggest-label::before {
+  content: "";
+  flex: none;
+  width: 12px;
+  height: 1px;
+  background: var(--accent);
+  opacity: 0.65;
+}
+body[data-theme="clawd"] .suggest-label {
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.suggest-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+}
+body[data-theme="clawd"] .suggest-list { gap: 2px; border-top: 0; }
+.suggest-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 28px;
+  padding: 0 6px 0 8px;
+  border: 0;
+  border-bottom: 1px solid var(--row-line);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  animation: suggestIn 190ms var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 34ms);
+  transition: background 120ms ease;
+}
+.suggest-row:last-child { border-bottom: 0; }
+.suggest-row:hover,
+.suggest-row:focus-visible { background: var(--row-active); }
+.suggest-row[aria-selected="true"] {
+  background: var(--row-active);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+body[data-theme="clawd"] .suggest-row {
+  font-size: 12px;
+  border-bottom: 0;
+  border-radius: 6px;
+}
+body[data-theme="clawd"] .suggest-row[aria-selected="true"] {
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.suggest-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.suggest-age {
+  flex: none;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+body[data-theme="clawd"] .suggest-age {
+  font-size: 9px;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+@keyframes suggestIn {
+  from { opacity: 0; transform: translateX(-5px); }
+  to   { opacity: 1; transform: none; }
+}
+
 /* ── Footer ───────────────────────────────────────────────────────────────── */
 .foot {
   display: flex;
@@ -352,6 +462,7 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .panel { transition: none; }
   .target { transition: none; }
+  .suggest-row { animation: none; transition: none; }
   .scan { animation: none; opacity: 0.35; }
   .progress span { animation: none; width: 100%; opacity: 0.35; }
 }
@@ -376,8 +487,13 @@ kbd {
     <input id="input" type="text" spellcheck="false" autocomplete="off"
            aria-label="Quick command" />
   </form>
+  <div class="suggest" id="suggest" hidden>
+    <div class="suggest-label" id="suggestLabel"></div>
+    <div class="suggest-list" id="suggestList" role="listbox"></div>
+  </div>
   <div class="error" id="error" role="alert" hidden></div>
   <div class="foot">
+    <span class="hint" id="historyHint" hidden><kbd>↑</kbd><span id="historyHintText"></span></span>
     <span class="hint"><kbd>Enter</kbd><span id="sendHint">Send</span></span>
     <span class="hint"><kbd>Esc</kbd><span id="cancelHint">Cancel</span></span>
     <span class="spacer2"></span>
@@ -404,6 +520,11 @@ kbd {
   var targetDot = document.getElementById("targetDot");
   var targetName = document.getElementById("targetName");
   var targetSwap = document.getElementById("targetSwap");
+  var suggestEl = document.getElementById("suggest");
+  var suggestLabel = document.getElementById("suggestLabel");
+  var suggestList = document.getElementById("suggestList");
+  var historyHintEl = document.getElementById("historyHint");
+  var historyHintText = document.getElementById("historyHintText");
 
   var labels = {
     ask: "Quick command",
@@ -428,7 +549,11 @@ kbd {
     switchToContinue: "Click to continue this conversation",
     continueFailed: "Could not continue this conversation",
     continueUnavailable: "That conversation can no longer be continued. Start a new one instead.",
-    untitledThread: "Untitled conversation"
+    untitledThread: "Untitled conversation",
+    // Filled from i18n.js by main on every open; empty here so no English
+    // string is baked into this page.
+    historyLabel: "",
+    historyHint: ""
   };
 
   var ready = false;
@@ -440,6 +565,19 @@ kbd {
   // Captured by main on open, reset on every open. The page only chooses a
   // mode; it never sees or sends the thread id.
   var target = { canContinue: false, mode: "new", label: "" };
+  // Newest first. Main sends all of it; the list shows the first five.
+  var history = [];
+  // Suggestion row under the keyboard, -1 for none. Distinct from recallIndex:
+  // ↑ pulls history into the field, ↓ selects a row in the list.
+  var selected = -1;
+  // -1 = the draft; 0 = newest history entry. Increasing walks back in time.
+  var recallIndex = -1;
+  // What the field held when the walk began, restored at the bottom.
+  var draft = "";
+  // Last extra height sent to main, so idle keystrokes do not spam resize.
+  var lastExtra = -1;
+  var ageFormat = null;
+  var SUGGEST_LIMIT = 5;
 
   function applyLabels() {
     eyebrow.textContent = labels.ask;
@@ -447,6 +585,9 @@ kbd {
     input.setAttribute("aria-label", labels.placeholder);
     sendHint.textContent = labels.send;
     cancelHint.textContent = labels.cancel;
+    suggestLabel.textContent = labels.historyLabel;
+    suggestList.setAttribute("aria-label", labels.historyLabel);
+    historyHintText.textContent = labels.historyHint;
     panel.setAttribute("aria-label", labels.ask);
   }
 
@@ -483,6 +624,173 @@ kbd {
     errorEl.hidden = false;
   }
 
+  function suggestVisible() {
+    return !pending && history.length > 0 && input.value.length === 0;
+  }
+
+  /**
+   * Relative age without baking units into the page: Intl knows them for the
+   * language main put on <html>. An entry without a usable timestamp simply
+   * gets no age badge.
+   */
+  function ageFormatter() {
+    if (ageFormat) return ageFormat;
+    if (typeof Intl === "undefined" || typeof Intl.RelativeTimeFormat !== "function") return null;
+    try {
+      ageFormat = new Intl.RelativeTimeFormat(document.documentElement.lang || "en", {
+        numeric: "auto",
+        style: "short"
+      });
+    } catch (err) {
+      ageFormat = null;
+    }
+    return ageFormat;
+  }
+
+  function formatAge(at) {
+    if (typeof at !== "number" || !isFinite(at) || at <= 0) return "";
+    var format = ageFormatter();
+    if (!format) return "";
+    var seconds = Math.max(0, Math.round((Date.now() - at) / 1000));
+    if (seconds < 45) return format.format(0, "second");
+    var minutes = Math.round(seconds / 60);
+    if (minutes < 60) return format.format(-minutes, "minute");
+    var hours = Math.round(minutes / 60);
+    if (hours < 24) return format.format(-hours, "hour");
+    return format.format(-Math.round(hours / 24), "day");
+  }
+
+  function placeCaretAtEnd() {
+    try { input.setSelectionRange(input.value.length, input.value.length); } catch (err) {
+      /* the field may be disabled mid-render */
+    }
+  }
+
+  /**
+   * Ask main for exactly the space the list occupies. It owns the ceiling and
+   * the work-area clamp; sending the measurement keeps the panel from clipping
+   * when the list is shorter than its five-row maximum.
+   */
+  function requestHeight() {
+    var extra = 0;
+    if (!suggestEl.hidden) {
+      var margin = parseFloat(window.getComputedStyle(suggestEl).marginTop) || 0;
+      extra = Math.round(suggestEl.getBoundingClientRect().height + margin);
+    }
+    if (extra === lastExtra) return;
+    lastExtra = extra;
+    if (api && typeof api.resize === "function") api.resize(extra);
+  }
+
+  function applySelection() {
+    var rows = suggestList.children;
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].setAttribute("aria-selected", i === selected ? "true" : "false");
+    }
+    if (selected >= 0 && rows[selected]) {
+      try { rows[selected].scrollIntoView({ block: "nearest" }); } catch (err) {
+        /* no scrolling surface in this window */
+      }
+    }
+  }
+
+  function buildSuggestionRow(entry, index) {
+    var row = document.createElement("button");
+    row.type = "button";
+    row.className = "suggest-row";
+    row.tabIndex = -1;
+    row.setAttribute("role", "option");
+    row.setAttribute("aria-selected", "false");
+    row.style.setProperty("--i", String(index));
+
+    var text = document.createElement("span");
+    text.className = "suggest-text";
+    text.textContent = entry.text;
+
+    var age = document.createElement("span");
+    age.className = "suggest-age";
+    age.textContent = formatAge(entry.at);
+
+    row.appendChild(text);
+    if (age.textContent) row.appendChild(age);
+    row.addEventListener("click", function (event) {
+      event.preventDefault();
+      insertFromSuggestion(index);
+    });
+    return row;
+  }
+
+  function renderSuggestions() {
+    if (!suggestVisible()) {
+      suggestEl.hidden = true;
+      selected = -1;
+      if (suggestList.childNodes.length) suggestList.replaceChildren();
+      requestHeight();
+      return;
+    }
+    suggestEl.hidden = false;
+    var rows = history.slice(0, SUGGEST_LIMIT);
+    suggestList.replaceChildren();
+    for (var i = 0; i < rows.length; i++) {
+      suggestList.appendChild(buildSuggestionRow(rows[i], i));
+    }
+    if (selected >= rows.length) selected = -1;
+    applySelection();
+    requestHeight();
+  }
+
+  /**
+   * Clicking or Enter-on-selection fills the field; it never sends. The list
+   * disappears because the field is no longer empty, which also shrinks the
+   * window back.
+   */
+  function insertFromSuggestion(index) {
+    var entry = history[index];
+    if (!entry) return;
+    selected = -1;
+    recallIndex = -1;
+    draft = "";
+    input.value = entry.text;
+    try { input.focus(); } catch (err) { /* window may be going away */ }
+    placeCaretAtEnd();
+    renderSuggestions();
+  }
+
+  /**
+   * One step along the walk: negative is older (↑), positive is newer (↓).
+   * The draft sits one step below the newest entry and is restored there.
+   */
+  function recallHistory(step) {
+    if (history.length === 0) return false;
+    if (step < 0) {
+      if (recallIndex < 0) {
+        draft = input.value;
+        recallIndex = 0;
+      } else if (recallIndex < history.length - 1) {
+        recallIndex += 1;
+      } else {
+        return true;
+      }
+    } else {
+      if (recallIndex < 0) return false;
+      if (recallIndex > 0) {
+        recallIndex -= 1;
+      } else {
+        recallIndex = -1;
+        input.value = draft;
+        selected = -1;
+        placeCaretAtEnd();
+        renderSuggestions();
+        return true;
+      }
+    }
+    input.value = history[recallIndex].text;
+    selected = -1;
+    placeCaretAtEnd();
+    renderSuggestions();
+    return true;
+  }
+
   function setPending(on) {
     pending = !!on;
     input.disabled = pending;
@@ -497,15 +805,25 @@ kbd {
     }
     // A pending turn owns the target; the choice must not change mid-flight.
     renderTarget();
+    // No suggestions while a turn is starting; restoring the field brings
+    // them back with it.
+    renderSuggestions();
   }
 
   function submit() {
     if (pending) return;
-    // An Enter that commits an IME composition is not a send. The browser
-    // fires `compositionend` between the keydown and this submit, so the flag
-    // read alone is not enough; `imeEnter` remembers the exact keystroke.
+    // An Enter that commits an IME composition is not a send and not a
+    // history/list activation. The browser fires `compositionend` between the
+    // keydown and this submit, so the flag read alone is not enough;
+    // `imeEnter` remembers the exact keystroke.
     if (composing || imeEnter) {
       imeEnter = false;
+      return;
+    }
+    // Enter on a highlighted suggestion inserts it instead of sending. A
+    // second Enter (now with no selection) sends the field.
+    if (selected >= 0) {
+      insertFromSuggestion(selected);
       return;
     }
     var value = input.value.trim();
@@ -534,6 +852,25 @@ kbd {
     document.body.dataset.theme = data.theme === "clawd" ? "clawd" : "sao";
     applyLabels();
 
+    // History arrives newest first. Only records that can be displayed are
+    // kept; the same text twice in one list would be a duplicate row.
+    history = [];
+    if (Array.isArray(data.history)) {
+      for (var h = 0; h < data.history.length && history.length < 40; h++) {
+        var item = data.history[h];
+        if (!item || typeof item.text !== "string" || !item.text) continue;
+        history.push({
+          text: item.text,
+          at: typeof item.at === "number" ? item.at : 0
+        });
+      }
+    }
+    selected = -1;
+    recallIndex = -1;
+    draft = "";
+    lastExtra = -1;
+    ageFormat = null;
+
     // Every open starts on main's default (CONTINUE only when it can name a
     // live, still-existing thread). The choice is per ask, never sticky.
     var incoming = data.target || {};
@@ -551,6 +888,10 @@ kbd {
     status.textContent = "";
     clearError();
     renderTarget();
+    historyHintEl.hidden = history.length === 0 || !labels.historyHint;
+    // Run before ready(): the resize request reaches main ahead of the reveal,
+    // so the bar is first shown at its final height.
+    renderSuggestions();
     // A busy user-facing turn is a precondition, not a failed attempt: say so
     // up front, but leave the field usable in case that turn stops meanwhile.
     if (data.busy === true) showError(labels.busy, "busy");
@@ -587,12 +928,47 @@ kbd {
   input.addEventListener("compositionend", function () {
     composing = false;
   });
+  input.addEventListener("input", function () {
+    // Any text hides the list; clearing the field brings it back.
+    selected = -1;
+    renderSuggestions();
+  });
   input.addEventListener("keydown", function (event) {
-    if (event.key !== "Enter") return;
+    // An IME owns the keys it is consuming: arrows walk candidates and Enter
+    // commits the composition. None of that may navigate history or send.
     // 229 is the legacy keyCode Chromium reports while an IME owns the key.
     if (composing || event.isComposing || event.keyCode === 229) {
-      imeEnter = true;
-      window.setTimeout(function () { imeEnter = false; }, 0);
+      if (event.key === "Enter") {
+        imeEnter = true;
+        window.setTimeout(function () { imeEnter = false; }, 0);
+      }
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      // Move within a selected list first; with no selection, ↑ starts (or
+      // continues) the walk through history and fills the field.
+      if (selected >= 0) {
+        event.preventDefault();
+        selected = selected > 0 ? selected - 1 : -1;
+        applySelection();
+        return;
+      }
+      if (recallHistory(-1)) event.preventDefault();
+      return;
+    }
+    if (event.key === "ArrowDown") {
+      if (recallIndex >= 0) {
+        if (recallHistory(1)) event.preventDefault();
+        return;
+      }
+      // Empty field + list: ↓ enters the list without touching the field.
+      if (suggestVisible()) {
+        event.preventDefault();
+        if (selected < suggestList.children.length - 1) {
+          selected += 1;
+          applySelection();
+        }
+      }
     }
   });
 

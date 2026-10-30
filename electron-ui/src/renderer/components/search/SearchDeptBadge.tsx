@@ -11,7 +11,7 @@
 // the working folder unless the user filed it by hand, the listing is this
 // machine's, and search returns a capped slice.
 import type { CSSProperties } from 'react'
-import { Building2, HelpCircle, MapPinOff, PenLine } from 'lucide-react'
+import { Building2, HelpCircle, ListTodo, MapPinOff, PenLine } from 'lucide-react'
 import { useT } from '../../i18n'
 import type { DeptAttribution } from './searchDeptAttribution'
 
@@ -41,20 +41,27 @@ export default function SearchDeptBadge({ attribution }: { attribution: DeptAttr
 
   if (attribution.state === 'attributed') {
     // A hand-picked node must not borrow the folder tooltip: it would claim
-    // the conversation ran here and that the folder is why it is filed here.
+    // the conversation ran here and that the folder is why it is filed here. A
+    // task-routed conversation has the same problem: its department may own no
+    // folder at all, so it gets its own explanation.
     const filedByYou = attribution.filedBy === 'you'
+    const filedByTask = attribution.filedBy === 'task'
     const title = filedByYou
       ? t('search.dept.filedByYouTip', {
         path: attribution.path,
-        directory: attribution.directory,
+        directory: attribution.directory ?? '',
       })
-      : t('globalSearch.dept.attributedTitle', {
-        path: attribution.path,
-        directory: attribution.directory,
-      })
+      : filedByTask
+        ? t('globalSearch.dept.attributedTaskTitle', { path: attribution.path })
+        : t('globalSearch.dept.attributedTitle', {
+          path: attribution.path,
+          directory: attribution.directory ?? '',
+        })
     const ariaLabel = filedByYou
       ? `${t('globalSearch.dept.chipLabel', { name: attribution.label })} · ${t('search.dept.filedByYou')}`
-      : t('globalSearch.dept.chipLabel', { name: attribution.label })
+      : filedByTask
+        ? `${t('globalSearch.dept.chipLabel', { name: attribution.label })} · ${t('search.dept.filedByTask')}`
+        : t('globalSearch.dept.chipLabel', { name: attribution.label })
     return (
       <span
         title={title}
@@ -74,6 +81,9 @@ export default function SearchDeptBadge({ attribution }: { attribution: DeptAttr
             after the name. The chip keeps its shape and colour. */}
         {filedByYou && (
           <PenLine size={8} style={{ flexShrink: 0, opacity: 0.7 }} aria-hidden="true" />
+        )}
+        {filedByTask && (
+          <ListTodo size={8} style={{ flexShrink: 0, opacity: 0.7 }} aria-hidden="true" />
         )}
       </span>
     )

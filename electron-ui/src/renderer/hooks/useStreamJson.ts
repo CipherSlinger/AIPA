@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { useChatStore, useDepartmentStore, usePrefsStore, useSessionStore } from '../store'
+import { useChatStore, useDepartmentStore, usePrefsStore, useSessionStore, useTaskStore } from '../store'
 import { ElicitationMessage, HookCallbackMessage, StandardChatMessage } from '../types/app.types'
 import { useUiStore } from '../store'
 import { getResolvedLocale, getT } from '../i18n'
@@ -9,7 +9,7 @@ import { useAutoMemory } from './useAutoMemory'
 import { assembleMemoryContextForTurn } from './promptMemory'
 import { assembleTurnMemoryForSend, mergeTurnReceipt } from '../lib/memoryReceipt'
 import { effortSendField, resolveEffectiveEffort } from '../lib/sessionEffort'
-import { buildDeptHandbookTurn } from '../lib/deptHandbook'
+import { buildDeptHandbookTurn, resolveDepartmentMembership } from '../lib/deptHandbook'
 import { composeSystemPromptParts, resolvePersonaTurnSettings } from './promptAssembly'
 import { buildCodexImageInput, canSendCodexImages } from '../components/chat/imageAttachmentRules'
 import { engineNoticeStore } from '../components/chat/engineNoticeStore'
@@ -134,12 +134,34 @@ export function useStreamJson() {
       globalDir: prefs.workingDir,
     }).dir
 
+    // The task, if any, whose conversation is being sent. Its routed department
+    // is the one that owns the handbook and the default persona; a task routed
+    // nowhere deliberately answers `null` so the legacy folder join cannot
+    // claim the conversation.
+    const activeTask = currentTabForCwd?.task
+      ? useTaskStore.getState().tasks.find(task => task.id === currentTabForCwd.task?.taskId)
+      : undefined
+    const taskDepartmentId = activeTask ? activeTask.departmentId : undefined
+
     // Resolve the persona that belongs to this conversation. The catalogue
     // (`prefs.personas`) is global; the selection is per session, which is what
     // keeps two open conversations from sharing one expert's prompt and model.
+    // A task with no explicit persona runs as its department's default, the
+    // same rule the department page shows when a seat is hired.
+    const membership = resolveDepartmentMembership({
+      departments: useDepartmentStore.getState().departments,
+      filings: useDepartmentStore.getState().filings,
+      sessions: useSessionStore.getState().sessions,
+      sessionId: currentSessionId,
+      draftDepartmentId: useChatStore.getState().draftDepartmentId,
+      homeDir: useSessionStore.getState().homeDir,
+      taskDepartmentId,
+    })
+    const personaId = useChatStore.getState().sessionPersonaId
+      ?? (activeTask && membership.kind === 'found' ? membership.dept.defaultPersonaId : undefined)
     const personaTurn = resolvePersonaTurnSettings(
       prefs,
-      useChatStore.getState().sessionPersonaId,
+      personaId,
       (key) => getT()(key),
       useChatStore.getState().sessionModelOverride,
     )
@@ -244,6 +266,7 @@ export function useStreamJson() {
           sessionId: currentSessionId,
           draftDepartmentId: useChatStore.getState().draftDepartmentId,
           homeDir: useSessionStore.getState().homeDir,
+          taskDepartmentId,
           locale: getResolvedLocale(),
         })
 

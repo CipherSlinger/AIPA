@@ -3,12 +3,13 @@
 //
 // It is deliberately the *only* place that seeds an org tree: the empty org
 // chart, the "new department" panel and the sidebar form all open this same
-// dialog, so there is one code path that writes folders and one place to explain
-// what is about to happen on disk.
+// dialog, so there is one code path and one place to explain what is about to
+// happen.
 //
-// A template creates the company → department → team folders and hangs ghost
-// positions on them. Nothing is sent to a model here: a position is a title plus
-// a brief, and it only costs anything when the user hires it.
+// A template registers the company → department → team nodes and hangs ghost
+// positions on them. It creates no folders and writes no directory. Nothing is
+// sent to a model here: a position is a title plus a brief, and it only costs
+// anything when the user turns it into a task.
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -20,7 +21,6 @@ import {
   Code,
   FlaskConical,
   FolderInput,
-  FolderOpen,
   Loader2,
   PenLine,
   ShoppingCart,
@@ -29,10 +29,8 @@ import {
 } from 'lucide-react'
 import { useSessionStore } from '../../store'
 import { useI18n } from '../../i18n'
-import { joinPath } from './deptUtils'
 import {
   COMPANY_TEMPLATES,
-  PRESET_BASE_DIR_NAME,
   applyTemplate,
   existingDirsPreview,
   importExistingDirs,
@@ -53,7 +51,7 @@ type Choice = { kind: 'preset'; id: string } | { kind: 'import' } | { kind: 'bla
 
 interface DeptTemplatePickerProps {
   onClose: () => void
-  /** Fired once folders are on disk; `created` is how many departments landed. */
+  /** Fired once the nodes are registered; `created` is how many departments landed. */
   onApplied: (created: number) => void
   /** Pre-select a company type — lets a card in the empty state open straight onto it. */
   initialPresetId?: string
@@ -68,30 +66,18 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
     kind: 'preset',
     id: COMPANY_TEMPLATES.some(p => p.id === initialPresetId) ? initialPresetId! : COMPANY_TEMPLATES[0].id,
   }))
-  const [baseDir, setBaseDir] = useState('')
   const [busy, setBusy] = useState(false)
-  const [failed, setFailed] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
-
-  // Default the root folder to ~/AIPA, where ensureDir is definitely allowed.
-  useEffect(() => {
-    let alive = true
-    window.electronAPI.fsGetHome().then((home: string) => {
-      if (!alive) return
-      setBaseDir(home ? joinPath(home, PRESET_BASE_DIR_NAME) : '')
-    }).catch(() => { /* no home dir — user picks one */ })
-    return () => { alive = false }
-  }, [])
 
   const tpl = choice.kind === 'preset' ? COMPANY_TEMPLATES.find(p => p.id === choice.id) ?? null : null
   const existingDirs = useMemo(() => existingDirsPreview(sessions, homeDir), [sessions, homeDir])
 
-  // What the primary button is about to create. Nodes whose folder already
-  // exists are kept but not counted, so the preview never promises work that
-  // will be skipped.
+  // What the primary button is about to create. Nodes already registered are
+  // kept but not counted, so the preview never promises work that will be
+  // skipped.
   const preview = useMemo(
-    () => (tpl ? previewTemplate(tpl, resolvedLocale, baseDir) : null),
-    [tpl, resolvedLocale, baseDir],
+    () => (tpl ? previewTemplate(tpl, resolvedLocale) : null),
+    [tpl, resolvedLocale],
   )
   const counts = preview?.counts
   const willCreate = counts ? counts.departments + counts.teams : 0
@@ -101,14 +87,8 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
     || (choice.kind === 'preset' && willCreate === 0)
     || (choice.kind === 'import' && existingDirs.length === 0)
 
-  const browse = async () => {
-    const picked = await window.electronAPI.fsShowOpenDialog()
-    if (picked) setBaseDir(picked)
-  }
-
-  const apply = async () => {
+  const apply = () => {
     if (busy) return
-    setFailed([])
     setError(null)
 
     if (choice.kind === 'blank') {
@@ -124,19 +104,9 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
     }
 
     if (!tpl) return
-    if (!baseDir.trim()) { setError(t('dept.presets.baseDirRequired')); return }
-
     setBusy(true)
     try {
-      const result = await applyTemplate(tpl, baseDir.trim(), resolvedLocale)
-      // Zero created with failures means nothing landed; zero created with no
-      // failures means every folder was already a node — nothing went wrong.
-      if (result.departments === 0 && result.teams === 0 && result.failed.length > 0) {
-        setFailed(result.failed)
-        setError(t('dept.presets.allFailed'))
-        setBusy(false)
-        return
-      }
+      const result = applyTemplate(tpl, resolvedLocale)
       onApplied(result.departments)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -263,7 +233,7 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
               const odd = COMPANY_TEMPLATES.length % 2 === 1 && i === COMPANY_TEMPLATES.length - 1
               return card(
                 active,
-                () => { setChoice({ kind: 'preset', id: p.id }); setFailed([]); setError(null) },
+                () => { setChoice({ kind: 'preset', id: p.id }); setError(null) },
                 p.id,
                 <Icon size={13} />,
                 t(p.labelKey),
@@ -276,7 +246,7 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
           <div style={{ display: 'grid', gridTemplateColumns: existingDirs.length > 0 ? 'repeat(2, 1fr)' : '1fr', gap: 8 }}>
             {existingDirs.length > 0 && card(
               choice.kind === 'import',
-              () => { setChoice({ kind: 'import' }); setFailed([]); setError(null) },
+              () => { setChoice({ kind: 'import' }); setError(null) },
               'import',
               <FolderInput size={13} />,
               t('dept.presets.importExisting'),
@@ -284,7 +254,7 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
             )}
             {card(
               choice.kind === 'blank',
-              () => { setChoice({ kind: 'blank' }); setFailed([]); setError(null) },
+              () => { setChoice({ kind: 'blank' }); setError(null) },
               'blank',
               <SquareDashed size={13} />,
               t('dept.presets.blank'),
@@ -346,50 +316,10 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
             </div>
           )}
 
-          {/* Root folder — only meaningful when we are the ones creating folders */}
-          {choice.kind === 'preset' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                {t('dept.presets.baseDirLabel')}
-              </span>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <input
-                  value={baseDir}
-                  onChange={e => setBaseDir(e.target.value)}
-                  placeholder={t('dept.presets.baseDirPlaceholder')}
-                  style={{
-                    flex: 1, minWidth: 0, boxSizing: 'border-box',
-                    padding: '7px 10px', borderRadius: 8, border: '1px solid var(--border)',
-                    background: 'var(--bg-hover)', color: 'var(--text-primary)', fontSize: 12, outline: 'none',
-                  }}
-                />
-                <button
-                  onClick={browse}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
-                    padding: '7px 12px', borderRadius: 8, border: '1px solid var(--border)',
-                    background: 'var(--bg-hover)', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer',
-                  }}
-                >
-                  <FolderOpen size={12} />
-                  {t('dept.presets.browse')}
-                </button>
-              </div>
-              <span style={{ fontSize: 10.5, color: 'var(--text-faint)', lineHeight: 1.5 }}>
-                {t('dept.presets.baseDirHint')}
-              </span>
-            </div>
-          )}
-
           {error && (
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 11, color: '#f87171', lineHeight: 1.5 }}>
               <AlertTriangle size={12} style={{ flexShrink: 0, marginTop: 2 }} />
               <span>{error}</span>
-            </div>
-          )}
-          {failed.length > 0 && (
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              {t('dept.presets.failed', { names: failed.join(resolvedLocale === 'zh-CN' ? '、' : ', ') })}
             </div>
           )}
         </div>
@@ -411,7 +341,7 @@ export default function DeptTemplatePicker({ onClose, onApplied, initialPresetId
             {t('common.cancel')}
           </button>
           <button
-            onClick={() => void apply()}
+            onClick={apply}
             disabled={busy || disabled}
             title={disabled ? t('dept.presets.allExist') : undefined}
             style={{

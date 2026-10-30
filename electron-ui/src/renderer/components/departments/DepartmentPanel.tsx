@@ -1,7 +1,7 @@
 // DepartmentPanel — sidebar panel listing departments (部门) and allowing add/edit/delete
 import { useState, useEffect, useMemo, type DragEvent } from 'react'
 import { Plus } from 'lucide-react'
-import { useDepartmentStore, useSessionStore, useUiStore } from '../../store'
+import { useDepartmentStore, useSessionStore, useTaskStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { groupSessionsByResolvedDept } from './deptBrief.data'
 import DeptPanelHeader from './DeptPanelHeader'
@@ -33,6 +33,9 @@ export default function DepartmentPanel() {
   // A manual filing changes which row a conversation is counted under, so the
   // sidebar subscribes to the map rather than reading it once.
   const filings = useDepartmentStore(s => s.filings)
+  // Task conversations count for the department their task is routed to, so the
+  // sidebar's headcounts follow routes as well as folders and filings.
+  const tasks = useTaskStore(s => s.tasks)
   const unreadCounts = useUiStore(s => s.unreadCounts)
   const [showAddForm, setShowAddForm] = useState(false)
   // null = respect individual row state, true = all collapsed, false = all expanded
@@ -68,6 +71,7 @@ export default function DepartmentPanel() {
       departments,
       filings,
       homeDir,
+      tasks,
     })
     const stats: Record<string, { count: number; lastActive: number; unreadCount: number }> = {}
     for (const dept of departments) {
@@ -80,7 +84,7 @@ export default function DepartmentPanel() {
       }
     }
     return stats
-  }, [departments, sessions, filings, homeDir, unreadCounts])
+  }, [departments, sessions, filings, homeDir, tasks, unreadCounts])
 
   // Keyboard shortcut: press N to open the create-department form
   useEffect(() => {

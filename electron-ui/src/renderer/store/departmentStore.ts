@@ -1,9 +1,13 @@
 // Department store — manages the company org tree: company → department → team.
 //
-// All three levels are the same record shape, because a node's only real
-// identity is the **directory it owns**: a session (employee) is joined to a
-// node by its working directory and nothing else. A team is therefore just a
-// node with its own directory and a parent — no second table, no second join.
+// A department is a *processor*, not a folder: a named node that carries a
+// handbook, a default persona and open seats, and that tasks are routed to.
+// Work lives in a task's directory; a department only attributes it.
+//
+// `directory` survives as a read-only legacy field. Records created before the
+// task migration still own a folder, and archive/search/brief keep resolving
+// legacy conversations through it. Nothing new writes one, and no department
+// flow creates or moves a folder.
 import { create } from 'zustand'
 
 export type OrgNodeKind = 'company' | 'department' | 'team'
@@ -46,11 +50,16 @@ export interface Department {
   name: string
   /**
    * A template's bilingual name, kept only until the user renames the node.
-   * `name` remains the resolved copy so the directory join, exports and every
-   * consumer that never looks at language keep working unchanged.
+   * `name` remains the resolved copy so exports and every consumer that never
+   * looks at language keep working unchanged.
    */
   presetName?: LocalizedText
-  directory: string  // 部门办公室：工作目录
+  /**
+   * Legacy folder ownership. New departments have no folder; a persisted value
+   * is kept exactly as written and read only by the old session join. It is
+   * never created, changed or used as a working directory by this migration.
+   */
+  directory?: string
   color?: string     // Optional accent color for visual distinction
   createdAt: number
   /** Parent node. Absent = top level (which is where every legacy record sits). */
@@ -94,7 +103,7 @@ interface DepartmentState {
   addDepartment: (data: Omit<Department, 'id' | 'createdAt'>) => Department
   /** Removes the node and every descendant. Folders on disk are left alone. */
   removeDepartment: (id: string) => void
-  updateDepartment: (id: string, updates: Partial<Pick<Department, 'name' | 'directory' | 'color' | 'positions' | 'handbook' | 'defaultPersonaId'>>) => void
+  updateDepartment: (id: string, updates: Partial<Pick<Department, 'name' | 'color' | 'positions' | 'handbook' | 'defaultPersonaId'>>) => void
   /** Add a ghost position, generating its stable id. */
   addPosition: (deptId: string, position: Omit<Position, 'id'>) => Position | null
   /** Edit a ghost position in place; the id never changes. */
@@ -169,9 +178,13 @@ const loadDepartments = (): Department[] => {
     const parsed: unknown = JSON.parse(saved)
     if (!Array.isArray(parsed)) return []
     const nodes = parsed
-      .filter((d): d is Department => !!d && typeof d.id === 'string' && typeof d.directory === 'string')
+      .filter((d): d is Department => !!d && typeof d.id === 'string' && !!d.id)
       .map(d => ({
         ...d,
+        // A folder is optional now. Preserve a persisted string untouched (the
+        // legacy join reads it); drop anything else rather than let a hand-edited
+        // number reach `normalizePath` and throw during a render.
+        ...(typeof d.directory === 'string' && d.directory ? {} : { directory: undefined }),
         kind: d.kind ?? 'department',
         // Positions gained `personaId` without changing the payload shape, so
         // there is nothing to migrate: an old position simply has no binding and

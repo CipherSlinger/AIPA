@@ -37,7 +37,6 @@ interface DeptHeaderProps {
   onSelectDept: (deptId: string) => void
   onToggleSelect: () => void
   onExport: () => void
-  onOpenFiles: () => void
   onOpenHandbook: () => void
   /** The brief panel is open below this header. */
   briefOpen: boolean
@@ -56,7 +55,6 @@ export default function DeptHeader({
   onSelectDept,
   onToggleSelect,
   onExport,
-  onOpenFiles,
   onOpenHandbook,
   briefOpen,
   onToggleBrief,
@@ -81,9 +79,9 @@ export default function DeptHeader({
 
   return (
     <div style={{
-      // Three content rows (breadcrumb, title, directory) need ~44px. The old
-      // fixed 56px box with 28px of padding left only 28px for them, so the
-      // directory line fell out of the band. Let the band grow instead.
+      // Three content rows (breadcrumb, title, legacy-folder note) need ~44px.
+      // The old fixed 56px box with 28px of padding left only 28px for them, so
+      // let the band grow instead.
       minHeight: 56,
       height: 'auto',
       flexShrink: 0,
@@ -209,21 +207,30 @@ export default function DeptHeader({
             }} />
           )}
         </div>
-        <div style={{
-          fontSize: 11,
-          color: 'var(--text-subtle)',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-          marginTop: 1,
-          minWidth: 0,
-        }}>
-          <FolderOpen size={10} style={{ opacity: 0.7, flexShrink: 0 }} />
-          <span title={dept.directory} style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dept.directory}</span>
-        </div>
+        {/* A folder is legacy attribution, not this node's workspace. Say what
+            it is instead of presenting it as the place work happens now. */}
+        {dept.directory && (
+          <div
+            data-dept-legacy-folder
+            style={{
+              fontSize: 10.5,
+              color: 'var(--text-subtle)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              marginTop: 1,
+              minWidth: 0,
+              fontStyle: 'italic',
+            }}
+          >
+            <FolderOpen size={10} style={{ opacity: 0.7, flexShrink: 0 }} />
+            <span style={{ flexShrink: 0 }}>{t('dept.legacyFolder')}</span>
+            <span title={dept.directory} style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dept.directory}</span>
+          </div>
+        )}
       </div>
 
       <button
@@ -294,40 +301,6 @@ export default function DeptHeader({
       >
         <Download size={13} style={{ flexShrink: 0 }} />
         <span className="dept-action-label">{t('dept.export')}</span>
-      </button>
-
-      <button
-        onClick={onOpenFiles}
-        className="dept-action-btn"
-        aria-label={t('dept.files')}
-        title={t('dept.files')}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 5,
-          padding: '5px 11px',
-          borderRadius: 6,
-          border: '1px solid var(--border)',
-          background: 'transparent',
-          color: 'var(--text-secondary)',
-          fontSize: 12,
-          cursor: 'pointer',
-          flexShrink: 0,
-          transition: 'border-color 0.15s, color 0.15s, background 0.15s',
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'
-          e.currentTarget.style.color = 'var(--accent-text)'
-          e.currentTarget.style.background = 'rgba(99,102,241,0.08)'
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.borderColor = 'var(--border)'
-          e.currentTarget.style.color = 'var(--text-secondary)'
-          e.currentTarget.style.background = 'transparent'
-        }}
-      >
-        <FolderOpen size={13} />
-        <span className="dept-action-label">{t('dept.files')}</span>
       </button>
 
       {/* The handbook is the desk's standing rules. The dot says "there is one",

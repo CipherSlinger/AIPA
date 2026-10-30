@@ -10,7 +10,7 @@
 // module so DepartmentDashboard and ArchivePanel share one implementation and
 // neither has to import the other.
 
-import { useChatStore, usePrefsStore, useUiStore } from '../../store'
+import { useChatStore, useUiStore } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
 import { parseSessionMessages } from '../sessions/sessionUtils'
 import { readSessionModelOverride } from '../../lib/sessionModel'
@@ -113,14 +113,6 @@ export async function openSessionCore(
     if (task) {
       useChatStore.getState().setTabSession(activeTabId, loadedSessionId, session.title || task.title)
     }
-  } else if (!task && deptDirectory) {
-    // No tab is open to carry the folder (the panel is not the active view).
-    // The old global fallback is all that is left, kept so opening a session
-    // from a roster still lands somewhere sensible instead of nowhere. A task
-    // never takes this path: its folder is carried by its tab, and writing the
-    // global preference would move every other conversation's default.
-    usePrefsStore.getState().setPrefs({ workingDir: deptDirectory })
-    window.electronAPI.prefsSet('workingDir', deptDirectory)
   }
 
   // A transcript can name a folder that has since been moved or deleted. Ask

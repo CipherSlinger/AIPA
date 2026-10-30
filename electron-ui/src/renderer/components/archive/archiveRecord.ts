@@ -5,6 +5,7 @@
 // panel importing it back: the type is the contract between the two.
 import type { CSSProperties } from 'react'
 import type { Department } from '../../store'
+import type { TaskRecordData } from '../../../preload'
 import type { SessionListItem } from '../../types/app.types'
 import { displayTitle } from '../../lib/sessionTitle'
 
@@ -29,6 +30,11 @@ export interface ArchiveRecord {
   removedDeptName: string | null
   /** The top of that node's branch — what the record is grouped under. */
   root: Department | null
+  /**
+   * The task that recorded this conversation, when one did. Opening goes
+   * through the task surface so the tab carries the task's folder and binding.
+   */
+  task: TaskRecordData | null
   archived: boolean
   /** No human-authored message in the transcript — a run of commands only. */
   commandOnly: boolean

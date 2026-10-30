@@ -20,7 +20,7 @@
 // that is invisible in the UI but real in the counts.
 
 import { useMemo } from 'react'
-import type { SessionSearchResultData } from '../../../preload/index'
+import type { SessionSearchResultData, TaskRecordData } from '../../../preload/index'
 import type { Department, FilingMap } from '../../store/departmentStore'
 import type { UiLocale } from '../departments/deptUtils'
 import {
@@ -62,6 +62,8 @@ export interface SearchFilterPipelineArgs {
   departments: ReadonlyArray<Department>
   locale: UiLocale
   filings?: Readonly<FilingMap>
+  /** Tasks whose routed department attributes their recorded conversations. */
+  tasks?: ReadonlyArray<Pick<TaskRecordData, 'id' | 'departmentId' | 'sessions'>>
   deptFilter: string | null
   listScope: ListScope | null
   sortOrder: SearchSortOrder
@@ -92,6 +94,7 @@ export function useSearchFilterPipeline(args: SearchFilterPipelineArgs): SearchF
     departments,
     locale,
     filings,
+    tasks,
     deptFilter,
     listScope,
     sortOrder,
@@ -124,8 +127,9 @@ export function useSearchFilterPipeline(args: SearchFilterPipelineArgs): SearchF
       locale,
       homeDir,
       filings,
+      tasks,
     }),
-    [results, sessions, departments, locale, homeDir, filings],
+    [results, sessions, departments, locale, homeDir, filings, tasks],
   )
   const deptFiltered = useMemo(
     () => filterResultsByDept(folderFiltered.visible, deptAttributions, departments, deptFilter),

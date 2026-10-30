@@ -25,7 +25,7 @@ import {
   Sparkles,
   X,
 } from 'lucide-react'
-import { useDepartmentStore, usePrefsStore, useSessionStore, useUiStore, type Department } from '../../store'
+import { useDepartmentStore, usePrefsStore, useSessionStore, useTaskStore, useUiStore, type Department } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
 import { useT, useI18n } from '../../i18n'
 import {
@@ -33,6 +33,7 @@ import {
 } from '../departments/deptUtils'
 import { buildDeptLookup, resolveDeptForSession } from '../departments/sessionFiling'
 import { openSessionCore } from '../departments/openSessionCore'
+import { openTaskConversation } from '../../lib/taskDispatch'
 import FileUnderDeptDialog from '../chat/FileUnderDeptDialog'
 import { displayTitle } from '../../lib/sessionTitle'
 import { workingDirLabel } from '../../lib/workingDir'
@@ -185,9 +186,11 @@ export default function ArchivePanel() {
   const archivedSet = useMemo(() => new Set(archivedSessions), [archivedSessions])
   // One index for the whole listing: the manual-filing precedence and the
   // folder join are answered by the same resolver every other surface uses.
-  const lookup = useMemo(() => buildDeptLookup(departments, homeDir), [departments, homeDir])
+  const tasks = useTaskStore(s => s.tasks)
+  const lookup = useMemo(() => buildDeptLookup(departments, homeDir, tasks), [departments, homeDir, tasks])
   const filings = useDepartmentStore(s => s.filings)
   const byId = useMemo(() => new Map(departments.map(d => [d.id, d])), [departments])
+  const tasksById = useMemo(() => new Map(tasks.map(task => [task.id, task])), [tasks])
 
   // Every session is a record. Attribution is a lookup, never stored.
   const untitled = t('session.untitled')
@@ -195,11 +198,13 @@ export default function ArchivePanel() {
     () => sessions.map(session => {
       const resolution = resolveDeptForSession(session, lookup, filings)
       const dept = resolution.dept
+      const taskId = lookup.taskBySession.get(session.sessionId)?.taskId
       return {
         session,
         dept,
         removedDeptName: resolution.source === 'removed' ? resolution.filing.deptName : null,
         root: dept ? rootOf(dept, byId) : null,
+        task: taskId ? tasksById.get(taskId) ?? null : null,
         archived: archivedSet.has(session.sessionId),
         // An untitled label means no human message named the session; the
         // count then separates a command echo from a real run with a lost title.
@@ -210,7 +215,7 @@ export default function ArchivePanel() {
         handFiled: hasHandFiling(filings, session.sessionId),
       }
     }),
-    [sessions, lookup, filings, archivedSet, byId, untitled],
+    [sessions, lookup, filings, archivedSet, byId, tasksById, untitled],
   )
 
   const queryText = query.trim().toLowerCase()
@@ -496,6 +501,15 @@ export default function ArchivePanel() {
   const open = useCallback(async (record: ArchiveRecord) => {
     setOpening(record.session.sessionId)
     try {
+      if (record.task) {
+        // A task conversation opens through the task surface: its tab carries
+        // the task's own folder, never the legacy department directory.
+        const ref = record.task.sessions.find(item => item.sessionId === record.session.sessionId)
+        if (ref) {
+          await openTaskConversation(record.task, ref, record.session)
+          return
+        }
+      }
       await openSessionCore(record.session, record.dept?.directory ?? '', 'archive')
     } finally {
       setOpening(null)
@@ -1000,7 +1014,7 @@ export default function ArchivePanel() {
                     }}>
                       {group.records.length}
                     </span>
-                    {group.root && (
+                    {group.root?.directory && (
                       <span title={group.root.directory} style={{ fontSize: 10, color: 'var(--text-subtle)', ...ELLIPSIS, maxWidth: 260 }}>
                         {group.root.directory}
                       </span>

@@ -1,10 +1,14 @@
 // Hand a conversation to another department.
 //
-// The dialog picks a target folder, shows an editable note made from verbatim
-// excerpts of the current transcript, and on confirm opens a *fresh*
-// conversation there with the note prefilled. Nothing is sent: the user still
-// presses send in the new conversation, after reading what the receiver will
-// and will not know.
+// A department is a processor, not a folder. If the conversation belongs to a
+// task, confirming routes that task to the chosen department: `departmentId`
+// changes, main records the routing event, and every file and conversation
+// stays exactly where it is. A conversation with no task starts a follow-up
+// task in the chosen department instead: same excerpts, new task folder, note
+// prefilled in the composer, nothing sent.
+//
+// The note never names a target directory. Naming one would tell the receiver to
+// work somewhere the task does not own.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Building2, Info } from 'lucide-react'
@@ -14,6 +18,7 @@ import {
   useDepartmentStore,
   usePrefsStore,
   useSessionStore,
+  useTaskStore,
   useUiStore,
 } from '../../store'
 import {
@@ -24,6 +29,7 @@ import {
 } from '../departments/deptUtils'
 import { buildDeptLookup, resolveDeptForSession } from '../departments/sessionFiling'
 import { bindPersonaToNewSession } from '../departments/personaBinding'
+import { dispatchTask } from '../../lib/taskDispatch'
 import {
   HANDOFF_MAX_CHARS,
   buildHandoffDraft,
@@ -73,22 +79,40 @@ export default function HandoffDialog({ sessionTitle, onClose }: Props) {
   // can be overwritten by a streaming bridge, so it is not a stable source id.
   const viewSessionId = useChatStore(s => s.viewSessionId)
   const activeTabCwd = useChatStore(s => s.tabs.find(tab => tab.id === s.activeTabId)?.cwd ?? '')
+  const activeTabTask = useChatStore(s => s.tabs.find(tab => tab.id === s.activeTabId)?.task)
   const prefsWorkingDir = usePrefsStore(s => s.prefs.workingDir)
   const personas = usePrefsStore(s => s.prefs.personas)
+  const tasks = useTaskStore(s => s.tasks)
 
   const [selectedId, setSelectedId] = useState('')
   const [note, setNote] = useState('')
   const [edited, setEdited] = useState(false)
+  const [busy, setBusy] = useState(false)
   const lastTargetRef = useRef<string | null>(null)
 
   const options = useMemo(
     () => deptTreeOptions(departments, resolvedLocale),
     [departments, resolvedLocale],
   )
-  const lookup = useMemo(() => buildDeptLookup(departments, homeDir), [departments, homeDir])
+  const lookup = useMemo(
+    () => buildDeptLookup(departments, homeDir, tasks),
+    [departments, homeDir, tasks],
+  )
   const filings = useDepartmentStore(s => s.filings)
 
   const target = selectedId ? departments.find(d => d.id === selectedId) ?? null : null
+
+  // Which task owns this handoff. A task tab may not have linked its session
+  // yet (its first turn has not finished), so its binding is evidence too.
+  const sourceTask = useMemo(() => {
+    if (activeTabTask) {
+      const bound = tasks.find(task => task.id === activeTabTask.taskId)
+      if (bound) return bound
+    }
+    if (!viewSessionId) return null
+    return tasks.find(task =>
+      task.sessions.some(ref => ref.sessionId === viewSessionId)) ?? null
+  }, [activeTabTask, tasks, viewSessionId])
 
   // The listing is the only authority on which department owns a conversation.
   // A manual filing wins over the folder. A filing whose node was deleted keeps
@@ -113,6 +137,9 @@ export default function HandoffDialog({ sessionTitle, onClose }: Props) {
   }, [viewSessionId, sessions, lookup, filings, resolvedLocale, t])
 
   const sourceDirectory = useMemo(() => {
+    // A task's folder is where the work happened; its transcript cwd may
+    // predate the task or merely be the folder the engine resumed in.
+    if (sourceTask) return sourceTask.directory
     const session = viewSessionId
       ? sessions.find(item => item.sessionId === viewSessionId)
       : undefined
@@ -125,11 +152,10 @@ export default function HandoffDialog({ sessionTitle, onClose }: Props) {
     // label, not the folder (separators and dots were lost in the slug), so
     // printing it as a working folder would name a path that does not exist.
     return session?.cwd || resolveWorkingDir({ tabCwd: activeTabCwd, globalDir: prefsWorkingDir }).dir
-  }, [viewSessionId, sessions, activeTabCwd, prefsWorkingDir])
+  }, [sourceTask, viewSessionId, sessions, activeTabCwd, prefsWorkingDir])
 
   const labels: HandoffLabels = useMemo(() => ({
     heading: t('chat.handoff.heading'),
-    targetFolder: t('chat.handoff.targetFolder'),
     sourceTitle: t('chat.handoff.sourceTitle'),
     untitled: t('chat.handoff.untitled'),
     sourceSession: t('chat.handoff.sourceSession'),
@@ -147,7 +173,10 @@ export default function HandoffDialog({ sessionTitle, onClose }: Props) {
   }), [t])
 
   const draft = useMemo(() => {
-    if (!target) return null
+    // Routing an existing task carries no note: the task already has its
+    // context, and its conversations stay open. Only the follow-up path opens a
+    // new conversation that needs the excerpts.
+    if (!target || sourceTask) return null
     return buildHandoffDraft({
       messages,
       sourceTitle: sessionTitle,
@@ -155,12 +184,10 @@ export default function HandoffDialog({ sessionTitle, onClose }: Props) {
       sourceDirectory,
       sourceDeptPath,
       targetLabel: deptDisplayName(target, resolvedLocale),
-      // The receiving agent needs a folder it can actually work in, so the
-      // note names the node's directory, not just its place in the org chart.
-      targetPath: target.directory,
     })
   }, [
     target,
+    sourceTask,
     messages,
     sessionTitle,
     viewSessionId,
@@ -192,38 +219,64 @@ export default function HandoffDialog({ sessionTitle, onClose }: Props) {
   const targetPersona = target?.defaultPersonaId
     ? personas?.find(persona => persona.id === target.defaultPersonaId)
     : undefined
+  const targetName = target ? deptDisplayName(target, resolvedLocale) : ''
 
-  const handleConfirm = useCallback(() => {
-    if (!target) return
-    const text = note
-    // Order matters: the new conversation must open with the target folder
-    // already active, an empty transcript, and the note waiting in the
-    // composer. Nothing here dispatches a turn.
-    //
-    // The folder move belongs to the conversation being handed off. Writing
-    // `prefs.workingDir` here moved the default every *future* conversation
-    // starts from, silently re-pointing work that has nothing to do with this
-    // handoff. A tab is the conversation, so it takes the folder; the global
-    // preference is written only when there is no tab to move.
-    const chat = useChatStore.getState()
-    if (chat.activeTabId) {
-      chat.setTabCwd(chat.activeTabId, target.directory)
-    } else {
-      usePrefsStore.getState().setPrefs({ workingDir: target.directory })
-      window.electronAPI.prefsSet('workingDir', target.directory)
+  const handleConfirm = useCallback(async () => {
+    if (!target || busy) return
+    const targetName = deptDisplayName(target, resolvedLocale)
+    setBusy(true)
+    try {
+      if (sourceTask) {
+        // Routing is attribution only: the task keeps its folder, materials and
+        // conversations. A manual filing would outrank the new route, so the
+        // task's existing conversations are un-filed first — the route must be
+        // what the user sees afterwards.
+        const routed = await useTaskStore.getState().routeTask(sourceTask.id, target.id)
+        if (!routed.ok) {
+          useUiStore.getState().addToast('error', routed.error || t('tasks.error.route'))
+          return
+        }
+        const department = useDepartmentStore.getState()
+        for (const ref of sourceTask.sessions) department.clearSessionFiling(ref.sessionId)
+        useUiStore.getState().addToast('success', t('chat.handoff.routed', { name: targetName }))
+        onClose()
+        return
+      }
+
+      // No task owns this conversation: start a follow-up task in the target
+      // department. The task owns the new folder; nothing is sent until the
+      // user presses send in the composer.
+      const title = (sessionTitle || '').trim() || t('chat.handoff.followupTitle')
+      const created = await useTaskStore.getState().createTask(title)
+      if (!created.ok || !created.task) {
+        useUiStore.getState().addToast('error', created.error || t('tasks.error.create'))
+        return
+      }
+      const routed = await useTaskStore.getState().routeTask(created.task.id, target.id)
+      if (!routed.ok || !routed.task) {
+        useUiStore.getState().addToast('error', routed.error || t('tasks.error.route'))
+        return
+      }
+      const outcome = dispatchTask(routed.task, t)
+      if (!outcome.ok) {
+        useUiStore.getState().addToast('error', outcome.error)
+        return
+      }
+      // `dispatchTask` prefilled the task brief; the handoff note replaces it, so
+      // the receiver opens the same task with the excerpts in front of them.
+      useUiStore.getState().prefillComposer(note)
+      bindPersonaToNewSession(target.defaultPersonaId)
+      useUiStore.getState().addToast('success', t('chat.handoff.opened'))
+      onClose()
+    } finally {
+      setBusy(false)
     }
-    useChatStore.getState().clearMessages()
-    useUiStore.getState().prefillComposer(text)
-    useUiStore.getState().setMainView('chat')
-    bindPersonaToNewSession(target.defaultPersonaId)
-    useUiStore.getState().addToast('success', t('chat.handoff.opened'))
-    onClose()
-  }, [target, note, t, onClose])
+  }, [target, busy, sourceTask, note, sessionTitle, resolvedLocale, t, onClose])
 
-  // A note the user emptied on purpose is not a handoff. Opening a blank
-  // conversation in the target folder would look like the handoff happened
-  // while carrying nothing the receiver could act on.
-  const canConfirm = !!target && note.trim().length > 0
+  // Routing a task needs no note. A follow-up whose note the user emptied on
+  // purpose is not a handoff: opening a blank conversation would look like the
+  // handoff happened while carrying nothing the receiver could act on.
+  const canConfirm = !!target && !busy && (!!sourceTask || note.trim().length > 0)
 
   return (
     <SessionReuseDialogShell
@@ -243,7 +296,9 @@ export default function HandoffDialog({ sessionTitle, onClose }: Props) {
             color: 'var(--text-muted)',
           }}>
             <div data-handoff-nothing-sent>{t('chat.handoff.nothingSent')}</div>
-            <div style={{ marginTop: 2 }}>{t('chat.handoff.footerNoContext')}</div>
+            {!sourceTask && (
+              <div style={{ marginTop: 2 }}>{t('chat.handoff.footerNoContext')}</div>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -269,7 +324,7 @@ export default function HandoffDialog({ sessionTitle, onClose }: Props) {
               opacity: canConfirm ? 1 : 0.5, flexShrink: 0,
             }}
           >
-            {t('chat.handoff.confirm')}
+            {sourceTask ? t('chat.handoff.routeConfirm') : t('chat.handoff.confirm')}
           </button>
         </div>
       )}
@@ -326,50 +381,75 @@ export default function HandoffDialog({ sessionTitle, onClose }: Props) {
             )}
           </div>
 
-          <div>
-            <div style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-              marginBottom: 6, gap: 8,
-            }}>
-              <label style={{ ...labelStyle, marginBottom: 0 }} htmlFor="handoff-note">
-                {t('chat.handoff.noteLabel')}
-              </label>
-              <span
-                data-handoff-count
-                style={{
-                  fontSize: 10, color: 'var(--text-muted)',
-                  fontVariantNumeric: 'tabular-nums', flexShrink: 0,
-                }}
-              >
-                {note.length}/{HANDOFF_MAX_CHARS}
-              </span>
-            </div>
-            <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginBottom: 6, lineHeight: 1.45 }}>
-              {t('chat.handoff.noteHint')}
-            </div>
-            <textarea
-              id="handoff-note"
-              value={note}
-              onChange={e => {
-                setNote(e.target.value)
-                setEdited(true)
-              }}
-              maxLength={HANDOFF_MAX_CHARS}
-              rows={14}
-              data-handoff-note
+          {sourceTask ? (
+            <div
+              data-handoff-route
               style={{
-                ...fieldStyle,
-                fontSize: 11.5,
-                lineHeight: 1.55,
-                resize: 'vertical',
-                minHeight: 220,
-                maxHeight: '46vh',
-                whiteSpace: 'pre-wrap',
+                display: 'flex', alignItems: 'flex-start', gap: 8,
+                padding: '10px 12px', borderRadius: 8,
+                background: 'rgba(99,102,241,0.08)',
+                border: '1px solid rgba(99,102,241,0.22)',
               }}
-              onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
-              onBlur={e => { e.currentTarget.style.borderColor = 'var(--bg-active)' }}
-            />
-          </div>
+            >
+              <Info size={14} style={{ color: '#818cf8', flexShrink: 0, marginTop: 1 }} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {t('chat.handoff.routeTitle')}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.5 }}>
+                  {t('chat.handoff.routeHint', {
+                    title: sourceTask.title,
+                    name: targetName || t('chat.handoff.targetPlaceholder'),
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                marginBottom: 6, gap: 8,
+              }}>
+                <label style={{ ...labelStyle, marginBottom: 0 }} htmlFor="handoff-note">
+                  {t('chat.handoff.noteLabel')}
+                </label>
+                <span
+                  data-handoff-count
+                  style={{
+                    fontSize: 10, color: 'var(--text-muted)',
+                    fontVariantNumeric: 'tabular-nums', flexShrink: 0,
+                  }}
+                >
+                  {note.length}/{HANDOFF_MAX_CHARS}
+                </span>
+              </div>
+              <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginBottom: 6, lineHeight: 1.45 }}>
+                {t('chat.handoff.noteHint')}
+              </div>
+              <textarea
+                id="handoff-note"
+                value={note}
+                onChange={e => {
+                  setNote(e.target.value)
+                  setEdited(true)
+                }}
+                maxLength={HANDOFF_MAX_CHARS}
+                rows={14}
+                data-handoff-note
+                style={{
+                  ...fieldStyle,
+                  fontSize: 11.5,
+                  lineHeight: 1.55,
+                  resize: 'vertical',
+                  minHeight: 220,
+                  maxHeight: '46vh',
+                  whiteSpace: 'pre-wrap',
+                }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)' }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--bg-active)' }}
+              />
+            </div>
+          )}
         </>
       )}
     </SessionReuseDialogShell>

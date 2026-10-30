@@ -27,13 +27,13 @@
 // container width (a percentage bus would drift off the card centres by the gap).
 import React, { useEffect, useMemo, useState } from 'react'
 import {
-  FolderOpen, LayoutGrid, Plus, Search, X,
+  LayoutGrid, Plus, Search, X,
 } from 'lucide-react'
-import { useChatStore, useDepartmentStore, useSessionStore, type Department } from '../../store'
+import { useChatStore, useDepartmentStore, useSessionStore, useTaskStore, type Department } from '../../store'
 import { useI18n } from '../../i18n'
 import { ToolbarButton } from '../workflows/EmployeesShared'
 import {
-  baseName, childrenOf, deptDisplayName, kindOf,
+  childrenOf, deptDisplayName, kindOf,
   positionDisplayTitle, teamsOf,
 } from './deptUtils'
 import { groupSessionsByResolvedDept } from './deptBrief.data'
@@ -70,8 +70,10 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
   const allSessions = useSessionStore(s => s.sessions)
   const sessionsLoading = useSessionStore(s => s.loading)
   const homeDir = useSessionStore(s => s.homeDir)
-  // A manual filing moves a conversation between cards, so the chart subscribes.
+  // A manual filing or a task route moves a conversation between cards, so the
+  // chart subscribes to both.
   const filings = useDepartmentStore(s => s.filings)
+  const tasks = useTaskStore(s => s.tasks)
   const currentSessionId = useChatStore(s => s.currentSessionId)
   const addNewDept = useDepartmentStore(s => s.addDepartment)
   const removeDepartment = useDepartmentStore(s => s.removeDepartment)
@@ -79,7 +81,6 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
   const [deptSearch, setDeptSearch] = useState('')
   const [showAddDept, setShowAddDept] = useState(false)
   const [newDeptName, setNewDeptName] = useState('')
-  const [newDeptDir, setNewDeptDir] = useState('')
   // Template picker. `presetSeed` is the company type the picker opens on — the
   // empty state's cards each seed their own, the toolbar entry seeds none.
   const [showPresets, setShowPresets] = useState(false)
@@ -118,12 +119,13 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
       departments,
       filings,
       homeDir,
+      tasks,
     })
     for (const id of Object.keys(byDept)) {
       byDept[id].sort((a, b) => b.timestamp - a.timestamp)
     }
     return byDept
-  }, [departments, allSessions, filings, homeDir])
+  }, [departments, allSessions, filings, homeDir, tasks])
 
   const teamsByDept = useMemo(() => {
     const map: Record<string, Department[]> = {}
@@ -155,7 +157,10 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
       if (!q) { out[group.key] = group.departments; continue }
       out[group.key] = group.departments.filter(d => {
         const name = deptDisplayName(d, resolvedLocale)
-        if (name.toLowerCase().includes(q) || d.directory.toLowerCase().includes(q)) return true
+        if (name.toLowerCase().includes(q)) return true
+        // A legacy folder is still searchable; a processor without one simply
+        // has nothing extra to match.
+        if (d.directory?.toLowerCase().includes(q)) return true
         if ((teamsByDept[d.id] ?? []).some(team =>
           deptDisplayName(team, resolvedLocale).toLowerCase().includes(q))) return true
         return (d.positions ?? []).some(p =>
@@ -186,32 +191,25 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
     setShowPresets(true)
   }, [departments.length, sessionsLoading])
 
-  const closeAdd = () => { setShowAddDept(false); setNewDeptName(''); setNewDeptDir('') }
+  const closeAdd = () => { setShowAddDept(false); setNewDeptName('') }
 
   const handleAdd = () => {
-    if (!newDeptName.trim() || !newDeptDir.trim()) return
+    if (!newDeptName.trim()) return
     // A hand-made department joins whichever company already exists, so it lands
-    // among the cards rather than in a second, orphaned section.
+    // among the cards rather than in a second, orphaned section. No folder is
+    // created or written: the node is a processor, and work moves into tasks.
     const loneCompany = departments.filter(d => kindOf(d) === 'company').length === 1
       ? departments.find(d => kindOf(d) === 'company')
       : undefined
     const dept = addNewDept({
       name: newDeptName.trim(),
-      directory: newDeptDir.trim(),
       color: ACCENT,
       kind: 'department',
       parentId: loneCompany?.id,
     })
     closeAdd()
-    // Land straight in the new department so the first employee can be recruited.
+    // Land straight in the new department so its first task can be started.
     onSelectDept(dept.id)
-  }
-
-  const handleBrowseDir = async () => {
-    const p = await window.electronAPI.fsShowOpenDialog()
-    if (!p) return
-    setNewDeptDir(p)
-    if (!newDeptName.trim()) setNewDeptName(baseName(p))
   }
 
   useEffect(() => {
@@ -336,45 +334,21 @@ export default function OrgChart({ onSelectDept, onNewSessionInDept }: OrgChartP
                 background: 'var(--bg-hover)', color: 'var(--text-primary)', fontSize: 12, outline: 'none',
               }}
             />
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <input
-                placeholder={t('dept.dirPlaceholder')}
-                value={newDeptDir}
-                onChange={e => setNewDeptDir(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Escape') closeAdd(); if (e.key === 'Enter') handleAdd() }}
-                style={{
-                  flex: 1, minWidth: 0,
-                  padding: '6px 10px', borderRadius: 7, border: '1px solid var(--border)',
-                  background: 'var(--bg-hover)', color: 'var(--text-primary)', fontSize: 12, outline: 'none',
-                }}
-              />
-              <button
-                onClick={handleBrowseDir}
-                title={t('dept.selectWorkingDir')}
-                style={{
-                  padding: '6px 9px', borderRadius: 7, border: '1px dashed var(--border)',
-                  background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer',
-                  display: 'flex', flexShrink: 0,
-                }}
-              >
-                <FolderOpen size={13} />
-              </button>
-            </div>
+            <button
+              onClick={handleAdd}
+              disabled={!newDeptName.trim()}
+              style={{
+                padding: '7px 12px', borderRadius: 7, border: 'none',
+                background: !newDeptName.trim()
+                  ? 'rgba(99,102,241,0.25)'
+                  : 'linear-gradient(135deg, rgba(99,102,241,0.9), rgba(139,92,246,0.9))',
+                color: '#fff', fontSize: 12, fontWeight: 600,
+                cursor: !newDeptName.trim() ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {t('dept.create')}
+            </button>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button
-                onClick={handleAdd}
-                disabled={!newDeptName.trim() || !newDeptDir.trim()}
-                style={{
-                  flex: 1, padding: '7px 12px', borderRadius: 7, border: 'none',
-                  background: (!newDeptName.trim() || !newDeptDir.trim())
-                    ? 'rgba(99,102,241,0.25)'
-                    : 'linear-gradient(135deg, rgba(99,102,241,0.9), rgba(139,92,246,0.9))',
-                  color: '#fff', fontSize: 12, fontWeight: 600,
-                  cursor: (!newDeptName.trim() || !newDeptDir.trim()) ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {t('dept.create')}
-              </button>
               <button
                 onClick={closeAdd}
                 style={{

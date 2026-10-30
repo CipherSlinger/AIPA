@@ -28,4 +28,8 @@ contextBridge.exposeInMainWorld("quickCommandAPI", {
       mode: mode === "continue" ? "continue" : "new",
     }),
   close: () => ipcRenderer.send("quick-command-close"),
+  // The page measures its suggestion list; main owns the ceiling and the
+  // work-area clamp, so this is only "I need this many more pixels".
+  resize: (extra) =>
+    ipcRenderer.send("quick-command-resize", { extra: Number(extra) || 0 }),
 });

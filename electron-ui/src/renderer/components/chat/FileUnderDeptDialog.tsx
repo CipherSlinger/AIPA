@@ -9,7 +9,7 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import { FolderInput, Info } from 'lucide-react'
 import { useI18n } from '../../i18n'
-import { useDepartmentStore, useSessionStore, useUiStore } from '../../store'
+import { useDepartmentStore, useSessionStore, useTaskStore, useUiStore } from '../../store'
 import {
   deptDisplayName,
   deptTreeOptionText,
@@ -65,6 +65,7 @@ export default function FileUnderDeptDialog({ sessionId, onClose }: Props) {
   const filings = useDepartmentStore(s => s.filings)
   const sessions = useSessionStore(s => s.sessions)
   const homeDir = useSessionStore(s => s.homeDir)
+  const tasks = useTaskStore(s => s.tasks)
 
   // A session missing from the listing has no folder records at all; the stub
   // carries none, so the folder join cannot match. A manual filing still wins,
@@ -75,8 +76,8 @@ export default function FileUnderDeptDialog({ sessionId, onClose }: Props) {
     [sessions, sessionId],
   )
   const lookup = useMemo(
-    () => buildDeptLookup(departments, homeDir),
-    [departments, homeDir],
+    () => buildDeptLookup(departments, homeDir, tasks),
+    [departments, homeDir, tasks],
   )
   const resolution = useMemo(
     () => resolveDeptForSession(session, lookup, filings),
@@ -101,6 +102,8 @@ export default function FileUnderDeptDialog({ sessionId, onClose }: Props) {
     switch (summary) {
       case 'filedByYou':
         return t('chat.file.summaryFiledByYou', { name: summaryName })
+      case 'filedByTask':
+        return t('chat.file.summaryFiledByTask', { name: summaryName })
       case 'filedByFolder':
         return t('chat.file.summaryFiledByFolder', { name: summaryName })
       case 'removed':

@@ -51,6 +51,7 @@ import {
   useDepartmentStore,
   usePrefsStore,
   useSessionStore,
+  useTaskStore,
   useUiStore,
 } from '../../store'
 import {
@@ -283,6 +284,9 @@ export default function GlobalSearchOverlay() {
   // the department filter and a scoped ask all change the moment the user
   // files or un-files a conversation.
   const filings = useDepartmentStore(s => s.filings)
+  // A task's routed department decides attribution for its conversations, so
+  // the chip, the filter and a scoped ask all subscribe to the task list.
+  const tasks = useTaskStore(s => s.tasks)
   // Building blocks are not sessions: they are read from their own stores and
   // IPC, never through `session:search`, and the session filters below never
   // touch them.
@@ -314,9 +318,9 @@ export default function GlobalSearchOverlay() {
   // unrestricted rather than accidentally empty.
   const deptScope = useMemo(
     () => (deptFilter
-      ? sessionIdsInDeptTree(sessions, departments, deptFilter, homeDir, filings)
+      ? sessionIdsInDeptTree(sessions, departments, deptFilter, homeDir, filings, tasks)
       : null),
-    [sessions, departments, deptFilter, homeDir, filings],
+    [sessions, departments, deptFilter, homeDir, filings, tasks],
   )
   // The three pins, the live folder scope and the deliberate presses that own
   // them live in one place — see `useSearchScanNarrowing`. Nothing else in this
@@ -461,6 +465,7 @@ export default function GlobalSearchOverlay() {
     departments,
     locale: resolvedLocale,
     filings,
+    tasks,
     deptFilter,
     listScope,
     sortOrder,

@@ -137,7 +137,9 @@ function DeptCard({
     </span>
   )
 
-  const dirLine = (
+  // A folder is legacy attribution: a department created now has none, and the
+  // card must not show an empty second line where a workspace used to be.
+  const dirLine = dept.directory ? (
     <span
       title={dept.directory}
       style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-muted)', marginTop: 3, minWidth: 0, maxWidth: '100%' }}
@@ -145,7 +147,7 @@ function DeptCard({
       <FolderOpen size={10} style={{ flexShrink: 0, opacity: 0.7 }} />
       <span style={ELLIPSIS}>{baseName(dept.directory)}</span>
     </span>
-  )
+  ) : null
 
   return (
     <div

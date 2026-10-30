@@ -4,7 +4,7 @@
 
 import { useMemo } from 'react'
 import { Users } from 'lucide-react'
-import { useDepartmentStore, type Department } from '../../store'
+import { useDepartmentStore, useTaskStore, type Department } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
 import { useI18n } from '../../i18n'
 import { deptDisplayName } from './deptUtils'
@@ -24,16 +24,18 @@ export default function DeptTeamStrip({ teams, sessions, homeDir, deptColor, onS
   // A manual filing changes a team's headcount, so this surface re-renders with
   // the map. One lookup and one resolution per session, not one per chip.
   const filings = useDepartmentStore(s => s.filings)
+  const tasks = useTaskStore(s => s.tasks)
   const teamCounts = useMemo(() => {
     const { byDept } = groupSessionsByResolvedDept(sessions, {
       departments: teams,
       filings,
       homeDir,
+      tasks,
     })
     const counts = new Map<string, number>()
     for (const team of teams) counts.set(team.id, byDept[team.id]?.length ?? 0)
     return counts
-  }, [sessions, teams, filings, homeDir])
+  }, [sessions, teams, filings, homeDir, tasks])
 
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>

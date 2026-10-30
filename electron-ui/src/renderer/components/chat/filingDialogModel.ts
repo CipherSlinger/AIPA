@@ -8,13 +8,15 @@ import type { Department } from '../../store/departmentStore'
 import type { DeptResolution } from '../departments/sessionFiling'
 import { deptDisplayName, type UiLocale } from '../departments/deptUtils'
 
-/** The four states the dialog can describe, one per resolution source. */
-export type FilingSummary = 'filedByYou' | 'filedByFolder' | 'removed' | 'unfiled'
+/** The five states the dialog can describe, one per resolution source. */
+export type FilingSummary = 'filedByYou' | 'filedByTask' | 'filedByFolder' | 'removed' | 'unfiled'
 
 export function filingSummary(resolution: DeptResolution): FilingSummary {
   switch (resolution.source) {
     case 'filed':
       return 'filedByYou'
+    case 'task':
+      return 'filedByTask'
     case 'folder':
       return 'filedByFolder'
     case 'removed':

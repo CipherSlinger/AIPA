@@ -22,7 +22,8 @@
  * which decision Enter will make, and one click flips it for that ask only.
  * With no trustworthy target the bar says NEW CONVERSATION, exactly as before.
  */
-import { BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
+import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import { getPref } from './config/config-manager'
@@ -35,7 +36,15 @@ import type { BridgeSink } from './ipc/register/types'
 import type { IpcMainEvent, Rectangle } from 'electron'
 
 const WIDTH = 408
+/** The bar with no suggestion list. The page asks for more when it shows one. */
 const HEIGHT = 152
+/**
+ * Ceiling on how much taller the suggestion list may make the bar. Five rows
+ * plus their micro-label come to ~163 px; the slack covers the rounded skin.
+ */
+const MAX_EXTRA_HEIGHT = 200
+const HISTORY_LIMIT = 40
+const HISTORY_MAX_CHARS = 2000
 const EDGE_MARGIN = 8
 const PET_GAP = 10
 // A local page either loads or it does not; this only guards the ready
@@ -82,6 +91,23 @@ export interface QuickCommandLabels {
   continueUnavailable: string
   /** Fallback name when the store knows the thread but has no title yet. */
   untitledThread: string
+}
+
+/** The pet factory's labels plus the two history captions read from i18n. */
+interface QuickCommandShowLabels extends QuickCommandLabels {
+  historyLabel: string
+  historyHint: string
+}
+
+/** One accepted ask. `at` is an epoch millisecond stamp for the row's age. */
+interface HistoryEntry {
+  text: string
+  at: number
+}
+
+interface QuickCommandI18nModule {
+  createTranslator?: (getLang: () => string) => (key: string) => string
+  i18n?: Record<string, Record<string, string>>
 }
 
 export interface QuickCommandContext {
@@ -135,6 +161,35 @@ function clipReply(text: string): string {
   return `${trimmed.slice(0, REPLY_LIMIT).trimEnd()}…`
 }
 
+function sanitizeHistoryText(value: unknown): string {
+  if (typeof value !== 'string') return ''
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  return trimmed.length > HISTORY_MAX_CHARS ? trimmed.slice(0, HISTORY_MAX_CHARS) : trimmed
+}
+
+/**
+ * The history captions are quickCommand* keys like every other bar string, but
+ * getLabels is owned by the pet factory. Read them from the same table here so
+ * the new strings still live in i18n.js for all three languages.
+ */
+function readHistoryLabels(lang: string): { historyLabel: string; historyHint: string } {
+  try {
+    const table = require('./clawd/src/i18n') as QuickCommandI18nModule
+    const translate = typeof table.createTranslator === 'function'
+      ? table.createTranslator(() => lang)
+      : (key: string) => table.i18n?.en?.[key] || ''
+    return {
+      historyLabel: translate('quickCommandHistoryLabel'),
+      historyHint: translate('quickCommandHistoryHint'),
+    }
+  } catch {
+    // A missing table must not take the bar down; the history surfaces just
+    // render without captions.
+    return { historyLabel: '', historyHint: '' }
+  }
+}
+
 export default function initQuickCommand(ctx: QuickCommandContext) {
   let barWin: BrowserWindow | null = null
   let previousFocus: BrowserWindow | null = null
@@ -149,6 +204,80 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
    * the bar the user saw; reset on every open/close, never sticky.
    */
   let target: QuickCommandTarget | null = null
+  /** Newest first. Reloaded at every open, updated only by an accepted ask. */
+  let history: HistoryEntry[] = []
+  /** Window height in device-independent pixels, grown for suggestions. */
+  let barHeight = HEIGHT
+
+  function historyPath(): string {
+    return path.join(app.getPath('userData'), 'quick-command-history.json')
+  }
+
+  /**
+   * Any I/O or parse failure is "no history": a corrupt file must never keep
+   * the bar from opening, and the next accepted ask rewrites it.
+   */
+  function loadHistory(): HistoryEntry[] {
+    let raw: string
+    try {
+      raw = fs.readFileSync(historyPath(), 'utf-8')
+    } catch {
+      return []
+    }
+    try {
+      const parsed: unknown = JSON.parse(raw)
+      if (!Array.isArray(parsed)) return []
+      const entries: HistoryEntry[] = []
+      const seen = new Set<string>()
+      for (const item of parsed) {
+        if (!item || typeof item !== 'object') continue
+        const record = item as Record<string, unknown>
+        const text = sanitizeHistoryText(record.text)
+        if (!text || seen.has(text)) continue
+        seen.add(text)
+        const at = typeof record.at === 'number' && Number.isFinite(record.at) && record.at > 0
+          ? record.at
+          : 0
+        entries.push({ text, at })
+        if (entries.length >= HISTORY_LIMIT) break
+      }
+      return entries
+    } catch {
+      return []
+    }
+  }
+
+  /**
+   * Newest-first on disk. tmp+rename means a crash mid-write cannot truncate
+   * the file; a failed write loses this prompt but never throws into the turn.
+   */
+  function persistHistory(entries: HistoryEntry[]): void {
+    let tmp = ''
+    try {
+      const file = historyPath()
+      tmp = `${file}.${process.pid}.tmp`
+      fs.writeFileSync(tmp, JSON.stringify(entries), 'utf-8')
+      fs.renameSync(tmp, file)
+    } catch (err) {
+      if (tmp) {
+        try { fs.unlinkSync(tmp) } catch { /* never created */ }
+      }
+      console.warn('Clawd: quick command history write failed:', cleanErrorText(err))
+    }
+  }
+
+  function rememberPrompt(prompt: string): void {
+    const text = sanitizeHistoryText(prompt)
+    if (!text) return
+    const next: HistoryEntry[] = [{ text, at: Date.now() }]
+    for (const entry of history) {
+      if (entry.text === text) continue
+      next.push(entry)
+      if (next.length >= HISTORY_LIMIT) break
+    }
+    history = next
+    persistHistory(next)
+  }
 
   function clearRevealTimer(): void {
     if (!revealTimer) return
@@ -187,8 +316,9 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
    * result is always clamped to the work area of the pet's display: a pet near
    * a monitor edge must not get half a text field.
    */
-  function computeBounds(): Rectangle | null {
+  function computeBounds(height = HEIGHT): Rectangle | null {
     if (!ctx.win || ctx.win.isDestroyed()) return null
+    const boxHeight = Math.max(HEIGHT, Math.round(height))
     const bounds = ctx.win.getBounds()
     const hit = typeof ctx.getHitRectScreen === 'function' ? ctx.getHitRectScreen(bounds) : null
     const left = hit ? hit.left : bounds.x
@@ -201,11 +331,11 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
     const minX = wa.x + EDGE_MARGIN
     const maxX = wa.x + wa.width - WIDTH - EDGE_MARGIN
     const minY = wa.y + EDGE_MARGIN
-    const maxY = wa.y + wa.height - HEIGHT - EDGE_MARGIN
+    const maxY = wa.y + wa.height - boxHeight - EDGE_MARGIN
     let x = clamp(Math.round(cx - WIDTH / 2), minX, maxX)
     let y: number | null = null
 
-    const above = top - HEIGHT - PET_GAP
+    const above = top - boxHeight - PET_GAP
     if (above >= minY) {
       y = above
     } else {
@@ -217,16 +347,21 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
       const rightX = right + PET_GAP
       if (rightX <= maxX) {
         x = rightX
-        y = clamp(Math.round(cy - HEIGHT / 2), minY, maxY)
+        y = clamp(Math.round(cy - boxHeight / 2), minY, maxY)
       } else {
         x = clamp(left - WIDTH - PET_GAP, minX, maxX)
-        y = clamp(Math.round(cy - HEIGHT / 2), minY, maxY)
+        y = clamp(Math.round(cy - boxHeight / 2), minY, maxY)
       }
     }
     // Electron centers a window whose x/y are fractional instead of honoring
     // the position, and the pet's hit rect is measured in fractional pixels.
     // Round both axes before they cross into BrowserWindow.
-    return { x: Math.round(x), y: Math.round(clamp(y, minY, maxY)), width: WIDTH, height: HEIGHT }
+    return {
+      x: Math.round(x),
+      y: Math.round(clamp(y, minY, maxY)),
+      width: WIDTH,
+      height: boxHeight,
+    }
   }
 
   function reveal(): void {
@@ -295,7 +430,9 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
       return true
     }
     if (!ctx.win || ctx.win.isDestroyed()) return false
-    const bounds = computeBounds()
+    barHeight = HEIGHT
+    history = loadHistory()
+    const bounds = computeBounds(HEIGHT)
     if (!bounds) return false
     // Resolve once, before the window exists: the chip and whatever the submit
     // resolves to must describe the same conversation even if the renderer
@@ -307,9 +444,9 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
       target = null
       console.warn('Clawd: quick command target lookup failed:', cleanErrorText(err))
     }
-    let labels: QuickCommandLabels
+    let labels: QuickCommandShowLabels
     try {
-      labels = ctx.getLabels()
+      labels = { ...ctx.getLabels(), ...readHistoryLabels(ctx.getLang()) }
     } catch (err) {
       console.warn('Clawd: quick command labels failed:', cleanErrorText(err))
       return false
@@ -361,6 +498,7 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
       barWin = null
       previousFocus = null
       target = null
+      barHeight = HEIGHT
     })
 
     barWin.webContents.once('did-finish-load', () => {
@@ -370,6 +508,8 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
         theme: ctx.getTheme() === 'clawd' ? 'clawd' : 'sao',
         labels,
         busy: busyNow(),
+        // Newest first, all of them: the page shows five and recalls the rest.
+        history: history.map(entry => ({ text: entry.text, at: entry.at })),
         // One word for the decision, one human name for what it will touch.
         // The page never sends an id back; it only says which half of the chip
         // the user chose, and main resolves that against this captured target.
@@ -659,6 +799,11 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
       return
     }
 
+    // A turn was accepted, so this prompt has earned its place in history.
+    // Every refusal above (empty, busy, no key, bad cwd, failed resume) and a
+    // cancelled start return before this line and are never remembered.
+    rememberPrompt(prompt)
+
     if (attempt.done) {
       // finishTurn ran before this promise resolved, so the bridge was never
       // registered in `running`; reap it here instead.
@@ -687,11 +832,35 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
     if (!isSender(event)) return
     if (barWin && !barWin.isDestroyed()) barWin.focus()
   }
+  /**
+   * The suggestion list asks for extra height and gives it back when it hides.
+   * The payload is a hint, not a size: main owns the ceiling and re-anchors the
+   * bar to the pet so a grown window still clamps inside the work area.
+   */
+  const handleResize = (event: IpcMainEvent, raw: unknown) => {
+    if (!isSender(event) || !barWin || barWin.isDestroyed()) return
+    const payload = raw && typeof raw === 'object' ? raw as Record<string, unknown> : null
+    const requested = payload && typeof payload.extra === 'number' ? payload.extra : 0
+    const extra = Number.isFinite(requested)
+      ? clamp(Math.round(requested), 0, MAX_EXTRA_HEIGHT)
+      : 0
+    const height = HEIGHT + extra
+    if (height === barHeight) return
+    const bounds = computeBounds(height)
+    if (!bounds) return
+    barHeight = height
+    try {
+      barWin.setBounds(bounds)
+    } catch (err) {
+      console.warn('Clawd: quick command resize failed:', cleanErrorText(err))
+    }
+  }
 
   ipcMain.on('quick-command-ready', handleReady)
   ipcMain.on('quick-command-submit', handleSubmitEvent)
   ipcMain.on('quick-command-close', handleClose)
   ipcMain.on('quick-command-focus', handleFocus)
+  ipcMain.on('quick-command-resize', handleResize)
 
   function cleanup(): void {
     close(false)
@@ -699,6 +868,7 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
     ipcMain.removeListener('quick-command-submit', handleSubmitEvent)
     ipcMain.removeListener('quick-command-close', handleClose)
     ipcMain.removeListener('quick-command-focus', handleFocus)
+    ipcMain.removeListener('quick-command-resize', handleResize)
     // A quick turn still running at quit has no bar to report to; abort it so
     // the app-server process does not outlive the app.
     for (const attempt of running.values()) {

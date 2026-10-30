@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import AppShell from './components/layout/AppShell'
 import ErrorBoundary from './components/shared/ErrorBoundary'
 import { ToastContainer } from './components/ui/Toast'
-import { usePrefsStore, useChatStore, useUiStore, useSessionStore, useDepartmentStore } from './store'
+import { usePrefsStore, useChatStore, useUiStore, useSessionStore, useDepartmentStore, useTaskStore } from './store'
 import { useTerminalStore } from './store/terminalStore'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
 import { useAppEventBridge } from './hooks/useAppEventBridge'
@@ -189,6 +189,18 @@ export default function App() {
       }
     }
     init()
+  }, [])
+
+  // Tasks attribute conversations, so every surface that resolves a session to
+  // a department needs the task list even before the Tasks page is opened. One
+  // app-wide subscription also keeps archive/search/department counts in step
+  // with a routing change made in any window. `load` is sequence-guarded, so a
+  // second subscriber (the Tasks page has its own) is harmless.
+  useEffect(() => {
+    const loadTasks = () => { void useTaskStore.getState().load() }
+    loadTasks()
+    const unsubscribe = window.electronAPI?.onTasksChanged?.(loadTasks)
+    return () => { unsubscribe?.() }
   }, [])
 
   // A department cap stores the org node ids it covers, and main has no tree to

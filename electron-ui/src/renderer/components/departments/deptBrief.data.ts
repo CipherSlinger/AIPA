@@ -5,8 +5,9 @@
 // the renderer already has. The module is React-free and pure so the claims can
 // be tested without a DOM:
 //
-//   * "filed here" is a manual filing when one exists, otherwise directory
-//     ownership — never proof of who did the work;
+//   * "filed here" is a manual filing when one exists, otherwise the routed
+//     department of the task that recorded the conversation, otherwise legacy
+//     directory ownership — never proof of who did the work;
 //   * Claude rows date a conversation by its last activity, Codex rows by its
 //     creation time, so the two engines do not answer the same question;
 //   * `messageCount` is a lifetime total for the session, not a window count, and
@@ -21,6 +22,7 @@
 
 import type { Department, Position } from '../../store'
 import type { FilingMap } from '../../store/departmentStore'
+import type { TaskRecordData } from '../../../preload'
 import type { SessionListItem } from '../../types/app.types'
 import { buildDeptLookup, resolveDeptForSession, resolvedDept } from './sessionFiling'
 
@@ -115,6 +117,12 @@ export interface BuildDeptBriefInput {
    * caller that predates filing (or a harness) gets exactly the old figures.
    */
   filings?: Readonly<FilingMap>
+  /**
+   * Tasks, for task-based attribution. Absent keeps the legacy folder join
+   * exactly as before; when present, a conversation recorded by a task is
+   * attributed by that task's `departmentId`, never by its folder.
+   */
+  tasks?: ReadonlyArray<Pick<TaskRecordData, 'id' | 'departmentId' | 'sessions'>>
 }
 
 const RECENT_LIMIT = 5
@@ -161,19 +169,23 @@ function readSession(raw: unknown): BriefSession | null {
   return row
 }
 
-/** Normalise one node; a node without an id or a directory owns nothing. */
+/**
+ * Normalise one node. An id is the only required identity; a directory is a
+ * legacy extra, kept when it is a non-empty string and absent otherwise.
+ */
 function readNode(raw: unknown): Department | null {
   if (!raw || typeof raw !== 'object') return null
   const value = raw as Record<string, unknown>
   if (typeof value.id !== 'string' || !value.id) return null
-  if (typeof value.directory !== 'string') return null
 
   const node = raw as Department
   return {
     ...node,
     id: value.id,
-    directory: value.directory,
-    name: typeof value.name === 'string' ? value.name : value.directory,
+    ...(typeof value.directory === 'string' && value.directory
+      ? { directory: value.directory }
+      : { directory: undefined }),
+    name: typeof value.name === 'string' && value.name ? value.name : value.id,
     createdAt: typeof value.createdAt === 'number' && Number.isFinite(value.createdAt) ? value.createdAt : 0,
     parentId: typeof value.parentId === 'string' ? value.parentId : undefined,
     positions: readPositions(value.positions),
@@ -238,9 +250,11 @@ export function briefSubtree(nodes: Department[], rootId: string): Department[] 
 
 export interface DeptMembershipInput {
   departments: readonly Department[]
-  /** Manual filings, by session id. Absent = folder ownership only. */
+  /** Manual filings, by session id. Absent = task/folder ownership only. */
   filings?: Readonly<FilingMap>
   homeDir?: string
+  /** Tasks that own conversations; absent = the legacy folder join. */
+  tasks?: ReadonlyArray<Pick<TaskRecordData, 'id' | 'departmentId' | 'sessions'>>
 }
 
 export interface ResolvedDeptSessions {
@@ -255,14 +269,16 @@ export interface ResolvedDeptSessions {
  *
  * This is the *exact* ownership map — a node's headcount is its own desk, the
  * rule the sidebar and the org chart have always used (teams stay separate).
- * A manual filing wins over the folder; a filing whose node was deleted lands in
- * `unowned` rather than back in the folder the conversation ran in.
+ * A manual filing wins over the task and the folder; a conversation recorded by
+ * a task follows that task's routed department; a filing or task whose node was
+ * deleted lands in `unowned` rather than back in the folder the conversation
+ * ran in.
  */
 export function groupSessionsByResolvedDept(
   sessions: readonly SessionListItem[],
   input: DeptMembershipInput,
 ): ResolvedDeptSessions {
-  const lookup = buildDeptLookup(input.departments, input.homeDir)
+  const lookup = buildDeptLookup(input.departments, input.homeDir, input.tasks)
   const byDept: Record<string, SessionListItem[]> = {}
   for (const node of input.departments) {
     if (!(node.id in byDept)) byDept[node.id] = []
@@ -283,7 +299,7 @@ export interface DeptRosterInput extends DeptMembershipInput {
 }
 
 /**
- * The roster of one department page.
+ * The legacy roster of one department page.
  *
  * A folder-owned conversation belongs to the node whose folder it ran in, so
  * with no manual filings this is exactly the old "folder matches this directory"
@@ -292,15 +308,20 @@ export interface DeptRosterInput extends DeptMembershipInput {
  * plus its descendants. Filing a conversation into a team therefore also puts it
  * on the department page above that team. A filing to a deleted node belongs to
  * no page and is never given back to the folder.
+ *
+ * Conversations recorded by a task are omitted when `tasks` is supplied: the
+ * page lists the tasks themselves, and showing the same conversation again in
+ * the legacy roster would double-count it.
  */
 export function selectDeptRosterSessions(input: DeptRosterInput): SessionListItem[] {
-  const lookup = buildDeptLookup(input.departments, input.homeDir)
+  const lookup = buildDeptLookup(input.departments, input.homeDir, input.tasks)
   if (!lookup.byId.has(input.rootId)) return []
   // Cycle-safe: a malformed parent loop is visited once, not expanded forever.
   const scope = new Set(briefSubtree([...input.departments], input.rootId).map(node => node.id))
 
   const out: SessionListItem[] = []
   for (const session of input.sessions) {
+    if (lookup.taskBySession.has(session.sessionId)) continue
     const resolution = resolveDeptForSession(session, lookup, input.filings)
     if (!resolution.dept) continue
     const member = resolution.source === 'filed'
@@ -330,7 +351,8 @@ export function buildDeptBrief(input: BuildDeptBriefInput): DeptBriefResult {
   const bounds = briefWindowBounds(window, now)
   const { start, end } = bounds
 
-  // A node whose shape cannot name an id + directory cannot own a folder.
+  // A node whose shape cannot name an id cannot own anything. A missing
+  // directory is no longer a defect: it is a processor that owns no folder.
   let skippedNodes = 0
   const nodes: Department[] = []
   for (const raw of inputNodes) {
@@ -350,8 +372,9 @@ export function buildDeptBrief(input: BuildDeptBriefInput): DeptBriefResult {
   // Ownership is matched against the whole tree: a session in a sibling node is
   // then recognisably outside the subtree rather than silently unowned. One
   // lookup and one resolution per session; a manual filing (present or stale)
-  // wins over the folder exactly as the other department views resolve it.
-  const lookup = buildDeptLookup(nodes, homeDir)
+  // wins over the task and the folder exactly as the other department views
+  // resolve it.
+  const lookup = buildDeptLookup(nodes, homeDir, input.tasks)
   const filings = input.filings
 
   const seats: BriefSeat[] = []

@@ -1,21 +1,21 @@
 // Preview, apply and "already chosen" bookkeeping for the company templates.
 //
-// A brand-new install has an empty org chart, and every department is three
-// decisions (name, folder, colour) the user would have to invent from nothing.
-// A template answers all of them for an entire company at once: it creates the
-// company → department → team folders on disk, registers every node, and hangs
-// a set of **ghost positions** on them.
+// A template answers the org-chart questions in one step: it registers the
+// company → department → team nodes and hangs a set of **ghost positions** on
+// them. It creates no folders and writes no directory: a department is a
+// processor now, and work lives in tasks.
 //
 // A ghost position is a job title plus its brief and nothing else — no session,
 // no model call, no folder of its own. Hiring one (「上岗」) turns the brief into
-// that employee's first message. So applying a template is free and reversible;
-// you pay for the employees you actually put to work.
+// a task routed to that node. So applying a template is free and reversible;
+// you pay for the work you actually put into motion.
 //
 // The template literals themselves live in ./deptTemplates.data.ts.
 
 import { useDepartmentStore, type Department, type OrgNodeKind, type Position } from '../../store'
+import { newPositionId } from '../../store/departmentStore'
 import type { SessionListItem } from '../../types/app.types'
-import { DEPT_COLORS, baseName, dirToSlug, joinPath, normalizePath } from './deptUtils'
+import { DEPT_COLORS, baseName, deptDisplayName, dirToSlug, normalizePath } from './deptUtils'
 import { COMPANY_TEMPLATES, type CompanyTemplate, type TemplateNode } from './deptTemplates.data'
 
 export { COMPANY_TEMPLATES }
@@ -30,10 +30,35 @@ const CHILD_KIND: Record<OrgNodeKind, OrgNodeKind | null> = {
   team: null,
 }
 
-/** Where template folders land when the user does not pick somewhere else. */
-export const PRESET_BASE_DIR_NAME = 'AIPA'
-
 const loc = (v: { en: string; zh: string }, locale: Locale): string => (locale === 'zh-CN' ? v.zh : v.en)
+
+/** A node's identity for template idempotency: its sibling-relative name path. */
+function nameKey(names: ReadonlyArray<string>): string {
+  return names.map(name => name.trim().toLowerCase()).join('\u0000')
+}
+
+/**
+ * Every existing node's name path, keyed the same way a template node is.
+ * Renaming a node deliberately breaks the match: the template then adds its
+ * own node instead of silently adopting a renamed one.
+ */
+function ownedNameIndex(locale: Locale): Map<string, Department> {
+  const departments = useDepartmentStore.getState().departments
+  const byId = new Map(departments.map(dept => [dept.id, dept]))
+  const owned = new Map<string, Department>()
+  for (const dept of departments) {
+    const names: string[] = []
+    const seen = new Set<string>()
+    let cursor: Department | undefined = dept
+    while (cursor && !seen.has(cursor.id)) {
+      seen.add(cursor.id)
+      names.unshift(deptDisplayName(cursor, locale))
+      cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined
+    }
+    owned.set(nameKey(names), dept)
+  }
+  return owned
+}
 
 // ── Preview ──────────────────────────────────────────────────────────────────
 
@@ -41,7 +66,7 @@ export interface PreviewNode {
   name: string
   color: string
   kind: OrgNodeKind
-  /** The folder is already a node — the tree will keep it and only fill gaps. */
+  /** A node with this name path is already registered — only gaps are filled. */
   exists: boolean
   /** Ghost positions this node would gain. Always 0 for an existing node. */
   positionCount: number
@@ -54,18 +79,18 @@ export interface TemplatePreview {
 }
 
 /**
- * What applying this template would actually change. Built from the same skip
- * rule `applyTemplate` uses, so the picker can never promise a folder that is
- * already there.
+ * What applying this template would actually change. Built from the same
+ * idempotency rule `applyTemplate` uses, so the picker can never promise a node
+ * that is already there.
  */
-export function previewTemplate(tpl: CompanyTemplate, locale: Locale, baseDir: string): TemplatePreview {
-  const owned = ownedIndex()
+export function previewTemplate(tpl: CompanyTemplate, locale: Locale): TemplatePreview {
+  const owned = ownedNameIndex(locale)
   const counts = { departments: 0, teams: 0, positions: 0 }
 
-  const build = (node: TemplateNode, parentDir: string, kind: OrgNodeKind): PreviewNode => {
+  const build = (node: TemplateNode, parentPath: string[], kind: OrgNodeKind): PreviewNode => {
     const name = loc(node.name, locale)
-    const dir = joinPath(parentDir, name)
-    const exists = owned.has(dirToSlug(dir))
+    const path = [...parentPath, name]
+    const exists = owned.has(nameKey(path))
     const positionCount = node.positions?.length ?? 0
     if (!exists) {
       if (kind === 'team') counts.teams++
@@ -79,11 +104,13 @@ export function previewTemplate(tpl: CompanyTemplate, locale: Locale, baseDir: s
       kind,
       exists,
       positionCount: exists ? 0 : positionCount,
-      children: childKind ? (node.teams ?? []).map(t => build(t, dir, childKind)) : [],
+      children: childKind ? (node.teams ?? []).map(t => build(t, path, childKind)) : [],
     }
   }
 
-  const root = build({ name: tpl.name, color: '#6366f1', teams: tpl.departments }, normalizePath(baseDir), 'company')
+  // The company container is part of the path but is not counted, exactly as
+  // `applyTemplate` reports it.
+  const root = build({ name: tpl.name, color: '#6366f1', teams: tpl.departments }, [], 'company')
   return { root, counts }
 }
 
@@ -94,53 +121,36 @@ export interface ApplyTemplateResult {
   departments: number
   teams: number
   positions: number
-  /** Node names whose folder could not be created — never dropped silently. */
-  failed: string[]
 }
 
 /**
- * Create the company tree on disk and register every node, then hang the ghost
- * positions on it. One `fs:ensureDir` per node, parents before children.
+ * Register every node in the template and hang the ghost positions on it.
  *
- * Idempotent: a folder that is already a node is reused, its id becoming the
- * parent for any teams still missing underneath it. So re-applying a template
- * fills gaps instead of doubling the company.
+ * Idempotent by name path: a node that already exists is reused, its id
+ * becoming the parent for any teams still missing underneath. So re-applying a
+ * template fills gaps instead of doubling the company, and applying it in the
+ * other interface language still matches the bilingual `presetName`.
  *
- * `fs:ensureDir` is sandboxed to the home directory and the current working
- * directory, so a root outside those fails per-node and is reported rather than
- * throwing the whole batch away.
+ * No IPC call and no filesystem write happens here. Nothing is sent to a model:
+ * positions only cost anything when the user turns one into a task.
  */
-export async function applyTemplate(
-  tpl: CompanyTemplate,
-  baseDir: string,
-  locale: Locale,
-): Promise<ApplyTemplateResult> {
-  const base = normalizePath(baseDir)
+export function applyTemplate(tpl: CompanyTemplate, locale: Locale): ApplyTemplateResult {
   const addDepartment = useDepartmentStore.getState().addDepartment
-  const owned = ownedIndex()
-  const failed: string[] = []
-  const result: ApplyTemplateResult = { departments: 0, teams: 0, positions: 0, failed }
+  const owned = ownedNameIndex(locale)
+  const result: ApplyTemplateResult = { departments: 0, teams: 0, positions: 0 }
 
-  // Depth-first, parent first: a child needs its parent's id for `parentId`, and
-  // a parent whose folder failed to create makes its children impossible too.
-  const visit = async (node: TemplateNode, parentDir: string, parentId: string | undefined, kind: OrgNodeKind): Promise<void> => {
+  const visit = (
+    node: TemplateNode,
+    parentId: string | undefined,
+    parentPath: string[],
+    kind: OrgNodeKind,
+  ): void => {
     const name = loc(node.name, locale)
-    const dir = joinPath(parentDir, name)
-    const slug = dirToSlug(dir)
-    const existing = owned.get(slug)
-    let nodeId = existing?.id
+    const path = [...parentPath, name]
+    const key = nameKey(path)
+    let nodeId = owned.get(key)?.id
 
     if (!nodeId) {
-      try {
-        const ensured = await window.electronAPI.fsEnsureDir(dir)
-        if (ensured && typeof ensured === 'object' && 'error' in ensured) {
-          failed.push(name)
-          return
-        }
-      } catch {
-        failed.push(name)
-        return
-      }
       const positions: Position[] = (node.positions ?? []).map(p => ({
         id: newPositionId(),
         title: loc(p.title, locale),
@@ -154,13 +164,12 @@ export async function applyTemplate(
       const created = addDepartment({
         name,
         presetName: { ...node.name },
-        directory: dir,
         color: node.color ?? DEPT_COLORS[result.departments % DEPT_COLORS.length],
         parentId,
         kind,
         positions,
       })
-      owned.set(slug, created)
+      owned.set(key, created)
       nodeId = created.id
       if (kind === 'team') result.teams++
       else if (kind === 'department') result.departments++
@@ -169,40 +178,34 @@ export async function applyTemplate(
 
     const childKind = CHILD_KIND[kind]
     if (childKind) {
-      for (const child of node.teams ?? []) await visit(child, dir, nodeId, childKind)
+      for (const child of node.teams ?? []) visit(child, nodeId, path, childKind)
     }
   }
 
-  await visit(
-    { name: tpl.name, color: '#6366f1', teams: tpl.departments },
-    base,
-    undefined,
-    'company',
-  )
-
+  visit({ name: tpl.name, color: '#6366f1', teams: tpl.departments }, undefined, [], 'company')
   markDeptSetupChosen()
   return result
 }
 
-function newPositionId(): string {
-  return `pos-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-}
+// ── Adopting folders the user already works in ────────────────────────────────
+// This is the one remaining legacy path: it registers existing folders as
+// departments so their old conversations keep an owner. It creates nothing on
+// disk; the folder already exists and is only recorded.
 
-/** Every node's directory, keyed by slug — how a folder is known to be taken. */
-function ownedIndex(): Map<string, Department> {
+/** Every node's legacy directory, keyed by slug — how a folder is known to be taken. */
+function ownedDirIndex(): Map<string, Department> {
   const owned = new Map<string, Department>()
   for (const dept of useDepartmentStore.getState().departments) {
+    if (typeof dept.directory !== 'string' || !dept.directory) continue
     const slug = dirToSlug(dept.directory)
     if (!owned.has(slug)) owned.set(slug, dept)
   }
   return owned
 }
 
-// ── Adopting folders the user already works in ────────────────────────────────
-
 /** The folders the user has worked in that no department owns yet. */
 export function existingDirsPreview(sessions: SessionListItem[], homeDir?: string): Department[] {
-  const owned = ownedIndex()
+  const owned = ownedDirIndex()
   const seen = new Map<string, Department>()
   for (const s of sessions) {
     // A session with a real cwd names its folder exactly; without one, only the
@@ -216,10 +219,9 @@ export function existingDirsPreview(sessions: SessionListItem[], homeDir?: strin
 }
 
 /**
- * Turn the folders the user has already worked in into departments — the
- * explicit form of what used to happen silently behind their back. Folders a
- * department already owns are skipped, so opening this twice is a no-op rather
- * than a pile of duplicate departments.
+ * Turn the folders the user has already worked in into legacy departments.
+ * Folders a department already owns are skipped, so opening this twice is a
+ * no-op rather than a pile of duplicate departments.
  */
 export function importExistingDirs(sessions: SessionListItem[], homeDir?: string): number {
   const dirs = existingDirsPreview(sessions, homeDir)

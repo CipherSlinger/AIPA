@@ -9,9 +9,11 @@ import {
   useChatStore,
   useUiStore,
   usePrefsStore,
+  useTaskStore,
   type Position,
 } from '../../store'
 import type { FilingMap } from '../../store/departmentStore'
+import type { TaskRecordData, TaskSessionRefData } from '../../../preload'
 import type { Persona, SessionListItem } from '../../types/app.types'
 import RecruitEmployeeModal from './RecruitEmployeeModal'
 import PositionEditorModal from './PositionEditorModal'
@@ -19,6 +21,7 @@ import PositionHireModal from './PositionHireModal'
 import DeptHandbookModal from './DeptHandbookModal'
 import DeptSyncNotice from './DeptSyncNotice'
 import DeptBrief from './DeptBrief'
+import DepartmentTasks from './DepartmentTasks'
 import { bindPersonaToNewSession } from './personaBinding'
 import {
   deptDisplayName, positionDisplayBrief, teamsOf,
@@ -29,6 +32,11 @@ import DeptHeader from './DepartmentDashboard.header'
 import DeptStats from './DepartmentDashboard.stats'
 import DeptJobsBlock from './DepartmentDashboard.jobs'
 import DeptTeamStrip from './DepartmentDashboard.teams'
+import {
+  dispatchTask,
+  openTaskConversation,
+  sessionListItemFor,
+} from '../../lib/taskDispatch'
 import { DeptSearchBox, DeptSelectionBar } from './DepartmentDashboard.controls'
 import DeptRoster from './DepartmentDashboard.roster'
 import {
@@ -94,7 +102,6 @@ export default function DeptView({
   const homeDir = useSessionStore(s => s.homeDir)
   const currentSessionId = useChatStore(s => s.currentSessionId)
   const isStreaming = useChatStore(s => s.isStreaming)
-  const setPrefs = usePrefsStore(s => s.setPrefs)
   const personas = usePrefsStore(s => s.prefs.personas ?? NO_PERSONAS)
   const activePersonaId = usePrefsStore(s => s.prefs.activePersonaId)
   const removePosition = useDepartmentStore(s => s.removePosition)
@@ -104,6 +111,7 @@ export default function DeptView({
   // Subscribed rather than read at click time: a filing changes who is on this
   // page, so the roster must re-render when the map changes.
   const filings = useDepartmentStore(s => s.filings)
+  const tasks = useTaskStore(s => s.tasks)
 
   // A department's child teams are separate desks with their own directories, so
   // a team node is a valid place to be — the breadcrumb above shows where.
@@ -124,8 +132,9 @@ export default function DeptView({
       rootId: dept.id,
       filings,
       homeDir,
+      tasks,
     }).sort((a, b) => b.timestamp - a.timestamp)
-  }, [allSessions, departments, dept, filings, homeDir])
+  }, [allSessions, departments, dept, filings, homeDir, tasks])
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSessions, setSelectedSessions] = useState<Set<string>>(new Set())
@@ -180,49 +189,56 @@ export default function DeptView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // One-shot on mount only
 
-  // The hand-off to chat, shared by recruiting and by hiring a ghost position:
-  // the node becomes the working directory and `brief` becomes the first message
-  // the freshly mounted ChatPanel sends. ChatPanel consumes the brief once it is
-  // mounted, so the caller does not need to wait for a session id back.
-  //
-  // The handbook is deliberately NOT wrapped around the brief here. It used to
-  // be, which put the desk's rules inside the user's own visible message and
-  // only on the first turn. `useStreamJson` now prepends it to every turn's
-  // envelope; the only thing this view owes that path is the desk the draft was
-  // started at, because a conversation with no session id cannot be resolved
-  // from the org tree yet.
-  const startWork = useCallback((directory: string, brief: string, personaId?: string) => {
+  // Recruiting and hiring both put *work* in motion, and work is a task. The
+  // task owns the folder, gets routed to this node, and opens its draft in chat
+  // with the job description already in the composer. Nothing is written to the
+  // global working directory: a department is a processor, not a folder.
+  const startTask = useCallback(async (title: string, brief: string, personaId?: string) => {
     if (!dept) return
-    setPrefs({ workingDir: directory })
-    window.electronAPI.prefsSet('workingDir', directory)
-    useChatStore.getState().clearMessages()
-    // After clearMessages, which drops the previous conversation's assertion.
-    useChatStore.getState().setDraftDepartmentId(dept.id)
-    // New session from dept view: set fromDepartment so the back button shows in chat (Iteration 538)
-    useUiStore.getState().setFromDepartment(true)
-    useUiStore.getState().setPendingRecruitBrief(brief || null)
-    useUiStore.getState().setMainView('chat')
-    // After clearMessages, which resets any previous session's persona.
+    const created = await useTaskStore.getState().createTask(title)
+    if (!created.ok || !created.task) {
+      useUiStore.getState().addToast('error', created.error || t('tasks.error.create'))
+      return
+    }
+    const routed = await useTaskStore.getState().routeTask(created.task.id, dept.id)
+    if (!routed.ok || !routed.task) {
+      useUiStore.getState().addToast('error', routed.error || t('tasks.error.route'))
+      return
+    }
+    const outcome = dispatchTask(routed.task, t)
+    if (!outcome.ok) {
+      useUiStore.getState().addToast('error', outcome.error)
+      return
+    }
+    useUiStore.getState().prefillComposer(brief)
     bindPersonaToNewSession(personaId)
-  }, [dept, setPrefs])
+  }, [dept, t])
 
-  // Confirm: the job description becomes the employee's first message, so the
-  // new session opens in chat with the brief already on its way.
+  // Confirm: the job description becomes the new task's brief, so the task
+  // opens in chat with it already in the composer.
   const confirmRecruit = useCallback((brief: string, personaId?: string) => {
     if (!dept) return
     setRecruitOpen(false)
-    startWork(dept.directory, brief, personaId)
-  }, [dept, startWork])
+    void startTask(
+      t('dept.tasks.recruitTitle', { name: deptDisplayName(dept, resolvedLocale) }),
+      brief,
+      personaId,
+    )
+  }, [dept, startTask, t, resolvedLocale])
 
   // Hiring now asks which persona the seat runs as; the modal supplies it.
   const hirePosition = useCallback((position: Position, personaId?: string) => {
     if (!dept) return
     setHiringPosition(null)
-    startWork(dept.directory, positionDisplayBrief(position, resolvedLocale), personaId)
-    // Dropping the seat right away is safe: the session is guaranteed to be
-    // created, and the real employee appears with the next session-list refresh.
+    void startTask(
+      position.title.trim() || t('dept.tasks.hireTitle', { name: deptDisplayName(dept, resolvedLocale) }),
+      positionDisplayBrief(position, resolvedLocale),
+      personaId,
+    )
+    // Dropping the seat right away is safe: the task is already created, and
+    // the seat exists to describe the work it started.
     removePosition(dept.id, position.id)
-  }, [dept, startWork, removePosition, resolvedLocale])
+  }, [dept, startTask, removePosition, resolvedLocale, t])
 
   // Seat binding → department default → currently active persona. This is the
   // same order the modal shows, so the highlighted chip is what will be used.
@@ -252,12 +268,20 @@ export default function DeptView({
     exportSessionsToFile(deptDisplayName(dept, resolvedLocale), deptSessions, t('session.untitled'))
   }, [dept, deptSessions, resolvedLocale, t])
 
-  const openFiles = useCallback(() => {
-    if (!dept) return
-    setPrefs({ workingDir: dept.directory })
-    window.electronAPI.prefsSet('workingDir', dept.directory)
-    useUiStore.getState().setActiveNavItem('files')
-  }, [dept, setPrefs])
+  // A routed task is opened through the task surface, never through a
+  // department folder: its own directory wins, and its conversation carries the
+  // task binding the chat header needs.
+  const openTask = useCallback(async (task: TaskRecordData, ref: TaskSessionRefData | null) => {
+    if (ref) {
+      const listed = allSessions.find(session => session.sessionId === ref.sessionId)
+        ?? sessionListItemFor(ref.sessionId, task.title)
+      const result = await openTaskConversation(task, ref, listed)
+      if (!result.ok) useUiStore.getState().addToast('error', result.error || t('tasks.error.openConversation'))
+      return
+    }
+    const outcome = dispatchTask(task, t)
+    if (!outcome.ok) useUiStore.getState().addToast('error', outcome.error)
+  }, [allSessions, t])
 
   const toggleSelectMode = useCallback(() => {
     setSelectMode(prev => !prev)
@@ -311,7 +335,6 @@ export default function DeptView({
         onSelectDept={onSelectDept}
         onToggleSelect={toggleSelectMode}
         onExport={handleExport}
-        onOpenFiles={openFiles}
         onOpenHandbook={() => setHandbookOpen(true)}
         briefOpen={briefOpen}
         onToggleBrief={() => setBriefOpen(open => !open)}
@@ -331,6 +354,7 @@ export default function DeptView({
           departments={departments}
           sessions={allSessions}
           homeDir={homeDir}
+          tasks={tasks}
           loadingSessionId={loadingSessionId}
           onOpenSession={onOpenSession}
           onClose={() => setBriefOpen(false)}
@@ -401,6 +425,8 @@ export default function DeptView({
         )}
 
         <DeptJobsBlock deptId={dept.id} departments={departments} />
+
+        <DepartmentTasks deptId={dept.id} onOpenTask={(task, ref) => { void openTask(task, ref) }} />
 
         {childTeams.length > 0 && (
           <DeptTeamStrip

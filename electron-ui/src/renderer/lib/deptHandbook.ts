@@ -13,10 +13,11 @@
  * Two constraints shape the resolution:
  *
  * 1. Membership is a lookup, never a guess. A conversation belongs to a node
- *    only when the user's own org tree says so: an explicit filing, the
- *    session row's recorded directory, or the desk the draft was started from.
- *    The working directory of the moment and the conversation title are not
- *    evidence — either can differ from where the conversation actually lives.
+ *    only when the user's own org tree says so: an explicit filing, the task
+ *    that recorded it, the session row's recorded directory, or the desk the
+ *    draft was started from. The working directory of the moment and the
+ *    conversation title are not evidence — either can differ from where the
+ *    conversation actually lives.
  * 2. Nothing is disclosed when nothing is known. No department, two
  *    departments (two nodes sharing one directory), or an unreadable tree all
  *    produce no block and no receipt. Silence is the honest answer to "we
@@ -88,6 +89,12 @@ export interface DeptMembershipQuery {
   departments: ReadonlyArray<Department> | null | undefined
   /** Manual filings by session id: the user's explicit ownership assertion. */
   filings?: Readonly<FilingMap> | null
+  /**
+   * The active task's routed department. `undefined` = no task, so the old join
+   * answers; `null` = a task that is routed nowhere, which must *not* fall back
+   * to the folder the conversation happened to run in.
+   */
+  taskDepartmentId?: string | null
   sessions?: ReadonlyArray<HandbookSessionRow> | null
   homeDir?: string
 }
@@ -164,9 +171,10 @@ function indexDepartments(
   const bySlug = new Map<string, Department[]>()
   for (const dept of departments) {
     if (!dept || typeof dept.id !== 'string' || !dept.id) continue
-    if (typeof dept.directory !== 'string' || !dept.directory) continue
-    // Last node with an id wins, as everywhere else that indexes the tree.
+    // Every node is addressable by id — a processor without a folder still has
+    // a handbook. Only the folder maps need a directory to be useful.
     byId.set(dept.id, dept)
+    if (typeof dept.directory !== 'string' || !dept.directory) continue
     addToIndex(byNormDir, normalizePath(dept.directory, homeDir), dept)
     addToIndex(bySlug, dirToSlug(dept.directory), dept)
   }
@@ -187,9 +195,11 @@ function oneOf(bucket: Department[] | undefined): DeptMembership {
  * Precedence, each step deliberately refusing to fall through to a weaker
  * signal once it has an answer:
  *
- *   filing → live node     the user said so; wins over the folder
+ *   filing → live node     the user said so; wins over task and folder
  *   filing → dead node     filed nowhere live — never re-filed by the folder
- *   session row → cwd      the engine's real directory, the strongest join
+ *   task → routed dept     the task is the work; its department owns the rules
+ *   task → unassigned      routed nowhere live — never re-filed by the folder
+ *   session row → cwd      the engine's real directory, the strongest legacy join
  *   session row → slug     Claude's project directory name
  *   draft desk id          a brand-new conversation with no session row yet
  *   nothing                silence
@@ -215,6 +225,15 @@ export function resolveDepartmentMembership(input: DeptMembershipQuery): DeptMem
       // A filing that outlived its node stays "filed nowhere live". Falling
       // back to the folder here would re-file the conversation under a node
       // the user never chose.
+      return dept ? { kind: 'found', dept } : { kind: 'none' }
+    }
+
+    // A task owns its conversations. `undefined` means this send has no task,
+    // so the legacy join below still answers; `null` means a task exists but is
+    // routed nowhere, and the folder must not become its department.
+    if (input.taskDepartmentId !== undefined) {
+      if (input.taskDepartmentId === null) return { kind: 'none' }
+      const dept = index.byId.get(input.taskDepartmentId)
       return dept ? { kind: 'found', dept } : { kind: 'none' }
     }
 

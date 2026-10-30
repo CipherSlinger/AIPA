@@ -12,6 +12,7 @@ import type { SessionListItem } from '../../types/app.types'
 import type {
   AutomationDeptBudgetReportData,
   AutomationDeptSpendData,
+  TaskRecordData,
 } from '../../../preload'
 import { useI18n } from '../../i18n'
 import {
@@ -43,9 +44,11 @@ interface DeptBriefProps {
   dept: Department
   /** The whole tree — the subtree and its seats are derived from it. */
   departments: Department[]
-  /** Every listed conversation; ownership is resolved by folder. */
+  /** Every listed conversation; ownership is resolved by filing, task, then folder. */
   sessions: SessionListItem[]
   homeDir?: string
+  /** Tasks, so a task's conversation is attributed by its routed department. */
+  tasks?: ReadonlyArray<Pick<TaskRecordData, 'id' | 'departmentId' | 'sessions'>>
   loadingSessionId?: string | null
   /** `directory` is the owning node's folder when the row came from a descendant. */
   onOpenSession: (session: SessionListItem, directory?: string) => void
@@ -68,6 +71,7 @@ export default function DeptBrief({
   departments,
   sessions,
   homeDir,
+  tasks,
   loadingSessionId,
   onOpenSession,
   onClose,
@@ -115,8 +119,9 @@ export default function DeptBrief({
       now,
       homeDir,
       filings,
+      tasks,
     }),
-    [departments, sessions, dept.id, briefWindow, now, homeDir, filings],
+    [departments, sessions, dept.id, briefWindow, now, homeDir, filings, tasks],
   )
 
   const nodeName = (nodeId: string): string => {
