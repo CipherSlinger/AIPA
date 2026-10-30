@@ -24,6 +24,7 @@ import {
   scanFolderChanges,
   startPluginAi,
   abortPluginAi,
+  listPluginAiModels,
   resolvePluginTurnTarget,
   type GithubCommitsArgs,
   type ScanFolderArgs,
@@ -154,6 +155,16 @@ export function registerNavPluginHandlers(win: BrowserWindow, send: SendFn): voi
     // pretends not to have been given.
     if (picked) registerAllowedRoot(picked)
     return picked
+  })
+  // Models a plugin may ask the user to pick, deduplicated by id and labelled
+  // with the engine that will actually serve the turn (see
+  // `listPluginAiModels`). Only enabled providers contribute; credentials,
+  // base URLs and every other config field stay on this side of the boundary.
+  // Disabling every provider yields `[]` — there is always a list to render,
+  // sometimes an empty one.
+  safeHandle('plugin:ai:models', (_e, { pluginId }: { pluginId: string }) => {
+    requirePermission(pluginId, 'ai')
+    return listPluginAiModels()
   })
   safeHandle('plugin:ai:generate', async (_e, { pluginId, requestId, prompt, instructions, model }: {
     pluginId: string

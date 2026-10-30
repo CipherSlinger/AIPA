@@ -4,6 +4,7 @@ export interface NavPluginManifest {
   nameEn?: string
   version?: string
   description?: string
+  descriptionEn?: string
   icon?: string           // Lucide icon name (e.g. 'Blocks', 'Terminal', 'Gauge', 'Zap') or SVG string
   location?: 'top' | 'bottom' // Deprecated: NavRail places all plugins in the top section (Plugin Hub stays at bottom)
   order?: number

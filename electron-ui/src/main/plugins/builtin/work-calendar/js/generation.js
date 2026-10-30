@@ -22,6 +22,18 @@
     busyListeners.forEach(function (fn) { fn(v) })
   }
 
+  /**
+   * Generation has no implicit model: a blank setting stops here, before any
+   * modal opens or any AI request leaves. Falling back to the app's chat model
+   * would spend tokens on a choice the user never made.
+   */
+  function requireModel() {
+    var settings = store.state.settings
+    if (settings && typeof settings.model === 'string' && settings.model.trim()) return true
+    AIPA.toast('error', WC.L('请先在「设置」中选择生成模型', 'Choose a generation model in Settings first'))
+    return false
+  }
+
   function buildMaterialText(m) {
     var lines = []
     lines.push(WC.L('【完成任务】（', '[Completed tasks] (') + m.completedCount + WC.L(' 项）', ')'))
@@ -109,6 +121,7 @@
    */
   function generate(reportType, from, to, opts) {
     opts = opts || {}
+    if (!requireModel()) return Promise.resolve(null)
     if (busy) {
       AIPA.toast('info', WC.L('已有报告正在生成，请稍候', 'A report is already being generated, please wait'))
       return Promise.resolve(null)
@@ -166,7 +179,7 @@
       job = AIPA.ai.generate({
         prompt: fillTemplate(template, from + WC.L(' 至 ', ' to ') + to, material.text),
         instructions: INSTRUCTIONS,
-        model: settings.model || undefined,
+        model: settings.model,
         onDelta: function (text) {
           setStatus(WC.L('AI 正在撰写', 'AI is writing') + typeLabel + '...')
           render(text)
@@ -271,6 +284,7 @@
    */
   function generateOkr(periodKey, opts) {
     opts = opts || {}
+    if (!requireModel()) return Promise.resolve(null)
     if (busy) {
       AIPA.toast('info', WC.L('已有内容正在生成，请稍候', 'Content is already being generated, please wait'))
       return Promise.resolve(null)
@@ -387,7 +401,7 @@
           previousText: previousText,
         }),
         instructions: WC.okr.INSTRUCTIONS,
-        model: settings.model || undefined,
+        model: settings.model,
         onDelta: queueCount,
         onStatus: function (msg) {
           flushCount()

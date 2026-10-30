@@ -717,6 +717,14 @@ export interface PluginAiEvent {
   message?: string
 }
 
+/** A model offered to a plugin by one of its enabled providers. */
+export interface PluginAiModel {
+  id: string
+  name: string
+  providerId: string
+  providerName: string
+}
+
 /** One answer-only assistant turn, requested by a plugin (`chat.ask`). */
 export interface PluginChatAskArgs {
   prompt: string
@@ -3039,6 +3047,8 @@ const electronAPI = {
     ipcRenderer.invoke('plugin:ai:generate', args) as Promise<{ started: boolean }>,
   pluginAiAbort: (pluginId: string, requestId: string) =>
     ipcRenderer.invoke('plugin:ai:abort', { pluginId, requestId }) as Promise<void>,
+  pluginAiModels: (pluginId: string) =>
+    ipcRenderer.invoke('plugin:ai:models', { pluginId }) as Promise<PluginAiModel[]>,
   pluginChatAsk: (pluginId: string, args: PluginChatAskArgs) =>
     ipcRenderer.invoke('plugin:chat:ask', { pluginId, args }) as Promise<PluginChatAnswer>,
   // `schedule` capability: a plugin manages only the automations it created.

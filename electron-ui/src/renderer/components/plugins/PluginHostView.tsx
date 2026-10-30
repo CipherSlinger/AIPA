@@ -39,6 +39,9 @@ const INVOKE_METHODS: Record<string, {
     }),
   },
   'ai.abort': { permission: 'ai', call: (api, id, p) => api.pluginAiAbort(id, String(p?.requestId || '')) },
+  // The models a plugin may offer: enabled providers only, credentials stripped
+  // by main. The plugin still decides which one a generation should use.
+  'ai.models': { permission: 'ai', call: (api, id) => api.pluginAiModels(id) },
   // An answer-only assistant turn: the answer comes back as the invoke result,
   // not as a stream. Private by default (no session); `visible: true` persists
   // a conversation the archive can open, which main announces separately.

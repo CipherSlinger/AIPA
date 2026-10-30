@@ -2,7 +2,7 @@
  * AIPA plugin bridge — talks to PluginHostView via postMessage.
  *
  * - AIPA.invoke(method, payload): request/response host capabilities
- *   (data.get/set, github.commits, fs.scanFolder/pickFolder, ai.generate/abort)
+ *   (data.get/set, github.commits, fs.scanFolder/pickFolder, ai.models/generate/abort)
  * - AIPA.ai.generate(): streaming Codex generation with abort
  * - AIPA.toast / AIPA.sendPrompt: fire-and-forget host UI actions
  *
@@ -132,7 +132,11 @@
       get: function (key) { return invoke('data.get', { key: key }) },
       set: function (key, value) { return invoke('data.set', { key: key, value: value }) },
     },
-    ai: { generate: generate },
+    ai: {
+      generate: generate,
+      // Enabled models, as [{ id, name, providerId, providerName }].
+      models: function () { return invoke('ai.models') },
+    },
   }
 
   post({ type: 'aipa:ready' })

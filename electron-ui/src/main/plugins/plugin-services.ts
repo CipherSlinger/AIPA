@@ -13,6 +13,7 @@ import { net } from 'electron'
 import { CodexBridge, CodexAuthError } from '../codex/codex-bridge'
 import { StreamBridge } from '../pty/stream-bridge'
 import { buildCliEnv, migrateProviderConfig, type ModelProviderConfig } from '../providers/types'
+import { providerRegistry } from '../providers'
 import { getPref } from '../config/config-manager'
 import { createLogger } from '../utils/logger'
 
@@ -316,6 +317,43 @@ function resolvePluginAiTarget(model?: string): { config: ModelProviderConfig; m
     if ((config.models ?? []).some(m => m.id === target)) return { config, model: target }
   }
   return null
+}
+
+export interface PluginAiModelOption {
+  id: string
+  name: string
+  providerId: string
+  providerName: string
+}
+
+/**
+ * The model list a plugin may offer, one entry per id.
+ *
+ * The same id can be declared by several enabled providers (the built-in
+ * Claude CLI and a gateway often advertise the same Claude ids). Deduplicating
+ * keeps the first declaration's display name, but the label must name the
+ * engine that will actually serve the turn — `resolvePluginAiTarget` skips the
+ * built-in Claude CLI on purpose, so a "Claude (Anthropic)" label would lie
+ * about a turn that runs on the gateway or the Codex fallback. An id with no
+ * provider target (only `claude-cli` owns it, or none does) is reported as
+ * `default` with no provider name, which the plugin labels as the default
+ * engine. Credentials and base URLs never appear here.
+ */
+export function listPluginAiModels(): PluginAiModelOption[] {
+  const seen = new Set<string>()
+  const models: PluginAiModelOption[] = []
+  for (const config of providerRegistry.getAllConfigs()) {
+    if (!config.enabled) continue
+    for (const model of config.models ?? []) {
+      if (!model.id || seen.has(model.id)) continue
+      seen.add(model.id)
+      const target = resolvePluginAiTarget(model.id)
+      models.push(target
+        ? { id: model.id, name: model.name, providerId: target.config.id, providerName: target.config.name }
+        : { id: model.id, name: model.name, providerId: 'default', providerName: '' })
+    }
+  }
+  return models
 }
 
 /**
