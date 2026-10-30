@@ -17,6 +17,9 @@
   var clearBtn = document.getElementById("clearBtn");
   var closeBtn = document.getElementById("closeBtn");
   var filtersEl = document.getElementById("filters");
+  var searchBar = document.getElementById("searchBar");
+  var searchInput = document.getElementById("searchInput");
+  var searchClearBtn = document.getElementById("searchClear");
   var listEl = document.getElementById("list");
   var emptyEl = document.getElementById("empty");
 
@@ -50,6 +53,10 @@
       unread: "UNREAD",
       empty: "NO NOTICES YET",
       emptyFilter: "NOTHING MATCHES",
+      noMatches: "NO MATCHES",
+      search: "Search notices",
+      searchPlaceholder: "SEARCH TITLE OR MESSAGE",
+      clearSearch: "Clear search",
       dismiss: "Dismiss",
       close: "Close",
       justNow: "just now",
@@ -62,6 +69,10 @@
       unread: "未读",
       empty: "暂无通知",
       emptyFilter: "没有符合条件的通知",
+      noMatches: "没有匹配结果",
+      search: "搜索通知",
+      searchPlaceholder: "搜索标题或内容",
+      clearSearch: "清除搜索",
       dismiss: "忽略",
       close: "关闭",
       justNow: "刚刚",
@@ -74,6 +85,10 @@
       unread: "안 읽음",
       empty: "아직 알림이 없습니다",
       emptyFilter: "조건에 맞는 알림이 없습니다",
+      noMatches: "일치하는 알림 없음",
+      search: "알림 검색",
+      searchPlaceholder: "제목 또는 내용 검색",
+      clearSearch: "검색 지우기",
       dismiss: "무시",
       close: "닫기",
       justNow: "방금",
@@ -100,8 +115,10 @@
   var state = {
     payload: { notices: [], lang: "en", unread: 0 },
     filter: "all",
+    query: "",
     selectedId: null,
     booted: false,
+    closing: false,
   };
 
   var heightFrame = null;
@@ -207,13 +224,28 @@
     return kinds;
   }
 
+  // Folded once per paint. The raw value stays in the field so the caret and
+  // the clear affordance agree with what the user typed; a whitespace-only
+  // query is "no query" for filtering and for the empty state.
+  function activeQuery() {
+    return state.query.trim().toLowerCase();
+  }
+
   function filteredNotices() {
     var notices = state.payload.notices;
-    if (state.filter === "all") return notices;
-    if (state.filter === "unread") {
-      return notices.filter(function (n) { return !n.read; });
-    }
-    return notices.filter(function (n) { return n.kind === state.filter; });
+    var query = activeQuery();
+    return notices.filter(function (n) {
+      // Search stacks on top of the chip filter: UNREAD and a kind both keep
+      // their own semantics, and only the rows that survive both paint.
+      if (state.filter === "unread") {
+        if (n.read) return false;
+      } else if (state.filter !== "all" && n.kind !== state.filter) {
+        return false;
+      }
+      if (!query) return true;
+      var haystack = (String(n.title || "") + " " + String(n.message || "")).toLowerCase();
+      return haystack.indexOf(query) !== -1;
+    });
   }
 
   function visibleRows() {
@@ -231,6 +263,16 @@
     return btn;
   }
 
+  function syncSearchChrome() {
+    var s = strings();
+    searchBar.classList.toggle("has-query", state.query.length > 0);
+    searchInput.setAttribute("aria-label", s.search);
+    searchInput.title = s.search;
+    searchInput.placeholder = s.searchPlaceholder;
+    searchClearBtn.setAttribute("aria-label", s.clearSearch);
+    searchClearBtn.title = s.clearSearch;
+  }
+
   function applyChrome() {
     var s = strings();
     clearBtn.textContent = s.clear;
@@ -241,6 +283,7 @@
     countEl.textContent = String(state.payload.unread);
     countEl.dataset.zero = state.payload.unread > 0 ? "false" : "true";
     countEl.title = state.payload.unread + " " + s.unread;
+    syncSearchChrome();
   }
 
   function applyFilters() {
@@ -368,9 +411,25 @@
       return;
     }
     emptyEl.hidden = false;
+    // A typed query gets its own wording: "no notices yet" would read as if the
+    // log were empty rather than the search having missed.
+    if (activeQuery()) {
+      emptyEl.textContent = strings().noMatches;
+      return;
+    }
     emptyEl.textContent = state.payload.notices.length > 0
       ? strings().emptyFilter
       : strings().empty;
+  }
+
+  // One paint path for every filter change (chip, query, payload): rows and the
+  // empty state are always rebuilt from the same list, and the height report
+  // rides along with them.
+  function paintList() {
+    var notices = filteredNotices();
+    renderList(notices);
+    updateEmpty(notices);
+    reportHeight();
   }
 
   function selectRow(row, moveFocus) {
@@ -385,7 +444,7 @@
     }
   }
 
-  function moveSelection(delta) {
+  function moveSelection(delta, keepFocus) {
     var rows = visibleRows();
     if (!rows.length) return;
     var index = -1;
@@ -394,6 +453,14 @@
     }
     if (index < 0) index = delta > 0 ? -1 : rows.length;
     index = (index + delta + rows.length) % rows.length;
+    if (keepFocus) {
+      // Arrowing out of the search field highlights a row without moving the
+      // caret: the user can keep typing, and Enter/Delete still act on what
+      // the highlight is on.
+      selectRow(rows[index], false);
+      try { rows[index].scrollIntoView({ block: "nearest" }); } catch (err) { /* older Chromium */ }
+      return;
+    }
     selectRow(rows[index], true);
   }
 
@@ -410,6 +477,40 @@
     try { panel.focus({ preventScroll: true }); } catch (err) { panel.focus(); }
   }
 
+  function isSearchTarget(target) {
+    return !!searchInput && target === searchInput;
+  }
+
+  function isEditable(target) {
+    if (!target || !target.tagName) return false;
+    var tag = target.tagName;
+    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable === true;
+  }
+
+  function focusSearch(selectAll) {
+    if (!searchInput) return;
+    try { searchInput.focus({ preventScroll: true }); } catch (err) { searchInput.focus(); }
+    if (selectAll) {
+      // Ctrl+F means "find again": keep an existing query selected so typing
+      // replaces it, the way a browser find bar behaves.
+      try { searchInput.select(); } catch (err) { /* caret only */ }
+      return;
+    }
+    try {
+      var end = searchInput.value.length;
+      searchInput.setSelectionRange(end, end);
+    } catch (err) { /* not fatal */ }
+  }
+
+  function setQuery(value, keepFocus) {
+    var next = typeof value === "string" ? value : "";
+    if (searchInput.value !== next) searchInput.value = next;
+    state.query = next;
+    syncSearchChrome();
+    paintList();
+    if (keepFocus) focusSearch(false);
+  }
+
   /**
    * Only a list that actually overflows earns the bottom fade: on a short log
    * the same gradient would dim the last row for no reason.
@@ -420,6 +521,9 @@
   }
 
   function reportHeight() {
+    // A close (Escape/×/click-away) tears the window down; a measurement queued
+    // in the same frame would only reach an IPC sender that is already gone.
+    if (state.closing) return;
     if (heightFrame) return;
     heightFrame = requestAnimationFrame(function () {
       heightFrame = null;
@@ -439,9 +543,7 @@
 
     applyChrome();
     applyFilters();
-    var notices = filteredNotices();
-    renderList(notices);
-    updateEmpty(notices);
+    paintList();
 
     if (first) {
       panel.classList.add("visible");
@@ -459,6 +561,11 @@
   // ── Actions ────────────────────────────────────────────────────────────────
 
   function closePanel() {
+    state.closing = true;
+    if (heightFrame) {
+      cancelAnimationFrame(heightFrame);
+      heightFrame = null;
+    }
     if (api && api.close) { api.close(); return; }
     window.close();
   }
@@ -495,12 +602,31 @@
     state.filter = filter;
     state.selectedId = null;
     applyFilters();
-    var notices = filteredNotices();
-    renderList(notices);
-    updateEmpty(notices);
-    reportHeight();
+    paintList();
     focusPanel();
   });
+
+  // Typing only narrows the paint: the payload, the unread flag and the chip
+  // filter are untouched, so the search never marks anything read.
+  searchInput.addEventListener("input", function () {
+    state.query = searchInput.value;
+    syncSearchChrome();
+    paintList();
+  });
+
+  // The whole bar is the target, not just the 10px text line: clicking the
+  // glyph or the padding should still put the caret in the field.
+  searchBar.addEventListener("mousedown", function (event) {
+    if (event.target === searchInput) return;
+    if (event.target && event.target.closest && event.target.closest("button")) return;
+    event.preventDefault();
+    focusSearch(false);
+  });
+
+  // Keep the caret in the field when the × is clicked; the button itself never
+  // needs focus, and yanking focus to a control that then disappears is worse.
+  searchClearBtn.addEventListener("mousedown", function (event) { event.preventDefault(); });
+  searchClearBtn.addEventListener("click", function () { setQuery("", true); });
 
   clearBtn.addEventListener("click", function () {
     if (state.payload.notices.length === 0) return;
@@ -510,11 +636,37 @@
   closeBtn.addEventListener("click", function () { closePanel(); });
 
   document.addEventListener("keydown", function (event) {
+    // IME composition owns Escape/Enter/arrows until the candidate window
+    // closes; reacting mid-word would clear the query or open a row.
+    if (event.isComposing || event.keyCode === 229) return;
+
+    var mod = event.ctrlKey || event.metaKey;
+    if (mod && !event.altKey && (event.key === "f" || event.key === "F")) {
+      event.preventDefault();
+      focusSearch(true);
+      return;
+    }
+    // "/" is the search key whenever the caret is not already in a text field;
+    // typing a slash into the query must stay a slash.
+    if (event.key === "/" && !mod && !event.altKey && !isEditable(event.target)) {
+      event.preventDefault();
+      focusSearch(false);
+      return;
+    }
     if (event.key === "Escape") {
+      // Esc in the field is an undo of the query, not a close; only an empty
+      // query falls through to closing the panel.
+      if (isSearchTarget(event.target) && state.query) {
+        event.preventDefault();
+        setQuery("", true);
+        return;
+      }
       event.preventDefault();
       closePanel();
       return;
     }
+
+    var inSearch = isSearchTarget(event.target);
     // Enter on a focused chrome button is that button's activation, not the
     // highlighted row's. Without this, tabbing to a chip and pressing Enter
     // would open the previously selected notice instead.
@@ -524,12 +676,12 @@
     if (onButton && (event.key === "Enter" || event.key === " ")) return;
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      moveSelection(1);
+      moveSelection(1, inSearch);
       return;
     }
     if (event.key === "ArrowUp") {
       event.preventDefault();
-      moveSelection(-1);
+      moveSelection(-1, inSearch);
       return;
     }
     if (event.key === "Enter") {
@@ -541,6 +693,9 @@
       return;
     }
     if (event.key === "Delete" || event.key === "Backspace") {
+      // Backspace is always text editing in the field. Delete doubles as the
+      // list's dismiss key whenever a row is highlighted, as it is on the list.
+      if (inSearch && (event.key === "Backspace" || !selectedRow())) return;
       var target = selectedRow();
       if (target) {
         event.preventDefault();
