@@ -602,6 +602,11 @@ body { padding: 8px; }
   flex-direction: column;
   gap: 7px;
   margin-top: 3px;
+  /* The body column starts after the 18px icon and its 9px gap. The expanded
+     half is not reading text, it is chrome — meta, facts, the action strip —
+     so it reclaims that column instead of wrapping a four-button strip. */
+  margin-left: -27px;
+  width: calc(100% + 27px);
   padding-top: 7px;
   border-top: 1px solid color-mix(in srgb, var(--k) 22%, transparent);
   cursor: default;
@@ -676,14 +681,14 @@ body { padding: 8px; }
   align-items: center;
   justify-content: center;
   min-height: 21px;
-  padding: 4px 6px;
+  padding: 4px 5px;
   border: 1px solid rgba(127, 168, 162, 0.28);
   background: rgba(63, 224, 200, 0.035);
   color: var(--muted);
   font: inherit;
   font-size: 8.5px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
   outline: none;
