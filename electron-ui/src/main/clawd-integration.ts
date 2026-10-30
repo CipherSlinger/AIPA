@@ -1551,6 +1551,15 @@ export function getClawdSubmenu(
         },
       },
       {
+        label: isZh ? '晚间回顾' : 'Evening Wrap-up',
+        type: 'checkbox' as const,
+        checked: getPref('petEveningWrap') === true,
+        click: (item) => {
+          setPref('petEveningWrap', item.checked)
+          onMenuAction?.()
+        },
+      },
+      {
         label: isZh ? '静音音效' : 'Mute Sound Effects',
         type: 'checkbox' as const,
         checked: soundMuted,

@@ -66,7 +66,7 @@ export function registerClawdHandlers(): void {
   /**
    * Visible strings for the pet rows in Settings. The app's locale JSON is
    * owned by the shared translation surface; the pet's own table already
-   * carries these sentences in en/zh/ko, so the page asks for exactly the four
+   * carries these sentences in en/zh/ko, so the page asks for exactly the six
    * it needs in the app's resolved language instead of duplicating them. The
    * keys stay a fixed, named set — this is not a general translation channel.
    */
@@ -83,6 +83,8 @@ export function registerClawdHandlers(): void {
         needsYouBadgeHint: pick('settingsPetNeedsYouBadgeHint'),
         morningBrief: pick('settingsPetMorningBrief'),
         morningBriefHint: pick('settingsPetMorningBriefHint'),
+        eveningWrap: pick('settingsPetEveningWrap'),
+        eveningWrapHint: pick('settingsPetEveningWrapHint'),
       },
     }
   })

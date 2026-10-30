@@ -77,6 +77,13 @@ interface StoreSchema {
    */
   petMorningBrief: boolean
   /**
+   * Once a local day at 18:30, one card saying what got done today and what
+   * waits for tomorrow. Opt-in (`false` by default); a suppressed raise is
+   * retried until local midnight, and a missed evening is never spoken the
+   * next morning.
+   */
+  petEveningWrap: boolean
+  /**
    * Background memory consolidation ("dream"): turns idle conversations into
    * append-only project memory files. Default on; the Memory console exposes
    * the switch and its pass log.
@@ -134,6 +141,7 @@ const store = new Store<StoreSchema>({
     petActivityStrip: true,
     petNeedsYouBadge: true,
     petMorningBrief: false,
+    petEveningWrap: false,
     dreamConsolidationEnabled: true,
     allowedFolders: [],
     pluginAiModels: {},

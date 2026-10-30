@@ -51,6 +51,8 @@ export default function SettingsGeneral({
     needsYouBadgeHint?: string
     morningBrief?: string
     morningBriefHint?: string
+    eveningWrap?: string
+    eveningWrapHint?: string
   }>({})
 
   const reloadPetNotices = () => {
@@ -712,6 +714,24 @@ export default function SettingsGeneral({
                       }}
                     />
                   </div>
+
+                  {/* Evening wrap-up beside the pet. Default off. Hidden when
+                      an older main process does not send the label. */}
+                  {petStrings.eveningWrap && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <div>
+                        <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{petStrings.eveningWrap}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{petStrings.eveningWrapHint}</div>
+                      </div>
+                      <Toggle
+                        value={local.petEveningWrap === true}
+                        onChange={v => {
+                          updateLocal({ petEveningWrap: v })
+                          window.electronAPI.prefsSet('petEveningWrap', v).catch(() => {})
+                        }}
+                      />
+                    </div>
+                  )}
 
                   {/* Live activity strip. Off means the pet stays silent
                       while a turn runs in the background — it still speaks up

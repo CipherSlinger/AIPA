@@ -7,6 +7,7 @@ import { scheduleClawdBootGreeting } from './clawd-notice-sources'
 import { initClawdAttention, shutdownClawdAttention } from './clawd-attention'
 import { startDueReminder, stopDueReminder } from './tasks/due-reminder'
 import { startWeeklyReview, stopWeeklyReview } from './tasks/weekly-review'
+import { startDayWrap, stopDayWrap } from './tasks/day-wrap'
 import { abortAllPluginAi } from './plugins/plugin-services'
 import { listNavPlugins } from './plugins/nav-plugin-manager'
 import { decodePluginPath, pluginHost } from './plugins/plugin-url'
@@ -232,6 +233,17 @@ function createWindow(): void {
       startWeeklyReview({ getQuitting: () => isQuitting })
     } catch (err) {
       log.warn('startWeeklyReview failed (non-fatal):', String(err))
+    }
+    // The opt-in evening wrap: one card at 18:30 local saying what got done
+    // today and what waits for tomorrow. Off unless `petEveningWrap` is true;
+    // when disabled it never reads the store or raises anything.
+    try {
+      startDayWrap({
+        getQuitting: () => isQuitting,
+        getEnabled: () => getPref('petEveningWrap') === true,
+      })
+    } catch (err) {
+      log.warn('startDayWrap failed (non-fatal):', String(err))
     }
   })
 
@@ -1062,6 +1074,7 @@ app.on('before-quit', () => {
   // below are being torn down.
   try { stopDueReminder() } catch { /* best-effort */ }
   try { stopWeeklyReview() } catch { /* best-effort */ }
+  try { stopDayWrap() } catch { /* best-effort */ }
   // Run clawd cleanup hooks (registered during initClawdIntegration)
   try { shutdownClawdAttention() } catch { /* best-effort */ }
   try { shutdownClawdIntegration() } catch { /* best-effort */ }

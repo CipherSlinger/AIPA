@@ -3460,6 +3460,8 @@ const electronAPI = {
         needsYouBadgeHint: string
         morningBrief: string
         morningBriefHint: string
+        eveningWrap: string
+        eveningWrapHint: string
       }
     }>,
   /** Ask the pet to show a passive HUD notice. `shown:false` when it cannot. */

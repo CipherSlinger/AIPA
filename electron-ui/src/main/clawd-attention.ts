@@ -57,6 +57,7 @@ import { createLogger } from './utils/logger'
 // close that runtime cycle just to name the aggregate shape.
 import type { DueAggregate } from './tasks/due-reminder'
 import type { ReviewAggregate } from './tasks/weekly-review'
+import type { DayWrapAggregate } from './tasks/day-wrap'
 import {
   getClawdLanguage,
   hideClawdAttentionBubble,
@@ -90,6 +91,7 @@ export type AttentionKind =
   | 'automation-done'
   | 'task-due'
   | 'task-review'
+  | 'day-wrap'
 
 export interface AttentionInput {
   kind: AttentionKind
@@ -114,6 +116,11 @@ export interface AttentionInput {
    * desk as it stands at the moment of the card. Ignored by every other kind.
    */
   review?: ReviewAggregate
+  /**
+   * The aggregate for a `day-wrap` card: what was finished today and the desk
+   * as it stands this evening. Ignored by every other kind.
+   */
+  wrap?: DayWrapAggregate | null
 }
 
 interface PluginJob {
@@ -132,6 +139,8 @@ interface AttentionItem {
   due: DueAggregate | null
   /** Counts for a `task-review` card; null for every other kind. */
   review: ReviewAggregate | null
+  /** Today's counts for a `day-wrap` card; null for every other kind. */
+  wrap: DayWrapAggregate | null
   /** Finished plugin jobs collapsed into this bubble; >1 means the click chooses. */
   plugins: PluginJob[]
   createdAt: number
@@ -186,6 +195,9 @@ const KIND_PRIORITY: Record<AttentionKind, number> = {
   // The week behind the user, not the day in front of them: it waits for the
   // due card, but a Monday morning should still say it.
   'task-review': 7,
+  // The day just ending, not the week behind it: it waits for the review but
+  // still speaks on a Tuesday evening.
+  'day-wrap': 8,
 }
 
 /** A burst of events becomes one bubble: wait for the quiet gap first. */
@@ -205,6 +217,11 @@ const TASK_DUE_KEY = 'task-due:agenda'
  * same queue item instead of stacking a second summary.
  */
 const TASK_REVIEW_KEY = 'task-review:week'
+/**
+ * One evening card per day, so a re-check after a suppressed raise updates the
+ * same queue item instead of stacking a second summary.
+ */
+const DAY_WRAP_KEY = 'day-wrap:today'
 /** How long after a failed turn its own completion notification stays suppressed. */
 const FAILURE_SUPPRESSION_MS = 5000
 
@@ -351,6 +368,7 @@ export function raiseAttention(input: AttentionInput): boolean {
       detail: null,
       due: null,
       review: null,
+      wrap: null,
       plugins: [],
       createdAt: now,
       count: 0,
@@ -378,7 +396,8 @@ export function raiseAttention(input: AttentionInput): boolean {
 
   const key = input.kind === 'task-due'
     ? TASK_DUE_KEY
-    : input.kind === 'task-review' ? TASK_REVIEW_KEY : attentionKey(input)
+    : input.kind === 'task-review' ? TASK_REVIEW_KEY
+    : input.kind === 'day-wrap' ? DAY_WRAP_KEY : attentionKey(input)
   const existing = items.get(key)
   if (existing) {
     if (input.requestId) existing.requestIds.add(input.requestId)
@@ -392,6 +411,12 @@ export function raiseAttention(input: AttentionInput): boolean {
       existing.count = Math.max(1, input.due.total)
     }
     if (input.kind === 'task-review' && input.review) existing.review = input.review
+    // A second wrap while the evening card is still queued refreshes the same
+    // queue item's counts; it never becomes a second bubble.
+    if (input.kind === 'day-wrap' && input.wrap) {
+      existing.wrap = input.wrap
+      existing.count = Math.max(1, input.wrap.finishedTasks)
+    }
     if (input.detail) existing.detail = input.detail
     existing.createdAt = now
     if (input.sessionId) existing.sessionId = input.sessionId
@@ -412,9 +437,14 @@ export function raiseAttention(input: AttentionInput): boolean {
     detail: input.detail || null,
     due: input.kind === 'task-due' ? (input.due ?? null) : null,
     review: input.kind === 'task-review' ? (input.review ?? null) : null,
+    wrap: input.kind === 'day-wrap' ? (input.wrap ?? null) : null,
     plugins: [],
     createdAt: now,
-    count: input.kind === 'task-due' && input.due ? Math.max(1, input.due.total) : Math.max(1, requestIds.size),
+    count: input.kind === 'task-due' && input.due
+      ? Math.max(1, input.due.total)
+      : input.kind === 'day-wrap' && input.wrap
+        ? Math.max(1, input.wrap.finishedTasks)
+        : Math.max(1, requestIds.size),
     requestIds,
     lastShownAt: 0,
     recorded: false,
@@ -938,6 +968,9 @@ const KIND_BUBBLE: Record<AttentionKind, ClawdBubbleKind> = {
   // The week's summary gets its own warm accent: it is neither a reminder nor
   // a success, and should not wear the due card's urgent slate.
   'task-review': 'review',
+  // The evening wrap shares the review's warm accent: it is a look back, not
+  // an alarm.
+  'day-wrap': 'review',
 }
 
 /** Approvals and questions wait for the user; the rest expire on their own. */
@@ -1006,6 +1039,28 @@ function metaRows(item: AttentionItem): ClawdBubbleMetaRow[] {
     }
     return reviewRows
   }
+  // The evening wrap names what was finished today, with a ×N marker when a
+  // repeating task was checked off more than once. Same task-row look as the
+  // due and review cards: the rows are the card's content, not diagnostics.
+  if (item.kind === 'day-wrap') {
+    const wrap = item.wrap
+    if (!wrap || !Array.isArray(wrap.rows) || wrap.rows.length === 0) return []
+    const done = t('attentionDayWrapRowDone')
+    const wrapRows: ClawdBubbleMetaRow[] = wrap.rows.map(row => ({
+      label: row.title,
+      value: row.count > 1 ? `${done} ×${row.count}` : done,
+      title: row.title,
+      variant: 'due',
+    }))
+    if (wrap.more > 0) {
+      wrapRows.push({
+        label: '',
+        value: fmt(t('attentionDayWrapMore'), { n: wrap.more }),
+        variant: 'more',
+      })
+    }
+    return wrapRows
+  }
   const rows: ClawdBubbleMetaRow[] = []
   if (item.sessionId) {
     rows.push({ label: t('attentionMetaSession'), value: item.sessionId.slice(0, 8) })
@@ -1036,7 +1091,7 @@ function buildPayload(item: AttentionItem): BuiltBubble {
   // always opens the task brief (or the Tasks view) where its rows can be acted
   // on; it names no conversation of its own.
   const openable = item.kind === 'task-due' || item.kind === 'task-review' ||
-    !!(item.sessionId || item.pluginId || item.plugins.length > 0)
+    item.kind === 'day-wrap' || !!(item.sessionId || item.pluginId || item.plugins.length > 0)
   const name = item.detail || ''
   const pluginJobCount = item.kind === 'plugin-done' ? item.plugins.length : 0
   const meta = metaRows(item)
@@ -1157,6 +1212,43 @@ function buildPayload(item: AttentionItem): BuiltBubble {
       message = `${finished}${glue}${desk}`
       break
     }
+    case 'day-wrap': {
+      // Three sentences at most: what got done today, what is still on the
+      // desk, and — only when there is something — what is due tomorrow.
+      // `finished` counts occurrences, so a habit checked off three times is
+      // three; the rows below name the task once.
+      title = t('attentionDayWrapTitle')
+      pill = t('attentionDayWrapPill')
+      const wrap = item.wrap ?? {
+        day: '', finished: 0, finishedTasks: 0, rows: [], more: 0,
+        open: 0, overdue: 0, dueTomorrow: 0,
+      }
+      const finished = wrap.finished > 0
+        ? (wrap.finished === 1
+          ? t('attentionDayWrapFinishedOne')
+          : fmt(t('attentionDayWrapFinishedMany'), { n: wrap.finished }))
+        : t('attentionDayWrapNothingFinished')
+      let desk: string
+      if (wrap.open === 0) {
+        desk = t('attentionReviewDeskClear')
+      } else if (wrap.open === 1) {
+        desk = wrap.overdue > 0 ? t('attentionReviewDeskOpenOneLate') : t('attentionReviewDeskOpenOne')
+      } else {
+        desk = wrap.overdue > 0
+          ? fmt(t('attentionReviewDeskOpenManyLate'), { n: wrap.open, overdue: wrap.overdue })
+          : fmt(t('attentionReviewDeskOpenMany'), { n: wrap.open })
+      }
+      const glue = lang === 'zh' || lang === 'ja' ? '' : ' '
+      let messageParts = `${finished}${glue}${desk}`
+      if (wrap.dueTomorrow > 0) {
+        const tomorrow = wrap.dueTomorrow === 1
+          ? t('attentionDayWrapTomorrowOne')
+          : fmt(t('attentionDayWrapTomorrowMany'), { n: wrap.dueTomorrow })
+        messageParts = `${messageParts}${glue}${tomorrow}`
+      }
+      message = messageParts
+      break
+    }
   }
 
   const payload: ClawdAttentionBubblePayload = {
@@ -1181,7 +1273,7 @@ function buildPayload(item: AttentionItem): BuiltBubble {
     payload.actions = [{
       id: 'open',
       label: t(
-        item.kind === 'task-due' || item.kind === 'task-review'
+        item.kind === 'task-due' || item.kind === 'task-review' || item.kind === 'day-wrap'
           ? 'attentionOpenTasks'
           : pluginJobCount > 1
             ? 'attentionChoosePlugin'
@@ -1346,8 +1438,9 @@ function openItem(item: AttentionItem): void {
   // The due card's destination is the task brief, not a conversation. It owns
   // its own window and can be opened without summoning AIPA at all; if it
   // cannot be created, fall back to the Tasks view through the same hand-off
-  // the notice centre uses.
-  if (item.kind === 'task-due') {
+  // the notice centre uses. The evening wrap opens the same desk: its rows
+  // are today's finished tasks and whatever waits for tomorrow.
+  if (item.kind === 'task-due' || item.kind === 'day-wrap') {
     openDueTasks()
     return
   }
