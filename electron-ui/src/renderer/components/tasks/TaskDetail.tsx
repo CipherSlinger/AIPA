@@ -50,9 +50,11 @@ import {
   formatUsd,
   parseAutomationRunDetail,
   parseImportedFolderDetail,
+  parseStatusChangeDetail,
   statusColor,
   statusLabelKey,
   summarizeTaskSpend,
+  taskWaitingReason,
 } from './taskUi'
 import { useUsageEntries } from './useUsageEntries'
 
@@ -344,6 +346,10 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
   const archived = task.status === 'archived'
   const purpose = taskDispatchPurpose(task)
   const brief = buildTaskBrief(task, purpose, t)
+  // Only a task that is still waiting has a reason worth showing. The engine
+  // failed its last turn, so this is a decision waiting on the user, not a
+  // mistake the user made: the banner stays quiet and names the engine's text.
+  const waitingReason = task.status === 'needs_you' ? taskWaitingReason(task) : undefined
 
   // A recorded conversation is named by its title when the session list has
   // one; the placeholder `<system_context>` title is not a name, so the short
@@ -553,6 +559,33 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
           <Trash2 size={13} />
         </button>
       </div>
+
+      {/* Why the task is waiting. The engine's last turn failed; this sits
+          directly under the header so the reason is visible without scrolling,
+          and reads as a decision to make rather than an error to fix. */}
+      {waitingReason && (
+        <div
+          role="status"
+          data-task-waiting-reason
+          style={{
+            display: 'flex', alignItems: 'flex-start', gap: 8, flexShrink: 0,
+            padding: '8px 16px', background: 'rgba(251,191,36,0.06)',
+            borderBottom: '1px solid rgba(251,191,36,0.22)',
+            fontSize: 11, lineHeight: 1.5,
+          }}
+        >
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0,
+            color: 'var(--warning)', fontWeight: 600,
+          }}>
+            <Clock size={12} />
+            {t('tasks.waitingReason.title')}
+          </span>
+          <span title={waitingReason} style={{ minWidth: 0, color: 'var(--text-secondary)', overflowWrap: 'anywhere' }}>
+            {waitingReason}
+          </span>
+        </div>
+      )}
 
       {task.missing && (
         <div style={{
@@ -1005,7 +1038,14 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
               </div>
             ) : (
               task.history.map((event, index) => {
-                const detail = historyDetail(event)
+                // A status change carried a reason for a needs_you transition.
+                // Split it from the transition so the history never prints the
+                // store's ` | ` separator as noise; the reason gets its own
+                // muted, wrapping line with a localized label.
+                const statusChange = event.kind === 'status_changed'
+                  ? parseStatusChangeDetail(event.detail)
+                  : null
+                const detail = statusChange ? undefined : historyDetail(event)
                 return (
                   <div key={`${event.at}-${index}`} style={{
                     display: 'flex', gap: 7, padding: '5px 0',
@@ -1019,6 +1059,24 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
                       <div style={{ fontSize: 10.5, color: 'var(--text-secondary)', lineHeight: 1.35 }}>
                         {t(`tasks.event.${event.kind}`)}
                       </div>
+                      {statusChange && (
+                        <>
+                          <div title={statusChange.transition} style={{
+                            fontSize: 9, color: 'var(--text-subtle)', marginTop: 1,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>
+                            {statusChange.transition}
+                          </div>
+                          {statusChange.reason && (
+                            <div title={statusChange.reason} style={{
+                              fontSize: 9, color: 'var(--text-muted)', marginTop: 1,
+                              lineHeight: 1.4, overflowWrap: 'anywhere',
+                            }}>
+                              {t('tasks.historyReason', { reason: statusChange.reason })}
+                            </div>
+                          )}
+                        </>
+                      )}
                       {detail && (
                         // The automation key is kept on the row's tooltip: the
                         // line reads as a time, the provenance stays checkable.

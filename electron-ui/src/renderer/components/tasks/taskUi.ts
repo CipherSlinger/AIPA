@@ -213,6 +213,51 @@ export function parseImportedFolderDetail(
 }
 
 /**
+ * Split a `status_changed` detail into its transition and the reason main
+ * appended, if any.
+ *
+ * `updateTask` writes `<from> -> <to> | <note>`. The transition is what the
+ * history row has always shown; the note is the engine's reason for a status
+ * a person did not choose, and must not be painted as a raw ` | ` suffix.
+ * Only the first separator is structural: a note is prose and may contain `|`.
+ */
+export function parseStatusChangeDetail(
+  detail: string | undefined,
+): { transition: string; reason?: string } | null {
+  if (!detail) return null
+  const separator = detail.indexOf(' | ')
+  if (separator === -1) return { transition: detail }
+  const transition = detail.slice(0, separator)
+  const reason = detail.slice(separator + ' | '.length).trim()
+  return reason ? { transition, reason } : { transition }
+}
+
+/**
+ * Why a `needs_you` task is waiting on the user, when main recorded a reason.
+ *
+ * This mirrors `statusNote()` in `src/main/clawd-task-brief.ts` on purpose:
+ * main compiles from `src/main` (rootDir) and the renderer is a Vite bundle, so
+ * there is no shared source root both can import without restructuring the
+ * build. The two functions must stay in step — only the *latest* status change
+ * may speak, and only when it landed on `needs_you` with a note. A task that
+ * waited, ran again and came back without a reason must not keep showing the
+ * old error, because that would explain a state it is no longer in.
+ */
+export function taskWaitingReason(task: TaskRecordData): string | undefined {
+  for (let i = task.history.length - 1; i >= 0; i--) {
+    const event = task.history[i]
+    if (event.kind !== 'status_changed' || !event.detail) continue
+    const separator = event.detail.indexOf(' | ')
+    const transition = separator === -1 ? event.detail : event.detail.slice(0, separator)
+    if (!transition.endsWith(' -> needs_you')) return undefined
+    if (separator === -1) return undefined
+    const note = event.detail.slice(separator + ' | '.length).trim()
+    return note || undefined
+  }
+  return undefined
+}
+
+/**
  * Read the provenance key main writes on a task saved from a run.
  *
  * The detail is `automation:<jobId>:<startedAt>`; the last colon separates the

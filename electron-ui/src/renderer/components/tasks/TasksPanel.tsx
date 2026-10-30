@@ -32,6 +32,7 @@ import {
   statusColor,
   statusLabelKey,
   taskSpendLabel,
+  taskWaitingReason,
 } from './taskUi'
 import { useUsageEntries } from './useUsageEntries'
 
@@ -334,6 +335,11 @@ export default function TasksPanel() {
                   {group.tasks.map(task => {
                     const active = task.id === selectedTaskId
                     const spend = taskSpendLabel(task.sessions.map(ref => ref.sessionId), usageEntries)
+                    // Only a waiting task explains itself, and only when main
+                    // recorded a reason; every other row keeps its shape.
+                    const waitingReason = task.status === 'needs_you'
+                      ? taskWaitingReason(task)
+                      : undefined
                     return (
                       <button
                         key={task.id}
@@ -399,6 +405,19 @@ export default function TasksPanel() {
                             {t('tasks.lastActivity', { when: formatTaskTime(task.updatedAt, resolvedLocale) })}
                           </span>
                         </span>
+                        {waitingReason && (
+                          <span
+                            data-task-waiting-hint
+                            title={waitingReason}
+                            style={{
+                              display: 'block', width: '100%', minWidth: 0, paddingLeft: 12,
+                              fontSize: 9.5, color: 'var(--text-muted)',
+                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {t('tasks.waitingReason.short', { reason: waitingReason })}
+                          </span>
+                        )}
                       </button>
                     )
                   })}

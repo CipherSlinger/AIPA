@@ -5509,6 +5509,11 @@
     "history": "历史",
     "historyEmpty": "还没有动态。",
     "historyRun": "来自自动化运行（{{when}}）",
+    "historyReason": "原因：{{reason}}",
+    "waitingReason": {
+      "title": "等待你的决定",
+      "short": "等待：{{reason}}"
+    },
     "importLegacy": {
       "action": "将文件夹导入为任务",
       "checking": "正在检查文件夹…",

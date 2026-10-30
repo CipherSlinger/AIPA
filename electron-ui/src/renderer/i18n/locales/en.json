@@ -5509,6 +5509,11 @@
     "history": "History",
     "historyEmpty": "No activity yet.",
     "historyRun": "Saved from an automation run ({{when}})",
+    "historyReason": "Reason: {{reason}}",
+    "waitingReason": {
+      "title": "Waiting on your decision",
+      "short": "Waiting: {{reason}}"
+    },
     "importLegacy": {
       "action": "Import folder as a task",
       "checking": "Checking folder…",
