@@ -5474,6 +5474,20 @@
         "nextWeek": "一周后"
       }
     },
+    "repeat": {
+      "label": "重复",
+      "none": "不重复",
+      "daily": "每天",
+      "weekly": "每周",
+      "monthly": "每月",
+      "short": {
+        "daily": "每天",
+        "weekly": "每周",
+        "monthly": "每月"
+      },
+      "hint": "完成一个重复任务时，它会挪到下一次，而不是被关掉。",
+      "doneLine": "这次完成 · 下次 {{when}}"
+    },
     "missing": "文件夹缺失",
     "missingHint": "找不到任务的文件夹：{{path}}。记录仍然保留，没有删除任何东西。",
     "materials": "资料",
@@ -5573,6 +5587,8 @@
       "renamed": "重命名",
       "status_changed": "状态变更",
       "due_changed": "截止日期变更",
+      "repeat_changed": "重复变更",
+      "completed": "完成这一次",
       "moved": "移动文件夹",
       "folder_missing": "文件夹缺失",
       "restored": "已恢复",

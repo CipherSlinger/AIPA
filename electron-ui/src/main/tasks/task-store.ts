@@ -29,6 +29,11 @@ import { getPref } from '../config/config-manager'
 import { preserveCorruptFile } from '../utils/corrupt-file'
 import { createLogger } from '../utils/logger'
 import { getAllowedFsRoots, isPathInside, safePath } from '../utils/validate'
+import { localTodayDay, nextOccurrenceDay, normalizeRepeat } from './task-repeat'
+import type { TaskRepeat } from './task-repeat'
+
+export { nextOccurrenceDay } from './task-repeat'
+export type { TaskRepeat } from './task-repeat'
 
 const log = createLogger('task-store')
 
@@ -90,6 +95,8 @@ export type TaskEventKind =
   | 'renamed'
   | 'status_changed'
   | 'due_changed'
+  | 'repeat_changed'
+  | 'completed'
   | 'moved'
   | 'folder_missing'
   | 'restored'
@@ -130,6 +137,8 @@ export interface TaskRecord {
    * without the field are valid and mean "no due date".
    */
   dueOn?: string
+  /** How often the task repeats. Absent means a one-off. */
+  repeat?: TaskRepeat
   materials: TaskMaterial[]
   /** Conversations that ran in this task, in the order they started. */
   sessions: TaskSessionRef[]
@@ -148,7 +157,18 @@ export interface TaskStore {
 }
 
 export type TaskFailure = { ok: false; code: string; error: string }
-export type TaskMutation = { ok: true; task: TaskView } | TaskFailure
+export type TaskMutation =
+  | {
+      ok: true
+      task: TaskView
+      /**
+       * Present only when finishing a repeating task rolled it forward instead
+       * of marking it done. `previousDueOn` is what the occurrence was owed on
+       * (absent when the task had no due day), so Undo can put the day back.
+       */
+      repeated?: { previousDueOn?: string; nextDueOn: string }
+    }
+  | TaskFailure
 export type TaskDeleteResult =
   | { ok: true; task?: TaskView; mode: 'archived' | 'deleted'; trashedTo?: string }
   | TaskFailure
@@ -397,7 +417,8 @@ export function addTextMaterial(id: unknown, input: TaskTextMaterialInput): Task
 
 const EVENT_KINDS = new Set<TaskEventKind>([
   'created', 'material_added', 'material_removed', 'renamed',
-  'status_changed', 'due_changed', 'moved', 'folder_missing', 'restored',
+  'status_changed', 'due_changed', 'repeat_changed', 'completed',
+  'moved', 'folder_missing', 'restored',
   'routed', 'reassigned', 'session_started', 'from_automation',
   'imported_folder', 'from_notice',
 ])
@@ -433,6 +454,16 @@ function normalizeDueOn(value: unknown): { ok: true; value: string | null } | { 
 /** A persisted due date that no longer validates is dropped, not the task. */
 function readDueOn(value: unknown): string | undefined {
   const result = normalizeDueOn(value)
+  return result.ok && result.value ? result.value : undefined
+}
+
+/**
+ * A hand-edited or old-app repeat value is dropped like any other unknown
+ * field: the task keeps existing as a one-off rather than the whole store
+ * failing to load over one word.
+ */
+function readRepeat(value: unknown): TaskRepeat | undefined {
+  const result = normalizeRepeat(value)
   return result.ok && result.value ? result.value : undefined
 }
 
@@ -559,6 +590,7 @@ export function normalizeTask(raw: unknown): TaskRecord | null {
   const createdAt = finiteNumber(task.createdAt) ?? Date.now()
   const updatedAt = finiteNumber(task.updatedAt) ?? createdAt
   const dueOn = readDueOn(task.dueOn)
+  const repeat = readRepeat(task.repeat)
 
   return {
     schemaVersion: TASK_SCHEMA_VERSION,
@@ -572,6 +604,7 @@ export function normalizeTask(raw: unknown): TaskRecord | null {
       ? task.routedBy
       : null,
     ...(dueOn ? { dueOn } : {}),
+    ...(repeat ? { repeat } : {}),
     materials: Array.isArray(task.materials)
       ? task.materials.map(normalizeMaterial).filter((m): m is TaskMaterial => m !== null)
       : [],
@@ -772,7 +805,12 @@ export function getTask(id: unknown): TaskView | null {
   return record ? taskView(record) : null
 }
 
-export function createTask(input: { title?: unknown; status?: unknown; dueOn?: unknown }): TaskMutation {
+export function createTask(input: {
+  title?: unknown
+  status?: unknown
+  dueOn?: unknown
+  repeat?: unknown
+}): TaskMutation {
   const title = nonEmptyString(input?.title)
   if (!title) return failure('invalid_title', 'A task needs a title')
   if (title.length > 200) return failure('invalid_title', 'The title must be 200 characters or fewer')
@@ -784,6 +822,11 @@ export function createTask(input: { title?: unknown; status?: unknown; dueOn?: u
   // half-made folder behind.
   const due = normalizeDueOn(input?.dueOn === undefined ? null : input.dueOn)
   if (!due.ok) return failure('invalid_due', 'The due date must be a real calendar day (YYYY-MM-DD)')
+  // Absent and null both mean "one-off" at creation; only an unknown word is a
+  // refusal, because a caller that meant weekly must not silently get a
+  // one-off task.
+  const repeat = normalizeRepeat(input?.repeat === undefined ? null : input.repeat)
+  if (!repeat.ok) return failure('invalid_repeat', 'The repeat must be daily, weekly or monthly')
 
   const root = tasksRoot()
   const now = Date.now()
@@ -810,9 +853,13 @@ export function createTask(input: { title?: unknown; status?: unknown; dueOn?: u
     departmentId: null,
     routedBy: null,
     ...(due.value ? { dueOn: due.value } : {}),
+    ...(repeat.value ? { repeat: repeat.value } : {}),
     materials: [],
     sessions: [],
-    history: [{ at: now, kind: 'created' }],
+    // Creation keeps its single `created` row; a repeat is recorded on that
+    // row's detail rather than as a second event, so old readers still see
+    // exactly one creation event.
+    history: [{ at: now, kind: 'created', ...(repeat.value ? { detail: `repeat: ${repeat.value}` } : {}) }],
     createdAt: now,
     updatedAt: now,
   }
@@ -853,7 +900,7 @@ function normalizeStatusNote(value: unknown): string | null {
 
 export function updateTask(
   id: unknown,
-  patch: { title?: unknown; status?: unknown; note?: unknown; dueOn?: unknown },
+  patch: { title?: unknown; status?: unknown; note?: unknown; dueOn?: unknown; repeat?: unknown },
 ): TaskMutation {
   if (typeof id !== 'string' || !id) return failure('invalid_id', 'Unknown task')
   const store = readTaskStore()
@@ -861,6 +908,7 @@ export function updateTask(
   if (!current) return failure('not_found', 'Unknown task')
 
   let next = current
+  let repeated: { previousDueOn?: string; nextDueOn: string } | undefined
   if (patch?.title !== undefined) {
     const title = nonEmptyString(patch.title)
     if (!title) return failure('invalid_title', 'A task needs a title')
@@ -869,17 +917,45 @@ export function updateTask(
       next = appendEvent({ ...next, title }, 'renamed', `${current.title} -> ${title}`)
     }
   }
+  if (patch?.repeat !== undefined) {
+    const repeat = normalizeRepeat(patch.repeat)
+    if (!repeat.ok) return failure('invalid_repeat', 'The repeat must be daily, weekly or monthly')
+    const previous = next.repeat ?? null
+    if (repeat.value !== previous) {
+      // Same shape as `dueOn`: null deletes the field rather than storing it,
+      // so "absent" and "one-off" stay the single state the rest of the store
+      // checks. Re-sending the current value is silent.
+      const updated: TaskRecord = { ...next }
+      if (repeat.value === null) delete updated.repeat
+      else updated.repeat = repeat.value
+      next = appendEvent(updated, 'repeat_changed', `${previous ?? 'none'} -> ${repeat.value ?? 'none'}`)
+    }
+  }
   if (patch?.status !== undefined) {
     if (!isStatus(patch.status)) return failure('invalid_status', 'Unknown task status')
     if (patch.status !== next.status) {
-      // The note is the *reason for this status change*, so it has nowhere to
-      // live without one. A note with no status change is ignored rather than
-      // rejected: a renderer that also sent a title would otherwise lose the
-      // title edit, and there is no other history row that could honestly
-      // carry it.
-      const note = normalizeStatusNote(patch?.note)
-      const detail = `${next.status} -> ${patch.status}${note ? ` | ${note}` : ''}`
-      next = appendEvent({ ...next, status: patch.status }, 'status_changed', detail)
+      if (patch.status === 'done' && next.repeat) {
+        // Finishing a repeating task finishes the occurrence, not the task:
+        // the status stays where it was and only the due day moves. Every
+        // caller (the brief's Done, the renderer's Done, anything future)
+        // inherits this by asking the store, so no surface has to remember it.
+        const previousDueOn = next.dueOn
+        const nextDueOn = nextOccurrenceDay(previousDueOn, next.repeat, localTodayDay())
+        // The occurrence is recorded before the day changes, so history still
+        // says the work happened even though no status row was written.
+        next = appendEvent({ ...next, dueOn: nextDueOn }, 'completed', previousDueOn)
+        next = appendEvent(next, 'due_changed', `${previousDueOn ?? 'none'} -> ${nextDueOn}`)
+        repeated = { ...(previousDueOn ? { previousDueOn } : {}), nextDueOn }
+      } else {
+        // The note is the *reason for this status change*, so it has nowhere to
+        // live without one. A note with no status change is ignored rather than
+        // rejected: a renderer that also sent a title would otherwise lose the
+        // title edit, and there is no other history row that could honestly
+        // carry it.
+        const note = normalizeStatusNote(patch?.note)
+        const detail = `${next.status} -> ${patch.status}${note ? ` | ${note}` : ''}`
+        next = appendEvent({ ...next, status: patch.status }, 'status_changed', detail)
+      }
     }
   }
   if (patch?.dueOn !== undefined) {
@@ -901,7 +977,7 @@ export function updateTask(
   replaceTask(store, next)
   if (!writeTaskStore(store)) return failure('write_failed', 'The task could not be saved')
   writeTaskMirror(next)
-  return { ok: true, task: taskView(next) }
+  return { ok: true, task: taskView(next), ...(repeated ? { repeated } : {}) }
 }
 
 /**

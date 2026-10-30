@@ -498,6 +498,15 @@ function armSnoozeUntil(deadline: number): void {
   snoozeDueAt = deadline
   snoozeTimer = setTimeout(() => {
     snoozeTimer = null
+    // The wall clock can step backwards between arming and firing (an NTP
+    // correction, a manual change). The deadline is an absolute promise, so a
+    // timer that wakes before it must not speak early — and must not erase the
+    // wait either, since raising forgets the file. Re-arm the same deadline for
+    // whatever is left; there is still exactly one timer.
+    if (readNow() < deadline) {
+      armSnoozeUntil(deadline)
+      return
+    }
     snoozeDueAt = 0
     raiseSnoozedCard()
   }, Math.max(0, deadline - readNow()))

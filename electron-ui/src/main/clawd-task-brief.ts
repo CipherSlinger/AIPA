@@ -20,7 +20,10 @@
  *   - a row's Start button dispatches the task instead: a chat tab in the task
  *     folder with the brief in the composer, and nothing sent;
  *   - a row's due marker moves the task to tomorrow in place, offering the old
- *     day back through the same quiet Undo line a finish uses.
+ *     day back through the same quiet Undo line a finish uses;
+ *   - a row's Done on a repeating task completes the occurrence rather than the
+ *     task: the row stays under its new day, and the same line offers the old
+ *     day back.
  *
  * Everything is fail-open: a missing store, a display query that throws while
  * Electron is still starting, or a window that never paints must never take the
@@ -85,18 +88,27 @@ export interface ClawdTaskBriefItem {
  *
  * It travels with the payload that action returns, so the card can draw one
  * quiet line without asking a second question. `kind` says which change is on
- * offer — a finish restores the old status, a defer restores the old due day —
- * and the page picks the matching line for it. `previous` is the status the
- * task had immediately before Done, captured by the main process, and
- * `expiresAt` is the moment main will refuse to restore it any more; the page
- * uses that same instant to hide the line, so a delayed paint cannot extend a
- * window main has already closed.
+ * offer — a finish restores the old status, a defer restores the old due day,
+ * and a repeat finish (a repeating task's occurrence completed) restores the
+ * day the row was on before it rolled forward — and the page picks the matching
+ * line for it. `previous` is the status the task had immediately before Done,
+ * captured by the main process; `nextDueOn` is the repeat offer's new day, which
+ * the page names in its line but never writes with. `expiresAt` is the moment
+ * main will refuse to restore it any more; the page uses that same instant to
+ * hide the line, so a delayed paint cannot extend a window main has already
+ * closed.
+ *
+ * An offer is a claim about one row that is still exactly where the offer's own
+ * write put it. Before restoring a due day, main requires the task to be on the
+ * desk and still carrying that written day; a change made by another surface
+ * since then is newer intent, and Undo refuses rather than overwriting it.
  */
 export interface ClawdTaskBriefUndo {
   id: string
   title: string
-  kind: 'done' | 'defer'
+  kind: 'done' | 'defer' | 'repeat'
   previous?: TaskStatus
+  nextDueOn?: string
   expiresAt: number
 }
 
@@ -127,8 +139,9 @@ export interface ClawdTaskBriefPayload {
    */
   error?: string
   /**
-   * The offer to undo the most recent finish, present only on the payload that
-   * answers that Done and only until it expires or another action intervenes.
+   * The offer to undo the most recent reversible row action, present only on
+   * the payload that answers it and only until it expires or another action
+   * intervenes.
    */
   undo?: ClawdTaskBriefUndo
 }
@@ -201,11 +214,12 @@ let actionInFlight = false
 let claimedShortcut = ''
 
 /**
- * The single live offer from the most recent reversible row action — a finish
- * or a due-day move. Either one replaces whatever was there before, any other
- * action drops it, and the timer drops it on its own. Keeping it in one
- * module-level slot is what makes "only the most recent action" true: there is
- * nowhere for an older offer to hide, and the card never stacks two Undo lines.
+ * The single live offer from the most recent reversible row action — a finish,
+ * a repeating finish, or a due-day move. Any one replaces whatever was there
+ * before, any other action drops it, and the timer drops it on its own. Keeping
+ * it in one module-level slot is what makes "only the most recent action" true:
+ * there is nowhere for an older offer to hide, and the card never stacks two
+ * Undo lines.
  */
 interface UndoOfferBase {
   taskId: string
@@ -233,9 +247,33 @@ interface DeferUndoOffer extends UndoOfferBase {
    * one from today's date.
    */
   previousDueOn?: string
+  /**
+   * The day this offer's own write applied (tomorrow at the moment of the
+   * press). Undo only puts `previousDueOn` back while the task still carries
+   * this day: a day set by another surface since then is newer intent, and
+   * replacing it with the old one would silently undo an edit the user made
+   * after this action.
+   */
+  appliedDueOn: string
 }
 
-type UndoOffer = DoneUndoOffer | DeferUndoOffer
+interface RepeatUndoOffer extends UndoOfferBase {
+  kind: 'repeat'
+  /**
+   * The exact day the finished occurrence was owed on. Absent means the task
+   * had no due day, so the series started from tomorrow; Undo must put that
+   * absence back rather than inventing a day.
+   */
+  previousDueOn?: string
+  /**
+   * The day the occurrence rolled forward to, for the line's `{when}` — and,
+   * like `DeferUndoOffer.appliedDueOn`, the day the row must still carry for
+   * Undo to be allowed to put the old one back.
+   */
+  nextDueOn: string
+}
+
+type UndoOffer = DoneUndoOffer | DeferUndoOffer | RepeatUndoOffer
 let undoOffer: UndoOffer | null = null
 let undoTimer: NodeJS.Timeout | null = null
 
@@ -338,6 +376,11 @@ function briefLabels(): Record<string, string> {
     deferFailed: petT('taskBriefDeferFailed'),
     deferLine: petT('taskBriefDeferLine'),
     deferUndoFailed: petT('taskBriefDeferUndoFailed'),
+    // The repeating finish keeps its row, so its line names the day it moved
+    // to. {when} is that day in the page's marker words, filled by the page
+    // because only it owns the date formatter.
+    repeatLine: petT('taskBriefRepeatLine'),
+    repeatUndoFailed: petT('taskBriefRepeatUndoFailed'),
     undoLine: petT('taskBriefUndoLine'),
     undo: petT('taskBriefUndo'),
     undoFailed: petT('taskBriefUndoFailed'),
@@ -467,6 +510,9 @@ function buildPayload(): ClawdTaskBriefPayload {
             title: offer.title,
             kind: offer.kind,
             ...(offer.kind === 'done' ? { previous: offer.previous } : {}),
+            // Only the repeat offer has a forward day: the page names it in
+            // the line, while Undo itself restores `previousDueOn` in main.
+            ...(offer.kind === 'repeat' ? { nextDueOn: offer.nextDueOn } : {}),
             expiresAt: offer.expiresAt,
           },
         }
@@ -883,9 +929,10 @@ function tomorrowLocalDay(): string {
  * The offer itself is the permission slip: it is consumed before the first
  * store read, so a double press or a replay of the same action can only find
  * nothing and return the current card. A task that has moved on since the
- * action (archived elsewhere, restored by another surface) is not silently
- * overwritten — the row would be a different row by now — so the card states
- * that the restore did not land instead.
+ * action (archived elsewhere, restored by another surface, or given a
+ * different due day in AIPA) is not silently overwritten — the row is a
+ * different row by now, and restoring would erase an edit made after the
+ * action — so the card states that the restore did not land instead.
  */
 function handleUndo(): ClawdTaskBriefPayload {
   const offer = liveUndoOffer()
@@ -906,14 +953,28 @@ function handleUndo(): ClawdTaskBriefPayload {
     // Gone between the action and Undo: restoring would claim a return the
     // store no longer agrees with. The line names which action it was
     // offering, so the failure can too.
-    return withError(
-      buildPayload(),
-      petT(offer.kind === 'defer' ? 'taskBriefDeferUndoFailed' : 'taskBriefUndoFailed'),
-    )
+    const failed = offer.kind === 'defer'
+      ? 'taskBriefDeferUndoFailed'
+      : offer.kind === 'repeat'
+        ? 'taskBriefRepeatUndoFailed'
+        : 'taskBriefUndoFailed'
+    return withError(buildPayload(), petT(failed))
   }
 
-  if (offer.kind === 'defer') {
-    // A due day is a stored calendar day, not a status. The offer carries the
+  if (offer.kind === 'defer' || offer.kind === 'repeat') {
+    // Undo may only claim the row its own write produced. A different day set
+    // by another surface since the action is newer intent: restoring the old
+    // one would silently replace an edit the user just made. A row that left
+    // the desk is likewise no longer the row the offer describes.
+    const appliedDueOn = offer.kind === 'defer' ? offer.appliedDueOn : offer.nextDueOn
+    if (STATUS_ORDER[task.status] === undefined || task.dueOn !== appliedDueOn) {
+      return withError(
+        buildPayload(),
+        petT(offer.kind === 'repeat' ? 'taskBriefRepeatUndoFailed' : 'taskBriefDeferUndoFailed'),
+      )
+    }
+
+    // A due day is a stored calendar day, not a status. Both offers carry the
     // exact prior value, and "no due day" must go back as an absent field, not
     // as today's date: the store clears on `null`, while omitting the patch
     // field would mean "leave it alone" and make Undo a silent no-op.
@@ -924,7 +985,10 @@ function handleUndo(): ClawdTaskBriefPayload {
       log.warn('Could not restore a task due day:', err)
     }
     if (!mutation || !mutation.ok) {
-      return withError(buildPayload(), petT('taskBriefDeferUndoFailed'))
+      return withError(
+        buildPayload(),
+        petT(offer.kind === 'repeat' ? 'taskBriefRepeatUndoFailed' : 'taskBriefDeferUndoFailed'),
+      )
     }
 
     const notified = notifyTasksChanged()
@@ -972,8 +1036,10 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
   // Only a finish may create an offer, and only Undo may consume one. Every
   // other gesture is a different intent, so the previous offer stops being the
   // most recent thing the user did. Done clears here too and re-arms only if
-  // the write really landed.
-  if (type !== 'done' && type !== 'undo') clearUndoOffer()
+  // the write really landed. A defer is guarded inside its own case instead:
+  // a press on a row already due tomorrow writes nothing, so it must not cost
+  // the user the offer an earlier action is still standing behind.
+  if (type !== 'done' && type !== 'undo' && type !== 'defer') clearUndoOffer()
 
   switch (type) {
     case 'open': {
@@ -1055,9 +1121,10 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
       // would have to reconstruct.
       const previous = task.status
       // A waiting task's reason lives only on its latest `status_changed`
-      // event; the Done write replaces that event, so it has to be carried
-      // into the offer or Undo cannot put the row back as it was.
-      const reason = previous === 'needs_you' ? statusNote(task) : undefined
+      // event; a real Done replaces that event, so it has to be carried into
+      // the offer or Undo cannot put the row back as it was. A repeating task
+      // keeps its status, so there is no replaced event and nothing to read.
+      const reason = !task.repeat && previous === 'needs_you' ? statusNote(task) : undefined
 
       let mutation: ReturnType<typeof updateTask> | null = null
       try {
@@ -1070,14 +1137,29 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
         return withError(buildPayload(), petT('taskBriefDoneFailed'))
       }
 
-      armUndoOffer({
-        kind: 'done',
-        taskId: task.id,
-        title: task.title,
-        previous,
-        ...(reason ? { reason } : {}),
-        expiresAt: Date.now() + UNDO_WINDOW_MS,
-      })
+      // A repeating task answers Done by rolling the occurrence forward, not
+      // by finishing: the store kept the status and moved the day. The row
+      // stays on the card, so the offer puts the old day back and the page
+      // must not collapse it — hence no `finished` below.
+      if (mutation.repeated) {
+        armUndoOffer({
+          kind: 'repeat',
+          taskId: task.id,
+          title: task.title,
+          ...(mutation.repeated.previousDueOn ? { previousDueOn: mutation.repeated.previousDueOn } : {}),
+          nextDueOn: mutation.repeated.nextDueOn,
+          expiresAt: Date.now() + UNDO_WINDOW_MS,
+        })
+      } else {
+        armUndoOffer({
+          kind: 'done',
+          taskId: task.id,
+          title: task.title,
+          previous,
+          ...(reason ? { reason } : {}),
+          expiresAt: Date.now() + UNDO_WINDOW_MS,
+        })
+      }
 
       const notified = notifyTasksChanged()
       // This path writes the store directly, so it never passes through the
@@ -1085,16 +1167,16 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
       try { refreshClawdTaskBadge() } catch { /* pet gone */ }
 
       const payload = buildPayload()
-      payload.finished = task.id
+      // Only a real finish removes the row. A repeat finish leaves it under
+      // its new day, so the page repaints in place and keeps focus there.
+      if (!mutation.repeated) payload.finished = task.id
       if (!notified) payload.error = petT('taskBriefDoneUndelivered')
       return payload
     }
     case 'defer': {
       // Moving a due day is reversible but, unlike Done, the row stays on the
       // card: the fresh payload re-sorts it under its new day and the quiet
-      // line offers the old day back. Cleared first so a stale offer can never
-      // outlive the gesture that replaced it.
-      clearUndoOffer()
+      // line offers the old day back.
       let task: TaskView | undefined
       try {
         task = id ? listTasks().find(item => item.id === id) : undefined
@@ -1118,8 +1200,15 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
       const tomorrow = tomorrowLocalDay()
       // Already tomorrow: the store would record no change and an Undo built on
       // it would visibly do nothing while claiming the day had moved. Same rule
-      // as pressing Done on a task that is already done.
+      // as pressing Done on a task that is already done. This is checked before
+      // the previous offer is dropped, because a stale page (or a keyboard-driven
+      // press racing the repaint) may still send this gesture; writing nothing
+      // must not also take away the Undo line an earlier action earned.
       if (previousDueOn === tomorrow) return buildPayload()
+
+      // The gesture really moves the row, replacing whatever offer came before;
+      // a stale offer must not outlive the action that replaced it.
+      clearUndoOffer()
 
       let mutation: ReturnType<typeof updateTask> | null = null
       try {
@@ -1137,6 +1226,9 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
         taskId: task.id,
         title: task.title,
         ...(previousDueOn ? { previousDueOn } : {}),
+        // The day this write landed on, so Undo can tell whether the row is
+        // still the one this offer describes.
+        appliedDueOn: tomorrow,
         expiresAt: Date.now() + UNDO_WINDOW_MS,
       })
 

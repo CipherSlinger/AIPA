@@ -27,7 +27,13 @@ import {
   Upload,
   X,
 } from 'lucide-react'
-import type { TaskEventData, TaskRecordData, TaskSessionRefData, TaskStatusData } from '../../../preload'
+import type {
+  TaskEventData,
+  TaskRecordData,
+  TaskRepeatData,
+  TaskSessionRefData,
+  TaskStatusData,
+} from '../../../preload'
 import { useDepartmentStore, useSessionStore, useTaskStore, useUiStore } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
 import { useI18n, useT } from '../../i18n'
@@ -86,6 +92,17 @@ const DUE_PRESET_BUTTON: React.CSSProperties = {
   color: 'var(--text-secondary)', fontSize: 11, fontWeight: 500,
   cursor: 'pointer', textAlign: 'left', whiteSpace: 'nowrap',
 }
+
+// The repeat choices, in one place: `null` is the store's "does not repeat",
+// and the rest are the same kebab-case values the record carries. The label
+// keys are written out so a missing string fails at build time rather than
+// rendering the key itself.
+const REPEAT_OPTIONS: Array<{ value: TaskRepeatData | null; labelKey: string }> = [
+  { value: null, labelKey: 'tasks.repeat.none' },
+  { value: 'daily', labelKey: 'tasks.repeat.daily' },
+  { value: 'weekly', labelKey: 'tasks.repeat.weekly' },
+  { value: 'monthly', labelKey: 'tasks.repeat.monthly' },
+]
 
 const RAIL_HEADING: React.CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 6,
@@ -150,6 +167,7 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
   const [titleFocused, setTitleFocused] = useState(false)
   const [savingTitle, setSavingTitle] = useState(false)
   const [savingDue, setSavingDue] = useState(false)
+  const [savingRepeat, setSavingRepeat] = useState(false)
   const [dueFocused, setDueFocused] = useState(false)
   const [dueMenuOpen, setDueMenuOpen] = useState(false)
   const [pasteOpen, setPasteOpen] = useState(false)
@@ -324,7 +342,18 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
   const setStatus = async (status: TaskStatusData) => {
     if (status === task.status) return
     const result = await updateTask(task.id, { status })
-    if (!result.ok) addToast('error', t('tasks.error.update'))
+    if (!result.ok) {
+      addToast('error', t('tasks.error.update'))
+      return
+    }
+    // Finishing a repeating task does not close it: main rolls the due day
+    // forward and says so. The row stays put because the returned record still
+    // holds this task; only the day moved, and the toast names the new one.
+    if (result.repeated) {
+      addToast('success', t('tasks.repeat.doneLine', {
+        when: formatDueDate(result.repeated.nextDueOn, resolvedLocale),
+      }))
+    }
   }
 
   // The native date input hands back '' when cleared, which is the store's
@@ -334,6 +363,17 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
     setSavingDue(true)
     const result = await updateTask(task.id, { dueOn: value })
     setSavingDue(false)
+    if (!result.ok) addToast('error', result.error || t('tasks.error.update'))
+  }
+
+  // Repeat rides the same store path as the due day. `null` is an explicit
+  // "does not repeat"; omitting the field would leave the old cadence in
+  // place, so clearing must send `null` rather than `undefined`.
+  const setRepeat = async (value: TaskRepeatData | null) => {
+    if ((task.repeat ?? null) === value) return
+    setSavingRepeat(true)
+    const result = await updateTask(task.id, { repeat: value })
+    setSavingRepeat(false)
     if (!result.ok) addToast('error', result.error || t('tasks.error.update'))
   }
 
@@ -702,49 +742,115 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
             {dueMenuOpen && (
               <div
                 id="task-due-presets"
-                role="group"
-                aria-label={t('tasks.due.presets.title')}
                 data-task-due-presets
                 style={{
                   position: 'absolute', top: 'calc(100% + 5px)', left: 0, zIndex: 40,
                   display: 'flex', flexDirection: 'column', gap: 3,
-                  minWidth: 132, padding: 4, borderRadius: 9,
+                  // A fixed width lets the repeat row and its hint wrap instead
+                  // of stretching the popover to the hint's full sentence. The
+                  // cap keeps it inside the detail pane at the window's minimum.
+                  width: 184, maxWidth: 'calc(100vw - 20px)',
+                  padding: 4, borderRadius: 9,
                   border: '1px solid var(--popup-border)', background: 'var(--popup-bg)',
                   backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
                   boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
                 }}
               >
-                {[
-                  { key: 'today', day: today },
-                  { key: 'tomorrow', day: tomorrowDay },
-                  { key: 'nextWeek', day: nextWeekDay },
-                ].map(preset => (
-                  <button
-                    key={preset.key}
-                    type="button"
-                    className="aipa-task-due-preset"
-                    onClick={() => chooseDuePreset(preset.day)}
-                    disabled={savingDue}
-                    aria-label={t(`tasks.due.presets.${preset.key}`)}
-                    data-task-due-preset={preset.key}
-                    style={{ ...DUE_PRESET_BUTTON, opacity: savingDue ? 0.5 : 1 }}
-                  >
-                    {t(`tasks.due.presets.${preset.key}`)}
-                  </button>
-                ))}
-                {task.dueOn && (
-                  <button
-                    type="button"
-                    className="aipa-task-due-preset"
-                    onClick={() => chooseDuePreset(null)}
-                    disabled={savingDue}
-                    aria-label={t('tasks.due.clear')}
-                    data-task-due-preset="clear"
-                    style={{ ...DUE_PRESET_BUTTON, color: 'var(--text-muted)', opacity: savingDue ? 0.5 : 1 }}
-                  >
-                    {t('tasks.due.clear')}
-                  </button>
-                )}
+                <div
+                  role="group"
+                  aria-label={t('tasks.due.presets.title')}
+                  style={{ display: 'flex', flexDirection: 'column', gap: 3 }}
+                >
+                  {[
+                    { key: 'today', day: today },
+                    { key: 'tomorrow', day: tomorrowDay },
+                    { key: 'nextWeek', day: nextWeekDay },
+                  ].map(preset => (
+                    <button
+                      key={preset.key}
+                      type="button"
+                      className="aipa-task-due-preset"
+                      onClick={() => chooseDuePreset(preset.day)}
+                      disabled={savingDue}
+                      aria-label={t(`tasks.due.presets.${preset.key}`)}
+                      data-task-due-preset={preset.key}
+                      style={{ ...DUE_PRESET_BUTTON, opacity: savingDue ? 0.5 : 1 }}
+                    >
+                      {t(`tasks.due.presets.${preset.key}`)}
+                    </button>
+                  ))}
+                  {task.dueOn && (
+                    <button
+                      type="button"
+                      className="aipa-task-due-preset"
+                      onClick={() => chooseDuePreset(null)}
+                      disabled={savingDue}
+                      aria-label={t('tasks.due.clear')}
+                      data-task-due-preset="clear"
+                      style={{ ...DUE_PRESET_BUTTON, color: 'var(--text-muted)', opacity: savingDue ? 0.5 : 1 }}
+                    >
+                      {t('tasks.due.clear')}
+                    </button>
+                  )}
+                </div>
+
+                {/* Repeat sits under the due presets, in the same popover: the
+                    header row keeps its width, so adding a cadence cannot push
+                    the due pill or the title around. Selection is read from the
+                    task itself, never from local state, so a store refresh from
+                    another window is reflected here too. */}
+                <div
+                  role="group"
+                  aria-label={t('tasks.repeat.label')}
+                  data-task-repeat-control
+                  style={{
+                    display: 'flex', flexDirection: 'column', gap: 3,
+                    marginTop: 3, paddingTop: 5, borderTop: '1px solid var(--border)',
+                  }}
+                >
+                  <span style={{
+                    padding: '1px 3px', fontSize: 9.5, fontWeight: 700,
+                    letterSpacing: '0.06em', textTransform: 'uppercase',
+                    color: 'var(--text-muted)',
+                  }}>
+                    {t('tasks.repeat.label')}
+                  </span>
+                  {REPEAT_OPTIONS.map(option => {
+                    const selected = (task.repeat ?? null) === option.value
+                    return (
+                      <button
+                        key={option.value ?? 'none'}
+                        type="button"
+                        className="aipa-task-due-preset"
+                        onClick={() => { void setRepeat(option.value) }}
+                        disabled={savingRepeat || savingDue}
+                        aria-pressed={selected}
+                        aria-label={t(option.labelKey)}
+                        data-task-repeat-option={option.value ?? 'none'}
+                        style={{
+                          ...DUE_PRESET_BUTTON,
+                          ...(selected
+                            ? {
+                              borderColor: 'var(--accent-border)',
+                              background: 'var(--accent-bg)',
+                              color: 'var(--accent-text)',
+                              fontWeight: 600,
+                            }
+                            : null),
+                          opacity: savingRepeat || savingDue ? 0.5 : 1,
+                        }}
+                      >
+                        {t(option.labelKey)}
+                      </button>
+                    )
+                  })}
+                  <span style={{
+                    padding: '2px 3px 1px', fontSize: 9.5, lineHeight: 1.5,
+                    color: 'var(--text-subtle)',
+                  }}>
+                    {t('tasks.repeat.hint')}
+                  </span>
+                </div>
               </div>
             )}
           </span>

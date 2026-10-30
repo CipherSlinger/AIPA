@@ -70,6 +70,9 @@ export function registerTaskHandlers(send: Send): void {
       // The store validates the day; this boundary only refuses shapes it
       // cannot represent. A number, object or boolean is not a due date.
       dueOn: payload.dueOn === null || typeof payload.dueOn === 'string' ? payload.dueOn : undefined,
+      // The store validates the word strictly; this boundary only refuses a
+      // shape it cannot represent.
+      repeat: payload.repeat === null || typeof payload.repeat === 'string' ? payload.repeat : undefined,
     })
     if (result.ok) changed()
     return result
@@ -86,6 +89,8 @@ export function registerTaskHandlers(send: Send): void {
       // `null` clears the due date and is passed through as null; any other
       // non-string is dropped so the store never has to coerce it.
       dueOn: payload.dueOn === null || typeof payload.dueOn === 'string' ? payload.dueOn : undefined,
+      // `null` clears it like `dueOn`; `undefined` leaves it alone.
+      repeat: payload.repeat === null || typeof payload.repeat === 'string' ? payload.repeat : undefined,
     })
     if (result.ok) changed()
     return result

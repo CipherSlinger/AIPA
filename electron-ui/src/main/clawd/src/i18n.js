@@ -248,6 +248,11 @@ const i18n = {
     taskBriefDeferFailed: "Could not move the due day. Try again.",
     taskBriefDeferLine: "Due tomorrow · {name}",
     taskBriefDeferUndoFailed: "Could not put the due day back. Try again.",
+    // Finishing a repeating task keeps it on the card with its next day. {when}
+    // is that day in the marker's own words ("Tomorrow", "NOV 7"), filled in by
+    // the page; {name} is the title, ellipsized when the line is too long.
+    taskBriefRepeatLine: "Done · next {when} · {name}",
+    taskBriefRepeatUndoFailed: "Could not put the task back on its old day. Try again.",
     // The quiet line after a finish. {name} is the task title, ellipsized by
     // the page when the line is too long; the Undo label is its own control.
     taskBriefUndoLine: "Task done · {name}",
@@ -516,6 +521,10 @@ const i18n = {
     taskBriefDeferFailed: "没能改截止日，再试一次。",
     taskBriefDeferLine: "已改到明天 · {name}",
     taskBriefDeferUndoFailed: "没能把截止日恢复回去，再试一次。",
+    // 完成一个重复任务时，这一行留在卡上、日子换成下一次。{when} 是那一天的
+    // 说法（「明天」「11月7日」），由页面填；{name} 是任务名，太长就省略。
+    taskBriefRepeatLine: "这次做完了 · 下次 {when} · {name}",
+    taskBriefRepeatUndoFailed: "没能把这个任务改回原来的日子，再试一次。",
     taskBriefUndoLine: "任务已完成 · {name}",
     taskBriefUndo: "撤销",
     taskBriefUndoFailed: "无法恢复该任务，它可能已被归档或改动。",
@@ -769,6 +778,10 @@ const i18n = {
     taskBriefDeferFailed: "마감일을 옮기지 못했습니다. 다시 시도하세요.",
     taskBriefDeferLine: "내일 마감 · {name}",
     taskBriefDeferUndoFailed: "마감일을 되돌리지 못했습니다. 다시 시도하세요.",
+    // 반복 작업을 완료하면 행은 카드에 남고 날짜만 다음 회차로 바뀝니다. {when}은
+    // 그 날의 표기("내일", "11월 7일"), 페이지가 채웁니다. {name}은 작업 이름입니다.
+    taskBriefRepeatLine: "이번 완료 · 다음 {when} · {name}",
+    taskBriefRepeatUndoFailed: "작업을 이전 날짜로 되돌리지 못했습니다. 다시 시도하세요.",
     taskBriefUndoLine: "작업 완료 · {name}",
     taskBriefUndo: "실행 취소",
     taskBriefUndoFailed: "작업을 복원할 수 없습니다. 보관되었거나 변경되었을 수 있습니다.",

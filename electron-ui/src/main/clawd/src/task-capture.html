@@ -622,6 +622,10 @@ kbd {
   var recallIndex = -1;
   // What the field held when the walk began, restored at the bottom.
   var draft = "";
+  // The preset that belonged to that draft. A recalled line is not the line the
+  // choice was made on, so the walk carries the choice aside and puts it back
+  // only when the draft itself comes back.
+  var draftChosenDue = null;
   // How many rows of history the strip may show. The whole list still walks.
   var SUGGEST_LIMIT = 5;
   // Last extra height sent to main, so an idle render does not spam resize.
@@ -1037,6 +1041,10 @@ kbd {
     if (!history[index]) return;
     recallIndex = -1;
     draft = "";
+    draftChosenDue = null;
+    // A suggestion is a line from before the draft; the draft's preset must not
+    // ride along with it.
+    chosenDue = null;
     input.value = history[index];
     dueDismissed = false;
     if (!errorEl.hidden) clearError();
@@ -1055,6 +1063,8 @@ kbd {
     if (step < 0) {
       if (recallIndex < 0) {
         draft = input.value;
+        // The strip belongs to the draft, not to a line recalled from before.
+        draftChosenDue = chosenDue;
         recallIndex = 0;
       } else if (recallIndex < history.length - 1) {
         recallIndex += 1;
@@ -1069,12 +1079,17 @@ kbd {
       } else {
         recallIndex = -1;
         input.value = draft;
+        // Back on the draft, so its own choice comes back with it.
+        chosenDue = draftChosenDue;
         dueDismissed = false;
         placeCaretAtEnd();
         refresh();
         return true;
       }
     }
+    // A recalled entry is a different line: any preset chosen for the draft
+    // stops applying, even when the entry happens to parse to the same day.
+    chosenDue = null;
     input.value = history[recallIndex];
     dueDismissed = false;
     placeCaretAtEnd();
@@ -1141,6 +1156,7 @@ kbd {
     }
     recallIndex = -1;
     draft = "";
+    draftChosenDue = null;
     lastExtra = -1;
 
     composing = false;

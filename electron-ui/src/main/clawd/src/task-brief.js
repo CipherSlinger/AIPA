@@ -79,6 +79,8 @@
     deferFailed: "Could not move the due day. Try again.",
     deferLine: "Due tomorrow · {name}",
     deferUndoFailed: "Could not put the due day back. Try again.",
+    repeatLine: "Done · next {when} · {name}",
+    repeatUndoFailed: "Could not put the task back on its old day. Try again.",
     undoLine: "Task done · {name}",
     undo: "Undo",
     undoFailed: "Could not restore the task. It may have been archived or changed since.",
@@ -105,6 +107,11 @@
   // it named lets the fresh row keep the focus instead of dropping it to the
   // document and breaking keyboard flow.
   var pendingDeferFocus = "";
+  // Set when a Done click is waiting for its answer. A one-off finish removes
+  // the row, so that focus has nowhere to stay; a repeating finish keeps the
+  // row and the repaint rebuilds the pressed control, so this remembers which
+  // row should get its Done button back.
+  var pendingDoneFocus = "";
 
   function labels() {
     return state.payload.labels;
@@ -166,14 +173,24 @@
       var raw = data.undo;
       if (typeof raw.id === "string" && raw.id &&
           typeof raw.expiresAt === "number" && isFinite(raw.expiresAt)) {
-        undo = {
-          id: raw.id,
-          title: typeof raw.title === "string" ? raw.title : "",
-          // Which change the line offers to put back. An older main sends no
-          // kind; its only offer was a finish, so that is the safe default.
-          kind: raw.kind === "defer" ? "defer" : "done",
-          expiresAt: raw.expiresAt,
-        };
+        // Which change the line offers to put back. An older main sends no
+        // kind; its only offer was a finish, so that is the safe default.
+        var kind = raw.kind === "defer" ? "defer" : raw.kind === "repeat" ? "repeat" : "done";
+        // The repeat line names the day the row moved to, so an offer without
+        // a real day could only paint a half sentence. Such an offer is no
+        // offer, the same rule every other malformed field follows.
+        var nextDueOn = typeof raw.nextDueOn === "string" && parseDueDay(raw.nextDueOn)
+          ? raw.nextDueOn
+          : "";
+        if (kind !== "repeat" || nextDueOn) {
+          undo = {
+            id: raw.id,
+            title: typeof raw.title === "string" ? raw.title : "",
+            kind: kind,
+            nextDueOn: nextDueOn,
+            expiresAt: raw.expiresAt,
+          };
+        }
       }
     }
     return {
@@ -287,22 +304,39 @@
    * The compact marker for one row, or null when the row carries no due day.
    * Overdue and today are the warning states; tomorrow and later stay muted so
    * a card with ordinary future work does not cry wolf.
+   *
+   * `deferrable` says whether pressing the marker could change anything. The
+   * marker's action writes tomorrow, so a row already due tomorrow would be a
+   * no-op; its word is a fact about the row, not a control. "Tomorrow" here is
+   * the same local calendar comparison that chooses the word below — there is
+   * no second notion of the day anywhere on this page.
    */
   function dueMarker(task) {
     if (!task.dueOn) return null;
     var info = dueInfo(task.dueOn, todayLocalDay(new Date()));
     if (!info) return null;
+    var deferrable = info.state !== "tomorrow";
     if (info.state === "overdue") {
       var late = labels().dueLate || FALLBACK_LABELS.dueLate;
-      return { text: late.replace("{n}", String(-info.days)), warn: true };
+      return { text: late.replace("{n}", String(-info.days)), warn: true, deferrable: deferrable };
     }
     if (info.state === "today") {
-      return { text: labels().dueToday || FALLBACK_LABELS.dueToday, warn: true };
+      return { text: labels().dueToday || FALLBACK_LABELS.dueToday, warn: true, deferrable: deferrable };
     }
     if (info.state === "tomorrow") {
-      return { text: labels().dueTomorrow || FALLBACK_LABELS.dueTomorrow, warn: false };
+      return { text: labels().dueTomorrow || FALLBACK_LABELS.dueTomorrow, warn: false, deferrable: deferrable };
     }
-    return { text: shortDueDay(task.dueOn), warn: false };
+    return { text: shortDueDay(task.dueOn), warn: false, deferrable: deferrable };
+  }
+
+  /**
+   * The marker's word for one stored day, for a line that quotes a day. Going
+   * through dueMarker keeps the rule in one place: the quiet line and the row
+   * under it must never name the same day two different ways.
+   */
+  function dayWord(dueOn) {
+    var marker = dueMarker({ dueOn: dueOn });
+    return marker ? marker.text : dueOn;
   }
 
   function visibleRows() {
@@ -465,16 +499,28 @@
       // only the pointer cursor and a hover/focus underline say it is pressable.
       // It sits inside the row, so its click must stop before the row opens the
       // task, exactly like Start and Done do from their sibling slot.
-      var due = document.createElement("button");
-      due.type = "button";
-      due.className = marker.warn ? "due defer due-warn" : "due defer";
+      var due;
+      if (marker.deferrable) {
+        due = document.createElement("button");
+        due.type = "button";
+        due.className = marker.warn ? "due defer due-warn" : "due defer";
+        // The visible mark is a word, so the accessible name and tooltip carry
+        // the action's words, like Start and Done do.
+        due.setAttribute("aria-label", labels().deferLabel || FALLBACK_LABELS.deferLabel);
+        due.title = labels().deferHint || labels().deferLabel || FALLBACK_LABELS.deferHint;
+        due.addEventListener("click", function (event) {
+          event.stopPropagation();
+          deferTask(task.id);
+        });
+      } else {
+        // Already due tomorrow: the write would land on the day the row already
+        // has, so this is the same plain word an undated row's meta line uses —
+        // a box with no role, no tab stop and no action attached. A control
+        // here would promise a change it cannot make.
+        due = document.createElement("span");
+        due.className = marker.warn ? "due due-warn" : "due";
+      }
       due.textContent = marker.text;
-      due.setAttribute("aria-label", labels().deferLabel || FALLBACK_LABELS.deferLabel);
-      due.title = labels().deferHint || labels().deferLabel || FALLBACK_LABELS.deferHint;
-      due.addEventListener("click", function (event) {
-        event.stopPropagation();
-        deferTask(task.id);
-      });
       meta.insertBefore(due, meta.firstChild);
       var dueSep = document.createElement("span");
       dueSep.className = "sep";
@@ -528,17 +574,27 @@
     return wrap;
   }
 
-  function renderRows(tasks) {
+  /**
+   * Paint every row. `resetScroll` is true only for the first paint of a card.
+   *
+   * A repaint while the card stays up — the answer to a row action, a refresh
+   * arriving from main — must leave the user where they were reading: emptying
+   * the list clamps its offset to zero, so the old offset is carried across the
+   * rebuild instead of being deliberately reset. Only a (re)opened card starts
+   * at the top, because the range line names rows 1–4 and those must be the
+   * ones in sight when the desk first appears.
+   */
+  function renderRows(tasks, resetScroll) {
+    var previousTop = listEl.scrollTop;
     listEl.textContent = "";
     for (var i = 0; i < tasks.length; i++) listEl.appendChild(buildRow(tasks[i], i));
     var hasRows = tasks.length > 0;
     listEl.hidden = !hasRows;
     emptyEl.hidden = hasRows;
     emptyEl.textContent = hasRows ? "" : labels().empty;
-    // A fresh desk starts at the top: the rows under the old scroll position
-    // are gone, and the range line names rows 1–4, which must be the visible
-    // ones when the card first paints.
-    listEl.scrollTop = 0;
+    // A shorter desk clamps the restored offset on its own, which is exactly
+    // what should happen when rows have left the card.
+    listEl.scrollTop = resetScroll ? 0 : previousTop;
     updateRangeFact();
   }
 
@@ -580,11 +636,19 @@
       return;
     }
 
-    // One line, two verbs: a finish offers the old status back, a due-day move
-    // offers the old day. Both use the same Undo control and the same clock.
-    var line = offer.kind === "defer"
-      ? (labels().deferLine || FALLBACK_LABELS.deferLine)
-      : (labels().undoLine || FALLBACK_LABELS.undoLine);
+    // One line, three verbs: a finish offers the old status back, a due-day
+    // move and a repeating finish both offer the old day. A repeat line also
+    // names the day the row moved to, in the marker's own words. All use the
+    // same Undo control and the same clock.
+    var line;
+    if (offer.kind === "defer") {
+      line = labels().deferLine || FALLBACK_LABELS.deferLine;
+    } else if (offer.kind === "repeat") {
+      line = (labels().repeatLine || FALLBACK_LABELS.repeatLine)
+        .replace("{when}", dayWord(offer.nextDueOn));
+    } else {
+      line = labels().undoLine || FALLBACK_LABELS.undoLine;
+    }
     var name = offer.title || labels().untitled;
     undoTextEl.textContent = line.indexOf("{name}") !== -1
       ? line.replace("{name}", name)
@@ -669,7 +733,7 @@
     document.documentElement.lang = state.payload.lang;
 
     applyChrome();
-    renderRows(state.payload.tasks);
+    renderRows(state.payload.tasks, first);
     applyUndo();
 
     if (first) {
@@ -760,18 +824,25 @@
       animateRowOut(wrap, function () {
         render(payload, false);
         restoreDeferFocus();
+        restoreDoneFocus();
       });
     } else {
       render(payload, false);
       restoreDeferFocus();
+      restoreDoneFocus();
     }
   }
 
   /**
-   * Put focus back on the defer button of the task that was just moved. The
-   * repaint rebuilds every row, so the pressed button is gone even though its
-   * row (possibly at a new position) is still here. `preventScroll` keeps the
-   * card from jumping; a task that left the desk simply gets no focus.
+   * Put focus back on the task that was just moved. The repaint rebuilds every
+   * row, so the pressed control is gone even though its row (possibly at a new
+   * position) is still here. The row now carries tomorrow, so its marker is
+   * plain text rather than a button; focus therefore falls back to the row
+   * itself, which keeps keyboard flow anchored on the same task.
+   *
+   * `preventScroll` keeps the document still while focusing, but the row has
+   * re-sorted under its new day: `scrollIntoView({ block: "nearest" })` brings
+   * it inside the list's own box without moving anything outside the card.
    */
   function restoreDeferFocus() {
     if (!pendingDeferFocus) return;
@@ -780,7 +851,29 @@
     var wraps = listEl.querySelectorAll(".row-wrap");
     for (var i = 0; i < wraps.length; i++) {
       if (wraps[i].dataset.id !== id) continue;
-      var btn = wraps[i].querySelector(".defer");
+      var target = wraps[i].querySelector(".defer") || wraps[i].querySelector(".row");
+      if (!target) return;
+      try { target.focus({ preventScroll: true }); } catch (err) { target.focus(); }
+      try {
+        target.scrollIntoView({ block: "nearest", inline: "nearest" });
+      } catch (err) { /* older engines: the offset is already preserved */ }
+      return;
+    }
+  }
+
+  /**
+   * Put focus back on the Done button of a task that stayed on the card. Only
+   * a repeating finish does: a one-off finish removed its row, so nothing is
+   * found and focus stays wherever the disappearing control left it.
+   */
+  function restoreDoneFocus() {
+    if (!pendingDoneFocus) return;
+    var id = pendingDoneFocus;
+    pendingDoneFocus = "";
+    var wraps = listEl.querySelectorAll(".row-wrap");
+    for (var i = 0; i < wraps.length; i++) {
+      if (wraps[i].dataset.id !== id) continue;
+      var btn = wraps[i].querySelector(".done");
       if (!btn) return;
       try { btn.focus({ preventScroll: true }); } catch (err) { btn.focus(); }
       return;
@@ -788,7 +881,7 @@
   }
 
   function runAction(action) {
-    if (!api || !api.action) { pendingDeferFocus = ""; return; }
+    if (!api || !api.action) { pendingDeferFocus = ""; pendingDoneFocus = ""; return; }
     Promise.resolve(api.action(action))
       .then(function (payload) {
         if (payload) applyActionResult(payload);
@@ -797,6 +890,7 @@
         // "open" destroys the window before replying; a rejected promise here
         // is the expected end of this renderer, not an error to surface.
         pendingDeferFocus = "";
+        pendingDoneFocus = "";
       });
   }
 
@@ -812,6 +906,7 @@
 
   function doneTask(id) {
     if (!id) return;
+    pendingDoneFocus = id;
     runAction({ type: "done", id: id });
   }
 

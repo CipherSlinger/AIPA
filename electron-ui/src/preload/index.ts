@@ -99,6 +99,8 @@ export interface TaskMaterialData {
   originPath?: string
 }
 
+export type TaskRepeatData = 'daily' | 'weekly' | 'monthly'
+
 export interface TaskSessionRefData {
   sessionId: string
   startedAt: number
@@ -113,6 +115,8 @@ export type TaskEventKindData =
   | 'renamed'
   | 'status_changed'
   | 'due_changed'
+  | 'repeat_changed'
+  | 'completed'
   | 'moved'
   | 'folder_missing'
   | 'restored'
@@ -141,6 +145,8 @@ export interface TaskRecordData {
   routedBy: 'user' | 'suggestion' | 'auto' | null
   /** Local calendar day work is owed (`YYYY-MM-DD`); absent means none. */
   dueOn?: string
+  /** How often the task repeats. Absent means a one-off. */
+  repeat?: TaskRepeatData
   materials: TaskMaterialData[]
   /** Conversations that ran in this task, oldest first. */
   sessions: TaskSessionRefData[]
@@ -156,6 +162,11 @@ export interface TaskMutationData {
   code?: string
   error?: string
   task?: TaskRecordData
+  /**
+   * Set only when finishing a repeating task rolled the due day forward
+   * instead of marking it done; `previousDueOn` lets Undo restore the day.
+   */
+  repeated?: { previousDueOn?: string; nextDueOn: string }
 }
 
 export interface TaskSessionLinkData {
@@ -2655,9 +2666,9 @@ const electronAPI = {
     ipcRenderer.invoke('tasks:list') as Promise<TaskRecordData[]>,
   tasksGet: (id: string) =>
     ipcRenderer.invoke('tasks:get', id) as Promise<TaskRecordData | null>,
-  tasksCreate: (input: { title: string; status?: TaskStatusData; dueOn?: string | null }) =>
+  tasksCreate: (input: { title: string; status?: TaskStatusData; dueOn?: string | null; repeat?: TaskRepeatData | null }) =>
     ipcRenderer.invoke('tasks:create', input) as Promise<TaskMutationData>,
-  tasksUpdate: (id: string, patch: { title?: string; status?: TaskStatusData; note?: string; dueOn?: string | null }) =>
+  tasksUpdate: (id: string, patch: { title?: string; status?: TaskStatusData; note?: string; dueOn?: string | null; repeat?: TaskRepeatData | null }) =>
     ipcRenderer.invoke('tasks:update', id, patch) as Promise<TaskMutationData>,
   tasksArchive: (id: string) =>
     ipcRenderer.invoke('tasks:archive', id) as Promise<TaskMutationData>,

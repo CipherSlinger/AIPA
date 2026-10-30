@@ -5474,6 +5474,20 @@
         "nextWeek": "Next week"
       }
     },
+    "repeat": {
+      "label": "Repeat",
+      "none": "Doesn't repeat",
+      "daily": "Every day",
+      "weekly": "Every week",
+      "monthly": "Every month",
+      "short": {
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly"
+      },
+      "hint": "Finishing a repeating task moves it to its next day instead of closing it.",
+      "doneLine": "Done · next {{when}}"
+    },
     "missing": "Folder missing",
     "missingHint": "The task's folder could not be found at {{path}}. The record is still here, and nothing was deleted.",
     "materials": "Materials",
@@ -5573,6 +5587,8 @@
       "renamed": "Renamed",
       "status_changed": "Status changed",
       "due_changed": "Due date changed",
+      "repeat_changed": "Repeat changed",
+      "completed": "Occurrence finished",
       "moved": "Folder moved",
       "folder_missing": "Folder missing",
       "restored": "Restored",

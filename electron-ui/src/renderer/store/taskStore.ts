@@ -11,6 +11,7 @@ import type {
   TaskMaterialImportData,
   TaskMutationData,
   TaskRecordData,
+  TaskRepeatData,
   TaskSaveAutomationRunData,
   TaskSaveAutomationRunResultData,
   TaskSessionLinkData,
@@ -27,7 +28,13 @@ interface TaskState {
   createTask: (title: string, dueOn?: string | null) => Promise<TaskMutationData>
   updateTask: (
     id: string,
-    patch: { title?: string; status?: TaskStatusData; note?: string; dueOn?: string | null },
+    patch: {
+      title?: string
+      status?: TaskStatusData
+      note?: string
+      dueOn?: string | null
+      repeat?: TaskRepeatData | null
+    },
   ) => Promise<TaskMutationData>
   archiveTask: (id: string) => Promise<TaskMutationData>
   restoreTask: (id: string) => Promise<TaskMutationData>

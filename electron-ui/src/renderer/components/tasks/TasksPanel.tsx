@@ -447,6 +447,18 @@ export default function TasksPanel() {
                               {dueText}
                             </span>
                           )}
+                          {/* Cadence is metadata, not a second deadline: plain
+                              text in the row's quiet tone, no calendar glyph,
+                              and only for a task that actually repeats. */}
+                          {task.repeat && (
+                            <span
+                              data-task-repeat-row
+                              title={t(`tasks.repeat.${task.repeat}`)}
+                              style={{ color: 'var(--text-subtle)', fontWeight: 400 }}
+                            >
+                              {t(`tasks.repeat.short.${task.repeat}`)}
+                            </span>
+                          )}
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                             <FileText size={9} />
                             {task.materials.length}
