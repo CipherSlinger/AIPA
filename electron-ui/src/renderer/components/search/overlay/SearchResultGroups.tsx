@@ -23,11 +23,14 @@ interface Props {
   rowKeys: readonly string[]
   /** The term to emphasise: the query the rows were searched for. */
   query: string
+  /** The selected row in the merged list (tasks are drawn first). */
   active: number
   onHover: (index: number) => void
   onOpen: (hit: SessionSearchResultData) => void
   originMap: SessionOriginMap
   deptAttributions: ReadonlyMap<string, DeptAttribution>
+  /** Rows drawn above this group, so row ids and selection share one index space. */
+  indexOffset: number
 }
 
 export function SearchResultGroups({
@@ -40,6 +43,7 @@ export function SearchResultGroups({
   onOpen,
   originMap,
   deptAttributions,
+  indexOffset,
 }: Props) {
   const t = useT()
   return (
@@ -65,10 +69,11 @@ export function SearchResultGroups({
               {projectLabel(group.project, t('globalSearch.unknownProject'))}
             </div>
             {group.items.map((hit, offset) => {
-              const index = groupStart + offset
+              const localIndex = groupStart + offset
+              const index = indexOffset + localIndex
               return (
                 <SearchResultRow
-                  key={rowKeys[index] ?? `${hit.sessionId}-${hit.matchType}-${index}`}
+                  key={rowKeys[localIndex] ?? `${hit.sessionId}-${hit.matchType}-${localIndex}`}
                   hit={hit}
                   query={query}
                   index={index}

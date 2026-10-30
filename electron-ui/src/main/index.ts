@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu, Tray, globalShortcut, nativeImage, shell, ses
 import path from 'path'
 import fs from 'fs'
 import { initClawdIntegration, shutdownClawdIntegration, getClawdSubmenu } from './clawd-integration'
+import { refreshClawdTaskBadge } from './clawd-task-badge'
 import { scheduleClawdBootGreeting } from './clawd-notice-sources'
 import { initClawdAttention, shutdownClawdAttention } from './clawd-attention'
 import { abortAllPluginAi } from './plugins/plugin-services'
@@ -171,7 +172,12 @@ function createWindow(): void {
   mainWindow.on('unmaximize', saveBounds)
 
   // Register IPC handlers BEFORE loading the renderer to eliminate race conditions.
-  registerAllHandlers(mainWindow, { onAutomationsChanged: scheduleAutomationMenuRefresh })
+  registerAllHandlers(mainWindow, {
+    onAutomationsChanged: scheduleAutomationMenuRefresh,
+    // Task mutations reach the badge even when the main window is hidden,
+    // which is exactly when the pet is the only thing the user can see.
+    onTasksChanged: refreshClawdTaskBadge,
+  })
 
   // Load renderer first — defer heavy clawd init until after renderer is ready.
   // Calling initClawdIntegration synchronously here would block the event loop

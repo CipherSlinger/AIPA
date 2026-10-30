@@ -4102,6 +4102,17 @@
       "emptyFailedSkills": "The skills list could not be read, so skills were not searched.",
       "emptyFailedJobs": "The scheduled jobs list could not be read, so scheduled jobs were not searched."
     },
+    "tasks": {
+      "group": "Tasks",
+      "sectionAria": "Tasks, {{count}} matching",
+      "departmentTitle": "{{path}}\nThis task is routed to this department. The task keeps its own folder, so this is attribution, not a claim about where the work ran.",
+      "unassignedTitle": "This task is not routed to a department in the current org chart.",
+      "materialCountOne": "{{count}} material",
+      "materialCount": "{{count}} materials",
+      "openFailed": "Could not open that task",
+      "emptyFailed": "The task list could not be read, so tasks were not searched.",
+      "noConversations": "No conversations matched — matching tasks are above."
+    },
     "noConversations": "No conversations matched — here's what you built.",
     "matchInTool": "in tool output",
     "matchInThinking": "in thinking",

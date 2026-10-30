@@ -194,6 +194,16 @@ const i18n = {
     taskBriefShortcutHint: "open brief",
     taskBriefUntitled: "Untitled task",
     taskBriefJustNow: "now",
+    // Quiet count of tasks waiting on the user, drawn on the pet itself.
+    // {n} is the number; the visible badge shows the digits alone.
+    needsYouBadgeLabel: "Needs you: {n} tasks",
+    // Settings → General, pet section. Labels live here (the pet's table) so
+    // the pet surface owns the words it puts on screen, and the settings page
+    // asks for them by key instead of duplicating translations.
+    settingsPetNeedsYouBadge: "Needs-you badge",
+    settingsPetNeedsYouBadgeHint: "Show how many tasks are waiting on the pet.",
+    settingsPetMorningBrief: "Morning brief",
+    settingsPetMorningBriefHint: "Open the task brief beside the pet once a day after launch.",
     quickCommandAsk: "Quick command",
     quickCommandPlaceholder: "Type a command or question…",
     quickCommandSend: "Send",
@@ -392,6 +402,11 @@ const i18n = {
     taskBriefShortcutHint: "打开简报",
     taskBriefUntitled: "未命名任务",
     taskBriefJustNow: "刚刚",
+    needsYouBadgeLabel: "待你处理：{n} 个任务",
+    settingsPetNeedsYouBadge: "待办角标",
+    settingsPetNeedsYouBadgeHint: "在桌宠上显示有多少任务在等你处理。",
+    settingsPetMorningBrief: "晨间简报",
+    settingsPetMorningBriefHint: "启动后每天一次，在桌宠旁打开任务简报。",
     quickCommandAsk: "快速指令",
     quickCommandPlaceholder: "输入指令或问题…",
     quickCommandSend: "发送",
@@ -586,6 +601,11 @@ const i18n = {
     taskBriefShortcutHint: "브리핑 열기",
     taskBriefUntitled: "제목 없는 작업",
     taskBriefJustNow: "방금",
+    needsYouBadgeLabel: "확인 필요: 작업 {n}개",
+    settingsPetNeedsYouBadge: "확인 필요 배지",
+    settingsPetNeedsYouBadgeHint: "펫 위에 기다리는 작업 수를 표시합니다.",
+    settingsPetMorningBrief: "아침 브리핑",
+    settingsPetMorningBriefHint: "실행 후 하루 한 번 펫 옆에 작업 브리핑을 엽니다.",
     quickCommandAsk: "빠른 명령",
     quickCommandPlaceholder: "명령이나 질문을 입력하세요…",
     quickCommandSend: "전송",

@@ -3388,6 +3388,20 @@ const electronAPI = {
     ipcRenderer.invoke('clawd:getPrefs') as Promise<{ prefs: Record<string, unknown> }>,
   clawdSetPrefs: (key: string, value: unknown) =>
     ipcRenderer.invoke('clawd:setPrefs', key, value) as Promise<{ success: boolean; error?: string }>,
+  /**
+   * Visible strings for the pet rows in Settings, from the pet's own table
+   * (`clawd/src/i18n.js`). The settings page asks by resolved app locale so
+   * the labels follow the app language even when the pet speaks another one.
+   */
+  clawdPetStrings: (lang: 'en' | 'zh-CN' | 'system') =>
+    ipcRenderer.invoke('clawd:getStrings', lang) as Promise<{
+      strings: {
+        needsYouBadge: string
+        needsYouBadgeHint: string
+        morningBrief: string
+        morningBriefHint: string
+      }
+    }>,
   /** Ask the pet to show a passive HUD notice. `shown:false` when it cannot. */
   clawdNotify: (payload: {
     kind?: string

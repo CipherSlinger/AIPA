@@ -191,6 +191,11 @@ export function registerConfigHandlers(): void {
       // launch draws. Mapped to the pet's own key name here so one name on the
       // AIPA side does not leak into the pet's API.
       if (key === 'petBubbleTheme') applyClawdPetPref('bubbleTheme', value)
+      // The needs-you badge and the morning brief are pet-side behaviours: the
+      // running instance has to hear about them now, or the switch only changes
+      // what the next launch does.
+      if (key === 'petNeedsYouBadge') applyClawdPetPref('needsYouBadge', value === true)
+      if (key === 'petMorningBrief') applyClawdPetPref('morningBrief', value === true)
     } catch (err) { log.warn('prefs:set error:', String(err)) }
   })
   // Folders the user granted through a folder dialog, as the gate currently

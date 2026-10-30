@@ -57,7 +57,7 @@ let liveWindow: BrowserWindow | null = null
 
 export function registerAllHandlers(
   win: BrowserWindow,
-  options: { onAutomationsChanged?: () => void } = {},
+  options: { onAutomationsChanged?: () => void; onTasksChanged?: () => void } = {},
 ): void {
   liveWindow = win
   if (handlersRegistered) {
@@ -89,6 +89,11 @@ export function registerAllHandlers(
     // listener that throws must not break the renderer notification above.
     if (channel === 'automation:changed') {
       try { options.onAutomationsChanged?.() } catch { /* menu refresh is best-effort */ }
+    }
+    // The pet's needs-you badge exists while the main window is hidden, so the
+    // renderer broadcast above is not enough: the badge needs the count too.
+    if (channel === 'tasks:changed') {
+      try { options.onTasksChanged?.() } catch { /* badge refresh is best-effort */ }
     }
   }
 

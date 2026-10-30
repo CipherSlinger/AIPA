@@ -18,11 +18,15 @@ contextBridge.exposeInMainWorld("hitAPI", {
   exitMiniMode: () => ipcRenderer.send("exit-mini-mode"),
   showSessionMenu: () => ipcRenderer.send("show-session-menu"),
   openAttention: () => ipcRenderer.send("attention-open"),
+  openTaskBrief: () => ipcRenderer.send("pet-badge-open-brief"),
   // Reaction triggers → main → renderWin
   startDragReaction: () => ipcRenderer.send("start-drag-reaction"),
   endDragReaction: () => ipcRenderer.send("end-drag-reaction"),
   playClickReaction: (svg, duration) => ipcRenderer.send("play-click-reaction", svg, duration),
   // State sync ← main
   onStateSync: (cb) => ipcRenderer.on("hit-state-sync", (_, data) => cb(data)),
+  // Needs-you badge: count pushed by AIPA, 0 hides it. Separate from the state
+  // sync so a task change does not repaint the pointer state.
+  onBadgeSync: (cb) => ipcRenderer.on("pet-badge-sync", (_, data) => cb(data)),
   onCancelReaction: (cb) => ipcRenderer.on("hit-cancel-reaction", () => cb()),
 });

@@ -65,6 +65,18 @@ interface StoreSchema {
    */
   petActivityStrip: boolean
   /**
+   * A quiet "needs you" count drawn on the pet's own hit window: how many tasks
+   * are waiting on the user right now. Hidden while the pet is silenced, in DND,
+   * or when the pet is hidden. Default on.
+   */
+  petNeedsYouBadge: boolean
+  /**
+   * Once a local day, a few seconds after launch, open the task brief beside the
+   * pet if anything is unfinished. Opt-in (`false` by default); a skipped day
+   * is not retried.
+   */
+  petMorningBrief: boolean
+  /**
    * Background memory consolidation ("dream"): turns idle conversations into
    * append-only project memory files. Default on; the Memory console exposes
    * the switch and its pass log.
@@ -120,6 +132,8 @@ const store = new Store<StoreSchema>({
     petTurnNotices: true,
     petQuietUntil: 0,
     petActivityStrip: true,
+    petNeedsYouBadge: true,
+    petMorningBrief: false,
     dreamConsolidationEnabled: true,
     allowedFolders: [],
     pluginAiModels: {},

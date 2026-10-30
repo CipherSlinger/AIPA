@@ -29,6 +29,7 @@ import {
   withClawdMainWindow,
   type ClawdBubbleMetaRow,
 } from './clawd-integration'
+import { refreshClawdTaskBadge } from './clawd-task-badge'
 import {
   clearClawdNotices,
   getUnreadClawdNoticeCount as countUnreadClawdNotices,
@@ -641,6 +642,9 @@ function handOffToTasks(): boolean {
     // Main owns the task store; the renderer only mirrors it. Send the change
     // before the view so the new task is already in the list when it appears.
     win.webContents.send('tasks:changed')
+    // This path writes the task store directly, so it never passes through the
+    // IPC broadcast closure that normally refreshes the pet's badge.
+    refreshClawdTaskBadge()
     win.webContents.send('menu:openTasks')
   })
   return handled

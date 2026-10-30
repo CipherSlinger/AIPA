@@ -91,6 +91,18 @@ function requireString(key, { allowEmpty = false } = {}) {
   };
 }
 
+// A local calendar day ("YYYY-MM-DD"), or "" for "never shown". Stored in the
+// pet's own prefs so the morning brief can survive restarts without an AIPA
+// preference field the settings page never edits.
+function requireDayString(key) {
+  return function (value) {
+    if (typeof value !== "string" || (value !== "" && !/^\d{4}-\d{2}-\d{2}$/.test(value))) {
+      return { status: "error", message: `${key} must be "" or a YYYY-MM-DD day` };
+    }
+    return { status: "ok" };
+  };
+}
+
 function requirePlainObject(key) {
   return function (value) {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -195,6 +207,7 @@ const updateRegistry = {
   bubbleFollowPet: requireBoolean("bubbleFollowPet"),
   hideBubbles: requireBoolean("hideBubbles"),
   showSessionId: requireBoolean("showSessionId"),
+  morningBriefShownDate: requireDayString("morningBriefShownDate"),
 
   // ── System-backed prefs (object-form: validate + effect pre-commit gate) ──
   //

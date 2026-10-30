@@ -65,6 +65,15 @@ const SCHEMA = {
   openAtLoginHydrated: { type: "boolean", default: false },
   bubbleFollowPet: { type: "boolean", default: false },
   hideBubbles: { type: "boolean", default: false },
+  // Local calendar day (YYYY-MM-DD) on which the opt-in morning brief was last
+  // shown. The pet's own storage rather than an AIPA pref: it is a fact about
+  // the pet's behaviour, not a setting the settings page edits, and it must
+  // survive alongside the prefs that govern the pet. Empty = never shown.
+  morningBriefShownDate: {
+    type: "string",
+    default: "",
+    validate: (v) => v === "" || /^\d{4}-\d{2}-\d{2}$/.test(v),
+  },
   showSessionId: { type: "boolean", default: false },
   soundMuted: { type: "boolean", default: false },
   // Theme

@@ -109,6 +109,7 @@ const SIZES = {
 const prefsModule = require("./prefs");
 const { createSettingsController } = require("./settings-controller");
 const loginItemHelpers = require("./login-item");
+const { createTranslator } = require("./i18n");
 
 // In embedded mode, use AIPA's userData path for clawd prefs
 const PREFS_PATH = path.join(app.getPath("userData"), "clawd-prefs.json");
@@ -289,6 +290,9 @@ let _petMenu = null;
 let _quickCommand = null;
 let _quickCommandChord = null;
 let _taskBriefChord = null;
+// The quiet "needs you" count the AIPA side pushes in (0 = hide). Kept here so
+// a hit-window reload can restore the badge without waiting for the next push.
+let needsYouBadgeCount = 0;
 let tray = null;
 let contextMenuOwner = null;
 let currentSize = _settingsController.get("size");
@@ -487,7 +491,19 @@ function sendToHitWin(channel, ...args) {
   if (hitWin && !hitWin.isDestroyed()) hitWin.webContents.send(channel, ...args);
 }
 
+function sendNeedsYouBadge() {
+  // The page renders a bare number (or a dot for a large count); the sentence
+  // is only the accessible name, so it is translated here where the pet's
+  // current language lives. {n} is locale-independent digits either way.
+  const t = createTranslator(() => lang);
+  const label = t("needsYouBadgeLabel").replace("{n}", String(needsYouBadgeCount));
+  sendToHitWin("pet-badge-sync", { count: needsYouBadgeCount, label });
+}
+
 function syncHitStateAfterLoad() {
+  // The hit page owns the badge's visibility; its count comes on its own
+  // channel so a task change does not repaint the whole pointer state.
+  sendNeedsYouBadge();
   sendToHitWin("hit-state-sync", {
     currentSvg: _state.getCurrentSvg(),
     currentState: _state.getCurrentState(),
@@ -1420,7 +1436,11 @@ const MENU_AFFECTING_KEYS = new Set([
 ]);
 function wireSettingsSubscribers() {
   _settingsController.subscribe(({ changes }) => {
-    if ("lang" in changes) lang = changes.lang;
+    if ("lang" in changes) {
+      lang = changes.lang;
+      // The badge's accessible name is written in the pet's language.
+      if (needsYouBadgeCount > 0) sendNeedsYouBadge();
+    }
     if ("size" in changes) currentSize = changes.size;
     if ("showTray" in changes) {
       showTray = changes.showTray;
@@ -2065,6 +2085,15 @@ function createWindow() {
 
   ipcMain.on("exit-mini-mode", () => { if (_mini.getMiniMode()) exitMiniMode(); });
 
+  // The badge is drawn inside the hit window, so its click is a hit-window
+  // gesture, not a window of its own. Opening the brief is exactly what the
+  // BRIEF petal does, and the hit renderer has already ruled out a drag.
+  ipcMain.on("pet-badge-open-brief", () => {
+    if (isQuitting || petHidden || !win || win.isDestroyed()) return;
+    closePetMenu();
+    callPetMenuCallback("openTaskBrief", _taskBriefChord || "");
+  });
+
   ipcMain.on("focus-terminal", () => {
     let best = null, bestTime = 0, bestPriority = -1;
     for (const [, s] of sessions) {
@@ -2493,6 +2522,31 @@ module.exports = function createClawdIntegration(aipaContext) {
     isAttentionActionable: () => actionableActive && attentionActive,
     /** The pet's own UI language ("en" | "zh" | "ko"). */
     getLanguage: () => lang,
+    /**
+     * Set the badge count drawn on the pet (0 hides it). The caller has already
+     * applied the user's badge preference and the silence/DND gates; this only
+     * stores and pushes the number.
+     */
+    setNeedsYouBadge: (count) => {
+      const next = typeof count === "number" && Number.isFinite(count)
+        ? Math.max(0, Math.round(count))
+        : 0;
+      if (next === needsYouBadgeCount) return;
+      needsYouBadgeCount = next;
+      sendNeedsYouBadge();
+    },
+    /**
+     * Local day (YYYY-MM-DD) the morning brief was last shown, from the pet's
+     * own prefs. `""` means it has never been shown.
+     */
+    getMorningBriefDate: () => _settingsController.get("morningBriefShownDate") || "",
+    /** Record that the morning brief was shown on a local day. */
+    setMorningBriefDate: (date) => {
+      _settingsController.applyUpdate(
+        "morningBriefShownDate",
+        typeof date === "string" ? date : ""
+      );
+    },
     /** Check if clawd windows are alive */
     isRunning: () => win && !win.isDestroyed(),
     /** Get current state for debugging */

@@ -43,6 +43,12 @@ export interface SearchEmptyInputs {
   hasListScope: boolean
   /** Rows kept by the snapshot. */
   listVisible: number
+  /** Task rows that match and survive the department filter. */
+  taskHitCount: number
+  /** Task rows that match before the department filter. */
+  taskDeptTotal: number
+  /** The task store has not finished its first read, so task absence is unknown. */
+  tasksPending: boolean
   /** Length of the query the displayed rows were actually searched for. */
   searchedQueryLength: number
   /** The originating narrowing the scan reported, if it was narrowed. */
@@ -90,22 +96,34 @@ export function deriveSearchEmptyFlags(input: SearchEmptyInputs): SearchEmptyFla
   const ready = input.status === 'ready'
   const showIdle = input.trimmedLength < 2
   const showLoading = input.status === 'loading' && input.trimmedLength >= 2
+  // A matching task row is still on screen, so no transcript filter may claim
+  // the whole result set is empty. While the task list is still being read,
+  // absence is not yet evidence either: never flash "no matches" before it.
+  const noTaskHits = input.taskHitCount === 0
+  const tasksSettled = !input.tasksPending
 
-  const showMatchFilterEmpty = ready
+  const showMatchFilterEmpty = ready && noTaskHits && tasksSettled
     && isMatchFilterEmpty(input.resultsCount, input.matchVisible, input.matchFilter)
-  const showOriginFilterEmpty = ready
+  const showOriginFilterEmpty = ready && noTaskHits && tasksSettled
     && !showMatchFilterEmpty
     && isOriginFilterEmpty(input.matchVisible, input.originVisible, input.originFilter)
-  const showFolderFilterEmpty = ready
+  const showFolderFilterEmpty = ready && noTaskHits && tasksSettled
     && !showMatchFilterEmpty
     && !showOriginFilterEmpty
     && isFolderFilterEmpty(input.originVisible, input.folderVisible, input.folderFilter)
-  const showDeptFilterEmpty = ready
+  // The department filter applies to tasks too, so the empty decision and its
+  // count are over both groups. A task outside the node is hidden here exactly
+  // like a conversation outside it.
+  const showDeptFilterEmpty = ready && tasksSettled
     && !showMatchFilterEmpty
     && !showOriginFilterEmpty
     && !showFolderFilterEmpty
-    && isDeptFilterEmpty(input.folderVisible, input.deptVisible, input.deptFilter)
-  const showScopeEmpty = ready
+    && isDeptFilterEmpty(
+      input.folderVisible + input.taskDeptTotal,
+      input.deptVisible + input.taskHitCount,
+      input.deptFilter,
+    )
+  const showScopeEmpty = ready && noTaskHits && tasksSettled
     && input.trimmedLength >= 2
     && input.searchedQueryLength >= 2
     && input.hasListScope
@@ -116,19 +134,26 @@ export function deriveSearchEmptyFlags(input: SearchEmptyInputs): SearchEmptyFla
     && input.listVisible === 0
 
   // The scan was narrowed and found nothing. Saying "no matches" here would
-  // speak for the whole history, which this scan never searched.
-  const showScopedEmpty = ready
+  // speak for the whole history, which this scan never searched. A matching
+  // task is outside that scan entirely and must not be hidden by the claim.
+  const showScopedEmpty = ready && noTaskHits && tasksSettled
     && input.resultsCount === 0
     && input.filteredBy !== null
     && input.searchedQueryLength >= 2
 
-  const searchable = ready
+  const noTranscriptMatches = ready
     && input.resultsCount === 0
     && input.searchedQueryLength >= 2
     && input.filteredBy === null
     && !input.hasListScope
-  const showEmpty = searchable && !input.entityPending && !input.hasEntityHits
-  const showNoConversations = searchable && input.entityPending === false && input.hasEntityHits
+  const showEmpty = noTranscriptMatches
+    && !input.entityPending
+    && !input.hasEntityHits
+    && noTaskHits
+    && tasksSettled
+  const showNoConversations = noTranscriptMatches
+    && input.entityPending === false
+    && (input.hasEntityHits || input.taskHitCount > 0)
 
   // Said once, for the query it was pressed for, and only while the scan really
   // is the whole history again — a reply that still echoes a narrowing, or a

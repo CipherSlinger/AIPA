@@ -38,8 +38,11 @@ const matchKindStyle: React.CSSProperties = {
   flexShrink: 0,
 }
 
-/** Split the snippet around every case-insensitive occurrence of the query. */
-function emphasise(snippet: string, query: string): React.ReactNode[] {
+/**
+ * Split the text around every case-insensitive occurrence of the query.
+ * Shared with the task rows, so a match is marked the same way in both groups.
+ */
+export function emphasise(snippet: string, query: string): React.ReactNode[] {
   const needle = query.trim().toLowerCase()
   if (!needle) return [snippet]
   const haystack = snippet.toLowerCase()

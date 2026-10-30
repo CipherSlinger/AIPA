@@ -37,7 +37,82 @@ window.hitAPI.onStateSync((data) => {
     attentionActive = !!data.attentionActive;
     area.style.cursor = attentionActive && !miniMode ? "pointer" : (miniMode ? "default" : "");
   }
+  // DND and mini mode hide the badge (not queue it): the page owns those two
+  // gates because main already owns "pref off", "silenced" and "pet hidden".
+  renderNeedsYouBadge();
 });
+
+// ── Needs-you badge ─────────────────────────────────────────────────────────
+// A count of tasks waiting on the user, drawn inside this hit window so it
+// moves with the pet and scales with it. Main pushes the count; this page
+// decides whether the current pointer state may show it, and turns a click
+// into "open the task brief" — a drag that starts on the badge still drags.
+const badgeEl = document.getElementById("needs-you-badge");
+const badgeCountEl = document.getElementById("needs-you-count");
+// Above this, a pill would outgrow a small pet: show a dot instead. The number
+// stays reachable through the accessible name/tooltip.
+const BADGE_DOT_THRESHOLD = 9;
+
+let needsYouCount = 0;
+let needsYouLabel = "";
+let badgePress = false;
+let badgeBumpTimer = null;
+
+function sizeNeedsYouBadge() {
+  // The hit window is sized to the sprite's hit rect, so its width tracks the
+  // pet's current scale. A fifth of that width keeps the badge proportional at
+  // every P:<ratio>; 11–26px keeps a single digit legible at the smallest pet
+  // without the pill swallowing a corner of the sprite.
+  const size = Math.round(Math.min(26, Math.max(11, window.innerWidth * 0.22)));
+  document.documentElement.style.setProperty("--badge-size", size + "px");
+}
+
+function renderNeedsYouBadge(animate) {
+  if (!badgeEl) return;
+  const visible = needsYouCount > 0 && !dndEnabled && !miniMode;
+  const dot = needsYouCount > BADGE_DOT_THRESHOLD;
+
+  badgeEl.hidden = !visible;
+  badgeEl.classList.toggle("dot", visible && dot);
+  badgeCountEl.textContent = visible && !dot ? String(needsYouCount) : "";
+  badgeEl.setAttribute("aria-hidden", visible ? "false" : "true");
+  if (needsYouLabel) {
+    badgeEl.title = needsYouLabel;
+    badgeEl.setAttribute("aria-label", needsYouLabel);
+  } else {
+    badgeEl.removeAttribute("title");
+    badgeEl.removeAttribute("aria-label");
+  }
+
+  if (!visible || !animate) return;
+  // Restart the keyframes even when a previous bump is still running: a quick
+  // +1/+1 should read as two changes, not one.
+  badgeEl.classList.remove("bump");
+  void badgeEl.offsetWidth;
+  badgeEl.classList.add("bump");
+  if (badgeBumpTimer) clearTimeout(badgeBumpTimer);
+  badgeBumpTimer = setTimeout(function () {
+    badgeBumpTimer = null;
+    badgeEl.classList.remove("bump");
+  }, 260);
+}
+
+if (badgeEl) {
+  sizeNeedsYouBadge();
+  window.addEventListener("resize", sizeNeedsYouBadge);
+}
+
+if (window.hitAPI && window.hitAPI.onBadgeSync) {
+  window.hitAPI.onBadgeSync((data) => {
+    const raw = data && typeof data.count === "number" && isFinite(data.count)
+      ? Math.max(0, Math.round(data.count))
+      : 0;
+    const changed = raw !== needsYouCount;
+    needsYouCount = raw;
+    if (data && typeof data.label === "string") needsYouLabel = data.label;
+    renderNeedsYouBadge(changed);
+  });
+}
 
 // --- Drag state ---
 let isDragging = false;
@@ -62,7 +137,10 @@ window.hitAPI.onCancelReaction(() => {
 // --- Pointer handlers ---
 area.addEventListener("pointerdown", (e) => {
   if (e.button === 0) {
-    if (miniMode) { didDrag = false; return; }
+    // A press that lands on the badge is still a press on the pet: the drag
+    // path below runs unchanged, and pointerup decides between the two.
+    badgePress = !!(badgeEl && !badgeEl.hidden && badgeEl.contains(e.target));
+    if (miniMode) { didDrag = false; badgePress = false; return; }
     area.setPointerCapture(e.pointerId);
     isDragging = true;
     didDrag = false;
@@ -105,8 +183,9 @@ document.addEventListener("pointermove", (e) => {
 });
 
 function stopDrag() {
-  if (!isDragging) return;
+  if (!isDragging) { badgePress = false; return; }
   isDragging = false;
+  badgePress = false;
   window.hitAPI.dragLock(false);
   area.classList.remove("dragging");
   if (pendingDx !== 0 || pendingDy !== 0) {
@@ -123,9 +202,14 @@ function stopDrag() {
 document.addEventListener("pointerup", (e) => {
   if (e.button === 0) {
     const wasDrag = didDrag;
+    // Badge press + no movement = open the brief. Any movement above the drag
+    // threshold was a drag, so it must not also open a card.
+    const wasBadge = badgePress && !wasDrag;
     stopDrag();
     if (!wasDrag) {
-      if (e.ctrlKey || e.metaKey) {
+      if (wasBadge) {
+        window.hitAPI.openTaskBrief();
+      } else if (e.ctrlKey || e.metaKey) {
         window.hitAPI.showSessionMenu();
       } else {
         handleClick(e.clientX);

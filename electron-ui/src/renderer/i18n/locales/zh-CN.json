@@ -4102,6 +4102,17 @@
       "emptyFailedSkills": "技能列表读取失败，这次搜索没有包含技能。",
       "emptyFailedJobs": "定时任务列表读取失败，这次搜索没有包含定时任务。"
     },
+    "tasks": {
+      "group": "任务",
+      "sectionAria": "任务，{{count}} 个匹配",
+      "departmentTitle": "{{path}}\n这个任务已转交给这个部门。任务保留自己的文件夹，因此这只是归属，不代表工作在哪里运行。",
+      "unassignedTitle": "这个任务没有转交给当前组织架构中的任何部门。",
+      "materialCountOne": "{{count}} 份资料",
+      "materialCount": "{{count}} 份资料",
+      "openFailed": "无法打开该任务",
+      "emptyFailed": "任务列表读取失败，这次搜索没有包含任务。",
+      "noConversations": "没有匹配的对话——匹配的任务在上方。"
+    },
     "noConversations": "没有匹配的对话——以下是你自己做过的东西。",
     "matchInTool": "工具输出中",
     "matchInThinking": "思考中",

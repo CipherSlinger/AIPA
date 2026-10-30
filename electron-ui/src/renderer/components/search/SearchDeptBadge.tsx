@@ -36,7 +36,16 @@ const CLIP: CSSProperties = {
   textOverflow: 'ellipsis',
 }
 
-export default function SearchDeptBadge({ attribution }: { attribution: DeptAttribution }) {
+interface Props {
+  attribution: DeptAttribution
+  /**
+   * The row this chip sits on. A task row is not a conversation, so its task
+   * tooltip must not say "the task that recorded this conversation".
+   */
+  context?: 'conversation' | 'task'
+}
+
+export default function SearchDeptBadge({ attribution, context = 'conversation' }: Props) {
   const t = useT()
 
   if (attribution.state === 'attributed') {
@@ -46,17 +55,19 @@ export default function SearchDeptBadge({ attribution }: { attribution: DeptAttr
     // folder at all, so it gets its own explanation.
     const filedByYou = attribution.filedBy === 'you'
     const filedByTask = attribution.filedBy === 'task'
-    const title = filedByYou
-      ? t('search.dept.filedByYouTip', {
-        path: attribution.path,
-        directory: attribution.directory ?? '',
-      })
-      : filedByTask
-        ? t('globalSearch.dept.attributedTaskTitle', { path: attribution.path })
-        : t('globalSearch.dept.attributedTitle', {
+    const title = context === 'task' && filedByTask
+      ? t('globalSearch.tasks.departmentTitle', { path: attribution.path })
+      : filedByYou
+        ? t('search.dept.filedByYouTip', {
           path: attribution.path,
           directory: attribution.directory ?? '',
         })
+        : filedByTask
+          ? t('globalSearch.dept.attributedTaskTitle', { path: attribution.path })
+          : t('globalSearch.dept.attributedTitle', {
+            path: attribution.path,
+            directory: attribution.directory ?? '',
+          })
     const ariaLabel = filedByYou
       ? `${t('globalSearch.dept.chipLabel', { name: attribution.label })} · ${t('search.dept.filedByYou')}`
       : filedByTask

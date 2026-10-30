@@ -63,6 +63,30 @@ export function registerClawdHandlers(): void {
     return { error: getClawdInitError() }
   })
 
+  /**
+   * Visible strings for the pet rows in Settings. The app's locale JSON is
+   * owned by the shared translation surface; the pet's own table already
+   * carries these sentences in en/zh/ko, so the page asks for exactly the four
+   * it needs in the app's resolved language instead of duplicating them. The
+   * keys stay a fixed, named set — this is not a general translation channel.
+   */
+  safeHandle('clawd:getStrings', async (_e, lang: unknown) => {
+    const { i18n } = require('../../clawd/src/i18n') as {
+      i18n: Record<string, Record<string, string>>
+    }
+    const code = lang === 'zh' || lang === 'zh-CN' ? 'zh' : lang === 'ko' ? 'ko' : 'en'
+    const dict = i18n[code] || i18n.en
+    const pick = (key: string) => dict[key] || i18n.en[key] || ''
+    return {
+      strings: {
+        needsYouBadge: pick('settingsPetNeedsYouBadge'),
+        needsYouBadgeHint: pick('settingsPetNeedsYouBadgeHint'),
+        morningBrief: pick('settingsPetMorningBrief'),
+        morningBriefHint: pick('settingsPetMorningBriefHint'),
+      },
+    }
+  })
+
   // Read/write clawd prefs from the embedded pet's prefs file
   safeHandle('clawd:getPrefs', async () => {
     try {

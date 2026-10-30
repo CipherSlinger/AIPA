@@ -61,6 +61,7 @@ import {
   deriveSkillHits,
   deriveWorkflowHits,
 } from '../../lib/entitySearch'
+import { dispatchTask, openTaskConversation } from '../../lib/taskDispatch'
 import { pushEscapeHandler } from '../ui/escapeStack'
 import { EntityHitGroups, type EntitySourceStatus } from './EntityHitGroups'
 import { useGlobalSessionSearch } from './useGlobalSessionSearch'
@@ -102,6 +103,7 @@ import { useAskHistory } from './overlay/useAskHistory'
 import { handleOverlayKeyDown } from './overlay/keyboard'
 import { deriveSearchEmptyFlags } from './searchEmptyFlags'
 import { derivePagingNotices } from './searchPagingNotices'
+import { deriveTaskHits, filterTaskHitsByDept, type TaskSearchHit } from './searchTasks'
 import { useSearchFilterPipeline } from './useSearchFilterPipeline'
 import { AskAnswerView } from './overlay/AskAnswerView'
 import { AskMoreCharsHint } from './overlay/AskMoreCharsHint'
@@ -111,6 +113,7 @@ import { FollowUpRow } from './overlay/FollowUpRow'
 import { OverlayFooter } from './overlay/OverlayFooter'
 import { SearchPager } from './overlay/SearchPager'
 import { SearchResultGroups } from './overlay/SearchResultGroups'
+import { TaskSearchGroup } from './overlay/TaskSearchGroup'
 import {
   DeptFilterEmptyState,
   FolderFilterEmptyState,
@@ -285,8 +288,12 @@ export default function GlobalSearchOverlay() {
   // files or un-files a conversation.
   const filings = useDepartmentStore(s => s.filings)
   // A task's routed department decides attribution for its conversations, so
-  // the chip, the filter and a scoped ask all subscribe to the task list.
+  // the chip, the filter and a scoped ask all subscribe to the task list. The
+  // same subscription is the search source: no keystroke reads the store or
+  // calls IPC — the rows are filtered synchronously from this list.
   const tasks = useTaskStore(s => s.tasks)
+  const tasksLoading = useTaskStore(s => s.loading)
+  const tasksReadFailed = useTaskStore(s => s.readFailed)
   // Building blocks are not sessions: they are read from their own stores and
   // IPC, never through `session:search`, and the session filters below never
   // touch them.
@@ -570,6 +577,25 @@ export default function GlobalSearchOverlay() {
     return () => { cancelled = true }
   }, [jobsReload])
 
+  // Tasks are their own source: title, material name and routed-department
+  // display name, matched locally against the store's list. The transcript
+  // debounce and the scan's request sequencing are untouched — typing filters
+  // this list only, synchronously.
+  const taskHitsAll = useMemo(
+    () => deriveTaskHits(tasks, departments, query, resolvedLocale),
+    [tasks, departments, query, resolvedLocale],
+  )
+  // The department chip narrows both groups. A task outside the selected
+  // subtree is hidden and counted, exactly like a conversation outside it.
+  const taskFiltered = useMemo(
+    () => filterTaskHitsByDept(taskHitsAll, departments, deptFilter),
+    [taskHitsAll, departments, deptFilter],
+  )
+  const taskHits = taskFiltered.visible
+  // A first read with no rows yet is not "no tasks". The app loads the list at
+  // start-up; until it answers, the empty copy must not claim anything.
+  const tasksPending = tasksLoading && tasks.length === 0
+
   const groups = useMemo(() => {
     const map = new Map<string, SessionSearchResultData[]>()
     for (const hit of sortedHits) {
@@ -584,6 +610,9 @@ export default function GlobalSearchOverlay() {
   }, [sortedHits])
 
   const flat = useMemo(() => groups.flatMap(group => group.items), [groups])
+  // Tasks are drawn first and share one selection index with the conversation
+  // rows, so ArrowDown/ArrowUp cross between the two groups without a gap.
+  const totalRows = taskHits.length + flat.length
   // Two hits can share a session and match type; a suffixed key keeps React
   // from merging rows that describe different messages.
   const rowKeys = useMemo(() => searchRowKeys(flat), [flat])
@@ -614,8 +643,8 @@ export default function GlobalSearchOverlay() {
     setActive(0)
   }, [runId, matchFilter, originFilter, folderFilter, deptFilter, listScope, sortOrder])
   useEffect(() => {
-    if (active >= flat.length) setActive(Math.max(0, flat.length - 1))
-  }, [flat.length, active])
+    if (active >= totalRows) setActive(Math.max(0, totalRows - 1))
+  }, [totalRows, active])
   // The list scrolls inside a fixed-height box; keyboard navigation must keep
   // the selected row visible without moving the focused input.
   useEffect(() => {
@@ -631,6 +660,30 @@ export default function GlobalSearchOverlay() {
     openingRef.current = false
     if (!ok) addToast('error', t('globalSearch.openFailed'))
   }, [addToast, close, query, t])
+
+  // A task row opens the work itself: its latest recorded conversation, or —
+  // when it has none — the task's own draft tab. The draft goes through
+  // `dispatchTask`, so the tab always carries the task folder and the task
+  // binding; this cannot silently open an unrelated empty chat tab.
+  const openTaskHit = useCallback(async (hit: TaskSearchHit) => {
+    if (openingRef.current) return
+    openingRef.current = true
+    close()
+    try {
+      const task = hit.task
+      const latest = task.sessions.length > 0 ? task.sessions[task.sessions.length - 1] : null
+      if (latest) {
+        const listed = sessions.find(item => item.sessionId === latest.sessionId)
+        const result = await openTaskConversation(task, latest, listed)
+        if (!result.ok) addToast('error', result.error || t('globalSearch.tasks.openFailed'))
+        return
+      }
+      const outcome = dispatchTask(task, t)
+      if (!outcome.ok) addToast('error', outcome.error)
+    } finally {
+      openingRef.current = false
+    }
+  }, [addToast, close, sessions, t])
 
   const openCitation = useCallback(async (source: AskSource) => {
     if (openingRef.current) return
@@ -668,6 +721,7 @@ export default function GlobalSearchOverlay() {
 
   const onKeyDown = (e: React.KeyboardEvent) => handleOverlayKeyDown(e, {
     askState,
+    taskHits,
     flat,
     active,
     hasMore,
@@ -675,6 +729,7 @@ export default function GlobalSearchOverlay() {
     loadMore,
     setActive,
     openHit,
+    openTaskHit,
     close,
     runAsk,
   })
@@ -735,6 +790,9 @@ export default function GlobalSearchOverlay() {
     deptFilter,
     hasListScope: listScope !== null,
     listVisible: listFiltered.visible.length,
+    taskHitCount: taskHits.length,
+    taskDeptTotal: taskHitsAll.length,
+    tasksPending,
     searchedQueryLength: searchedQuery.length,
     filteredBy,
     entityPending,
@@ -1017,13 +1075,13 @@ export default function GlobalSearchOverlay() {
                 <Lock size={11} />
               </span>
             )}
-            {deptFilter && deptFiltered.hidden > 0 && (
+            {deptFilter && deptFiltered.hidden + taskFiltered.hidden > 0 && (
               <span style={{ fontSize: 10, color: 'var(--text-muted)', minWidth: 0 }}>
                 {t(
-                  deptFiltered.hidden === 1
+                  deptFiltered.hidden + taskFiltered.hidden === 1
                     ? 'globalSearch.dept.hiddenOne'
                     : 'globalSearch.dept.hidden',
-                  { count: deptFiltered.hidden },
+                  { count: deptFiltered.hidden + taskFiltered.hidden },
                 )}
               </span>
             )}
@@ -1182,7 +1240,7 @@ export default function GlobalSearchOverlay() {
                   <SearchIdleState />
                 )}
 
-                {showLoading && results.length === 0 && (
+                {showLoading && results.length === 0 && taskHits.length === 0 && (
                   <SearchLoadingState />
                 )}
 
@@ -1262,6 +1320,14 @@ export default function GlobalSearchOverlay() {
                         {t('globalSearch.entities.emptyFailedJobs')}
                       </div>
                     )}
+                    {/* The transcript scan and the task list are separate
+                        sources. If the list could not be read, say so: the
+                        sentence above must not imply tasks were searched. */}
+                    {tasksReadFailed && (
+                      <div style={{ fontSize: 11, color: 'var(--danger-text)', marginTop: 6 }}>
+                        {t('globalSearch.tasks.emptyFailed')}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1271,7 +1337,9 @@ export default function GlobalSearchOverlay() {
                 {showNoConversations && !showLoading && (
                   <div style={{ ...EMPTY_STYLE, paddingTop: 14, paddingBottom: 8 }}>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                      {t('globalSearch.noConversations')}
+                      {t(hasEntityHits
+                        ? 'globalSearch.noConversations'
+                        : 'globalSearch.tasks.noConversations')}
                     </div>
                   </div>
                 )}
@@ -1311,7 +1379,7 @@ export default function GlobalSearchOverlay() {
                 {showDeptFilterEmpty && !showLoading && (
                   <DeptFilterEmptyState
                     partialLoaded={partialLoaded}
-                    visible={folderFiltered.visible.length}
+                    visible={folderFiltered.visible.length + taskHitsAll.length}
                     onClear={() => {
                       setDeptFilter(null)
                       setDeptPinned(false)
@@ -1326,6 +1394,18 @@ export default function GlobalSearchOverlay() {
                   />
                 )}
 
+                {/* Tasks first: they are the unit of work, so a matching
+                    task is a better answer than any one conversation inside
+                    it. The group is outside the transcript filters, but the
+                    department view has already narrowed it. */}
+                <TaskSearchGroup
+                  hits={taskHits}
+                  query={trimmed}
+                  active={active}
+                  onHover={setActive}
+                  onOpen={hit => void openTaskHit(hit)}
+                />
+
                 <SearchResultGroups
                   groups={groups}
                   flat={flat}
@@ -1336,6 +1416,7 @@ export default function GlobalSearchOverlay() {
                   onOpen={hit => void openHit(hit)}
                   originMap={originMap}
                   deptAttributions={deptAttributions}
+                  indexOffset={taskHits.length}
                 />
               </div>
 

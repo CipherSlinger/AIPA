@@ -10,6 +10,16 @@ import { BrowserWindow, app, MenuItemConstructorOptions } from 'electron'
 import * as path from 'path'
 import { getPref, setPref } from './config/config-manager'
 import { clearClawdNotices, listClawdNotices, recordClawdNotice } from './clawd-notifications'
+import {
+  refreshClawdTaskBadge,
+  startClawdTaskBadge,
+  stopClawdTaskBadge,
+} from './clawd-task-badge'
+import {
+  refreshClawdMorningBrief,
+  startClawdMorningBrief,
+  stopClawdMorningBrief,
+} from './clawd-morning-brief'
 import { createLogger } from './utils/logger'
 import { isValidSessionId } from './utils/validate'
 import { clearActiveSession } from './active-session'
@@ -144,6 +154,11 @@ interface ClawdInstance {
   setBubblesHidden: (v: boolean) => void
   setLanguage: (lang: string) => void
   setBubbleTheme: (theme: string) => void
+  /** Count of tasks waiting on the user; 0 hides the badge. */
+  setNeedsYouBadge: (count: number) => void
+  /** Local day the morning brief was last shown, stored in the pet's prefs. */
+  getMorningBriefDate: () => string
+  setMorningBriefDate: (day: string) => void
   openPetMenu: () => boolean
   closePetMenu: () => void
   isPetMenuOpen: () => boolean
@@ -538,6 +553,33 @@ export function initClawdIntegration(mainWindow: BrowserWindow): void {
     // over before the first tool asks for permission.
     applyBubbleThemePref()
 
+    // Both task-driven surfaces start only after the pet exists: there is no
+    // window to draw a count on, or to anchor a brief to, without one. The
+    // badge gets a push callback the module cannot reach on its own; the
+    // morning brief gets the same open path the BRIEF petal uses, so a click
+    // through it behaves exactly like a manual brief.
+    startClawdTaskBadge({
+      push: count => clawdInstance?.setNeedsYouBadge(count),
+      canShow: () => getPref('petNeedsYouBadge' as any) !== false && !isClawdQuietActive(),
+    })
+    startClawdMorningBrief({
+      enabled: () => getPref('petMorningBrief' as any) === true,
+      suppressed: () => isClawdQuietActive() || isClawdDoNotDisturb() || isClawdPetHidden(),
+      isBriefOpen: () => {
+        const { isClawdTaskBriefOpen } = require('./clawd-task-brief') as {
+          isClawdTaskBriefOpen: () => boolean
+        }
+        return isClawdTaskBriefOpen()
+      },
+      getShownDate: () => {
+        try { return clawdInstance?.getMorningBriefDate() ?? '' } catch { return '' }
+      },
+      setShownDate: day => {
+        try { clawdInstance?.setMorningBriefDate(day) } catch { /* prefs locked */ }
+      },
+      open: () => petMenuCallbacks.openTaskBrief('') === true,
+    })
+
     log.info('clawd desktop pet initialized (embedded mode)')
     clawdInitError = null
   } catch (err: unknown) {
@@ -640,6 +682,9 @@ export function isClawdQuietActive(): boolean {
 /** Arm (or with 0, cancel) the timed silence. */
 export function setClawdQuietMinutes(minutes: number): void {
   setPref('petQuietUntil' as any, minutes > 0 ? Date.now() + minutes * 60_000 : 0)
+  // Silence hides the badge; ending it brings the count back without waiting
+  // for the safety-net poll. The expiry itself is picked up by that poll.
+  refreshClawdTaskBadge()
 }
 
 /** Whether the user put the pet to sleep (its own "Do Not Disturb"). */
@@ -730,6 +775,15 @@ export function applyClawdPetPref(key: string, value: unknown): void {
         if (clawdInstance.isDoNotDisturb() !== wanted) clawdInstance.toggleDoNotDisturb()
         break
       }
+      // The pref is already stored; recomputing applies it to the live pet.
+      // DND gating for the badge itself happens in the hit renderer, so this
+      // only has to resolve "pref off" and a timed silence.
+      case 'needsYouBadge':
+        refreshClawdTaskBadge()
+        break
+      case 'morningBrief':
+        refreshClawdMorningBrief()
+        break
       default:
         break
     }
@@ -1247,6 +1301,10 @@ export function isClawdAttentionActionable(): boolean {
  * Called when the user disables clawd in settings or on app quit.
  */
 export function shutdownClawdIntegration(): void {
+  // Both task watchers outlive the windows they serve unless stopped here; a
+  // relaunch would otherwise inherit a poll and a pending morning brief.
+  stopClawdTaskBadge()
+  stopClawdMorningBrief()
   releaseActivityCard()
   // Notice and boot timers outlive the instance. Left armed, they fire into
   // whatever pet is created next — a fast relaunch would have its first card

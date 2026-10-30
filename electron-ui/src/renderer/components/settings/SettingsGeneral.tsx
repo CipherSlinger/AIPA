@@ -26,7 +26,7 @@ export default function SettingsGeneral({
   onSave,
 }: SettingsGeneralProps) {
   const setPrefs = usePrefsStore(s => s.setPrefs)
-  const { t, locale, setLocale } = useI18n()
+  const { t, locale, setLocale, resolvedLocale } = useI18n()
   const defaultTagNames = TAG_PRESETS_SETTINGS.map(tp => t(tp.defaultKey))
   const [localTagNames, setLocalTagNames] = useState<string[]>(local.tagNames || defaultTagNames)
   const [settingsFilter, setSettingsFilter] = useState('')
@@ -44,6 +44,14 @@ export default function SettingsGeneral({
   const [petPrefs, setPetPrefs] = useState<Record<string, unknown>>({})
   // The pet's own announcement history, newest first (max 50 in main).
   const [petNotices, setPetNotices] = useState<Array<{ id: string; kind: string; title: string; at: number }>>([])
+  // Labels for the two task-driven pet rows. They live in the pet's own string
+  // table (clawd/src/i18n.js); the app locale files are a separate surface.
+  const [petStrings, setPetStrings] = useState<{
+    needsYouBadge?: string
+    needsYouBadgeHint?: string
+    morningBrief?: string
+    morningBriefHint?: string
+  }>({})
 
   const reloadPetNotices = () => {
     window.electronAPI.clawdNotices?.().then(r => {
@@ -71,6 +79,14 @@ export default function SettingsGeneral({
     setPetPrefs(prev => ({ ...prev, [key]: value }))
     window.electronAPI.clawdSetPrefs?.(key, value).catch(() => {})
   }
+
+  // Pet strings follow the app's resolved language, not the pet's own language
+  // switch: the settings page is part of AIPA.
+  useEffect(() => {
+    window.electronAPI.clawdPetStrings?.(resolvedLocale)
+      .then(r => { if (r?.strings) setPetStrings(r.strings) })
+      .catch(() => {})
+  }, [resolvedLocale])
 
   useEffect(() => {
     window.electronAPI.configReadCLISettings().then((cliSettings: Record<string, unknown>) => {
@@ -662,6 +678,39 @@ export default function SettingsGeneral({
                       <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settings.petBootGreetingHint')}</div>
                     </div>
                     <Toggle value={local.petBootGreeting !== false} onChange={v => updateLocal({ petBootGreeting: v })} />
+                  </div>
+
+                  {/* Quiet "needs you" count on the pet. App pref rather than a
+                      pet pref: the count comes from the task store, which only
+                      the main process reads, and the running pet has to hear
+                      about a change now — hence the immediate prefsSet. */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{petStrings.needsYouBadge}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{petStrings.needsYouBadgeHint}</div>
+                    </div>
+                    <Toggle
+                      value={local.petNeedsYouBadge !== false}
+                      onChange={v => {
+                        updateLocal({ petNeedsYouBadge: v })
+                        window.electronAPI.prefsSet('petNeedsYouBadge', v).catch(() => {})
+                      }}
+                    />
+                  </div>
+
+                  {/* Once-a-day task brief beside the pet. Default off. */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{petStrings.morningBrief}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{petStrings.morningBriefHint}</div>
+                    </div>
+                    <Toggle
+                      value={local.petMorningBrief === true}
+                      onChange={v => {
+                        updateLocal({ petMorningBrief: v })
+                        window.electronAPI.prefsSet('petMorningBrief', v).catch(() => {})
+                      }}
+                    />
                   </div>
 
                   {/* Live activity strip. Off means the pet stays silent
