@@ -53,6 +53,8 @@
       dismiss: "Dismiss",
       close: "Close",
       justNow: "just now",
+      today: "TODAY",
+      yesterday: "YESTERDAY",
     },
     zh: {
       clear: "清空全部",
@@ -63,6 +65,8 @@
       dismiss: "忽略",
       close: "关闭",
       justNow: "刚刚",
+      today: "今天",
+      yesterday: "昨天",
     },
     ko: {
       clear: "모두 지우기",
@@ -73,6 +77,8 @@
       dismiss: "무시",
       close: "닫기",
       justNow: "방금",
+      today: "오늘",
+      yesterday: "어제",
     },
   };
 
@@ -137,6 +143,45 @@
     var days = Math.floor(hours / 24);
     if (days < 7) return days + "d";
     return Math.floor(days / 7) + "w";
+  }
+
+  // ── Day grouping ───────────────────────────────────────────────────────────
+  // The header carries the calendar day, so rows keep their short relative
+  // times (just now / 4m / 2h). Month names stay in the HUD's uppercase
+  // monospace idiom for every language; only today/yesterday are translated.
+
+  var MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+
+  function dayStart(ts) {
+    var d = new Date(ts);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+
+  // YYYYMMDD as a number: a stable key that needs no timestamp arithmetic.
+  function dayKey(date) {
+    return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+  }
+
+  // A notice with no usable timestamp gets no header rather than a bogus one.
+  function noticeDay(notice) {
+    var at = notice && notice.at;
+    if (typeof at !== "number" || !isFinite(at) || at <= 0) return null;
+    return dayStart(at);
+  }
+
+  function dayLabel(date) {
+    var now = new Date();
+    var today = dayStart(now.getTime());
+    // Step through the Date constructor instead of subtracting 86400000 so a
+    // DST change, a month boundary or a year boundary lands on the real
+    // previous calendar day.
+    var yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+    var key = dayKey(date);
+    if (key === dayKey(today)) return strings().today;
+    if (key === dayKey(yesterday)) return strings().yesterday;
+    var label = MONTHS[date.getMonth()] + " " + date.getDate();
+    if (date.getFullYear() !== today.getFullYear()) label += " " + date.getFullYear();
+    return label;
   }
 
   function presentKinds() {
@@ -281,12 +326,34 @@
     return row;
   }
 
+  function buildDayHeader(date) {
+    var header = document.createElement("div");
+    header.className = "day";
+    // Not a row: no data-id, no tabindex, no role — invisible to the keyboard
+    // model and to visibleRows(), but still announced as plain text.
+    header.textContent = dayLabel(date);
+    return header;
+  }
+
   function renderList(notices) {
     listEl.textContent = "";
     var stillSelected = notices.some(function (n) { return n.id === state.selectedId; });
     if (!stillSelected) state.selectedId = null;
+    // Notices arrive newest first, so one pass in order is enough: a header is
+    // emitted for the first painted row of a day, and a day whose rows were
+    // all filtered out never reaches this loop, so it emits no header.
+    var lastDay = null;
     for (var i = 0; i < notices.length; i++) {
-      listEl.appendChild(buildRow(notices[i]));
+      var notice = notices[i];
+      var day = noticeDay(notice);
+      if (day) {
+        var key = dayKey(day);
+        if (key !== lastDay) {
+          listEl.appendChild(buildDayHeader(day));
+          lastDay = key;
+        }
+      }
+      listEl.appendChild(buildRow(notice));
     }
   }
 
@@ -338,10 +405,20 @@
     try { panel.focus({ preventScroll: true }); } catch (err) { panel.focus(); }
   }
 
+  /**
+   * Only a list that actually overflows earns the bottom fade: on a short log
+   * the same gradient would dim the last row for no reason.
+   */
+  function syncScrollFade() {
+    if (!panel || !listEl) return;
+    panel.classList.toggle("is-scrollable", listEl.scrollHeight - listEl.clientHeight > 2);
+  }
+
   function reportHeight() {
     if (heightFrame) return;
     heightFrame = requestAnimationFrame(function () {
       heightFrame = null;
+      syncScrollFade();
       if (!api || !api.reportHeight) return;
       // The window adds its own 8px transparent margin on each side; report the
       // painted panel plus that padding so the cap in the main process maps to

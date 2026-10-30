@@ -222,6 +222,22 @@ body { padding: 8px; }
   overflow-y: auto;
   padding-right: 2px;
 }
+/* A list that outgrows its cap ends mid-row; the fade says "there is more"
+   without adding a hard cut across the last record. */
+.panel::after {
+  content: "";
+  position: absolute;
+  left: 1px;
+  right: 12px;
+  bottom: 1px;
+  height: 28px;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(6, 12, 16, 0), rgba(6, 12, 16, 0.94));
+  border-radius: 0 0 9px 9px;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+.panel.is-scrollable::after { opacity: 1; }
 .list::-webkit-scrollbar { width: 6px; }
 .list::-webkit-scrollbar-track { background: transparent; }
 .list::-webkit-scrollbar-thumb {
@@ -229,6 +245,38 @@ body { padding: 8px; }
   border-radius: 3px;
 }
 .list::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
+
+/* ── Day headers ──────────────────────────────────────────────────────────── */
+/* Section separators, not rows: no data-id, no tabindex, so visibleRows() and
+   the filter never see them. They stick to .list, which is the scroll
+   container; .list carries no top padding, so top: 0 sits flush with the
+   scrollport and the group's first row can never peek above the label. */
+.day {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 4px 0 12px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  /* Opaque enough to mask the rows sliding under it, close enough to the
+     panel slab that the band does not read as a separate surface. */
+  background: linear-gradient(180deg, rgba(7, 13, 18, 0.97), rgba(6, 12, 17, 0.93));
+}
+.day::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(63, 224, 200, 0.14);
+}
 
 .row {
   --k: var(--accent);
@@ -238,6 +286,9 @@ body { padding: 8px; }
   align-items: start;
   gap: 9px;
   padding: 8px 4px 8px 12px;
+  /* scrollIntoView({block:"nearest"}) from the keyboard model must leave the
+     sticky header's 26px visible, so nudge the row clear of it. */
+  scroll-margin-top: 26px;
   border: 1px solid transparent;
   background: linear-gradient(90deg, color-mix(in srgb, var(--k) 6%, transparent), transparent 62%);
   color: inherit;
