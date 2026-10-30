@@ -71,7 +71,13 @@ export function registerTaskHandlers(send: Send): void {
 
   safeHandle('tasks:update', (_event, id: unknown, patch: unknown) => {
     const payload = patch && typeof patch === 'object' ? patch as Record<string, unknown> : {}
-    const result = updateTask(id, { title: payload.title, status: payload.status })
+    const result = updateTask(id, {
+      title: payload.title,
+      status: payload.status,
+      // Only a string may reach the store; the store trims, collapses and
+      // caps it. Anything else is simply not a note.
+      note: typeof payload.note === 'string' ? payload.note : undefined,
+    })
     if (result.ok) changed()
     return result
   })

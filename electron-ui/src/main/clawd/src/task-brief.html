@@ -360,6 +360,20 @@ body { padding: 8px; }
   font-variant-numeric: tabular-nums;
 }
 .meta .sep { opacity: 0.55; margin: 0 4px; }
+/* Why a needs-you task is waiting: one dim line, same ellipsis discipline as
+   the title and meta, so a long engine message never grows the card. */
+.reason {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 8.5px;
+  line-height: 1.35;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  opacity: 0.82;
+}
+.panel[data-theme="clawd"] .reason { font-size: 9px; letter-spacing: 0.01em; }
 .age {
   padding-top: 2px;
   font-size: 8.5px;

@@ -87,6 +87,9 @@
       department: typeof value.department === "string" ? value.department : "",
       materials: materials,
       updatedAt: updatedAt,
+      // Only the main process decides whether a reason exists; the page only
+      // renders a non-empty string.
+      reason: typeof value.reason === "string" ? value.reason.trim() : "",
       sessionId: typeof value.sessionId === "string" ? value.sessionId : "",
     };
   }
@@ -181,8 +184,10 @@
     row.dataset.id = task.id;
     row.dataset.status = task.status;
     // One line only: the full title stays reachable as a tooltip and in the
-    // accessible name even when the row ellipsizes it.
-    row.title = task.title || labels().untitled;
+    // accessible name even when the row ellipsizes it. A waiting task's reason
+    // is part of both, because it is why the row is at the top of the card.
+    var rowTitle = task.title || labels().untitled;
+    row.title = task.reason ? rowTitle + " — " + task.reason : rowTitle;
 
     var key = document.createElement("span");
     key.className = "key";
@@ -219,6 +224,16 @@
     body.appendChild(title);
     body.appendChild(meta);
 
+    // One dim line under the meta: the row's status already says NEEDS YOU, so
+    // the reason needs no label of its own. No reason means no element at all,
+    // so an ordinary row keeps exactly today's height.
+    if (task.reason) {
+      var reason = document.createElement("span");
+      reason.className = "reason";
+      reason.textContent = task.reason;
+      body.appendChild(reason);
+    }
+
     var age = document.createElement("span");
     age.className = "age";
     age.textContent = relativeTime(task.updatedAt);
@@ -230,6 +245,7 @@
     row.setAttribute(
       "aria-label",
       [statusLabel(task.status), task.title || labels().untitled, meta.textContent]
+        .concat(task.reason ? [task.reason] : [])
         .join(", ")
     );
     row.addEventListener("click", function () { openTask(task.id); });

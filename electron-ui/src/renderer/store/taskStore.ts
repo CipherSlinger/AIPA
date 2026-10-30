@@ -25,7 +25,10 @@ interface TaskState {
   load: () => Promise<void>
   selectTask: (id: string | null) => void
   createTask: (title: string) => Promise<TaskMutationData>
-  updateTask: (id: string, patch: { title?: string; status?: TaskStatusData }) => Promise<TaskMutationData>
+  updateTask: (
+    id: string,
+    patch: { title?: string; status?: TaskStatusData; note?: string },
+  ) => Promise<TaskMutationData>
   archiveTask: (id: string) => Promise<TaskMutationData>
   restoreTask: (id: string) => Promise<TaskMutationData>
   deleteTask: (id: string, deleteFiles: boolean) => Promise<{ ok: boolean; error?: string; task?: TaskRecordData }>

@@ -2654,7 +2654,7 @@ const electronAPI = {
     ipcRenderer.invoke('tasks:get', id) as Promise<TaskRecordData | null>,
   tasksCreate: (input: { title: string; status?: TaskStatusData }) =>
     ipcRenderer.invoke('tasks:create', input) as Promise<TaskMutationData>,
-  tasksUpdate: (id: string, patch: { title?: string; status?: TaskStatusData }) =>
+  tasksUpdate: (id: string, patch: { title?: string; status?: TaskStatusData; note?: string }) =>
     ipcRenderer.invoke('tasks:update', id, patch) as Promise<TaskMutationData>,
   tasksArchive: (id: string) =>
     ipcRenderer.invoke('tasks:archive', id) as Promise<TaskMutationData>,

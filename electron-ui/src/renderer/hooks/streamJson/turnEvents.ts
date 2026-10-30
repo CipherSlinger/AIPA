@@ -86,7 +86,11 @@ export function handleTurnEvent(event: string, data: any, ctx: StreamJsonEventCo
     } as StandardChatMessage)
     // A task whose turn just died is not "in progress" any more: somebody has
     // to decide what happens next, which is what the needs-you column means.
-    markActiveTaskNeedsYou()
+    // Send the most specific line the engine gave us — the protocol detail,
+    // else the localized explanation, else the fallback raw line — collapsed
+    // to one line. The store caps it at 200 characters.
+    const reason = (view.detail || explanation || raw).replace(/\s+/g, ' ').trim()
+    markActiveTaskNeedsYou(reason)
     const chatState = useChatStore.getState()
     if (chatState.isCompacting) {
       chatState.setCompacting(false)

@@ -164,6 +164,16 @@ export type TaskMaterialImportResult =
 export const MAX_TEXT_MATERIAL_BYTES = 2 * 1024 * 1024
 
 /**
+ * How much of a status reason one row may carry.
+ *
+ * The reason travels the history event to the pet's brief, which draws it as
+ * one line; 200 characters is already more than that line can show and leaves
+ * the event's `<from> -> <to>` prefix intact. The IPC boundary may carry any
+ * string, so this cap is enforced here, not by the caller.
+ */
+export const MAX_STATUS_NOTE_CHARS = 200
+
+/**
  * How much of a legacy folder one import may copy.
  *
  * A legacy folder is user-owned and can be arbitrarily large (a project with
@@ -778,9 +788,22 @@ export function createTask(input: { title?: unknown; status?: unknown }): TaskMu
   return { ok: true, task: taskView(record) }
 }
 
+/**
+ * The reason a status changed, reduced to one bounded line.
+ *
+ * A non-string is not a note: the IPC boundary may hand over anything, and the
+ * store must never coerce it. Whitespace is collapsed so a stack trace or a
+ * multi-line engine message still reads on the brief's single line.
+ */
+function normalizeStatusNote(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const note = value.replace(/\s+/g, ' ').trim().slice(0, MAX_STATUS_NOTE_CHARS).trim()
+  return note || null
+}
+
 export function updateTask(
   id: unknown,
-  patch: { title?: unknown; status?: unknown },
+  patch: { title?: unknown; status?: unknown; note?: unknown },
 ): TaskMutation {
   if (typeof id !== 'string' || !id) return failure('invalid_id', 'Unknown task')
   const store = readTaskStore()
@@ -799,7 +822,14 @@ export function updateTask(
   if (patch?.status !== undefined) {
     if (!isStatus(patch.status)) return failure('invalid_status', 'Unknown task status')
     if (patch.status !== next.status) {
-      next = appendEvent({ ...next, status: patch.status }, 'status_changed', `${next.status} -> ${patch.status}`)
+      // The note is the *reason for this status change*, so it has nowhere to
+      // live without one. A note with no status change is ignored rather than
+      // rejected: a renderer that also sent a title would otherwise lose the
+      // title edit, and there is no other history row that could honestly
+      // carry it.
+      const note = normalizeStatusNote(patch?.note)
+      const detail = `${next.status} -> ${patch.status}${note ? ` | ${note}` : ''}`
+      next = appendEvent({ ...next, status: patch.status }, 'status_changed', detail)
     }
   }
 
@@ -946,7 +976,11 @@ export function restoreTask(id: unknown): TaskMutation {
   for (let i = current.history.length - 1; i >= 0; i--) {
     const event = current.history[i]
     if (event.kind !== 'status_changed' || !event.detail) continue
-    const match = /^([a-z_]+) -> archived$/.exec(event.detail)
+    // `updateTask` can archive too, and may attach a ` | <note>` reason to any
+    // transition. The suffix is tolerated here rather than forbidden at the
+    // writer, because an archived-with-a-reason row is still the record of the
+    // status the user came from.
+    const match = /^([a-z_]+) -> archived(?: \| .*)?$/.exec(event.detail)
     if (match && isStatus(match[1]) && match[1] !== 'archived') {
       previous = match[1]
       break

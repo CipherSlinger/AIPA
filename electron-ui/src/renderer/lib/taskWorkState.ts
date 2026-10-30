@@ -25,15 +25,21 @@ const MOVABLE_STATUSES: ReadonlySet<TaskStatusData> = new Set([
 /**
  * Mark the task behind the active tab as waiting on the user, after a failed
  * turn. Returns true when the status was changed (or requested).
+ *
+ * `reason` is the engine's most specific human-readable line, when one was
+ * reported. It is recorded on the status event so the pet's brief can say why
+ * the task is waiting without the user opening AIPA; the store trims and caps
+ * it, and an absent reason simply leaves the row as it was before.
  */
-export function markActiveTaskNeedsYou(): boolean {
+export function markActiveTaskNeedsYou(reason?: string): boolean {
   try {
     const chat = useChatStore.getState()
     const taskId = chat.tabs.find(tab => tab.id === chat.activeTabId)?.task?.taskId
     if (!taskId) return false
     const task = useTaskStore.getState().tasks.find(item => item.id === taskId)
     if (!task || !MOVABLE_STATUSES.has(task.status)) return false
-    void useTaskStore.getState().updateTask(taskId, { status: 'needs_you' }).then(result => {
+    const note = typeof reason === 'string' ? reason : undefined
+    void useTaskStore.getState().updateTask(taskId, { status: 'needs_you', note }).then(result => {
       if (!result.ok) console.warn('[AIPA] Could not mark the task as waiting on you:', result.error)
     })
     return true

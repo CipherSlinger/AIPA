@@ -63,6 +63,11 @@ export interface ClawdTaskBriefItem {
   materials: number
   /** Epoch ms of the last change, for the row's relative age. */
   updatedAt: number
+  /**
+   * Why a `needs_you` task is waiting, when the engine reported a reason.
+   * Read from the note on its latest `status_changed` event; absent otherwise.
+   */
+  reason?: string
   /** Latest conversation on this task, when one has run. */
   sessionId?: string
 }
@@ -209,6 +214,30 @@ function latestSessionId(task: TaskRecord): string | undefined {
   return latest?.sessionId
 }
 
+/**
+ * The reason a status carries, as recorded by `updateTask`.
+ *
+ * A status reason is stored on the event as `<from> -> <to> | <note>`; the
+ * prefix is the store's, not the card's. Only the *latest* status change may
+ * speak: a task that was waiting on an error, ran again and came back with no
+ * reason must not keep showing the old error, because that would explain a
+ * state it is no longer in. So a note from an older transition — or on a
+ * transition that did not land on `needs_you` — yields nothing.
+ */
+function statusNote(task: TaskRecord): string | undefined {
+  for (let i = task.history.length - 1; i >= 0; i--) {
+    const event = task.history[i]
+    if (event.kind !== 'status_changed' || !event.detail) continue
+    const separator = event.detail.indexOf(' | ')
+    const transition = separator === -1 ? event.detail : event.detail.slice(0, separator)
+    if (!transition.endsWith(' -> needs_you')) return undefined
+    if (separator === -1) return undefined
+    const note = event.detail.slice(separator + ' | '.length).trim()
+    return note || undefined
+  }
+  return undefined
+}
+
 function activeTasks(tasks: TaskView[]): TaskView[] {
   return tasks
     .filter(task => STATUS_ORDER[task.status] !== undefined)
@@ -220,6 +249,9 @@ function activeTasks(tasks: TaskView[]): TaskView[] {
 
 function toItem(task: TaskView, departments: Map<string, string>): ClawdTaskBriefItem {
   const sessionId = latestSessionId(task)
+  // Only a waiting task can have a reason: the note exists to explain the
+  // needs-you state, not to annotate history on rows that have moved on.
+  const reason = task.status === 'needs_you' ? statusNote(task) : undefined
   return {
     id: task.id,
     title: task.title,
@@ -230,6 +262,7 @@ function toItem(task: TaskView, departments: Map<string, string>): ClawdTaskBrie
     department: task.departmentId ? (departments.get(task.departmentId) ?? '') : '',
     materials: task.materials.length,
     updatedAt: task.updatedAt,
+    ...(reason ? { reason } : {}),
     ...(sessionId ? { sessionId } : {}),
   }
 }
