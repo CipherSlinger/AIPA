@@ -193,25 +193,29 @@ export default function DeptView({
   // task owns the folder, gets routed to this node, and opens its draft in chat
   // with the job description already in the composer. Nothing is written to the
   // global working directory: a department is a processor, not a folder.
-  const startTask = useCallback(async (title: string, brief: string, personaId?: string) => {
-    if (!dept) return
+  // Returns whether the task really exists and was opened. Callers that also
+  // retire something (a hired seat) must wait for this answer: a seat describes
+  // work that started, so it may only disappear once that work exists.
+  const startTask = useCallback(async (title: string, brief: string, personaId?: string): Promise<boolean> => {
+    if (!dept) return false
     const created = await useTaskStore.getState().createTask(title)
     if (!created.ok || !created.task) {
       useUiStore.getState().addToast('error', created.error || t('tasks.error.create'))
-      return
+      return false
     }
     const routed = await useTaskStore.getState().routeTask(created.task.id, dept.id)
     if (!routed.ok || !routed.task) {
       useUiStore.getState().addToast('error', routed.error || t('tasks.error.route'))
-      return
+      return false
     }
     const outcome = dispatchTask(routed.task, t)
     if (!outcome.ok) {
       useUiStore.getState().addToast('error', outcome.error)
-      return
+      return false
     }
     useUiStore.getState().prefillComposer(brief)
     bindPersonaToNewSession(personaId)
+    return true
   }, [dept, t])
 
   // Confirm: the job description becomes the new task's brief, so the task
@@ -226,7 +230,9 @@ export default function DeptView({
     )
   }, [dept, startTask, t, resolvedLocale])
 
-  // Hiring now asks which persona the seat runs as; the modal supplies it.
+  // Hiring now asks which persona the seat runs as; the modal supplies it. The
+  // seat is retired only after the task it describes was really created,
+  // routed and opened — an error toast must not also cost the user the seat.
   const hirePosition = useCallback((position: Position, personaId?: string) => {
     if (!dept) return
     setHiringPosition(null)
@@ -234,10 +240,9 @@ export default function DeptView({
       position.title.trim() || t('dept.tasks.hireTitle', { name: deptDisplayName(dept, resolvedLocale) }),
       positionDisplayBrief(position, resolvedLocale),
       personaId,
-    )
-    // Dropping the seat right away is safe: the task is already created, and
-    // the seat exists to describe the work it started.
-    removePosition(dept.id, position.id)
+    ).then(started => {
+      if (started) removePosition(dept.id, position.id)
+    })
   }, [dept, startTask, removePosition, resolvedLocale, t])
 
   // Seat binding → department default → currently active persona. This is the

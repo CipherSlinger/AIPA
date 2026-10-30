@@ -5541,7 +5541,8 @@
       "reassigned": "Department changed",
       "session_started": "Conversation started",
       "from_automation": "Automation output saved",
-      "imported_folder": "Imported from a legacy folder"
+      "imported_folder": "Imported from a legacy folder",
+      "from_notice": "Saved from a pet notification"
     },
     "error": {
       "load": "Could not read tasks.",
@@ -5554,6 +5555,7 @@
       "removeMaterial": "The material could not be removed.",
       "reveal": "The folder could not be opened.",
       "missing": "The task's folder is missing.",
+      "notFound": "That task no longer exists.",
       "route": "The department could not be saved.",
       "linkSession": "The conversation finished but could not be added to the task. Send again to retry, or check that the task file is writable.",
       "openConversation": "The conversation could not be opened.",

@@ -492,9 +492,12 @@ function unregisterTaskCaptureShortcut() {
 // fallback drops Shift when another application already owns the first chord.
 // Registration stops at the first success, the same discipline as ASK and the
 // app's own summon chord: a second binding would fire the brief twice.
+// `CommandOrControl` on purpose: on macOS the physical Control key is a
+// different chord from the one the ASK and capture chords use, and the footer
+// hint rewrites this prefix to "Ctrl"/"Cmd" from the chord that was claimed.
 const TASK_BRIEF_CHORDS = [
-  "Control+Shift+Alt+B",
-  "Control+Alt+B",
+  "CommandOrControl+Shift+Alt+B",
+  "CommandOrControl+Alt+B",
 ];
 
 function openTaskBriefFromShortcut() {

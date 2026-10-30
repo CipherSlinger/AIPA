@@ -376,6 +376,9 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
   // department id to its current name, and say plainly when that name no longer
   // exists instead of printing a UUID.
   const historyDetail = (event: TaskEventData): string | undefined => {
+    // The notice id is the dedupe key, not a fact worth reading; the label
+    // above it already says where the task came from.
+    if (event.kind === 'from_notice') return undefined
     if (!event.detail) return undefined
     if (event.kind === 'routed' || event.kind === 'reassigned') {
       return deptOptions.find(option => option.id === event.detail)?.label

@@ -195,13 +195,6 @@ export const EDITABLE_STATUSES: TaskStatusData[] = [
 ]
 
 /**
- * Read the provenance key main writes on a task saved from a run.
- *
- * The detail is `automation:<jobId>:<startedAt>`; the last colon separates the
- * two facts. A hand-edited or older detail that does not parse is left to be
- * shown verbatim rather than guessed at.
- */
-/**
  * Read the detail main writes for `imported_folder`. The prefix is the exact
  * source path (greedy, so a path containing the separator still parses); the
  * suffix is the three counts the history line shows.
@@ -219,6 +212,13 @@ export function parseImportedFolderDetail(
   return { source: match[1], files, skipped, truncated }
 }
 
+/**
+ * Read the provenance key main writes on a task saved from a run.
+ *
+ * The detail is `automation:<jobId>:<startedAt>`; the last colon separates the
+ * two facts. A hand-edited or older detail that does not parse is left to be
+ * shown verbatim rather than guessed at.
+ */
 export function parseAutomationRunDetail(
   detail: string | undefined,
 ): { jobId: string; startedAt: number } | null {

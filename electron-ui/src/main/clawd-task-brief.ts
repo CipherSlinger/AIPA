@@ -220,11 +220,10 @@ function toItem(task: TaskView, departments: Map<string, string>): ClawdTaskBrie
     id: task.id,
     title: task.title,
     status: task.status,
-    // A routed task whose node is missing from the snapshot keeps its id
-    // rather than masquerading as unassigned.
-    department: task.departmentId
-      ? (departments.get(task.departmentId) || task.departmentId)
-      : '',
+    // A routed task whose node is missing from the snapshot shows no department
+    // at all: the id is an internal key, and printing it next to a title reads
+    // as noise rather than as a fact about the work.
+    department: task.departmentId ? (departments.get(task.departmentId) ?? '') : '',
     materials: task.materials.length,
     updatedAt: task.updatedAt,
     ...(sessionId ? { sessionId } : {}),
@@ -540,12 +539,28 @@ function createWindow(anchor: ClawdTaskBriefAnchor | null): boolean {
 
 // ── Actions ─────────────────────────────────────────────────────────────────
 
+/** What AIPA should show once it has focus. At most one is sent. */
+interface AipaTarget {
+  /** Open this conversation. */
+  sessionId?: string
+  /** Open this task's work; the renderer resolves the record itself. */
+  taskId?: string
+  /** Land on the Tasks view (used when there is nothing specific to open). */
+  openTasks?: boolean
+}
+
+function sendAipaTarget(webContents: Electron.WebContents, target: AipaTarget): void {
+  if (target.sessionId) webContents.send('menu:openSession', target.sessionId)
+  else if (target.taskId) webContents.send('menu:openTask', target.taskId)
+  else if (target.openTasks) webContents.send('menu:openTasks')
+}
+
 /**
  * Focus AIPA and hand it one navigation event. Returns false when the main
  * window is gone, so the caller can keep the brief up instead of closing onto
  * an unchanged desktop.
  */
-function focusAipa(event: 'menu:openSession' | 'menu:openTasks', sessionId?: string): boolean {
+function focusAipa(target: AipaTarget): boolean {
   let handled = false
   try {
     withClawdMainWindow(win => {
@@ -553,8 +568,7 @@ function focusAipa(event: 'menu:openSession' | 'menu:openTasks', sessionId?: str
       if (win.isMinimized()) win.restore()
       win.show()
       win.focus()
-      if (event === 'menu:openSession' && sessionId) win.webContents.send(event, sessionId)
-      else if (event === 'menu:openTasks') win.webContents.send(event)
+      sendAipaTarget(win.webContents, target)
     })
   } catch { /* fall through to the window scan */ }
 
@@ -563,15 +577,14 @@ function focusAipa(event: 'menu:openSession' | 'menu:openTasks', sessionId?: str
   try {
     const windows = BrowserWindow.getAllWindows().filter(candidate =>
       candidate !== briefWin && !candidate.isDestroyed())
-    const target =
+    const found =
       windows.find(candidate => candidate.getTitle() === 'AIPA') ??
       windows.find(candidate => candidate.isVisible())
-    if (!target) return false
-    if (target.isMinimized()) target.restore()
-    target.show()
-    target.focus()
-    if (event === 'menu:openSession' && sessionId) target.webContents.send(event, sessionId)
-    else if (event === 'menu:openTasks') target.webContents.send(event)
+    if (!found) return false
+    if (found.isMinimized()) found.restore()
+    found.show()
+    found.focus()
+    sendAipaTarget(found.webContents, target)
     return true
   } catch (err) {
     log.warn('Could not focus AIPA for the task brief:', err)
@@ -599,17 +612,20 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
         actionInFlight = false
         return emitUpdate()
       }
-      const sessionId = latestSessionId(task)
-      const focused = sessionId
-        ? focusAipa('menu:openSession', sessionId)
-        : focusAipa('menu:openTasks')
+      // A row with a conversation opens that task's work (the renderer also
+      // selects the record); one still waiting for its first turn has nothing
+      // to open, so the Tasks list is the honest destination. Opening a draft
+      // from here would turn a glance at the card into an unsent message.
+      const focused = latestSessionId(task)
+        ? focusAipa({ taskId: task.id })
+        : focusAipa({ openTasks: true })
       if (focused) destroyWindow(false)
       else { actionInFlight = false; emitUpdate() }
       return buildPayload()
     }
     case 'open-tasks': {
       actionInFlight = true
-      if (focusAipa('menu:openTasks')) destroyWindow(false)
+      if (focusAipa({ openTasks: true })) destroyWindow(false)
       else { actionInFlight = false; emitUpdate() }
       return buildPayload()
     }
@@ -667,7 +683,9 @@ function ensureIpc(): void {
  */
 export function setClawdTaskBriefShortcut(chord: string): void {
   claimedShortcut = typeof chord === 'string' && chord
-    ? chord.replace(/^CommandOrControl/, 'Ctrl').replace(/^Control/, 'Ctrl')
+    // `CommandOrControl` is the accelerator spelling; the hint names the key
+    // the user actually presses. On macOS that is Cmd, everywhere else Ctrl.
+    ? chord.replace(/^CommandOrControl/, isMac ? 'Cmd' : 'Ctrl').replace(/^Control/, 'Ctrl')
     : ''
 }
 

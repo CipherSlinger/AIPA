@@ -5541,7 +5541,8 @@
       "reassigned": "已更改部门",
       "session_started": "对话已开始",
       "from_automation": "已保存自动化输出",
-      "imported_folder": "从旧文件夹导入"
+      "imported_folder": "从旧文件夹导入",
+      "from_notice": "由桌宠通知保存"
     },
     "error": {
       "load": "无法读取任务。",
@@ -5554,6 +5555,7 @@
       "removeMaterial": "无法移除资料。",
       "reveal": "无法打开文件夹。",
       "missing": "任务的文件夹缺失。",
+      "notFound": "该任务已不存在。",
       "route": "无法保存部门。",
       "linkSession": "对话已完成，但未能加入任务。再次发送即可重试，或检查任务文件是否可写。",
       "openConversation": "无法打开对话。",

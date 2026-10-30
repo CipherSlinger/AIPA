@@ -120,6 +120,7 @@ export type TaskEventKindData =
   | 'session_started'
   | 'from_automation'
   | 'imported_folder'
+  | 'from_notice'
 
 export interface TaskEventData {
   at: number

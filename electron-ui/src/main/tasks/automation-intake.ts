@@ -77,12 +77,14 @@ function findJobRecord(job: AutomationJob, startedAt: number): AutomationRunReco
 
 /** The run's assistant prose, or null when the transcript is gone or silent. */
 async function readRunOutput(sessionId: string): Promise<string | null> {
+  // Both readers already return prose-only records; only the role filter is
+  // ours to apply.
   let records = await readClaudeSessionProse(sessionId)
   if (!records.some(record => record.role === 'assistant' && record.text.trim())) {
     records = await readCodexSessionProse(sessionId)
   }
   const blocks = records
-    .filter(record => record.role === 'assistant' && record.origin === 'prose')
+    .filter(record => record.role === 'assistant')
     .map(record => record.text.trim())
     .filter(Boolean)
   if (blocks.length === 0) return null

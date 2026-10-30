@@ -12,6 +12,7 @@ import { cancelDeptHandbookSync, scheduleDeptHandbookSync } from './components/d
 import { populateDefaultPresetsIfEmpty } from './utils/presetPopulator'
 import { purgeTrashedWorkflows } from './lib/workflowTrash'
 import { pickFolderForView } from './lib/folderPickAction'
+import { openTaskById } from './lib/taskDispatch'
 import { listSessionsShared } from './utils/sessionListShared'
 import { apiErrorStore } from './components/chat/apiErrorStore'
 import { savedInterruptionStore } from './components/chat/savedInterruptionStore'
@@ -363,6 +364,15 @@ export default function App() {
       // Tasks view instead of a chat.
       window.electronAPI.onMenuEvent('openTasks', () => {
         useUiStore.getState().setActiveNavItem('tasks')
+      }),
+      // Pet task brief / notice centre: open one task's work by id. The task may
+      // not be in this window's cache yet, so the helper reloads before giving
+      // up; a task that no longer exists reports that instead of opening blank.
+      window.electronAPI.onMenuEvent('openTask', (taskId) => {
+        if (typeof taskId !== 'string' || !taskId) return
+        void openTaskById(taskId).then(result => {
+          if (!result.ok && result.error) useUiStore.getState().addToast('error', result.error)
+        })
       }),
       // Menu: Help > Keyboard Shortcuts (Ctrl+/)
       window.electronAPI.onMenuEvent('keyboardShortcuts', () => {

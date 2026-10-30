@@ -158,6 +158,47 @@ export async function openTaskConversation(
 }
 
 /**
+ * Open a task by id — the hand-off used by surfaces outside the Tasks page (the
+ * pet's task brief, a notification saved as a task).
+ *
+ * The caller only has an id. The task may not be in this renderer's cache yet
+ * (another window created it, or the app just started), so a miss reloads once
+ * before giving up; a task that is genuinely gone says so instead of opening an
+ * empty pane. A task with conversations opens its latest one; a task still
+ * waiting for its first turn opens a fresh draft with the brief pre-filled.
+ * When neither is possible (the folder vanished, the tab cap was hit), the
+ * Tasks page is shown with the record selected, because that is where the
+ * problem is visible.
+ */
+export async function openTaskById(taskId: string): Promise<{ ok: boolean; error?: string }> {
+  const t = getT()
+  if (!taskId) return { ok: false, error: t('tasks.error.notFound') }
+  const find = () => useTaskStore.getState().tasks.find(item => item.id === taskId)
+  let task = find()
+  if (!task) {
+    await useTaskStore.getState().load()
+    task = find()
+  }
+  if (!task) return { ok: false, error: t('tasks.error.notFound') }
+
+  useTaskStore.getState().selectTask(task.id)
+  // The last conversation that ran, not simply the last row: the array order is
+  // the link order, and a reused task can be re-linked out of order.
+  const latest = task.sessions.reduce<TaskRecordData['sessions'][number] | undefined>(
+    (best, item) => (!best || item.startedAt >= best.startedAt ? item : best),
+    undefined,
+  )
+  if (latest) {
+    const opened = await openTaskConversation(task, latest, sessionListItemFor(latest.sessionId, task.title))
+    if (!opened.ok) useUiStore.getState().setActiveNavItem('tasks')
+    return opened
+  }
+  const outcome = dispatchTask(task, t)
+  if (!outcome.ok) useUiStore.getState().setActiveNavItem('tasks')
+  return outcome.ok ? { ok: true } : { ok: false, error: outcome.error }
+}
+
+/**
  * Record the conversation a completed task turn produced.
  *
  * Called by `handleResultEvent` *after* the success gate, so a failed or

@@ -26,6 +26,7 @@ import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 import { getPref } from '../config/config-manager'
+import { preserveCorruptFile } from '../utils/corrupt-file'
 import { createLogger } from '../utils/logger'
 import { getAllowedFsRoots, isPathInside, safePath } from '../utils/validate'
 
@@ -96,6 +97,7 @@ export type TaskEventKind =
   | 'session_started'
   | 'from_automation'
   | 'imported_folder'
+  | 'from_notice'
 
 export interface TaskEvent {
   at: number
@@ -379,7 +381,7 @@ const EVENT_KINDS = new Set<TaskEventKind>([
   'created', 'material_added', 'material_removed', 'renamed',
   'status_changed', 'moved', 'folder_missing', 'restored',
   'routed', 'reassigned', 'session_started', 'from_automation',
-  'imported_folder',
+  'imported_folder', 'from_notice',
 ])
 
 const MATERIAL_SOURCES = new Set<TaskMaterialSource>([
@@ -553,11 +555,9 @@ export function readTaskStore(file: string = getStorePath()): TaskStore {
     log.warn('Could not read tasks.json:', err)
     // Keep the damaged file before the next mutation replaces it: a task list
     // that quietly resets is worse than one that resets loudly, and the copy is
-    // the only way to recover titles and folder paths by hand.
-    try {
-      const stamp = new Date().toISOString().replace(/[:.]/g, '-')
-      fs.copyFileSync(file, `${file}.corrupt-${stamp}`)
-    } catch { /* best effort */ }
+    // the only way to recover titles and folder paths by hand. The helper
+    // copies once per process — the badge re-reads this file every 30 s.
+    preserveCorruptFile(file)
     return { tasks: [] }
   }
 }
@@ -675,6 +675,22 @@ export function listTasks(): TaskView[] {
     .slice()
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .map(taskView)
+}
+
+/**
+ * Count tasks in one status without building views.
+ *
+ * `taskView` stats each task's folder to report whether it is missing. That is
+ * the right answer for a row the user is looking at, but the pet's badge only
+ * needs a number and re-reads it on a timer; a few hundred stat calls on the
+ * main thread every 30 s would be a stall for nothing.
+ */
+export function countTasksByStatus(status: TaskStatus): number {
+  let count = 0
+  for (const task of readTaskStore().tasks) {
+    if (task.status === status) count += 1
+  }
+  return count
 }
 
 export function getTask(id: unknown): TaskView | null {
@@ -810,6 +826,29 @@ export function routeTask(id: unknown, departmentId: unknown): TaskMutation {
     routedBy: nextDepartmentId ? 'user' : null,
   }, kind, nextDepartmentId ?? undefined)
 
+  replaceTask(store, next)
+  if (!writeTaskStore(store)) return failure('write_failed', 'The task could not be saved')
+  writeTaskMirror(next)
+  return { ok: true, task: taskView(next) }
+}
+
+/**
+ * Append one provenance event to a task's history.
+ *
+ * The pet's notice log creates tasks outside the task IPC and needs a durable
+ * record of *which notice* a task came from: an in-memory map forgets it on
+ * restart, and saving the same notice again would then create a second task.
+ * The kind is checked against the same whitelist as every other write, so a
+ * caller cannot invent a history claim from an arbitrary string.
+ */
+export function appendTaskEvent(id: unknown, kind: TaskEventKind, detail?: unknown): TaskMutation {
+  if (typeof id !== 'string' || !id) return failure('invalid_id', 'Unknown task')
+  if (!EVENT_KINDS.has(kind)) return failure('invalid_event', 'Unknown task event')
+  const store = readTaskStore()
+  const current = store.tasks.find(task => task.id === id)
+  if (!current) return failure('not_found', 'Unknown task')
+  const text = typeof detail === 'string' && detail.trim() ? detail.trim().slice(0, 500) : undefined
+  const next = appendEvent(current, kind, text)
   replaceTask(store, next)
   if (!writeTaskStore(store)) return failure('write_failed', 'The task could not be saved')
   writeTaskMirror(next)
@@ -968,6 +1007,12 @@ export function addMaterials(
   const current = store.tasks.find(task => task.id === id)
   if (!current) return failure('not_found', 'Unknown task')
   if (folderMissing(current.directory)) return failure('folder_missing', "The task's folder is missing")
+  // Same ownership gate as every other write: a record whose directory points
+  // at a folder that is not this task's own copy (a hand-edited store, a
+  // corrupted row) must not receive new files.
+  if (!isOwnedDirectory(current)) {
+    return failure('invalid_directory', "The task's folder does not belong to this task")
+  }
 
   const materialsDir = path.join(current.directory, 'materials')
   try {

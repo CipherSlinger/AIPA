@@ -22,7 +22,7 @@
  * Electron is still starting, or a window that never paints must never take the
  * app down. The worst outcome is that the notice centre does not open.
  */
-import { BrowserWindow, clipboard, ipcMain, screen } from 'electron'
+import { BrowserWindow, clipboard, ipcMain, screen, type WebContents } from 'electron'
 import * as path from 'path'
 import {
   getClawdLanguage,
@@ -38,7 +38,14 @@ import {
   removeClawdNotice,
   type ClawdNoticeRecord,
 } from './clawd-notifications'
-import { addTextMaterial, createTask, deleteTask, getTask } from './tasks/task-store'
+import {
+  addTextMaterial,
+  appendTaskEvent,
+  createTask,
+  deleteTask,
+  getTask,
+  listTasks,
+} from './tasks/task-store'
 import { safeHandle } from './ipc/register/safe-handle'
 import { createLogger } from './utils/logger'
 
@@ -529,11 +536,27 @@ function createWindow(anchor: ClawdNoticeCenterAnchor | null): boolean {
 
 // ── Actions ─────────────────────────────────────────────────────────────────
 
+/** What AIPA should show once it has focus. At most one of these is sent. */
+interface AipaTarget {
+  /** Open this conversation. */
+  sessionId?: string
+  /** Land on the Tasks view (the task has no conversation to open). */
+  openTasks?: boolean
+  /** Open one task's work; the renderer resolves the record itself. */
+  taskId?: string
+}
+
+function sendAipaTarget(webContents: WebContents, target: AipaTarget): void {
+  if (target.sessionId) webContents.send('menu:openSession', target.sessionId)
+  else if (target.taskId) webContents.send('menu:openTask', target.taskId)
+  else if (target.openTasks) webContents.send('menu:openTasks')
+}
+
 /**
- * Focus AIPA, optionally opening a session or the Tasks view. Returns false
- * when no window exists.
+ * Focus AIPA, optionally opening a session, a task or the Tasks view. Returns
+ * false when no window exists.
  */
-function focusAipaMainWindow(sessionId?: string, openTasks = false): boolean {
+function focusAipaMainWindow(target: AipaTarget = {}): boolean {
   let handled = false
   // The integration owns the real main window; getAllWindows is the fallback
   // for harnesses and for the window between app start and integration init.
@@ -543,8 +566,7 @@ function focusAipaMainWindow(sessionId?: string, openTasks = false): boolean {
       if (win.isMinimized()) win.restore()
       win.show()
       win.focus()
-      if (sessionId) win.webContents.send('menu:openSession', sessionId)
-      else if (openTasks) win.webContents.send('menu:openTasks')
+      sendAipaTarget(win.webContents, target)
     })
   } catch { /* fall through to the window scan */ }
 
@@ -553,15 +575,14 @@ function focusAipaMainWindow(sessionId?: string, openTasks = false): boolean {
   try {
     const windows = BrowserWindow.getAllWindows().filter(candidate =>
       candidate !== noticeWin && !candidate.isDestroyed())
-    const target =
+    const found =
       windows.find(candidate => candidate.getTitle() === 'AIPA') ??
       windows.find(candidate => candidate.isVisible())
-    if (!target) return false
-    if (target.isMinimized()) target.restore()
-    target.show()
-    target.focus()
-    if (sessionId) target.webContents.send('menu:openSession', sessionId)
-    else if (openTasks) target.webContents.send('menu:openTasks')
+    if (!found) return false
+    if (found.isMinimized()) found.restore()
+    found.show()
+    found.focus()
+    sendAipaTarget(found.webContents, target)
     return true
   } catch (err) {
     log.warn('Could not focus AIPA for a notice:', err)
@@ -569,8 +590,32 @@ function focusAipaMainWindow(sessionId?: string, openTasks = false): boolean {
   }
 }
 
-/** The task created from a notice, remembered for this app run. */
+/** The task created from a notice this run; the store holds the durable copy. */
 const savedNoticeTasks = new Map<string, string>()
+
+/**
+ * The live task a notice already became, if any.
+ *
+ * The `from_notice` event is the durable half of the dedupe: an in-memory map
+ * is enough within one run, but after a restart saving the same notice again
+ * must still find the task it created rather than making a second one. An
+ * archived task no longer counts — the user retired that work, and saving the
+ * notice again is a new request.
+ */
+function findTaskForNotice(noticeId: string): { id: string; title: string } | null {
+  if (!noticeId) return null
+  try {
+    for (const task of listTasks()) {
+      if (task.status === 'archived') continue
+      if (task.history.some(event => event.kind === 'from_notice' && event.detail === noticeId)) {
+        return { id: task.id, title: task.title }
+      }
+    }
+  } catch (err) {
+    log.warn('Could not scan tasks for a saved notice:', err)
+  }
+  return null
+}
 
 type SaveNoticeResult =
   | { ok: true; taskId: string; taskTitle: string; reused: boolean }
@@ -603,6 +648,11 @@ function saveNoticeAsTask(record: ClawdNoticeRecord): SaveNoticeResult {
     }
     savedNoticeTasks.delete(record.id)
   }
+  const remembered = findTaskForNotice(record.id)
+  if (remembered) {
+    savedNoticeTasks.set(record.id, remembered.id)
+    return { ok: true, taskId: remembered.id, taskTitle: remembered.title, reused: true }
+  }
 
   if (!canSaveNotice(record)) {
     return record.message.trim()
@@ -622,6 +672,12 @@ function saveNoticeAsTask(record: ClawdNoticeRecord): SaveNoticeResult {
     try { deleteTask(created.task.id, { deleteFiles: true }) } catch { /* best effort */ }
     return added
   }
+
+  // The material proves the text was kept; this event proves *which notice*
+  // produced it, which is what makes a second save after a restart reuse the
+  // task. Failing to write it loses only that dedupe, so the save still stands.
+  const linked = appendTaskEvent(added.task.id, 'from_notice', record.id)
+  if (!linked.ok) log.warn('Could not record the notice on the task:', linked.error)
 
   savedNoticeTasks.set(record.id, added.task.id)
   return { ok: true, taskId: added.task.id, taskTitle: added.task.title, reused: false }
@@ -668,7 +724,7 @@ function handleAction(action: unknown): ClawdNoticeCenterPayload {
       if (id) {
         try { markClawdNoticesRead([id]) } catch (err) { log.warn('Could not mark notice read:', err) }
       }
-      const focused = focusAipaMainWindow(record?.sessionId)
+      const focused = focusAipaMainWindow({ sessionId: record?.sessionId })
       if (focused) {
         destroyWindow(false)
       } else {
@@ -706,7 +762,11 @@ function handleAction(action: unknown): ClawdNoticeCenterPayload {
       }
     }
     case 'open-task': {
-      const focused = focusAipaMainWindow(undefined, true)
+      // Open the task the notice became, not just the Tasks list: the action
+      // exists so the user can get back to that work. Without an id (an older
+      // row) the list itself is still the honest destination.
+      const taskId = typeof input.taskId === 'string' && input.taskId ? input.taskId : ''
+      const focused = focusAipaMainWindow(taskId ? { taskId } : { openTasks: true })
       if (focused) destroyWindow(false)
       else emitUpdate()
       return buildPayload()

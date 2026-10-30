@@ -18,7 +18,7 @@
  */
 
 import { createLogger } from './utils/logger'
-import { listTasks } from './tasks/task-store'
+import { countTasksByStatus } from './tasks/task-store'
 
 const log = createLogger('clawd-task-badge')
 
@@ -40,11 +40,7 @@ let lastPushed = -1
 /** Count tasks waiting on the user. `archived` never counts. */
 export function countClawdNeedsYouTasks(): number {
   try {
-    let count = 0
-    for (const task of listTasks()) {
-      if (task.status === 'needs_you') count += 1
-    }
-    return count
+    return countTasksByStatus('needs_you')
   } catch (err) {
     log.warn('could not read tasks for the badge:', String(err))
     return 0

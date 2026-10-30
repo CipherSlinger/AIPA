@@ -27,6 +27,7 @@
 import { app } from 'electron'
 import * as fs from 'fs'
 import * as path from 'path'
+import { preserveCorruptFile } from '../utils/corrupt-file'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('usage-store')
@@ -143,10 +144,7 @@ export function readUsageStore(file: string = getStorePath()): UsageStore {
     return { entries: capEntries(entries) }
   } catch (err) {
     log.warn('Could not read usage.json:', err)
-    try {
-      const stamp = new Date().toISOString().replace(/[:.]/g, '-')
-      fs.copyFileSync(file, `${file}.corrupt-${stamp}`)
-    } catch { /* best effort */ }
+    preserveCorruptFile(file)
     return { entries: [] }
   }
 }
