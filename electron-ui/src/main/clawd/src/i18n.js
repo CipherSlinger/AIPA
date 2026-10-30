@@ -194,6 +194,10 @@ const i18n = {
     taskBriefShortcutHint: "open brief",
     taskBriefUntitled: "Untitled task",
     taskBriefJustNow: "now",
+    // The per-row Start button: Dispatch without opening AIPA first. The hint
+    // is its tooltip; the label is the accessible name.
+    taskBriefStart: "Start",
+    taskBriefStartHint: "Start work on this task",
     // Quiet count of tasks waiting on the user, drawn on the pet itself.
     // {n} is the number; the visible badge shows the digits alone.
     needsYouBadgeLabel: "Needs you: {n} tasks",
@@ -413,6 +417,8 @@ const i18n = {
     taskBriefShortcutHint: "打开简报",
     taskBriefUntitled: "未命名任务",
     taskBriefJustNow: "刚刚",
+    taskBriefStart: "开始",
+    taskBriefStartHint: "开始这项工作",
     needsYouBadgeLabel: "待你处理：{n} 个任务",
     settingsPetNeedsYouBadge: "待办角标",
     settingsPetNeedsYouBadgeHint: "在桌宠上显示有多少任务在等你处理。",
@@ -621,6 +627,8 @@ const i18n = {
     taskBriefShortcutHint: "브리핑 열기",
     taskBriefUntitled: "제목 없는 작업",
     taskBriefJustNow: "방금",
+    taskBriefStart: "시작",
+    taskBriefStartHint: "이 작업 시작",
     needsYouBadgeLabel: "확인 필요: 작업 {n}개",
     settingsPetNeedsYouBadge: "확인 필요 배지",
     settingsPetNeedsYouBadgeHint: "펫 위에 기다리는 작업 수를 표시합니다.",

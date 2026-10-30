@@ -226,6 +226,33 @@ export async function openTaskById(taskId: string): Promise<{ ok: boolean; error
 }
 
 /**
+ * Start a task by id — the hand-off behind the pet brief's Start button and
+ * `Shift`+`1`–`4`.
+ *
+ * This is the same Dispatch the task detail offers: a chat tab rooted in the
+ * task folder with the brief in the composer, and nothing sent. The task may
+ * not be in this renderer's cache yet (another window created it, or the app
+ * just started), so a miss reloads once before giving up, exactly like
+ * `openTaskById`. Unlike opening, a start must not fall back to the Tasks view:
+ * the caller asked for work, so a folder that is gone or the tab cap reports
+ * the reason instead of landing somewhere and calling it success.
+ */
+export async function startTaskById(taskId: string): Promise<{ ok: boolean; error?: string }> {
+  const t = getT()
+  if (!taskId) return { ok: false, error: t('tasks.error.notFound') }
+  const find = () => useTaskStore.getState().tasks.find(item => item.id === taskId)
+  let task = find()
+  if (!task) {
+    await useTaskStore.getState().load()
+    task = find()
+  }
+  if (!task) return { ok: false, error: t('tasks.error.notFound') }
+
+  const outcome = dispatchTask(task, t)
+  return outcome.ok ? { ok: true } : { ok: false, error: outcome.error }
+}
+
+/**
  * Record the conversation a completed task turn produced.
  *
  * Called by `handleResultEvent` *after* the success gate, so a failed or

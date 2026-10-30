@@ -52,6 +52,8 @@
     shortcutHint: "open brief",
     untitled: "Untitled task",
     justNow: "now",
+    start: "Start",
+    startHint: "Start work on this task",
   };
 
   var LOCALES = { en: "en-US", zh: "zh-CN", ko: "ko-KR" };
@@ -154,6 +156,24 @@
     return Array.prototype.slice.call(listEl.querySelectorAll(".row"));
   }
 
+  function buildStartButton(task) {
+    var start = document.createElement("button");
+    start.type = "button";
+    start.className = "start";
+    // The visible mark is an icon, so the accessible name and tooltip carry the
+    // action's words. They come from the pet's table like every other string.
+    start.setAttribute("aria-label", labels().start);
+    start.title = labels().startHint || labels().start;
+    start.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+    start.addEventListener("click", function (event) {
+      // The button is a sibling of the row, but the guard stays anyway: a click
+      // here must never also be read as "open this task".
+      event.stopPropagation();
+      startTask(task.id);
+    });
+    return start;
+  }
+
   function buildRow(task, index) {
     var row = document.createElement("button");
     row.type = "button";
@@ -213,7 +233,15 @@
         .join(", ")
     );
     row.addEventListener("click", function () { openTask(task.id); });
-    return row;
+
+    // The Start button sits beside the row rather than inside it: nesting a
+    // real <button> in the row's <button> is invalid markup. The wrapper is
+    // what anchors it at the trailing edge.
+    var wrap = document.createElement("div");
+    wrap.className = "row-wrap";
+    wrap.appendChild(row);
+    wrap.appendChild(buildStartButton(task));
+    return wrap;
   }
 
   function renderRows(tasks) {
@@ -313,6 +341,11 @@
     runAction({ type: "open", id: id });
   }
 
+  function startTask(id) {
+    if (!id) return;
+    runAction({ type: "start", id: id });
+  }
+
   function openTasks() {
     runAction({ type: "open-tasks" });
   }
@@ -333,13 +366,21 @@
       return;
     }
     if (event.ctrlKey || event.metaKey || event.altKey) return;
-    if (event.key < "1" || event.key > "4") return;
 
-    var index = event.key.charCodeAt(0) - 49;
+    // Shift+1..4 starts a row; the bare digit still opens it. With Shift held
+    // `event.key` is the shifted glyph (Shift+1 is "!"), so the physical digit
+    // comes from `event.code` first and `event.key` is the fallback.
+    var digit = /^Digit([1-4])$/.exec(event.code || "");
+    var index = digit
+      ? Number(digit[1]) - 1
+      : (event.key >= "1" && event.key <= "4" ? event.key.charCodeAt(0) - 49 : -1);
+    if (index < 0) return;
+
     var row = visibleRows()[index];
     if (!row) return;
     event.preventDefault();
-    openTask(row.dataset.id);
+    if (event.shiftKey) startTask(row.dataset.id);
+    else openTask(row.dataset.id);
   });
 
   // Clicking the 8px transparent margin is a click-away, mirroring the notice

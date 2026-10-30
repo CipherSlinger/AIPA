@@ -16,7 +16,9 @@
  *   - blur is click-away, but blurs during the reveal and during an in-flight
  *     row action are ignored;
  *   - a row opens the task's latest conversation, or the Tasks view when the
- *     task has no conversation yet.
+ *     task has no conversation yet;
+ *   - a row's Start button dispatches the task instead: a chat tab in the task
+ *     folder with the brief in the composer, and nothing sent.
  *
  * Everything is fail-open: a missing store, a display query that throws while
  * Electron is still starting, or a window that never paints must never take the
@@ -78,7 +80,7 @@ export interface ClawdTaskBriefPayload {
   shortcut: string
 }
 
-type BriefActionType = 'open' | 'open-tasks' | 'close'
+type BriefActionType = 'open' | 'start' | 'open-tasks' | 'close'
 
 interface BriefAction {
   type?: unknown
@@ -177,6 +179,8 @@ function briefLabels(): Record<string, string> {
     shortcutHint: petT('taskBriefShortcutHint'),
     untitled: petT('taskBriefUntitled'),
     justNow: petT('taskBriefJustNow'),
+    start: petT('taskBriefStart'),
+    startHint: petT('taskBriefStartHint'),
   }
 }
 
@@ -545,6 +549,12 @@ interface AipaTarget {
   sessionId?: string
   /** Open this task's work; the renderer resolves the record itself. */
   taskId?: string
+  /**
+   * Start this task's work: the renderer opens a chat tab in the task folder
+   * with the brief pre-filled in the composer. Nothing is sent, exactly like
+   * pressing Dispatch in AIPA.
+   */
+  startTaskId?: string
   /** Land on the Tasks view (used when there is nothing specific to open). */
   openTasks?: boolean
 }
@@ -552,6 +562,7 @@ interface AipaTarget {
 function sendAipaTarget(webContents: Electron.WebContents, target: AipaTarget): void {
   if (target.sessionId) webContents.send('menu:openSession', target.sessionId)
   else if (target.taskId) webContents.send('menu:openTask', target.taskId)
+  else if (target.startTaskId) webContents.send('menu:startTask', target.startTaskId)
   else if (target.openTasks) webContents.send('menu:openTasks')
 }
 
@@ -620,6 +631,27 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
         ? focusAipa({ taskId: task.id })
         : focusAipa({ openTasks: true })
       if (focused) destroyWindow(false)
+      else { actionInFlight = false; emitUpdate() }
+      return buildPayload()
+    }
+    case 'start': {
+      actionInFlight = true
+      let task: TaskView | undefined
+      try {
+        task = id ? listTasks().find(item => item.id === id) : undefined
+      } catch (err) {
+        log.warn('Could not look up a task to start:', err)
+      }
+      if (!task) {
+        // Same race as 'open': the row's task vanished between paint and click.
+        // Keep the card up with a fresh payload instead of closing onto nothing.
+        actionInFlight = false
+        return emitUpdate()
+      }
+      // Starting work is Dispatch from the card: the renderer opens a task chat
+      // tab with the brief in the composer and sends nothing. The card closes
+      // only once AIPA actually accepted the hand-off.
+      if (focusAipa({ startTaskId: task.id })) destroyWindow(false)
       else { actionInFlight = false; emitUpdate() }
       return buildPayload()
     }

@@ -12,7 +12,7 @@ import { cancelDeptHandbookSync, scheduleDeptHandbookSync } from './components/d
 import { populateDefaultPresetsIfEmpty } from './utils/presetPopulator'
 import { purgeTrashedWorkflows } from './lib/workflowTrash'
 import { pickFolderForView } from './lib/folderPickAction'
-import { openTaskById } from './lib/taskDispatch'
+import { openTaskById, startTaskById } from './lib/taskDispatch'
 import { listSessionsShared } from './utils/sessionListShared'
 import { apiErrorStore } from './components/chat/apiErrorStore'
 import { savedInterruptionStore } from './components/chat/savedInterruptionStore'
@@ -371,6 +371,15 @@ export default function App() {
       window.electronAPI.onMenuEvent('openTask', (taskId) => {
         if (typeof taskId !== 'string' || !taskId) return
         void openTaskById(taskId).then(result => {
+          if (!result.ok && result.error) useUiStore.getState().addToast('error', result.error)
+        })
+      }),
+      // Pet task brief: Start dispatches one row's work — a chat tab in the task
+      // folder with the brief in the composer, nothing sent. A task whose folder
+      // is gone or the tab cap says so in a toast; the brief has already closed.
+      window.electronAPI.onMenuEvent('startTask', (taskId) => {
+        if (typeof taskId !== 'string' || !taskId) return
+        void startTaskById(taskId).then(result => {
           if (!result.ok && result.error) useUiStore.getState().addToast('error', result.error)
         })
       }),
