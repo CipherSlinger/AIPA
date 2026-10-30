@@ -289,21 +289,35 @@ interface WeekReviewWindow {
 }
 
 /**
- * The reviewed week plus the seven days before it. Both edges are built from
- * calendar fields (`new Date(y, m-1, d - 7)`), never by subtracting
- * `86_400_000` ms: on a DST change day an instant-minus-a-day can land on the
- * same or the wrong calendar day.
+ * The displayed week plus the seven days before it. `weekOffset` walks back
+ * whole weeks: 0 is the week that just ended, -1 the one before it. The whole
+ * span moves by `weekOffset * 7` calendar days built from date fields
+ * (`new Date(y, m-1, d + delta)`), never by adding milliseconds: on a DST
+ * change day an instant plus a fixed span can land on the same or the wrong
+ * calendar day. At offset 0 this is byte-for-byte the week the card has
+ * always shown.
  */
-function weekReviewWindow(nowMs: number): WeekReviewWindow {
-  const { weekStart, startMs, endMs } = reviewWindow(nowMs)
-  const monday = parseDay(weekStart)
+function weekReviewWindow(nowMs: number, weekOffset = 0): WeekReviewWindow {
+  const monday = parseDay(reviewWindow(nowMs).weekStart)
+  const delta = weekOffset * 7
+  const start = new Date(monday.year, monday.month - 1, monday.day + delta)
   return {
-    weekStart,
-    weekEnd: formatDay(new Date(monday.year, monday.month - 1, monday.day + 6)),
-    startMs,
-    endMs,
-    previousStartMs: new Date(monday.year, monday.month - 1, monday.day - 7).getTime(),
+    weekStart: formatDay(start),
+    weekEnd: formatDay(new Date(monday.year, monday.month - 1, monday.day + delta + 6)),
+    startMs: start.getTime(),
+    endMs: new Date(monday.year, monday.month - 1, monday.day + delta + 7).getTime(),
+    previousStartMs: new Date(monday.year, monday.month - 1, monday.day + delta - 7).getTime(),
   }
+}
+
+/**
+ * Fold a caller's week offset into the range this card may show: whole weeks
+ * only, never into the future, and no further back than a year. Anything that
+ * is not a finite number reads as the week that just ended.
+ */
+function normalizeWeekOffset(weekOffset: number): number {
+  if (typeof weekOffset !== 'number' || !Number.isFinite(weekOffset)) return 0
+  return Math.max(-52, Math.min(0, Math.floor(weekOffset)))
 }
 
 /** Monday..Sunday of one local week, as day keys. */
@@ -346,20 +360,33 @@ function latestTaskSession(task: TaskRecord): string | undefined {
 }
 
 /**
- * The week that just ended, in full: counts, the seven-day strip, every
- * distinct finished task and the desk as it stands now.
+ * The week that just ended — or, with `weekOffset`, an earlier one — in full:
+ * counts, the seven-day strip, every distinct finished task and the desk as it
+ * stands now.
+ *
+ * `weekOffset` is whole weeks back from the week that just ended: 0 (the
+ * default) is the week the attention bubble speaks about, -1 the week before
+ * it, down to -52. The value is floored and clamped here, so a caller cannot
+ * walk past the floor or into the future. Only the seven finished days and
+ * their counts move; `open`, `overdue` and `openRows` describe the desk at
+ * `nowMs` whatever week is on show.
  *
  * The reviewed window is the same half-open local-midnight span the attention
- * bubble uses — a completion at Sunday 23:59:59 belongs to the week that
- * ended, the one at Monday 00:00:00 to the next. `open` and `overdue` are read
- * at `nowMs`, not at the window's end, because the card says what is on the
- * desk now and a task finished since Sunday is not.
+ * bubble uses — a completion at Sunday 23:59:59 belongs to the displayed week,
+ * the one at Monday 00:00:00 to the next. `open` and `overdue` are read at
+ * `nowMs`, not at the window's end, because the card says what is on the desk
+ * now and a task finished since Sunday is not.
  *
  * Never throws on an odd record: a task without a history array, an event
  * without a finite instant and a malformed due day are skipped, not fatal.
  */
-export function collectWeekReview(tasks: readonly TaskRecord[], nowMs: number): WeekReviewAggregate {
-  const { weekStart, weekEnd, startMs, endMs, previousStartMs } = weekReviewWindow(nowMs)
+export function collectWeekReview(
+  tasks: readonly TaskRecord[],
+  nowMs: number,
+  weekOffset = 0,
+): WeekReviewAggregate {
+  const { weekStart, weekEnd, startMs, endMs, previousStartMs } =
+    weekReviewWindow(nowMs, normalizeWeekOffset(weekOffset))
   const dayKeys = weekDays(weekStart)
   const dayCounts = new Map<string, number>(dayKeys.map(day => [day, 0]))
   const today = localDayKey(nowMs)

@@ -4,7 +4,9 @@ const { contextBridge, ipcRenderer } = require("electron");
 // reports its measured height so the window can size itself, and closes. The
 // window position, focus and destruction all stay in clawd-week-review.ts.
 contextBridge.exposeInMainWorld("weekReviewAPI", {
-  load: () => ipcRenderer.invoke("week-review:load"),
+  // `offset` is optional: no argument (or undefined) asks for the week that
+  // just ended, 0; negative values walk back one whole week each.
+  load: (offset) => ipcRenderer.invoke("week-review:load", offset),
   action: (action) => ipcRenderer.invoke("week-review:action", action),
   close: () => ipcRenderer.send("week-review:close"),
   reportHeight: (height) => ipcRenderer.send("week-review:report-height", height),

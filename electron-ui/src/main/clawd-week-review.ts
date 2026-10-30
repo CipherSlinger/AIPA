@@ -79,6 +79,12 @@ export interface ClawdWeekReviewPayload {
   /** Pet language: "en" | "zh" | "ko". */
   lang: string
   theme: ClawdWeekReviewTheme
+  /** The week on show: 0 is the week that just ended, negative is earlier. */
+  weekOffset: number
+  /** True while an earlier week may still be shown (above the -52 floor). */
+  canGoBack: boolean
+  /** True when an earlier week is on show — the review never looks ahead. */
+  canGoForward: boolean
   /** Monday of the reviewed week, `YYYY-MM-DD`. */
   weekStart: string
   /** Sunday of the reviewed week, `YYYY-MM-DD`. */
@@ -170,6 +176,15 @@ let previousFocus: BrowserWindow | null = null
  * handler could destroy the window before the click-through is delivered.
  */
 let actionInFlight = false
+/**
+ * The week the card is currently showing: 0 is the week that just ended,
+ * negative walks back. A fresh window always starts at 0; `week-review:load`
+ * moves it and every action answer repaints the same week.
+ */
+let currentWeekOffset = 0
+
+/** How far back the card may walk: 52 whole weeks. */
+const MIN_WEEK_OFFSET = -52
 
 // ── Payload ──────────────────────────────────────────────────────────────────
 
@@ -224,6 +239,16 @@ function addDays(day: string, offset: number): string {
   if (!parsed) return day
   const moved = new Date(parsed.year, parsed.month - 1, parsed.day + offset)
   return `${moved.getFullYear()}-${pad2(moved.getMonth() + 1)}-${pad2(moved.getDate())}`
+}
+
+/**
+ * A week offset from the page, made safe: a finite integer floored to whole
+ * weeks and clamped between the -52 floor and 0. Anything else — a missing
+ * argument, a string, NaN — means the week that just ended.
+ */
+function normalizeWeekOffset(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0
+  return Math.max(MIN_WEEK_OFFSET, Math.min(0, Math.floor(value)))
 }
 
 function localeFor(lang: string): string {
@@ -314,30 +339,36 @@ function weekReviewLabels(difference: number): Record<string, string> {
     tomorrow: petT('weekReviewTomorrow'),
     yesterday: petT('weekReviewYesterday'),
     daysLate: petT('weekReviewDaysLate'),
+    prevWeek: petT('weekReviewPrevWeek'),
+    nextWeek: petT('weekReviewNextWeek'),
   }
 }
 
-function readAggregate(nowMs: number): WeekReviewAggregate {
+function readAggregate(nowMs: number, weekOffset: number): WeekReviewAggregate {
   try {
-    return collectWeekReview(readTaskStore().tasks, nowMs)
+    return collectWeekReview(readTaskStore().tasks, nowMs, weekOffset)
   } catch (err) {
     // A store that cannot be read is an empty desk, not a failed card: the
     // week still has its dates and its empty states.
     log.warn('Could not read tasks for the week review:', err)
-    return collectWeekReview([], nowMs)
+    return collectWeekReview([], nowMs, weekOffset)
   }
 }
 
-function buildPayload(): ClawdWeekReviewPayload {
+function buildPayload(weekOffset = currentWeekOffset): ClawdWeekReviewPayload {
   const lang = petLanguage()
   const nowMs = Date.now()
-  const aggregate = readAggregate(nowMs)
+  const offset = normalizeWeekOffset(weekOffset)
+  const aggregate = readAggregate(nowMs, offset)
   const labels = weekReviewLabels(aggregate.finished - aggregate.previousFinished)
   const today = localDayKey(nowMs)
 
   return {
     lang,
     theme: petTheme(),
+    weekOffset: offset,
+    canGoBack: offset > MIN_WEEK_OFFSET,
+    canGoForward: offset < 0,
     weekStart: aggregate.weekStart,
     weekEnd: aggregate.weekEnd,
     range: rangeLabel(aggregate.weekStart, aggregate.weekEnd, lang),
@@ -369,12 +400,16 @@ function buildPayload(): ClawdWeekReviewPayload {
   }
 }
 
-function emptyPayload(): ClawdWeekReviewPayload {
+function emptyPayload(weekOffset = 0): ClawdWeekReviewPayload {
   const nowMs = Date.now()
-  const aggregate = collectWeekReview([], nowMs)
+  const offset = normalizeWeekOffset(weekOffset)
+  const aggregate = collectWeekReview([], nowMs, offset)
   return {
     lang: 'en',
     theme: 'sao',
+    weekOffset: offset,
+    canGoBack: offset > MIN_WEEK_OFFSET,
+    canGoForward: offset < 0,
     weekStart: aggregate.weekStart,
     weekEnd: aggregate.weekEnd,
     range: rangeLabel(aggregate.weekStart, aggregate.weekEnd, 'en'),
@@ -570,6 +605,8 @@ function destroyWindow(restoreFocus: boolean): void {
   clearRevealTimer()
   blurArmedAt = 0
   actionInFlight = false
+  // A fresh open starts at the week that just ended.
+  currentWeekOffset = 0
 
   const win = weekReviewWin
   weekReviewWin = null
@@ -609,6 +646,9 @@ function applyReportedHeight(rawHeight: unknown): void {
 }
 
 function createWindow(anchor: ClawdWeekReviewAnchor | null): boolean {
+  // Every new window opens on the week that just ended, whatever week the
+  // previous window was left showing.
+  currentWeekOffset = 0
   const bounds = computeBounds(anchor, MIN_HEIGHT)
   let win: BrowserWindow
   try {
@@ -796,13 +836,17 @@ function ensureIpc(): void {
   if (ipcRegistered) return
   ipcRegistered = true
 
-  safeHandle('week-review:load', (event: Electron.IpcMainInvokeEvent) => {
-    if (!isSender(event)) return emptyPayload()
-    return buildPayload()
+  // The page asks for a week; omitting the argument (or sending anything that
+  // is not a finite number) means the week that just ended. The choice is
+  // remembered so a later action answer repaints the same week.
+  safeHandle('week-review:load', (event: Electron.IpcMainInvokeEvent, offset: unknown) => {
+    if (!isSender(event)) return emptyPayload(0)
+    currentWeekOffset = normalizeWeekOffset(offset)
+    return buildPayload(currentWeekOffset)
   })
 
   safeHandle('week-review:action', (event: Electron.IpcMainInvokeEvent, action: unknown) => {
-    if (!isSender(event)) return emptyPayload()
+    if (!isSender(event)) return emptyPayload(currentWeekOffset)
     return handleAction(action)
   })
 

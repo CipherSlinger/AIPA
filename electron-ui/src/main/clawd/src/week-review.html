@@ -47,6 +47,10 @@ html, body {
   --alert: #ffb454;
   --good: #57d98a;
   --ui-font: "Cascadia Code", "SF Mono", ui-monospace, "Segoe UI", sans-serif;
+  /* The two week-navigation buttons bracket the title. Their size feeds the
+     range line's indent so the date stays under the title, not the arrows. */
+  --nav-size: 20px;
+  --head-gap: 8px;
 }
 
 .panel[data-theme="clawd"] {
@@ -67,6 +71,7 @@ html, body {
   --alert: #c2410c;
   --good: #15803d;
   --ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --nav-size: 22px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -172,7 +177,7 @@ body { padding: 8px; }
 .head-line {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--head-gap);
   min-width: 0;
 }
 .head-mark {
@@ -189,6 +194,9 @@ body { padding: 8px; }
   box-shadow: none;
 }
 .title {
+  /* Grow into the middle so the next-week button lands at the header's right
+     edge, however short the title is. The text itself stays left-aligned. */
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
@@ -207,7 +215,8 @@ body { padding: 8px; }
 }
 .range {
   margin-top: 4px;
-  padding-left: 14px;
+  /* Mark + gap + previous button + gap: the same x where the title starts. */
+  padding-left: calc(6px + var(--head-gap) + var(--head-gap) + var(--nav-size));
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -220,7 +229,7 @@ body { padding: 8px; }
 }
 .panel[data-theme="clawd"] .range {
   margin-top: 3px;
-  padding-left: 14px;
+  padding-left: calc(6px + var(--head-gap) + var(--head-gap) + var(--nav-size));
   font-size: 11.5px;
   font-weight: 500;
   letter-spacing: 0.01em;
@@ -694,6 +703,46 @@ body { padding: 8px; }
 }
 .btn.ghost { margin-left: auto; }
 
+/* Week navigation. The arrows are the same chrome as the footer buttons —
+   cut-corner in the HUD skin, a quiet rounded chip in clawd — sized down to
+   an icon so they can bracket the title without disturbing it. Their hover and
+   focus treatments come from `.btn` above. A disabled arrow is not tabbable
+   and not clickable, and fades rather than disappearing. */
+.btn.nav-btn {
+  flex: none;
+  width: var(--nav-size);
+  height: var(--nav-size);
+  padding: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.panel[data-theme="clawd"] .btn.nav-btn {
+  width: var(--nav-size);
+  height: var(--nav-size);
+  padding: 0;
+  border-radius: 7px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1;
+}
+.nav-glyph {
+  display: block;
+  line-height: 1;
+}
+.btn:disabled {
+  cursor: default;
+  opacity: 0.34;
+}
+.btn:disabled:hover {
+  color: var(--muted);
+  background: none;
+  border-color: var(--key-border);
+  box-shadow: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .panel { transition: none; }
   .scan { animation: none; }
@@ -711,7 +760,15 @@ body { padding: 8px; }
   <header class="head">
     <div class="head-line">
       <span class="head-mark" aria-hidden="true"></span>
+      <button class="btn nav-btn" id="prevBtn" type="button" disabled
+              aria-label="Previous week" title="Previous week">
+        <span class="nav-glyph" aria-hidden="true">&#8249;</span>
+      </button>
       <h1 class="title" id="title"></h1>
+      <button class="btn nav-btn" id="nextBtn" type="button" disabled
+              aria-label="Next week" title="Next week">
+        <span class="nav-glyph" aria-hidden="true">&#8250;</span>
+      </button>
     </div>
     <div class="range" id="range"></div>
   </header>
@@ -801,6 +858,8 @@ body { padding: 8px; }
   var openEmptyEl = document.getElementById("openEmpty");
   var openTasksBtn = document.getElementById("openTasksBtn");
   var closeBtn = document.getElementById("closeBtn");
+  var prevBtn = document.getElementById("prevBtn");
+  var nextBtn = document.getElementById("nextBtn");
 
   // Used only if a payload arrives without its label table (an older main or
   // a truncated fixture). A real payload always carries every string.
@@ -825,6 +884,8 @@ body { padding: 8px; }
     yesterday: "yesterday",
     daysLate: "{n} days late",
     more: "+{n} more",
+    prevWeek: "Previous week",
+    nextWeek: "Next week",
   };
 
   var LOCALES = { en: "en-US", zh: "zh-CN", ko: "ko-KR" };
@@ -836,6 +897,9 @@ body { padding: 8px; }
     focusIndex: -1,
     heightFrame: null,
     animated: false,
+    // Every week request gets a sequence number; only the newest answer may
+    // repaint, so a slow older answer cannot overwrite a newer week.
+    loadSeq: 0,
   };
 
   function isNum(value) {
@@ -912,9 +976,16 @@ body { padding: 8px; }
       }
     }
 
+    // Navigation state is whatever the payload says. A payload from an older
+    // main has none of these: it still renders, with both arrows disabled.
+    var weekOffset = isNum(data.weekOffset) ? Math.floor(data.weekOffset) : 0;
+
     return {
       lang: str(data.lang) || "en",
       theme: data.theme === "clawd" ? "clawd" : "sao",
+      weekOffset: weekOffset,
+      canGoBack: data.canGoBack === true,
+      canGoForward: data.canGoForward === true,
       weekStart: str(data.weekStart),
       weekEnd: str(data.weekEnd),
       range: str(data.range),
@@ -1050,6 +1121,15 @@ body { padding: 8px; }
     openTasksBtn.setAttribute("aria-label", s.openTasks);
     closeBtn.setAttribute("aria-label", s.close);
     panel.setAttribute("aria-label", s.title);
+
+    // The arrows follow the payload's own go/no-go flags; the page never
+    // decides a week exists on its own.
+    prevBtn.disabled = !p.canGoBack;
+    nextBtn.disabled = !p.canGoForward;
+    prevBtn.setAttribute("aria-label", s.prevWeek);
+    nextBtn.setAttribute("aria-label", s.nextWeek);
+    prevBtn.title = s.prevWeek;
+    nextBtn.title = s.nextWeek;
   }
 
   // ── Chart ──────────────────────────────────────────────────────────────────
@@ -1194,6 +1274,8 @@ body { padding: 8px; }
   function render(raw, first) {
     var payload = normalizePayload(raw);
     state.payload = payload;
+    // Rows are rebuilt, so any old keyboard position is meaningless.
+    state.focusIndex = -1;
     renderChrome(payload);
     renderChart(payload, first);
     renderRows(payload);
@@ -1254,6 +1336,42 @@ body { padding: 8px; }
     try { target.focus({ preventScroll: false }); } catch (err) { target.focus(); }
   }
 
+  // ── Week navigation ────────────────────────────────────────────────────────
+  // The page keeps the current card exactly as it is until the answer arrives;
+  // there is deliberately no spinner and no clearing. `weekOffset` comes from
+  // the payload, so the step is always relative to the week on screen.
+  function currentOffset() {
+    return state.payload && isNum(state.payload.weekOffset) ? state.payload.weekOffset : 0;
+  }
+
+  function loadWeek(offset) {
+    if (!api || typeof api.load !== "function") return false;
+    var seq = state.loadSeq + 1;
+    state.loadSeq = seq;
+    var answer;
+    try {
+      answer = api.load(offset);
+    } catch (err) {
+      return false;
+    }
+    Promise.resolve(answer).then(function (payload) {
+      // A newer request has superseded this one; its answer is stale.
+      if (seq !== state.loadSeq) return;
+      render(payload, false);
+    }).catch(function () { /* fail open: the current week stays */ });
+    return true;
+  }
+
+  function goBack() {
+    if (!state.payload || !state.payload.canGoBack) return false;
+    return loadWeek(currentOffset() - 1);
+  }
+
+  function goForward() {
+    if (!state.payload || !state.payload.canGoForward) return false;
+    return loadWeek(currentOffset() + 1);
+  }
+
   // ── Wiring ────────────────────────────────────────────────────────────────
   // One click path for pointer and keyboard: Enter calls the focused row's
   // own click(), so both gestures produce the same action.
@@ -1268,6 +1386,14 @@ body { padding: 8px; }
 
   openTasksBtn.addEventListener("click", openTasks);
   closeBtn.addEventListener("click", closePanel);
+  prevBtn.addEventListener("click", function () {
+    if (prevBtn.disabled) return;
+    goBack();
+  });
+  nextBtn.addEventListener("click", function () {
+    if (nextBtn.disabled) return;
+    goForward();
+  });
 
   // Only reveal the scrollbar thumb while the body is actually being scrolled.
   var scrollTimer = null;
@@ -1296,6 +1422,18 @@ body { padding: 8px; }
       return;
     }
     if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+    // The week is the card's primary axis: left/right walk weeks from
+    // anywhere, including while a row has focus. The payload's flags decide
+    // whether a step exists, so a disabled direction does nothing.
+    if (event.key === "ArrowLeft") {
+      if (goBack()) event.preventDefault();
+      return;
+    }
+    if (event.key === "ArrowRight") {
+      if (goForward()) event.preventDefault();
+      return;
+    }
 
     var rows = actionRows();
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
