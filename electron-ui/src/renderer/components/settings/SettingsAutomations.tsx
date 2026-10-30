@@ -32,11 +32,13 @@ import {
 import { sortJobs, type JobSortMode } from '../automation/jobSort'
 import { buildInvestigatePrompt } from '../automation/investigatePrompt'
 import { buildJobDepartmentOptions } from '../automation/jobDepartment'
+import { saveRunAsTask } from '../automation/saveRunAsTask'
 import { isFolderRefusedError, jobFolderFromAction } from '../automation/jobFolder'
 import { SECONDARY, primaryButtonStyle } from '../automation/automationStyles'
 import type {
   AutomationJobData,
   AutomationLimitsData,
+  AutomationRunRecordData,
   JobTrashErrorCode,
   SkillInfoData,
 } from '../../../preload'
@@ -82,6 +84,8 @@ export default function SettingsAutomations() {
   const [dialog, setDialog] = useState<AutomationJobData | null | 'new'>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  // `${jobId}:${startedAt}` while that row's "Save as task" is running.
+  const [savingRunKey, setSavingRunKey] = useState<string | null>(null)
   const [pauseBusy, setPauseBusy] = useState(false)
   // The budget field is kept as text so an empty value means "no cap" instead of
   // $0; a null draft means "show what the store says", and typing replaces it.
@@ -301,6 +305,16 @@ export default function SettingsAutomations() {
       delete next[jobId]
       return next
     })
+  }
+
+  const saveRun = async (job: AutomationJobData, record: AutomationRunRecordData) => {
+    const key = `${job.id}:${record.startedAt}`
+    setSavingRunKey(current => current ?? key)
+    try {
+      await saveRunAsTask({ job, jobId: job.id, jobName: job.name, record, t, addToast })
+    } finally {
+      setSavingRunKey(current => (current === key ? null : current))
+    }
   }
 
   const openRun = (sessionId: string) => {
@@ -608,6 +622,8 @@ export default function SettingsAutomations() {
                 onConfirmDelete={() => setConfirmingId(job.id)}
                 onCancelDelete={() => setConfirmingId(null)}
                 onOpenRun={openRun}
+                onSaveRunAsTask={record => { void saveRun(job, record) }}
+                savingRunKey={savingRunKey}
                 onPatchHistoryUi={patch => patchRunHistoryUi(job.id, patch)}
                 onResetHistoryUi={() => resetRunHistoryUi(job.id)}
                 onToggleRunFiles={key => setRunFilesOpen(prev => ({

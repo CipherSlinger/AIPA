@@ -18,6 +18,7 @@ import { safeHandle } from './register/safe-handle'
 import { createLogger } from '../utils/logger'
 import {
   addMaterials,
+  addTextMaterial,
   archiveTask,
   createTask,
   deleteTask,
@@ -30,6 +31,7 @@ import {
   routeTask,
   updateTask,
 } from '../tasks/task-store'
+import { saveAutomationRunAsTask } from '../tasks/automation-intake'
 
 const log = createLogger('ipc:tasks')
 
@@ -94,6 +96,32 @@ export function registerTaskHandlers(send: Send): void {
   safeHandle('tasks:addMaterials', (_event, id: unknown, input: unknown) => {
     const payload = input && typeof input === 'object' ? input as Record<string, unknown> : {}
     const result = addMaterials(id, payload.paths, payload.source)
+    if (result.ok) changed()
+    return result
+  })
+
+  // A text material, e.g. a note the caller composed. The store enforces the
+  // size cap, sanitized filename and the same ownership check as addMaterials.
+  safeHandle('tasks:addTextMaterial', (_event, id: unknown, input: unknown) => {
+    const payload = input && typeof input === 'object' ? input as Record<string, unknown> : {}
+    const result = addTextMaterial(id, {
+      name: payload.name,
+      text: payload.text,
+      source: payload.source,
+    })
+    if (result.ok) changed()
+    return result
+  })
+
+  // Turn a remembered automation run into a task whose material is the run's
+  // own output. Idempotent by the task history (see `automation-intake.ts`).
+  safeHandle('tasks:saveAutomationRun', async (_event, input: unknown) => {
+    const payload = input && typeof input === 'object' ? input as Record<string, unknown> : {}
+    const result = await saveAutomationRunAsTask({
+      jobId: payload.jobId,
+      startedAt: payload.startedAt,
+      departmentId: payload.departmentId,
+    })
     if (result.ok) changed()
     return result
   })

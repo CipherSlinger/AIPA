@@ -112,3 +112,21 @@ export function statusColor(status: TaskStatusData): string {
 export const EDITABLE_STATUSES: TaskStatusData[] = [
   'inbox', 'ready', 'assigned', 'in_progress', 'needs_you', 'done',
 ]
+
+/**
+ * Read the provenance key main writes on a task saved from a run.
+ *
+ * The detail is `automation:<jobId>:<startedAt>`; the last colon separates the
+ * two facts. A hand-edited or older detail that does not parse is left to be
+ * shown verbatim rather than guessed at.
+ */
+export function parseAutomationRunDetail(
+  detail: string | undefined,
+): { jobId: string; startedAt: number } | null {
+  if (!detail) return null
+  const match = /^automation:(.+):(\d+)$/.exec(detail)
+  if (!match) return null
+  const startedAt = Number(match[2])
+  if (!Number.isFinite(startedAt)) return null
+  return { jobId: match[1], startedAt }
+}

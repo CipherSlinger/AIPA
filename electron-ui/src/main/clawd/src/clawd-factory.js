@@ -288,6 +288,7 @@ let _petMenu = null;
 // tree (dist/main/quick-command.js).
 let _quickCommand = null;
 let _quickCommandChord = null;
+let _taskBriefChord = null;
 let tray = null;
 let contextMenuOwner = null;
 let currentSize = _settingsController.get("size");
@@ -426,6 +427,57 @@ function unregisterQuickCommandShortcut() {
     globalShortcut.unregister(_quickCommandChord);
   } catch {}
   _quickCommandChord = null;
+}
+
+// The task brief's summon chords, in priority order. B is the mnemonic; the
+// fallback drops Shift when another application already owns the first chord.
+// Registration stops at the first success, the same discipline as ASK and the
+// app's own summon chord: a second binding would fire the brief twice.
+const TASK_BRIEF_CHORDS = [
+  "Control+Shift+Alt+B",
+  "Control+Alt+B",
+];
+
+function openTaskBriefFromShortcut() {
+  if (isQuitting || petHidden || !win || win.isDestroyed()) return;
+  // The ring and the brief both own the keyboard while up. Opening the brief
+  // from the shortcut while the ring is open means "brief", so close the ring
+  // first and let the card anchor to the pet.
+  closePetMenu();
+  // Pass the chord along so the card's footer hints at a shortcut that works.
+  callPetMenuCallback("openTaskBrief", _taskBriefChord || "");
+}
+
+function registerTaskBriefShortcut() {
+  _taskBriefChord = null;
+  // No AIPA wiring (standalone pet): there is nowhere to open the brief, so
+  // claiming a global chord would only shadow another application's.
+  if (!hasPetMenuCallback("openTaskBrief")) return;
+  for (const chord of TASK_BRIEF_CHORDS) {
+    let claimed = false;
+    try {
+      claimed = globalShortcut.register(chord, openTaskBriefFromShortcut);
+    } catch (err) {
+      console.warn(`Clawd: failed to register task brief shortcut ${chord}:`, err.message);
+    }
+    if (claimed) {
+      _taskBriefChord = chord;
+      break;
+    }
+  }
+  if (!_taskBriefChord) {
+    // Every candidate is owned elsewhere. The BRIEF petal remains the way in;
+    // the card hides its hint rather than naming a chord that does nothing.
+    console.warn("Clawd: task brief shortcut could not be claimed");
+  }
+}
+
+function unregisterTaskBriefShortcut() {
+  if (!_taskBriefChord) return;
+  try {
+    globalShortcut.unregister(_taskBriefChord);
+  } catch {}
+  _taskBriefChord = null;
 }
 
 function sendToRenderer(channel, ...args) {
@@ -1127,6 +1179,8 @@ function getPetMenuPayload() {
       recent: t("petMenuRecent"),
       // Second-ring leaf: opens the quick command bar.
       ask: t("petMenuAsk"),
+      // Second-ring leaf: opens the task brief beside the pet.
+      brief: t("petMenuBrief"),
       noRecentChats: t("petMenuNoRecentChats"),
       back: t("petMenuBack"),
       close: t("petMenuClose"),
@@ -1171,6 +1225,9 @@ function getPetMenuPayload() {
       // ASK is owned by the pet itself (its own window), not by an AIPA
       // callback, so it is always offered once the pet window exists.
       ask: true,
+      // BRIEF is an AIPA window like NOTICES; without the callback there is
+      // nothing to open.
+      brief: hasPetMenuCallback("openTaskBrief"),
     },
   };
 }
@@ -1192,6 +1249,9 @@ function handlePetMenuAction(actionId) {
         console.warn("Clawd: quick command could not open:", err && err.message);
       }
       break;
+    // Task brief. The chord travels with the call so the card can hint at the
+    // one that was actually claimed (empty when none was).
+    case "brief": callPetMenuCallback("openTaskBrief", _taskBriefChord || ""); break;
     default:
       // The RUNNING chip's id travels with the action, so a turn ending while
       // the ring is up cannot redirect the click to a different conversation.
@@ -2289,6 +2349,7 @@ module.exports = function createClawdIntegration(aipaContext) {
     flushRuntimeStateToPrefs();
     unregisterToggleShortcut();
     unregisterQuickCommandShortcut();
+    unregisterTaskBriefShortcut();
     globalShortcut.unregisterAll();
     _perm.cleanup();
     _server.cleanup();
@@ -2335,6 +2396,8 @@ module.exports = function createClawdIntegration(aipaContext) {
   registerToggleShortcut();
   // …and the second one: summon the quick command bar from anywhere.
   registerQuickCommandShortcut();
+  // …and the third: the task brief beside the pet.
+  registerTaskBriefShortcut();
 
   // Construct log monitors
   try {

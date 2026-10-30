@@ -4,7 +4,7 @@
 // Dispatch is visible: it opens the chat on a tab whose cwd is this task's
 // folder and fills the composer; the user presses send. This file never sends
 // a turn itself and never writes `prefs.workingDir`.
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
   Archive,
@@ -39,10 +39,13 @@ import {
   taskConversationTitle,
   taskDispatchPurpose,
 } from '../../lib/taskDispatch'
+import { suggestDepartment } from '../../lib/taskRouting'
+import DepartmentSuggestionChip from './DepartmentSuggestionChip'
 import {
   EDITABLE_STATUSES,
   formatBytes,
   formatTaskTime,
+  parseAutomationRunDetail,
   statusColor,
   statusLabelKey,
 } from './taskUi'
@@ -166,11 +169,32 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
     return () => { disposed = true }
   }, [task.id, task.sessions, sessionList])
 
+  // Suggestions follow the task's own words and files. They are advisory: the
+  // select stays the authority, and this never writes anything by itself.
+  const suggestion = useMemo(
+    () => suggestDepartment({
+      title: task.title,
+      materialNames: task.materials.map(material => material.name),
+      departments,
+    }),
+    [task.title, task.materials, departments],
+  )
+
   const setDepartment = async (departmentId: string) => {
     setRouting(true)
     const result = await routeTask(task.id, departmentId || null)
     setRouting(false)
     if (!result.ok) addToast('error', result.error || t('tasks.error.route'))
+  }
+
+  const acceptSuggestion = async (departmentId: string) => {
+    // The chip may have been rendered before the node was deleted. Report it
+    // and leave the user at the picker instead of writing an unresolvable id.
+    if (!deptOptions.some(option => option.id === departmentId)) {
+      addToast('warning', t('tasks.suggest.stale'))
+      return
+    }
+    await setDepartment(departmentId)
   }
 
   const dispatch = () => {
@@ -310,6 +334,12 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
         ? t(`tasks.sessionPurpose.${event.detail}`)
         : event.detail
     }
+    if (event.kind === 'from_automation') {
+      const run = parseAutomationRunDetail(event.detail)
+      return run
+        ? t('tasks.historyRun', { when: formatTaskTime(run.startedAt, resolvedLocale) })
+        : event.detail
+    }
     return event.detail
   }
 
@@ -410,6 +440,14 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
             )}
           </select>
         </span>
+
+        {suggestion && suggestion.departmentId !== task.departmentId && (
+          <DepartmentSuggestionChip
+            suggestion={suggestion}
+            disabled={routing}
+            onAccept={() => { void acceptSuggestion(suggestion.departmentId) }}
+          />
+        )}
 
         <span style={{ flex: 1 }} />
 
@@ -837,7 +875,9 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
                         {t(`tasks.event.${event.kind}`)}
                       </div>
                       {detail && (
-                        <div title={detail} style={{
+                        // The automation key is kept on the row's tooltip: the
+                        // line reads as a time, the provenance stays checkable.
+                        <div title={event.kind === 'from_automation' && event.detail ? event.detail : detail} style={{
                           fontSize: 9, color: 'var(--text-subtle)', marginTop: 1,
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}>

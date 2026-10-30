@@ -16,7 +16,13 @@ import { deriveRepeatedAsking } from '../../automation/approvalPattern'
 import { resolveJobDepartment, type JobDepartmentOption } from '../../automation/jobDepartment'
 import { SECONDARY, WARNING } from '../../automation/automationStyles'
 import type { WorkflowOption } from '../../automation/AutomationDialog'
-import type { AutomationJobData, AutomationLimitsData, NavPlugin, SkillInfoData } from '../../../../preload'
+import type {
+  AutomationJobData,
+  AutomationLimitsData,
+  AutomationRunRecordData,
+  NavPlugin,
+  SkillInfoData,
+} from '../../../../preload'
 import type { Persona } from '../../../types/app.types'
 import type { AppLocale } from '../../../utils/formatDate'
 import {
@@ -74,6 +80,8 @@ export function AutomationJobRow({
   onPatchHistoryUi,
   onResetHistoryUi,
   onToggleRunFiles,
+  onSaveRunAsTask,
+  savingRunKey,
 }: {
   t: Translate
   locale: AppLocale
@@ -107,6 +115,9 @@ export function AutomationJobRow({
   onPatchHistoryUi: (patch: Partial<RunHistoryUi>) => void
   onResetHistoryUi: () => void
   onToggleRunFiles: (key: string) => void
+  onSaveRunAsTask: (record: AutomationRunRecordData) => void
+  /** `${job.id}:${startedAt}` while that run's save is in flight. */
+  savingRunKey: string | null
 }) {
   const status = statusLine(t, job, locale)
   // A job whose requests keep being refused is pointed at its own
@@ -401,6 +412,8 @@ export function AutomationJobRow({
             onResetHistoryUi={onResetHistoryUi}
             onToggleRunFiles={onToggleRunFiles}
             onOpenRun={onOpenRun}
+            onSaveAsTask={onSaveRunAsTask}
+            savingRunKey={savingRunKey}
           />
         )}
       </div>

@@ -9,6 +9,8 @@ import type {
   TaskMaterialImportData,
   TaskMutationData,
   TaskRecordData,
+  TaskSaveAutomationRunData,
+  TaskSaveAutomationRunResultData,
   TaskSessionLinkData,
   TaskStatusData,
 } from '../../preload'
@@ -32,6 +34,8 @@ interface TaskState {
   linkSession: (id: string, input: TaskSessionLinkData) => Promise<TaskMutationData>
   /** File the task under a department (or clear it); attribution only. */
   routeTask: (id: string, departmentId: string | null) => Promise<TaskMutationData>
+  /** Save an automation run's output as a task; a second save reopens it. */
+  saveAutomationRun: (input: TaskSaveAutomationRunData) => Promise<TaskSaveAutomationRunResultData>
 }
 
 let loadSeq = 0
@@ -194,6 +198,21 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       const result = await window.electronAPI.tasksRoute(id, departmentId)
       if (result.ok && result.task) {
         set(state => ({ tasks: replaceTask(state.tasks, result.task!) }))
+      }
+      return result
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  },
+
+  saveAutomationRun: async (input) => {
+    try {
+      const result = await window.electronAPI.tasksSaveAutomationRun(input)
+      if (result.ok && result.task) {
+        set(state => ({
+          tasks: replaceTask(state.tasks, result.task!),
+          selectedTaskId: result.task!.id,
+        }))
       }
       return result
     } catch (err) {

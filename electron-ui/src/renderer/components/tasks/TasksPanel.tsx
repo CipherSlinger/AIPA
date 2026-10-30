@@ -16,10 +16,13 @@ import {
   X,
 } from 'lucide-react'
 import type { TaskRecordData } from '../../../preload'
-import { useTaskStore, useUiStore } from '../../store'
+import { useDepartmentStore, useTaskStore, useUiStore } from '../../store'
 import { useI18n, useT } from '../../i18n'
 import { Pill } from '../archive/ArchiveChrome'
+import { deptTreeOptionText, deptTreeOptions } from '../departments/deptUtils'
 import { pushEscapeHandler } from '../ui/escapeStack'
+import { suggestDepartment } from '../../lib/taskRouting'
+import DepartmentSuggestionChip from './DepartmentSuggestionChip'
 import TaskDetail from './TaskDetail'
 import {
   countActive,
@@ -68,12 +71,15 @@ export default function TasksPanel() {
   const selectTask = useTaskStore(s => s.selectTask)
   const createTask = useTaskStore(s => s.createTask)
   const deleteTask = useTaskStore(s => s.deleteTask)
+  const routeTask = useTaskStore(s => s.routeTask)
+  const departments = useDepartmentStore(s => s.departments)
   const addToast = useUiStore(s => s.addToast)
 
   const [query, setQuery] = useState('')
   const [showArchived, setShowArchived] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [title, setTitle] = useState('')
+  const [departmentChoice, setDepartmentChoice] = useState('')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<TaskRecordData | null>(null)
@@ -95,7 +101,11 @@ export default function TasksPanel() {
   // it would leave the Tasks view.
   useEffect(() => {
     if (!createOpen) return
-    return pushEscapeHandler(() => { setCreateOpen(false); setCreateError(null) })
+    return pushEscapeHandler(() => {
+      setCreateOpen(false)
+      setCreateError(null)
+      setDepartmentChoice('')
+    })
   }, [createOpen])
 
   useEffect(() => {
@@ -109,6 +119,33 @@ export default function TasksPanel() {
   )
   const selected = tasks.find(task => task.id === selectedTaskId) ?? null
   const activeCount = countActive(tasks)
+  const deptOptions = useMemo(
+    () => deptTreeOptions(departments, resolvedLocale),
+    [departments, resolvedLocale],
+  )
+  // A suggestion only describes the words already typed. It is never assigned;
+  // the chip's click is what puts an id into `departmentChoice`.
+  const suggestion = useMemo(
+    () => suggestDepartment({ title, departments }),
+    [title, departments],
+  )
+
+  const acceptSuggestion = () => {
+    if (!suggestion) return
+    // The tree may have changed since render. A stale chip must not write an
+    // id nobody can resolve; say so and leave the picker in front of the user.
+    if (!departments.some(dept => dept.id === suggestion.departmentId)) {
+      addToast('warning', t('tasks.suggest.stale'))
+      return
+    }
+    setDepartmentChoice(suggestion.departmentId)
+  }
+
+  const closeCreate = () => {
+    setCreateOpen(false)
+    setCreateError(null)
+    setDepartmentChoice('')
+  }
 
   const submitCreate = async () => {
     const trimmed = title.trim()
@@ -121,8 +158,20 @@ export default function TasksPanel() {
       setCreateError(result.error ? String(result.error) : t('tasks.error.create'))
       return
     }
+    // The task exists first; routing is attribution and can fail without
+    // undoing the work. A target that vanished while the dialog was open is
+    // reported and the task is kept unassigned rather than guessed at.
+    if (departmentChoice) {
+      if (!departments.some(dept => dept.id === departmentChoice)) {
+        addToast('warning', t('tasks.suggest.stale'))
+      } else {
+        const routed = await routeTask(result.task.id, departmentChoice)
+        if (!routed.ok) addToast('error', routed.error || t('tasks.error.route'))
+      }
+    }
     setCreateOpen(false)
     setTitle('')
+    setDepartmentChoice('')
     addToast('success', t('tasks.created', { title: result.task.title }))
   }
 
@@ -204,7 +253,11 @@ export default function TasksPanel() {
           {t(showArchived ? 'tasks.hideArchived' : 'tasks.showArchived')}
         </Pill>
 
-        <button type="button" onClick={() => { setCreateOpen(true); setCreateError(null) }} style={PRIMARY_BUTTON}>
+        <button
+          type="button"
+          onClick={() => { setCreateOpen(true); setCreateError(null); setDepartmentChoice('') }}
+          style={PRIMARY_BUTTON}
+        >
           <Plus size={13} />
           {t('tasks.newTask')}
         </button>
@@ -408,6 +461,35 @@ export default function TasksPanel() {
               />
             </label>
 
+            {/* Optional attribution. The suggestion is rendered beside the
+                picker, never selected for the user; the empty option is a real
+                choice, and no click means no routing. */}
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)' }}>
+                {t('tasks.department')}
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                <select
+                  value={departmentChoice}
+                  onChange={e => setDepartmentChoice(e.target.value)}
+                  aria-label={t('tasks.department')}
+                  style={{
+                    flex: 1, minWidth: 0, height: 30, borderRadius: 8, padding: '0 8px',
+                    border: '1px solid var(--border)', background: 'var(--bg-input)',
+                    color: 'var(--text-primary)', fontSize: 11, cursor: 'pointer',
+                  }}
+                >
+                  <option value="">{t('tasks.departmentNone')}</option>
+                  {deptOptions.map(option => (
+                    <option key={option.id} value={option.id}>{deptTreeOptionText(option)}</option>
+                  ))}
+                </select>
+                {suggestion && suggestion.departmentId !== departmentChoice && (
+                  <DepartmentSuggestionChip suggestion={suggestion} onAccept={acceptSuggestion} />
+                )}
+              </div>
+            </label>
+
             {createError && (
               <div style={{ fontSize: 11, color: 'var(--error)', display: 'flex', alignItems: 'center', gap: 5 }}>
                 <AlertTriangle size={12} />
@@ -416,7 +498,7 @@ export default function TasksPanel() {
             )}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 2 }}>
-              <button type="button" onClick={() => setCreateOpen(false)} style={HEADER_BUTTON}>
+              <button type="button" onClick={closeCreate} style={HEADER_BUTTON}>
                 {t('tasks.cancel')}
               </button>
               <button

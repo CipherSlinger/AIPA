@@ -283,13 +283,15 @@ body { position: relative; }
 .petal[aria-disabled="true"]:focus-visible { filter: none; }
 
 /* ── Nested petals ───────────────────────────────────────────────────────── */
-/* One size down and pulled in to a 108px radius: the window is not resized
-   for the second level, so the whole nested ring has to fit the same square
-   as the outer one (it does — 165px of reach against a 210px half-window). */
+/* One size down and pulled in to a 90px radius: the window is not resized for
+   the second level, so the whole nested ring has to fit the same square as the
+   outer one. Seven chips at 51.4° need 110x36 bodies — the previous 124x40
+   overlapped their neighbours three times — and reach ~201px against the
+   210px half-window, still clear of the orb. */
 .petal--nested {
-  width: 124px;
-  height: 40px;
-  margin: -20px 0 0 -62px;
+  width: 110px;
+  height: 36px;
+  margin: -18px 0 0 -55px;
 }
 .petal--nested .edge {
   clip-path: polygon(
@@ -310,23 +312,24 @@ body { position: relative; }
     9px 100%,
     0 calc(100% - 9px)
   );
-  gap: 6px;
-  padding: 0 9px;
+  gap: 5px;
+  padding: 0 8px;
 }
-.petal--nested .glyph { width: 14px; height: 14px; }
-/* "ALL COMMANDS" is the longest label and has to fit 84px of chip; 0.1em is
-   the widest tracking that does on a fallback font as well as Cascadia. */
-.petal--nested .label { font-size: 9.5px; letter-spacing: 0.1em; }
-.petal--nested .key { top: 2px; right: 6px; font-size: 6.5px; }
+.petal--nested .glyph { width: 13px; height: 13px; }
+/* "ALL COMMANDS" is the longest label and has to fit the 72px text column
+   left by the narrower 110px chip; 0.08em is the widest tracking that does on
+   a fallback font as well as Cascadia. */
+.petal--nested .label { font-size: 8.5px; letter-spacing: 0.08em; }
+.petal--nested .key { top: 2px; right: 5px; font-size: 6.5px; }
 
 /* ── Session petals (third ring) ─────────────────────────────────────────── */
-/* Same 124x40 chip and the same clearance as the nested ring: a conversation
+/* Same 110x36 chip and the same clearance as the nested ring: a conversation
    title is longer than an action label, and letting the chip grow to fit it
    would push the outer edge past the window. The label truncates instead; the
    age stays a fixed-width muted suffix so the text column is predictable. */
 .petal--session .face {
-  gap: 6px;
-  padding: 0 9px;
+  gap: 5px;
+  padding: 0 8px;
 }
 .petal--session .label {
   flex: 1 1 auto;
@@ -711,13 +714,16 @@ body { position: relative; }
   // Second ring: a chip's centre cannot sit on a circle, or a wide chip tucks
   // its inner corner under the orb. Its inner edge does, and the centre
   // distance follows from the angle.
-  var NESTED_CLEARANCE = 66;
-  var CHIP_HALF_W = 64;
-  var CHIP_HALF_H = 23;
-  // Every nested chip is the same 128x46 as an outer one, so the ring's reach
-  // stays inside the unchanged 420px window (~200px from centre at worst).
-  // The session ring uses the same chip size and the same rule.
-  var SESSION_START_ANGLE = 78; // RECENT's own angle (see NESTED_PETALS)
+  var NESTED_CLEARANCE = 90;
+  var CHIP_HALF_W = 55;
+  var CHIP_HALF_H = 18;
+  // Seven nested petals step by 360/7. Starting at MORE's angle keeps the petal
+  // the user just pressed under the cursor when the level opens.
+  var NESTED_START_ANGLE = 198;
+  var NESTED_STEP = 360 / 7;
+  // The session ring borrows the nested chips and starts at RECENT's angle
+  // (index 4 in NESTED_PETALS), so the two rings are aligned when it opens.
+  var SESSION_START_ANGLE = NESTED_START_ANGLE + 4 * NESTED_STEP;
   var SESSION_STEP = 72;
   var SESSION_LIMIT = 5;
   var SESSION_ACCENT = "#b98cff";
@@ -755,6 +761,7 @@ body { position: relative; }
     gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M12 3.2v2.1M12 18.7v2.1M3.2 12h2.1M18.7 12h2.1M5.8 5.8l1.5 1.5M16.7 16.7l1.5 1.5M18.2 5.8l-1.5 1.5M7.3 16.7l-1.5 1.5"/></svg>',
     hide: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 12S6.6 6.6 12 6.6 20.8 12 20.8 12s-3.4 5.4-8.8 5.4S3.2 12 3.2 12z"/><circle cx="12" cy="12" r="2.5"/><path d="M4.4 19.6 19.6 4.4"/></svg>',
     ask: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 5.4l6.2 6.6-6.2 6.6"/><path d="M12.4 18.6h7.4"/></svg>',
+    brief: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5.4" y="4.6" width="13.2" height="15" rx="1.4"/><path d="M9 3.2h6v3H9z"/><path d="M9 10h6M9 13.6h6M9 17.2h3.4"/></svg>',
   };
 
   // Fixed order = fixed shortcut numbers, even when a callback is missing and
@@ -768,25 +775,27 @@ body { position: relative; }
   ];
 
   // Second ring behind MORE. The first nested petal takes MORE's own angle
-  // (198°); six petals now step by 60°, so the petal the user just pressed is
-  // still the one under the cursor — the level opens where it was asked to.
-  // Six is the most that fits here without crowding: at 60° the widest reach
-  // is ~129px from the centre, still well inside the 420px window. The outer
-  // ring could not take a sixth petal for the same reason it has five — the
-  // bottom slot would run into the telemetry/hint band at y≈360.
-  // Existing actions keep their numbers; ASK takes the new sixth slot.
+  // (198°); seven petals now step by ~51.43°, so the petal the user just pressed
+  // is still the one under the cursor — the level opens where it was asked to.
+  // Seven 110x36 chips at 90px clearance are the most that fit without
+  // overlap; the outer ring stays at five because its bottom slot would run
+  // into the telemetry/hint band. Existing actions keep their numbers, ASK
+  // stays sixth, and BRIEF takes the new seventh slot beside RECENT and ASK.
   var NESTED_PETALS = [
-    { action: "notices", key: "1", label: "notices", available: "notices", accent: "#b98cff", glyph: "bell", angle: 198, fallback: "Notices", badge: true },
-    { action: "settings", key: "2", label: "settings", available: "settings", accent: "#3fe0c8", glyph: "gear", angle: 258, fallback: "Settings" },
-    { action: "hide", key: "3", label: "hidePet", available: "hide", accent: "#58a6ff", glyph: "hide", angle: 318, fallback: "Hide Pet" },
+    { action: "notices", key: "1", label: "notices", available: "notices", accent: "#b98cff", glyph: "bell", angle: NESTED_START_ANGLE, fallback: "Notices", badge: true },
+    { action: "settings", key: "2", label: "settings", available: "settings", accent: "#3fe0c8", glyph: "gear", angle: NESTED_START_ANGLE + NESTED_STEP, fallback: "Settings" },
+    { action: "hide", key: "3", label: "hidePet", available: "hide", accent: "#58a6ff", glyph: "hide", angle: NESTED_START_ANGLE + 2 * NESTED_STEP, fallback: "Hide Pet" },
     // The old MORE: the pet's own context menu, still complete.
-    { action: "native", key: "4", label: "allCommands", available: "native", accent: "#8b98a5", glyph: "more", angle: 18, fallback: "All Commands" },
+    { action: "native", key: "4", label: "allCommands", available: "native", accent: "#8b98a5", glyph: "more", angle: NESTED_START_ANGLE + 3 * NESTED_STEP, fallback: "All Commands" },
     // RECENT is navigation like MORE, so it speaks the level-opener violet and
     // its ring borrows the same colour.
-    { action: "recent", key: "5", label: "recent", available: "recent", accent: "#b98cff", glyph: "history", angle: 78, fallback: "Recent" },
+    { action: "recent", key: "5", label: "recent", available: "recent", accent: "#b98cff", glyph: "history", angle: NESTED_START_ANGLE + 4 * NESTED_STEP, fallback: "Recent" },
     // ASK opens the quick command bar: type a prompt, send it as a real Codex
     // turn, and read the answer as a pet notice. Its accent matches the bar.
-    { action: "ask", key: "6", label: "ask", available: "ask", accent: "#3fe0c8", glyph: "ask", angle: 138, fallback: "Ask" },
+    { action: "ask", key: "6", label: "ask", available: "ask", accent: "#3fe0c8", glyph: "ask", angle: NESTED_START_ANGLE + 5 * NESTED_STEP, fallback: "Ask" },
+    // BRIEF answers "what is on my desk?" without opening AIPA: up to four
+    // tasks, ordered needs-you → in-progress → ready → inbox.
+    { action: "brief", key: "7", label: "brief", available: "brief", accent: "#57d98a", glyph: "brief", angle: NESTED_START_ANGLE + 6 * NESTED_STEP, fallback: "Brief" },
   ];
 
   var labels = {};
@@ -1506,7 +1515,7 @@ body { position: relative; }
         newChat: "New Chat", openAipa: "Open AIPA", stop: "Stop", silence: "Silence",
         resume: "Resume", more: "More", notices: "Notices", settings: "Settings",
         hidePet: "Hide Pet", allCommands: "All Commands", recent: "Recent",
-        ask: "Ask",
+        ask: "Ask", brief: "Brief",
         noRecentChats: "No recent chats", back: "Back",
         close: "Close", nothingRunning: "No turn running",
       },

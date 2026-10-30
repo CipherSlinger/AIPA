@@ -94,6 +94,7 @@ export type TaskEventKind =
   | 'routed'
   | 'reassigned'
   | 'session_started'
+  | 'from_automation'
 
 export interface TaskEvent {
   at: number
@@ -156,10 +157,152 @@ export type TaskMaterialImportResult =
     }
   | (TaskFailure & { errors?: Array<{ path: string; error: string }> })
 
+/** A text material is a note, not a transcript backup; this keeps one bounded. */
+export const MAX_TEXT_MATERIAL_BYTES = 2 * 1024 * 1024
+
+export interface TaskTextMaterialInput {
+  /** Display name; sanitized to one path segment before it becomes a file. */
+  name?: unknown
+  text?: unknown
+  source?: unknown
+  /**
+   * Main-process only: the automation run this material came from. It is
+   * appended to history in the same store write as the material, so a saved
+   * run can never leave a task whose provenance row is missing. The generic
+   * IPC handler deliberately does not accept this field.
+   */
+  automationRun?: { jobId?: unknown; startedAt?: unknown }
+}
+
+/**
+ * The stable provenance key for "this task holds the output of that run".
+ * Job ids are opaque ids, not paths, so a `:` separator is unambiguous; the
+ * start time is the record's identity within a job's history.
+ */
+export function automationRunDetail(jobId: string, startedAt: number): string {
+  return `automation:${jobId}:${startedAt}`
+}
+
+export interface AutomationRunRef {
+  jobId: string
+  startedAt: number
+}
+
+function parseAutomationRun(input: TaskTextMaterialInput['automationRun']): AutomationRunRef | null {
+  if (!input || typeof input !== 'object') return null
+  const jobId = nonEmptyString(input.jobId)
+  const startedAt = finiteNumber(input.startedAt)
+  if (!jobId || jobId.length > 200 || startedAt === null || startedAt < 0) return null
+  return { jobId, startedAt }
+}
+
+/** Every task whose history names this run, newest first (normally 0 or 1). */
+export function findTasksByAutomationRun(jobId: string, startedAt: number): TaskRecord[] {
+  const detail = automationRunDetail(jobId, startedAt)
+  return readTaskStore().tasks
+    .filter(task => task.history.some(event => event.kind === 'from_automation' && event.detail === detail))
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+}
+
+/**
+ * One filename segment, safe on Windows and readable. The IPC boundary may
+ * carry a path, a drive letter or a control character; none may reach disk.
+ */
+function sanitizeMaterialName(raw: unknown, fallback: string): string {
+  const base = typeof raw === 'string' ? path.basename(raw.replace(/\\/g, '/')) : ''
+  const cleaned = base
+    .normalize('NFKC')
+    .replace(/[\u0000-\u001f\u007f<>:"/\\|?*]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^\.+/, '')
+    .replace(/\.+$/, '')
+    .slice(0, 80)
+  const name = cleaned || fallback
+  return path.extname(name) ? name : `${name}.md`
+}
+
+function writeTextAtomic(file: string, text: string): void {
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  const tmp = `${file}.tmp`
+  fs.writeFileSync(tmp, text, 'utf-8')
+  fs.renameSync(tmp, file)
+}
+
+/**
+ * Write caller-supplied text into `<task>/materials/`.
+ *
+ * This is the text counterpart of `addMaterials`: the same ownership check
+ * (the folder must carry this task's own mirror), the same single-segment
+ * filename rule, an atomic write, and the same rollback when the store write
+ * fails. It does not read any caller path, so the allowed-roots gate has
+ * nothing to check — but the size cap is enforced here because the IPC
+ * boundary accepts arbitrary text.
+ */
+export function addTextMaterial(id: unknown, input: TaskTextMaterialInput): TaskMaterialImportResult {
+  if (typeof id !== 'string' || !id) return failure('invalid_id', 'Unknown task')
+  const text = typeof input?.text === 'string' ? input.text : ''
+  if (!text.trim()) return failure('empty_text', 'There is no text to save')
+  if (Buffer.byteLength(text, 'utf-8') > MAX_TEXT_MATERIAL_BYTES) {
+    return failure('too_large', 'The text is too large to save as a material')
+  }
+
+  const store = readTaskStore()
+  const current = store.tasks.find(task => task.id === id)
+  if (!current) return failure('not_found', 'Unknown task')
+  if (folderMissing(current.directory)) return failure('folder_missing', "The task's folder is missing")
+  if (!isOwnedDirectory(current)) {
+    return failure('invalid_directory', "The task's folder does not belong to this task")
+  }
+
+  const materialsDir = path.join(current.directory, 'materials')
+  const usedNames = new Set(current.materials.map(material => path.basename(material.relPath)))
+  const fallback = `note-${new Date().toISOString().replace(/[:.]/g, '-')}.md`
+  const name = sanitizeMaterialName(input?.name, fallback)
+  const storedName = uniqueFileName(name, usedNames)
+  const dest = path.join(materialsDir, storedName)
+
+  const materialSource: TaskMaterialSource = typeof input?.source === 'string' && MATERIAL_SOURCES.has(input.source as TaskMaterialSource)
+    ? input.source as TaskMaterialSource
+    : 'unknown'
+
+  try {
+    writeTextAtomic(dest, text)
+  } catch (err) {
+    log.warn(`Could not write text material to ${dest}:`, err)
+    return failure('write_failed', 'The material could not be written to disk')
+  }
+
+  const stat = fs.statSync(dest)
+  const material: TaskMaterial = {
+    id: `mat-${randomUUID()}`,
+    name,
+    relPath: `materials/${storedName}`,
+    size: stat.size,
+    mimeType: storedName.toLowerCase().endsWith('.md') ? 'text/markdown' : 'text/plain',
+    addedAt: Date.now(),
+    source: materialSource,
+  }
+  let next = appendEvent({
+    ...current,
+    materials: [...current.materials, material],
+  }, 'material_added', name)
+  const run = parseAutomationRun(input?.automationRun)
+  if (run) next = appendEvent(next, 'from_automation', automationRunDetail(run.jobId, run.startedAt))
+
+  replaceTask(store, next)
+  if (!writeTaskStore(store)) {
+    try { fs.rmSync(dest, { force: true }) } catch { /* best effort */ }
+    return failure('write_failed', 'The task could not be saved')
+  }
+  writeTaskMirror(next)
+  return { ok: true, task: taskView(next), added: [material], errors: [] }
+}
+
 const EVENT_KINDS = new Set<TaskEventKind>([
   'created', 'material_added', 'material_removed', 'renamed',
   'status_changed', 'moved', 'folder_missing', 'restored',
-  'routed', 'reassigned', 'session_started',
+  'routed', 'reassigned', 'session_started', 'from_automation',
 ])
 
 const MATERIAL_SOURCES = new Set<TaskMaterialSource>([

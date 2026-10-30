@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Local-only page: no image, font, fetch or media sources. `'self'` is
+     needed solely so the sibling task-brief.js can load from the app
+     directory; nothing leaves disk. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline' 'self'">
+<style>
+/* Two skins, one DOM. The default is the SAO HUD shared with the notice
+   centre and pet menu: near-black translucent slab, cut corners, grid, scan
+   sweep, uppercase monospace chrome. `data-theme="clawd"` swaps to the plain
+   Clawd card — white/near-black by the system scheme, rounded, sans-serif,
+   warm orange accent — so the brief looks like the pet the user configured. */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
+html, body {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+  font-family: "Cascadia Code", "SF Mono", ui-monospace, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+:root {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --panel-bg-a: rgba(8, 14, 20, 0.92);
+  --panel-bg-b: rgba(4, 10, 14, 0.97);
+  --text: #dff7f3;
+  --muted: #7fa8a2;
+  --accent: #3fe0c8;
+  --line: rgba(63, 224, 200, 0.28);
+  --hairline: rgba(63, 224, 200, 0.14);
+  --grid: rgba(63, 224, 200, 0.045);
+  --hover: rgba(63, 224, 200, 0.08);
+  --key-border: rgba(63, 224, 200, 0.26);
+  --shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+  --k-needs: #ffb454;
+  --k-progress: #3fe0c8;
+  --k-assigned: #58a6ff;
+  --k-ready: #57d98a;
+  --k-inbox: #7fa8a2;
+  --ui-font: "Cascadia Code", "SF Mono", ui-monospace, "Segoe UI", sans-serif;
+}
+
+.panel[data-theme="clawd"] {
+  --panel-bg-a: #ffffff;
+  --panel-bg-b: #ffffff;
+  --text: #18181b;
+  --muted: #71717a;
+  --accent: #d97757;
+  --line: rgba(0, 0, 0, 0.08);
+  --hairline: rgba(0, 0, 0, 0.08);
+  --grid: transparent;
+  --hover: #f4f4f5;
+  --key-border: rgba(0, 0, 0, 0.14);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.08);
+  --k-needs: #d97757;
+  --k-progress: #2563eb;
+  --k-assigned: #7c3aed;
+  --k-ready: #16a34a;
+  --k-inbox: #71717a;
+  --ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  .panel[data-theme="clawd"] {
+    --panel-bg-a: #18181b;
+    --panel-bg-b: #18181b;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --line: rgba(255, 255, 255, 0.1);
+    --hairline: rgba(255, 255, 255, 0.1);
+    --hover: rgba(255, 255, 255, 0.06);
+    --key-border: rgba(255, 255, 255, 0.16);
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3);
+    --k-needs: #e08a6d;
+    --k-progress: #60a5fa;
+    --k-assigned: #a78bfa;
+    --k-ready: #4ade80;
+    --k-inbox: #a1a1aa;
+  }
+}
+
+body { padding: 8px; }
+
+/* ── Panel ────────────────────────────────────────────────────────────────── */
+.panel {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  padding: 12px 14px 12px;
+  color: var(--text);
+  background:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+    linear-gradient(180deg, var(--panel-bg-a), var(--panel-bg-b));
+  background-size: 100% 22px, 22px 100%, 100% 100%;
+  border: 1px solid var(--line);
+  /* clip-path crops a box-shadow, so the outer glow is a filter on the panel;
+     the inset glow stays as a normal shadow. */
+  filter: drop-shadow(var(--shadow));
+  box-shadow: inset 0 0 28px rgba(63, 224, 200, 0.05);
+  clip-path: polygon(
+    0 12px, 12px 0,
+    calc(100% - 18px) 0, 100% 18px,
+    100% calc(100% - 10px), calc(100% - 10px) 100%,
+    18px 100%, 0 calc(100% - 18px)
+  );
+  text-shadow: 0 0 12px rgba(63, 224, 200, 0.10);
+  opacity: 0;
+  transform: translateY(6px) scale(0.985);
+  transition: opacity 0.16s linear, transform 0.20s var(--ease);
+  outline: none;
+}
+.panel.visible { opacity: 1; transform: none; }
+
+.panel[data-theme="clawd"] {
+  padding: 14px 16px;
+  border-radius: 14px;
+  clip-path: none;
+  box-shadow: none;
+  text-shadow: none;
+  font-family: var(--ui-font);
+}
+
+/* A slow sweep of light. Purely decorative, so it sits under the content. */
+.scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 26%;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(63, 224, 200, 0.10), transparent);
+  animation: hudScan 5.5s linear infinite;
+}
+.panel[data-theme="clawd"] .scan { display: none; }
+@keyframes hudScan {
+  0%   { transform: translateY(-120%); opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { transform: translateY(420%); opacity: 0; }
+}
+
+.head,
+.list,
+.empty,
+.foot { position: relative; z-index: 1; }
+
+/* ── Title bar ────────────────────────────────────────────────────────────── */
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px 9px;
+  border-bottom: 1px solid var(--hairline);
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.eyebrow::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  transform: rotate(45deg);
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  flex: none;
+}
+.panel[data-theme="clawd"] .eyebrow { font-family: var(--ui-font); letter-spacing: 0.14em; }
+.panel[data-theme="clawd"] .eyebrow::before { border-radius: 50%; transform: none; box-shadow: none; }
+.count {
+  min-width: 18px;
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 1px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  color: var(--accent);
+}
+.panel[data-theme="clawd"] .count { border-radius: 999px; }
+.count[data-zero="true"] { opacity: 0.4; }
+.spacer { flex: 1; }
+.date {
+  flex: none;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.close {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--key-border);
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  outline: none;
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  transition: color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+.panel[data-theme="clawd"] .close { border-radius: 7px; clip-path: none; }
+.close:hover,
+.close:focus-visible {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* Rows */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 7px;
+}
+.row {
+  --k: var(--k-inbox);
+  appearance: none;
+  position: relative;
+  display: grid;
+  grid-template-columns: 13px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 6px 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--k) 6%, transparent), transparent 62%);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+/* Accent rail. Kept out of the grid so it can bleed to the panel edge. */
+.row::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 5px;
+  bottom: 5px;
+  width: 2px;
+  background: var(--k);
+  opacity: 0.55;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--k) 55%, transparent);
+}
+.row:hover {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--k) 12%, transparent), transparent 72%);
+  border-color: color-mix(in srgb, var(--k) 24%, transparent);
+}
+.row:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--k) 70%, transparent);
+  outline-offset: -1px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--k) 14%, transparent), transparent 78%);
+}
+.panel[data-theme="clawd"] .row {
+  border-radius: 8px;
+  padding: 7px 8px;
+  background: transparent;
+}
+.panel[data-theme="clawd"] .row::before { display: none; }
+.panel[data-theme="clawd"] .row:hover { background: var(--hover); }
+
+.key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  margin-top: 1px;
+  border: 1px solid var(--key-border);
+  border-radius: 1px;
+  font-size: 7.5px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--muted);
+}
+.panel[data-theme="clawd"] .key { border-radius: 4px; font-size: 9px; }
+
+.body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.statusline {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--k);
+  white-space: nowrap;
+}
+.panel[data-theme="clawd"] .statusline { letter-spacing: 0.08em; font-size: 9px; }
+.dot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--k);
+  box-shadow: 0 0 7px var(--k);
+}
+.panel[data-theme="clawd"] .dot { box-shadow: none; }
+.title {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+.meta {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 8.5px;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.meta .sep { opacity: 0.55; margin: 0 4px; }
+.age {
+  padding-top: 2px;
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.row[data-status="needs_you"]   { --k: var(--k-needs); }
+.row[data-status="in_progress"] { --k: var(--k-progress); }
+.row[data-status="assigned"]    { --k: var(--k-assigned); }
+.row[data-status="ready"]       { --k: var(--k-ready); }
+.row[data-status="inbox"]       { --k: var(--k-inbox); }
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
+.empty {
+  padding: 30px 0 32px;
+  text-align: center;
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.7;
+}
+.panel[data-theme="clawd"] .empty { letter-spacing: 0.08em; text-transform: none; font-size: 11px; }
+
+/* ── Footer ───────────────────────────────────────────────────────────────── */
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid var(--hairline);
+}
+.open-tasks {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  color: var(--accent);
+  font: inherit;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  outline: none;
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  transition: background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+.panel[data-theme="clawd"] .open-tasks {
+  border-radius: 7px;
+  clip-path: none;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-size: 11px;
+}
+.open-tasks:hover,
+.open-tasks:focus-visible {
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 62%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.open-tasks svg { width: 10px; height: 10px; display: block; }
+.hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.panel[data-theme="clawd"] .hint { text-transform: none; letter-spacing: 0.02em; font-size: 10px; }
+.hint kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--key-border);
+  border-radius: 1px;
+  font: inherit;
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+.panel[data-theme="clawd"] .hint kbd { border-radius: 4px; font-size: 9px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .panel { transition: none; }
+  .scan { animation: none; }
+  .row,
+  .close,
+  .open-tasks { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="panel" id="panel" role="dialog" tabindex="-1">
+  <div class="scan" aria-hidden="true"></div>
+  <header class="head">
+    <span class="eyebrow" id="eyebrow">TASK BRIEF</span>
+    <span class="count" id="count" data-zero="true" aria-live="polite">0</span>
+    <span class="spacer"></span>
+    <span class="date" id="date"></span>
+    <button class="close" id="closeBtn" type="button" aria-label="Close">×</button>
+  </header>
+  <div class="list" id="list"></div>
+  <div class="empty" id="empty" hidden></div>
+  <footer class="foot">
+    <button class="open-tasks" id="openTasksBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"/><path d="m13 6 6 6-6 6"/></svg>
+      <span id="openTasksLabel">Open Tasks</span>
+    </button>
+    <span class="hint" id="hint" hidden>
+      <kbd id="shortcut"></kbd>
+      <span id="hintLabel">open brief</span>
+    </span>
+  </footer>
+</div>
+<script src="task-brief.js"></script>
+</body>
+</html>

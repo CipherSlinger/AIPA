@@ -359,6 +359,11 @@ export default function App() {
       window.electronAPI.onMenuEvent('openAutomations', () => {
         useUiStore.getState().openSettingsAt('automations')
       }),
+      // Pet task brief: a row whose task has no conversation yet opens the
+      // Tasks view instead of a chat.
+      window.electronAPI.onMenuEvent('openTasks', () => {
+        useUiStore.getState().setActiveNavItem('tasks')
+      }),
       // Menu: Help > Keyboard Shortcuts (Ctrl+/)
       window.electronAPI.onMenuEvent('keyboardShortcuts', () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: '/' }))

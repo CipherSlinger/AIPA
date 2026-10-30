@@ -4413,6 +4413,19 @@
       "showAll": "Show all {{count}} runs",
       "showFewer": "Show fewer"
     },
+    "saveAsTask": {
+      "action": "Save as task",
+      "hint": "Copy this run's answer into a new task's materials. Nothing is re-run; saving the same run again reopens its task.",
+      "saving": "Saving…",
+      "saved": "Saved “{{title}}” with this run's output.",
+      "reused": "This run is already saved as “{{title}}”.",
+      "failed": "Could not save this run as a task: {{error}}",
+      "unknownError": "unknown error",
+      "jobGone": "The job “{{name}}” no longer exists, so its run could not be saved.",
+      "noConversation": "This run left no conversation, so there is no output to save.",
+      "departmentGone": "The job's department no longer exists. The task was saved unassigned — pick a department in the task.",
+      "routeFailed": "The task was saved, but the department could not be assigned: {{error}}"
+    },
     "expert": {
       "followWorkflow": "Workflow default ({{name}})",
       "noBinding": "no expert",
@@ -5440,6 +5453,12 @@
     "departmentNone": "No department",
     "departmentNotFound": "Department no longer exists",
     "departmentAttribution": "Department is attribution only. Conversations still run in the task folder, never the department folder.",
+    "suggest": {
+      "label": "Suggested",
+      "labelWith": "Suggested department, matching {{terms}}",
+      "hint": "A local keyword match, not a decision. Click to use it; pick another department if it is wrong.",
+      "stale": "That suggested department no longer exists. Pick a department from the list."
+    },
     "dispatch": "Dispatch",
     "dispatchFollowup": "Follow up",
     "dispatchHint": "Opens the chat with this brief already in the composer. Nothing is sent until you press send there.",
@@ -5466,6 +5485,7 @@
     },
     "history": "History",
     "historyEmpty": "No activity yet.",
+    "historyRun": "Saved from an automation run ({{when}})",
     "event": {
       "created": "Task created",
       "material_added": "Material added",
@@ -5477,7 +5497,8 @@
       "restored": "Restored",
       "routed": "Department assigned",
       "reassigned": "Department changed",
-      "session_started": "Conversation started"
+      "session_started": "Conversation started",
+      "from_automation": "Automation output saved"
     },
     "error": {
       "load": "Could not read tasks.",

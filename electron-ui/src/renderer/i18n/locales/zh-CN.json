@@ -4413,6 +4413,19 @@
       "showAll": "显示全部 {{count}} 次运行",
       "showFewer": "收起"
     },
+    "saveAsTask": {
+      "action": "存为任务",
+      "hint": "把这次运行的回复复制成新任务的材料。不会重新运行；再次保存同一次运行会打开已有的任务。",
+      "saving": "正在保存…",
+      "saved": "已把这次运行的输出保存为「{{title}}」。",
+      "reused": "这次运行已保存为「{{title}}」。",
+      "failed": "无法把这次运行存为任务：{{error}}",
+      "unknownError": "未知错误",
+      "jobGone": "任务「{{name}}」已不存在，无法保存它的运行结果。",
+      "noConversation": "这次运行没有留下对话，因此没有输出可以保存。",
+      "departmentGone": "任务所属部门已不存在。任务已保存但未分配部门——请在任务中选择部门。",
+      "routeFailed": "任务已保存，但部门分配失败：{{error}}"
+    },
     "expert": {
       "followWorkflow": "跟随工作流（{{name}}）",
       "noBinding": "无专家",
@@ -5440,6 +5453,12 @@
     "departmentNone": "不指定部门",
     "departmentNotFound": "部门已不存在",
     "departmentAttribution": "部门只用于归属标注。对话仍在任务文件夹中运行，不会使用部门文件夹。",
+    "suggest": {
+      "label": "建议",
+      "labelWith": "建议部门，匹配 {{terms}}",
+      "hint": "这是本地关键词匹配，不是自动决定。点击才会采用；不对就改选其他部门。",
+      "stale": "建议的部门已不存在，请从列表中选择部门。"
+    },
     "dispatch": "派发",
     "dispatchFollowup": "继续派发",
     "dispatchHint": "打开聊天，并把这段说明预填到输入框。在你按下发送之前，不会发送任何内容。",
@@ -5466,6 +5485,7 @@
     },
     "history": "历史",
     "historyEmpty": "还没有动态。",
+    "historyRun": "来自自动化运行（{{when}}）",
     "event": {
       "created": "任务已创建",
       "material_added": "添加资料",
@@ -5477,7 +5497,8 @@
       "restored": "已恢复",
       "routed": "已指定部门",
       "reassigned": "已更改部门",
-      "session_started": "对话已开始"
+      "session_started": "对话已开始",
+      "from_automation": "已保存自动化输出"
     },
     "error": {
       "load": "无法读取任务。",

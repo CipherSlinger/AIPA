@@ -118,6 +118,7 @@ export type TaskEventKindData =
   | 'routed'
   | 'reassigned'
   | 'session_started'
+  | 'from_automation'
 
 export interface TaskEventData {
   at: number
@@ -166,6 +167,35 @@ export interface TaskMaterialImportData {
   task?: TaskRecordData
   added?: TaskMaterialData[]
   errors?: Array<{ path: string; error: string }>
+}
+
+export interface TaskAddTextMaterialData {
+  name: string
+  text: string
+  source?: TaskMaterialSourceData
+}
+
+export interface TaskSaveAutomationRunData {
+  jobId: string
+  startedAt: number
+  /**
+   * The department id to file the new task under, resolved by the renderer
+   * against the live org tree. `null` means the job's node is gone or the job
+   * had none; omit only when a caller wants main to use the job's stored id.
+   */
+  departmentId?: string | null
+}
+
+export interface TaskSaveAutomationRunResultData {
+  ok: boolean
+  code?: string
+  error?: string
+  task?: TaskRecordData
+  /** An earlier save of this run was found and reopened; nothing was written. */
+  reused?: boolean
+  routed?: boolean
+  /** The task was saved but not filed; it is unassigned. */
+  routeError?: string
 }
 
 export interface TaskDeleteData {
@@ -2597,6 +2627,10 @@ const electronAPI = {
     input: { paths: string[]; source: TaskMaterialSourceData },
   ) =>
     ipcRenderer.invoke('tasks:addMaterials', id, input) as Promise<TaskMaterialImportData>,
+  // Text material: main enforces the size cap and sanitizes the name to one
+  // path segment. Used for outputs and notes that never existed as a file.
+  tasksAddTextMaterial: (id: string, input: TaskAddTextMaterialData) =>
+    ipcRenderer.invoke('tasks:addTextMaterial', id, input) as Promise<TaskMaterialImportData>,
   tasksRemoveMaterial: (id: string, materialId: string) =>
     ipcRenderer.invoke('tasks:removeMaterial', id, materialId) as Promise<TaskMutationData>,
   tasksReveal: (id: string) =>
@@ -2612,6 +2646,10 @@ const electronAPI = {
   // Attribution only: `null` clears the filing. The task folder is untouched.
   tasksRoute: (id: string, departmentId: string | null) =>
     ipcRenderer.invoke('tasks:route', id, departmentId) as Promise<TaskMutationData>,
+  // Turn a remembered automation run into a task whose material is the run's
+  // own transcript output. Idempotent: a second save reopens the same task.
+  tasksSaveAutomationRun: (input: TaskSaveAutomationRunData) =>
+    ipcRenderer.invoke('tasks:saveAutomationRun', input) as Promise<TaskSaveAutomationRunResultData>,
   onTasksChanged: (cb: () => void): Unsubscribe => {
     const handler = () => cb()
     ipcRenderer.on('tasks:changed', handler)

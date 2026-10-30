@@ -30,6 +30,8 @@ import {
 import { buildDeptLookup, resolveDeptForSession } from '../departments/sessionFiling'
 import { bindPersonaToNewSession } from '../departments/personaBinding'
 import { dispatchTask } from '../../lib/taskDispatch'
+import { suggestDepartment } from '../../lib/taskRouting'
+import DepartmentSuggestionChip from '../tasks/DepartmentSuggestionChip'
 import {
   HANDOFF_MAX_CHARS,
   buildHandoffDraft,
@@ -38,6 +40,7 @@ import {
 } from './handoffDraft'
 import SessionReuseDialogShell from './SessionReuseDialogShell'
 import { resolveWorkingDir } from '../../lib/workingDir'
+import type { StandardChatMessage } from '../../types/app.types'
 
 interface Props {
   /** The header's resolved title for the conversation being handed off. */
@@ -216,6 +219,36 @@ export default function HandoffDialog({ sessionTitle, onClose }: Props) {
     if (!edited) setNote(generated)
   }, [draft, generated, selectedId, edited])
 
+  // The same local heuristic the task surfaces use. A task's own title and
+  // materials are the evidence when it has them; a plain conversation borrows
+  // its title and the latest messages so the chip is not blind. It never sets
+  // `selectedId` — only the click does.
+  const routingSuggestion = useMemo(() => {
+    const title = sourceTask?.title ?? (sessionTitle ?? '').trim()
+    const excerpts = sourceTask
+      ? []
+      : (messages
+        .filter(message => message.role === 'user' || message.role === 'assistant') as StandardChatMessage[])
+        .slice(-4)
+        .map(message => message.content.slice(0, 800))
+    return suggestDepartment({
+      title,
+      materialNames: sourceTask?.materials.map(material => material.name),
+      excerpts,
+      departments,
+    })
+  }, [sourceTask, sessionTitle, messages, departments])
+
+  const acceptRoutingSuggestion = () => {
+    if (!routingSuggestion) return
+    // Deleted between render and click: say so and keep the picker open.
+    if (!departments.some(dept => dept.id === routingSuggestion.departmentId)) {
+      useUiStore.getState().addToast('warning', t('tasks.suggest.stale'))
+      return
+    }
+    setSelectedId(routingSuggestion.departmentId)
+  }
+
   const targetPersona = target?.defaultPersonaId
     ? personas?.find(persona => persona.id === target.defaultPersonaId)
     : undefined
@@ -352,9 +385,17 @@ export default function HandoffDialog({ sessionTitle, onClose }: Props) {
       ) : (
         <>
           <div style={{ marginBottom: 12 }}>
-            <label style={labelStyle} htmlFor="handoff-department">
-              {t('chat.handoff.targetLabel')}
-            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }} htmlFor="handoff-department">
+                {t('chat.handoff.targetLabel')}
+              </label>
+              {routingSuggestion && routingSuggestion.departmentId !== selectedId && (
+                <DepartmentSuggestionChip
+                  suggestion={routingSuggestion}
+                  onAccept={acceptRoutingSuggestion}
+                />
+              )}
+            </div>
             <select
               id="handoff-department"
               value={selectedId}

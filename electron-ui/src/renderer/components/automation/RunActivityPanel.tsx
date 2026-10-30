@@ -33,6 +33,7 @@ import { EmptyState, Pill } from '../archive/ArchiveChrome'
 import { ELLIPSIS } from '../archive/archiveRecord'
 import { approvalClause, approvalTone, approvalTooltip } from './runApproval'
 import { prepareRunActivityInvestigation, prepareRunInvestigation } from './investigateRun'
+import { saveRunAsTask } from './saveRunAsTask'
 import {
   RUN_ACTIVITY_SOURCES,
   RUN_ACTIVITY_STATUSES,
@@ -121,11 +122,14 @@ interface RunRowProps {
   onInvestigate: () => void
   onRunAgain: () => void
   onOpenJob: () => void
+  /** Present only when the run left a transcript and its job still exists. */
+  onSaveAsTask: (() => void) | null
+  saving: boolean
 }
 
 function RunRow({
   row, t, resolvedLocale, investigating, runAgain, canOpenJob, starting, started,
-  onOpen, onInvestigate, onRunAgain, onOpenJob,
+  onOpen, onInvestigate, onRunAgain, onOpenJob, onSaveAsTask, saving,
 }: RunRowProps) {
   const { run, jobId, jobName } = row
   const state = runActivityStatusText(run, t)
@@ -271,7 +275,7 @@ function RunRow({
           </button>
         )}
 
-        {(showRunAgain || canOpenJob || started) && (
+        {(showRunAgain || canOpenJob || onSaveAsTask !== null || started) && (
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 10,
             // With a failure's Ask AIPA already on the right, these follow it;
@@ -298,6 +302,27 @@ function RunRow({
                 {starting
                   ? t('automation.runActivity.row.starting')
                   : t('automation.runActivity.row.runAgain')}
+              </button>
+            )}
+            {onSaveAsTask && (
+              // The run already left its answer in the transcript; this turns
+              // that answer into work. The row is not re-run.
+              <button
+                type="button"
+                disabled={saving}
+                onClick={e => { e.stopPropagation(); onSaveAsTask() }}
+                title={t('automation.saveAsTask.hint')}
+                aria-label={`${t('automation.saveAsTask.action')} — ${jobName}`}
+                style={{
+                  ...ROW_ACTION,
+                  cursor: saving ? 'default' : 'pointer',
+                  opacity: saving ? 0.55 : 1,
+                }}
+              >
+                <ListChecks size={10} />
+                {saving
+                  ? t('automation.saveAsTask.saving')
+                  : t('automation.saveAsTask.action')}
               </button>
             )}
             {canOpenJob && (
@@ -350,6 +375,8 @@ export default function RunActivityPanel() {
   // opening the page must not silently hide older runs the footer still counts.
   const [windowRange, setWindowRange] = useState<RunActivityWindow>('all')
   const [investigating, setInvestigating] = useState<string | null>(null)
+  // The row key whose "Save as task" is running; only one save at a time.
+  const [savingRun, setSavingRun] = useState<string | null>(null)
   const [starting, setStarting] = useState<Set<string>>(() => new Set())
   const [started, setStarted] = useState<Record<string, true>>({})
   const seqRef = useRef(0)
@@ -503,6 +530,23 @@ export default function RunActivityPanel() {
    * could not actually start is caught by `result.job.running` — the same test
    * the status-bar panel uses.
    */
+  const saveRow = async (row: AutomationRunActivityRowData, key: string) => {
+    const job = jobs?.find(candidate => candidate.id === row.jobId) ?? null
+    setSavingRun(current => current ?? key)
+    try {
+      await saveRunAsTask({
+        job,
+        jobId: row.jobId,
+        jobName: row.jobName,
+        record: row.run,
+        t,
+        addToast,
+      })
+    } finally {
+      setSavingRun(current => (current === key ? null : current))
+    }
+  }
+
   const startRun = async (row: AutomationRunActivityRowData, key: string) => {
     const api = window.electronAPI
     if (!api?.automationRunNow) {
@@ -762,6 +806,11 @@ export default function RunActivityPanel() {
               onInvestigate={() => { void investigate(row) }}
               onRunAgain={() => { void startRun(row, key) }}
               onOpenJob={() => { useUiStore.getState().focusAutomationJob(row.jobId) }}
+              onSaveAsTask={!!row.run.sessionId
+                && runActivityJobExists(row.jobId, jobs)
+                ? () => { void saveRow(row, key) }
+                : null}
+              saving={savingRun === key}
             />
           )
         }) : (

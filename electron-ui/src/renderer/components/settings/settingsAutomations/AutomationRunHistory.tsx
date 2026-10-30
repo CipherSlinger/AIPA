@@ -70,6 +70,8 @@ export function AutomationRunHistory({
   onResetHistoryUi,
   onToggleRunFiles,
   onOpenRun,
+  onSaveAsTask,
+  savingRunKey,
 }: {
   t: Translate
   locale: string
@@ -81,6 +83,9 @@ export function AutomationRunHistory({
   onResetHistoryUi: () => void
   onToggleRunFiles: (key: string) => void
   onOpenRun: (sessionId: string) => void
+  onSaveAsTask: (record: AutomationRunRecordData) => void
+  /** `${job.id}:${startedAt}` while that run's save is in flight. */
+  savingRunKey: string | null
 }) {
   // The pure view selects which records are visible (five, every one, or every
   // failure); it returns them in stored order, so the disclosure's long-standing
@@ -198,6 +203,11 @@ export function AutomationRunHistory({
               : t('automation.files.countMany', { count: fileView.totalFiles })
             : t('automation.files.none')
           const sessionId = record.sessionId
+          // A run with a transcript has output worth keeping — a failure can
+          // leave the answer that came before the error. A skip has no
+          // transcript, so the action is absent rather than disabled-unexplained.
+          const saveKey = `${job.id}:${record.startedAt}`
+          const saveable = !!sessionId
           return (
             <li
               key={`${record.startedAt}-${recordOrdinal}`}
@@ -360,6 +370,26 @@ export function AutomationRunHistory({
                   }}
                 >
                   {t('automation.history.open')}
+                </button>
+              )}
+              {saveable && (
+                <button
+                  type="button"
+                  disabled={savingRunKey === saveKey}
+                  onClick={() => onSaveAsTask(record)}
+                  title={t('automation.saveAsTask.hint')}
+                  aria-label={t('automation.saveAsTask.action')}
+                  style={{
+                    background: 'none', border: 'none', padding: 0,
+                    font: 'inherit', fontSize: 11,
+                    color: 'var(--accent-text)',
+                    cursor: savingRunKey === saveKey ? 'default' : 'pointer',
+                    opacity: savingRunKey === saveKey ? 0.55 : 1,
+                  }}
+                >
+                  {savingRunKey === saveKey
+                    ? t('automation.saveAsTask.saving')
+                    : t('automation.saveAsTask.action')}
                 </button>
               )}
               {filesOpen && fileView.coverage !== 'unrecorded' && (

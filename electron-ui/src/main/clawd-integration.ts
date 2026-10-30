@@ -378,6 +378,24 @@ const petMenuCallbacks = {
       return false
     }
   },
+  /**
+   * The task brief, anchored to the pet. The summon chord the pet factory
+   * actually claimed arrives with the call so the card's footer names the
+   * shortcut that works, and names none when every candidate was taken.
+   */
+  openTaskBrief: (shortcut?: unknown): boolean => {
+    try {
+      const { openClawdTaskBrief, setClawdTaskBriefShortcut } = require('./clawd-task-brief') as {
+        openClawdTaskBrief: (anchor?: { x: number; y: number; width: number; height: number }) => boolean
+        setClawdTaskBriefShortcut: (chord: string) => void
+      }
+      setClawdTaskBriefShortcut(typeof shortcut === 'string' ? shortcut : '')
+      return openClawdTaskBrief(petRect()) === true
+    } catch (err) {
+      log.warn('petMenu.openTaskBrief failed:', String(err))
+      return false
+    }
+  },
   /** The same Settings modal the app menu opens — one definition, one place to learn it. */
   openSettings: (): void => {
     withClawdMainWindow(win => {
@@ -1244,6 +1262,12 @@ export function shutdownClawdIntegration(): void {
     }
     closeClawdNoticeCenter()
   } catch { /* the log is not part of this build */ }
+  try {
+    const { closeClawdTaskBrief } = require('./clawd-task-brief') as {
+      closeClawdTaskBrief: () => void
+    }
+    closeClawdTaskBrief()
+  } catch { /* the brief is not part of this build */ }
   if (!clawdInstance) return
   try {
     if (globalThis.__clawdOnQuitHooks) {
