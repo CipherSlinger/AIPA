@@ -896,7 +896,6 @@
   "settings": {
     "title": "设置",
     "close": "关闭设置",
-    "backToChat": "返回对话",
     "tabs": {
       "general": "常规",
       "ai-engine": "AI 引擎",
@@ -4004,12 +4003,20 @@
     "sourceEmpty": "暂无文件",
     "sourcePickFile": "在左侧选择文件以查看源码",
     "sourceLoadFailed": "无法读取该文件",
-    "backToChat": "返回对话",
     "loadFailed": "插件加载失败",
     "entryMissing": "未找到插件入口文件 index.html",
     "openDirToCheck": "打开目录检查",
     "edit": "编辑",
-    "editTitle": "与 AI 对话，直接改这个插件的代码"
+    "editTitle": "与 AI 对话，直接改这个插件的代码",
+    "model": "工作模型",
+    "modelTitle": "选择这个插件调用 AI 时使用的模型",
+    "modelPick": "选择模型",
+    "modelNone": "未选择模型",
+    "modelRequired": "请先在插件顶部工具栏选择工作模型",
+    "modelEmpty": "没有已启用的模型",
+    "modelEmptyHint": "先在设置 → AI 引擎中启用提供商并添加模型",
+    "modelUnavailable": "不在已启用的提供商中",
+    "modelSaved": "工作模型已切换"
   },
   "employees": {
     "pageTitle": "人事部",

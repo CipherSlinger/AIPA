@@ -33,7 +33,32 @@
     if (current === 'calendar') WC.views.calendar.refresh()
   })
 
+  /**
+   * The work model used to live in the plugin's own settings. Adopt a legacy
+   * choice into the host once — only when the host has none — so an existing
+   * user does not have to pick the same model again.
+   *
+   * The legacy field is cleared once the hand-off succeeds (or when the host
+   * already had a choice): leaving it behind would make a later deliberate
+   * "未选择模型" in the toolbar come back on the next boot. Best effort — a
+   * failed lookup or write must never block boot, and a failed one keeps the
+   * field so a later boot can retry.
+   */
+  function adoptLegacyModel() {
+    var legacy = WC.store.state.settings && WC.store.state.settings.model
+    if (!legacy || !String(legacy).trim()) return
+    Promise.resolve()
+      .then(function () { return AIPA.ai.model() })
+      .then(function (info) {
+        if (info && info.model) return null
+        return AIPA.ai.setModel(legacy)
+      })
+      .then(function () { return WC.store.saveSettings({ model: '' }) })
+      .catch(function () { /* best effort — boot continues regardless */ })
+  }
+
   WC.store.load().then(function () {
+    adoptLegacyModel()
     var initial = 'calendar'
     try { initial = sessionStorage.getItem('wc_view') || 'calendar' } catch (e) { /* ignore */ }
     show(initial)

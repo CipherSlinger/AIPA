@@ -23,15 +23,32 @@
   }
 
   /**
-   * Generation has no implicit model: a blank setting stops here, before any
-   * modal opens or any AI request leaves. Falling back to the app's chat model
-   * would spend tokens on a choice the user never made.
+   * Generation has no implicit model: the work model lives in the host's plugin
+   * toolbar, and a blank one stops the run here, before any modal opens or any
+   * AI request leaves. Falling back to the app's chat model would spend tokens
+   * on a choice the user never made. A failed lookup is an error, not a blank
+   * model — it is reported and the run stops either way.
+   *
+   * @returns {Promise<string|null>} the host's model id, or null to stop
    */
   function requireModel() {
-    var settings = store.state.settings
-    if (settings && typeof settings.model === 'string' && settings.model.trim()) return true
-    AIPA.toast('error', WC.L('请先在「设置」中选择生成模型', 'Choose a generation model in Settings first'))
-    return false
+    var request
+    try {
+      request = AIPA.ai.model()
+    } catch (err) {
+      request = Promise.reject(err)
+    }
+    return request.then(function (info) {
+      var model = info && info.model != null ? String(info.model) : ''
+      if (!model.trim()) {
+        AIPA.toast('error', WC.L('请先在插件顶部工具栏选择工作模型', 'Choose a work model in the plugin toolbar first'))
+        return null
+      }
+      return model
+    }).catch(function (err) {
+      AIPA.toast('error', WC.L('读取工作模型失败：', 'Could not read the work model: ') + WC.errMsg(err))
+      return null
+    })
   }
 
   function buildMaterialText(m) {
@@ -121,93 +138,95 @@
    */
   function generate(reportType, from, to, opts) {
     opts = opts || {}
-    if (!requireModel()) return Promise.resolve(null)
-    if (busy) {
-      AIPA.toast('info', WC.L('已有报告正在生成，请稍候', 'A report is already being generated, please wait'))
-      return Promise.resolve(null)
-    }
-    setBusy(true)
-    var typeLabel = WC.REPORT_TYPE[reportType]
-    var title = typeLabel + ' ' + from + WC.L(' 至 ', ' to ') + to
-    var job = null
-    var cancelled = false
+    return requireModel().then(function (model) {
+      if (!model) return null
+      if (busy) {
+        AIPA.toast('info', WC.L('已有报告正在生成，请稍候', 'A report is already being generated, please wait'))
+        return null
+      }
+      setBusy(true)
+      var typeLabel = WC.REPORT_TYPE[reportType]
+      var title = typeLabel + ' ' + from + WC.L(' 至 ', ' to ') + to
+      var job = null
+      var cancelled = false
 
-    var m = WC.modal({
-      title: WC.L('<span class="spinner"></span><span>正在生成', '<span class="spinner"></span><span>Generating ') + WC.esc(title) + '</span>',
-      sub: opts.existingId ? WC.L('将覆盖原报告内容', 'This will overwrite the existing report') : WC.L('生成完成后自动保存到历史报告', 'Saved to report history when generation finishes'),
-      wide: true,
-      dismissible: false,
-      body: WC.L('<div class="stream-status" data-status><span>正在收集任务素材...</span></div><div class="report-box md" data-content></div>', '<div class="stream-status" data-status><span>Collecting task material...</span></div><div class="report-box md" data-content></div>'),
-      foot: WC.L('<button class="btn" data-cancel>取消生成</button>', '<button class="btn" data-cancel>Cancel</button>'),
-    })
-    var statusEl = m.el.querySelector('[data-status]')
-    var contentEl = m.el.querySelector('[data-content]')
-    var bodyEl = m.el.querySelector('.modal-body')
-    function setStatus(text) { statusEl.innerHTML = '<span>' + WC.esc(text) + '</span>' }
-
-    m.el.querySelector('[data-cancel]').addEventListener('click', function () {
-      cancelled = true
-      if (job) job.abort()
-      else { m.close(); setBusy(false) }
-    })
-
-    var pending = null
-    function render(text) {
-      // Coalesce rapid deltas into one paint per frame
-      pending = text
-      requestAnimationFrame(function () {
-        if (pending === null) return
-        var stick = bodyEl.scrollTop + bodyEl.clientHeight >= bodyEl.scrollHeight - 24
-        contentEl.innerHTML = WC.markdown(pending)
-        pending = null
-        if (stick) bodyEl.scrollTop = bodyEl.scrollHeight
+      var m = WC.modal({
+        title: WC.L('<span class="spinner"></span><span>正在生成', '<span class="spinner"></span><span>Generating ') + WC.esc(title) + '</span>',
+        sub: opts.existingId ? WC.L('将覆盖原报告内容', 'This will overwrite the existing report') : WC.L('生成完成后自动保存到历史报告', 'Saved to report history when generation finishes'),
+        wide: true,
+        dismissible: false,
+        body: WC.L('<div class="stream-status" data-status><span>正在收集任务素材...</span></div><div class="report-box md" data-content></div>', '<div class="stream-status" data-status><span>Collecting task material...</span></div><div class="report-box md" data-content></div>'),
+        foot: WC.L('<button class="btn" data-cancel>取消生成</button>', '<button class="btn" data-cancel>Cancel</button>'),
       })
-    }
+      var statusEl = m.el.querySelector('[data-status]')
+      var contentEl = m.el.querySelector('[data-content]')
+      var bodyEl = m.el.querySelector('.modal-body')
+      function setStatus(text) { statusEl.innerHTML = '<span>' + WC.esc(text) + '</span>' }
 
-    var materialPromise = opts.materialOverride
-      ? Promise.resolve({ text: opts.materialOverride, warnings: [] })
-      : store.getMaterial(from, to).then(function (mat) {
-        return { text: buildMaterialText(mat), warnings: warningsOf(mat) }
+      m.el.querySelector('[data-cancel]').addEventListener('click', function () {
+        cancelled = true
+        if (job) job.abort()
+        else { m.close(); setBusy(false) }
       })
 
-    return materialPromise.then(function (material) {
-      if (cancelled) throw new Error(WC.L('已取消生成', 'Generation cancelled'))
-      toastWarnings(material.warnings)
-      setStatus(WC.L('AI 正在撰写', 'AI is writing') + typeLabel + '...')
-      var settings = store.state.settings
-      var template = reportType === 'weekly' ? settings.weeklyPrompt : settings.monthlyPrompt
-      job = AIPA.ai.generate({
-        prompt: fillTemplate(template, from + WC.L(' 至 ', ' to ') + to, material.text),
-        instructions: INSTRUCTIONS,
-        model: settings.model,
-        onDelta: function (text) {
-          setStatus(WC.L('AI 正在撰写', 'AI is writing') + typeLabel + '...')
-          render(text)
-        },
-        onStatus: function (msg) { setStatus(WC.L('连接波动，', 'Connection unstable, ') + msg) },
-      })
-      return job.promise
-    }).then(function (text) {
-      var content = String(text || '').trim()
-      if (!content) throw new Error(WC.L('生成内容为空，请重试', 'Generated content is empty, please retry'))
-      if (opts.existingId) {
-        return store.updateReport(opts.existingId, { content: content }).then(function (r) {
-          AIPA.toast('success', typeLabel + WC.L('已重新生成并更新', 'Regenerated and updated'))
-          return r
+      var pending = null
+      function render(text) {
+        // Coalesce rapid deltas into one paint per frame
+        pending = text
+        requestAnimationFrame(function () {
+          if (pending === null) return
+          var stick = bodyEl.scrollTop + bodyEl.clientHeight >= bodyEl.scrollHeight - 24
+          contentEl.innerHTML = WC.markdown(pending)
+          pending = null
+          if (stick) bodyEl.scrollTop = bodyEl.scrollHeight
         })
       }
-      return store.createReport({ reportType: reportType, title: title, periodStart: from, periodEnd: to, content: content })
-        .then(function (r) {
-          AIPA.toast('success', typeLabel + WC.L('已生成并保存到历史报告', 'Generated and saved to report history'))
-          return r
+
+      var materialPromise = opts.materialOverride
+        ? Promise.resolve({ text: opts.materialOverride, warnings: [] })
+        : store.getMaterial(from, to).then(function (mat) {
+          return { text: buildMaterialText(mat), warnings: warningsOf(mat) }
         })
-    }).catch(function (err) {
-      AIPA.toast(cancelled ? 'info' : 'error', cancelled ? WC.L('已取消生成', 'Generation cancelled') : WC.errMsg(err))
-      return null
-    }).then(function (result) {
-      m.close()
-      setBusy(false)
-      return result
+
+      return materialPromise.then(function (material) {
+        if (cancelled) throw new Error(WC.L('已取消生成', 'Generation cancelled'))
+        toastWarnings(material.warnings)
+        setStatus(WC.L('AI 正在撰写', 'AI is writing') + typeLabel + '...')
+        var settings = store.state.settings
+        var template = reportType === 'weekly' ? settings.weeklyPrompt : settings.monthlyPrompt
+        job = AIPA.ai.generate({
+          prompt: fillTemplate(template, from + WC.L(' 至 ', ' to ') + to, material.text),
+          instructions: INSTRUCTIONS,
+          model: model,
+          onDelta: function (text) {
+            setStatus(WC.L('AI 正在撰写', 'AI is writing') + typeLabel + '...')
+            render(text)
+          },
+          onStatus: function (msg) { setStatus(WC.L('连接波动，', 'Connection unstable, ') + msg) },
+        })
+        return job.promise
+      }).then(function (text) {
+        var content = String(text || '').trim()
+        if (!content) throw new Error(WC.L('生成内容为空，请重试', 'Generated content is empty, please retry'))
+        if (opts.existingId) {
+          return store.updateReport(opts.existingId, { content: content }).then(function (r) {
+            AIPA.toast('success', typeLabel + WC.L('已重新生成并更新', 'Regenerated and updated'))
+            return r
+          })
+        }
+        return store.createReport({ reportType: reportType, title: title, periodStart: from, periodEnd: to, content: content })
+          .then(function (r) {
+            AIPA.toast('success', typeLabel + WC.L('已生成并保存到历史报告', 'Generated and saved to report history'))
+            return r
+          })
+      }).catch(function (err) {
+        AIPA.toast(cancelled ? 'info' : 'error', cancelled ? WC.L('已取消生成', 'Generation cancelled') : WC.errMsg(err))
+        return null
+      }).then(function (result) {
+        m.close()
+        setBusy(false)
+        return result
+      })
     })
   }
 
@@ -284,158 +303,160 @@
    */
   function generateOkr(periodKey, opts) {
     opts = opts || {}
-    if (!requireModel()) return Promise.resolve(null)
-    if (busy) {
-      AIPA.toast('info', WC.L('已有内容正在生成，请稍候', 'Content is already being generated, please wait'))
-      return Promise.resolve(null)
-    }
-    var period = WC.okr.parsePeriodKey(periodKey)
-    if (!period) {
-      AIPA.toast('error', WC.L('季度参数非法，无法生成 OKR', 'Invalid quarter, cannot generate an OKR'))
-      return Promise.resolve(null)
-    }
-    setBusy(true)
-    var job = null
-    var cancelled = false
-    var keepOpen = false
-    // Set once the material is collected, so a retry reuses it instead of
-    // re-running the live work-source pulls.
-    var materialOverride = opts.materialOverride || null
+    return requireModel().then(function (model) {
+      if (!model) return null
+      if (busy) {
+        AIPA.toast('info', WC.L('已有内容正在生成，请稍候', 'Content is already being generated, please wait'))
+        return null
+      }
+      var period = WC.okr.parsePeriodKey(periodKey)
+      if (!period) {
+        AIPA.toast('error', WC.L('季度参数非法，无法生成 OKR', 'Invalid quarter, cannot generate an OKR'))
+        return null
+      }
+      setBusy(true)
+      var job = null
+      var cancelled = false
+      var keepOpen = false
+      // Set once the material is collected, so a retry reuses it instead of
+      // re-running the live work-source pulls.
+      var materialOverride = opts.materialOverride || null
 
-    var m = WC.modal({
-      title: '<span class="spinner"></span><span>' + WC.L('正在生成 OKR', 'Generating OKR') + '</span>' +
-        '<span class="okr-quarter">' + WC.esc(period.label) + '</span>',
-      sub: opts.replace
-        ? WC.L('将覆盖该季度已有的 OKR', 'This will replace the existing OKR for this quarter')
-        : WC.L('生成完成后自动保存到该季度', 'Saved to this quarter when generation finishes'),
-      wide: true,
-      dismissible: false,
-      body: WC.L('<div class="stream-status" data-status><span>正在收集该季度的任务、工作源与人天素材...</span></div>',
-        '<div class="stream-status" data-status><span>Collecting this quarter\'s tasks, work sources and person-days...</span></div>'),
-      foot: WC.L('<button class="btn" data-cancel>取消生成</button>', '<button class="btn" data-cancel>Cancel</button>'),
-      onClose: function () { document.removeEventListener('keydown', onEsc) },
-    })
-    var statusEl = m.el.querySelector('[data-status]')
-    function setStatus(text) { statusEl.innerHTML = '<span>' + WC.esc(text) + '</span>' }
-
-    // Coalesce the per-delta character count into one paint per frame.
-    var pendingCount = null
-    var countFrame = false
-    function paintCount() {
-      countFrame = false
-      if (pendingCount === null) return
-      var n = pendingCount
-      pendingCount = null
-      setStatus(WC.L('AI 正在起草目标与关键结果...', 'AI is drafting objectives and key results...') +
-        WC.L('（已接收 ', ' (') + n + WC.L(' 字符）', ' characters)'))
-    }
-    function queueCount(text) {
-      pendingCount = String(text || '').length
-      if (countFrame) return
-      countFrame = true
-      requestAnimationFrame(paintCount)
-    }
-    function flushCount() { if (pendingCount !== null) paintCount() }
-
-    function cancel() {
-      cancelled = true
-      if (job) job.abort()
-      else { m.close(); setBusy(false) }
-    }
-    function onEsc(e) {
-      if (e.key !== 'Escape') return
-      e.preventDefault()
-      if (keepOpen) m.close()
-      else cancel()
-    }
-    document.addEventListener('keydown', onEsc)
-    m.el.querySelector('[data-cancel]').addEventListener('click', cancel)
-
-    /** Keep the reply on screen with the reason, its raw text, and a way out. */
-    function showRaw(parsed) {
-      var bodyEl = m.el.querySelector('.modal-body')
-      var footEl = m.el.querySelector('.modal-foot')
-      bodyEl.innerHTML =
-        '<div class="okr-raw"><div class="okr-raw-note">' + WC.icon('info', 14) + '<span>' +
-          (OKR_FAIL_REASON[parsed.reason] || OKR_FAIL_REASON.no_json) + '</span></div>' +
-        WC.L('<div class="okr-raw-label">模型原文</div>', '<div class="okr-raw-label">Raw reply</div>') +
-        '<pre class="okr-raw-pre">' + WC.esc(parsed.raw || WC.L('（空）', '(empty)')) + '</pre></div>'
-      footEl.innerHTML =
-        '<button class="btn" data-raw="copy">' + WC.icon('copy', 13) + WC.L('复制原文', 'Copy raw') + '</button>' +
-        '<button class="btn" data-raw="retry">' + WC.icon('refresh', 13) + WC.L('重试', 'Retry') + '</button>' +
-        '<button class="btn btn-primary" data-raw="close">' + WC.L('关闭', 'Close') + '</button>'
-      footEl.querySelector('[data-raw="copy"]').addEventListener('click', function () {
-        WC.copyText(String(parsed.raw || ''))
+      var m = WC.modal({
+        title: '<span class="spinner"></span><span>' + WC.L('正在生成 OKR', 'Generating OKR') + '</span>' +
+          '<span class="okr-quarter">' + WC.esc(period.label) + '</span>',
+        sub: opts.replace
+          ? WC.L('将覆盖该季度已有的 OKR', 'This will replace the existing OKR for this quarter')
+          : WC.L('生成完成后自动保存到该季度', 'Saved to this quarter when generation finishes'),
+        wide: true,
+        dismissible: false,
+        body: WC.L('<div class="stream-status" data-status><span>正在收集该季度的任务、工作源与人天素材...</span></div>',
+          '<div class="stream-status" data-status><span>Collecting this quarter\'s tasks, work sources and person-days...</span></div>'),
+        foot: WC.L('<button class="btn" data-cancel>取消生成</button>', '<button class="btn" data-cancel>Cancel</button>'),
+        onClose: function () { document.removeEventListener('keydown', onEsc) },
       })
-      footEl.querySelector('[data-raw="retry"]').addEventListener('click', function () {
-        m.close()
-        generateOkr(periodKey, { replace: !!opts.replace, materialOverride: materialOverride })
-      })
-      footEl.querySelector('[data-raw="close"]').addEventListener('click', function () { m.close() })
-    }
+      var statusEl = m.el.querySelector('[data-status]')
+      function setStatus(text) { statusEl.innerHTML = '<span>' + WC.esc(text) + '</span>' }
 
-    var materialPromise = materialOverride
-      ? Promise.resolve({ text: materialOverride, warnings: [] })
-      : Promise.all([
-        store.getMaterial(period.from, period.to),
-        store.personDaysInRange(period.from, period.to),
-      ]).then(function (out) {
-        var mat = out[0]
-        var personDays = out[1] || []
-        materialOverride = buildMaterialText(mat) + '\n\n' + buildPersonDaysText(personDays)
-        return { text: materialOverride, warnings: warningsOf(mat) }
-      })
+      // Coalesce the per-delta character count into one paint per frame.
+      var pendingCount = null
+      var countFrame = false
+      function paintCount() {
+        countFrame = false
+        if (pendingCount === null) return
+        var n = pendingCount
+        pendingCount = null
+        setStatus(WC.L('AI 正在起草目标与关键结果...', 'AI is drafting objectives and key results...') +
+          WC.L('（已接收 ', ' (') + n + WC.L(' 字符）', ' characters)'))
+      }
+      function queueCount(text) {
+        pendingCount = String(text || '').length
+        if (countFrame) return
+        countFrame = true
+        requestAnimationFrame(paintCount)
+      }
+      function flushCount() { if (pendingCount !== null) paintCount() }
 
-    return materialPromise.then(function (material) {
-      if (cancelled) throw new Error(WC.L('已取消生成', 'Generation cancelled'))
-      toastWarnings(material.warnings)
-      setStatus(WC.L('AI 正在起草目标与关键结果...', 'AI is drafting objectives and key results...'))
-      var settings = store.state.settings
-      var previousText = WC.okr.buildPreviousText(store.listOkrs(), periodKey)
-      job = AIPA.ai.generate({
-        prompt: WC.okr.buildPrompt({
-          template: settings.okrPrompt,
-          periodLabel: period.label,
-          periodRange: period.from + WC.L(' 至 ', ' to ') + period.to,
-          materialText: material.text,
-          previousText: previousText,
-        }),
-        instructions: WC.okr.INSTRUCTIONS,
-        model: settings.model,
-        onDelta: queueCount,
-        onStatus: function (msg) {
-          flushCount()
-          setStatus(WC.L('连接波动，', 'Connection unstable, ') + msg)
-        },
-      })
-      return job.promise
-    }).then(function (text) {
-      flushCount()
-      var parsed = WC.okr.parseGenerated(text)
-      if (!parsed.ok) { showRaw(parsed); keepOpen = true; return null }
-      return WC.attempt(function () {
-        return store.createOkr({
-          periodKey: periodKey,
-          objectives: parsed.objectives,
-          source: 'ai',
-          replace: !!opts.replace,
+      function cancel() {
+        cancelled = true
+        if (job) job.abort()
+        else { m.close(); setBusy(false) }
+      }
+      function onEsc(e) {
+        if (e.key !== 'Escape') return
+        e.preventDefault()
+        if (keepOpen) m.close()
+        else cancel()
+      }
+      document.addEventListener('keydown', onEsc)
+      m.el.querySelector('[data-cancel]').addEventListener('click', cancel)
+
+      /** Keep the reply on screen with the reason, its raw text, and a way out. */
+      function showRaw(parsed) {
+        var bodyEl = m.el.querySelector('.modal-body')
+        var footEl = m.el.querySelector('.modal-foot')
+        bodyEl.innerHTML =
+          '<div class="okr-raw"><div class="okr-raw-note">' + WC.icon('info', 14) + '<span>' +
+            (OKR_FAIL_REASON[parsed.reason] || OKR_FAIL_REASON.no_json) + '</span></div>' +
+          WC.L('<div class="okr-raw-label">模型原文</div>', '<div class="okr-raw-label">Raw reply</div>') +
+          '<pre class="okr-raw-pre">' + WC.esc(parsed.raw || WC.L('（空）', '(empty)')) + '</pre></div>'
+        footEl.innerHTML =
+          '<button class="btn" data-raw="copy">' + WC.icon('copy', 13) + WC.L('复制原文', 'Copy raw') + '</button>' +
+          '<button class="btn" data-raw="retry">' + WC.icon('refresh', 13) + WC.L('重试', 'Retry') + '</button>' +
+          '<button class="btn btn-primary" data-raw="close">' + WC.L('关闭', 'Close') + '</button>'
+        footEl.querySelector('[data-raw="copy"]').addEventListener('click', function () {
+          WC.copyText(String(parsed.raw || ''))
         })
-      }).then(function (set) {
-        var krCount = parsed.objectives.reduce(function (n, o) { return n + ((o.keyResults || []).length) }, 0)
-        var msg = WC.L('已生成 ', 'Generated ') + parsed.objectives.length + WC.L(' 个目标、', ' objective(s), ') +
-          krCount + WC.L(' 条关键结果', ' key result(s)')
-        if (parsed.dropped > 0) msg += WC.L('；已忽略 ', '; ignored ') + parsed.dropped + WC.L(' 条不合规的关键结果', ' invalid key result(s)')
-        AIPA.toast('success', msg)
-        return set
+        footEl.querySelector('[data-raw="retry"]').addEventListener('click', function () {
+          m.close()
+          generateOkr(periodKey, { replace: !!opts.replace, materialOverride: materialOverride })
+        })
+        footEl.querySelector('[data-raw="close"]').addEventListener('click', function () { m.close() })
+      }
+
+      var materialPromise = materialOverride
+        ? Promise.resolve({ text: materialOverride, warnings: [] })
+        : Promise.all([
+          store.getMaterial(period.from, period.to),
+          store.personDaysInRange(period.from, period.to),
+        ]).then(function (out) {
+          var mat = out[0]
+          var personDays = out[1] || []
+          materialOverride = buildMaterialText(mat) + '\n\n' + buildPersonDaysText(personDays)
+          return { text: materialOverride, warnings: warningsOf(mat) }
+        })
+
+      return materialPromise.then(function (material) {
+        if (cancelled) throw new Error(WC.L('已取消生成', 'Generation cancelled'))
+        toastWarnings(material.warnings)
+        setStatus(WC.L('AI 正在起草目标与关键结果...', 'AI is drafting objectives and key results...'))
+        var settings = store.state.settings
+        var previousText = WC.okr.buildPreviousText(store.listOkrs(), periodKey)
+        job = AIPA.ai.generate({
+          prompt: WC.okr.buildPrompt({
+            template: settings.okrPrompt,
+            periodLabel: period.label,
+            periodRange: period.from + WC.L(' 至 ', ' to ') + period.to,
+            materialText: material.text,
+            previousText: previousText,
+          }),
+          instructions: WC.okr.INSTRUCTIONS,
+          model: model,
+          onDelta: queueCount,
+          onStatus: function (msg) {
+            flushCount()
+            setStatus(WC.L('连接波动，', 'Connection unstable, ') + msg)
+          },
+        })
+        return job.promise
+      }).then(function (text) {
+        flushCount()
+        var parsed = WC.okr.parseGenerated(text)
+        if (!parsed.ok) { showRaw(parsed); keepOpen = true; return null }
+        return WC.attempt(function () {
+          return store.createOkr({
+            periodKey: periodKey,
+            objectives: parsed.objectives,
+            source: 'ai',
+            replace: !!opts.replace,
+          })
+        }).then(function (set) {
+          var krCount = parsed.objectives.reduce(function (n, o) { return n + ((o.keyResults || []).length) }, 0)
+          var msg = WC.L('已生成 ', 'Generated ') + parsed.objectives.length + WC.L(' 个目标、', ' objective(s), ') +
+            krCount + WC.L(' 条关键结果', ' key result(s)')
+          if (parsed.dropped > 0) msg += WC.L('；已忽略 ', '; ignored ') + parsed.dropped + WC.L(' 条不合规的关键结果', ' invalid key result(s)')
+          AIPA.toast('success', msg)
+          return set
+        })
+      }).catch(function (err) {
+        flushCount()
+        AIPA.toast(cancelled ? 'info' : 'error', cancelled ? WC.L('已取消生成', 'Generation cancelled') : WC.errMsg(err))
+        return null
+      }).then(function (result) {
+        if (!keepOpen) m.close()
+        setBusy(false)
+        return result
       })
-    }).catch(function (err) {
-      flushCount()
-      AIPA.toast(cancelled ? 'info' : 'error', cancelled ? WC.L('已取消生成', 'Generation cancelled') : WC.errMsg(err))
-      return null
-    }).then(function (result) {
-      if (!keepOpen) m.close()
-      setBusy(false)
-      return result
     })
   }
 

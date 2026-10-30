@@ -1,100 +1,71 @@
-/** 设置：生成模型、周报/月报提示词模板、数据导入导出。 */
+/** 设置：工作模型（只读，由宿主工具栏选择）、周报/月报提示词模板、数据导入导出。 */
 (function () {
   'use strict'
 
   var WC = window.WC
   var store = WC.store
 
-  // `models` stays null until the list arrives (or fails, in which case
-  // `modelsError` is set). Mount starts both back at "not loaded" so a reload
-  // reflects provider changes; `refresh` leaves them alone so coming back to
-  // the tab neither re-fetches nor loses the loaded list.
-  var view = { root: null, models: null, modelsError: null }
+  // `model` is the host's answer ({ model, name, providerName, available }) and
+  // stays null until it arrives. `modelError` only means the lookup itself
+  // failed; a blank `model` is a valid answer ("nothing chosen yet").
+  // `modelEpoch` lets a host push win over an initial lookup that resolves late.
+  var view = { root: null, model: null, modelError: null, unsubscribeModel: null, modelEpoch: 0 }
 
-  function modelHintHtml() {
-    return WC.L('<span class="hint">模型为必填项；标注了提供商的模型由该提供商执行，其余由默认引擎执行。</span>',
-      '<span class="hint">A model is required; models marked with a provider run on it, the rest run on the default engine.</span>')
+  /**
+   * The work model lives in the host's plugin toolbar; this row only reports
+   * the current choice. While the lookup is in flight it shows "…" rather than
+   * "未选择", so a loading view never claims a choice the user did make.
+   */
+  function modelRowHtml() {
+    var html = WC.L('<div class="field"><label>工作模型</label>', '<div class="field"><label>Work model</label>')
+    var value
+    if (view.modelError) {
+      value = '<span class="muted">' + WC.L('读取失败：', 'Could not read it: ') + WC.esc(view.modelError) + '</span>'
+    } else if (view.model === null) {
+      value = '<span class="muted">…</span>'
+    } else if (!view.model.model) {
+      value = '<span class="muted">' + WC.L('未选择模型', 'No model selected') + '</span>'
+    } else {
+      value = '<span>' + WC.esc(view.model.name || view.model.model) + '</span>'
+    }
+    html += '<div data-model-value>' + value + '</div>' +
+      '<span class="hint">' + WC.L('在插件顶部工具栏切换', 'Switch it from the plugin toolbar above') + '</span>'
+    if (!view.modelError && view.model && view.model.available === false) {
+      html += '<span class="hint" style="color:var(--danger)">' +
+        WC.L('该模型当前不可用，生成前请重新选择。', 'This model is currently unavailable; choose another before generating.') +
+      '</span>'
+    }
+    return html + '</div>'
   }
 
-  /** The engine a model will actually run on. `default` is main's marker for
-   *  models no enabled provider owns (including the built-in Claude CLI,
-   *  which plugin turns deliberately never route to). */
-  function modelProviderLabel(m) {
-    if (m.providerId === 'default') return WC.L('默认引擎', 'Default engine')
-    return m.providerName || m.providerId || ''
-  }
-
-  /** The model control: a select once the list is known, a text input if the
-   *  host could not provide one. A stored model the list no longer offers is
-   *  kept as its own selected option instead of being silently dropped. */
-  function modelFieldHtml(s) {
-    var label = WC.L('<div class="field"><label>生成模型</label>', '<div class="field"><label>Model</label>')
-
-    if (view.modelsError) {
-      return label +
-        '<div class="hint" style="color:var(--danger)">' +
-          WC.L('读取可用模型失败：', 'Could not load available models: ') + WC.esc(view.modelsError) +
-          WC.L('；请手动填写模型 ID。', '; enter a model ID manually.') +
-        '</div>' +
-        '<input class="input" data-f="model" value="' + WC.esc(s.model) + '" placeholder="' + WC.L('模型 ID', 'Model ID') + '">' +
-        modelHintHtml() + '</div>'
-    }
-
-    if (view.models === null) {
-      return label +
-        '<select class="input" data-f="model" disabled>' +
-          '<option value="">' + WC.L('正在读取可用模型...', 'Loading available models...') + '</option>' +
-        '</select>' +
-        modelHintHtml() + '</div>'
-    }
-
-    var html = label + '<select class="input" data-f="model">' +
-      '<option value="">' + WC.L('请选择模型', 'Select a model') + '</option>'
-    var selected = false
-    // Main already dedupes; keep the first occurrence per id here too so a
-    // stale host (or a future list source) cannot render the same id twice.
-    var seenIds = Object.create(null)
-    view.models.forEach(function (m) {
-      if (!m || !m.id || seenIds[m.id]) return
-      seenIds[m.id] = true
-      var isSelected = !selected && m.id === s.model
-      if (isSelected) selected = true
-      html += '<option value="' + WC.esc(m.id) + '"' + (isSelected ? ' selected' : '') + '>' +
-        WC.esc(m.name || m.id) + ' — ' + WC.esc(modelProviderLabel(m)) + '</option>'
-    })
-    if (s.model && !selected) {
-      html += '<option value="' + WC.esc(s.model) + '" selected>' + WC.esc(s.model) +
-        WC.L('（不在已启用的提供商中）', ' (not in an enabled provider)') + '</option>'
-    }
-    return html + '</select>' + modelHintHtml() + '</div>'
-  }
-
-  /** Replace only the model field once the list settles, so text typed into
-   *  the prompt templates while it was loading is never clobbered. */
-  function paintModelField() {
+  /** Replace only the model row, so text typed into the prompt templates while
+   *  the lookup settles — or while the host changes the model — is never lost. */
+  function paintModelRow() {
     if (!view.root) return
-    var host = view.root.querySelector('[data-model-field]')
+    var host = view.root.querySelector('[data-model-row]')
     if (!host) { render(); return }
-    host.innerHTML = modelFieldHtml(store.state.settings)
+    host.innerHTML = modelRowHtml()
   }
 
-  function loadModels() {
+  function loadModel() {
+    var epoch = view.modelEpoch
     var request
     try {
-      request = AIPA.ai.models()
+      request = AIPA.ai.model()
     } catch (err) {
       request = Promise.reject(err)
     }
     request
-      .then(function (list) {
-        view.models = Array.isArray(list) ? list : []
-        view.modelsError = null
-        paintModelField()
+      .then(function (info) {
+        if (view.modelEpoch !== epoch) return
+        view.model = info || {}
+        view.modelError = null
+        paintModelRow()
       })
       .catch(function (err) {
-        view.models = null
-        view.modelsError = WC.errMsg(err)
-        paintModelField()
+        if (view.modelEpoch !== epoch) return
+        view.modelError = WC.errMsg(err)
+        paintModelRow()
       })
   }
 
@@ -103,10 +74,10 @@
     var s = store.state.settings
     var counts = store.state
     view.root.innerHTML =
-      WC.L('<div class="page-head"><div><div class="page-title">设置</div><div class="page-sub">AI 报告使用下方选择的模型生成</div></div></div>', '<div class="page-head"><div><div class="page-title">Settings</div><div class="page-sub">Reports are generated with the model chosen below</div></div></div>') +
+      WC.L('<div class="page-head"><div><div class="page-title">设置</div><div class="page-sub">AI 报告与 OKR 使用插件顶部工具栏选择的工作模型生成</div></div></div>', '<div class="page-head"><div><div class="page-title">Settings</div><div class="page-sub">Reports and OKRs use the work model chosen in the plugin toolbar above</div></div></div>') +
       '<div class="settings-grid">' +
         '<div class="card">' +
-          '<div data-model-field>' + modelFieldHtml(s) + '</div>' +
+          '<div data-model-row>' + modelRowHtml() + '</div>' +
           WC.L('<div class="field"><label>周报提示词模板</label><textarea class="textarea" data-f="weeklyPrompt">', '<div class="field"><label>Weekly report prompt</label><textarea class="textarea" data-f="weeklyPrompt">') + WC.esc(s.weeklyPrompt) + '</textarea>' +
             WC.L('<span class="hint">可用变量：{{period}} 报告周期，{{material}} 任务与工作源素材</span></div>', '<span class="hint">Variables: {{period}} report period, {{material}} tasks and work-source material</span></div>') +
           WC.L('<div class="field"><label>月报提示词模板</label><textarea class="textarea" data-f="monthlyPrompt">', '<div class="field"><label>Monthly report prompt</label><textarea class="textarea" data-f="monthlyPrompt">') + WC.esc(s.monthlyPrompt) + '</textarea>' +
@@ -142,7 +113,7 @@
     var act = btn.getAttribute('data-act')
     var f = function (n) { return view.root.querySelector('[data-f="' + n + '"]') }
     if (act === 'save') {
-      store.saveSettings({ model: f('model').value.trim(), weeklyPrompt: f('weeklyPrompt').value, monthlyPrompt: f('monthlyPrompt').value, okrPrompt: f('okrPrompt').value })
+      store.saveSettings({ weeklyPrompt: f('weeklyPrompt').value, monthlyPrompt: f('monthlyPrompt').value, okrPrompt: f('okrPrompt').value })
         .then(function () { AIPA.toast('success', WC.L('设置已保存', 'Settings saved')) })
         .catch(function (err) { AIPA.toast('error', WC.L('保存失败：', 'Failed to save: ') + WC.errMsg(err)) })
     } else if (act === 'reset') {
@@ -178,15 +149,28 @@
       view.root = root
       root.addEventListener('click', onClick)
       root.addEventListener('change', onChange)
-      view.models = null
-      view.modelsError = null
+      view.model = null
+      view.modelError = null
       render()
-      loadModels()
+      // A change made in the host toolbar repaints just this row, no reload.
+      // Subscribe before the initial lookup so no push is missed, and bump the
+      // epoch so a late initial answer cannot overwrite a newer push.
+      view.unsubscribeModel = AIPA.ai.onModelChange(function (info) {
+        view.modelEpoch += 1
+        view.model = info || {}
+        view.modelError = null
+        paintModelRow()
+      })
+      loadModel()
     },
     unmount: function () {
       if (view.root) {
         view.root.removeEventListener('click', onClick)
         view.root.removeEventListener('change', onChange)
+      }
+      if (view.unsubscribeModel) {
+        view.unsubscribeModel()
+        view.unsubscribeModel = null
       }
       view.root = null
     },

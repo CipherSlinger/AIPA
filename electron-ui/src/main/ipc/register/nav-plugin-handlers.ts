@@ -25,6 +25,8 @@ import {
   startPluginAi,
   abortPluginAi,
   listPluginAiModels,
+  getPluginAiModel,
+  setPluginAiModel,
   resolvePluginTurnTarget,
   type GithubCommitsArgs,
   type ScanFolderArgs,
@@ -166,6 +168,22 @@ export function registerNavPluginHandlers(win: BrowserWindow, send: SendFn): voi
     requirePermission(pluginId, 'ai')
     return listPluginAiModels()
   })
+  // The plugin's host-chosen "work model". It is stored per plugin, so two
+  // plugins can run on different models, and the toolbar and the plugin read
+  // the same value instead of each keeping its own copy.
+  safeHandle('plugin:ai:model:get', (_e, { pluginId }: { pluginId: string }) => {
+    requirePermission(pluginId, 'ai')
+    return getPluginAiModel(pluginId)
+  })
+  safeHandle('plugin:ai:model:set', (_e, { pluginId, model }: { pluginId: string; model?: string }) => {
+    requirePermission(pluginId, 'ai')
+    const state = setPluginAiModel(pluginId, String(model ?? ''))
+    // Push right after the write, from the saved state rather than the request:
+    // every open surface (toolbar, plugin page) then sees the same stored value,
+    // and a plugin that set it itself is told what was actually kept.
+    send('plugin:ai:model', { pluginId, model: state.model })
+    return state
+  })
   safeHandle('plugin:ai:generate', async (_e, { pluginId, requestId, prompt, instructions, model }: {
     pluginId: string
     requestId: string
@@ -174,9 +192,13 @@ export function registerNavPluginHandlers(win: BrowserWindow, send: SendFn): voi
     model?: string
   }) => {
     requirePermission(pluginId, 'ai')
+    // A plugin that names a model keeps it; otherwise the toolbar's choice is
+    // the working AI. Without this fallback the picker would be decorative for
+    // every plugin that does not pass a model itself.
+    const effectiveModel = (model || '').trim() || getPluginAiModel(pluginId).model
     const scopedId = `${pluginId}:${requestId}`
     await startPluginAi(
-      { requestId: scopedId, prompt, instructions, model, apiKey: getApiKey() || undefined },
+      { requestId: scopedId, prompt, instructions, model: effectiveModel || undefined, apiKey: getApiKey() || undefined },
       (event) => {
         send('plugin:ai:event', { ...event, pluginId, requestId })
         // Terminal events are what the user is waiting for; report them to

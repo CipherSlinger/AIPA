@@ -2,7 +2,9 @@
  * AIPA plugin bridge — talks to PluginHostView via postMessage.
  *
  * - AIPA.invoke(method, payload): request/response host capabilities
- *   (data.get/set, github.commits, fs.scanFolder/pickFolder, ai.models/generate/abort)
+ *   (data.get/set, github.commits, fs.scanFolder/pickFolder, ai.models/model/generate/abort)
+ * - AIPA.ai.model()/setModel()/onModelChange(): the work model chosen in the
+ *   host's plugin toolbar (single source of truth, no in-plugin setting)
  * - AIPA.ai.generate(): streaming Codex generation with abort
  * - AIPA.toast / AIPA.sendPrompt: fire-and-forget host UI actions
  *
@@ -15,6 +17,7 @@
   var hosted = window.parent && window.parent !== window
   var pending = new Map()
   var aiHandlers = new Map()
+  var modelListeners = []
   var themeListeners = []
   var seq = 0
 
@@ -38,6 +41,11 @@
     } else if (d.type === 'aipa:ai:event' && d.event) {
       var handler = aiHandlers.get(d.event.requestId)
       if (handler) handler(d.event)
+    } else if (d.type === 'aipa:ai:model') {
+      // The host may nest the model info under `payload` or spread it on the
+      // message itself; accept either so toolbars and older hosts both work.
+      var info = d.payload && typeof d.payload === 'object' ? d.payload : d
+      modelListeners.forEach(function (fn) { try { fn(info) } catch (e) { console.error(e) } })
     } else if (d.type === 'aipa:theme') {
       document.documentElement.setAttribute('data-theme', d.theme === 'dark' ? 'dark' : 'light')
       themeListeners.forEach(function (fn) { fn(d.theme) })
@@ -136,6 +144,17 @@
       generate: generate,
       // Enabled models, as [{ id, name, providerId, providerName }].
       models: function () { return invoke('ai.models') },
+      // The work model chosen in the host's plugin toolbar.
+      // -> { model, name, providerName, available }
+      model: function () { return invoke('ai.model.get') },
+      // '' clears the selection; resolves to the same shape as model().
+      setModel: function (id) { return invoke('ai.model.set', { model: id }) },
+      onModelChange: function (fn) {
+        modelListeners.push(fn)
+        return function () {
+          modelListeners = modelListeners.filter(function (l) { return l !== fn })
+        }
+      },
     },
   }
 

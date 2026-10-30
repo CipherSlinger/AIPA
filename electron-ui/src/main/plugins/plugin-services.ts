@@ -14,7 +14,7 @@ import { CodexBridge, CodexAuthError } from '../codex/codex-bridge'
 import { StreamBridge } from '../pty/stream-bridge'
 import { buildCliEnv, migrateProviderConfig, type ModelProviderConfig } from '../providers/types'
 import { providerRegistry } from '../providers'
-import { getPref } from '../config/config-manager'
+import { getPref, setPref } from '../config/config-manager'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('plugin-services')
@@ -354,6 +354,57 @@ export function listPluginAiModels(): PluginAiModelOption[] {
     }
   }
   return models
+}
+
+/**
+ * A plugin's saved "work model", as the toolbar and the plugin both read it.
+ *
+ * `available` is the honest part: a saved id that no enabled provider offers
+ * any more is still returned (with its old display name when the id is still
+ * somewhere in the list) so the picker can show the choice it cannot honour —
+ * never a silent switch to another model.
+ */
+export interface PluginAiModelState {
+  model: string
+  name: string
+  providerName: string
+  available: boolean
+}
+
+export function getPluginAiModel(pluginId: string): PluginAiModelState {
+  const saved = (getPref('pluginAiModels') as Record<string, string> | undefined) ?? {}
+  const model = saved[pluginId] || ''
+  if (!model) return { model: '', name: '', providerName: '', available: false }
+
+  const option = listPluginAiModels().find(m => m.id === model)
+  return {
+    model,
+    name: option?.name || '',
+    providerName: option?.providerName || '',
+    available: !!option,
+  }
+}
+
+/**
+ * Save a plugin's work model. An empty id clears the choice; a non-empty id
+ * must be one the list currently offers, or the plugin would be pinned to
+ * something no provider can run and every `ai.generate` would fail later.
+ */
+export function setPluginAiModel(pluginId: string, modelId: string): PluginAiModelState {
+  const model = (modelId || '').trim()
+  if (model && !listPluginAiModels().some(m => m.id === model)) {
+    throw new Error(`[invalid_model] 模型 ${model} 不在已启用的提供商中`)
+  }
+
+  const saved = (getPref('pluginAiModels') as Record<string, string> | undefined) ?? {}
+  // Copy before editing: the value from the store is the stored object itself,
+  // and mutating it in place would bypass electron-store's own write path.
+  const next: Record<string, string> = { ...saved }
+  if (model) next[pluginId] = model
+  else delete next[pluginId]
+  setPref('pluginAiModels', next)
+
+  return getPluginAiModel(pluginId)
 }
 
 /**

@@ -46,6 +46,14 @@ interface StoreSchema {
    * `utils/allowed-roots.ts`.
    */
   allowedFolders: string[]
+  /**
+   * Each plugin's host-chosen AI "work model", pluginId → model id. An entry
+   * exists only while a model is chosen: clearing the picker removes the key.
+   * A saved id that no provider offers any more is kept rather than reverted —
+   * the picker reports it as unavailable instead of silently swapping the
+   * plugin onto a different model.
+   */
+  pluginAiModels: Record<string, string>
 }
 
 const store = new Store<StoreSchema>({
@@ -71,6 +79,7 @@ const store = new Store<StoreSchema>({
     petAttentionAlerts: true,
     dreamConsolidationEnabled: true,
     allowedFolders: [],
+    pluginAiModels: {},
   },
   // Removed hardcoded encryptionKey — API key is now encrypted via safeStorage
 })

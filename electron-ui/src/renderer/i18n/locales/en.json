@@ -896,7 +896,6 @@
   "settings": {
     "title": "Settings",
     "close": "Close settings",
-    "backToChat": "Back to chat",
     "tabs": {
       "general": "General",
       "ai-engine": "AI Engine",
@@ -4004,12 +4003,20 @@
     "sourceEmpty": "No files",
     "sourcePickFile": "Select a file on the left to read its source",
     "sourceLoadFailed": "Failed to read this file",
-    "backToChat": "Back to chat",
     "loadFailed": "Plugin failed to load",
     "entryMissing": "Plugin entry file index.html not found",
     "openDirToCheck": "Open folder to check",
     "edit": "Edit",
-    "editTitle": "Chat with AI to change this plugin code"
+    "editTitle": "Chat with AI to change this plugin code",
+    "model": "Work model",
+    "modelTitle": "Choose the model this plugin calls AI with",
+    "modelPick": "Choose model",
+    "modelNone": "No model selected",
+    "modelRequired": "Choose a work model in the plugin toolbar first",
+    "modelEmpty": "No models enabled",
+    "modelEmptyHint": "Enable a provider and add a model under Settings → AI engine",
+    "modelUnavailable": "Not in any enabled provider",
+    "modelSaved": "Work model switched"
   },
   "employees": {
     "pageTitle": "HR",

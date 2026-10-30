@@ -2,11 +2,13 @@ import React, { useEffect, useRef, useState, useCallback } from 'react'
 import {
   RotateCw,
   FolderOpen,
-  X,
   AlertTriangle,
   Puzzle,
   FileCode,
   Sparkles,
+  Cpu,
+  ChevronDown,
+  Check,
 } from 'lucide-react'
 import { usePluginStore } from '../../store/pluginStore'
 import { useUiStore, usePrefsStore } from '../../store'
@@ -14,6 +16,7 @@ import { getPluginIconComponent, getPluginDisplayName } from './pluginIcons'
 import PluginSourcePreview from './PluginSourcePreview'
 import PluginEditDrawer from './PluginEditDrawer'
 import { useI18n } from '../../i18n'
+import type { PluginAiModel, PluginAiModelState } from '../../../preload/index'
 
 type ElectronAPI = typeof window.electronAPI
 
@@ -42,6 +45,11 @@ const INVOKE_METHODS: Record<string, {
   // The models a plugin may offer: enabled providers only, credentials stripped
   // by main. The plugin still decides which one a generation should use.
   'ai.models': { permission: 'ai', call: (api, id) => api.pluginAiModels(id) },
+  // The user's work-model choice for this plugin, set from the toolbar. `get`
+  // lets the plugin discover it; `set` lets the plugin change it, and main
+  // pushes the stored value back to both surfaces.
+  'ai.model.get': { permission: 'ai', call: (api, id) => api.pluginAiModel(id) },
+  'ai.model.set': { permission: 'ai', call: (api, id, p) => api.pluginAiSetModel(id, String(p?.model ?? '')) },
   // An answer-only assistant turn: the answer comes back as the invoke result,
   // not as a stream. Private by default (no session); `visible: true` persists
   // a conversation the archive can open, which main announces separately.
@@ -109,6 +117,47 @@ const TOOLBAR_BTN: React.CSSProperties = {
   gap: 4,
 }
 
+/** One selectable row of the work-model menu (also used for the clear row). */
+const MODEL_MENU_ROW: React.CSSProperties = {
+  width: '100%',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '6px 8px',
+  borderRadius: 6,
+  border: 'none',
+  background: 'transparent',
+  color: 'var(--text-primary)',
+  fontSize: 12,
+  textAlign: 'left',
+  cursor: 'pointer',
+}
+
+const MODEL_MENU_NAME: React.CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+}
+
+/** Muted second line of a row: provider name or the unavailable note. */
+const MODEL_MENU_NOTE: React.CSSProperties = {
+  fontSize: 10,
+  color: 'var(--text-muted)',
+  whiteSpace: 'nowrap',
+  maxWidth: 110,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+}
+
+const MODEL_MENU_NOTICE: React.CSSProperties = {
+  padding: '6px 8px',
+  fontSize: 11,
+  color: 'var(--text-muted)',
+  lineHeight: 1.45,
+}
+
 export default function PluginHostView() {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [iframeKey, setIframeKey] = useState(0)
@@ -119,10 +168,19 @@ export default function PluginHostView() {
   // AI edit drawer: chats with the agent, whose cwd is this plugin's folder.
   const [showEdit, setShowEdit] = useState(false)
 
+  // The active plugin's host-chosen "work model" and its picker. The model
+  // state is what the toolbar button shows; the option list is loaded lazily
+  // when the menu first opens, because it only changes with the provider setup.
+  const [aiModel, setAiModel] = useState<PluginAiModelState | null>(null)
+  const [modelMenuOpen, setModelMenuOpen] = useState(false)
+  const [modelOptions, setModelOptions] = useState<PluginAiModel[] | null>(null)
+  const [modelOptionsLoading, setModelOptionsLoading] = useState(false)
+  const [modelOptionsError, setModelOptionsError] = useState<string | null>(null)
+  const modelMenuRef = useRef<HTMLDivElement>(null)
+
   const plugins = usePluginStore(s => s.plugins)
   const activePluginId = usePluginStore(s => s.activePluginId)
   const openFolder = usePluginStore(s => s.openPluginFolder)
-  const setActiveNavItem = useUiStore(s => s.setActiveNavItem)
   const addToast = useUiStore(s => s.addToast)
   const theme = usePrefsStore(s => s.prefs.theme || 'light')
   const { resolvedLocale, t } = useI18n()
@@ -157,6 +215,63 @@ export default function PluginHostView() {
       iframeRef.current?.contentWindow?.postMessage({ type: 'aipa:ai:event', event }, '*')
     })
   }, [activeManifestId])
+
+  // Each plugin has its own work model. Switching plugins resets everything the
+  // toolbar cached, so a slow read started for the previous plugin cannot paint
+  // into the new plugin's header.
+  useEffect(() => {
+    setAiModel(null)
+    setModelMenuOpen(false)
+    setModelOptions(null)
+    setModelOptionsError(null)
+    setModelOptionsLoading(false)
+  }, [activePluginId])
+
+  const activePluginHasAi = plugin?.manifest.permissions?.includes('ai') ?? false
+
+  // Read the saved model as soon as a plugin becomes active, not when the menu
+  // first opens: the button must name the current model before anyone clicks.
+  useEffect(() => {
+    if (!activeManifestId || !activePluginHasAi) return
+    let live = true
+    const read = () => {
+      window.electronAPI.pluginAiModel(activeManifestId)
+        .then(state => { if (live) setAiModel(state) })
+        .catch(() => { /* keep the neutral label; the menu surfaces real errors */ })
+    }
+    read()
+    const off = window.electronAPI.onPluginAiModelChange((change) => {
+      if (change.pluginId !== activeManifestId) return
+      // The push carries only the id; re-read the state so the label and the
+      // unavailable marker come from the same place the menu uses.
+      read()
+      // Keep the hosted plugin in step: a change made in the toolbar (or by
+      // another surface) must reach a page that may still hold the old id.
+      iframeRef.current?.contentWindow?.postMessage({ type: 'aipa:ai:model', model: change.model }, '*')
+    })
+    return () => {
+      live = false
+      off()
+    }
+  }, [activeManifestId, activePluginHasAi])
+
+  // Outside click / Escape close the mini menu. The listeners exist only while
+  // it is open, so nothing outlives the menu, a plugin switch or unmount.
+  useEffect(() => {
+    if (!modelMenuOpen) return
+    const onMouseDown = (e: MouseEvent) => {
+      if (!modelMenuRef.current?.contains(e.target as Node)) setModelMenuOpen(false)
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setModelMenuOpen(false)
+    }
+    window.addEventListener('mousedown', onMouseDown)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('mousedown', onMouseDown)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [modelMenuOpen])
 
   // Handle bidirectional bridge messages from the plugin iframe
   useEffect(() => {
@@ -251,7 +366,44 @@ export default function PluginHostView() {
     setIframeKey(k => k + 1)
   }, [])
 
-  const handleClose = () => setActiveNavItem('chat')
+  const handleModelMenu = useCallback(() => {
+    if (modelMenuOpen) {
+      setModelMenuOpen(false)
+      return
+    }
+    setModelMenuOpen(true)
+    // The list only changes with the provider setup, so load it the first time
+    // this plugin's menu opens and keep it until the active plugin changes.
+    if (modelOptions !== null || modelOptionsLoading) return
+    const id = pluginRef.current?.manifest.id
+    if (!id) return
+    setModelOptionsLoading(true)
+    setModelOptionsError(null)
+    window.electronAPI.pluginAiModels(id)
+      .then(options => {
+        // Ignore a list that arrives after the user switched plugins.
+        if (pluginRef.current?.manifest.id === id) setModelOptions(options)
+      })
+      .catch(err => {
+        if (pluginRef.current?.manifest.id === id) setModelOptionsError(errorMessage(err))
+      })
+      .finally(() => {
+        if (pluginRef.current?.manifest.id === id) setModelOptionsLoading(false)
+      })
+  }, [modelMenuOpen, modelOptions, modelOptionsLoading])
+
+  const chooseModel = useCallback(async (model: string) => {
+    const id = pluginRef.current?.manifest.id
+    if (!id) return
+    setModelMenuOpen(false)
+    try {
+      const state = await window.electronAPI.pluginAiSetModel(id, model)
+      setAiModel(state)
+      addToast('success', t('pluginHost.modelSaved'))
+    } catch (err) {
+      addToast('error', errorMessage(err))
+    }
+  }, [addToast, t])
 
   if (!plugin) {
     return (
@@ -352,6 +504,116 @@ export default function PluginHostView() {
             {t('pluginHost.reload')}
           </button>
 
+          {/* Work model: only plugins that declared `ai` can call a model, so
+              only they get a picker. It sits between Reload and Source because
+              it describes what the plugin runs on, not the page itself. */}
+          {activePluginHasAi && (
+            <div ref={modelMenuRef} style={{ position: 'relative' }}>
+              <button
+                onClick={handleModelMenu}
+                title={t('pluginHost.modelTitle')}
+                aria-haspopup="listbox"
+                aria-expanded={modelMenuOpen}
+                style={{
+                  ...TOOLBAR_BTN,
+                  background: modelMenuOpen ? 'rgba(99,102,241,0.14)' : 'transparent',
+                  border: `1px solid ${modelMenuOpen ? 'rgba(99,102,241,0.45)' : 'var(--border)'}`,
+                  color: modelMenuOpen ? 'var(--accent-text)' : 'var(--text-secondary)',
+                }}
+              >
+                <Cpu size={12} style={{ flexShrink: 0 }} />
+                <span style={{
+                  maxWidth: 140,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {aiModel?.model ? (aiModel.name || aiModel.model) : t('pluginHost.modelPick')}
+                </span>
+                <ChevronDown size={12} style={{ flexShrink: 0, opacity: 0.65 }} />
+              </button>
+
+              {modelMenuOpen && (
+                <div
+                  role="listbox"
+                  aria-label={t('pluginHost.modelTitle')}
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 6px)',
+                    right: 0,
+                    zIndex: 60,
+                    minWidth: 240,
+                    maxWidth: 320,
+                    maxHeight: 320,
+                    overflowY: 'auto',
+                    padding: 4,
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    boxShadow: '0 10px 28px rgba(0,0,0,0.18)',
+                  }}
+                >
+                  <button
+                    role="option"
+                    aria-selected={!aiModel?.model}
+                    onClick={() => chooseModel('')}
+                    style={MODEL_MENU_ROW}
+                  >
+                    <span style={MODEL_MENU_NAME}>{t('pluginHost.modelNone')}</span>
+                    {!aiModel?.model && <Check size={12} color="var(--accent-text)" style={{ flexShrink: 0 }} />}
+                  </button>
+
+                  {/* A saved model the current provider setup no longer offers
+                      stays visible as the current selection. It is not clickable
+                      because saving it again would be refused; clearing it is. */}
+                  {aiModel?.model && !aiModel.available && (
+                    <div
+                      role="option"
+                      aria-selected
+                      aria-disabled
+                      style={{ ...MODEL_MENU_ROW, cursor: 'default' }}
+                    >
+                      <span style={MODEL_MENU_NAME}>{aiModel.name || aiModel.model}</span>
+                      <span style={MODEL_MENU_NOTE}>{t('pluginHost.modelUnavailable')}</span>
+                      <Check size={12} color="var(--accent-text)" style={{ flexShrink: 0 }} />
+                    </div>
+                  )}
+
+                  {modelOptionsError ? (
+                    <div style={MODEL_MENU_NOTICE}>{modelOptionsError}</div>
+                  ) : modelOptionsLoading ? (
+                    <div style={MODEL_MENU_NOTICE}>{t('common.loading')}</div>
+                  ) : modelOptions === null ? null : modelOptions.length === 0 ? (
+                    <div style={MODEL_MENU_NOTICE}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{t('pluginHost.modelEmpty')}</div>
+                      <div style={{ marginTop: 2 }}>{t('pluginHost.modelEmptyHint')}</div>
+                    </div>
+                  ) : (
+                    modelOptions.map(option => {
+                      const selected = aiModel?.model === option.id
+                      return (
+                        <button
+                          key={option.id}
+                          role="option"
+                          aria-selected={selected}
+                          onClick={() => chooseModel(option.id)}
+                          style={MODEL_MENU_ROW}
+                        >
+                          <span style={MODEL_MENU_NAME}>{option.name || option.id}</span>
+                          {/* `default` means no provider owns the id: the turn
+                              runs on the default engine, so there is no provider
+                              name to print rather than a made-up one. */}
+                          {option.providerName && <span style={MODEL_MENU_NOTE}>{option.providerName}</span>}
+                          {selected && <Check size={12} color="var(--accent-text)" style={{ flexShrink: 0 }} />}
+                        </button>
+                      )
+                    })
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <button
             onClick={() => setShowSource(v => !v)}
             title={t('pluginHost.sourceTitle')}
@@ -380,25 +642,6 @@ export default function PluginHostView() {
           >
             <Sparkles size={12} />
             {t('pluginHost.edit')}
-          </button>
-
-          <button
-            onClick={handleClose}
-            title={t('pluginHost.backToChat')}
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: 6,
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <X size={15} />
           </button>
         </div>
       </div>

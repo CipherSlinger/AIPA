@@ -725,6 +725,19 @@ export interface PluginAiModel {
   providerName: string
 }
 
+/**
+ * A plugin's saved AI "work model", as the toolbar picker and the plugin read
+ * it. `model: ''` means nothing is chosen. A non-empty `model` with
+ * `available: false` is a saved choice no enabled provider offers any more —
+ * shown as-is so it is never silently swapped.
+ */
+export interface PluginAiModelState {
+  model: string
+  name: string
+  providerName: string
+  available: boolean
+}
+
 /** One answer-only assistant turn, requested by a plugin (`chat.ask`). */
 export interface PluginChatAskArgs {
   prompt: string
@@ -3049,6 +3062,10 @@ const electronAPI = {
     ipcRenderer.invoke('plugin:ai:abort', { pluginId, requestId }) as Promise<void>,
   pluginAiModels: (pluginId: string) =>
     ipcRenderer.invoke('plugin:ai:models', { pluginId }) as Promise<PluginAiModel[]>,
+  pluginAiModel: (pluginId: string) =>
+    ipcRenderer.invoke('plugin:ai:model:get', { pluginId }) as Promise<PluginAiModelState>,
+  pluginAiSetModel: (pluginId: string, model: string) =>
+    ipcRenderer.invoke('plugin:ai:model:set', { pluginId, model }) as Promise<PluginAiModelState>,
   pluginChatAsk: (pluginId: string, args: PluginChatAskArgs) =>
     ipcRenderer.invoke('plugin:chat:ask', { pluginId, args }) as Promise<PluginChatAnswer>,
   // `schedule` capability: a plugin manages only the automations it created.
@@ -3063,6 +3080,13 @@ const electronAPI = {
     const handler = (_event: Electron.IpcRendererEvent, data: PluginAiEvent) => callback(data)
     ipcRenderer.on('plugin:ai:event', handler)
     return () => { ipcRenderer.removeListener('plugin:ai:event', handler) }
+  },
+  // Pushed by main after any successful work-model write (toolbar or plugin),
+  // so every surface following the active plugin sees the stored value.
+  onPluginAiModelChange: (callback: (change: { pluginId: string; model: string }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { pluginId: string; model: string }) => callback(data)
+    ipcRenderer.on('plugin:ai:model', handler)
+    return () => { ipcRenderer.removeListener('plugin:ai:model', handler) }
   },
   onPluginConversationCreated: (callback: (event: PluginConversationCreatedEvent) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, data: PluginConversationCreatedEvent) => callback(data)
