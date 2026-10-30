@@ -47,6 +47,16 @@
  *   The record is written only when `raiseAttention` says a surface owns the
  *   raise (the pet queued it, or the OS notification was shown).
  *
+ * "Later"
+ *   The card's secondary action asks this module to raise it again two hours
+ *   later. That is a snooze of the announcement only: the daily memory is not
+ *   written, the aggregate is rebuilt from the live store (a task finished in
+ *   the meantime does not come back), and nothing is shown when nothing is
+ *   due. One timer exists at most; a second "Later" replaces it, a new card
+ *   from the reminder cancels it, and quitting clears it. The heartbeat and
+ *   `powerMonitor` `resume` also fire an overdue snooze, so a machine that
+ *   slept through the two hours still speaks on waking.
+ *
  * This module never changes a task: no status writes, no due-date edits, no
  * moves. It only reads the store and talks to the attention queue.
  */
@@ -81,6 +91,14 @@ const MAX_STATE_ENTRIES = 500
  * into a list.
  */
 export const DUE_ROWS_SHOWN = 3
+
+/**
+ * The due card's secondary action ("Later") puts the same card back two hours
+ * from now. This is a snooze of the *announcement*, not of the reminder memory:
+ * the daily state file is never written by it, so tomorrow's 08:00 card is
+ * exactly what it was before the user chose to wait.
+ */
+export const DUE_SNOOZE_MS = 2 * 60 * 60 * 1000
 
 /** One task a `task-due` card can name: its title and how late it is. */
 export interface DueRow {
@@ -352,6 +370,11 @@ export function checkDueReminder(nowMs: number, options: DueCheckOptions = {}): 
     return { status: 'suppressed', day, pending: pending.length, aggregate }
   }
 
+  // A new card is a fresher look at the same agenda; a pending "Later" has
+  // nothing left to add and is dropped, so two cards never compete for the
+  // same morning.
+  cancelDueSnooze()
+
   const announced = { ...state.announced }
   for (const candidate of pending) announced[candidate.id] = day
   const persisted = writeState(stateFile, {
@@ -360,6 +383,107 @@ export function checkDueReminder(nowMs: number, options: DueCheckOptions = {}): 
     lastAnnouncedDay: day,
   })
   return { status: 'announced', day, pending: pending.length, aggregate, persisted }
+}
+
+// ── "Later" (a two-hour snooze of the announcement) ──────────────────────
+
+/**
+ * The card's aggregate for *this* moment, read from the live task store. The
+ * morning's snapshot is deliberately not reused: a task the user finished in
+ * the meantime must not come back. Null means nothing is due.
+ */
+function currentDueAggregate(nowMs: number): DueAggregate | null {
+  let tasks: TaskRecord[]
+  try {
+    tasks = readTaskStore().tasks
+  } catch (err) {
+    log.warn('Could not read the task store for the snoozed due card:', err)
+    return null
+  }
+  const due = collectDue(tasks, localDayKey(nowMs))
+  if (due.length === 0) return null
+  return buildDueAggregate(due)
+}
+
+/**
+ * Re-raise the card. It goes through the same attention path as the morning
+ * card, so kind, wording, rows and pill are identical; only its position in
+ * the queue can be new. Nothing is written: today is already recorded, and a
+ * snooze must leave tomorrow's 08:00 card exactly as it was.
+ */
+function raiseSnoozedCard(): void {
+  // The timer may already be in the event loop when quit begins; a card must
+  // not be raised for an app that is going away.
+  if (!running || getQuitting()) return
+  const now = readNow()
+  const aggregate = currentDueAggregate(now)
+  if (!aggregate) {
+    // Everything was finished while the card waited. Nothing is shown and no
+    // state is written.
+    log.info('Snoozed due card skipped: nothing is due now')
+    return
+  }
+  const delivered = raiseAttention({ kind: 'task-due', due: aggregate })
+  snoozeFired += 1
+  log.info(
+    `Snoozed due card ${delivered ? 'raised' : 'suppressed'} for ` +
+    `${aggregate.total} task(s) on ${localDayKey(now)}`,
+  )
+}
+
+/**
+ * Fire a pending snooze whose wall-clock moment has passed. The timer normally
+ * does this by itself; the heartbeat and `powerMonitor` `resume` call it too,
+ * so a laptop that slept through the two hours still speaks on waking.
+ */
+function fireSnoozeIfDue(): void {
+  if (!snoozeTimer || snoozeDueAt === 0) return
+  if (readNow() < snoozeDueAt) return
+  clearTimeout(snoozeTimer)
+  snoozeTimer = null
+  snoozeDueAt = 0
+  raiseSnoozedCard()
+}
+
+/**
+ * The card's secondary action. Replaces any pending snooze, so at most one
+ * timer exists no matter how often the user asks to wait. Returns false when
+ * the reminder is not running (the app is quitting or the reminder is off).
+ */
+export function snoozeDueReminder(nowMs?: number): boolean {
+  if (!running || getQuitting()) return false
+  const now = typeof nowMs === 'number' ? nowMs : readNow()
+  cancelDueSnooze()
+  snoozeDueAt = now + DUE_SNOOZE_MS
+  snoozeTimer = setTimeout(() => {
+    snoozeTimer = null
+    snoozeDueAt = 0
+    raiseSnoozedCard()
+  }, DUE_SNOOZE_MS)
+  snoozeTimer.unref?.()
+  return true
+}
+
+/** Drop a pending snooze (a new card was raised, or the app is quitting). */
+export function cancelDueSnooze(): void {
+  if (snoozeTimer) {
+    clearTimeout(snoozeTimer)
+    snoozeTimer = null
+  }
+  snoozeDueAt = 0
+}
+
+export interface DueSnoozeStatus {
+  pending: boolean
+  /** Wall-clock ms the pending snooze fires at; 0 when none. */
+  dueAt: number
+  /** How many snoozed cards were actually raised since the reminder started. */
+  fired: number
+}
+
+/** Diagnostics for the harness; no UI reads it. */
+export function getDueSnoozeStatus(): DueSnoozeStatus {
+  return { pending: snoozeTimer !== null, dueAt: snoozeDueAt, fired: snoozeFired }
 }
 
 // ── Scheduler ─────────────────────────────────────────────────────────────
@@ -387,6 +511,16 @@ let readNow: () => number = Date.now
 let stateFile: string | undefined
 let getQuitting: () => boolean = () => false
 
+/**
+ * At most one "Later" is pending. A second click replaces this timer; a new
+ * due card raised by the reminder cancels it; quitting clears it. The timer is
+ * unref'd like the scheduler's own, so it can never keep the app alive.
+ */
+let snoozeTimer: NodeJS.Timeout | null = null
+let snoozeDueAt = 0
+/** Diagnostics: how many snoozed cards were actually raised. */
+let snoozeFired = 0
+
 function runScheduledCheck(): void {
   if (!running) return
   if (getQuitting()) return
@@ -395,6 +529,11 @@ function runScheduledCheck(): void {
     if (result.status === 'announced') {
       log.info(`Due reminder raised for ${result.pending} task(s) on ${result.day}`)
     }
+    // After the normal check: a card it just raised already cancelled the
+    // snooze, so this can never announce the same agenda twice. Anything left
+    // here is a wait that came due (normally the timer's job; this is the
+    // heartbeat / post-sleep safety net).
+    fireSnoozeIfDue()
   } catch (err) {
     // A reminder must never take the main process down.
     log.warn('Due reminder check failed:', err)
@@ -433,6 +572,7 @@ export function startDueReminder(options: DueReminderOptions = {}): void {
   readNow = typeof options.now === 'function' ? options.now : Date.now
   stateFile = options.stateFile
   getQuitting = typeof options.getQuitting === 'function' ? options.getQuitting : () => false
+  snoozeFired = 0
 
   runScheduledCheck()
   armDailyCheck()
@@ -460,6 +600,8 @@ export function startDueReminder(options: DueReminderOptions = {}): void {
 export function stopDueReminder(): void {
   if (!running) return
   running = false
+  // Quitting drops a pending "Later" with the rest of the timers.
+  cancelDueSnooze()
   if (tickTimer) {
     clearInterval(tickTimer)
     tickTimer = null

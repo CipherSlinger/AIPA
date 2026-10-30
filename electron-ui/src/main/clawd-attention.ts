@@ -1097,6 +1097,16 @@ function buildPayload(item: AttentionItem): BuiltBubble {
       ),
       variant: 'primary',
     }]
+    if (item.kind === 'task-due') {
+      // A deliberate "not now" beside the primary: the card still opens the
+      // task desk, but waiting two hours is a real choice and must not be the
+      // same gesture as opening. The reminder module owns the timer.
+      payload.actions.push({
+        id: 'later',
+        label: t('attentionTaskDueLater'),
+        variant: 'secondary',
+      })
+    }
   }
 
   const signature = [
@@ -1147,6 +1157,7 @@ function show(item: AttentionItem, payload: BuiltBubble): void {
       return
     }
     if (action === 'open') openItem(item)
+    else if (action === 'later' && item.kind === 'task-due') snoozeDueCard()
     // The bubble module hid its own window; the pet also needs its click
     // target released, or a later click would try to open a gone item.
     hideClawdAttentionBubble()
@@ -1166,6 +1177,23 @@ function retract(): void {
 
 function dropItem(item: AttentionItem): void {
   items.delete(item.key)
+}
+
+/**
+ * The due card's "Later" action. Dismissing is the same as any other card;
+ * the wait itself belongs to the reminder module, which rereads the task
+ * store when the two hours are up. Loaded lazily: `due-reminder` imports this
+ * module at runtime, so a top-level import would close that cycle.
+ */
+function snoozeDueCard(): void {
+  try {
+    const { snoozeDueReminder } = require('./tasks/due-reminder') as {
+      snoozeDueReminder: () => boolean
+    }
+    if (!snoozeDueReminder()) log.debug('due card "Later" was not scheduled')
+  } catch (err) {
+    log.warn('Could not schedule the due card for later:', String(err))
+  }
 }
 
 function petLanguage(): string {
