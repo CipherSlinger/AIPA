@@ -44,6 +44,30 @@
     return lines.join('\n')
   }
 
+  /** Person-days as prompt material: the quarter total plus one line per entry. */
+  function buildPersonDaysText(entries) {
+    var total = 0
+    entries.forEach(function (e) { total += Number(e.days) || 0 })
+    var lines = [WC.L('【人天投入】（合计 ', '[Person-days] (total ') + Math.round(total * 10) / 10 +
+      WC.L(' 人天，', ' person-days, ') + entries.length + WC.L(' 条记录）', ' entries)')]
+    lines.push(entries.length ? entries.map(function (e) {
+      return '- ' + e.weekStart + WC.L('：', ': ') + e.workDesc +
+        WC.L('（', ' (') + (Math.round((Number(e.days) || 0) * 10) / 10) + WC.L(' 人天）', ' person-days)')
+    }).join('\n') : WC.L('无', 'None'))
+    return lines.join('\n')
+  }
+
+  // A parse failure is not an empty result — each reason says what happened.
+  var OKR_FAIL_REASON = {
+    empty: WC.L('模型返回了空内容，没有可保存的 OKR。', 'The model returned nothing to save.'),
+    no_json: WC.L('模型没有按 JSON 格式回答，下面是它的原文——可以复制后手动整理，或重试。',
+      'The model did not answer in JSON. Its raw reply is below — copy it and tidy it by hand, or retry.'),
+    bad_shape: WC.L('模型返回的 JSON 结构不符合 OKR 格式，下面是它的原文。',
+      'The JSON the model returned does not have the OKR shape. Its raw reply is below.'),
+    no_objectives: WC.L('模型返回的 JSON 里没有可用的目标，下面是它的原文。',
+      'The JSON contained no usable objective. Its raw reply is below.'),
+  }
+
   /** Merge the month's weekly reports into material for a monthly report. */
   function buildWeeklyMergeMaterial(from, to) {
     var related = store.listReports('weekly')
@@ -227,11 +251,161 @@
     })
   }
 
+  /**
+   * Draft one quarter's OKR from that quarter's material.
+   * The raw JSON is never streamed into the modal — it is unreadable while it
+   * is half-written; the status line is the only progress shown. A reply that
+   * cannot be parsed is kept, not discarded: the user gets the reason and the
+   * raw text to copy or retry.
+   *
+   * @param {string} periodKey   e.g. 2026-Q3
+   * @param {{ replace?: boolean }} [opts]
+   * @returns {Promise<object|null>} saved set, or null when cancelled/failed
+   */
+  function generateOkr(periodKey, opts) {
+    opts = opts || {}
+    if (busy) {
+      AIPA.toast('info', WC.L('已有内容正在生成，请稍候', 'Content is already being generated, please wait'))
+      return Promise.resolve(null)
+    }
+    var period = WC.okr.parsePeriodKey(periodKey)
+    if (!period) {
+      AIPA.toast('error', WC.L('季度参数非法，无法生成 OKR', 'Invalid quarter, cannot generate an OKR'))
+      return Promise.resolve(null)
+    }
+    setBusy(true)
+    var job = null
+    var cancelled = false
+    var keepOpen = false
+    var m = null
+
+    var modal = WC.modal({
+      title: '<span class="spinner"></span><span>' + WC.L('正在生成 OKR', 'Generating OKR') + '</span>' +
+        '<span class="okr-quarter">' + WC.esc(period.label) + '</span>',
+      sub: opts.replace
+        ? WC.L('将覆盖该季度已有的 OKR', 'This will replace the existing OKR for this quarter')
+        : WC.L('生成完成后自动保存到该季度', 'Saved to this quarter when generation finishes'),
+      wide: true,
+      dismissible: false,
+      body: WC.L('<div class="stream-status" data-status><span>正在收集该季度的任务、工作源与人天素材...</span></div>',
+        '<div class="stream-status" data-status><span>Collecting this quarter\'s tasks, work sources and person-days...</span></div>'),
+      foot: WC.L('<button class="btn" data-cancel>取消生成</button>', '<button class="btn" data-cancel>Cancel</button>'),
+      onClose: function () { document.removeEventListener('keydown', onEsc) },
+    })
+    m = modal
+    var statusEl = m.el.querySelector('[data-status]')
+    function setStatus(text) { statusEl.innerHTML = '<span>' + WC.esc(text) + '</span>' }
+
+    function cancel() {
+      cancelled = true
+      if (job) job.abort()
+      else { if (m) m.close(); setBusy(false) }
+    }
+    function onEsc(e) {
+      if (e.key !== 'Escape') return
+      e.preventDefault()
+      if (keepOpen) m.close()
+      else cancel()
+    }
+    document.addEventListener('keydown', onEsc)
+    m.el.querySelector('[data-cancel]').addEventListener('click', cancel)
+
+    /** Keep the reply on screen with the reason, its raw text, and a way out. */
+    function showRaw(parsed) {
+      var bodyEl = m.el.querySelector('.modal-body')
+      var footEl = m.el.querySelector('.modal-foot')
+      bodyEl.innerHTML =
+        '<div class="okr-raw"><div class="okr-raw-note">' + WC.icon('info', 14) + '<span>' +
+          (OKR_FAIL_REASON[parsed.reason] || OKR_FAIL_REASON.no_json) + '</span></div>' +
+        WC.L('<div class="okr-raw-label">模型原文</div>', '<div class="okr-raw-label">Raw reply</div>') +
+        '<pre class="okr-raw-pre">' + WC.esc(parsed.raw || WC.L('（空）', '(empty)')) + '</pre></div>'
+      footEl.innerHTML =
+        '<button class="btn" data-raw="copy">' + WC.icon('copy', 13) + WC.L('复制原文', 'Copy raw') + '</button>' +
+        '<button class="btn" data-raw="retry">' + WC.icon('refresh', 13) + WC.L('重试', 'Retry') + '</button>' +
+        '<button class="btn btn-primary" data-raw="close">' + WC.L('关闭', 'Close') + '</button>'
+      footEl.querySelector('[data-raw="copy"]').addEventListener('click', function () {
+        WC.copyText(String(parsed.raw || ''))
+      })
+      footEl.querySelector('[data-raw="retry"]').addEventListener('click', function () {
+        m.close()
+        generateOkr(periodKey, { replace: !!opts.replace })
+      })
+      footEl.querySelector('[data-raw="close"]').addEventListener('click', function () { m.close() })
+    }
+
+    var materialPromise = Promise.all([
+      store.getMaterial(period.from, period.to),
+      Promise.resolve(store.personDaysInRange(period.from, period.to)),
+    ]).then(function (out) {
+      var mat = out[0]
+      var personDays = out[1] || []
+      return {
+        text: buildMaterialText(mat) + '\n\n' + buildPersonDaysText(personDays),
+        warnings: mat.sourceMaterials.filter(function (s) { return s.error })
+          .map(function (s) { return s.sourceName + WC.L('：', ': ') + s.error }),
+      }
+    })
+
+    return materialPromise.then(function (material) {
+      if (cancelled) throw new Error(WC.L('已取消生成', 'Generation cancelled'))
+      material.warnings.forEach(function (w) {
+        AIPA.toast('warning', WC.L('工作源拉取失败，已跳过 — ', 'Some work sources failed and were skipped — ') + w)
+      })
+      setStatus(WC.L('AI 正在起草目标与关键结果...', 'AI is drafting objectives and key results...'))
+      var settings = store.state.settings
+      var previousText = WC.okr.buildPreviousText(store.listOkrs(), periodKey)
+      job = AIPA.ai.generate({
+        prompt: WC.okr.buildPrompt({
+          template: settings.okrPrompt,
+          periodLabel: period.label,
+          periodRange: period.from + WC.L(' 至 ', ' to ') + period.to,
+          materialText: material.text,
+          previousText: previousText,
+        }),
+        instructions: WC.okr.INSTRUCTIONS,
+        model: settings.model || undefined,
+        onDelta: function (text) {
+          var n = String(text || '').length
+          setStatus(WC.L('AI 正在起草目标与关键结果...', 'AI is drafting objectives and key results...') +
+            WC.L('（已接收 ', ' (') + n + WC.L(' 字符）', ' characters)'))
+        },
+        onStatus: function (msg) { setStatus(WC.L('连接波动，', 'Connection unstable, ') + msg) },
+      })
+      return job.promise
+    }).then(function (text) {
+      var parsed = WC.okr.parseGenerated(text)
+      if (!parsed.ok) { showRaw(parsed); keepOpen = true; return null }
+      return WC.attempt(function () {
+        return store.createOkr({
+          periodKey: periodKey,
+          objectives: parsed.objectives,
+          source: 'ai',
+          replace: !!opts.replace,
+        })
+      }).then(function (set) {
+        var krCount = parsed.objectives.reduce(function (n, o) { return n + ((o.keyResults || []).length) }, 0)
+        var msg = WC.L('已生成 ', 'Generated ') + parsed.objectives.length + WC.L(' 个目标、', ' objective(s), ') +
+          krCount + WC.L(' 条关键结果', ' key result(s)')
+        if (parsed.dropped > 0) msg += WC.L('；已忽略 ', '; ignored ') + parsed.dropped + WC.L(' 条不合规的关键结果', ' invalid key result(s)')
+        AIPA.toast('success', msg)
+        return set
+      })
+    }).catch(function (err) {
+      AIPA.toast(cancelled ? 'info' : 'error', cancelled ? WC.L('已取消生成', 'Generation cancelled') : WC.errMsg(err))
+      return null
+    }).then(function (result) {
+      if (!keepOpen) m.close()
+      setBusy(false)
+      return result
+    })
+  }
+
   WC.gen = {
     isBusy: function () { return busy },
     onBusy: function (fn) { busyListeners.push(fn) },
     generateWeekly: generateWeekly,
     generateMonthly: generateMonthly,
+    generateOkr: generateOkr,
     regenerate: regenerate,
     pullSourcesForPeriod: pullSourcesForPeriod,
     buildMaterialText: buildMaterialText,

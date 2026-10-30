@@ -21,6 +21,8 @@
             WC.L('<span class="hint">可用变量：{{period}} 报告周期，{{material}} 任务与工作源素材</span></div>', '<span class="hint">Variables: {{period}} report period, {{material}} tasks and work-source material</span></div>') +
           WC.L('<div class="field"><label>月报提示词模板</label><textarea class="textarea" data-f="monthlyPrompt">', '<div class="field"><label>Monthly report prompt</label><textarea class="textarea" data-f="monthlyPrompt">') + WC.esc(s.monthlyPrompt) + '</textarea>' +
             WC.L('<span class="hint">月报素材为本月已生成周报的合并内容</span></div>', '<span class="hint">Monthly material is the month\'s weekly reports combined</span></div>') +
+          WC.L('<div class="field"><label>OKR 提示词模板</label><textarea class="textarea" data-f="okrPrompt">', '<div class="field"><label>OKR prompt</label><textarea class="textarea" data-f="okrPrompt">') + WC.esc(s.okrPrompt) + '</textarea>' +
+            WC.L('<span class="hint">可用变量：{{period}} 季度，{{range}} 起止日期，{{material}} 任务、工作源与人天素材，{{previous}} 上一季度的 OKR</span></div>', '<span class="hint">Variables: {{period}} quarter, {{range}} date range, {{material}} tasks, work sources and person-days, {{previous}} the previous quarter\'s OKR</span></div>') +
           WC.L('<div class="row" style="justify-content:flex-end"><button class="btn" data-act="reset">恢复默认提示词</button>', '<div class="row" style="justify-content:flex-end"><button class="btn" data-act="reset">Reset prompts</button>') +
             '<button class="btn btn-primary" data-act="save">' + WC.icon('save', 13) + WC.L('保存设置</button></div>', 'Save settings</button></div>') +
         '</div>' +
@@ -29,6 +31,7 @@
           '<div class="kv">' +
             WC.L('<span class="k">任务</span><span>', '<span class="k">Tasks</span><span>') + counts.tasks.length + WC.L(' 条</span>', '</span>') +
             WC.L('<span class="k">报告</span><span>', '<span class="k">Reports</span><span>') + counts.reports.length + WC.L(' 份</span>', '</span>') +
+            WC.L('<span class="k">OKR</span><span>', '<span class="k">OKR sets</span><span>') + (counts.okrs || []).length + WC.L(' 份</span>', '</span>') +
             WC.L('<span class="k">工作源</span><span>', '<span class="k">Work sources</span><span>') + counts.sources.length + WC.L(' 个</span>', '</span>') +
             WC.L('<span class="k">人天记录</span><span>', '<span class="k">Person-day entries</span><span>') + counts.personDays.length + WC.L(' 条</span>', '</span>') +
             WC.L('<span class="k">存储位置</span><span><code class="path">~/.aipa/plugin-data/aipa-work-calendar/</code></span>', '<span class="k">Location</span><span><code class="path">~/.aipa/plugin-data/aipa-work-calendar/</code></span>') +
@@ -49,12 +52,13 @@
     var act = btn.getAttribute('data-act')
     var f = function (n) { return view.root.querySelector('[data-f="' + n + '"]') }
     if (act === 'save') {
-      store.saveSettings({ model: f('model').value.trim(), weeklyPrompt: f('weeklyPrompt').value, monthlyPrompt: f('monthlyPrompt').value })
+      store.saveSettings({ model: f('model').value.trim(), weeklyPrompt: f('weeklyPrompt').value, monthlyPrompt: f('monthlyPrompt').value, okrPrompt: f('okrPrompt').value })
         .then(function () { AIPA.toast('success', WC.L('设置已保存', 'Settings saved')) })
         .catch(function (err) { AIPA.toast('error', WC.L('保存失败：', 'Failed to save: ') + WC.errMsg(err)) })
     } else if (act === 'reset') {
       f('weeklyPrompt').value = store.DEFAULT_SETTINGS.weeklyPrompt
       f('monthlyPrompt').value = store.DEFAULT_SETTINGS.monthlyPrompt
+      f('okrPrompt').value = store.DEFAULT_SETTINGS.okrPrompt || ''
       AIPA.toast('info', WC.L('已恢复默认提示词，点击「保存设置」生效', 'Default prompts restored — click "Save settings" to apply'))
     } else if (act === 'export') {
       var blob = new Blob([JSON.stringify(store.exportData(), null, 2)], { type: 'application/json' })
@@ -74,7 +78,7 @@
     e.target.value = ''
     file.text().then(function (text) {
       var data = JSON.parse(text)
-      return WC.confirm(WC.L('导入数据', 'Import data'), WC.L('导入会覆盖当前全部任务、报告、工作源与人天记录，确定继续吗？', 'Importing replaces all tasks, reports, work sources and person-day entries. Continue?'), { danger: true, okText: WC.L('覆盖导入', 'Replace') })
+      return WC.confirm(WC.L('导入数据', 'Import data'), WC.L('导入会覆盖当前全部任务、报告、OKR、工作源与人天记录，确定继续吗？', 'Importing replaces all tasks, reports, OKRs, work sources and person-day entries. Continue?'), { danger: true, okText: WC.L('覆盖导入', 'Replace') })
         .then(function (ok) {
           if (!ok) return
           return WC.attempt(function () { return store.importData(data) }).then(function () { AIPA.toast('success', WC.L('数据已导入', 'Data imported')) })

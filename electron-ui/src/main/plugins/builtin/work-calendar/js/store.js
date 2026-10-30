@@ -12,8 +12,10 @@
   var WC = window.WC
   var D = WC.date
 
-  var COLLECTIONS = ['tasks', 'reports', 'sources', 'personDays']
-  var SCHEMA_VERSION = 1
+  // Collections a v1 export always carried — an old backup must still import
+  var REQUIRED_COLLECTIONS = ['tasks', 'reports', 'sources', 'personDays']
+  var COLLECTIONS = REQUIRED_COLLECTIONS.concat(['okrs'])
+  var SCHEMA_VERSION = 2
 
   var DEFAULT_WEEKLY_PROMPT = [
     WC.L('你是一位专业的周报撰写助手，擅长将工作素材整理成规范清晰的结构化周报。', 'You are a professional weekly-report assistant who turns work material into a clear, well-structured weekly report.'),
@@ -65,9 +67,10 @@
     model: '',
     weeklyPrompt: DEFAULT_WEEKLY_PROMPT,
     monthlyPrompt: DEFAULT_MONTHLY_PROMPT,
+    okrPrompt: WC.okr.DEFAULT_PROMPT,
   }
 
-  var state = { tasks: [], reports: [], sources: [], personDays: [], settings: Object.assign({}, DEFAULT_SETTINGS) }
+  var state = { tasks: [], reports: [], sources: [], personDays: [], okrs: [], settings: Object.assign({}, DEFAULT_SETTINGS) }
   var listeners = []
 
   function nowIso() { return new Date().toISOString() }
@@ -106,6 +109,42 @@
       if (m) return m[1]
     }
     return value
+  }
+
+  // ── OKR helpers ───────────────────────────────────────
+  var OKR_MAX_OBJECTIVES = 8
+  var OKR_MAX_KEY_RESULTS = 8
+  var OKR_MAX_TITLE = 300
+
+  function plain(v) { return v == null ? '' : String(v) }
+
+  /**
+   * Copy the shape we store. Unknown fields are not persisted, but the edit UI
+   * keys objectives and key results by `id`, so a caller-supplied id survives.
+   */
+  function callerId(v) { return typeof v === 'string' && v.trim() ? v.trim().slice(0, 100) : '' }
+
+  function cloneObjectives(list) {
+    var rows = Array.isArray(list) ? list : []
+    return rows.map(function (o) {
+      var krs = o && Array.isArray(o.keyResults) ? o.keyResults : []
+      var objective = {
+        title: o && typeof o.title === 'string' ? o.title : '',
+        keyResults: krs.map(function (kr) {
+          var keyResult = {
+            title: kr && typeof kr.title === 'string' ? kr.title : '',
+            target: kr && kr.target != null ? plain(kr.target) : '',
+            percent: kr && kr.percent !== undefined ? kr.percent : null,
+          }
+          var krId = callerId(kr && kr.id)
+          if (krId) keyResult.id = krId
+          return keyResult
+        }),
+      }
+      var oId = callerId(o && o.id)
+      if (oId) objective.id = oId
+      return objective
+    })
   }
 
   var store = {
@@ -470,6 +509,117 @@
       return persist('personDays').then(function () { return created })
     },
 
+    // ── OKRs ──────────────────────────────────────────
+    listOkrs: function (periodKey) {
+      var items = state.okrs.filter(function (o) { return !periodKey || o.periodKey === periodKey })
+      items.sort(function (a, b) {
+        if (a.periodKey !== b.periodKey) return b.periodKey.localeCompare(a.periodKey)
+        return b.createdAt.localeCompare(a.createdAt)
+      })
+      return items
+    },
+
+    getOkr: function (id) { return state.okrs.find(function (o) { return o.id === id }) || null },
+
+    findOkrByPeriod: function (periodKey) {
+      var period = WC.okr.parsePeriodKey(periodKey)
+      var key = period ? period.key : plain(periodKey)
+      return state.okrs.find(function (o) { return o.periodKey === key }) || null
+    },
+
+    /**
+     * One set per quarter. A second create for the same period is refused
+     * unless the caller passes `replace: true`, which rewrites that set in
+     * place (same id and createdAt) instead of stacking a duplicate.
+     */
+    createOkr: function (dto) {
+      dto = dto || {}
+      var period = WC.okr.parsePeriodKey(dto.periodKey)
+      if (!period) fail(WC.L('OKR 周期格式应为 YYYY-QN，如 2026-Q4', 'OKR period must be YYYY-QN, e.g. 2026-Q4'))
+      var source = dto.source == null || dto.source === '' ? 'manual' : dto.source
+      if (source !== 'ai' && source !== 'manual') fail(WC.L('source 仅支持 ai 或 manual', 'source must be ai or manual'))
+      var existing = store.findOkrByPeriod(period.key)
+      if (existing && dto.replace !== true) {
+        fail(WC.L('该季度已有 OKR，如需重写请确认覆盖', 'This quarter already has an OKR; confirm the overwrite to regenerate'))
+      }
+      var now = nowIso()
+      var base = existing || { id: WC.uid(), createdAt: now }
+      var record = Object.assign({}, base, {
+        periodKey: period.key,
+        periodStart: period.from,
+        periodEnd: period.to,
+        title: plain(dto.title).trim() || period.label + ' OKR',
+        objectives: cloneObjectives(dto.objectives),
+        source: source,
+        updatedAt: now,
+      })
+      store._validateOkr(record)
+      if (existing) Object.assign(existing, record)
+      else state.okrs.push(record)
+      return persist('okrs').then(function () { return existing || record })
+    },
+
+    updateOkr: function (id, patch) {
+      var current = store.getOkr(id)
+      if (!current) return Promise.reject(new Error(WC.L('OKR 不存在', 'OKR not found')))
+      patch = patch || {}
+      var next = Object.assign({}, current)
+      if (patch.title !== undefined) next.title = plain(patch.title).trim()
+      if (patch.objectives !== undefined) next.objectives = cloneObjectives(patch.objectives)
+      next.updatedAt = nowIso()
+      store._validateOkr(next)
+      Object.assign(current, next)
+      return persist('okrs').then(function () { return current })
+    },
+
+    removeOkr: function (id) {
+      var before = state.okrs.length
+      state.okrs = state.okrs.filter(function (o) { return o.id !== id })
+      if (state.okrs.length === before) return Promise.reject(new Error(WC.L('OKR 不存在', 'OKR not found')))
+      return persist('okrs')
+    },
+
+    /** Person-day rows whose week starts inside [from, to] (both ends inclusive). */
+    personDaysInRange: function (from, to) {
+      if (!D.isDateKey(from) || !D.isDateKey(to)) fail(WC.L('周期格式非法', 'Invalid period'))
+      if (from > to) fail(WC.L('start 不能晚于 end', 'start cannot be after end'))
+      return state.personDays
+        .filter(function (p) { return p.weekStart >= from && p.weekStart <= to })
+        .sort(function (a, b) { return a.weekStart.localeCompare(b.weekStart) || a.createdAt.localeCompare(b.createdAt) })
+    },
+
+    _validateOkr: function (set) {
+      if (!set || typeof set !== 'object') fail(WC.L('OKR 数据格式非法', 'Malformed OKR data'))
+      var title = plain(set.title).trim()
+      if (!title) fail(WC.L('OKR 标题不能为空', 'OKR title is required'))
+      if (title.length > OKR_MAX_TITLE) fail(WC.L('OKR 标题不能超过 300 个字符', 'OKR title must be at most 300 characters'))
+      if (!WC.okr.parsePeriodKey(set.periodKey)) fail(WC.L('OKR 周期格式应为 YYYY-QN，如 2026-Q4', 'OKR period must be YYYY-QN, e.g. 2026-Q4'))
+      var objectives = set.objectives
+      if (!Array.isArray(objectives) || !objectives.length) fail(WC.L('OKR 至少需要一个目标', 'An OKR needs at least one objective'))
+      if (objectives.length > OKR_MAX_OBJECTIVES) fail(WC.L('一个 OKR 最多 8 个目标', 'At most 8 objectives per OKR'))
+      objectives.forEach(function (o, i) {
+        var n = i + 1
+        if (!o || typeof o !== 'object' || Array.isArray(o)) fail(WC.L('第 ' + n + ' 个目标格式非法', 'Objective ' + n + ' is malformed'))
+        var oTitle = plain(o.title).trim()
+        if (!oTitle) fail(WC.L('第 ' + n + ' 个目标的标题不能为空', 'Objective ' + n + ' needs a title'))
+        if (oTitle.length > OKR_MAX_TITLE) fail(WC.L('目标标题不能超过 300 个字符', 'Objective titles must be at most 300 characters'))
+        if (!Array.isArray(o.keyResults)) fail(WC.L('第 ' + n + ' 个目标缺少关键结果列表', 'Objective ' + n + ' is missing its key-result list'))
+        if (o.keyResults.length > OKR_MAX_KEY_RESULTS) fail(WC.L('每个目标最多 8 个关键结果', 'At most 8 key results per objective'))
+        o.keyResults.forEach(function (kr, j) {
+          var m = j + 1
+          if (!kr || typeof kr !== 'object' || Array.isArray(kr)) fail(WC.L('第 ' + n + ' 个目标的第 ' + m + ' 个关键结果格式非法', 'Key result ' + m + ' of objective ' + n + ' is malformed'))
+          var krTitle = plain(kr.title).trim()
+          if (!krTitle) fail(WC.L('关键结果标题不能为空', 'Key-result titles are required'))
+          if (krTitle.length > OKR_MAX_TITLE) fail(WC.L('关键结果标题不能超过 300 个字符', 'Key-result titles must be at most 300 characters'))
+          if (plain(kr.target).length > OKR_MAX_TITLE) fail(WC.L('关键结果的目标值不能超过 300 个字符', 'Key-result targets must be at most 300 characters'))
+          var p = kr.percent
+          if (p !== null && !(typeof p === 'number' && isFinite(p) && p % 1 === 0 && p >= 0 && p <= 100)) {
+            fail(WC.L('关键结果完成度必须是空（未评分）或 0-100 的整数', 'Key-result percent must be null (unscored) or an integer from 0 to 100'))
+          }
+        })
+      })
+    },
+
     // ── Settings / backup ─────────────────────────────
     saveSettings: function (patch) {
       state.settings = Object.assign({}, state.settings, patch)
@@ -477,6 +627,7 @@
       var saved = Object.assign({}, state.settings)
       if (saved.weeklyPrompt === DEFAULT_WEEKLY_PROMPT) delete saved.weeklyPrompt
       if (saved.monthlyPrompt === DEFAULT_MONTHLY_PROMPT) delete saved.monthlyPrompt
+      if (saved.okrPrompt === DEFAULT_SETTINGS.okrPrompt) delete saved.okrPrompt
       return AIPA.data.set('settings', saved).then(emit)
     },
 
@@ -494,16 +645,19 @@
           return Object.assign({}, s, { config: cfg })
         }),
         personDays: state.personDays,
+        okrs: state.okrs,
         settings: state.settings,
       }
     },
 
     importData: function (data) {
       if (!data || data.app !== 'aipa-work-calendar') fail(WC.L('不是工作日历导出的数据文件', 'Not a Work Calendar export file'))
-      COLLECTIONS.forEach(function (k) {
+      REQUIRED_COLLECTIONS.forEach(function (k) {
         if (!Array.isArray(data[k])) fail(WC.L('数据文件缺少 ', 'Data file is missing the ') + k + WC.L(' 字段', ' field'))
       })
-      COLLECTIONS.forEach(function (k) { state[k] = data[k] })
+      REQUIRED_COLLECTIONS.forEach(function (k) { state[k] = data[k] })
+      // A schema-v1 export has no okrs key; that is a valid old backup, not corruption
+      state.okrs = Array.isArray(data.okrs) ? data.okrs : []
       if (data.settings) state.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings)
       return Promise.all(COLLECTIONS.concat(['settings']).map(function (k) { return AIPA.data.set(k, state[k]) })).then(emit)
     },
