@@ -17,7 +17,7 @@ import {
   Search,
   X,
 } from 'lucide-react'
-import type { TaskRecordData } from '../../../preload'
+import type { TaskRecordData, TaskStatusData } from '../../../preload'
 import { useDepartmentStore, useTaskStore, useUiStore } from '../../store'
 import { useI18n, useT } from '../../i18n'
 import { Pill } from '../archive/ArchiveChrome'
@@ -26,12 +26,15 @@ import { pushEscapeHandler } from '../ui/escapeStack'
 import { suggestDepartment } from '../../lib/taskRouting'
 import DepartmentSuggestionChip from './DepartmentSuggestionChip'
 import TaskDetail from './TaskDetail'
+import { TaskGroupBySwitch } from './TaskGroupBySwitch'
+import type { DueGroupedTasks, TaskGroupBy } from './taskUi'
 import {
   countActive,
   dueInfo,
   formatDueDate,
   formatTaskTime,
   groupTasks,
+  groupTasksByDue,
   statusColor,
   statusLabelKey,
   taskSpendLabel,
@@ -60,6 +63,19 @@ const OVERLAY: React.CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
 }
 
+// Section dot tones for the due view. Overdue warns, today is the accent, and
+// the rest recede so a deadline that is not pressing does not shout.
+const DUE_GROUP_COLORS: Record<DueGroupedTasks['id'], string> = {
+  overdue: 'var(--warning)',
+  today: 'var(--accent)',
+  next7: 'var(--success)',
+  later: 'var(--text-muted)',
+  none: 'var(--text-subtle)',
+  // Finished and filed work keep the status view's own tone, not a deadline's.
+  done: statusColor('done'),
+  archived: 'var(--text-subtle)',
+}
+
 const DIALOG: React.CSSProperties = {
   width: '100%', maxWidth: 440, borderRadius: 14,
   border: '1px solid var(--popup-border, var(--border))',
@@ -85,6 +101,7 @@ export default function TasksPanel() {
 
   const [query, setQuery] = useState('')
   const [showArchived, setShowArchived] = useState(false)
+  const [groupBy, setGroupBy] = useState<TaskGroupBy>('status')
   const [createOpen, setCreateOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [departmentChoice, setDepartmentChoice] = useState('')
@@ -125,8 +142,10 @@ export default function TasksPanel() {
   // panel left open overnight stops calling yesterday "Today".
   const today = useToday()
   const groups = useMemo(
-    () => groupTasks(tasks, query, showArchived),
-    [tasks, query, showArchived],
+    () => groupBy === 'due'
+      ? groupTasksByDue(tasks, query, showArchived, today)
+      : groupTasks(tasks, query, showArchived),
+    [tasks, query, showArchived, groupBy, today],
   )
   // One ledger read for every visible task. The list figure is only a label:
   // the detail view owns the per-conversation breakdown.
@@ -266,6 +285,8 @@ export default function TasksPanel() {
 
         <span style={{ flex: 1 }} />
 
+        <TaskGroupBySwitch value={groupBy} onChange={setGroupBy} />
+
         <Pill
           active={showArchived}
           onClick={() => setShowArchived(value => !value)}
@@ -324,7 +345,22 @@ export default function TasksPanel() {
                 </div>
               </div>
             ) : (
-              groups.map(group => (
+              groups.map(group => {
+                // The two views share one list shape; the header's label and
+                // dot are the only things that differ. Done and archived keep
+                // the status view's own headings so those words never change.
+                const dueId = groupBy === 'due'
+                  ? group.id as DueGroupedTasks['id']
+                  : null
+                const groupLabel = dueId
+                  ? dueId === 'archived' || dueId === 'done'
+                    ? t(`tasks.groups.${dueId}`)
+                    : t(`tasks.dueGroups.${dueId}`)
+                  : t(`tasks.groups.${group.id}`)
+                const groupColor = dueId
+                  ? DUE_GROUP_COLORS[dueId]
+                  : statusColor(group.id as TaskStatusData)
+                return (
                 <div key={group.id} style={{ marginBottom: 10 }}>
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 6,
@@ -333,9 +369,9 @@ export default function TasksPanel() {
                   }}>
                     <span style={{
                       width: 6, height: 6, borderRadius: '50%',
-                      background: statusColor(group.id),
+                      background: groupColor,
                     }} />
-                    <span>{t(`tasks.groups.${group.id}`)}</span>
+                    <span>{groupLabel}</span>
                     <span style={{ color: 'var(--text-subtle)', fontWeight: 500 }}>{group.tasks.length}</span>
                   </div>
 
@@ -458,7 +494,8 @@ export default function TasksPanel() {
                     )
                   })}
                 </div>
-              ))
+                )
+              })
             )}
           </div>
         </aside>

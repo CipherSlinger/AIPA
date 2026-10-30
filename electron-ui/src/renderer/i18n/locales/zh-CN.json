@@ -5441,6 +5441,18 @@
       "done": "已完成",
       "archived": "已归档"
     },
+    "groupBy": {
+      "label": "任务分组方式",
+      "status": "按状态",
+      "due": "按截止日"
+    },
+    "dueGroups": {
+      "overdue": "已逾期",
+      "today": "今天",
+      "next7": "未来 7 天",
+      "later": "更晚",
+      "none": "无截止日期"
+    },
     "departmentUnassigned": "未分配",
     "departmentLater": "部门分派将在后续版本提供",
     "reveal": "打开文件夹",

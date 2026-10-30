@@ -5441,6 +5441,18 @@
       "done": "Done",
       "archived": "Archived"
     },
+    "groupBy": {
+      "label": "Group tasks by",
+      "status": "Status",
+      "due": "Due"
+    },
+    "dueGroups": {
+      "overdue": "Overdue",
+      "today": "Today",
+      "next7": "Next 7 days",
+      "later": "Later",
+      "none": "No due date"
+    },
     "departmentUnassigned": "Not assigned",
     "departmentLater": "Department routing arrives in a later update",
     "reveal": "Show folder",

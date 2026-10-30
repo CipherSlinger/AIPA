@@ -71,6 +71,75 @@ export function groupTasks(
   return groups
 }
 
+/** Which axis the task list is grouped on. */
+export type TaskGroupBy = 'status' | 'due'
+
+export type DueGroupId = 'overdue' | 'today' | 'next7' | 'later' | 'none'
+
+export interface DueGroupedTasks {
+  /** The status sections this view keeps: finished and filed work. */
+  id: DueGroupId | 'done' | 'archived'
+  tasks: TaskRecordData[]
+}
+
+/** The due view's section order: urgent first, undated last. */
+export const DUE_GROUP_IDS: DueGroupId[] = ['overdue', 'today', 'next7', 'later', 'none']
+
+/**
+ * The due bucket a task falls into. Both bounds are stored local days, so the
+ * comparison never parses a timestamp: `dueInfo` decides past/today and
+ * `addLocalDays` gives the inclusive edge of the coming week.
+ *
+ * A stored day that does not parse is not a date the user chose, so it joins
+ * the undated bucket rather than being called overdue.
+ */
+export function dueGroupIdForTask(task: TaskRecordData, today: string): DueGroupId {
+  if (!task.dueOn) return 'none'
+  const info = dueInfo(task.dueOn, today)
+  if (!info) return 'none'
+  if (info.days < 0) return 'overdue'
+  if (info.days === 0) return 'today'
+  return task.dueOn <= addLocalDays(today, 7) ? 'next7' : 'later'
+}
+
+/**
+ * Group the same visible list by due day instead of by status. Search and
+ * `showArchived` mean exactly what they mean in `groupTasks`: archived rows
+ * stay out unless asked for. Live work fills the deadline buckets; a finished
+ * task keeps its own trailing "Done" section rather than sitting in "Overdue"
+ * just because its deadline passed — a deadline the user already met must not
+ * wear the warning tone. Empty buckets are dropped like empty status groups.
+ */
+export function groupTasksByDue(
+  tasks: TaskRecordData[],
+  query: string,
+  showArchived: boolean,
+  today: string,
+): DueGroupedTasks[] {
+  const visible = tasks.filter(task => matchesTaskQuery(task, query))
+  const live = visible.filter(task => task.status !== 'archived' && task.status !== 'done')
+  const groups: DueGroupedTasks[] = DUE_GROUP_IDS.map(id => ({
+    id,
+    tasks: live
+      .filter(task => dueGroupIdForTask(task, today) === id)
+      .sort(compareTasksWithinGroup),
+  })).filter(group => group.tasks.length > 0)
+
+  const done = visible
+    .filter(task => task.status === 'done')
+    .sort(compareTasksWithinGroup)
+  if (done.length > 0) groups.push({ id: 'done', tasks: done })
+
+  if (showArchived) {
+    const archived = visible
+      .filter(task => task.status === 'archived')
+      .sort(compareTasksWithinGroup)
+    if (archived.length > 0) groups.push({ id: 'archived', tasks: archived })
+  }
+
+  return groups
+}
+
 export function countActive(tasks: TaskRecordData[]): number {
   return tasks.filter(task => task.status !== 'archived').length
 }
