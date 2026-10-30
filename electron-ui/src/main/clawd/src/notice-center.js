@@ -117,14 +117,27 @@
     filter: "all",
     query: "",
     selectedId: null,
+    expandedId: null,
+    /** Per-notice transient copy/save feedback, keyed by notice id. */
+    rowStatus: {},
     booted: false,
     closing: false,
   };
 
   var heightFrame = null;
+  var statusTimers = {};
 
   function strings() {
     return STRINGS[state.payload.lang] || STRINGS.en;
+  }
+
+  // Newer notice-log copy lives in the pet's shared string table, which the
+  // page loads as a plain script (see i18n.js). Keeping it there means the log
+  // and the bubbles speak from one dictionary instead of a second one here.
+  function petString(key) {
+    var bundle = window.clawdI18n;
+    var dict = bundle ? (bundle.i18n[state.payload.lang] || bundle.i18n.en) : null;
+    return (dict && dict[key]) || key;
   }
 
   function kindLabel(kind) {
@@ -160,6 +173,32 @@
     var days = Math.floor(hours / 24);
     if (days < 7) return days + "d";
     return Math.floor(days / 7) + "w";
+  }
+
+  // The expanded row names the exact moment. The shape is HUD chrome (month
+  // token + 24-hour clock), so it needs no per-language sentence.
+  function absoluteTime(at) {
+    if (typeof at !== "number" || !isFinite(at) || at <= 0) return "";
+    var d = new Date(at);
+    var pad = function (n) { return n < 10 ? "0" + n : String(n); };
+    return MONTHS[d.getMonth()] + " " + d.getDate() + " " + d.getFullYear() +
+      " · " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+  }
+
+  function noticeById(id) {
+    var notices = state.payload.notices;
+    for (var i = 0; i < notices.length; i++) {
+      if (notices[i].id === id) return notices[i];
+    }
+    return null;
+  }
+
+  function findRow(id) {
+    var rows = visibleRows();
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].dataset.id === id) return rows[i];
+    }
+    return null;
   }
 
   // ── Day grouping ───────────────────────────────────────────────────────────
@@ -307,13 +346,15 @@
 
   function buildRow(notice) {
     var s = strings();
+    var expanded = state.expandedId === notice.id;
     var row = document.createElement("div");
-    row.className = "row";
+    row.className = "row" + (expanded ? " expanded" : "");
     row.dataset.id = notice.id;
     row.dataset.kind = notice.kind || "system";
     row.dataset.read = notice.read ? "true" : "false";
     row.setAttribute("role", "button");
     row.setAttribute("aria-label", notice.title);
+    row.setAttribute("aria-expanded", expanded ? "true" : "false");
     row.tabIndex = -1;
     if (state.selectedId === notice.id) row.classList.add("selected");
 
@@ -333,16 +374,37 @@
     var title = document.createElement("span");
     title.className = "title";
     title.textContent = notice.title;
+    var expand = document.createElement("button");
+    expand.type = "button";
+    expand.className = "expand";
+    expand.setAttribute("aria-expanded", expanded ? "true" : "false");
+    expand.setAttribute("aria-label", expanded ? petString("noticeCenterCollapse") : petString("noticeCenterExpand"));
+    expand.title = expanded ? petString("noticeCenterCollapse") : petString("noticeCenterExpand");
+    expand.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+    expand.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleExpanded(notice.id);
+    });
     titleLine.appendChild(dot);
     titleLine.appendChild(title);
+    titleLine.appendChild(expand);
 
     var message = document.createElement("span");
     message.className = "msg";
     message.textContent = notice.message || "";
     message.hidden = !notice.message;
 
+    var statusEl = document.createElement("span");
+    statusEl.className = "row-status";
+    statusEl.setAttribute("role", "status");
+    statusEl.setAttribute("aria-live", "polite");
+    statusEl.hidden = true;
+
     body.appendChild(titleLine);
     body.appendChild(message);
+    body.appendChild(statusEl);
+    body.appendChild(buildDetail(notice));
 
     var side = document.createElement("span");
     side.className = "side";
@@ -371,7 +433,228 @@
     row.addEventListener("click", function () { openNotice(notice.id); });
     row.addEventListener("focus", function () { selectRow(row, false); });
 
+    renderStatus(statusEl, notice.id);
     return row;
+  }
+
+  /**
+   * The expanded half of a row: meta rows, kind, exact timestamp and the
+   * action strip. Everything here is inert except the buttons, so clicking the
+   * detail still means "open the conversation" like the rest of the row.
+   */
+  function buildDetail(notice) {
+    var detail = document.createElement("span");
+    detail.className = "detail";
+
+    var meta = Array.isArray(notice.meta) ? notice.meta : [];
+    if (meta.length) {
+      var metaWrap = document.createElement("span");
+      metaWrap.className = "meta";
+      for (var i = 0; i < meta.length; i++) {
+        var metaRow = document.createElement("span");
+        metaRow.className = "meta-row";
+        var label = document.createElement("span");
+        label.className = "meta-label";
+        label.textContent = String(meta[i].label || "");
+        var value = document.createElement("span");
+        value.className = "meta-value";
+        value.textContent = String(meta[i].value || "");
+        metaRow.appendChild(label);
+        metaRow.appendChild(value);
+        metaWrap.appendChild(metaRow);
+      }
+      detail.appendChild(metaWrap);
+    }
+
+    var facts = document.createElement("span");
+    facts.className = "facts";
+    facts.appendChild(fact(petString("noticeCenterKind"), kindLabel(notice.kind)));
+    facts.appendChild(fact(petString("noticeCenterTime"), absoluteTime(notice.at)));
+    detail.appendChild(facts);
+
+    var actions = document.createElement("span");
+    actions.className = "actions";
+    actions.setAttribute("role", "group");
+    actions.setAttribute("aria-label", petString("noticeCenterActions"));
+    if (notice.sessionId) {
+      actions.appendChild(actionButton(petString("noticeCenterOpen"), "act--primary", function () {
+        openNotice(notice.id);
+      }));
+    }
+    actions.appendChild(actionButton(petString("noticeCenterCopy"), "", function () {
+      copyNotice(notice.id);
+    }));
+    // Only text worth keeping earns a task: an empty notice has nothing to put
+    // in materials/, and main re-checks the same rule.
+    if (notice.canSaveTask) {
+      var save = actionButton(petString("noticeCenterSaveTask"), "", function () {
+        saveNotice(notice.id);
+      });
+      save.classList.add("act--save");
+      actions.appendChild(save);
+    }
+    actions.appendChild(actionButton(petString("noticeCenterDismiss"), "act--danger", function () {
+      dismissNotice(notice.id);
+    }));
+    detail.appendChild(actions);
+
+    return detail;
+  }
+
+  function fact(labelText, valueText) {
+    var factEl = document.createElement("span");
+    factEl.className = "fact";
+    var label = document.createElement("span");
+    label.className = "fact-label";
+    label.textContent = labelText;
+    var value = document.createElement("span");
+    value.className = "fact-value";
+    value.textContent = valueText;
+    factEl.appendChild(label);
+    factEl.appendChild(value);
+    return factEl;
+  }
+
+  function actionButton(labelText, extraClass, onClick) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "act" + (extraClass ? " " + extraClass : "");
+    btn.textContent = labelText;
+    btn.setAttribute("aria-label", labelText);
+    btn.title = labelText;
+    btn.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      onClick();
+    });
+    return btn;
+  }
+
+  // ── Row feedback / expansion ───────────────────────────────────────────────
+
+  function saveErrorText(code) {
+    if (code === "empty_text") return petString("noticeCenterSaveErrorEmpty");
+    if (code === "folder_missing") return petString("noticeCenterSaveErrorFolder");
+    if (code === "write_failed" || code === "directory_failed") return petString("noticeCenterSaveErrorWrite");
+    if (code === "not_found") return petString("noticeCenterSaveErrorNotFound");
+    return petString("noticeCenterSaveErrorInvalid");
+  }
+
+  function statusText(status) {
+    if (status.kind === "copied") return petString("noticeCenterCopied");
+    if (status.kind === "copy-failed") return petString("noticeCenterCopyFailed");
+    if (status.kind === "task-created") return petString("noticeCenterTaskCreated");
+    if (status.kind === "task-failed") {
+      return petString("noticeCenterTaskFailed") + " — " + saveErrorText(status.code);
+    }
+    return "";
+  }
+
+  function renderStatus(el, id) {
+    var status = state.rowStatus[id];
+    el.textContent = "";
+    if (!status) {
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    el.dataset.tone = status.kind === "copy-failed" || status.kind === "task-failed" ? "error" : "ok";
+    var text = document.createElement("span");
+    text.className = "status-text";
+    text.textContent = statusText(status);
+    el.appendChild(text);
+    // A saved notice keeps its offer: opening the task list later is one click,
+    // and the notice itself stays in the log untouched.
+    if (status.kind === "task-created" && status.taskId) {
+      var open = document.createElement("button");
+      open.type = "button";
+      open.className = "status-action";
+      var label = petString("noticeCenterOpenTasks");
+      open.textContent = label;
+      open.setAttribute("aria-label", label);
+      open.title = label;
+      open.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        runAction({ type: "open-task", id: id, taskId: status.taskId });
+      });
+      el.appendChild(open);
+    }
+  }
+
+  // Copy is a glance, not a state: the confirmation clears itself, but a
+  // failure is reported the same way rather than swallowed.
+  function setRowStatus(id, status) {
+    if (statusTimers[id]) {
+      clearTimeout(statusTimers[id]);
+      statusTimers[id] = null;
+    }
+    if (status) state.rowStatus[id] = status;
+    else delete state.rowStatus[id];
+    var row = findRow(id);
+    var el = row ? row.querySelector(".row-status") : null;
+    if (el) renderStatus(el, id);
+    if (status && (status.kind === "copied" || status.kind === "copy-failed")) {
+      statusTimers[id] = setTimeout(function () {
+        statusTimers[id] = null;
+        delete state.rowStatus[id];
+        var current = findRow(id);
+        var target = current ? current.querySelector(".row-status") : null;
+        if (target) renderStatus(target, id);
+      }, 2600);
+    }
+  }
+
+  function applyExpanded(row, expanded) {
+    if (!row) return;
+    row.classList.toggle("expanded", expanded);
+    row.setAttribute("aria-expanded", expanded ? "true" : "false");
+    var chevron = row.querySelector(".expand");
+    if (!chevron) return;
+    chevron.setAttribute("aria-expanded", expanded ? "true" : "false");
+    var label = petString(expanded ? "noticeCenterCollapse" : "noticeCenterExpand");
+    chevron.setAttribute("aria-label", label);
+    chevron.title = label;
+  }
+
+  // Expansion is pure presentation: the payload, the read flag and the order
+  // are all untouched, and the row is patched in place so scroll and focus
+  // survive.
+  function toggleExpanded(id) {
+    if (!id) return;
+    var next = state.expandedId === id ? null : id;
+    if (state.expandedId && state.expandedId !== id) {
+      applyExpanded(findRow(state.expandedId), false);
+    }
+    state.expandedId = next;
+    applyExpanded(findRow(id), next === id);
+    reportHeight();
+  }
+
+  function copyNotice(id) {
+    if (!id) return;
+    if (!api || !api.copy) {
+      setRowStatus(id, { kind: "copy-failed" });
+      return;
+    }
+    Promise.resolve(api.copy(id))
+      .then(function (result) {
+        setRowStatus(id, result && result.ok ? { kind: "copied" } : { kind: "copy-failed" });
+      })
+      .catch(function () {
+        setRowStatus(id, { kind: "copy-failed" });
+      });
+  }
+
+  function saveNotice(id) {
+    if (!id) return Promise.resolve();
+    var row = findRow(id);
+    var btn = row ? row.querySelector(".act--save") : null;
+    if (btn && btn.disabled) return Promise.resolve();
+    if (btn) btn.disabled = true;
+    return runAction({ type: "save-task", id }).then(function () {
+      if (btn) btn.disabled = false;
+    });
   }
 
   function buildDayHeader(date) {
@@ -537,9 +820,26 @@
     });
   }
 
+  function pruneTransientState() {
+    var notices = state.payload.notices;
+    var alive = {};
+    for (var i = 0; i < notices.length; i++) alive[notices[i].id] = true;
+    if (state.expandedId && !alive[state.expandedId]) state.expandedId = null;
+    for (var id in state.rowStatus) {
+      if (!alive[id]) {
+        delete state.rowStatus[id];
+        if (statusTimers[id]) {
+          clearTimeout(statusTimers[id]);
+          statusTimers[id] = null;
+        }
+      }
+    }
+  }
+
   function render(payload, first) {
     state.payload = normalizePayload(payload);
     document.documentElement.lang = state.payload.lang;
+    pruneTransientState();
 
     applyChrome();
     applyFilters();
@@ -574,15 +874,33 @@
     window.close();
   }
 
+  function applyOutcome(outcome) {
+    if (!outcome || typeof outcome.id !== "string" || outcome.action !== "save-task") return;
+    if (outcome.ok) {
+      setRowStatus(outcome.id, { kind: "task-created", taskId: outcome.taskId });
+    } else {
+      setRowStatus(outcome.id, { kind: "task-failed", code: outcome.code });
+    }
+  }
+
   function runAction(action) {
-    if (!api || !api.action) return;
-    Promise.resolve(api.action(action))
+    if (!api || !api.action) return Promise.resolve();
+    return Promise.resolve(api.action(action))
       .then(function (payload) {
-        if (payload) render(payload, false);
+        if (!payload) return;
+        if (payload.outcome) applyOutcome(payload.outcome);
+        // A save changes no row's content or order; repainting would throw away
+        // the open row and its scroll position for a payload that is identical.
+        if (action && action.type === "save-task") return;
+        render(payload, false);
       })
       .catch(function () {
         // "open" destroys the window before replying; a rejected promise here
-        // is the expected end of this renderer, not an error to surface.
+        // is the expected end of this renderer, not an error to surface. A
+        // failed save is different: it must still say why on the row.
+        if (action && action.type === "save-task" && typeof action.id === "string") {
+          setRowStatus(action.id, { kind: "task-failed", code: "invalid" });
+        }
       });
   }
 
@@ -659,10 +977,15 @@
     }
     if (event.key === "Escape") {
       // Esc in the field is an undo of the query, not a close; only an empty
-      // query falls through to closing the panel.
+      // query falls through. An open row collapses before the panel does.
       if (isSearchTarget(event.target) && state.query) {
         event.preventDefault();
         setQuery("", true);
+        return;
+      }
+      if (state.expandedId) {
+        event.preventDefault();
+        toggleExpanded(state.expandedId);
         return;
       }
       event.preventDefault();
@@ -678,6 +1001,36 @@
       ? event.target.closest("button")
       : null;
     if (onButton && (event.key === "Enter" || event.key === " ")) return;
+
+    // Space opens the openable row. The search field owns its own typing, so a
+    // space typed into it is a space, not a toggle.
+    if (event.key === " " && !mod && !event.altKey && !inSearch && !isEditable(event.target)) {
+      var spaceRow = selectedRow();
+      if (spaceRow) {
+        event.preventDefault();
+        toggleExpanded(spaceRow.dataset.id);
+        return;
+      }
+    }
+    // c / s are single-letter actions on the highlighted row. They must never
+    // fire while the caret is in the search field.
+    if (!mod && !event.altKey && !event.repeat && !isEditable(event.target)) {
+      var key = event.key.toLowerCase();
+      var keyRow = selectedRow();
+      if (keyRow) {
+        var keyNotice = noticeById(keyRow.dataset.id);
+        if (key === "c") {
+          event.preventDefault();
+          copyNotice(keyRow.dataset.id);
+          return;
+        }
+        if (key === "s" && keyNotice && keyNotice.canSaveTask) {
+          event.preventDefault();
+          saveNotice(keyRow.dataset.id);
+          return;
+        }
+      }
+    }
     if (event.key === "ArrowDown") {
       event.preventDefault();
       moveSelection(1, inSearch);
@@ -733,9 +1086,9 @@
       lang: "en",
       unread: 2,
       notices: [
-        { id: "sample-1", kind: "warning", title: "Context running low", message: "This conversation is close to the model's context window. Start a new chat to keep responses fast.", at: now - 4 * 60000, read: false },
-        { id: "sample-2", kind: "success", title: "Background task finished", message: "The scheduled dependency audit completed with no critical findings.", at: now - 2 * 3600000, read: false },
-        { id: "sample-3", kind: "system", title: "Link start", message: "AIPA is online and standing by.", at: now - 3 * 86400000, read: true },
+        { id: "sample-1", kind: "warning", title: "Context running low", message: "This conversation is close to the model's context window. Start a new chat to keep responses fast.", at: now - 4 * 60000, read: false, sessionId: "sample-session", canSaveTask: true, meta: [{ label: "TIME", value: "3s" }, { label: "TOOLS", value: "2" }] },
+        { id: "sample-2", kind: "success", title: "Background task finished", message: "The scheduled dependency audit completed with no critical findings.", at: now - 2 * 3600000, read: false, canSaveTask: true },
+        { id: "sample-3", kind: "system", title: "Link start", message: "AIPA is online and standing by.", at: now - 3 * 86400000, read: true, canSaveTask: true },
       ],
     };
   }

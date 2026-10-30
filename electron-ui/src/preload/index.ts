@@ -119,6 +119,7 @@ export type TaskEventKindData =
   | 'reassigned'
   | 'session_started'
   | 'from_automation'
+  | 'imported_folder'
 
 export interface TaskEventData {
   at: number
@@ -205,6 +206,29 @@ export interface TaskDeleteData {
   mode?: 'archived' | 'deleted'
   task?: TaskRecordData
   trashedTo?: string
+}
+
+export type LegacyFolderStatusData = 'ok' | 'missing' | 'empty' | 'unreadable' | 'too_large'
+
+/** Read-only preflight for "import a legacy department folder as a task". */
+export interface LegacyFolderInspectionData {
+  status: LegacyFolderStatusData
+  files: number
+  bytes: number
+  skipped: number
+  truncated: number
+}
+
+export interface LegacyFolderImportData {
+  ok: boolean
+  code?: string
+  error?: string
+  task?: TaskRecordData
+  /** A live task already recorded this exact source; nothing was copied. */
+  reused?: boolean
+  filesCopied?: number
+  filesSkipped?: number
+  filesTruncated?: number
 }
 
 /**
@@ -2650,6 +2674,12 @@ const electronAPI = {
   // own transcript output. Idempotent: a second save reopens the same task.
   tasksSaveAutomationRun: (input: TaskSaveAutomationRunData) =>
     ipcRenderer.invoke('tasks:saveAutomationRun', input) as Promise<TaskSaveAutomationRunResultData>,
+  // Migration path: inspect a legacy department folder without reading it into
+  // a task, then import it by copy. The import is idempotent per source path.
+  tasksInspectLegacyFolder: (directory: string) =>
+    ipcRenderer.invoke('tasks:inspectLegacyFolder', directory) as Promise<LegacyFolderInspectionData>,
+  tasksImportLegacyFolder: (input: { directory: string; departmentId: string }) =>
+    ipcRenderer.invoke('tasks:importLegacyFolder', input) as Promise<LegacyFolderImportData>,
   onTasksChanged: (cb: () => void): Unsubscribe => {
     const handler = () => cb()
     ipcRenderer.on('tasks:changed', handler)

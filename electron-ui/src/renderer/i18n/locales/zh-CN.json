@@ -5486,6 +5486,25 @@
     "history": "历史",
     "historyEmpty": "还没有动态。",
     "historyRun": "来自自动化运行（{{when}}）",
+    "importLegacy": {
+      "action": "将文件夹导入为任务",
+      "checking": "正在检查文件夹…",
+      "ready": "{{files}} 个文件可以复制",
+      "readyTruncated": "{{files}} 个文件可以复制；较大的文件会留在原文件夹",
+      "success": "已导入“{{title}}”，共 {{files}} 个文件",
+      "reused": "“{{title}}”之前已经导入过——正在打开",
+      "failed": "无法导入：{{reason}}",
+      "history": "从 {{path}} 导入——已复制 {{files}} 个，跳过 {{skipped}} 个，截断 {{truncated}} 个",
+      "reason": {
+        "missing": "旧文件夹已不存在。",
+        "empty": "旧文件夹里没有可导入的文件。",
+        "unreadable": "无法读取旧文件夹。",
+        "tooLarge": "旧文件夹太大，无法导入。",
+        "storeFailed": "无法保存任务，未留下任何副本。",
+        "invalid": "旧文件夹路径不可用。",
+        "unknown": "无法导入旧文件夹。"
+      }
+    },
     "event": {
       "created": "任务已创建",
       "material_added": "添加资料",
@@ -5498,7 +5517,8 @@
       "routed": "已指定部门",
       "reassigned": "已更改部门",
       "session_started": "对话已开始",
-      "from_automation": "已保存自动化输出"
+      "from_automation": "已保存自动化输出",
+      "imported_folder": "从旧文件夹导入"
     },
     "error": {
       "load": "无法读取任务。",

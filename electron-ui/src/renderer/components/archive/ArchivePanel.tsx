@@ -33,6 +33,7 @@ import {
 } from '../departments/deptUtils'
 import { buildDeptLookup, resolveDeptForSession } from '../departments/sessionFiling'
 import { openSessionCore } from '../departments/openSessionCore'
+import LegacyFolderImport from '../departments/LegacyFolderImport'
 import { openTaskConversation } from '../../lib/taskDispatch'
 import FileUnderDeptDialog from '../chat/FileUnderDeptDialog'
 import { displayTitle } from '../../lib/sessionTitle'
@@ -979,47 +980,64 @@ export default function ArchivePanel() {
               const end = Math.max(start, Math.min(count, Math.ceil((visEnd - item.rowsTop) / ROW_H)))
               return (
                 <div key={key}>
-                  {/* Group header — the company (or a legacy top-level department) */}
-                  <button
-                    onClick={() => setCollapsed(c => ({ ...c, [key]: !c[key] }))}
+                  {/* Group header — the company (or a legacy top-level department).
+                      The toggle and the legacy-folder import are siblings because a
+                      button cannot contain another button. */}
+                  <div
                     className="archive-group-header"
                     style={{
                       display: 'flex', alignItems: 'center', gap: 7, width: '100%',
-                      height: GROUP_HEADER_H, boxSizing: 'border-box',
-                      background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 8px',
-                      color: 'var(--text-secondary)', textAlign: 'left',
+                      height: GROUP_HEADER_H, boxSizing: 'border-box', padding: '0 0 8px',
+                      color: 'var(--text-secondary)',
                     }}
                   >
-                    {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-                    <span style={{ fontSize: 13, lineHeight: 1 }}>{group.root ? deptEmoji(group.root.id) : '📭'}</span>
-                    <span
-                      title={group.root?.name ?? t('archive.unassigned')}
-                      style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    <button
+                      onClick={() => setCollapsed(c => ({ ...c, [key]: !c[key] }))}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 7, flex: 1, minWidth: 0,
+                        height: '100%', background: 'none', border: 'none', cursor: 'pointer',
+                        padding: 0, color: 'inherit', textAlign: 'left',
+                      }}
                     >
-                      {group.root?.name ?? t('archive.unassigned')}
-                    </span>
-                    {group.root && kindOf(group.root) === 'company' && (
+                      {isCollapsed ? <ChevronRight size={12} style={{ flexShrink: 0 }} /> : <ChevronDown size={12} style={{ flexShrink: 0 }} />}
+                      <span style={{ fontSize: 13, lineHeight: 1, flexShrink: 0 }}>{group.root ? deptEmoji(group.root.id) : '📭'}</span>
+                      <span
+                        title={group.root?.name ?? t('archive.unassigned')}
+                        style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      >
+                        {group.root?.name ?? t('archive.unassigned')}
+                      </span>
+                      {group.root && kindOf(group.root) === 'company' && (
+                        <span style={{
+                          fontSize: 9, padding: '1px 6px', borderRadius: 999, flexShrink: 0,
+                          border: '1px solid var(--accent-border)', background: 'var(--accent-bg)',
+                          color: 'var(--accent-text)',
+                        }}>
+                          {t('dept.companyTag')}
+                        </span>
+                      )}
                       <span style={{
-                        fontSize: 9, padding: '1px 6px', borderRadius: 999,
-                        border: '1px solid var(--accent-border)', background: 'var(--accent-bg)',
-                        color: 'var(--accent-text)',
+                        fontSize: 10, padding: '1px 7px', borderRadius: 999, flexShrink: 0,
+                        background: 'var(--bg-hover)', border: '1px solid var(--border)',
+                        color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums',
                       }}>
-                        {t('dept.companyTag')}
+                        {group.records.length}
                       </span>
-                    )}
-                    <span style={{
-                      fontSize: 10, padding: '1px 7px', borderRadius: 999,
-                      background: 'var(--bg-hover)', border: '1px solid var(--border)',
-                      color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums',
-                    }}>
-                      {group.records.length}
-                    </span>
+                      {group.root?.directory && (
+                        <span title={group.root.directory} style={{ fontSize: 10, color: 'var(--text-subtle)', ...ELLIPSIS, maxWidth: 260 }}>
+                          {group.root.directory}
+                        </span>
+                      )}
+                    </button>
                     {group.root?.directory && (
-                      <span title={group.root.directory} style={{ fontSize: 10, color: 'var(--text-subtle)', ...ELLIPSIS, maxWidth: 260 }}>
-                        {group.root.directory}
-                      </span>
+                      <LegacyFolderImport
+                        directory={group.root.directory}
+                        departmentId={group.root.id}
+                        compact
+                        style={{ flexShrink: 0 }}
+                      />
                     )}
-                  </button>
+                  </div>
 
                   {!isCollapsed && (
                     <div style={{

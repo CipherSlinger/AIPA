@@ -329,7 +329,10 @@ body { padding: 8px; }
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-height: 260px;
+  /* Open rows carry the full message, meta, facts and actions. The taller
+     cap lets a typical expanded row finish inside the scrollport instead of
+     hiding its action strip below the fold; a long history still scrolls. */
+  max-height: 360px;
   overflow-y: auto;
   padding-right: 2px;
 }
@@ -463,6 +466,7 @@ body { padding: 8px; }
 }
 .row[data-read="true"] .dot { opacity: 0; }
 .title {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
@@ -528,6 +532,204 @@ body { padding: 8px; }
   box-shadow: 0 0 10px rgba(255, 93, 93, 0.25);
 }
 
+/* ── Expand / detail / actions ────────────────────────────────────────────── */
+/* The chevron lives in the title line so a collapsed row keeps its 48px
+   rhythm; the side column is already time + dismiss. */
+.expand {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  outline: none;
+  opacity: 0.5;
+  transition: opacity 140ms ease, color 140ms ease, filter 140ms ease;
+}
+.expand svg {
+  display: block;
+  width: 11px;
+  height: 11px;
+  transition: transform 0.16s var(--ease);
+}
+.row:hover .expand,
+.row.selected .expand,
+.row:focus-within .expand { opacity: 1; }
+.expand:hover,
+.expand:focus-visible {
+  color: var(--k);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--k) 55%, transparent));
+}
+.row.expanded .expand svg { transform: rotate(180deg); }
+
+/* The message loses its two-line clamp only while the row is open; the list
+   still scrolls, so a long notice cannot grow the window past its cap. */
+.row.expanded {
+  border-color: color-mix(in srgb, var(--k) 30%, transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--k) 12%, transparent), transparent 82%);
+}
+.row.expanded .msg {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.detail {
+  display: none;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 3px;
+  padding-top: 7px;
+  border-top: 1px solid color-mix(in srgb, var(--k) 22%, transparent);
+  cursor: default;
+}
+.row.expanded .detail { display: flex; }
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.meta-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.meta-label {
+  flex: none;
+  min-width: 42px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.meta-value {
+  min-width: 0;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  color: #c7e6e1;
+  word-break: break-word;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 14px;
+}
+.fact {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.fact-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.fact-value {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: #c7e6e1;
+}
+
+/* Accent rail by kind, the same grammar as the row rail. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding-left: 7px;
+  border-left: 1px solid color-mix(in srgb, var(--k) 38%, transparent);
+}
+.act {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 5px;
+  border: 1px solid rgba(127, 168, 162, 0.28);
+  background: rgba(63, 224, 200, 0.035);
+  color: var(--muted);
+  font: inherit;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  outline: none;
+  clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
+  transition: color 140ms ease, border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+}
+.act:hover:not(:disabled),
+.act:focus-visible:not(:disabled) {
+  color: var(--k);
+  border-color: color-mix(in srgb, var(--k) 62%, transparent);
+  background: color-mix(in srgb, var(--k) 12%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--k) 22%, transparent);
+}
+.act:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--k) 70%, transparent);
+  outline-offset: 1px;
+}
+.act:disabled { opacity: 0.4; cursor: default; }
+.act--primary {
+  color: var(--k);
+  border-color: color-mix(in srgb, var(--k) 48%, transparent);
+}
+.act--danger:hover:not(:disabled),
+.act--danger:focus-visible:not(:disabled) {
+  color: #ff5d5d;
+  border-color: rgba(255, 93, 93, 0.62);
+  background: rgba(255, 93, 93, 0.10);
+  box-shadow: 0 0 10px rgba(255, 93, 93, 0.22);
+}
+
+/* Transient result of Copy / Save. It stays visible on a collapsed row too,
+   so a keyboard `c` reports success without forcing the row open. */
+.row-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.row-status[data-tone="ok"] { color: color-mix(in srgb, var(--k) 78%, #dff7f3); }
+.row-status[data-tone="error"] { color: #ff8a8a; }
+.status-action {
+  appearance: none;
+  padding: 2px 5px;
+  border: 1px solid color-mix(in srgb, var(--k) 48%, transparent);
+  background: none;
+  color: var(--k);
+  font: inherit;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  cursor: pointer;
+  outline: none;
+  clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
+  transition: background 140ms ease, box-shadow 140ms ease;
+}
+.status-action:hover,
+.status-action:focus-visible {
+  background: color-mix(in srgb, var(--k) 14%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--k) 24%, transparent);
+}
+
 /* One accent per kind, matching update-bubble.js. */
 .row[data-kind="system"]        { --k: #3fe0c8; }
 .row[data-kind="info"]          { --k: #58a6ff; }
@@ -558,7 +760,11 @@ body { padding: 8px; }
   .search-glyph,
   .search-clear,
   .dismiss,
+  .expand,
+  .act,
+  .status-action,
   .ghost { transition: none; }
+  .expand svg { transition: none; }
 }
 </style>
 </head>
@@ -582,6 +788,7 @@ body { padding: 8px; }
   <div class="list" id="list" role="list"></div>
   <div class="empty" id="empty" hidden></div>
 </div>
+<script src="i18n.js"></script>
 <script src="notice-center.js"></script>
 </body>
 </html>

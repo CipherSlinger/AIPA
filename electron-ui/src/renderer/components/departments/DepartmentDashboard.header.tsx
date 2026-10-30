@@ -6,6 +6,7 @@ import { useUiStore, type Department } from '../../store'
 import { useI18n } from '../../i18n'
 import type { SortOrder } from './DepartmentDashboard.data'
 import { deptDisplayName, kindOf } from './deptUtils'
+import LegacyFolderImport from './LegacyFolderImport'
 
 const SORT_OPTIONS = [
   ['recent', 'dept.sortRecent'],
@@ -229,6 +230,11 @@ export default function DeptHeader({
             <FolderOpen size={10} style={{ opacity: 0.7, flexShrink: 0 }} />
             <span style={{ flexShrink: 0 }}>{t('dept.legacyFolder')}</span>
             <span title={dept.directory} style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dept.directory}</span>
+            <LegacyFolderImport
+              directory={dept.directory}
+              departmentId={dept.id}
+              style={{ marginLeft: 4, flexShrink: 0 }}
+            />
           </div>
         )}
       </div>

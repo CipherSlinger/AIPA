@@ -120,6 +120,24 @@ export const EDITABLE_STATUSES: TaskStatusData[] = [
  * two facts. A hand-edited or older detail that does not parse is left to be
  * shown verbatim rather than guessed at.
  */
+/**
+ * Read the detail main writes for `imported_folder`. The prefix is the exact
+ * source path (greedy, so a path containing the separator still parses); the
+ * suffix is the three counts the history line shows.
+ */
+export function parseImportedFolderDetail(
+  detail: string | undefined,
+): { source: string; files: number; skipped: number; truncated: number } | null {
+  if (!detail) return null
+  const match = /^(.*) \| files=(\d+) skipped=(\d+) truncated=(\d+)$/.exec(detail)
+  if (!match) return null
+  const files = Number(match[2])
+  const skipped = Number(match[3])
+  const truncated = Number(match[4])
+  if (![files, skipped, truncated].every(Number.isFinite)) return null
+  return { source: match[1], files, skipped, truncated }
+}
+
 export function parseAutomationRunDetail(
   detail: string | undefined,
 ): { jobId: string; startedAt: number } | null {

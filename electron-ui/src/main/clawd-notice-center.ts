@@ -22,9 +22,13 @@
  * Electron is still starting, or a window that never paints must never take the
  * app down. The worst outcome is that the notice centre does not open.
  */
-import { BrowserWindow, ipcMain, screen } from 'electron'
+import { BrowserWindow, clipboard, ipcMain, screen } from 'electron'
 import * as path from 'path'
-import { getClawdLanguage, withClawdMainWindow } from './clawd-integration'
+import {
+  getClawdLanguage,
+  withClawdMainWindow,
+  type ClawdBubbleMetaRow,
+} from './clawd-integration'
 import {
   clearClawdNotices,
   getUnreadClawdNoticeCount as countUnreadClawdNotices,
@@ -33,6 +37,7 @@ import {
   removeClawdNotice,
   type ClawdNoticeRecord,
 } from './clawd-notifications'
+import { addTextMaterial, createTask, deleteTask, getTask } from './tasks/task-store'
 import { safeHandle } from './ipc/register/safe-handle'
 import { createLogger } from './utils/logger'
 
@@ -58,6 +63,23 @@ export interface ClawdNoticeCenterItem {
   read: boolean
   /** AIPA session to open, when the notice is about a conversation. */
   sessionId?: string
+  /** Meta rows recorded with the bubble (session, tools, elapsed time). */
+  meta?: ClawdBubbleMetaRow[]
+  /** The message is worth turning into a task; see SAVEABLE_NOTICE_KINDS. */
+  canSaveTask: boolean
+}
+
+/** Why a rendered action, if any, should change its row's transient status. */
+export interface ClawdNoticeActionResult {
+  id: string
+  action: 'save-task'
+  ok: boolean
+  taskId?: string
+  taskTitle?: string
+  code?: string
+  error?: string
+  /** A second save of the same notice reuses its task instead of duplicating. */
+  reused?: boolean
 }
 
 /** Everything the renderer needs for one paint. */
@@ -67,13 +89,16 @@ export interface ClawdNoticeCenterPayload {
   lang: string
   /** Number of unread records, for the title-bar badge. */
   unread: number
+  /** Present only on the reply to a row action, never on load/update. */
+  outcome?: ClawdNoticeActionResult
 }
 
-type NoticeActionType = 'open' | 'dismiss' | 'clear-all' | 'close'
+type NoticeActionType = 'open' | 'dismiss' | 'clear-all' | 'close' | 'save-task' | 'open-task'
 
 interface NoticeCenterAction {
   type?: unknown
   id?: unknown
+  taskId?: unknown
 }
 
 // Width is fixed; height follows the content between these bounds. The list
@@ -81,7 +106,7 @@ interface NoticeCenterAction {
 // never grows into a full-screen slab.
 const WIDTH = 372
 const MIN_HEIGHT = 168
-const MAX_HEIGHT = 420
+const MAX_HEIGHT = 520
 const EDGE_MARGIN = 10
 /** Gap between the pet and the panel, so the panel never covers the sprite. */
 const PET_GAP = 12
@@ -127,7 +152,36 @@ function petLanguage(): string {
   }
 }
 
+/**
+ * Kinds whose text is a record of something that happened rather than a
+ * transient prompt. An approval or a clarification is answered and then gone;
+ * saving one would only archive the question. The message must also carry
+ * something, because an empty material is not a material.
+ */
+const SAVEABLE_NOTICE_KINDS = new Set(['system', 'info', 'success', 'warning', 'error', 'quest'])
+
+function canSaveNotice(record: ClawdNoticeRecord): boolean {
+  return SAVEABLE_NOTICE_KINDS.has(record.kind) && !!record.message.trim()
+}
+
+/** `detail` is stored as `LABEL: value` lines by the bubble's meta strip. */
+function parseMeta(detail?: string): ClawdBubbleMetaRow[] {
+  if (!detail) return []
+  const rows: ClawdBubbleMetaRow[] = []
+  for (const line of detail.split(/\r?\n/)) {
+    const at = line.indexOf(':')
+    if (at <= 0) continue
+    const label = line.slice(0, at).trim()
+    const value = line.slice(at + 1).trim()
+    if (!label || !value) continue
+    rows.push({ label, value })
+    if (rows.length >= 6) break
+  }
+  return rows
+}
+
 function toItem(record: ClawdNoticeRecord): ClawdNoticeCenterItem {
+  const meta = parseMeta(record.detail)
   return {
     id: record.id,
     kind: record.kind,
@@ -136,6 +190,8 @@ function toItem(record: ClawdNoticeRecord): ClawdNoticeCenterItem {
     at: record.at,
     read: !!record.readAt,
     ...(record.sessionId ? { sessionId: record.sessionId } : {}),
+    ...(meta.length ? { meta } : {}),
+    canSaveTask: canSaveNotice(record),
   }
 }
 
@@ -345,6 +401,32 @@ function destroyWindow(restoreFocus: boolean, markRead = false): void {
   }
 }
 
+/**
+ * When the panel sits over the pet's column (only possible when neither side
+ * fits) and an expanded row makes it grow into the pet, keep the bottom edge
+ * above the pet instead of painting over it. Growth downward from below the
+ * pet is already clear, so only a panel that started above the pet moves.
+ */
+function keepClearOfPet(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  area: Electron.Rectangle,
+): number {
+  if (!lastAnchor) return y
+  const pet = toRect(lastAnchor)
+  const overlapsX = x < pet.x + pet.width && x + width > pet.x
+  if (!overlapsX) return y
+  const overlapsY = y < pet.y + pet.height && y + height > pet.y
+  if (!overlapsY || y >= pet.y) return y
+  const above = Math.round(pet.y - PET_GAP - height)
+  // A work area too short to hold the open row above the pet has no clear
+  // answer; pinning to the top edge is still better than moving the panel
+  // further under the pet.
+  return Math.max(area.y + EDGE_MARGIN, above)
+}
+
 function applyReportedHeight(rawHeight: unknown): void {
   if (!noticeWin || noticeWin.isDestroyed()) return
   if (typeof rawHeight !== 'number' || !Number.isFinite(rawHeight)) return
@@ -356,7 +438,10 @@ function applyReportedHeight(rawHeight: unknown): void {
   // Keep the top edge stable while the panel grows; only pull it up when the
   // bottom would leave the work area. Recomputing the centred y on every
   // report made the panel visibly jump when a second row arrived.
-  const y = clampAxis(current.y, area.y, area.height, height)
+  const y = clampAxis(
+    keepClearOfPet(x, current.y, WIDTH, height, area),
+    area.y, area.height, height,
+  )
 
   if (current.x !== x || current.y !== y || current.height !== height || current.width !== WIDTH) {
     try { noticeWin.setBounds({ x, y, width: WIDTH, height }) } catch { /* closing */ }
@@ -443,8 +528,11 @@ function createWindow(anchor: ClawdNoticeCenterAnchor | null): boolean {
 
 // ── Actions ─────────────────────────────────────────────────────────────────
 
-/** Focus AIPA, optionally opening a session. Returns false when it is gone. */
-function focusAipaMainWindow(sessionId?: string): boolean {
+/**
+ * Focus AIPA, optionally opening a session or the Tasks view. Returns false
+ * when no window exists.
+ */
+function focusAipaMainWindow(sessionId?: string, openTasks = false): boolean {
   let handled = false
   // The integration owns the real main window; getAllWindows is the fallback
   // for harnesses and for the window between app start and integration init.
@@ -455,6 +543,7 @@ function focusAipaMainWindow(sessionId?: string): boolean {
       win.show()
       win.focus()
       if (sessionId) win.webContents.send('menu:openSession', sessionId)
+      else if (openTasks) win.webContents.send('menu:openTasks')
     })
   } catch { /* fall through to the window scan */ }
 
@@ -471,11 +560,90 @@ function focusAipaMainWindow(sessionId?: string): boolean {
     target.show()
     target.focus()
     if (sessionId) target.webContents.send('menu:openSession', sessionId)
+    else if (openTasks) target.webContents.send('menu:openTasks')
     return true
   } catch (err) {
     log.warn('Could not focus AIPA for a notice:', err)
     return false
   }
+}
+
+/** The task created from a notice, remembered for this app run. */
+const savedNoticeTasks = new Map<string, string>()
+
+type SaveNoticeResult =
+  | { ok: true; taskId: string; taskTitle: string; reused: boolean }
+  | { ok: false; code: string; error: string }
+
+function findNotice(id: string): ClawdNoticeRecord | undefined {
+  if (!id) return undefined
+  try {
+    return listClawdNotices().find(item => item.id === id)
+  } catch (err) {
+    log.warn('Could not look up notice:', err)
+    return undefined
+  }
+}
+
+/**
+ * Save a notice's text as a task. The task store's own text-material path does
+ * the writing: it owns the size cap, the sanitized single-segment name, the
+ * folder-ownership check and the `material_added` history event. That event's
+ * detail is the title-derived file name, so it names the notice without a new
+ * schema version. If the material cannot be written, the half-made task is
+ * trashed rather than left claiming work that is not there.
+ */
+function saveNoticeAsTask(record: ClawdNoticeRecord): SaveNoticeResult {
+  const cachedId = savedNoticeTasks.get(record.id)
+  if (cachedId) {
+    const existing = getTask(cachedId)
+    if (existing && !existing.missing) {
+      return { ok: true, taskId: existing.id, taskTitle: existing.title, reused: true }
+    }
+    savedNoticeTasks.delete(record.id)
+  }
+
+  if (!canSaveNotice(record)) {
+    return record.message.trim()
+      ? { ok: false, code: 'not_saveable', error: 'This notice cannot be saved as a task' }
+      : { ok: false, code: 'empty_text', error: 'This notice has no text to save' }
+  }
+
+  const created = createTask({ title: record.title })
+  if (!created.ok) return created
+
+  const added = addTextMaterial(created.task.id, {
+    name: `${record.title}.md`,
+    text: `${record.title}\n\n${record.message}`,
+    source: 'import',
+  })
+  if (!added.ok) {
+    try { deleteTask(created.task.id, { deleteFiles: true }) } catch { /* best effort */ }
+    return added
+  }
+
+  savedNoticeTasks.set(record.id, added.task.id)
+  return { ok: true, taskId: added.task.id, taskTitle: added.task.title, reused: false }
+}
+
+/**
+ * Show the Tasks view without yanking focus out of the notice log. A blur here
+ * destroys this window, which would also destroy the row status that confirms
+ * the save; `showInactive` opens a hidden AIPA window without acting like the
+ * user clicked away. A minimized window has to be restored, which does focus.
+ */
+function handOffToTasks(): boolean {
+  let handled = false
+  withClawdMainWindow(win => {
+    handled = true
+    if (win.isMinimized()) win.restore()
+    if (!win.isVisible()) win.showInactive()
+    // Main owns the task store; the renderer only mirrors it. Send the change
+    // before the view so the new task is already in the list when it appears.
+    win.webContents.send('tasks:changed')
+    win.webContents.send('menu:openTasks')
+  })
+  return handled
 }
 
 function handleAction(action: unknown): ClawdNoticeCenterPayload {
@@ -504,6 +672,39 @@ function handleAction(action: unknown): ClawdNoticeCenterPayload {
         // of closing onto an unchanged desktop.
         emitUpdate()
       }
+      return buildPayload()
+    }
+    case 'save-task': {
+      const record = findNotice(id)
+      if (!record) {
+        return {
+          ...buildPayload(),
+          outcome: {
+            id, action: 'save-task', ok: false,
+            code: 'not_found', error: 'That notice no longer exists',
+          },
+        }
+      }
+      const saved = saveNoticeAsTask(record)
+      if (!saved.ok) {
+        return {
+          ...buildPayload(),
+          outcome: { id, action: 'save-task', ok: false, code: saved.code, error: saved.error },
+        }
+      }
+      handOffToTasks()
+      return {
+        ...buildPayload(),
+        outcome: {
+          id, action: 'save-task', ok: true,
+          taskId: saved.taskId, taskTitle: saved.taskTitle, reused: saved.reused,
+        },
+      }
+    }
+    case 'open-task': {
+      const focused = focusAipaMainWindow(undefined, true)
+      if (focused) destroyWindow(false)
+      else emitUpdate()
       return buildPayload()
     }
     case 'dismiss': {
@@ -543,6 +744,22 @@ function ensureIpc(): void {
   safeHandle('notice-center:action', (event: Electron.IpcMainInvokeEvent, action: unknown) => {
     if (!isSender(event)) return emptyPayload()
     return handleAction(action)
+  })
+
+  // Copy is its own channel because it touches the OS clipboard and nothing
+  // else: no store write, no read state, no window lifecycle.
+  safeHandle('notice-center:copy', (event: Electron.IpcMainInvokeEvent, id: unknown) => {
+    if (!isSender(event)) return { ok: false, code: 'denied' }
+    const record = typeof id === 'string' ? findNotice(id) : undefined
+    if (!record) return { ok: false, code: 'not_found' }
+    if (!record.message.trim()) return { ok: false, code: 'empty_text' }
+    try {
+      clipboard.writeText(`${record.title}\n\n${record.message}`)
+      return { ok: true }
+    } catch (err) {
+      log.warn('Could not copy notice:', err)
+      return { ok: false, code: 'clipboard' }
+    }
   })
 
   ipcMain.on('notice-center:report-height', (event: Electron.IpcMainEvent, height: unknown) => {

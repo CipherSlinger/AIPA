@@ -95,6 +95,7 @@ export type TaskEventKind =
   | 'reassigned'
   | 'session_started'
   | 'from_automation'
+  | 'imported_folder'
 
 export interface TaskEvent {
   at: number
@@ -159,6 +160,81 @@ export type TaskMaterialImportResult =
 
 /** A text material is a note, not a transcript backup; this keeps one bounded. */
 export const MAX_TEXT_MATERIAL_BYTES = 2 * 1024 * 1024
+
+/**
+ * How much of a legacy folder one import may copy.
+ *
+ * A legacy folder is user-owned and can be arbitrarily large (a project with
+ * node_modules, a media dump). The import is a convenience, not a backup: it
+ * copies a bounded snapshot and records how much it left behind, so the source
+ * stays the complete original. The caps are generous for documents and small
+ * projects, and small enough that the copy finishes while the click is still on
+ * screen.
+ */
+export const MAX_LEGACY_IMPORT_FILES = 500
+export const MAX_LEGACY_IMPORT_BYTES = 200 * 1024 * 1024
+
+export type LegacyFolderStatus = 'ok' | 'missing' | 'empty' | 'unreadable' | 'too_large'
+
+/** What the department note needs to know before it offers the import button. */
+export interface LegacyFolderInspection {
+  status: LegacyFolderStatus
+  /** Importable files found within the caps, and their total size. */
+  files: number
+  bytes: number
+  /** Hidden entries, symlinks, non-files and unreadable children skipped. */
+  skipped: number
+  /** Files found but not importable because a cap was reached. */
+  truncated: number
+}
+
+export interface LegacyFolderImportInput {
+  directory?: unknown
+  departmentId?: unknown
+}
+
+export type LegacyFolderImportResult =
+  | {
+      ok: true
+      task: TaskView
+      /** The source path was already recorded by a live task; nothing was copied. */
+      reused: boolean
+      filesCopied: number
+      filesSkipped: number
+      filesTruncated: number
+    }
+  | TaskFailure
+
+export interface LegacyImportCounts {
+  files: number
+  skipped: number
+  truncated: number
+}
+
+/**
+ * The history row's stable detail.
+ *
+ * The prefix is the exact source path, which is what idempotence looks for; the
+ * suffixes are counts a person can read. The greedy parse below keeps a path
+ * that happens to contain the separator intact, and `|` cannot appear in a
+ * Windows file name in any case.
+ */
+export function legacyImportDetail(source: string, counts: LegacyImportCounts): string {
+  return `${source} | files=${counts.files} skipped=${counts.skipped} truncated=${counts.truncated}`
+}
+
+export function parseLegacyImportDetail(
+  detail: string | undefined,
+): (LegacyImportCounts & { source: string }) | null {
+  if (typeof detail !== 'string') return null
+  const match = /^(.*) \| files=(\d+) skipped=(\d+) truncated=(\d+)$/.exec(detail)
+  if (!match) return null
+  const files = Number(match[2])
+  const skipped = Number(match[3])
+  const truncated = Number(match[4])
+  if (![files, skipped, truncated].every(Number.isFinite)) return null
+  return { source: match[1], files, skipped, truncated }
+}
 
 export interface TaskTextMaterialInput {
   /** Display name; sanitized to one path segment before it becomes a file. */
@@ -303,6 +379,7 @@ const EVENT_KINDS = new Set<TaskEventKind>([
   'created', 'material_added', 'material_removed', 'renamed',
   'status_changed', 'moved', 'folder_missing', 'restored',
   'routed', 'reassigned', 'session_started', 'from_automation',
+  'imported_folder',
 ])
 
 const MATERIAL_SOURCES = new Set<TaskMaterialSource>([
@@ -348,7 +425,11 @@ function normalizeMaterial(raw: unknown): TaskMaterial | null {
   if (!posix.startsWith('materials/') || posix.includes('\0')) return null
   const rest = posix.slice('materials/'.length)
   if (!rest || rest.includes('/') || rest === '.' || rest === '..') return null
-  if (name !== rest) return null
+  // `name` is the original display name and is deliberately allowed to differ
+  // from the stored file: a same-name copy is stored as `stem (1).ext`. It must
+  // still be a single segment, because a path here would make the label lie
+  // about what the material is.
+  if (name.includes('\0') || /[\\/]/.test(name)) return null
 
   const source = typeof material.source === 'string' && MATERIAL_SOURCES.has(material.source as TaskMaterialSource)
     ? material.source as TaskMaterialSource
@@ -1082,4 +1163,299 @@ export function moveTask(id: unknown, targetRoot: unknown): TaskMutation {
   }
   writeTaskMirror(next)
   return { ok: true, task: taskView(next) }
+}
+
+interface LegacyScanFile {
+  absolute: string
+  name: string
+  size: number
+}
+
+interface LegacyScan {
+  files: LegacyScanFile[]
+  skipped: number
+  truncated: number
+  bytes: number
+}
+
+/** ENOENT / ENOTDIR mean "gone"; anything else means "we were not allowed to look". */
+function legacySourceState(directory: string): 'ok' | 'missing' | 'unreadable' {
+  try {
+    return fs.statSync(directory).isDirectory() ? 'ok' : 'missing'
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code
+    return code === 'ENOENT' || code === 'ENOTDIR' ? 'missing' : 'unreadable'
+  }
+}
+
+/**
+ * Walk a folder without ever leaving it: hidden entries are skipped, symlinks
+ * are never followed (they are counted as skipped, not recursed into), and both
+ * caps are applied before a file is opened. Entries are sorted by name so a
+ * retried import produces the same material order and the same stored names.
+ */
+function scanLegacyFolder(directory: string): LegacyScan {
+  const files: LegacyScanFile[] = []
+  let skipped = 0
+  let truncated = 0
+  let bytes = 0
+
+  const walk = (dir: string, isRoot: boolean): void => {
+    let entries: fs.Dirent[]
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true })
+    } catch (err) {
+      // A nested folder we cannot read costs its contents, not the import; the
+      // root failing means there is nothing to import at all.
+      if (isRoot) throw err
+      skipped += 1
+      return
+    }
+    entries.sort((a, b) => a.name.localeCompare(b.name))
+    for (const entry of entries) {
+      if (entry.name.startsWith('.')) {
+        skipped += 1
+        continue
+      }
+      const absolute = path.join(dir, entry.name)
+      let stat: fs.Stats
+      try {
+        stat = fs.lstatSync(absolute)
+      } catch {
+        skipped += 1
+        continue
+      }
+      if (stat.isSymbolicLink()) {
+        skipped += 1
+        continue
+      }
+      if (stat.isDirectory()) {
+        walk(absolute, false)
+        continue
+      }
+      if (!stat.isFile()) {
+        skipped += 1
+        continue
+      }
+      if (files.length >= MAX_LEGACY_IMPORT_FILES || bytes + stat.size > MAX_LEGACY_IMPORT_BYTES) {
+        truncated += 1
+        continue
+      }
+      files.push({ absolute, name: entry.name, size: stat.size })
+      bytes += stat.size
+    }
+  }
+
+  walk(directory, true)
+  return { files, skipped, truncated, bytes }
+}
+
+function emptyInspection(status: LegacyFolderStatus): LegacyFolderInspection {
+  return { status, files: 0, bytes: 0, skipped: 0, truncated: 0 }
+}
+
+export function inspectLegacyFolder(directory: unknown): LegacyFolderInspection {
+  const raw = typeof directory === 'string' ? directory.trim() : ''
+  if (!raw || !path.isAbsolute(raw)) return emptyInspection('missing')
+  const source = path.resolve(raw)
+  const state = legacySourceState(source)
+  if (state !== 'ok') return emptyInspection(state)
+
+  let scan: LegacyScan
+  try {
+    scan = scanLegacyFolder(source)
+  } catch (err) {
+    log.warn(`Could not read legacy folder ${source}:`, err)
+    return emptyInspection('unreadable')
+  }
+  if (scan.files.length === 0) {
+    return {
+      status: scan.truncated > 0 ? 'too_large' : 'empty',
+      files: 0,
+      bytes: 0,
+      skipped: scan.skipped,
+      truncated: scan.truncated,
+    }
+  }
+  return {
+    status: 'ok',
+    files: scan.files.length,
+    bytes: scan.bytes,
+    skipped: scan.skipped,
+    truncated: scan.truncated,
+  }
+}
+
+function normalizeSourcePath(value: string): string {
+  const resolved = path.resolve(value)
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved
+}
+
+/** A live task that already imported this exact folder, if there is one. */
+function findImportedTask(source: string): {
+  task: TaskRecord
+  counts: LegacyImportCounts & { source: string }
+} | null {
+  const key = normalizeSourcePath(source)
+  const tasks = readTaskStore().tasks.slice().sort((a, b) => b.updatedAt - a.updatedAt)
+  for (const task of tasks) {
+    // Archived work does not block a fresh import: the user may want the folder
+    // back in the active task list.
+    if (task.status === 'archived') continue
+    for (const event of task.history) {
+      if (event.kind !== 'imported_folder') continue
+      const parsed = parseLegacyImportDetail(event.detail)
+      if (parsed && normalizeSourcePath(parsed.source) === key) return { task, counts: parsed }
+    }
+  }
+  return null
+}
+
+/**
+ * Undo a half-made import: the copies this call wrote, the folder it created,
+ * and the record `createTask` wrote. Best effort on a store that already
+ * refused to write, but never leaves copied files behind a failed task.
+ */
+function discardImportedTask(record: TaskRecord, copiedRelPaths: readonly string[]): void {
+  for (const relPath of copiedRelPaths) {
+    try { fs.rmSync(path.join(record.directory, relPath), { force: true }) } catch { /* best effort */ }
+  }
+  try { fs.rmSync(record.directory, { recursive: true, force: true }) } catch { /* best effort */ }
+  try {
+    const store = readTaskStore()
+    const tasks = store.tasks.filter(task => task.id !== record.id)
+    if (tasks.length !== store.tasks.length) writeTaskStore({ tasks })
+  } catch (err) {
+    log.warn(`Could not remove the failed import ${record.id} from tasks.json:`, err)
+  }
+}
+
+/**
+ * Import a legacy department folder as a task.
+ *
+ * Copy, never move: the source is only ever read, so the user's folder keeps
+ * every file, timestamp and attribute. The task is created first by the same
+ * `createTask` every other path uses; the materials, department and history
+ * rows are then committed in one store write. If that write fails, the copies
+ * and the task are removed together — a task that silently asserts "these
+ * files are here" when they are not is worse than a failed import.
+ *
+ * Idempotence: a live task whose history already names this exact source is
+ * reopened, so repeated clicks cannot produce duplicate task folders.
+ */
+export function importLegacyFolder(input: LegacyFolderImportInput): LegacyFolderImportResult {
+  const raw = nonEmptyString(input?.directory)
+  if (!raw || !path.isAbsolute(raw)) return failure('invalid_directory', 'A legacy folder path is required')
+  const source = path.resolve(raw)
+
+  const departmentId = nonEmptyString(input?.departmentId)
+  if (!departmentId) return failure('invalid_department', 'A department is required')
+  if (departmentId.length > 200) return failure('invalid_department', 'Unknown department')
+
+  const existing = findImportedTask(source)
+  if (existing) {
+    return {
+      ok: true,
+      task: taskView(existing.task),
+      reused: true,
+      filesCopied: existing.counts.files,
+      filesSkipped: existing.counts.skipped,
+      filesTruncated: existing.counts.truncated,
+    }
+  }
+
+  const state = legacySourceState(source)
+  if (state !== 'ok') {
+    return failure(state, state === 'missing' ? 'That folder no longer exists' : 'That folder cannot be read')
+  }
+
+  let scan: LegacyScan
+  try {
+    scan = scanLegacyFolder(source)
+  } catch (err) {
+    log.warn(`Could not read legacy folder ${source}:`, err)
+    return failure('unreadable', 'That folder cannot be read')
+  }
+  if (scan.files.length === 0) {
+    return scan.truncated > 0
+      ? failure('too_large', 'The folder is larger than an import can copy')
+      : failure('empty', 'That folder has no files to import')
+  }
+
+  const title = (path.basename(source).trim() || 'Imported folder').slice(0, 200)
+  const created = createTask({ title })
+  if (!created.ok) return created
+
+  const materialsDir = path.join(created.task.directory, 'materials')
+  const usedNames = new Set<string>()
+  const added: TaskMaterial[] = []
+  const copiedRelPaths: string[] = []
+  let skipped = scan.skipped
+
+  for (const file of scan.files) {
+    const storedName = uniqueFileName(file.name, usedNames)
+    usedNames.add(storedName)
+    const dest = path.join(materialsDir, storedName)
+    try {
+      fs.copyFileSync(file.absolute, dest)
+      const stat = fs.statSync(dest)
+      const material: TaskMaterial = {
+        id: `mat-${randomUUID()}`,
+        name: file.name,
+        relPath: `materials/${storedName}`,
+        size: stat.size,
+        addedAt: Date.now(),
+        source: 'import',
+        originPath: file.absolute,
+      }
+      added.push(material)
+      copiedRelPaths.push(material.relPath)
+    } catch (err) {
+      log.warn(`Could not copy ${file.absolute} into ${created.task.directory}:`, err)
+      skipped += 1
+      try { fs.rmSync(dest, { force: true }) } catch { /* best effort */ }
+    }
+  }
+
+  if (added.length === 0) {
+    discardImportedTask(created.task, copiedRelPaths)
+    return failure('unreadable', 'No file in that folder could be copied')
+  }
+
+  const store = readTaskStore()
+  const current = store.tasks.find(task => task.id === created.task.id)
+  if (!current) {
+    discardImportedTask(created.task, copiedRelPaths)
+    return failure('write_failed', 'The task could not be saved')
+  }
+
+  let next: TaskRecord = {
+    ...current,
+    materials: added,
+    departmentId,
+    routedBy: 'user',
+  }
+  next = appendEvent(next, 'routed', departmentId)
+  next = appendEvent(next, 'imported_folder', legacyImportDetail(source, {
+    files: added.length,
+    skipped,
+    truncated: scan.truncated,
+  }))
+
+  replaceTask(store, next)
+  if (!writeTaskStore(store)) {
+    discardImportedTask(current, copiedRelPaths)
+    return failure('write_failed', 'The task could not be saved')
+  }
+  writeTaskMirror(next)
+
+  log.info(`Imported ${added.length} file(s) from ${source} as task ${next.id}`)
+  return {
+    ok: true,
+    task: taskView(next),
+    reused: false,
+    filesCopied: added.length,
+    filesSkipped: skipped,
+    filesTruncated: scan.truncated,
+  }
 }

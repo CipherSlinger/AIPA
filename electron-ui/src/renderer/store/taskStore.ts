@@ -6,6 +6,8 @@
 // a directory with its own materials. The names deliberately do not overlap.
 import { create } from 'zustand'
 import type {
+  LegacyFolderImportData,
+  LegacyFolderInspectionData,
   TaskMaterialImportData,
   TaskMutationData,
   TaskRecordData,
@@ -36,6 +38,10 @@ interface TaskState {
   routeTask: (id: string, departmentId: string | null) => Promise<TaskMutationData>
   /** Save an automation run's output as a task; a second save reopens it. */
   saveAutomationRun: (input: TaskSaveAutomationRunData) => Promise<TaskSaveAutomationRunResultData>
+  /** Read-only preflight for importing a legacy department folder. */
+  inspectLegacyFolder: (directory: string) => Promise<LegacyFolderInspectionData>
+  /** Copy a legacy folder into a new task; a live task for the source is reused. */
+  importLegacyFolder: (directory: string, departmentId: string) => Promise<LegacyFolderImportData>
 }
 
 let loadSeq = 0
@@ -208,6 +214,31 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   saveAutomationRun: async (input) => {
     try {
       const result = await window.electronAPI.tasksSaveAutomationRun(input)
+      if (result.ok && result.task) {
+        set(state => ({
+          tasks: replaceTask(state.tasks, result.task!),
+          selectedTaskId: result.task!.id,
+        }))
+      }
+      return result
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  },
+
+  inspectLegacyFolder: async (directory) => {
+    try {
+      return await window.electronAPI.tasksInspectLegacyFolder(directory)
+    } catch {
+      // A failed call means the folder could not be read, which is exactly the
+      // disabled reason the note should show — not a silent enabled button.
+      return { status: 'unreadable', files: 0, bytes: 0, skipped: 0, truncated: 0 }
+    }
+  },
+
+  importLegacyFolder: async (directory, departmentId) => {
+    try {
+      const result = await window.electronAPI.tasksImportLegacyFolder({ directory, departmentId })
       if (result.ok && result.task) {
         set(state => ({
           tasks: replaceTask(state.tasks, result.task!),

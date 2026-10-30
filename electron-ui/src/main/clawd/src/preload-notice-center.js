@@ -7,6 +7,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("noticeCenterAPI", {
   load: () => ipcRenderer.invoke("notice-center:load"),
   action: (action) => ipcRenderer.invoke("notice-center:action", action),
+  copy: (id) => ipcRenderer.invoke("notice-center:copy", id),
   onUpdate: (cb) => ipcRenderer.on("notice-center:update", (_event, payload) => cb(payload)),
   // `options.markRead === false` is the click-away margin: it closes the panel
   // without claiming the user read the list.

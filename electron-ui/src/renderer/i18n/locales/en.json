@@ -5486,6 +5486,25 @@
     "history": "History",
     "historyEmpty": "No activity yet.",
     "historyRun": "Saved from an automation run ({{when}})",
+    "importLegacy": {
+      "action": "Import folder as a task",
+      "checking": "Checking folder…",
+      "ready": "{{files}} files ready to copy",
+      "readyTruncated": "{{files}} files ready; larger files will be left in the original folder",
+      "success": "Imported “{{title}}” with {{files}} files",
+      "reused": "“{{title}}” was already imported — opening it",
+      "failed": "Could not import: {{reason}}",
+      "history": "Imported from {{path}} — {{files}} copied, {{skipped}} skipped, {{truncated}} truncated",
+      "reason": {
+        "missing": "The legacy folder no longer exists.",
+        "empty": "The legacy folder has no files to import.",
+        "unreadable": "The legacy folder cannot be read.",
+        "tooLarge": "The legacy folder is too large to import.",
+        "storeFailed": "The task could not be saved; nothing was left behind.",
+        "invalid": "The legacy folder path is not usable.",
+        "unknown": "The legacy folder cannot be imported."
+      }
+    },
     "event": {
       "created": "Task created",
       "material_added": "Material added",
@@ -5498,7 +5517,8 @@
       "routed": "Department assigned",
       "reassigned": "Department changed",
       "session_started": "Conversation started",
-      "from_automation": "Automation output saved"
+      "from_automation": "Automation output saved",
+      "imported_folder": "Imported from a legacy folder"
     },
     "error": {
       "load": "Could not read tasks.",

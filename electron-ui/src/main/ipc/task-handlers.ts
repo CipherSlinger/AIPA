@@ -23,6 +23,8 @@ import {
   createTask,
   deleteTask,
   getTask,
+  importLegacyFolder,
+  inspectLegacyFolder,
   linkTaskSession,
   listTasks,
   moveTask,
@@ -146,6 +148,28 @@ export function registerTaskHandlers(send: Send): void {
       sessionId: payload.sessionId,
       purpose: payload.purpose,
       personaId: payload.personaId,
+    })
+    if (result.ok) changed()
+    return result
+  })
+
+  // Migration: a legacy department folder can become a task. The inspection is
+  // read-only and lets the department/archive note disable its button with the
+  // actual reason; the import copies (never moves) into a new task's materials.
+  safeHandle('tasks:inspectLegacyFolder', (_event, directory: unknown) => {
+    try {
+      return inspectLegacyFolder(directory)
+    } catch (err) {
+      log.error('tasks:inspectLegacyFolder failed:', String(err))
+      return { status: 'unreadable', files: 0, bytes: 0, skipped: 0, truncated: 0 }
+    }
+  })
+
+  safeHandle('tasks:importLegacyFolder', (_event, input: unknown) => {
+    const payload = input && typeof input === 'object' ? input as Record<string, unknown> : {}
+    const result = importLegacyFolder({
+      directory: payload.directory,
+      departmentId: payload.departmentId,
     })
     if (result.ok) changed()
     return result

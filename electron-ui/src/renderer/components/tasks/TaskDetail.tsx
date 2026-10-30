@@ -46,6 +46,7 @@ import {
   formatBytes,
   formatTaskTime,
   parseAutomationRunDetail,
+  parseImportedFolderDetail,
   statusColor,
   statusLabelKey,
 } from './taskUi'
@@ -338,6 +339,20 @@ export default function TaskDetail({ task, onBack, onRequestDelete }: TaskDetail
       const run = parseAutomationRunDetail(event.detail)
       return run
         ? t('tasks.historyRun', { when: formatTaskTime(run.startedAt, resolvedLocale) })
+        : event.detail
+    }
+    if (event.kind === 'imported_folder') {
+      // Main writes the source path and the three counts; the line is localized
+      // here so the timeline reads in the user's language without duplicating
+      // the path itself.
+      const imported = parseImportedFolderDetail(event.detail)
+      return imported
+        ? t('tasks.importLegacy.history', {
+          path: imported.source,
+          files: imported.files,
+          skipped: imported.skipped,
+          truncated: imported.truncated,
+        })
         : event.detail
     }
     return event.detail

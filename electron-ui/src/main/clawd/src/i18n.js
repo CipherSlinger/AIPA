@@ -118,6 +118,28 @@ const i18n = {
     noticeBootPill: "ONLINE",
     noticeBootBody: "AIPA is online and standing by.",
     noticeDonePill: "READY",
+    // Notice-log detail/actions. The log window loads this table directly (see
+    // the dual export at the bottom) so its new strings live here with the
+    // rest of the pet's copy instead of a second table in the page.
+    noticeCenterOpen: "Open",
+    noticeCenterCopy: "Copy",
+    noticeCenterSaveTask: "Save as task",
+    noticeCenterDismiss: "Dismiss",
+    noticeCenterOpenTasks: "Open Tasks",
+    noticeCenterExpand: "Expand notice",
+    noticeCenterCollapse: "Collapse notice",
+    noticeCenterActions: "Notice actions",
+    noticeCenterKind: "KIND",
+    noticeCenterTime: "TIME",
+    noticeCenterCopied: "Copied",
+    noticeCenterCopyFailed: "Copy failed",
+    noticeCenterTaskCreated: "Task created",
+    noticeCenterTaskFailed: "Could not save as a task",
+    noticeCenterSaveErrorEmpty: "This notice has no text to save",
+    noticeCenterSaveErrorFolder: "The task folder is missing",
+    noticeCenterSaveErrorWrite: "The task could not be written to disk",
+    noticeCenterSaveErrorNotFound: "This notice no longer exists",
+    noticeCenterSaveErrorInvalid: "The task could not be created",
     // Live activity strip: what the agent is doing right now. One card,
     // refreshed in place while a turn runs.
     activityPill: "LIVE",
@@ -308,6 +330,25 @@ const i18n = {
     noticeBootPill: "在线",
     noticeBootBody: "AIPA 已上线，随时待命。",
     noticeDonePill: "完成",
+    noticeCenterOpen: "打开",
+    noticeCenterCopy: "复制",
+    noticeCenterSaveTask: "存为任务",
+    noticeCenterDismiss: "忽略",
+    noticeCenterOpenTasks: "打开任务",
+    noticeCenterExpand: "展开通知",
+    noticeCenterCollapse: "收起通知",
+    noticeCenterActions: "通知操作",
+    noticeCenterKind: "类型",
+    noticeCenterTime: "时间",
+    noticeCenterCopied: "已复制",
+    noticeCenterCopyFailed: "复制失败",
+    noticeCenterTaskCreated: "已创建任务",
+    noticeCenterTaskFailed: "无法存为任务",
+    noticeCenterSaveErrorEmpty: "此通知没有可保存的内容",
+    noticeCenterSaveErrorFolder: "任务文件夹不存在",
+    noticeCenterSaveErrorWrite: "任务无法写入磁盘",
+    noticeCenterSaveErrorNotFound: "此通知已不存在",
+    noticeCenterSaveErrorInvalid: "无法创建任务",
     activityPill: "实时",
     activityThinkingTitle: "Agent 工作中",
     activityThinkingBody: "正在思考你的请求…",
@@ -483,6 +524,25 @@ const i18n = {
     noticeBootPill: "온라인",
     noticeBootBody: "AIPA가 온라인 상태입니다.",
     noticeDonePill: "완료",
+    noticeCenterOpen: "열기",
+    noticeCenterCopy: "복사",
+    noticeCenterSaveTask: "작업으로 저장",
+    noticeCenterDismiss: "무시",
+    noticeCenterOpenTasks: "작업 열기",
+    noticeCenterExpand: "알림 펼치기",
+    noticeCenterCollapse: "알림 접기",
+    noticeCenterActions: "알림 작업",
+    noticeCenterKind: "종류",
+    noticeCenterTime: "시간",
+    noticeCenterCopied: "복사됨",
+    noticeCenterCopyFailed: "복사 실패",
+    noticeCenterTaskCreated: "작업 생성됨",
+    noticeCenterTaskFailed: "작업으로 저장할 수 없습니다",
+    noticeCenterSaveErrorEmpty: "저장할 내용이 없습니다",
+    noticeCenterSaveErrorFolder: "작업 폴더가 없습니다",
+    noticeCenterSaveErrorWrite: "작업을 디스크에 쓸 수 없습니다",
+    noticeCenterSaveErrorNotFound: "이 알림은 더 이상 존재하지 않습니다",
+    noticeCenterSaveErrorInvalid: "작업을 만들 수 없습니다",
     activityPill: "실시간",
     activityThinkingTitle: "에이전트 작업 중",
     activityThinkingBody: "요청을 처리하는 중…",
@@ -567,8 +627,15 @@ function createTranslator(getLang) {
   };
 }
 
-module.exports = {
-  i18n,
-  SUPPORTED_LANGS,
-  createTranslator,
-};
+// The main process requires this file; the pet's notice log loads it as a
+// plain script (it has no Node integration) so both surfaces share one table.
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    i18n,
+    SUPPORTED_LANGS,
+    createTranslator,
+  };
+}
+if (typeof window !== "undefined") {
+  window.clawdI18n = { i18n, SUPPORTED_LANGS, createTranslator };
+}
