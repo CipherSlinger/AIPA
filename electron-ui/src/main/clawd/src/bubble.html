@@ -347,10 +347,475 @@ body { padding: 6px; }
 
 .btn-suggestion:active:not(:disabled) { transform: scale(0.98); }
 .btn-suggestion:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── HUD layer (opt-in) ────────────────────────────────────────────────────
+   New DOM stays inert unless the SAO skin is active: the eyebrow row and the
+   reveal sweep are display:none in the default clawd theme, so they add no
+   height, no gap and no paint. */
+.eyebrow-row {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: -2px;
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--hud-mono, "Cascadia Code", "Consolas", "SFMono-Regular", monospace);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--hud-accent, #3fe0c8);
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.eyebrow::before {
+  content: "";
+  flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  transform: rotate(45deg);
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+.hud-sweep { display: none; }
+
+/* ── SAO HUD skin ──────────────────────────────────────────────────────────
+   Opt-in only: every selector below is anchored on :root[data-theme="sao"],
+   so the default skin cannot be reached and its rendering is unchanged. */
+:root[data-theme="sao"] {
+  color-scheme: dark;
+  --hud-mono: "Cascadia Code", "Consolas", "SFMono-Regular", monospace;
+  --hud-accent: #3fe0c8;
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --card-bg: rgba(8, 14, 20, 0.92);
+  --card-border: rgba(63, 224, 200, 0.28);
+  --card-shadow: none;
+  --card-inset: none;
+  --text-primary: #e8f6f4;
+  --header-color: rgba(232, 246, 244, 0.62);
+  --cmd-bg: rgba(6, 12, 16, 0.72);
+  --cmd-border: rgba(63, 224, 200, 0.16);
+  --cmd-color: rgba(232, 246, 244, 0.62);
+  --cmd-shadow: none;
+  --scroll-thumb: rgba(63, 224, 200, 0.3);
+  --scroll-thumb-hover: rgba(63, 224, 200, 0.55);
+  --deny-bg: transparent;
+  --deny-color: rgba(232, 246, 244, 0.75);
+  --deny-border: rgba(63, 224, 200, 0.34);
+  --deny-hover-bg: rgba(255, 93, 93, 0.1);
+  --deny-hover-border: rgba(255, 93, 93, 0.8);
+  --sug-bg: rgba(63, 224, 200, 0.03);
+  --sug-color: rgba(232, 246, 244, 0.55);
+  --sug-border: rgba(63, 224, 200, 0.14);
+  --sug-hover-bg: rgba(63, 224, 200, 0.1);
+  --sug-hover-border: rgba(63, 224, 200, 0.45);
+  --sug-hover-color: #e8f6f4;
+  --sug-arrow: #3fe0c8;
+}
+
+:root[data-theme="sao"] .card {
+  border-radius: 0;
+  padding: 14px 18px 16px;
+  background-color: var(--card-bg);
+  background-image:
+    linear-gradient(rgba(63, 224, 200, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(63, 224, 200, 0.035) 1px, transparent 1px),
+    repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.13) 0 1px, transparent 1px 4px),
+    linear-gradient(180deg, rgba(8, 14, 20, 0.94), rgba(4, 10, 13, 0.97));
+  background-size: 100% 22px, 22px 100%, 100% 100%, 100% 100%;
+  background-repeat: repeat, repeat, repeat, no-repeat;
+  box-shadow: none;
+  clip-path: polygon(
+    0 10px, 10px 0,
+    calc(100% - 18px) 0, 100% 18px,
+    100% calc(100% - 10px), calc(100% - 10px) 100%,
+    18px 100%, 0 calc(100% - 18px)
+  );
+  filter: drop-shadow(0 10px 26px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 10px rgba(63, 224, 200, 0.12));
+  text-shadow: 0 0 12px rgba(63, 224, 200, 0.1);
+}
+
+/* Corner ticks — painted under the content, so they never fight with text. */
+:root[data-theme="sao"] .card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.42;
+  background-image:
+    linear-gradient(var(--hud-accent), var(--hud-accent)),
+    linear-gradient(var(--hud-accent), var(--hud-accent)),
+    linear-gradient(var(--hud-accent), var(--hud-accent)),
+    linear-gradient(var(--hud-accent), var(--hud-accent)),
+    linear-gradient(var(--hud-accent), var(--hud-accent)),
+    linear-gradient(var(--hud-accent), var(--hud-accent)),
+    linear-gradient(var(--hud-accent), var(--hud-accent)),
+    linear-gradient(var(--hud-accent), var(--hud-accent));
+  background-position:
+    left 14px top 8px, left 14px top 8px,
+    right 14px top 8px, right 14px top 8px,
+    left 14px bottom 8px, left 14px bottom 8px,
+    right 14px bottom 8px, right 14px bottom 8px;
+  background-size:
+    18px 1px, 1px 18px,
+    18px 1px, 1px 18px,
+    18px 1px, 1px 18px,
+    18px 1px, 1px 18px;
+  background-repeat: no-repeat;
+}
+
+/* Travelling scanline. */
+:root[data-theme="sao"] .card::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 26%;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(63, 224, 200, 0.09), transparent);
+  animation: hudScan 6s linear infinite;
+}
+@keyframes hudScan {
+  0%   { transform: translateY(-130%); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(420%); opacity: 0; }
+}
+
+/* Kind accents — same vocabulary as the HUD card. */
+:root[data-theme="sao"] .card[data-kind="system"]        { --hud-accent: #3fe0c8; }
+:root[data-theme="sao"] .card[data-kind="info"]          { --hud-accent: #58a6ff; }
+:root[data-theme="sao"] .card[data-kind="success"]       { --hud-accent: #57d98a; }
+:root[data-theme="sao"] .card[data-kind="warning"]       { --hud-accent: #f0b429; }
+:root[data-theme="sao"] .card[data-kind="error"]         { --hud-accent: #ff5d5d; }
+:root[data-theme="sao"] .card[data-kind="quest"]         { --hud-accent: #b98cff; }
+:root[data-theme="sao"] .card[data-kind="approval"]      { --hud-accent: #58a6ff; }
+:root[data-theme="sao"] .card[data-kind="clarification"] { --hud-accent: #3fe0c8; }
+
+:root[data-theme="sao"] .eyebrow-row { display: flex; }
+:root[data-theme="sao"] .eyebrow-row.empty { display: none; }
+
+:root[data-theme="sao"] .header { gap: 10px; }
+:root[data-theme="sao"] .header-title {
+  font-family: var(--hud-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--header-color);
+}
+
+/* Tool pill → accent chip. */
+:root[data-theme="sao"] .tool-pill {
+  --pill-accent: var(--hud-accent);
+  padding: 2px 8px 2px 6px;
+  border-radius: 1px;
+  border: 1px solid rgba(63, 224, 200, 0.4);
+  border-color: color-mix(in srgb, var(--pill-accent) 45%, transparent);
+  background: rgba(63, 224, 200, 0.08);
+  background: color-mix(in srgb, var(--pill-accent) 12%, transparent);
+  color: var(--pill-accent);
+  font-family: var(--hud-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  box-shadow: 0 0 12px rgba(63, 224, 200, 0.1);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--pill-accent) 16%, transparent);
+  text-shadow: none;
+}
+:root[data-theme="sao"] .tool-pill::before {
+  content: "▸";
+  margin-right: 5px;
+  font-size: 8px;
+  opacity: 0.9;
+}
+:root[data-theme="sao"] .tool-pill[data-tool="Bash"],
+:root[data-theme="sao"] .tool-pill[data-tool="Shell"] { --pill-accent: #f0b429; }
+:root[data-theme="sao"] .tool-pill[data-tool="Edit"],
+:root[data-theme="sao"] .tool-pill[data-tool="Glob"],
+:root[data-theme="sao"] .tool-pill[data-tool="Grep"] { --pill-accent: #58a6ff; }
+:root[data-theme="sao"] .tool-pill[data-tool="Write"],
+:root[data-theme="sao"] .tool-pill[data-tool="Agent"] { --pill-accent: #b98cff; }
+:root[data-theme="sao"] .tool-pill[data-tool="Read"] { --pill-accent: #57d98a; }
+:root[data-theme="sao"] .tool-pill[data-tool="CodexExec"] { --pill-accent: #3fe0c8; }
+
+/* Session tag + command block → dark inset panels with a left accent bar. */
+:root[data-theme="sao"] .session-tag {
+  width: 100%;
+  padding: 3px 8px;
+  margin-top: 0;
+  border: 1px solid rgba(63, 224, 200, 0.14);
+  border-left: 2px solid rgba(63, 224, 200, 0.5);
+  border-radius: 1px;
+  background: rgba(63, 224, 200, 0.045);
+  font-family: var(--hud-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: rgba(232, 246, 244, 0.62);
+  opacity: 1;
+  box-sizing: border-box;
+}
+
+:root[data-theme="sao"] .command-block {
+  padding: 10px 12px;
+  border: 1px solid rgba(63, 224, 200, 0.16);
+  border-left: 2px solid rgba(63, 224, 200, 0.5);
+  border-radius: 1px;
+  background: rgba(6, 12, 16, 0.78);
+  box-shadow: inset 0 0 18px rgba(63, 224, 200, 0.04);
+  font-family: var(--hud-mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: rgba(232, 246, 244, 0.78);
+  max-height: 92px;
+  text-shadow: none;
+}
+:root[data-theme="sao"] .command-block::-webkit-scrollbar { width: 4px; }
+:root[data-theme="sao"] .command-block::-webkit-scrollbar-thumb {
+  background: rgba(63, 224, 200, 0.3);
+  border-radius: 0;
+}
+:root[data-theme="sao"] .command-block::-webkit-scrollbar-thumb:hover {
+  background: rgba(63, 224, 200, 0.55);
+}
+
+/* Elicitation form. */
+:root[data-theme="sao"] .question-card {
+  padding: 10px 12px;
+  border: 1px solid rgba(63, 224, 200, 0.16);
+  border-left: 2px solid rgba(63, 224, 200, 0.45);
+  border-radius: 1px;
+  background: rgba(6, 12, 16, 0.72);
+  box-shadow: inset 0 0 16px rgba(63, 224, 200, 0.035);
+}
+:root[data-theme="sao"] .question-header {
+  font-family: var(--hud-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: #3fe0c8;
+  opacity: 1;
+}
+:root[data-theme="sao"] .question-text {
+  font-size: 12.5px;
+  color: #e8f6f4;
+}
+:root[data-theme="sao"] .question-hint {
+  font-family: var(--hud-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(232, 246, 244, 0.5);
+  opacity: 1;
+}
+:root[data-theme="sao"] .option-item {
+  padding: 7px 9px;
+  border: 1px solid rgba(63, 224, 200, 0.14);
+  border-radius: 1px;
+  background: rgba(63, 224, 200, 0.035);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+:root[data-theme="sao"] .option-item:hover {
+  background: rgba(63, 224, 200, 0.09);
+  border-color: rgba(63, 224, 200, 0.4);
+}
+:root[data-theme="sao"] .option-item:has(input:checked) {
+  background: rgba(63, 224, 200, 0.12);
+  border-color: rgba(63, 224, 200, 0.55);
+  box-shadow: inset 0 0 12px rgba(63, 224, 200, 0.08);
+}
+:root[data-theme="sao"] .option-item:has(input:disabled) { opacity: 0.55; }
+:root[data-theme="sao"] .option-item-label {
+  font-family: var(--hud-mono);
+  font-size: 11.5px;
+  color: #e8f6f4;
+}
+:root[data-theme="sao"] .option-item-description {
+  font-size: 10.5px;
+  color: rgba(232, 246, 244, 0.55);
+}
+
+/* Custom controls — no native white radio/checkbox anywhere. */
+:root[data-theme="sao"] .option-item input {
+  appearance: none;
+  -webkit-appearance: none;
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+  margin: 2px 0 0;
+  padding: 0;
+  position: relative;
+  border: 1px solid rgba(63, 224, 200, 0.45);
+  border-radius: 1px;
+  background: rgba(8, 14, 20, 0.72);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+:root[data-theme="sao"] .option-item input[type="radio"] { border-radius: 50%; }
+:root[data-theme="sao"] .option-item input:hover:not(:disabled) {
+  border-color: rgba(63, 224, 200, 0.8);
+}
+:root[data-theme="sao"] .option-item input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(63, 224, 200, 0.25), 0 0 10px rgba(63, 224, 200, 0.35);
+}
+:root[data-theme="sao"] .option-item input:checked {
+  border-color: #3fe0c8;
+  background: rgba(63, 224, 200, 0.16);
+  box-shadow: 0 0 10px rgba(63, 224, 200, 0.4);
+}
+:root[data-theme="sao"] .option-item input[type="radio"]:checked::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: #3fe0c8;
+  box-shadow: 0 0 6px rgba(63, 224, 200, 0.8);
+}
+:root[data-theme="sao"] .option-item input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 0;
+  width: 4px;
+  height: 8px;
+  border: solid #3fe0c8;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Buttons. Text, ids, disabled states and handlers are untouched. */
+:root[data-theme="sao"] .actions { gap: 6px; }
+:root[data-theme="sao"] .btn {
+  border-radius: 0;
+  padding: 8px 0;
+  font-family: var(--hud-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-shadow: none;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease,
+              box-shadow 0.18s ease, filter 0.18s ease, transform 0.12s ease;
+}
+:root[data-theme="sao"] .btn:active:not(:disabled) { transform: scale(0.97); }
+
+:root[data-theme="sao"] .btn-allow {
+  background: #3fe0c8;
+  color: #04120f;
+  border: 1px solid rgba(63, 224, 200, 0.9);
+  clip-path: polygon(
+    0 0, calc(100% - 9px) 0, 100% 9px,
+    100% 100%, 9px 100%, 0 calc(100% - 9px)
+  );
+  filter: drop-shadow(0 0 6px rgba(63, 224, 200, 0.28));
+}
+:root[data-theme="sao"] .btn-allow:hover:not(:disabled) {
+  background: #6bf0dc;
+  color: #04120f;
+  filter: drop-shadow(0 0 10px rgba(63, 224, 200, 0.5));
+}
+:root[data-theme="sao"] .btn-allow:disabled {
+  background: rgba(63, 224, 200, 0.28);
+  color: rgba(4, 18, 15, 0.75);
+  border-color: rgba(63, 224, 200, 0.22);
+  filter: none;
+}
+
+:root[data-theme="sao"] .btn-deny {
+  background: transparent;
+  color: rgba(232, 246, 244, 0.75);
+  border: 1px solid rgba(63, 224, 200, 0.34);
+  clip-path: polygon(
+    9px 0, 100% 0, 100% calc(100% - 9px),
+    calc(100% - 9px) 100%, 0 100%, 0 9px
+  );
+}
+:root[data-theme="sao"] .btn-deny:hover:not(:disabled) {
+  background: rgba(255, 93, 93, 0.1);
+  border-color: rgba(255, 93, 93, 0.8);
+  color: #ff5d5d;
+  filter: drop-shadow(0 0 8px rgba(255, 93, 93, 0.25));
+}
+
+:root[data-theme="sao"] .suggestions { gap: 5px; }
+:root[data-theme="sao"] .btn-suggestion {
+  padding: 7px 12px;
+  border: 1px solid rgba(63, 224, 200, 0.14);
+  border-radius: 1px;
+  background: rgba(63, 224, 200, 0.03);
+  font-family: var(--hud-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: rgba(232, 246, 244, 0.55);
+  text-transform: uppercase;
+  text-shadow: none;
+}
+:root[data-theme="sao"] .btn-suggestion::after {
+  content: "▸";
+  right: 12px;
+  color: #3fe0c8;
+}
+:root[data-theme="sao"] .btn-suggestion:hover:not(:disabled) {
+  background: rgba(63, 224, 200, 0.1);
+  border-color: rgba(63, 224, 200, 0.45);
+  color: #e8f6f4;
+  padding-right: 30px;
+}
+
+/* Reveal sweep — one pass per reveal, purely decorative. */
+:root[data-theme="sao"] .hud-sweep {
+  display: block;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 40%;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(63, 224, 200, 0.12),
+    rgba(232, 246, 244, 0.16),
+    rgba(63, 224, 200, 0.12),
+    transparent
+  );
+}
+:root[data-theme="sao"] .card.visible .hud-sweep {
+  animation: hudSweep 1.05s cubic-bezier(0.22, 1, 0.36, 1) 0.06s 1 both;
+}
+@keyframes hudSweep {
+  0%   { transform: translateX(0); opacity: 0; }
+  15%  { opacity: 1; }
+  75%  { opacity: 0.9; }
+  100% { transform: translateX(360%); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="sao"] .card.visible .hud-sweep,
+  :root[data-theme="sao"] .card::after { animation: none; }
+  :root[data-theme="sao"] .card {
+    transition: opacity 0.12s linear, transform 0.12s linear;
+  }
+  :root[data-theme="sao"] .btn,
+  :root[data-theme="sao"] .btn-suggestion,
+  :root[data-theme="sao"] .option-item { transition: none; }
+}
 </style>
 </head>
 <body>
 <div class="card" id="card">
+  <div class="eyebrow-row" id="eyebrowRow"></div>
+
   <div class="header">
     <span class="header-title">Permission Request</span>
     <span class="tool-pill" id="toolPill"></span>
@@ -367,6 +832,8 @@ body { padding: 6px; }
   </div>
   
   <div class="suggestions" id="suggestions"></div>
+
+  <div class="hud-sweep" id="hudSweep" aria-hidden="true"></div>
 </div>
 
 <script>
@@ -379,9 +846,38 @@ const btnDeny = document.getElementById("btnDeny");
 const suggestionsContainer = document.getElementById("suggestions");
 const headerTitle = document.querySelector(".header-title");
 const sessionTag = document.getElementById("sessionTag");
+const eyebrowRow = document.getElementById("eyebrowRow");
+const eyebrow = document.createElement("span");
+eyebrow.className = "eyebrow";
+eyebrow.id = "eyebrow";
+eyebrowRow.appendChild(eyebrow);
 let elicitationMode = false;
 let elicitationQuestions = [];
 let currentLang = "en";
+
+// Skin is opt-in: ?theme=sao on the URL, or data.theme on the payload. Anything
+// else keeps the original clawd card. Reading the URL once at load makes the
+// pre-reveal state (background, control colours) correct before `show` runs.
+const urlTheme = new URLSearchParams(location.search).get("theme") || "";
+
+function applyTheme(themeName) {
+  if (themeName === "sao") {
+    document.documentElement.dataset.theme = "sao";
+    card.dataset.theme = "sao";
+  } else {
+    delete document.documentElement.dataset.theme;
+    delete card.dataset.theme;
+  }
+}
+
+function setEyebrow(text, kind) {
+  eyebrow.textContent = text || "";
+  eyebrowRow.classList.toggle("empty", !text);
+  if (kind) card.dataset.kind = kind;
+  else delete card.dataset.kind;
+}
+
+applyTheme(urlTheme);
 
 function setSessionTag(data) {
   const parts = [];
@@ -422,6 +918,10 @@ const BUBBLE_STRINGS = {
     alwaysAllowRule: "Always allow `{rule}`",
     alwaysAllow: "Always allow",
     permissionRequest: "Permission Request",
+    eyebrowPermission: "AUTHORIZATION REQUEST",
+    eyebrowClarification: "CLARIFICATION",
+    eyebrowPlanReview: "PLAN REVIEW",
+    eyebrowCodex: "CODEX",
     allow: "Allow",
     deny: "Deny",
     alwaysAllowBlanket: "Always Allow (blanket)",
@@ -445,6 +945,10 @@ const BUBBLE_STRINGS = {
     alwaysAllowRule: "\u59CB\u7EC8\u5141\u8BB8 `{rule}`",
     alwaysAllow: "\u59CB\u7EC8\u5141\u8BB8",
     permissionRequest: "\u6743\u9650\u8BF7\u6C42",
+    eyebrowPermission: "\u6388\u6743\u8BF7\u6C42",
+    eyebrowClarification: "\u6F84\u6E05",
+    eyebrowPlanReview: "\u8BA1\u5212\u5BA1\u6279",
+    eyebrowCodex: "CODEX",
     allow: "\u6279\u51C6",
     deny: "\u62D2\u7EDD",
     alwaysAllowBlanket: "\u59CB\u7EC8\u5141\u8BB8\uFF08\u901A\u914D\uFF09",
@@ -468,6 +972,10 @@ const BUBBLE_STRINGS = {
     alwaysAllowRule: "\uD56D\uC0C1 \uD5C8\uC6A9 `{rule}`",
     alwaysAllow: "\uD56D\uC0C1 \uD5C8\uC6A9",
     permissionRequest: "\uAD8C\uD55C \uC694\uCCAD",
+    eyebrowPermission: "\uAD8C\uD55C \uC694\uCCAD",
+    eyebrowClarification: "\uD655\uC778 \uC694\uCCAD",
+    eyebrowPlanReview: "\uACC4\uD68D \uAC80\uD1A0",
+    eyebrowCodex: "CODEX",
     allow: "\uD5C8\uC6A9",
     deny: "\uAC70\uBD80",
     alwaysAllowBlanket: "\uD56D\uC0C1 \uD5C8\uC6A9 (\uC804\uCCB4)",
@@ -529,10 +1037,25 @@ function disableAll() {
 function revealCard() {
   card.classList.remove("hiding");
   card.classList.add("visible");
+  dedupeEyebrow();
   // 12 = 6px padding top + 6px padding bottom
   requestAnimationFrame(() => {
     window.bubbleAPI.reportHeight(card.offsetHeight + 12);
   });
+}
+
+/**
+ * The eyebrow names the kind and the header names the action; on plan review
+ * both read "PLAN REVIEW", which looks like a rendering bug. When they say the
+ * same thing the header wins — it is the larger, load-bearing line — and the
+ * eyebrow steps aside. Compared case- and whitespace-insensitively because the
+ * eyebrow is uppercased by CSS, not by its text.
+ */
+function dedupeEyebrow() {
+  const normalise = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
+  const same = normalise(eyebrow.textContent) !== "" &&
+    normalise(eyebrow.textContent) === normalise(headerTitle.textContent);
+  eyebrowRow.classList.toggle("empty", same || !eyebrow.textContent);
 }
 
 function resetBubbleContent() {
@@ -548,6 +1071,7 @@ function resetBubbleContent() {
   btnDeny.style.display = "";
   btnDeny.disabled = false;
   suggestionsContainer.innerHTML = "";
+  setEyebrow("");
 }
 
 function isQuestionAnswered(questionCard) {
@@ -655,6 +1179,8 @@ function renderElicitationForm(data) {
 
 function show(data) {
   resetBubbleContent();
+  const theme = (data && data.theme) || urlTheme || "clawd";
+  applyTheme(theme);
   currentLang = data.lang || "en";
   elicitationMode = data.isElicitation || false;
   setSessionTag(data);
@@ -668,6 +1194,7 @@ function show(data) {
   //      behavior (handleDecide special-cases this).
   if (data.isOpencode) {
     headerTitle.textContent = bubbleText(data.lang, "permissionRequest");
+    setEyebrow(bubbleText(data.lang, "eyebrowPermission"), "approval");
 
     const rawName = data.toolName || "unknown";
     const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
@@ -727,6 +1254,7 @@ function show(data) {
   if (elicitationMode) {
     // Elicitation mode — answer directly in the bubble, with terminal fallback.
     headerTitle.textContent = bubbleText(data.lang, "needsInput");
+    setEyebrow(bubbleText(data.lang, "eyebrowClarification"), "clarification");
     toolPill.style.display = "none";
     renderElicitationForm(data);
     btnAllow.textContent = bubbleText(data.lang, "submitAnswer");
@@ -738,6 +1266,7 @@ function show(data) {
   // Codex notify mode — informational bubble with Dismiss button only
   if (data.toolName === "CodexExec") {
     headerTitle.textContent = bubbleText(data.lang, "codexPermission");
+    setEyebrow(bubbleText(data.lang, "eyebrowCodex"), "system");
     toolPill.textContent = "CODEX";
     toolPill.setAttribute("data-tool", "CodexExec");
     toolPill.style.display = "";
@@ -756,6 +1285,10 @@ function show(data) {
   headerTitle.textContent = isPlanReview
     ? bubbleText(data.lang, "planReview")
     : bubbleText(data.lang, "permissionRequest");
+  setEyebrow(
+    bubbleText(data.lang, isPlanReview ? "eyebrowPlanReview" : "eyebrowPermission"),
+    isPlanReview ? "quest" : "approval"
+  );
   toolPill.style.display = isPlanReview ? "none" : "";
   btnDeny.style.display = isPlanReview ? "none" : "";
 

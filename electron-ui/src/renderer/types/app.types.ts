@@ -384,6 +384,7 @@ export interface AppPrefs {
   petBubbleTheme?: 'sao' | 'clawd' // pet bubble skin: HUD card vs plain card (default 'sao')
   petBootGreeting?: boolean     // pet says a line a few seconds after launch (default true)
   petTurnNotices?: boolean      // pet announces turns that finish while AIPA is in the background (default true)
+  petActivityStrip?: boolean    // pet shows a live "what the agent is doing" card while a turn runs (default true)
   dreamConsolidationEnabled?: boolean // background memory consolidation passes (default true)
 }
 

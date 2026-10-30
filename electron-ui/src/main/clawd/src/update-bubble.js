@@ -105,6 +105,11 @@ module.exports = function initUpdateBubble(ctx) {
   let activePayload = null;
   let resolveAction = null;
   let hideTimer = null;
+  // Stable identity of the card on screen and the promise handed to its
+  // caller. A payload carrying the same `key` is an in-place refresh: the
+  // window, the pending promise and the entrance transition are all reused.
+  let activeKey = null;
+  let activeHandle = null;
 
   function getPermissionStackHeight() {
     const pending = typeof ctx.getPendingPermissions === "function" ? ctx.getPendingPermissions() : [];
@@ -146,6 +151,8 @@ module.exports = function initUpdateBubble(ctx) {
     bubble.on("closed", () => {
       bubble = null;
       measuredHeight = 0;
+      activeKey = null;
+      activeHandle = null;
       if (resolveAction) {
         const fallback = activePayload && activePayload.defaultAction != null ? activePayload.defaultAction : null;
         const resolver = resolveAction;
@@ -211,12 +218,19 @@ module.exports = function initUpdateBubble(ctx) {
   }
 
   function showUpdateBubble(payload) {
+    const key = typeof payload.key === "string" && payload.key ? payload.key : null;
+    // Same stable key still on screen: refresh the content in the existing
+    // window. The pending promise is left alone (a click the user has not made
+    // yet must still reach its caller) and the entrance transition is not
+    // replayed, because the card never left the visible state.
+    const inPlace = !!key && activeKey === key && bubble && !bubble.isDestroyed();
+
     activePayload = payload;
     if (hideTimer) {
       clearTimeout(hideTimer);
       hideTimer = null;
     }
-    if (resolveAction) {
+    if (!inPlace && resolveAction) {
       settlePrevious(payload.defaultAction != null ? payload.defaultAction : null);
     }
     const win = ensureBubble();
@@ -241,17 +255,28 @@ module.exports = function initUpdateBubble(ctx) {
     // when the card is replaced or dismissed. The callers of a notice ignore
     // the value, so this never blocks anything.
     if (!payload.requireAction && !payload.clickAction) {
-      resolveAction = null;
-      return Promise.resolve(payload.defaultAction != null ? payload.defaultAction : null);
+      if (!inPlace) resolveAction = null;
+      activeKey = key;
+      if (!inPlace || !activeHandle) {
+        activeHandle = Promise.resolve(payload.defaultAction != null ? payload.defaultAction : null);
+      }
+      return activeHandle;
     }
 
-    return new Promise((resolve) => {
+    if (inPlace && activeHandle) return activeHandle;
+    activeKey = key;
+    activeHandle = new Promise((resolve) => {
       resolveAction = resolve;
     });
+    return activeHandle;
   }
 
   function hideUpdateBubble() {
     if (!bubble || bubble.isDestroyed()) return;
+    // The card is leaving the screen; the next payload starts a fresh card
+    // (and a fresh handle) even if it carries the same key.
+    activeKey = null;
+    activeHandle = null;
     bubble.webContents.send("update-bubble-hide");
     if (hideTimer) clearTimeout(hideTimer);
     hideTimer = setTimeout(() => {
@@ -287,6 +312,8 @@ module.exports = function initUpdateBubble(ctx) {
     settlePrevious(activePayload && activePayload.defaultAction != null ? activePayload.defaultAction : null);
     if (bubble && !bubble.isDestroyed()) bubble.destroy();
     bubble = null;
+    activeKey = null;
+    activeHandle = null;
   }
 
   return {

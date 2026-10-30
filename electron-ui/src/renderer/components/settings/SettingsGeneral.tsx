@@ -658,6 +658,17 @@ export default function SettingsGeneral({
                     <Toggle value={local.petBootGreeting !== false} onChange={v => updateLocal({ petBootGreeting: v })} />
                   </div>
 
+                  {/* Live activity strip. Off means the pet stays silent
+                      while a turn runs in the background — it still speaks up
+                      for approvals and results. */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t('settings.petActivityStrip')}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settings.petActivityStripHint')}</div>
+                    </div>
+                    <Toggle value={local.petActivityStrip !== false} onChange={v => updateLocal({ petActivityStrip: v })} />
+                  </div>
+
                   {/* Finished-turn notices */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                     <div>

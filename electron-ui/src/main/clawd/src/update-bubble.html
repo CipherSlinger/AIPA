@@ -639,8 +639,10 @@ function renderProgress(progress) {
   progressWrapEl.style.display = "flex";
   progressLabelEl.textContent = progress.label || "";
   progressLabelEl.style.display = progress.label ? "" : "none";
-  progressValueEl.textContent = `${pct}%`;
-  progressFillEl.style.width = `${pct}%`;
+  // An indeterminate bar says "running", not "this much done". Printing a
+  // percentage there would read as finished the moment it fills.
+  progressValueEl.textContent = progress.indeterminate ? "" : `${pct}%`;
+  progressFillEl.style.width = progress.indeterminate ? "100%" : `${pct}%`;
 }
 
 function startCountdown(ms) {

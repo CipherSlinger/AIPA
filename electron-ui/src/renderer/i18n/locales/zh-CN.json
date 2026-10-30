@@ -1127,6 +1127,8 @@
     "petBootGreetingHint": "AIPA 启动几秒后，桌宠会说一句话。",
     "petTurnNotices": "播报完成的任务",
     "petTurnNoticesHint": "当 AIPA 在后台而任务完成时，由桌宠气泡代替系统通知。",
+    "petActivityStrip": "实时活动",
+    "petActivityStripHint": "任务运行时，桌宠只保留一张 HUD 卡片，显示当前工具与已用时间。",
     "petTestNotice": "预览提示气泡",
     "petNotices": "最近的通知",
     "petNoticesEmpty": "还没有任何通知。",

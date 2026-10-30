@@ -11,6 +11,7 @@ import * as path from 'path'
 import { getPref, setPref } from './config/config-manager'
 import { clearClawdNotices, listClawdNotices, recordClawdNotice } from './clawd-notifications'
 import { createLogger } from './utils/logger'
+import type { PetActivity } from './pet-activity'
 
 // Type declarations for global properties shared with clawd-factory.js
 declare global {
@@ -46,6 +47,12 @@ export interface ClawdBubbleProgress {
   value: number
   max?: number
   label?: string
+  /**
+   * The bar means "still working", not "this fraction done". Percentage text is
+   * suppressed, because a live activity strip mid-tool would otherwise read
+   * "100%" and look finished.
+   */
+  indeterminate?: boolean
 }
 
 export interface ClawdBubbleAction {
@@ -92,6 +99,12 @@ export interface ClawdAttentionBubblePayload {
   sound?: 'system' | 'notify' | 'success' | 'warning' | 'error' | 'none'
   /** Set false to render the message at once (actionable cards do this). */
   typed?: boolean
+  /**
+   * Stable identity for a card that is updated in place (the live activity
+   * strip). A second card with the same key replaces the first's content in
+   * the same window instead of opening another one.
+   */
+  key?: string
 }
 
 // Clawd factory return type (CommonJS module, no TS declarations)
@@ -120,6 +133,7 @@ interface ClawdInstance {
   getBubblesHidden: () => boolean
   setBubblesHidden: (v: boolean) => void
   setLanguage: (lang: string) => void
+  setBubbleTheme: (theme: string) => void
 }
 
 const log = createLogger('clawd-integration')
@@ -196,6 +210,11 @@ export function initClawdIntegration(mainWindow: BrowserWindow): void {
         }
       },
     })
+
+    // The permission bubble is built by the pet, not by us, and reads its skin
+    // from the URL at window creation — so the stored choice has to be handed
+    // over before the first tool asks for permission.
+    applyBubbleThemePref()
 
     log.info('clawd desktop pet initialized (embedded mode)')
     clawdInitError = null
@@ -349,8 +368,19 @@ export function withClawdMainWindow(fn: (win: BrowserWindow) => void): void {
  * Apply a pet preference written from AIPA Settings to the running pet.
  * `clawd:setPrefs` writes the file, but the live instance kept reading its
  * in-memory copy — a size or DND change only took effect after a restart.
- * Keys without a setter (position, theme) still need a restart.
+ * Position has no setter and still needs a restart; the bubble skin takes
+ * effect on the next bubble that opens.
  */
+/**
+ * Hand the stored bubble skin to the pet. Kept apart from the pref switch
+ * because it also runs once at startup, where there is no "changed key".
+ */
+function applyBubbleThemePref(): void {
+  if (!clawdInstance) return
+  const theme = getPref('petBubbleTheme' as any) === 'clawd' ? 'clawd' : 'sao'
+  clawdInstance.setBubbleTheme(theme)
+}
+
 export function applyClawdPetPref(key: string, value: unknown): void {
   if (!clawdInstance) return
   try {
@@ -369,6 +399,9 @@ export function applyClawdPetPref(key: string, value: unknown): void {
         break
       case 'hideBubbles':
         clawdInstance.setBubblesHidden(value === true)
+        break
+      case 'bubbleTheme':
+        clawdInstance.setBubbleTheme(value === 'clawd' ? 'clawd' : 'sao')
         break
       case 'doNotDisturb': {
         const wanted = value === true
@@ -418,6 +451,226 @@ function applyHudDefaults(payload: ClawdAttentionBubblePayload): ClawdAttentionB
   return { ...payload, theme, sound }
 }
 
+// ── Live activity strip ─────────────────────────────
+
+const ACTIVITY_KEY = 'activity'
+/** How often the strip repaints while a turn is still running. */
+const ACTIVITY_TTL_MS = 4000
+/**
+ * Ceiling on heartbeat refreshes. A turn that never reports completion — a
+ * crashed bridge, a missed `result` — would otherwise keep a card on screen
+ * forever; after this the strip fades like any other transient notice.
+ */
+const ACTIVITY_MAX_MS = 30 * 60 * 1000
+/** Re-attempt cadence when another card is occupying the bubble window. */
+const ACTIVITY_RETRY_MS = 2000
+
+let activityTimer: NodeJS.Timeout | null = null
+/** The last state we drew, so the heartbeat can refresh it without new events. */
+let lastActivity: PetActivity | null = null
+/** When this turn's strip first appeared, for the ACTIVITY_MAX_MS ceiling. */
+let activityStartedAt = 0
+/**
+ * True while the card on the shared bubble window is ours. It is the only way
+ * to tell "my card is up, update it" from "an attention/notice card is up, get
+ * out of the way", because the pet exposes one visibility flag for both.
+ */
+let activityCardVisible = false
+
+function clearActivityTimer(): void {
+  if (!activityTimer) return
+  clearTimeout(activityTimer)
+  activityTimer = null
+}
+
+/**
+ * Forget that the strip owns the window, without hiding it. Used right before
+ * an attention card or a notice replaces the strip: the replacement must not
+ * be dismissed later by the strip's timer.
+ *
+ * The state is dropped too, so the strip cannot resurrect itself over an
+ * approval the user has not answered yet — the next real event brings it back.
+ */
+function releaseActivityCard(): void {
+  clearActivityTimer()
+  activityCardVisible = false
+  lastActivity = null
+  activityStartedAt = 0
+}
+
+/**
+ * Keep the strip alive while the turn is still running.
+ *
+ * A plain TTL was wrong for the case the strip exists to serve: a long build
+ * emits no events, so the card would vanish mid-tool and leave nothing on
+ * screen for minutes. The heartbeat also re-renders the elapsed-time row, which
+ * would otherwise freeze at the last event.
+ */
+function armActivityHeartbeat(): void {
+  clearActivityTimer()
+  activityTimer = setTimeout(() => {
+    activityTimer = null
+    const current = lastActivity
+    const expired = !current || current.phase === 'idle' ||
+      Date.now() - activityStartedAt > ACTIVITY_MAX_MS
+    if (expired) {
+      activityCardVisible = false
+      lastActivity = null
+      activityStartedAt = 0
+      try { clawdInstance?.hideAttentionBubble() } catch { /* pet gone */ }
+      return
+    }
+    // Redrawing re-arms this timer on success. When another card owns the
+    // window the redraw is refused, so try again shortly instead of giving up.
+    if (showClawdActivity(current)) return
+    activityTimer = setTimeout(armActivityHeartbeat, ACTIVITY_RETRY_MS)
+    activityTimer.unref?.()
+  }, ACTIVITY_TTL_MS)
+  activityTimer.unref?.()
+}
+
+function formatElapsed(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000))
+  const minutes = Math.floor(total / 60)
+  const seconds = total % 60
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+/** Reduce the live state into the quest/system HUD card the pet renders. */
+function buildActivityPayload(activity: PetActivity): ClawdAttentionBubblePayload {
+  const lang = getClawdLanguage()
+  const kind: ClawdBubbleKind =
+    activity.phase === 'error' ? 'error'
+      : activity.phase === 'awaiting' ? 'warning'
+        : activity.phase === 'tool' ? 'quest'
+          : 'info'
+
+  const toolName = activity.toolName || ''
+  let title = petT('activityThinkingTitle')
+  let message = petT('activityThinkingBody')
+  if (activity.phase === 'tool') {
+    title = toolName
+      ? petT('activityToolTitle').replace('{name}', toolName)
+      : petT('activityThinkingTitle')
+    message = activity.preview || petT('activityThinkingBody')
+  } else if (activity.phase === 'awaiting') {
+    title = petT('activityAwaitingTitle')
+    message = petT('activityAwaitingBody')
+  } else if (activity.phase === 'error') {
+    title = petT('activityErrorTitle')
+    message = activity.preview || petT('activityErrorBody')
+  }
+
+  const meta: ClawdBubbleMetaRow[] = []
+  if (toolName) meta.push({ label: 'TOOL', value: toolName })
+  if (activity.turnStartedAt) {
+    meta.push({ label: 'TURN', value: formatElapsed(Date.now() - activity.turnStartedAt) })
+  }
+
+  return {
+    // Stable key: every refresh replaces this one card instead of opening a
+    // second bubble window.
+    key: ACTIVITY_KEY,
+    title,
+    message,
+    pill: petT('activityPill'),
+    mode: activity.phase === 'error' ? 'error' : 'attention',
+    lang,
+    clickAction: 'open',
+    kind,
+    eyebrow: 'AGENT',
+    meta,
+    // One bar, always full, marked indeterminate: the HUD's shimmer is what
+    // reads as live. A real fraction here would show 100% for most of a turn
+    // and look finished.
+    progress: {
+      value: activity.toolCount,
+      max: Math.max(activity.toolCount, 1),
+      label: activity.toolCount > 0 ? `TOOLS ${activity.toolCount}` : 'TOOLS',
+      indeterminate: true,
+    },
+    // The strip updates constantly; a typewriter would fight every refresh.
+    typed: false,
+    // A cue on every refresh would turn the pet into a metronome.
+    sound: 'none',
+  }
+}
+
+/**
+ * Show or refresh the live activity strip. One card, updated in place under a
+ * stable key, so a fast tool loop never stacks windows.
+ *
+ * This is not an announcement: nothing is recorded in the notice history and
+ * every refresh is silent. Returns false when the pet cannot speak right now
+ * or another card owns the window — an activity strip must never displace an
+ * attention item the user still has to answer, nor a notice that just arrived.
+ */
+export function showClawdActivity(activity: PetActivity): boolean {
+  if (!clawdInstance) return false
+  if (activity.phase === 'idle') {
+    hideClawdActivity()
+    return false
+  }
+  if (getPref('petActivityStrip') === false) return false
+  if (isClawdBubblesHidden() || isClawdPetHidden()) return false
+  if (isClawdDoNotDisturb() || isClawdQuietActive()) return false
+  // A visible card that is not ours is an attention item or a notice; both
+  // outrank the strip, so wait for it to clear rather than overwrite it.
+  if (isClawdAttentionBubbleVisible() && !activityCardVisible) return false
+
+  // An in-place refresh reuses the first call's promise; only that first call
+  // owns the click, or one click would focus the window once per refresh.
+  const alreadyVisible = activityCardVisible
+  try {
+    const payload = buildActivityPayload(activity)
+    const handle = clawdInstance.showAttentionBubble({
+      ...applyHudDefaults(payload),
+      requireAction: false,
+      defaultAction: null,
+    } as ClawdAttentionBubblePayload & { requireAction: false; defaultAction: null })
+    if (!alreadyVisible) {
+      void Promise.resolve(handle)
+        .then((action) => {
+          // A click on the strip is a shortcut to the app; there is no request
+          // behind it to answer.
+          if (action !== 'open') return
+          withClawdMainWindow((win) => {
+            if (win.isMinimized()) win.restore()
+            win.show()
+            win.focus()
+          })
+        })
+        .catch(() => { /* pet gone */ })
+    }
+
+    activityCardVisible = true
+    lastActivity = activity
+    if (!activityStartedAt) activityStartedAt = Date.now()
+    armActivityHeartbeat()
+    return true
+  } catch (err) {
+    log.warn('showClawdActivity failed:', String(err))
+    return false
+  }
+}
+
+/** Remove the strip now (turn finished, failed, bridge gone). Idempotent. */
+export function hideClawdActivity(): void {
+  clearActivityTimer()
+  // Cleared before the visibility check: a turn that ends while another card
+  // holds the window leaves nothing to hide, but the heartbeat state must not
+  // survive into the next turn.
+  lastActivity = null
+  activityStartedAt = 0
+  if (!activityCardVisible) return
+  activityCardVisible = false
+  try {
+    clawdInstance?.hideAttentionBubble()
+  } catch {
+    // Silent — the pet may already be gone.
+  }
+}
+
 /**
  * Show an attention bubble and resolve with the chosen action id ("open" or
  * "dismiss"), or null when the item was superseded or the bubble was hidden.
@@ -428,6 +681,10 @@ export function showClawdAttentionBubble(payload: ClawdAttentionBubblePayload): 
   // Clear the notice's dismissal timer first, or it would hide the attention
   // card a few seconds later as if the user had dismissed it.
   cancelClawdNotice()
+  // The activity strip shares the same window; its timer and ownership must be
+  // released before the attention card replaces it, or it would hide that card
+  // when the strip's TTL elapsed.
+  releaseActivityCard()
   if (!clawdInstance) return Promise.resolve(null)
   try {
     return clawdInstance.showAttentionBubble(applyHudDefaults(payload)).catch((err: unknown) => {
@@ -443,6 +700,7 @@ export function showClawdAttentionBubble(payload: ClawdAttentionBubblePayload): 
 /** Remove the attention bubble. Safe to call when nothing is shown. */
 export function hideClawdAttentionBubble(): void {
   cancelClawdNotice()
+  releaseActivityCard()
   if (!clawdInstance) return
   try {
     clawdInstance.hideAttentionBubble()
@@ -479,13 +737,16 @@ export function showClawdNotice(
 ): boolean {
   if (!clawdInstance) return false
   if (isClawdBubblesHidden() || isClawdPetHidden()) return false
-  if (isClawdAttentionBubbleVisible()) return false
+  // The live activity strip is not actionable, so a real notice may replace it.
+  // Anything else on the window (an attention item) must not be replaced.
+  if (isClawdAttentionBubbleVisible() && !activityCardVisible) return false
   // A notice arriving while the pet is asleep would wake it for something the
   // user does not have to act on. Sleep and a timed silence are both explicit
   // "leave me alone".
   if (isClawdDoNotDisturb() || isClawdQuietActive()) return false
   try {
     cancelClawdNotice()
+    releaseActivityCard()
     void Promise.resolve(clawdInstance.showAttentionBubble({
       ...applyHudDefaults(payload),
       requireAction: false,
@@ -558,6 +819,7 @@ export function isClawdAttentionBubbleVisible(): boolean {
  * Called when the user disables clawd in settings or on app quit.
  */
 export function shutdownClawdIntegration(): void {
+  releaseActivityCard()
   if (!clawdInstance) return
   try {
     if (globalThis.__clawdOnQuitHooks) {

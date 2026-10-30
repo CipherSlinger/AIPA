@@ -8,6 +8,7 @@ const {
   CLAWD_SERVER_HEADER,
   CLAWD_SERVER_ID,
 } = require("../hooks/server-config");
+const { getBubbleTheme } = require("./bubble-theme");
 
 const isMac = process.platform === "darwin";
 const isLinux = process.platform === "linux";
@@ -325,7 +326,12 @@ function showPermissionBubble(permEntry) {
     bub.setAlwaysOnTop(true, WIN_TOPMOST_LEVEL);
   }
 
-  bub.loadFile(path.join(__dirname, "bubble.html"));
+  // The skin is read from the URL because the card is built at load time and
+  // the payload below only arrives after `did-finish-load`; passing it here
+  // means the very first paint is already in the right colours.
+  bub.loadFile(path.join(__dirname, "bubble.html"), {
+    query: { theme: getBubbleTheme() },
+  });
 
   bub.webContents.once("did-finish-load", () => {
     // Session disambiguation: same as Sessions submenu (state.js:648-649) so the

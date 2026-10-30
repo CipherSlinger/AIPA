@@ -59,6 +59,12 @@ interface StoreSchema {
    */
   petQuietUntil: number
   /**
+   * Show a live activity strip on the pet while a turn runs: what the agent is
+   * doing right now, in one card that is updated in place. Silent and never
+   * recorded in the announcement history. Default on.
+   */
+  petActivityStrip: boolean
+  /**
    * Background memory consolidation ("dream"): turns idle conversations into
    * append-only project memory files. Default on; the Memory console exposes
    * the switch and its pass log.
@@ -113,6 +119,7 @@ const store = new Store<StoreSchema>({
     petBootGreeting: true,
     petTurnNotices: true,
     petQuietUntil: 0,
+    petActivityStrip: true,
     dreamConsolidationEnabled: true,
     allowedFolders: [],
     pluginAiModels: {},

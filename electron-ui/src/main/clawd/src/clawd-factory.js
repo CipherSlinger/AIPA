@@ -1927,6 +1927,13 @@ module.exports = function createClawdIntegration(aipaContext) {
     setLanguage: (lang) => {
       _settingsController.applyUpdate("lang", lang);
     },
+    /**
+     * Skin for the permission bubble ("sao" | "clawd"). Applies to the next
+     * bubble that opens: an open request was laid out in the old skin and
+     * re-skinning it mid-decision would move the Allow button under the
+     * pointer, which is exactly the wrong moment for that.
+     */
+    setBubbleTheme: (theme) => require("./bubble-theme").setBubbleTheme(theme),
     /** Set whether bubbles follow pet */
     setBubbleFollow: (v) => {
       bubbleFollowPet = v;

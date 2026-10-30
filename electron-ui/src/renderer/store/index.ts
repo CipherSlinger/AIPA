@@ -145,6 +145,7 @@ const DEFAULT_PREFS: AppPrefs = {
   petBubbleTheme: 'sao' as const,
   petBootGreeting: true,
   petTurnNotices: true,
+  petActivityStrip: true,
 }
 
 export const usePrefsStore = create<PrefsState>((set) => ({

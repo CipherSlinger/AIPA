@@ -39,6 +39,7 @@ import { listPlugins, setPluginEnabled, uninstallPlugin, registerLocalPlugin, in
 import { safePath, getAllowedFsRoots, validateApiKey } from '../../utils/validate'
 import { getAllowedRoots, forgetAllowedRoot } from '../../utils/allowed-roots'
 import { refreshAttention } from '../../clawd-attention'
+import { applyClawdPetPref } from '../../clawd-integration'
 import { codexBridgeManager } from '../../codex/codex-bridge'
 import {
   clearMcpToolCache,
@@ -185,6 +186,11 @@ export function registerConfigHandlers(): void {
       // Switching the background pet alerts off also retracts any bubble that
       // is currently up; switching them on lets queued items surface.
       if (key === 'petAttentionAlerts') refreshAttention()
+      // The bubble skin is the pet's, not the renderer's: it has to be pushed
+      // into the running instance or the picker only changes what the next
+      // launch draws. Mapped to the pet's own key name here so one name on the
+      // AIPA side does not leak into the pet's API.
+      if (key === 'petBubbleTheme') applyClawdPetPref('bubbleTheme', value)
     } catch (err) { log.warn('prefs:set error:', String(err)) }
   })
   // Folders the user granted through a folder dialog, as the gate currently

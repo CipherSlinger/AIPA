@@ -6,6 +6,7 @@
  * same channel names, the same internal-bridge suppression, the same failure
  * rules — and a second copy would be free to drift.
  */
+import type { EventEmitter } from 'events'
 import { createLogger } from '../../../utils/logger'
 import { getApiKey, getPref } from '../../../config/config-manager'
 import { safePath, getAllowedFsRoots } from '../../../utils/validate'
@@ -18,6 +19,7 @@ import {
 import { dreamNoteTurnEnd, dreamNoteTurnCancelled } from '../../../memory/dream-runtime'
 import { notifyClawdState } from '../../../clawd-bridge'
 import { raiseAttention, resolveAttention } from '../../../clawd-attention'
+import { notePetActivity } from '../../../pet-activity'
 import {
   clipDetail,
   forgetBridge,
@@ -63,6 +65,55 @@ export function resolveCodexProbeCwd(input: unknown): string {
     log.debug('codex probe rejected cwd:', String(err))
     return process.cwd()
   }
+}
+
+/**
+ * Feed the pet's live activity strip from the narrowest existing turn signals:
+ * the turn/started message, a tool card opening or closing, the result
+ * envelope that ends the turn, and the engine's error events. These are the
+ * same events the pet's session state already follows, so neither bridge needs
+ * a new hook and no IPC payload changes.
+ *
+ * Registered only for user-facing bridges (after the `internal` early return):
+ * a background turn must not drive the single strip the user is reading.
+ */
+function wirePetActivity(bridge: EventEmitter, bridgeId: string): void {
+  bridge.on('messageStart', () => notePetActivity({ type: 'turn-start', bridgeId }))
+  bridge.on('textDelta', () => notePetActivity({ type: 'thinking', bridgeId }))
+  bridge.on('thinkingDelta', () => notePetActivity({ type: 'thinking', bridgeId }))
+  bridge.on('toolUse', (d: { event?: { id?: string; name?: string; input?: Record<string, unknown> } }) => {
+    notePetActivity({
+      type: 'tool-start',
+      bridgeId,
+      toolId: d?.event?.id,
+      toolName: d?.event?.name,
+      input: d?.event?.input,
+    })
+  })
+  bridge.on('toolResult', (d: { event?: { tool_use_id?: string } }) => {
+    notePetActivity({ type: 'tool-finish', bridgeId, toolId: d?.event?.tool_use_id })
+  })
+  bridge.on('result', (d: { outcome?: string; subtype?: string }) => {
+    // `outcome` is the Codex vocabulary, `subtype` the Claude one. Both mean
+    // "this turn is over"; the strip hides either way.
+    notePetActivity({ type: 'turn-complete', bridgeId, outcome: d?.outcome ?? d?.subtype })
+  })
+  bridge.on('turnError', (d: { willRetry?: boolean; message?: string }) => {
+    // A retryable engine error is a reconnect, not a failed turn.
+    if (d?.willRetry) return
+    notePetActivity({ type: 'turn-error', bridgeId, message: d?.message })
+  })
+  bridge.on('apiError', (d: { message?: string }) => {
+    notePetActivity({ type: 'turn-error', bridgeId, message: d?.message })
+  })
+  // A pending approval or question is still the agent working, just blocked on
+  // the user; the strip says so until the request is answered.
+  bridge.on('permissionRequest', () => notePetActivity({ type: 'awaiting', bridgeId }))
+  bridge.on('planApprovalRequest', () => notePetActivity({ type: 'awaiting', bridgeId }))
+  bridge.on('elicitationRequest', () => notePetActivity({ type: 'awaiting', bridgeId }))
+  bridge.on('mcpElicitation', () => notePetActivity({ type: 'awaiting', bridgeId }))
+  bridge.on('serverRequestResolved', () => notePetActivity({ type: 'thinking', bridgeId }))
+  bridge.on('processExit', () => notePetActivity({ type: 'reset', bridgeId }))
 }
 
 /** Wire a CodexBridge to the renderer, reusing the legacy channel names. */
@@ -141,6 +192,10 @@ export function wireCodexBridge(
     bridge.on('processExit', () => forgetBridge(bridgeId))
     return
   }
+
+  // The pet's live activity strip. User-facing bridges only, like the state
+  // notifications below: a background turn has no place on the strip.
+  wirePetActivity(bridge, bridgeId)
 
   // Thread goal + unarchive. Both are user-facing: a goal is a standing
   // objective the composer shows, and an unarchive puts a row back in the
@@ -319,6 +374,10 @@ export function wireStreamBridge(
     bridge.on('processExit', () => forgetBridge(bridgeId))
     return
   }
+
+  // Same live activity strip as the Codex path; the stream bridge exposes the
+  // same turn/tool/result events, so one mapping serves both engines.
+  wirePetActivity(bridge, bridgeId)
 
   bridge.on('textDelta', () => notifyClawdState('thinking', bridgeId))
   bridge.on('thinkingDelta', () => notifyClawdState('thinking', bridgeId))

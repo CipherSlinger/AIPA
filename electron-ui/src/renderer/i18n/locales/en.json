@@ -1127,6 +1127,8 @@
     "petBootGreetingHint": "The pet says a line a few seconds after AIPA starts.",
     "petTurnNotices": "Announce Finished Turns",
     "petTurnNoticesHint": "When a turn finishes while AIPA is in the background, the pet says so instead of the system notification.",
+    "petActivityStrip": "Live activity",
+    "petActivityStripHint": "While a turn runs, the pet keeps one HUD card up showing the tool it is in and how long the turn has taken.",
     "petTestNotice": "Test announcement",
     "petNotices": "Recent Announcements",
     "petNoticesEmpty": "Nothing announced yet.",
