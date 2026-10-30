@@ -3,6 +3,7 @@ import { createLogger } from '../utils/logger'
 import { getPref } from '../config/config-manager'
 import { shouldSuppressNativeNotification } from '../clawd-attention'
 import { getClawdLanguage, showClawdNotice } from '../clawd-integration'
+import { findTaskBySessionId } from '../tasks/task-store'
 import { shortcutStatusSnapshot } from '../window/shortcut-status'
 
 const { createTranslator } = require('../clawd/src/i18n') as {
@@ -103,9 +104,18 @@ export function registerWindowHandlers(win: BrowserWindow): void {
     // a HUD card says what finished, and clicking it reopens the conversation.
     // The native notification remains the fallback when the pet cannot speak.
     if (getPref('petTurnNotices' as any) !== false && !win.isDestroyed() && !win.isFocused()) {
+      // If the conversation belongs to a task, the card names that task — the
+      // work on the user's desk — and reopens the task rather than a bare
+      // thread. A lookup failure just leaves the generic title in place.
+      let task: { id: string; title: string } | null = null
+      try {
+        task = findTaskBySessionId(sessionId)
+      } catch (err) {
+        log.warn('Could not look up the task behind a finished turn:', err)
+      }
       const shown = showClawdNotice({
         kind: 'success',
-        title: opts.title,
+        title: task ? task.title : opts.title,
         message: opts.body,
         pill: petT('noticeDonePill'),
         mode: 'done',
@@ -117,7 +127,8 @@ export function registerWindowHandlers(win: BrowserWindow): void {
         if (win.isMinimized()) win.restore()
         win.show()
         win.focus()
-        if (sessionId) win.webContents.send('menu:openSession', sessionId)
+        if (task) win.webContents.send('menu:openTask', task.id)
+        else if (sessionId) win.webContents.send('menu:openSession', sessionId)
       })
       if (shown) return
     }

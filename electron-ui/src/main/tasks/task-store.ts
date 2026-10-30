@@ -693,6 +693,25 @@ export function countTasksByStatus(status: TaskStatus): number {
   return count
 }
 
+/**
+ * The live task a conversation belongs to, if any.
+ *
+ * A session id is recorded on the task when its turn completes, so this is the
+ * lookup that lets a surface outside the Tasks page (the pet's finished-turn
+ * notice) say *which task* just finished instead of naming a conversation. A
+ * cheap record scan, no folder stats: the caller only needs the title and id.
+ */
+export function findTaskBySessionId(sessionId: unknown): { id: string; title: string } | null {
+  if (typeof sessionId !== 'string' || !sessionId) return null
+  for (const task of readTaskStore().tasks) {
+    if (task.status === 'archived') continue
+    if (task.sessions.some(session => session.sessionId === sessionId)) {
+      return { id: task.id, title: task.title }
+    }
+  }
+  return null
+}
+
 export function getTask(id: unknown): TaskView | null {
   if (typeof id !== 'string' || !id) return null
   const record = readTaskStore().tasks.find(task => task.id === id)
