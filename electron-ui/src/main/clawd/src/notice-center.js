@@ -374,6 +374,8 @@
     var title = document.createElement("span");
     title.className = "title";
     title.textContent = notice.title;
+    // The title is ellipsized; the full line stays reachable on hover.
+    title.title = notice.title;
     var expand = document.createElement("button");
     expand.type = "button";
     expand.className = "expand";
@@ -393,6 +395,7 @@
     var message = document.createElement("span");
     message.className = "msg";
     message.textContent = notice.message || "";
+    message.title = notice.message || "";
     message.hidden = !notice.message;
 
     var statusEl = document.createElement("span");
@@ -552,20 +555,31 @@
 
   function renderStatus(el, id) {
     var status = state.rowStatus[id];
+    // The link outlives this panel session: main derives it from the task's own
+    // history (`from_notice`), so a notice saved yesterday still offers its task
+    // after the log is closed and reopened.
+    var notice = noticeById(id);
+    var taskId = status && status.taskId
+      ? status.taskId
+      : (notice && notice.taskId ? notice.taskId : "");
     el.textContent = "";
-    if (!status) {
+    if (!status && !taskId) {
       el.hidden = true;
       return;
     }
     el.hidden = false;
-    el.dataset.tone = status.kind === "copy-failed" || status.kind === "task-failed" ? "error" : "ok";
-    var text = document.createElement("span");
-    text.className = "status-text";
-    text.textContent = statusText(status);
-    el.appendChild(text);
-    // A saved notice keeps its offer: opening the task list later is one click,
-    // and the notice itself stays in the log untouched.
-    if (status.kind === "task-created" && status.taskId) {
+    el.dataset.tone = status && (status.kind === "copy-failed" || status.kind === "task-failed")
+      ? "error"
+      : "ok";
+    if (status) {
+      var text = document.createElement("span");
+      text.className = "status-text";
+      text.textContent = statusText(status);
+      el.appendChild(text);
+    }
+    // A saved notice keeps its offer: opening the task later is one click, and
+    // the notice itself stays in the log untouched.
+    if (taskId) {
       var open = document.createElement("button");
       open.type = "button";
       open.className = "status-action";
@@ -576,7 +590,7 @@
       open.addEventListener("click", function (event) {
         event.preventDefault();
         event.stopPropagation();
-        runAction({ type: "open-task", id: id, taskId: status.taskId });
+        runAction({ type: "open-task", id: id, taskId: taskId });
       });
       el.appendChild(open);
     }

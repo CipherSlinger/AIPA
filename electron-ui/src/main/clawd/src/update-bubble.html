@@ -76,13 +76,14 @@ body { padding: 6px; }
   border-radius: 16px;
   box-shadow: var(--card-shadow), var(--card-inset, none);
   color: var(--text-main);
-  padding: 16px 20px;
+  /* Cards share the brief's inset; the compact bars use 12/14. */
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   opacity: 0;
-  transform: translateX(60px);
-  transition: opacity 0.35s var(--ease-spring), transform 0.4s var(--ease-spring);
+  transform: translateX(16px);
+  transition: opacity 0.16s linear, transform 0.20s var(--ease-spring);
   overflow: hidden;
 }
 .card[data-mode="checking"],
@@ -95,7 +96,7 @@ body { padding: 6px; }
 }
 .card.hiding {
   opacity: 0;
-  transform: translateX(60px);
+  transform: translateX(16px);
 }
 
 /* An attention bubble is one click target; the updater bubble is not. */
@@ -109,6 +110,10 @@ body { padding: 6px; }
   gap: 8px;
 }
 .title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 13px;
   font-weight: 600;
   line-height: 1.35;
@@ -128,6 +133,7 @@ body { padding: 6px; }
   letter-spacing: 0.05em;
   text-transform: uppercase;
   background: #52525b;
+  font-variant-numeric: tabular-nums;
 }
 .pill[data-mode="checking"] { background: #5a9eab; }
 .pill[data-mode="available"] { background: #5b8dd9; }
@@ -162,6 +168,7 @@ body { padding: 6px; }
   font-size: 12px;
   color: var(--text-muted);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .detail {
   display: none;
@@ -201,11 +208,16 @@ body { padding: 6px; }
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s var(--ease-spring);
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease,
+    opacity 160ms ease, transform 160ms ease;
   outline: none;
 }
 .btn:active:not(:disabled) { transform: scale(0.96); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:focus-visible {
+  outline: 2px solid var(--hud-accent, #d97757);
+  outline-offset: 2px;
+}
 .btn-primary {
   background: #d97757;
   color: #fff;
@@ -266,6 +278,7 @@ body { padding: 6px; }
   font-size: 9px;
   letter-spacing: 0.12em;
   color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 .hud-icon {
   display: none;
@@ -303,6 +316,7 @@ body { padding: 6px; }
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-main);
+  font-variant-numeric: tabular-nums;
 }
 .progress-wrap {
   display: none;
@@ -320,7 +334,10 @@ body { padding: 6px; }
   text-transform: uppercase;
   color: var(--text-muted);
 }
-.progress-value { color: var(--hud-accent, #5b8dd9); }
+.progress-value {
+  color: var(--hud-accent, #5b8dd9);
+  font-variant-numeric: tabular-nums;
+}
 .progress-track {
   position: relative;
   height: 4px;
@@ -387,13 +404,13 @@ body { padding: 6px; }
   position: relative;
   border-radius: 2px;
   border: 1px solid var(--card-border);
-  padding: 14px 18px 16px;
+  padding: 12px 14px 12px;
   color: var(--text-main);
   clip-path: polygon(
     0 12px, 12px 0,
-    calc(100% - 20px) 0, 100% 20px,
-    100% calc(100% - 12px), calc(100% - 12px) 100%,
-    20px 100%, 0 calc(100% - 20px)
+    calc(100% - 18px) 0, 100% 18px,
+    100% calc(100% - 10px), calc(100% - 10px) 100%,
+    18px 100%, 0 calc(100% - 18px)
   );
   filter: drop-shadow(0 10px 26px rgba(0, 0, 0, 0.45));
   text-shadow: 0 0 12px rgba(63, 224, 200, 0.12);
@@ -521,7 +538,15 @@ body { padding: 6px; }
 @media (prefers-reduced-motion: reduce) {
   .card[data-theme="sao"]::after,
   .progress-fill::after { animation: none; }
-  .card { transition: opacity 0.12s linear, transform 0.12s linear; }
+  /* Opacity only: the card appears in place instead of sliding in. */
+  .card {
+    transform: none;
+    transition: opacity 0.12s linear;
+  }
+  .card.hiding { transform: none; }
+  .progress-fill,
+  .btn { transition: none; }
+  .btn:active:not(:disabled) { transform: none; }
 }
 </style>
 </head>
@@ -570,7 +595,6 @@ const progressValueEl = document.getElementById("progressValue");
 const progressFillEl = document.getElementById("progressFill");
 const countdownEl = document.getElementById("countdown");
 
-let typeTimer = null;
 let countdownFrame = null;
 let countdownStart = 0;
 let heightFrame = null;
@@ -608,28 +632,7 @@ function eyebrowText(kind, lang) {
 }
 
 function clearTimers() {
-  if (typeTimer) { clearInterval(typeTimer); typeTimer = null; }
   if (countdownFrame) { cancelAnimationFrame(countdownFrame); countdownFrame = null; }
-}
-
-function startTypewriter(text) {
-  messageEl.textContent = "";
-  if (!text) return;
-  const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (reduced) { messageEl.textContent = text; return; }
-  // Long bodies should not become a reading race: compress the whole reveal
-  // into at most ~1.1s, and never slower than 4ms/char.
-  const step = Math.max(4, Math.min(14, Math.round(1100 / Math.max(1, text.length))));
-  let i = 0;
-  typeTimer = setInterval(() => {
-    i += 1;
-    messageEl.textContent = text.slice(0, i);
-    if (i >= text.length) {
-      clearInterval(typeTimer);
-      typeTimer = null;
-      reportHeight();
-    }
-  }, step);
 }
 
 function renderIcon(kind) {
@@ -670,6 +673,12 @@ function renderProgress(progress) {
 function startCountdown(ms) {
   if (!ms || ms <= 0) return;
   countdownEl.style.display = "block";
+  const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduced) {
+    // The rail still says "this closes on its own"; it just does not move.
+    countdownEl.style.transform = "scaleX(0.55)";
+    return;
+  }
   countdownStart = performance.now();
   const tick = (now) => {
     const t = Math.min(1, (now - countdownStart) / ms);
@@ -768,20 +777,15 @@ function show(payload) {
   renderMeta(payload.meta);
 
   titleEl.textContent = payload.title || "";
+  titleEl.title = payload.title || "";
   versionEl.textContent = payload.version ? `v${String(payload.version).replace(/^v/, "")}` : "";
   versionEl.style.display = payload.version ? "" : "none";
   detailEl.textContent = payload.detail || "";
   detailEl.style.display = payload.detail ? "block" : "none";
 
-  // Actionable cards are read under time pressure, so they never animate their
-  // body; everything else gets the HUD reveal.
-  const typed = card.dataset.theme === "sao"
-    && kind !== "approval"
-    && kind !== "clarification"
-    && payload.message
-    && payload.typed !== false;
-  if (typed) startTypewriter(String(payload.message));
-  else messageEl.textContent = payload.message || "";
+  // The message is readable the moment the card appears. A reveal that types
+  // the body out makes the user wait on the animation, not on the words.
+  messageEl.textContent = payload.message || "";
   messageEl.style.display = payload.message ? "" : "none";
 
   if (payload.progress) renderProgress(payload.progress);
@@ -839,10 +843,10 @@ function hide() {
   card.classList.add("hiding");
 }
 
-// The typewriter and progress blocks change the card's height after `show`
-// reported it. One observer keeps the main-process window measurement honest
-// without every caller having to remember. Debounced into the next frame so a
-// burst of mutations produces one IPC message.
+// The progress block and a late-arriving message change the card's height after
+// `show` reported it. One observer keeps the main-process window measurement
+// honest without every caller having to remember. Debounced into the next frame
+// so a burst of mutations produces one IPC message.
 if (typeof ResizeObserver === "function") {
   const observer = new ResizeObserver(() => {
     if (heightFrame) return;

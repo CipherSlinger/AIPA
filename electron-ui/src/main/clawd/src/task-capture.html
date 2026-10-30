@@ -94,7 +94,7 @@ body { padding: 8px; }
   width: 100%;
   height: 100%;
   overflow: hidden;
-  padding: 10px 12px 11px;
+  padding: 12px 14px 12px;
   color: var(--text);
   background: var(--panel-bg);
   background-size: var(--panel-size);
@@ -105,8 +105,8 @@ body { padding: 8px; }
   box-shadow: var(--panel-shadow);
   text-shadow: var(--text-shadow);
   opacity: 0;
-  transform: translateY(5px) scale(0.99);
-  transition: opacity 0.14s linear, transform 0.18s var(--ease);
+  transform: translateY(6px) scale(0.985);
+  transition: opacity 0.16s linear, transform 0.20s var(--ease);
 }
 .panel.visible { opacity: 1; transform: none; }
 
@@ -136,7 +136,7 @@ body[data-theme="sao"] .scan { display: block; }
   align-items: center;
   gap: 8px;
   flex: none;
-  padding: 0 2px 7px;
+  padding: 0 2px 9px;
   border-bottom: 1px solid rgba(63, 224, 200, 0.14);
 }
 body[data-theme="clawd"] .head { border-bottom-color: var(--line); }
@@ -174,6 +174,7 @@ body[data-theme="clawd"] .eyebrow::before { box-shadow: none; border-radius: 1px
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
 }
 body[data-theme="clawd"] .dest {
   border-radius: 7px;
@@ -192,7 +193,7 @@ body[data-theme="clawd"] .dest {
   padding: 0 9px;
   border: 1px solid var(--field-border);
   background: var(--field-bg);
-  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
   transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
 }
 body[data-theme="clawd"] .field { clip-path: none; border-radius: 9px; }
@@ -201,7 +202,7 @@ body[data-theme="clawd"] .field { clip-path: none; border-radius: 9px; }
   background: var(--field-bg);
   box-shadow: inset 0 0 14px rgba(63, 224, 200, 0.07);
 }
-body[data-theme="clawd"] .field:focus-within { box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.12); }
+body[data-theme="clawd"] .field:focus-within { box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.28); }
 .prompt {
   flex: none;
   font-size: 13px;
@@ -224,7 +225,7 @@ body[data-theme="clawd"] .field:focus-within { box-shadow: 0 0 0 3px rgba(217, 1
   caret-color: var(--accent);
   user-select: text;
 }
-#input::placeholder { color: var(--muted); opacity: 0.8; }
+#input::placeholder { color: var(--muted); opacity: 0.88; }
 
 .error {
   flex: none;
@@ -249,13 +250,15 @@ body[data-theme="clawd"] .field:focus-within { box-shadow: 0 0 0 3px rgba(217, 1
   gap: 12px;
   flex: none;
   margin-top: auto;
-  padding: 0 2px;
+  padding: 7px 2px 0;
+  border-top: 1px solid rgba(63, 224, 200, 0.14);
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
 }
+body[data-theme="clawd"] .foot { border-top-color: var(--line); }
 .hint { display: inline-flex; align-items: center; gap: 5px; }
 kbd {
   font: inherit;
@@ -267,7 +270,7 @@ kbd {
   opacity: 0.85;
 }
 .spacer2 { flex: 1; }
-.aipa { opacity: 0.55; }
+.aipa { opacity: 0.68; }
 
 @media (prefers-reduced-motion: reduce) {
   .panel { transition: none; }

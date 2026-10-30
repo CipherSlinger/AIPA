@@ -8,7 +8,7 @@
 
 /* ── Theme variables ── */
 :root {
-  --ease-spring: var(--ease-spring);
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
   --card-bg: #ffffff;
   --card-border: rgba(0, 0, 0, 0.08);
   --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
@@ -79,15 +79,16 @@ body { padding: 6px; }
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 16px;
-  padding: 16px 20px;
+  /* Cards share the brief's inset; the compact bars use 12/14. */
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   box-shadow: var(--card-shadow), var(--card-inset, none);
   color: var(--text-primary);
   opacity: 0;
-  transform: translateX(60px);
-  transition: opacity 0.35s var(--ease-spring), transform 0.4s var(--ease-spring);
+  transform: translateX(16px);
+  transition: opacity 0.16s linear, transform 0.20s var(--ease-spring);
   overflow: hidden;
 }
 
@@ -97,7 +98,7 @@ body { padding: 6px; }
 }
 .card.hiding {
   opacity: 0;
-  transform: translateX(60px);
+  transform: translateX(16px);
 }
 
 /* ── Header ── */
@@ -108,6 +109,10 @@ body { padding: 6px; }
   margin-bottom: 0;
 }
 .header-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 13px;
   font-weight: 600;
   color: var(--header-color);
@@ -118,6 +123,7 @@ body { padding: 6px; }
 .tool-pill {
   display: inline-flex;
   align-items: center;
+  flex: none;
   padding: 3px 8px;
   border-radius: 6px;
   font-size: 11px;
@@ -149,6 +155,7 @@ body { padding: 6px; }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
 }
 .session-tag.visible { display: block; }
 
@@ -273,11 +280,21 @@ body { padding: 6px; }
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: all 0.2s var(--ease-spring);
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease,
+    opacity 160ms ease, transform 160ms ease;
   outline: none;
 }
 .btn:active:not(:disabled) { transform: scale(0.96); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:focus-visible,
+.btn-suggestion:focus-visible {
+  outline: 2px solid #d97757;
+  outline-offset: 2px;
+}
+.option-item:has(input:focus-visible) {
+  outline: 2px solid #d97757;
+  outline-offset: 2px;
+}
 
 .btn-allow {
   background: #d97757;
@@ -317,7 +334,8 @@ body { padding: 6px; }
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s var(--ease-spring);
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease,
+    padding 160ms ease, opacity 160ms ease, transform 160ms ease;
   outline: none;
   text-align: left;
   white-space: nowrap;
@@ -331,7 +349,7 @@ body { padding: 6px; }
   right: 14px;
   opacity: 0;
   transform: translateX(-4px);
-  transition: all 0.2s ease;
+  transition: opacity 160ms ease, transform 160ms ease;
   color: var(--sug-arrow);
 }
 .btn-suggestion:hover:not(:disabled) {
@@ -346,7 +364,7 @@ body { padding: 6px; }
 }
 
 .btn-suggestion:active:not(:disabled) { transform: scale(0.98); }
-.btn-suggestion:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-suggestion:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── HUD layer (opt-in) ────────────────────────────────────────────────────
    New DOM stays inert unless the SAO skin is active: the eyebrow row and the
@@ -422,7 +440,7 @@ body { padding: 6px; }
 
 :root[data-theme="sao"] .card {
   border-radius: 0;
-  padding: 14px 18px 16px;
+  padding: 12px 14px 12px;
   background-color: var(--card-bg);
   background-image:
     linear-gradient(rgba(63, 224, 200, 0.035) 1px, transparent 1px),
@@ -433,7 +451,7 @@ body { padding: 6px; }
   background-repeat: repeat, repeat, repeat, no-repeat;
   box-shadow: none;
   clip-path: polygon(
-    0 10px, 10px 0,
+    0 12px, 12px 0,
     calc(100% - 18px) 0, 100% 18px,
     100% calc(100% - 10px), calc(100% - 10px) 100%,
     18px 100%, 0 calc(100% - 18px)
@@ -706,6 +724,16 @@ body { padding: 6px; }
               box-shadow 0.18s ease, filter 0.18s ease, transform 0.12s ease;
 }
 :root[data-theme="sao"] .btn:active:not(:disabled) { transform: scale(0.97); }
+/* The cut-corner clip would crop an outer outline; the ring sits just inside
+   the shape instead. On the filled Allow button it inverts to stay legible. */
+:root[data-theme="sao"] .btn:focus-visible,
+:root[data-theme="sao"] .btn-suggestion:focus-visible,
+:root[data-theme="sao"] .option-item:has(input:focus-visible) {
+  outline: 1px solid var(--hud-accent);
+  outline-offset: -4px;
+}
+:root[data-theme="sao"] .btn-allow:focus-visible { outline-color: #04120f; }
+:root[data-theme="sao"] .option-item:has(input:focus-visible) { outline-offset: -2px; }
 
 :root[data-theme="sao"] .btn-allow {
   background: #3fe0c8;
@@ -803,12 +831,19 @@ body { padding: 6px; }
 @media (prefers-reduced-motion: reduce) {
   :root[data-theme="sao"] .card.visible .hud-sweep,
   :root[data-theme="sao"] .card::after { animation: none; }
-  :root[data-theme="sao"] .card {
-    transition: opacity 0.12s linear, transform 0.12s linear;
+  /* Opacity only: the card appears in place instead of sliding in. */
+  .card {
+    transform: none;
+    transition: opacity 0.12s linear;
   }
-  :root[data-theme="sao"] .btn,
-  :root[data-theme="sao"] .btn-suggestion,
-  :root[data-theme="sao"] .option-item { transition: none; }
+  .card.hiding { transform: none; }
+  .card.visible { transform: none; }
+  .btn,
+  .btn-suggestion,
+  .btn-suggestion::after,
+  .option-item { transition: none; }
+  .btn:active:not(:disabled),
+  .btn-suggestion:active:not(:disabled) { transform: none; }
 }
 </style>
 </head>
@@ -1037,6 +1072,9 @@ function disableAll() {
 function revealCard() {
   card.classList.remove("hiding");
   card.classList.add("visible");
+  // The header is the one line every branch sets; keep the untruncated text
+  // reachable when a long localized title ellipsizes.
+  headerTitle.title = headerTitle.textContent;
   dedupeEyebrow();
   // 12 = 6px padding top + 6px padding bottom
   requestAnimationFrame(() => {

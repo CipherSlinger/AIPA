@@ -22,7 +22,7 @@ import type { IpcMainEvent, Rectangle } from 'electron'
 
 const WIDTH = 368
 /** Head, one field, a two-line reason and the footer, plus shadow padding. */
-const HEIGHT = 140
+const HEIGHT = 146
 const EDGE_MARGIN = 8
 const PET_GAP = 10
 // A local page either loads or it does not; this only guards the ready

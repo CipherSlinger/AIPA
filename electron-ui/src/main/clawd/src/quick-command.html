@@ -104,7 +104,7 @@ body { padding: 8px; }
   width: 100%;
   height: 100%;
   overflow: hidden;
-  padding: 10px 12px 11px;
+  padding: 12px 14px 12px;
   color: var(--text);
   background: var(--panel-bg);
   background-size: var(--panel-size);
@@ -115,8 +115,8 @@ body { padding: 8px; }
   box-shadow: var(--panel-shadow);
   text-shadow: var(--text-shadow);
   opacity: 0;
-  transform: translateY(5px) scale(0.99);
-  transition: opacity 0.14s linear, transform 0.18s var(--ease);
+  transform: translateY(6px) scale(0.985);
+  transition: opacity 0.16s linear, transform 0.20s var(--ease);
 }
 .panel.visible { opacity: 1; transform: none; }
 
@@ -149,7 +149,7 @@ body[data-theme="sao"] .scan { display: block; }
   align-items: center;
   gap: 8px;
   flex: none;
-  padding: 0 2px 7px;
+  padding: 0 2px 9px;
   border-bottom: 1px solid rgba(63, 224, 200, 0.14);
 }
 body[data-theme="clawd"] .head { border-bottom-color: var(--line); }
@@ -220,6 +220,10 @@ body[data-theme="clawd"] .target {
   color: var(--accent);
   outline: none;
 }
+.target:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
 .target[data-mode="continue"] { border-color: var(--line); color: var(--text); }
 .target[data-mode="continue"] .target-mode { color: var(--accent); }
 .target:disabled { cursor: default; }
@@ -250,7 +254,7 @@ body[data-theme="clawd"] .target {
   padding: 0 9px;
   border: 1px solid var(--field-border);
   background: var(--field-bg);
-  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
   transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
 }
 body[data-theme="clawd"] .field { clip-path: none; border-radius: 9px; }
@@ -259,7 +263,7 @@ body[data-theme="clawd"] .field { clip-path: none; border-radius: 9px; }
   background: var(--field-bg);
   box-shadow: inset 0 0 14px rgba(63, 224, 200, 0.07);
 }
-body[data-theme="clawd"] .field:focus-within { box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.12); }
+body[data-theme="clawd"] .field:focus-within { box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.28); }
 .prompt {
   flex: none;
   font-size: 13px;
@@ -282,7 +286,7 @@ body[data-theme="clawd"] .field:focus-within { box-shadow: 0 0 0 3px rgba(217, 1
   caret-color: var(--accent);
   user-select: text;
 }
-#input::placeholder { color: var(--muted); opacity: 0.8; }
+#input::placeholder { color: var(--muted); opacity: 0.88; }
 #input:disabled { opacity: 0.62; cursor: default; }
 
 /* ── Error / busy line ────────────────────────────────────────────────────── */
@@ -362,17 +366,38 @@ body[data-theme="clawd"] .suggest-list { gap: 2px; border-top: 0; }
   text-align: left;
   cursor: pointer;
   outline: none;
-  animation: suggestIn 190ms var(--ease) both;
-  animation-delay: calc(var(--i, 0) * 34ms);
+  animation: suggestIn 150ms var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 22ms);
   transition: background 120ms ease;
 }
 .suggest-row:last-child { border-bottom: 0; }
+/* The same accent rail the brief rows and the notice action strip use; it
+   lights up on hover and while the keyboard is on the row. */
+.suggest-row::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 5px;
+  bottom: 5px;
+  width: 2px;
+  background: var(--accent);
+  opacity: 0.35;
+  transition: opacity 120ms ease;
+}
+.suggest-row:hover::before,
+.suggest-row:focus-visible::before { opacity: 0.65; }
 .suggest-row:hover,
 .suggest-row:focus-visible { background: var(--row-active); }
+.suggest-row:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  outline-offset: -1px;
+}
 .suggest-row[aria-selected="true"] {
   background: var(--row-active);
   box-shadow: inset 2px 0 0 var(--accent);
 }
+.suggest-row[aria-selected="true"]::before { opacity: 0.8; }
+body[data-theme="clawd"] .suggest-row::before { display: none; }
 body[data-theme="clawd"] .suggest-row {
   font-size: 12px;
   border-bottom: 0;
@@ -415,13 +440,15 @@ body[data-theme="clawd"] .suggest-age {
   gap: 12px;
   flex: none;
   margin-top: auto;
-  padding: 0 2px;
+  padding: 7px 2px 0;
+  border-top: 1px solid rgba(63, 224, 200, 0.14);
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
 }
+body[data-theme="clawd"] .foot { border-top-color: var(--line); }
 .hint { display: inline-flex; align-items: center; gap: 5px; }
 kbd {
   font: inherit;
@@ -433,7 +460,7 @@ kbd {
   opacity: 0.85;
 }
 .spacer2 { flex: 1; }
-.aipa { opacity: 0.55; }
+.aipa { opacity: 0.68; }
 
 /* ── Progress ────────────────────────────────────────────────────────────── */
 .progress {
@@ -706,6 +733,8 @@ kbd {
     var text = document.createElement("span");
     text.className = "suggest-text";
     text.textContent = entry.text;
+    // The row ellipsizes; the full ask stays reachable on hover.
+    row.title = entry.text;
 
     var age = document.createElement("span");
     age.className = "suggest-age";

@@ -118,8 +118,8 @@ body { position: relative; }
   cursor: pointer;
   outline: none;
   transform: translate(var(--x), var(--y));
-  animation: petalIn 280ms var(--ease-out) both;
-  animation-delay: calc(var(--i) * 45ms);
+  animation: petalIn 240ms var(--ease-out) both;
+  animation-delay: calc(var(--i) * 28ms);
   transition: filter 160ms ease;
 }
 .petal:hover,
@@ -195,6 +195,9 @@ body { position: relative; }
   min-width: 0;
 }
 .petal .label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 10.5px;
   font-weight: 700;
   line-height: 1.2;
@@ -213,6 +216,7 @@ body { position: relative; }
   letter-spacing: 0.12em;
   color: var(--hud-muted);
   opacity: 0.65;
+  font-variant-numeric: tabular-nums;
 }
 
 /* The silenced SILENCE petal carries a number on top of its label ("Resume ·
@@ -265,6 +269,7 @@ body { position: relative; }
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
 .petal .pill[hidden] { display: none; }
@@ -320,7 +325,7 @@ body { position: relative; }
    left by the narrower 110px chip; 0.08em is the widest tracking that does on
    a fallback font as well as Cascadia. */
 .petal--nested .label { font-size: 8.5px; letter-spacing: 0.08em; }
-.petal--nested .key { top: 2px; right: 5px; font-size: 6.5px; }
+.petal--nested .key { top: 2px; right: 5px; font-size: 7.5px; }
 
 /* ── Session petals (third ring) ─────────────────────────────────────────── */
 /* Same 110x36 chip and the same clearance as the nested ring: a conversation
@@ -348,8 +353,9 @@ body { position: relative; }
   letter-spacing: 0.08em;
   color: var(--hud-muted);
   opacity: 0.85;
+  font-variant-numeric: tabular-nums;
 }
-.petal--session .key { top: 2px; right: 6px; font-size: 6.5px; }
+.petal--session .key { top: 2px; right: 6px; font-size: 7.5px; }
 /* The empty state is one disabled chip, not a blank ring: it keeps its place so
    the level still reads as a ring and the way back is where the user left it. */
 .petal--empty .label { font-size: 8.5px; letter-spacing: 0.06em; }
@@ -859,8 +865,11 @@ body { position: relative; }
         (meta.arc ? '<span class="arc" aria-hidden="true"></span>' : '') +
       '</span>' +
       '<span class="pill" aria-hidden="true" hidden></span>';
-    btn.querySelector(".label").textContent = labels[meta.label] || meta.fallback || meta.action;
+    var labelText = labels[meta.label] || meta.fallback || meta.action;
+    btn.querySelector(".label").textContent = labelText;
     btn.querySelector(".key").textContent = meta.key;
+    // Labels longer than the chip are ellipsized; keep the full word on hover.
+    if (labelText.length > 10) btn.title = labelText;
     btn.addEventListener("click", function (event) {
       event.preventDefault();
       choose(btn);

@@ -44,7 +44,7 @@ body { padding: 8px; }
   position: relative;
   width: 100%;
   overflow: hidden;
-  padding: 12px 14px 14px;
+  padding: 12px 14px 12px;
   color: var(--text);
   background:
     linear-gradient(var(--line-soft) 1px, transparent 1px),
@@ -132,9 +132,10 @@ body { padding: 8px; }
   letter-spacing: 0.08em;
   text-align: center;
   color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 .count[data-zero="true"] {
-  opacity: 0.4;
+  opacity: 0.55;
   border-color: rgba(127, 168, 162, 0.3);
   color: var(--muted);
 }
@@ -159,7 +160,11 @@ body { padding: 8px; }
   color: var(--accent);
   text-shadow: 0 0 10px rgba(63, 224, 200, 0.4);
 }
-.ghost:disabled { opacity: 0.35; cursor: default; }
+.ghost:focus-visible:not(:disabled) {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+.ghost:disabled { opacity: 0.45; cursor: default; }
 .close {
   display: inline-flex;
   align-items: center;
@@ -177,6 +182,14 @@ body { padding: 8px; }
 .close:focus-visible:not(:disabled) {
   border-color: rgba(63, 224, 200, 0.6);
   box-shadow: 0 0 12px rgba(63, 224, 200, 0.2);
+}
+.close:focus-visible:not(:disabled),
+.search-clear:focus-visible,
+.dismiss:focus-visible,
+.expand:focus-visible,
+.status-action:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* ── Filter chips ─────────────────────────────────────────────────────────── */
@@ -276,7 +289,7 @@ body { padding: 8px; }
 }
 .search-input::placeholder {
   color: var(--muted);
-  opacity: 0.66;
+  opacity: 0.78;
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.18em;
@@ -335,6 +348,8 @@ body { padding: 8px; }
   max-height: 360px;
   overflow-y: auto;
   padding-right: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
 }
 /* A list that outgrows its cap ends mid-row; the fade says "there is more"
    without adding a hard cut across the last record. */
@@ -381,6 +396,7 @@ body { padding: 8px; }
   letter-spacing: 0.22em;
   text-transform: uppercase;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
   /* Opaque enough to mask the rows sliding under it, close enough to the
      panel slab that the band does not read as a separate surface. */
   background: linear-gradient(180deg, rgba(7, 13, 18, 0.97), rgba(6, 12, 17, 0.93));
@@ -417,8 +433,8 @@ body { padding: 8px; }
   content: "";
   position: absolute;
   left: 2px;
-  top: 6px;
-  bottom: 6px;
+  top: 5px;
+  bottom: 5px;
   width: 2px;
   background: var(--k);
   opacity: 0.55;
@@ -479,7 +495,7 @@ body { padding: 8px; }
 .row[data-read="true"] .title {
   color: #c7e6e1;
   font-weight: 600;
-  opacity: 0.9;
+  opacity: 0.95;
 }
 .msg {
   display: -webkit-box;
@@ -491,7 +507,7 @@ body { padding: 8px; }
   line-height: 1.45;
   color: var(--muted);
 }
-.row[data-read="true"] .msg { opacity: 0.75; }
+.row[data-read="true"] .msg { opacity: 0.8; }
 
 .side {
   display: flex;
@@ -504,6 +520,7 @@ body { padding: 8px; }
   letter-spacing: 0.08em;
   color: var(--muted);
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .dismiss {
   appearance: none;
@@ -617,6 +634,7 @@ body { padding: 8px; }
   letter-spacing: 0.05em;
   color: #c7e6e1;
   word-break: break-word;
+  font-variant-numeric: tabular-nums;
 }
 
 .facts {
@@ -640,33 +658,36 @@ body { padding: 8px; }
   font-size: 9px;
   letter-spacing: 0.06em;
   color: #c7e6e1;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Accent rail by kind, the same grammar as the row rail. */
 .actions {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 3px;
-  padding-left: 7px;
-  border-left: 1px solid color-mix(in srgb, var(--k) 38%, transparent);
+  gap: 4px;
+  padding-left: 8px;
+  border-left: 2px solid color-mix(in srgb, var(--k) 55%, transparent);
 }
 .act {
   appearance: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4px 5px;
+  min-height: 21px;
+  padding: 4px 6px;
   border: 1px solid rgba(127, 168, 162, 0.28);
   background: rgba(63, 224, 200, 0.035);
   color: var(--muted);
   font: inherit;
-  font-size: 8px;
+  font-size: 8.5px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
   outline: none;
-  clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
   transition: color 140ms ease, border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
 }
 .act:hover:not(:disabled),
@@ -680,7 +701,7 @@ body { padding: 8px; }
   outline: 1px solid color-mix(in srgb, var(--k) 70%, transparent);
   outline-offset: 1px;
 }
-.act:disabled { opacity: 0.4; cursor: default; }
+.act:disabled { opacity: 0.45; cursor: default; }
 .act--primary {
   color: var(--k);
   border-color: color-mix(in srgb, var(--k) 48%, transparent);
@@ -691,6 +712,20 @@ body { padding: 8px; }
   border-color: rgba(255, 93, 93, 0.62);
   background: rgba(255, 93, 93, 0.10);
   box-shadow: 0 0 10px rgba(255, 93, 93, 0.22);
+}
+
+/* Cut-corner controls crop an outline drawn outside the shape. Every focused
+   control therefore also carries a 1px ring inside its own edge. */
+.chip:focus-visible,
+.close:focus-visible:not(:disabled) {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.act:focus-visible:not(:disabled),
+.status-action:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--k), 0 0 10px color-mix(in srgb, var(--k) 22%, transparent);
+}
+.act--danger:focus-visible:not(:disabled) {
+  box-shadow: inset 0 0 0 1px #ff5d5d, 0 0 10px rgba(255, 93, 93, 0.25);
 }
 
 /* Transient result of Copy / Save. It stays visible on a collapsed row too,
@@ -715,13 +750,13 @@ body { padding: 8px; }
   background: none;
   color: var(--k);
   font: inherit;
-  font-size: 8px;
+  font-size: 8.5px;
   font-weight: 700;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
   cursor: pointer;
   outline: none;
-  clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
   transition: background 140ms ease, box-shadow 140ms ease;
 }
 .status-action:hover,
@@ -748,11 +783,12 @@ body { padding: 8px; }
   letter-spacing: 0.26em;
   text-transform: uppercase;
   color: var(--muted);
-  opacity: 0.7;
+  opacity: 0.82;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .panel { transition: none; }
+  .panel::after { transition: none; }
   .scan { animation: none; }
   .row,
   .chip,

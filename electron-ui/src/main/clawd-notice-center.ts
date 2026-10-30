@@ -75,6 +75,12 @@ export interface ClawdNoticeCenterItem {
   meta?: ClawdBubbleMetaRow[]
   /** The message is worth turning into a task; see SAVEABLE_NOTICE_KINDS. */
   canSaveTask: boolean
+  /**
+   * The live task this notice was saved into, when one is recorded on it. Read
+   * from the task's own `from_notice` history, so the way back survives a
+   * restart and a reopened log.
+   */
+  taskId?: string
 }
 
 /** Why a rendered action, if any, should change its row's transient status. */
@@ -188,8 +194,12 @@ function parseMeta(detail?: string): ClawdBubbleMetaRow[] {
   return rows
 }
 
-function toItem(record: ClawdNoticeRecord): ClawdNoticeCenterItem {
+function toItem(
+  record: ClawdNoticeRecord,
+  saved: Map<string, { id: string; title: string }>,
+): ClawdNoticeCenterItem {
   const meta = parseMeta(record.detail)
+  const savedTask = saved.get(record.id)
   return {
     id: record.id,
     kind: record.kind,
@@ -200,6 +210,7 @@ function toItem(record: ClawdNoticeRecord): ClawdNoticeCenterItem {
     ...(record.sessionId ? { sessionId: record.sessionId } : {}),
     ...(meta.length ? { meta } : {}),
     canSaveTask: canSaveNotice(record),
+    ...(savedTask ? { taskId: savedTask.id } : {}),
   }
 }
 
@@ -215,8 +226,9 @@ function buildPayload(): ClawdNoticeCenterPayload {
   } catch (err) {
     log.warn('Could not list clawd notices:', err)
   }
+  const saved = savedNoticeTasksById()
   return {
-    notices: records.map(toItem),
+    notices: records.map(record => toItem(record, saved)),
     lang: petLanguage(),
     unread: records.reduce((count, record) => count + (record.readAt ? 0 : 1), 0),
   }
@@ -594,27 +606,34 @@ function focusAipaMainWindow(target: AipaTarget = {}): boolean {
 const savedNoticeTasks = new Map<string, string>()
 
 /**
- * The live task a notice already became, if any.
+ * Every notice that already became a live task, in one pass.
  *
- * The `from_notice` event is the durable half of the dedupe: an in-memory map
- * is enough within one run, but after a restart saving the same notice again
- * must still find the task it created rather than making a second one. An
- * archived task no longer counts — the user retired that work, and saving the
- * notice again is a new request.
+ * The `from_notice` event is the durable half of the link: an in-memory map is
+ * enough within one run, but after a restart both the dedupe and the row's way
+ * back to its task must still find what the notice became. An archived task no
+ * longer counts — the user retired that work, and saving the notice again is a
+ * new request. Scanning once keeps one payload from parsing tasks.json per row.
  */
-function findTaskForNotice(noticeId: string): { id: string; title: string } | null {
-  if (!noticeId) return null
+function savedNoticeTasksById(): Map<string, { id: string; title: string }> {
+  const saved = new Map<string, { id: string; title: string }>()
   try {
     for (const task of listTasks()) {
       if (task.status === 'archived') continue
-      if (task.history.some(event => event.kind === 'from_notice' && event.detail === noticeId)) {
-        return { id: task.id, title: task.title }
+      for (const event of task.history) {
+        if (event.kind !== 'from_notice' || !event.detail) continue
+        if (!saved.has(event.detail)) saved.set(event.detail, { id: task.id, title: task.title })
       }
     }
   } catch (err) {
-    log.warn('Could not scan tasks for a saved notice:', err)
+    log.warn('Could not scan tasks for saved notices:', err)
   }
-  return null
+  return saved
+}
+
+/** The live task a notice already became, if any. */
+function findTaskForNotice(noticeId: string): { id: string; title: string } | null {
+  if (!noticeId) return null
+  return savedNoticeTasksById().get(noticeId) ?? null
 }
 
 type SaveNoticeResult =
