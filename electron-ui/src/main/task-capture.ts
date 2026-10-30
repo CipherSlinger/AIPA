@@ -13,7 +13,8 @@
  * The store's own validation is the only gate, so the bar can report the real
  * failure instead of a generic "something went wrong".
  */
-import { BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
+import fs from 'fs'
 import path from 'path'
 import { createTask, type TaskView } from './tasks/task-store'
 import { refreshClawdTaskBadge } from './clawd-task-badge'
@@ -35,6 +36,11 @@ const BLUR_ARM_MS = 250
 // The same ceiling the store enforces. A longer line is kept up to here rather
 // than refused: the point of the bar is not to make the user edit a title.
 const TASK_TITLE_MAX = 200
+// Recall is a convenience, not a log: twenty lines is enough to bring back the
+// thought you filed yesterday without turning the bar into a task list.
+const HISTORY_LIMIT = 20
+/** Private to the pet; never leaves the machine. */
+const HISTORY_FILE = 'task-capture-history.json'
 /** The notice is a confirmation, not the task list; it clips a long title. */
 const NOTICE_TITLE_MAX = 120
 const NOTICE_TTL_MS = 6000
@@ -102,6 +108,77 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
   let previousFocus: BrowserWindow | null = null
   let revealTimer: NodeJS.Timeout | null = null
   let blurArmedAt = 0
+  /** Saved capture titles, newest first. Reloaded at every open. */
+  let history: string[] = []
+
+  function historyPath(): string {
+    return path.join(app.getPath('userData'), HISTORY_FILE)
+  }
+
+  /**
+   * Any I/O or parse failure is "no history": a corrupt file must never keep
+   * the bar from opening, and the next saved capture rewrites it.
+   */
+  function loadHistory(): string[] {
+    let raw: string
+    try {
+      raw = fs.readFileSync(historyPath(), 'utf-8')
+    } catch {
+      return []
+    }
+    try {
+      const parsed: unknown = JSON.parse(raw)
+      if (!Array.isArray(parsed)) return []
+      const entries: string[] = []
+      const seen = new Set<string>()
+      for (const item of parsed) {
+        if (typeof item !== 'string') continue
+        // Stored titles were normalized on the way in; normalize again so a
+        // hand-edited or older file cannot put control whitespace in the bar.
+        const title = normalizeTitle(item)
+        if (!title || seen.has(title)) continue
+        seen.add(title)
+        entries.push(title)
+        if (entries.length >= HISTORY_LIMIT) break
+      }
+      return entries
+    } catch {
+      return []
+    }
+  }
+
+  /**
+   * Newest-first on disk. tmp+rename means a crash mid-write cannot truncate
+   * the file; a failed write loses this line but never throws into the save
+   * the user just made.
+   */
+  function persistHistory(entries: string[]): void {
+    let tmp = ''
+    try {
+      const file = historyPath()
+      tmp = `${file}.${process.pid}.tmp`
+      fs.writeFileSync(tmp, JSON.stringify(entries), 'utf-8')
+      fs.renameSync(tmp, file)
+    } catch (err) {
+      if (tmp) {
+        try { fs.unlinkSync(tmp) } catch { /* never created */ }
+      }
+      console.warn('Clawd: task capture history write failed:', cleanErrorText(err))
+    }
+  }
+
+  function rememberCapture(title: string): void {
+    const text = normalizeTitle(title)
+    if (!text) return
+    const next: string[] = [text]
+    for (const entry of history) {
+      if (entry === text) continue
+      next.push(entry)
+      if (next.length >= HISTORY_LIMIT) break
+    }
+    history = next
+    persistHistory(next)
+  }
 
   function isOpen(): boolean {
     return !!(barWin && !barWin.isDestroyed() && barWin.isVisible())
@@ -227,6 +304,7 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
     }
     if (!ctx.win || ctx.win.isDestroyed()) return false
 
+    history = loadHistory()
     const bounds = computeBounds()
     if (!bounds) return false
     let labels: TaskCaptureLabels
@@ -289,6 +367,9 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
         lang: ctx.getLang(),
         theme: ctx.getTheme() === 'clawd' ? 'clawd' : 'sao',
         labels,
+        // Newest first. The page walks it locally; a stale copy dies with the
+        // window, and a fresh save is only ever read back on the next open.
+        history: history.slice(),
       })
     })
     barWin.webContents.on('did-fail-load', (_event, _code, _desc, _url, isMainFrame) => {
@@ -406,6 +487,11 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
       showBarError(detail ? `${labels.failed}: ${detail}` : labels.failed, 'error')
       return
     }
+
+    // Remember the line before the window goes away. Every refusal above
+    // (empty, whitespace-only, store failure) returned before this point, so a
+    // line that did not become a task is never offered as a recall.
+    rememberCapture(title)
 
     // Saved. The bar has done its job; the notice carries the confirmation and
     // the way into the Tasks view.

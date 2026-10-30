@@ -333,6 +333,12 @@ kbd {
   // sending two. Main closes the window on success and sends a reason on
   // failure, which clears it.
   var saving = false;
+  // Newest first. Main sends it on every open; the walk never outlives the bar.
+  var history = [];
+  // -1 = the draft; 0 = newest saved capture. Increasing walks back in time.
+  var recallIndex = -1;
+  // What the field held when the walk began, restored at the bottom.
+  var draft = "";
 
   function applyLabels() {
     eyebrow.textContent = labels.eyebrow;
@@ -342,6 +348,46 @@ kbd {
     saveHint.textContent = labels.save;
     cancelHint.textContent = labels.cancel;
     panel.setAttribute("aria-label", labels.eyebrow);
+  }
+
+  function placeCaretAtEnd() {
+    try {
+      var end = input.value.length;
+      input.setSelectionRange(end, end);
+    } catch (err) { /* not focusable yet */ }
+  }
+
+  /**
+   * One step along the walk: negative is older (↑), positive is newer (↓).
+   * The draft sits one step below the newest entry and is restored there.
+   * Mirrors the ASK bar's rule exactly.
+   */
+  function recallHistory(step) {
+    if (history.length === 0) return false;
+    if (step < 0) {
+      if (recallIndex < 0) {
+        draft = input.value;
+        recallIndex = 0;
+      } else if (recallIndex < history.length - 1) {
+        recallIndex += 1;
+      } else {
+        // Already at the oldest entry; the key is consumed but nothing moves.
+        return true;
+      }
+    } else {
+      if (recallIndex < 0) return false;
+      if (recallIndex > 0) {
+        recallIndex -= 1;
+      } else {
+        recallIndex = -1;
+        input.value = draft;
+        placeCaretAtEnd();
+        return true;
+      }
+    }
+    input.value = history[recallIndex];
+    placeCaretAtEnd();
+    return true;
   }
 
   function clearError() {
@@ -388,6 +434,20 @@ kbd {
     document.body.dataset.theme = data.theme === "clawd" ? "clawd" : "sao";
     applyLabels();
 
+    // History arrives newest first. Only usable entries are kept, and the cap
+    // is main's: a malformed payload cannot grow the walk beyond what the
+    // store holds.
+    history = [];
+    if (Array.isArray(data.history)) {
+      for (var h = 0; h < data.history.length && history.length < 20; h++) {
+        var item = data.history[h];
+        if (typeof item !== "string" || !item) continue;
+        history.push(item);
+      }
+    }
+    recallIndex = -1;
+    draft = "";
+
     composing = false;
     imeEnter = false;
     saving = false;
@@ -423,8 +483,21 @@ kbd {
       }
       return;
     }
+    // ↑ walks back through saved captures, ↓ walks forward and finally puts the
+    // draft back. Both consume the key so the caret does not jump instead.
+    if (event.key === "ArrowUp") {
+      if (recallHistory(-1)) event.preventDefault();
+      return;
+    }
+    if (event.key === "ArrowDown") {
+      if (recallHistory(1)) event.preventDefault();
+    }
   });
   input.addEventListener("input", function () {
+    // Typing after a recall makes the field a draft again: the walk is a
+    // shortcut borrowed from the past, not a mode the field stays in.
+    recallIndex = -1;
+    draft = "";
     // A reason about the previous attempt stops applying once the line changes.
     if (!errorEl.hidden) clearError();
   });
@@ -438,6 +511,16 @@ kbd {
       if (api) api.close();
     }
   });
+
+  // Discoverability only: the arrows walk the saved captures. A bare glyph
+  // rather than a new string, so this page adds nothing to the i18n table.
+  (function addRecallGlyph() {
+    var keys = document.createElement("span");
+    keys.textContent = "↑↓";
+    keys.setAttribute("aria-hidden", "true");
+    keys.style.opacity = "0.72";
+    saveHint.parentNode.appendChild(keys);
+  })();
 
   if (api) {
     api.onShow(show);
