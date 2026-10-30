@@ -465,8 +465,8 @@ button.day-col:focus-visible {
 .panel[data-theme="clawd"] button.day-col:focus-visible { border-radius: 6px; }
 
 /* Selected day: a ring in both skins, while every other column recedes. The
-   change is a state swap with no transition, so it is identical under
-   prefers-reduced-motion. */
+   ring is a state swap with no transition; the opacity recede shares the
+   hover ease defined below and is removed under prefers-reduced-motion. */
 .day-col.selected {
   outline: 1px solid var(--accent);
   outline-offset: 2px;
@@ -478,6 +478,61 @@ button.day-col:focus-visible {
 .chart.filtered .day-col { opacity: 0.55; }
 .chart.filtered .day-col.selected { opacity: 1; }
 .chart.filtered .day-col.selected .day-label { color: var(--text); }
+
+/* A finished day is a button, so it should feel like one before it is
+   clicked. Only the interactive button.day-col reacts; a zero day stays an
+   inert div with its resting paint. The lift moves opacity, colour and the
+   bar's filter only — never transform or height — so the track cannot jump.
+   110ms keeps it alive without turning it into an animation; the
+   reduced-motion block at the end removes the transitions entirely.
+
+   Precedence with an active filter: .chart.filtered dims every column to
+   0.55. A hovered or keyboard-focused column overrides that dimming for
+   itself only (opacity 1), so the pointer or focus names exactly the column
+   a click would pick while every other column stays dimmed. The selected
+   column keeps its own full-opacity rule. These selectors are unscoped by
+   skin, so SAO and clawd resolve identically. */
+button.day-col {
+  transition: opacity 110ms ease;
+}
+button.day-col .bar-fill {
+  transition: filter 110ms ease;
+}
+button.day-col .day-label,
+button.day-col .day-count {
+  transition: color 110ms ease;
+}
+button.day-col:hover .bar-fill,
+button.day-col:focus-visible .bar-fill {
+  filter: brightness(1.16) saturate(1.08);
+}
+button.day-col:hover .day-label,
+button.day-col:focus-visible .day-label,
+button.day-col:hover .day-count,
+button.day-col:focus-visible .day-count {
+  color: var(--text);
+}
+
+/* The hovered column previews the selection ring at 45%, so the affordance
+   reads at a glance instead of only on click. The :not() guards keep the two
+   stronger states authoritative without a specificity race: a column that is
+   already .selected never matches this rule, so the full-strength
+   `.day-col.selected` ring (var(--accent)) remains; a column that is
+   :focus-visible never matches either, so today's focus outline (72%
+   accent) is never weakened to 45%. Neither state gets an outline
+   transition; the ring appears at full strength immediately. */
+button.day-col:hover:not(.selected):not(:focus-visible) {
+  outline: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 2px;
+}
+.panel[data-theme="clawd"] button.day-col:hover:not(.selected):not(:focus-visible) {
+  border-radius: 6px;
+  outline-offset: 1px;
+}
+.chart.filtered button.day-col:hover,
+.chart.filtered button.day-col:focus-visible {
+  opacity: 1;
+}
 
 /* Bars grow once on first paint; a repaint or resize never replays it. */
 .chart.grow .bar-fill { animation: barGrow 480ms var(--ease) both; }
@@ -821,6 +876,10 @@ button.day-col:focus-visible {
   .panel { transition: none; }
   .scan { animation: none; }
   .chart.grow .bar-fill { animation: none; }
+  button.day-col,
+  button.day-col .bar-fill,
+  button.day-col .day-label,
+  button.day-col .day-count { transition: none; }
   .row,
   .btn { transition: none; }
   .body::-webkit-scrollbar-thumb { transition: none; }

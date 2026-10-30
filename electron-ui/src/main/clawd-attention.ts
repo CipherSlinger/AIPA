@@ -1295,10 +1295,12 @@ function buildPayload(item: AttentionItem): BuiltBubble {
       ),
       variant: 'primary',
     }]
-    if (item.kind === 'task-due') {
+    if (item.kind === 'task-due' || item.kind === 'day-wrap') {
       // A deliberate "not now" beside the primary: the card still opens the
       // task desk, but waiting two hours is a real choice and must not be the
-      // same gesture as opening. The reminder module owns the timer.
+      // same gesture as opening. The owning module keeps the timer; the evening
+      // wrap makes the same promise because it is the one card that asks for a
+      // moment of reflection.
       payload.actions.push({
         id: 'later',
         label: t('attentionTaskDueLater'),
@@ -1354,14 +1356,24 @@ function show(item: AttentionItem, payload: BuiltBubble): void {
       lastShowFailureAt = Date.now()
       return
     }
-    if (action === 'open') openItem(item)
-    else if (action === 'later' && item.kind === 'task-due') snoozeDueCard()
-    // The bubble module hid its own window; the pet also needs its click
-    // target released, or a later click would try to open a gone item.
-    hideClawdAttentionBubble()
-    dropItem(item)
-    scheduleRender()
+    handleAction(item, action)
   })
+}
+
+/**
+ * Act on the choice the user made on a visible bubble. `open` opens the thing
+ * the card is about; `later` is only offered by the due and evening-wrap cards
+ * and hands the wait to the module that owns the card's timer.
+ */
+function handleAction(item: AttentionItem, action: string): void {
+  if (action === 'open') openItem(item)
+  else if (action === 'later' && item.kind === 'task-due') snoozeDueCard()
+  else if (action === 'later' && item.kind === 'day-wrap') snoozeDayWrapCard()
+  // The bubble module hid its own window; the pet also needs its click
+  // target released, or a later click would try to open a gone item.
+  hideClawdAttentionBubble()
+  dropItem(item)
+  scheduleRender()
 }
 
 function retract(): void {
@@ -1391,6 +1403,23 @@ function snoozeDueCard(): void {
     if (!snoozeDueReminder()) log.debug('due card "Later" was not scheduled')
   } catch (err) {
     log.warn('Could not schedule the due card for later:', String(err))
+  }
+}
+
+/**
+ * The evening wrap's "Later" action. Same discipline as the due card: the wait
+ * belongs to `day-wrap`, which re-reads the live store when the two hours are
+ * up. Loaded lazily because `day-wrap` imports this module at runtime, so a
+ * top-level import would close that cycle.
+ */
+function snoozeDayWrapCard(): void {
+  try {
+    const { snoozeDayWrap } = require('./tasks/day-wrap') as {
+      snoozeDayWrap: () => boolean
+    }
+    if (!snoozeDayWrap()) log.debug('evening wrap "Later" was not scheduled')
+  } catch (err) {
+    log.warn('Could not schedule the evening wrap for later:', String(err))
   }
 }
 

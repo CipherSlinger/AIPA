@@ -19,7 +19,9 @@
  *   - every minute while the app runs, so a laptop that slept through 18:30,
  *     a clock/timezone jump or a late-evening wake is noticed promptly;
  *   - immediately after system resume (`powerMonitor` `resume`), because a
- *     machine asleep at 18:30 must still wrap when it wakes the same evening.
+ *     machine asleep at 18:30 must still wrap when it wakes the same evening;
+ *   - on a "Later" deadline the user asked for, without waiting for the next
+ *     heartbeat to notice it.
  * All timers are unref'd and cleared by `stopDayWrap` on quit; every check also
  * refuses to run once the app is quitting.
  *
@@ -58,6 +60,22 @@
  *   so a task captured later the same evening is still counted on the next
  *   tick.
  *
+ * "Later"
+ *   The card's secondary action asks this module to raise the same wrap two
+ *   hours later. That is a deferral of the announcement, not a second day: the
+ *   day is still the day until local midnight, so a promise made at 18:30 for
+ *   20:30 is still meaningful at 21:00, unlike the due reminder's morning card.
+ *   The deadline is stored in the same file, so closing the app for an hour
+ *   does not lose the wait. While it is live the check is silent and does not
+ *   read the store. When it comes due the card is re-raise-eligible even though
+ *   `lastWrapDay` already names today — the user explicitly asked to see it
+ *   again — and a successful announce clears the deadline. The day record is
+ *   kept when it already named today; a preview deferred into the evening
+ *   instead spends that evening's card, so it does not speak twice. A deadline
+ *   that crossed midnight is dropped rather than spoken late: yesterday's wrap
+ *   is never announced. A clock that steps backwards can only lengthen the
+ *   wait, because the deadline is an absolute instant.
+ *
  * This module never changes a task: no status writes, no due-date edits, no
  * moves. It only reads the store and talks to the attention queue.
  */
@@ -86,6 +104,14 @@ export const DAY_WRAP_UPCOMING_SHOWN = 2
 /** The evening hour at which the day is treated as over. */
 export const WRAP_HOUR = 18
 export const WRAP_MINUTE = 30
+
+/**
+ * The card's secondary action ("Later") puts the same wrap back two hours from
+ * now. The day's record is not spent again — the 18:30 announce already wrote
+ * it — so this is only a deferral of the announcement, and only the deadline is
+ * stored, so the wait survives a restart.
+ */
+export const DAY_WRAP_SNOOZE_MS = 2 * 60 * 60 * 1000
 
 /** A safety heartbeat, not the announcement timer: catches a missed 18:30,
  *  a system clock jump and a resume the power hook did not see. */
@@ -260,6 +286,14 @@ interface DayWrapState {
   lastWrapDay?: string
   /** Diagnostics: the wall-clock ms of the last raise. */
   lastWrapAt?: number
+  /**
+   * Wall-clock ms of a pending "Later". Stored so the wait outlives the app: the
+   * evening it speaks for is still the same evening until local midnight, so a
+   * promise made at 18:30 for 20:30 is still meaningful at 21:00 — but a
+   * deadline that crossed midnight is dropped, because yesterday's wrap is
+   * never spoken late.
+   */
+  snoozeUntil?: number
 }
 
 function defaultStatePath(): string {
@@ -279,6 +313,11 @@ function readState(file: string): DayWrapState {
       ...(isDay(parsed?.lastWrapDay) ? { lastWrapDay: parsed.lastWrapDay } : {}),
       ...(typeof parsed?.lastWrapAt === 'number' && Number.isFinite(parsed.lastWrapAt)
         ? { lastWrapAt: parsed.lastWrapAt }
+        : {}),
+      // A corrupt or nonsensical deadline is no wait at all, never a reason to
+      // stop reading the rest of the memory.
+      ...(typeof parsed?.snoozeUntil === 'number' && Number.isFinite(parsed.snoozeUntil) && parsed.snoozeUntil > 0
+        ? { snoozeUntil: parsed.snoozeUntil }
         : {}),
     }
   } catch (err) {
@@ -303,11 +342,24 @@ function writeState(file: string, state: DayWrapState): boolean {
   }
 }
 
+/**
+ * Write the memory back without a pending "Later", carrying the day record over
+ * exactly as it stands. Used when a wait is honoured or when the day it was made
+ * for has moved on.
+ */
+function forgetSnooze(file: string, state: DayWrapState): boolean {
+  return writeState(file, {
+    version: STATE_VERSION,
+    ...(state.lastWrapDay ? { lastWrapDay: state.lastWrapDay } : {}),
+    ...(state.lastWrapAt !== undefined ? { lastWrapAt: state.lastWrapAt } : {}),
+  })
+}
+
 // ── One check ─────────────────────────────────────────────────────────────
 
 export type DayWrapStatus =
   | 'quitting' | 'disabled' | 'before-due' | 'already-wrapped'
-  | 'nothing-to-say' | 'suppressed' | 'announced' | 'error'
+  | 'snoozed' | 'nothing-to-say' | 'suppressed' | 'announced' | 'error'
 
 export interface DayWrapResult {
   status: DayWrapStatus
@@ -342,13 +394,41 @@ export function checkDayWrap(nowMs: number, options: DayWrapOptions = {}): DayWr
   const window = dayWindow(nowMs)
   if (!enabled) return { status: 'disabled', day: window.day }
 
-  if (nowMs < window.openAtMs) return { status: 'before-due', day: window.day }
+  // The state file is read before the store and before the 18:30 gate: a
+  // deferral is a promise the user asked for, so it outranks both the evening
+  // hour (a preview deferred in the afternoon comes back in the afternoon) and
+  // the once-a-day record below.
+  const file = options.stateFile ?? defaultStatePath()
+  const state = readState(file)
+  let snoozeReady = false
+  if (state.snoozeUntil !== undefined) {
+    if (nowMs < state.snoozeUntil) {
+      // The wait is still on. This check runs every minute; there is no reason
+      // to rescan the task store for a card that is deliberately not due yet.
+      return { status: 'snoozed', day: window.day }
+    }
+    if (state.lastWrapDay !== undefined && state.lastWrapDay !== window.day) {
+      // The promised moment is past and the local day has moved on — the app was
+      // closed overnight. Yesterday's wrap is never spoken late, so forget the
+      // wait and let today's normal rules run.
+      forgetSnooze(file, state)
+      state.snoozeUntil = undefined
+    } else {
+      // Same evening (or a preview that never spent the day): the explicit wait
+      // is the permission to speak again, even though `lastWrapDay` already
+      // names today. Lateness measured in minutes is not staleness — the card
+      // speaks for a day that ends at local midnight.
+      snoozeReady = true
+    }
+  }
+
+  // The 18:30 gate is skipped for a card the user already asked to see again.
+  if (!snoozeReady && nowMs < window.openAtMs) return { status: 'before-due', day: window.day }
 
   // The state file is consulted before the store. This check runs every minute
   // all evening; after the wrap has been spoken there is no reason to rescan
   // every task's history just to discover that again.
-  const file = options.stateFile ?? defaultStatePath()
-  if (readState(file).lastWrapDay === window.day) {
+  if (!snoozeReady && state.lastWrapDay === window.day) {
     return { status: 'already-wrapped', day: window.day }
   }
 
@@ -368,14 +448,25 @@ export function checkDayWrap(nowMs: number, options: DayWrapOptions = {}): DayWr
   const delivered = raiseAttention({ kind: 'day-wrap', wrap: aggregate })
   if (!delivered) {
     // DND, timed silence, the pet's alert switch with no OS fallback, or the
-    // user looking at AIPA right now. Nothing was announced, so the day is
-    // not marked: the next check retries until local midnight.
+    // user looking at AIPA right now. Nothing was announced, so the day is not
+    // marked and a pending wait is not cleared: the next check retries both.
     return { status: 'suppressed', day: window.day, aggregate }
   }
 
+  // A due wait is over once the card is actually spoken. A wait made for an
+  // already-spoken day keeps that day; a deferred preview stays a preview — its
+  // afternoon card must not spend the evening's own — unless the check lands at
+  // or after 18:30, where the card *is* the evening's card and marking the day
+  // stops the next minute's tick from saying the same thing twice. An ordinary
+  // announce had no wait, so it marks the day now.
+  let nextDay: string | undefined
+  if (!snoozeReady) nextDay = window.day
+  else if (state.lastWrapDay !== undefined) nextDay = state.lastWrapDay
+  else if (nowMs >= window.openAtMs) nextDay = window.day
+  else nextDay = undefined
   const persisted = writeState(file, {
     version: STATE_VERSION,
-    lastWrapDay: window.day,
+    ...(nextDay ? { lastWrapDay: nextDay } : {}),
     lastWrapAt: nowMs,
   })
   return { status: 'announced', day: window.day, aggregate, persisted }
@@ -421,7 +512,7 @@ export function raiseDayWrapNow(nowMs?: number): DayWrapAggregate | null {
 
 export interface DayWrapStatusReport {
   running: boolean
-  /** Live timers: the evening check and the safety heartbeat. */
+  /** Live timers: the evening check, the safety heartbeat and any pending "Later". */
   timers: number
   /** True when every live timer is unref'd (it cannot keep the app alive). */
   unrefed: boolean
@@ -436,6 +527,53 @@ let stateFile: string | undefined
 let getQuitting: () => boolean = () => false
 let getEnabled: () => boolean = () => false
 
+/**
+ * At most one "Later" is pending. A second click replaces this deadline; the
+ * check that actually speaks the card clears the stored one. Unref'd like the
+ * scheduler's own timers, so a wait can never keep the app alive.
+ */
+let snoozeTimer: NodeJS.Timeout | null = null
+let snoozeDueAt = 0
+/** Diagnostics: how many waits were picked back up from the state file. */
+let snoozeRestored = 0
+
+function statePath(): string {
+  return stateFile ?? defaultStatePath()
+}
+
+/** Cancel the timer only; the stored deadline is deliberately left alone. */
+function cancelSnooze(): void {
+  if (snoozeTimer) {
+    clearTimeout(snoozeTimer)
+    snoozeTimer = null
+  }
+  snoozeDueAt = 0
+}
+
+/**
+ * Arm the one-shot timer for an absolute deadline. A timer that wakes before
+ * the wall clock has reached the deadline (an NTP correction stepping the clock
+ * back) must not speak early: it re-arms for the time that is left, so exactly
+ * one timer still exists and the wait is never shortened.
+ */
+function armSnoozeUntil(deadline: number): void {
+  if (snoozeTimer) clearTimeout(snoozeTimer)
+  snoozeDueAt = deadline
+  snoozeTimer = setTimeout(() => {
+    snoozeTimer = null
+    if (readNow() < deadline) {
+      armSnoozeUntil(deadline)
+      return
+    }
+    snoozeDueAt = 0
+    // The check reads the stored deadline and re-raises; a successful announce
+    // clears it. The heartbeat would do the same within a minute, but the timer
+    // keeps the promise on time.
+    runScheduledCheck()
+  }, Math.max(0, deadline - readNow()))
+  snoozeTimer.unref?.()
+}
+
 function runScheduledCheck(): void {
   if (!running) return
   if (getQuitting()) return
@@ -444,6 +582,10 @@ function runScheduledCheck(): void {
     if (result.status === 'announced') {
       log.info(`Evening wrap raised for ${result.day}`)
     }
+    // The check may have honoured or dropped a stored wait (and cleared it on
+    // disk); the timer must go with it, or it would wake to a promise that is
+    // already kept.
+    if (snoozeTimer && readState(statePath()).snoozeUntil === undefined) cancelSnooze()
   } catch (err) {
     // A wrap must never take the main process down.
     log.warn('Evening wrap check failed:', err)
@@ -479,6 +621,48 @@ function armWrapCheck(): void {
   wrapTimer.unref?.()
 }
 
+// ── "Later" (a two-hour deferral of the card) ─────────────────────────────
+
+/**
+ * The card's secondary action: come back in two hours. Writes the deadline to
+ * disk before returning, so a restart mid-wait still brings the wrap back.
+ * Never touches `lastWrapDay`: a preview raised from the tray and deferred must
+ * not spend the evening's own card. Returns false while the scheduler is not
+ * running or the app is quitting.
+ */
+export function snoozeDayWrap(nowMs?: number): boolean {
+  if (!running || getQuitting()) return false
+  const now = typeof nowMs === 'number' && Number.isFinite(nowMs) ? nowMs : readNow()
+  const deadline = now + DAY_WRAP_SNOOZE_MS
+  armSnoozeUntil(deadline)
+  // Written *before* the timer can fire: a crash in between must not lose the
+  // wait, and it must not fire it either — the file is read back on launch.
+  const file = statePath()
+  const state = readState(file)
+  writeState(file, {
+    version: STATE_VERSION,
+    ...(state.lastWrapDay ? { lastWrapDay: state.lastWrapDay } : {}),
+    ...(state.lastWrapAt !== undefined ? { lastWrapAt: state.lastWrapAt } : {}),
+    snoozeUntil: deadline,
+  })
+  return true
+}
+
+/**
+ * Pick up a "Later" that was asked for before the app closed. A live deadline is
+ * armed for the time that is left. A deadline whose moment passed while nothing
+ * was running is left to the immediate check: on the same evening it is late,
+ * not stale, and still speaks; once midnight has moved the day on it is dropped
+ * rather than spoken late.
+ */
+function restoreSnooze(now: number): void {
+  const stored = readState(statePath()).snoozeUntil
+  if (!stored || stored <= now) return
+  armSnoozeUntil(stored)
+  snoozeRestored += 1
+  log.info(`Restored a pending "Later" for ${Math.round((stored - now) / 60000)} more minute(s)`)
+}
+
 /**
  * Start the evening wrap. Idempotent: a second call does nothing. The immediate
  * check covers "the app started after 18:30"; the attention pipeline still
@@ -491,7 +675,11 @@ export function startDayWrap(options: DayWrapOptions = {}): void {
   stateFile = options.stateFile
   getQuitting = typeof options.getQuitting === 'function' ? options.getQuitting : () => false
   getEnabled = typeof options.getEnabled === 'function' ? options.getEnabled : () => false
+  snoozeRestored = 0
 
+  // Before the first check: a wait the user asked for in a previous run is back
+  // in the timers rather than looking like a deadline nobody remembers.
+  restoreSnooze(readNow())
   runScheduledCheck()
   armWrapCheck()
 
@@ -516,6 +704,9 @@ export function startDayWrap(options: DayWrapOptions = {}): void {
 export function stopDayWrap(): void {
   if (!running) return
   running = false
+  // Quitting drops the timer only; the stored deadline stays, so the wait is
+  // still there next launch (see `restoreSnooze`).
+  cancelSnooze()
   if (tickTimer) {
     clearInterval(tickTimer)
     tickTimer = null
@@ -532,7 +723,21 @@ export function stopDayWrap(): void {
 
 /** Diagnostics for the harness and for a future status panel; no UI reads it. */
 export function getDayWrapStatus(): DayWrapStatusReport {
-  const timers = [tickTimer, wrapTimer].filter((timer): timer is NodeJS.Timeout => timer !== null)
+  const timers = [tickTimer, wrapTimer, snoozeTimer]
+    .filter((timer): timer is NodeJS.Timeout => timer !== null)
   const unrefed = timers.every(timer => typeof timer.hasRef !== 'function' || timer.hasRef() === false)
   return { running, timers: timers.length, unrefed }
+}
+
+export interface DayWrapSnoozeStatus {
+  pending: boolean
+  /** Wall-clock ms the pending wait fires at; 0 when none. */
+  dueAt: number
+  /** How many waits were read back from the state file after a restart. */
+  restored: number
+}
+
+/** Diagnostics for the harness; no UI reads it. */
+export function getDayWrapSnoozeStatus(): DayWrapSnoozeStatus {
+  return { pending: snoozeTimer !== null, dueAt: snoozeDueAt, restored: snoozeRestored }
 }
