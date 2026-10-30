@@ -249,6 +249,10 @@ Session handoffs land where they point: auto-resume, the welcome screen's contin
 
 - **The quick switcher went back under 500 lines by extraction**: the two `Ctrl+Enter` cues moved into `SessionQuickSwitcherRevealHint.tsx`, which draws and decides nothing — the eligibility question stays in the switcher, which is the only place that knows which row is highlighted. The department brief gave up its budget, spend and note sections (`DeptBriefBudget` / `DeptBriefSpend` / `DeptBriefNote`) and fell from 1,167 lines to 716, and the plugin install form moved out of `SettingsPlugins` into its own panel. The ceilings were not raised; the harnesses that watch them still fail at 501.
 
+### 🩹 Wave 93 uncovered a blank window, and the cause was older than it
+
+- **`app-chat` and `app-shared` import each other, and one module-level copy was read too early**: the effort picker aliased `EFFORT_LEVELS` into a module-scope constant. The picker ships in `app-chat`, the list lives in `app-shared`, and those two chunks have imported each other for a while — Rollup's initialisation order for a cycle is not guaranteed, and this round's new shared modules (`deptQuickSwitch`, `pluginInstallInput`, `speechSupport`) shifted it far enough that the alias ran before the list was assigned. The chunk threw `Cannot access … before initialization` while it initialised, which is a white window rather than a broken panel, because the chat chunk is loaded on the startup path. The alias is gone and the list is read where it is rendered, so the read happens after initialisation whatever order the chunks take. The cycle itself is still there and still worth breaking; what is fixed is the failure it could produce.
+
 ---
 
 ## 🤖 One Cockpit, Two Engines

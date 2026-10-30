@@ -13,8 +13,12 @@ import {
   type EffortLevel,
 } from '../../lib/sessionEffort'
 
-const EFFORT_OPTIONS: readonly EffortLevel[] = EFFORT_LEVELS
-
+// `EFFORT_LEVELS` is read where it is rendered, not copied into a module-level
+// alias. This file lands in the `app-chat` chunk while `sessionEffort` lands in
+// `app-shared`, and those two chunks import each other; a top-level copy is
+// evaluated during module initialisation and can run before `app-shared` has
+// assigned the constant, which throws "Cannot access … before initialization"
+// and leaves the whole page blank.
 const EFFORT_COLORS: Record<EffortLevel, string> = {
   auto: '#818cf8',   // blue
   low: '#4ade80',    // green
@@ -283,7 +287,7 @@ export default function EffortPicker() {
                 : t('effort.followsDefaultHint', { level: t(`effort.${globalEffort}`) })
               : t('effort.globalHint')}
           </div>
-          {EFFORT_OPTIONS.map(level => {
+          {EFFORT_LEVELS.map(level => {
             const isSelected = level === currentEffort
             const lvlColor = EFFORT_COLORS[level]
             const unsupported = isUnsupported(level)

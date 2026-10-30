@@ -14,3 +14,4 @@
 - [Automation job effort](automation-job-effort.md) — one level list in `job-effort.ts`, absent = global at run time, explicit auto sends nothing; no `src/shared` because of rootDir
 - [Skill-backed jobs](skill-backed-jobs.md) — identity is source + one directory segment (never a path), shared 8,000 ceiling, `skill_missing` disables like a deleted workflow
 - [npm plugin install](npm-plugin-install.md) — `plugin:install:npm` runs `node npm-cli.js` (never `npm`/`shell:true`), scoped-path resolution, two-copy validator
+- [Renderer chunk cycle → TDZ](renderer-chunk-cycle-tdz.md) — module-scope alias of an imported const across app-chat/app-shared throws "before initialization" and white-screens the window; read it at render time
