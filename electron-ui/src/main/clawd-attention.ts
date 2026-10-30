@@ -1040,13 +1040,22 @@ function metaRows(item: AttentionItem): ClawdBubbleMetaRow[] {
     return reviewRows
   }
   // The evening wrap names what was finished today, with a ×N marker when a
-  // repeating task was checked off more than once. Same task-row look as the
-  // due and review cards: the rows are the card's content, not diagnostics.
+  // repeating task was checked off more than once, then the first two of
+  // tomorrow's tasks. Same task-row look as the due and review cards: the rows
+  // are the card's content, not diagnostics.
   if (item.kind === 'day-wrap') {
     const wrap = item.wrap
-    if (!wrap || !Array.isArray(wrap.rows) || wrap.rows.length === 0) return []
+    if (!wrap) return []
+    // An aggregate built by an older caller predates `tomorrowRows`; a legacy
+    // one must render exactly as before rather than throw on `undefined.map`.
+    const tomorrow = Array.isArray(wrap.tomorrowRows) ? wrap.tomorrowRows : []
+    const doneRows = Array.isArray(wrap.rows) ? wrap.rows : []
+    // A day with nothing finished still ends with tomorrow's work: an empty
+    // finished list is not a reason to drop the rows that tell the user what
+    // to start on in the morning.
+    if (doneRows.length === 0 && tomorrow.length === 0) return []
     const done = t('attentionDayWrapRowDone')
-    const wrapRows: ClawdBubbleMetaRow[] = wrap.rows.map(row => ({
+    const wrapRows: ClawdBubbleMetaRow[] = doneRows.map(row => ({
       label: row.title,
       value: row.count > 1 ? `${done} ×${row.count}` : done,
       title: row.title,
@@ -1058,6 +1067,11 @@ function metaRows(item: AttentionItem): ClawdBubbleMetaRow[] {
         value: fmt(t('attentionDayWrapMore'), { n: wrap.more }),
         variant: 'more',
       })
+    }
+    // Tomorrow's named tasks come last, so the card ends with what is next.
+    const tomorrowLabel = t('attentionDayWrapRowTomorrow')
+    for (const title of tomorrow) {
+      wrapRows.push({ label: title, value: tomorrowLabel, title, variant: 'due' })
     }
     return wrapRows
   }
@@ -1221,7 +1235,7 @@ function buildPayload(item: AttentionItem): BuiltBubble {
       pill = t('attentionDayWrapPill')
       const wrap = item.wrap ?? {
         day: '', finished: 0, finishedTasks: 0, rows: [], more: 0,
-        open: 0, overdue: 0, dueTomorrow: 0,
+        open: 0, overdue: 0, dueTomorrow: 0, tomorrowRows: [],
       }
       const finished = wrap.finished > 0
         ? (wrap.finished === 1

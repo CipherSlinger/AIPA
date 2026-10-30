@@ -444,6 +444,41 @@ body { padding: 8px; }
 }
 .day-col.peak .day-label { color: var(--text); }
 
+/* A day with finished tasks is a real button: clicking (or Enter/Space on the
+   focused column) narrows the finished list to that day. The reset keeps the
+   existing flex column and bar track geometry; only the interaction is new. */
+button.day-col {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: center;
+  cursor: pointer;
+  outline: none;
+}
+button.day-col:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--accent) 72%, transparent);
+  outline-offset: 2px;
+}
+.panel[data-theme="clawd"] button.day-col:focus-visible { border-radius: 6px; }
+
+/* Selected day: a ring in both skins, while every other column recedes. The
+   change is a state swap with no transition, so it is identical under
+   prefers-reduced-motion. */
+.day-col.selected {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+.panel[data-theme="clawd"] .day-col.selected {
+  border-radius: 6px;
+  outline-offset: 1px;
+}
+.chart.filtered .day-col { opacity: 0.55; }
+.chart.filtered .day-col.selected { opacity: 1; }
+.chart.filtered .day-col.selected .day-label { color: var(--text); }
+
 /* Bars grow once on first paint; a repaint or resize never replays it. */
 .chart.grow .bar-fill { animation: barGrow 480ms var(--ease) both; }
 @keyframes barGrow {
@@ -630,6 +665,45 @@ body { padding: 8px; }
   text-transform: none;
 }
 
+/* The active day filter. It sits between the finished heading and its rows,
+   reads "<weekday> · <shown> ×", and clears the filter when clicked. */
+.filter-chip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  margin: 0 2px 6px;
+  padding: 2px 7px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--accent);
+  font: inherit;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  outline: none;
+}
+.panel[data-theme="clawd"] .filter-chip {
+  margin-bottom: 7px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+.filter-chip:hover,
+.filter-chip:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 68%, transparent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+.panel[data-theme="sao"] .filter-chip:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
 .empty {
   padding: 9px 4px 11px;
   font-size: 9.5px;
@@ -802,6 +876,9 @@ body { padding: 8px; }
 
     <section class="section">
       <h2 class="section-title" id="finishedTitle"></h2>
+      <!-- Only while a day filter is active: clears it. Report height after
+           every show/hide so main can resize the frameless window. -->
+      <button class="filter-chip" id="filterChip" type="button" hidden></button>
       <div class="rows" id="finishedRows"></div>
       <!-- Only when main caps the list (at 40 rows): how many distinct finished
            tasks the names do not cover. `finishedTasks` is the whole week. -->
@@ -850,6 +927,7 @@ body { padding: 8px; }
   var cmpText = document.getElementById("cmpText");
   var chartEl = document.getElementById("chart");
   var finishedTitleEl = document.getElementById("finishedTitle");
+  var filterChipEl = document.getElementById("filterChip");
   var finishedRowsEl = document.getElementById("finishedRows");
   var finishedMoreEl = document.getElementById("finishedMore");
   var finishedEmptyEl = document.getElementById("finishedEmpty");
@@ -894,6 +972,9 @@ body { padding: 8px; }
     payload: null,
     booted: false,
     closing: false,
+    // Local `YYYY-MM-DD` of the day column narrowing the finished list, or
+    // null when the list is whole. Reset on every week change.
+    dayFilter: null,
     focusIndex: -1,
     heightFrame: null,
     animated: false,
@@ -1132,6 +1213,67 @@ body { padding: 8px; }
     nextBtn.title = s.nextWeek;
   }
 
+  // ── Day filter ─────────────────────────────────────────────────────────────
+  // Clicking a day column narrows the finished list to the tasks whose last
+  // completion fell on that day. Clicking it again, the chip, or Escape
+  // clears it. Everything repaints through renderRows(), and the panel
+  // re-reports its height because the chip and the list length change.
+  function filterHasDay(p, day) {
+    for (var i = 0; i < p.days.length; i += 1) {
+      if (p.days[i].day === day && p.days[i].count > 0) return true;
+    }
+    return false;
+  }
+
+  function updateFilterChip(p) {
+    if (!state.dayFilter) {
+      filterChipEl.hidden = true;
+      filterChipEl.textContent = "";
+      filterChipEl.title = "";
+      filterChipEl.removeAttribute("aria-label");
+      return;
+    }
+    var text = weekdayLabel(state.dayFilter, p.lang) + " · " + visibleRows(p).length + " ×";
+    filterChipEl.textContent = text;
+    filterChipEl.title = text;
+    filterChipEl.setAttribute("aria-label", text);
+    filterChipEl.hidden = false;
+  }
+
+  // Repaint the selected column state, the chip and the rows without
+  // rebuilding the chart, so the focused/clicked column keeps focus.
+  function applyFilterUi() {
+    var p = state.payload;
+    if (!p) return;
+    var cols = chartEl.querySelectorAll('[data-testid="day-col"]');
+    for (var i = 0; i < cols.length; i += 1) {
+      var col = cols[i];
+      if (col.tagName !== "BUTTON") continue;
+      var selected = !!state.dayFilter && col.dataset.day === state.dayFilter;
+      col.classList.toggle("selected", selected);
+      col.setAttribute("aria-pressed", selected ? "true" : "false");
+    }
+    chartEl.classList.toggle("filtered", !!state.dayFilter);
+    updateFilterChip(p);
+    // The list is rebuilt for a different set of rows, so an old keyboard
+    // position inside it no longer means anything.
+    state.focusIndex = -1;
+    renderRows(p);
+    reportHeight();
+  }
+
+  function toggleDayFilter(day) {
+    if (!state.payload || !filterHasDay(state.payload, day)) return;
+    state.dayFilter = state.dayFilter === day ? null : day;
+    applyFilterUi();
+  }
+
+  function clearDayFilter() {
+    if (!state.dayFilter) return;
+    state.dayFilter = null;
+    applyFilterUi();
+  }
+
   // ── Chart ──────────────────────────────────────────────────────────────────
   function renderChart(p, first) {
     var max = 1;
@@ -1147,13 +1289,29 @@ body { padding: 8px; }
 
     chartEl.textContent = "";
     chartEl.classList.remove("grow");
+    chartEl.classList.toggle("filtered", !!state.dayFilter);
     for (i = 0; i < p.days.length; i += 1) {
       var day = p.days[i];
       var isZero = day.count === 0;
       var isPeak = hasPeak && day.count === max;
-      var col = document.createElement("div");
-      col.className = "day-col" + (isZero ? " zero" : "") + (isPeak ? " peak" : "");
+      var isSelected = !isZero && state.dayFilter === day.day;
+      // Only a day with something finished is interactive. A zero day keeps
+      // today's inert div, so it never enters the tab order.
+      var col = document.createElement(isZero ? "div" : "button");
+      if (!isZero) col.type = "button";
+      col.className = "day-col" + (isZero ? " zero" : "") + (isPeak ? " peak" : "") +
+        (isSelected ? " selected" : "");
       col.setAttribute("data-testid", "day-col");
+      col.dataset.day = day.day;
+      if (!isZero) {
+        var colLabel = weekdayLabel(day.day, p.lang) + " · " + day.count;
+        col.title = colLabel;
+        col.setAttribute("aria-label", colLabel);
+        col.setAttribute("aria-pressed", isSelected ? "true" : "false");
+        col.addEventListener("click", function () {
+          toggleDayFilter(this.getAttribute("data-day"));
+        });
+      }
 
       var countEl = document.createElement("span");
       countEl.className = "day-count";
@@ -1200,11 +1358,23 @@ body { padding: 8px; }
     return button;
   }
 
+  // Rows shown for the current day filter. The desk half is never filtered:
+  // it describes now, not the reviewed day.
+  function visibleRows(p) {
+    if (!state.dayFilter) return p.rows;
+    var out = [];
+    for (var i = 0; i < p.rows.length; i += 1) {
+      if (p.rows[i].day === state.dayFilter) out.push(p.rows[i]);
+    }
+    return out;
+  }
+
   function renderRows(p) {
     finishedRowsEl.textContent = "";
+    var rows = visibleRows(p);
     var i;
-    for (i = 0; i < p.rows.length; i += 1) {
-      var row = p.rows[i];
+    for (i = 0; i < rows.length; i += 1) {
+      var row = rows[i];
       var button = makeRow("finished-row", row.id);
       button.title = row.title;
 
@@ -1228,14 +1398,18 @@ body { padding: 8px; }
       button.appendChild(day);
       finishedRowsEl.appendChild(button);
     }
-    finishedRowsEl.hidden = p.rows.length === 0;
+    // A filtered day with no matching named row (the cap could have hidden
+    // the whole day) shows the usual empty copy rather than a blank section.
+    finishedRowsEl.hidden = rows.length === 0;
     finishedEmptyEl.textContent = p.labels.emptyFinished;
-    finishedEmptyEl.hidden = p.rows.length > 0;
+    finishedEmptyEl.hidden = rows.length > 0;
 
     // Main caps the named rows (40). `finishedTasks` still carries the whole
-    // week, so the difference is exactly how many names were left out.
+    // week, so the difference is exactly how many names were left out. While
+    // a day filter is active we cannot know how many of the missing names fell
+    // on that day, so the line is hidden instead of inventing a number.
     var hiddenFinished = Math.max(0, p.finishedTasks - p.rows.length);
-    if (hiddenFinished > 0 && p.labels.more) {
+    if (!state.dayFilter && hiddenFinished > 0 && p.labels.more) {
       finishedMoreEl.textContent = fillTemplate(p.labels.more, hiddenFinished);
       finishedMoreEl.hidden = false;
     } else {
@@ -1279,6 +1453,7 @@ body { padding: 8px; }
     renderChrome(payload);
     renderChart(payload, first);
     renderRows(payload);
+    updateFilterChip(payload);
 
     if (first) {
       panel.classList.add("visible");
@@ -1357,6 +1532,9 @@ body { padding: 8px; }
     Promise.resolve(answer).then(function (payload) {
       // A newer request has superseded this one; its answer is stale.
       if (seq !== state.loadSeq) return;
+      // A day belongs to exactly one week, so a filter cannot survive a week
+      // change (including a stale answer landing after a newer one).
+      state.dayFilter = null;
       render(payload, false);
     }).catch(function () { /* fail open: the current week stays */ });
     return true;
@@ -1386,6 +1564,7 @@ body { padding: 8px; }
 
   openTasksBtn.addEventListener("click", openTasks);
   closeBtn.addEventListener("click", closePanel);
+  filterChipEl.addEventListener("click", clearDayFilter);
   prevBtn.addEventListener("click", function () {
     if (prevBtn.disabled) return;
     goBack();
@@ -1418,10 +1597,29 @@ body { padding: 8px; }
 
     if (event.key === "Escape") {
       event.preventDefault();
+      // A filter clears before the card closes, the same way the notice log's
+      // search field clears first. Without a filter, Escape closes normally.
+      if (state.dayFilter) {
+        clearDayFilter();
+        return;
+      }
       closePanel();
       return;
     }
     if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+    // Enter/Space on a focused day column must behave like a click even for a
+    // synthetic keydown (a real browser does this natively; isolated test
+    // harnesses do not). The columns are real buttons, so Tab reaches them.
+    if (event.key === "Enter" || event.key === " " || event.key === "Spacebar") {
+      var focused = document.activeElement;
+      if (focused && focused.tagName === "BUTTON" &&
+          focused.classList && focused.classList.contains("day-col")) {
+        event.preventDefault();
+        if (!event.repeat) focused.click();
+        return;
+      }
+    }
 
     // The week is the card's primary axis: left/right walk weeks from
     // anywhere, including while a row has focus. The payload's flags decide

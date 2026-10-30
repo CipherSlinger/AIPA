@@ -5,7 +5,9 @@
  * names what has arrived, the board shows what is open, the weekly review
  * looks back over seven days. Nothing closes the working day. At 18:30 local,
  * this module raises exactly one card: what got finished today, what is still
- * on the desk, and what is due tomorrow. It is off by default
+ * on the desk, and what is due tomorrow. The card does not just count
+ * tomorrow's work: it names the first two of those tasks, so the evening ends
+ * with something the user can start on in the morning. It is off by default
  * (`petEveningWrap`) and it never writes a task — it only reads the store and
  * speaks through the attention queue.
  *
@@ -20,6 +22,14 @@
  *     machine asleep at 18:30 must still wrap when it wakes the same evening.
  * All timers are unref'd and cleared by `stopDayWrap` on quit; every check also
  * refuses to run once the app is quitting.
+ *
+ * Tomorrow's work, by name
+ *   The third sentence says how many tasks are due tomorrow; the rows below
+ *   it name the first two of them, sorted by title so a repaint cannot
+ *   reshuffle them. Naming them is the difference between a count and
+ *   something the user can pick up in the morning. The count stays whole — it
+ *   covers every open task due tomorrow, not just the two that are named —
+ *   and titles are read exactly as the task stores them.
  *
  * What the day is
  *   Today's window is `[local midnight, local midnight tomorrow)`, built with
@@ -66,6 +76,13 @@ const log = createLogger('day-wrap')
  */
 export const DAY_WRAP_ROWS_SHOWN = 3
 
+/**
+ * How many of tomorrow's open tasks one wrap may name. The sentence above the
+ * rows still counts all of them; these rows answer "which ones?" for the next
+ * two things the user will have to do.
+ */
+export const DAY_WRAP_UPCOMING_SHOWN = 2
+
 /** The evening hour at which the day is treated as over. */
 export const WRAP_HOUR = 18
 export const WRAP_MINUTE = 30
@@ -104,6 +121,8 @@ export interface DayWrapAggregate {
   overdue: number
   /** Of those open tasks, how many have a dueOn of tomorrow. */
   dueTomorrow: number
+  /** Up to DAY_WRAP_UPCOMING_SHOWN open tasks due tomorrow, by title. */
+  tomorrowRows: string[]
 }
 
 interface CalendarDay {
@@ -156,9 +175,10 @@ function dayWindow(nowMs: number): {
 
 /**
  * The day as the evening card tells it: the completion occurrences and
- * distinct tasks finished today, the first few titles, and the desk as it
- * stands at `nowMs` (a task finished today and still open counts as open too,
- * because the desk is read as it is now).
+ * distinct tasks finished today, the first few titles, the first couple of
+ * tomorrow's open tasks by title, and the desk as it stands at `nowMs` (a task
+ * finished today and still open counts as open too, because the desk is read
+ * as it is now).
  *
  * Never throws on an odd record: a task without a history array, an event
  * without a finite instant and a malformed due day are skipped, not fatal.
@@ -171,6 +191,7 @@ export function collectDayWrap(tasks: readonly TaskRecord[], nowMs: number): Day
   let overdue = 0
   let dueTomorrow = 0
   const completed: Array<{ title: string; latestAt: number; count: number }> = []
+  const upcoming: string[] = []
 
   for (const task of tasks) {
     const history = Array.isArray(task.history) ? task.history : []
@@ -196,7 +217,10 @@ export function collectDayWrap(tasks: readonly TaskRecord[], nowMs: number): Day
     // tomorrow.
     if (typeof task.dueOn === 'string' && DAY_RE.test(task.dueOn)) {
       if (task.dueOn < day) overdue += 1
-      else if (task.dueOn === tomorrow) dueTomorrow += 1
+      else if (task.dueOn === tomorrow) {
+        dueTomorrow += 1
+        upcoming.push(task.title)
+      }
     }
   }
 
@@ -208,6 +232,13 @@ export function collectDayWrap(tasks: readonly TaskRecord[], nowMs: number): Day
     .slice(0, DAY_WRAP_ROWS_SHOWN)
     .map(row => ({ title: row.title, count: row.count }))
 
+  // Tomorrow's first two tasks, by title, so a repaint never reshuffles them.
+  // Titles are kept exactly as stored — the card names the task, it does not
+  // tidy it. The count above them still covers every task due tomorrow.
+  const tomorrowRows = upcoming
+    .sort((a, b) => a.localeCompare(b))
+    .slice(0, DAY_WRAP_UPCOMING_SHOWN)
+
   return {
     day,
     finished,
@@ -217,6 +248,7 @@ export function collectDayWrap(tasks: readonly TaskRecord[], nowMs: number): Day
     open,
     overdue,
     dueTomorrow,
+    tomorrowRows,
   }
 }
 
