@@ -91,6 +91,13 @@ function createWindow(): void {
     title: 'AIPA',
     backgroundColor: bgColor,
     ...(iconFile ? { icon: iconFile } : {}),
+    // The window has its own title bar (`titleBarStyle: 'hidden'`), so the
+    // native menu bar is a second, unexpected strip — and on Windows Chromium
+    // claims `Alt+<letter>` for menu mnemonics before the page sees the key,
+    // which would swallow the `Alt+1..9` department chords. Hidden, not removed:
+    // the accelerators the template defines still work, and Alt reveals the bar
+    // only while it is focused, which is the platform's normal behaviour.
+    autoHideMenuBar: true,
     titleBarStyle: 'hidden',
     titleBarOverlay: {
       color: overlayColor,

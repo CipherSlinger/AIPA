@@ -99,7 +99,7 @@ export default function ChatInput({
     addToast('info', t('voice.autoStopped'))
   }, [addToast, t])
 
-  const { listening, recordingSeconds, toggleSpeech } = useSpeechRecognition((transcript) => {
+  const { listening, recordingSeconds, toggleSpeech, supported: speechSupported } = useSpeechRecognition((transcript) => {
     setInput(prev => prev + transcript)
   }, handleAutoStop)
 
@@ -480,6 +480,7 @@ export default function ChatInput({
         listening={listening}
         recordingSeconds={recordingSeconds}
         toggleSpeech={toggleSpeech}
+        speechSupported={speechSupported}
         onAtClick={() => { setInput(prev => prev + '@'); popups.setAtQuery(''); textareaRef.current?.focus() }}
         onSlashClick={() => { setInput('/'); popups.setSlashQuery(''); popups.setSlashIndex(0); textareaRef.current?.focus() }}
         onQueueClick={() => {

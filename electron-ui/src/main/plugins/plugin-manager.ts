@@ -21,8 +21,17 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
-import { execFileSync } from 'child_process'
+import { execFile } from 'child_process'
 import { createLogger } from '../utils/logger'
+import {
+  installNpmPluginWith,
+  npmCliJsCandidates,
+  npmEnv,
+  npmRunnerFor,
+  type NpmInstallDeps,
+  type NpmInstallResult,
+  type NpmRunner,
+} from './npm-install'
 
 const log = createLogger('plugin-manager')
 
@@ -144,20 +153,105 @@ export function registerLocalPlugin(pluginPath: string): InstalledPlugin {
   return plugin
 }
 
-/** Register a plugin from npm (installs globally then reads manifest) */
-export async function installNpmPlugin(packageName: string): Promise<InstalledPlugin> {
-  log.info('installNpmPlugin:', packageName)
+/**
+ * Register a plugin that npm has already installed.
+ *
+ * `source` is recorded as `npm:<spec>` (not `local:<path>`), so the Settings
+ * list can tell an npm install from a folder the user pointed at; everything
+ * else is `registerLocalPlugin`, which reads the manifest and rewrites the
+ * registry.
+ */
+export function registerInstalledNpmPlugin(packageDir: string, source: string): { name: string; version?: string } {
+  const plugin = registerLocalPlugin(packageDir)
+  const data = readPluginsFile()
+  const entry = data.plugins.find(p => p.name === plugin.name)
+  if (entry) {
+    entry.source = source
+    writePluginsFile(data)
+    plugin.source = source
+  }
+  return { name: plugin.name, version: plugin.version }
+}
 
-  // npm install -g <packageName>
-  execFileSync('npm', ['install', '-g', packageName, '--json'], {
-    stdio: ['ignore', 'pipe', 'pipe'],
-    timeout: 120_000,
+/**
+ * Locate npm as a file we can run through `execFile` with an argv array.
+ *
+ * `execFile('npm', …)` fails with ENOENT on Windows and EINVAL on
+ * `.cmd` shims without a shell — and a shell is exactly what this module
+ * refuses to hand a package name to. So npm's own `npm-cli.js` is
+ * preferred, run by the node that runs this process; Electron sets
+ * `ELECTRON_RUN_AS_NODE=1` for it.
+ */
+function locateNpmRunner(): NpmRunner | null {
+  const env = process.env
+  const pathDirs = String(env.PATH || env.Path || '')
+    .split(path.delimiter)
+    .map(dir => dir.trim())
+    .filter(Boolean)
+  const candidates = npmCliJsCandidates({
+    execPath: process.execPath,
+    env,
+    pathDirs,
   })
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) {
+        return npmRunnerFor({ nodePath: process.execPath, npmCliJs: candidate })
+      }
+    } catch { /* unreadable candidate */ }
+  }
+  // Last resort: a plain npm binary on PATH. Kept for a machine that ships one
+  // (a `npm` shell script or .exe); the spec is still a single argv entry.
+  return { command: 'npm', prefixArgs: [], env: {}, via: 'npm-binary' }
+}
 
-  // Find installed path
-  const installDir = execFileSync('npm', ['root', '-g'], { encoding: 'utf-8' }).trim()
-  const pkgName = packageName.replace(/^@[^/]+\//, '').split('@')[0]
-  const pluginPath = path.join(installDir, packageName.split('@')[0])
+/** Run npm and resolve stdout. Never a shell; the spec is one argv element. */
+function execNpm(runner: NpmRunner, args: string[], timeoutMs: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile(
+      runner.command,
+      [...runner.prefixArgs, ...args],
+      {
+        encoding: 'utf-8',
+        timeout: timeoutMs,
+        windowsHide: true,
+        maxBuffer: 8 * 1024 * 1024,
+        env: npmEnv(process.env, runner.env),
+        shell: false,
+      },
+      (err, stdout) => {
+        if (err) reject(err)
+        else resolve(String(stdout))
+      }
+    )
+  })
+}
 
-  return registerLocalPlugin(fs.existsSync(pluginPath) ? pluginPath : installDir)
+const npmInstallDeps: NpmInstallDeps = {
+  locateRunner: locateNpmRunner,
+  exec: execNpm,
+  exists: (filePath) => {
+    try { return fs.existsSync(filePath) } catch { return false }
+  },
+  readText: (filePath) => fs.readFileSync(filePath, 'utf-8'),
+  register: registerInstalledNpmPlugin,
+}
+
+/**
+ * Install a plugin by npm package name.
+ *
+ * Returns a refusal instead of throwing, because the Settings form has to say
+ * which step failed (`invalid_package_name`, `npm_not_found`, `install_failed`,
+ * `manifest_missing`) rather than show an invoke rejection with a stack trace.
+ * The global install is the user's machine being changed: this function is
+ * only ever reached from an explicit confirm in the renderer.
+ */
+export async function installNpmPlugin(packageName: string): Promise<NpmInstallResult> {
+  const result = await installNpmPluginWith(packageName, npmInstallDeps)
+  if (result.ok) {
+    log.info('installNpmPlugin:', result.plugin.source, '→', result.plugin.name)
+  } else {
+    log.warn('installNpmPlugin refused:', result.reason, result.detail)
+  }
+  return result
 }

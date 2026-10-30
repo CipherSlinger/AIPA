@@ -1,7 +1,16 @@
 // SettingsPlugins — install, manage, and enable/disable Claude Code plugins
 import React, { useState, useEffect, useCallback } from 'react'
-import { Puzzle, Plus, Trash2, RefreshCw, AlertTriangle, X, FolderOpen } from 'lucide-react'
+import { Puzzle, Plus, Trash2, RefreshCw, AlertTriangle, X } from 'lucide-react'
 import { useI18n } from '../../i18n'
+import PluginInstallPanel from './PluginInstallPanel'
+import {
+  isNpmInstallResult,
+  navReloadSummary,
+  reloadMessage,
+  type InstallMessage,
+  type InstallMode,
+  type NpmInstallResult,
+} from '../../lib/pluginInstallInput'
 
 interface InstalledPlugin {
   name: string
@@ -14,7 +23,10 @@ interface InstalledPlugin {
   hooks?: Record<string, unknown>
 }
 
-type InstallMode = 'local'
+interface NavPluginBrief {
+  manifest: { id: string }
+  dirPath: string
+}
 
 const sectionLabelStyle: React.CSSProperties = {
   fontSize: 10,
@@ -30,12 +42,17 @@ export default function SettingsPlugins() {
   const [plugins, setPlugins] = useState<InstalledPlugin[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [installing, setInstalling] = useState(false)
-  const [installPath, setInstallPath] = useState('')
+  const [installingLocal, setInstallingLocal] = useState(false)
+  const [installingNpm, setInstallingNpm] = useState(false)
+  const [installMode, setInstallMode] = useState<InstallMode>('local')
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [toggling, setToggling] = useState<string | null>(null)
   const [showInstallForm, setShowInstallForm] = useState(false)
   const [deleteHover, setDeleteHover] = useState<string | null>(null)
+  const [reloading, setReloading] = useState(false)
+  const [reloadNote, setReloadNote] = useState<InstallMessage | null>(null)
+
+  const busy = installingLocal || installingNpm
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -52,21 +69,76 @@ export default function SettingsPlugins() {
 
   useEffect(() => { load() }, [load])
 
-  const handleInstallLocal = async () => {
-    if (!installPath.trim()) return
-    setInstalling(true)
+  // ── Local folder install ─────────────────────────────────────────────────
+  const handleInstallLocal = async (folder: string) => {
+    if (installingLocal || installingNpm) return
+    setInstallingLocal(true)
     setError(null)
     try {
-      await window.electronAPI.pluginRegisterLocal(installPath.trim())
-      setInstallPath('')
-      setShowInstallForm(false)
+      await window.electronAPI.pluginRegisterLocal(folder)
       await load()
     } catch (e) {
       setError(t('settingsPlugins.installError', { error: String(e) }))
     } finally {
-      setInstalling(false)
+      setInstallingLocal(false)
     }
   }
+
+  const handleBrowse = async (): Promise<string | null> => {
+    try {
+      const dir = await window.electronAPI.fsShowOpenDialog()
+      return dir || null
+    } catch {
+      return null
+    }
+  }
+
+  // ── npm package install ──────────────────────────────────────────────────
+  // The main process answers with a refusal carrying its reason; this only
+  // refreshes and reloads after a success, and never claims a plugin appeared
+  // on a refusal.
+  const handleInstallNpm = async (spec: string): Promise<NpmInstallResult | null> => {
+    if (installingLocal || installingNpm) return null
+    setInstallingNpm(true)
+    setError(null)
+    try {
+      const raw = await window.electronAPI.pluginInstallNpm(spec)
+      const result: NpmInstallResult = isNpmInstallResult(raw) ? raw : { ok: false, reason: 'install_failed' }
+      if (!result.ok) return result
+      await load()
+      // The same channel the sidebar uses; no second reload channel exists.
+      await reloadNavPlugins()
+      return result
+    } catch (e) {
+      // A rejected invoke is not a refusal reason; report it as a failed
+      // install so the form still says something true.
+      return { ok: false, reason: 'install_failed', detail: String(e) }
+    } finally {
+      setInstallingNpm(false)
+    }
+  }
+
+  // ── Nav plugin reload ────────────────────────────────────────────────────
+  // Compares the rail before and after so "nothing changed" can be said
+  // honestly, instead of implying a plugin appeared.
+  const reloadNavPlugins = useCallback(async (): Promise<void> => {
+    if (reloading) return
+    setReloading(true)
+    setReloadNote(null)
+    try {
+      const before = (await window.electronAPI.pluginNavList()) as NavPluginBrief[]
+      const after = (await window.electronAPI.pluginNavReload()) as NavPluginBrief[]
+      const summary = navReloadSummary(
+        (before || []).map(p => ({ id: p.manifest.id, dirPath: p.dirPath })),
+        (after || []).map(p => ({ id: p.manifest.id, dirPath: p.dirPath })),
+      )
+      setReloadNote(reloadMessage(summary))
+    } catch (e) {
+      setReloadNote({ key: 'settingsPlugins.reload.failed', params: { error: String(e) } })
+    } finally {
+      setReloading(false)
+    }
+  }, [reloading])
 
   const handleToggle = async (name: string, enabled: boolean) => {
     setToggling(name)
@@ -90,13 +162,6 @@ export default function SettingsPlugins() {
     }
   }
 
-  const handleBrowseDir = async () => {
-    try {
-      const dir = await window.electronAPI.fsShowOpenDialog()
-      if (dir) setInstallPath(dir)
-    } catch { /* cancelled */ }
-  }
-
   const sourceLabel = (source: string) => {
     if (source.startsWith('local:')) return source.slice(6)
     if (source.startsWith('npm:')) return source.slice(4)
@@ -113,15 +178,6 @@ export default function SettingsPlugins() {
     if (source.startsWith('local:')) return 'rgba(74,222,128,0.55)'
     if (source.startsWith('npm:')) return 'rgba(251,191,36,0.55)'
     return 'rgba(99,102,241,0.55)'
-  }
-
-  const inputStyle: React.CSSProperties = {
-    flex: 1, padding: '7px 10px', fontSize: 13,
-    background: 'var(--bg-input)',
-    border: '1px solid var(--glass-border)',
-    borderRadius: 7, color: 'var(--text-primary)',
-    outline: 'none', boxSizing: 'border-box',
-    transition: 'all 0.15s ease',
   }
 
   return (
@@ -151,7 +207,25 @@ export default function SettingsPlugins() {
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           <button
-            onClick={load}
+            onClick={() => { void reloadNavPlugins() }}
+            disabled={reloading}
+            title={t('settingsPlugins.reload.title')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: 6, cursor: reloading ? 'wait' : 'pointer',
+              padding: '5px 8px', fontSize: 11,
+              color: 'var(--text-muted)',
+              transition: 'all 0.15s ease',
+              opacity: reloading ? 0.6 : 1,
+            }}
+          >
+            <RefreshCw size={12} style={{ animation: reloading ? 'spin 0.8s linear infinite' : undefined }} />
+            {t('settingsPlugins.reload.action')}
+          </button>
+          <button
+            onClick={() => { void load() }}
             title={t('common.refresh')}
             style={{
               background: 'var(--bg-hover)',
@@ -211,96 +285,37 @@ export default function SettingsPlugins() {
         {t('settingsPlugins.description')}
       </div>
 
-      {/* Install form */}
-      {showInstallForm && (
+      {/* Reload note — honest about whether anything changed */}
+      {reloadNote && (
         <div style={{
+          display: 'flex', gap: 8, alignItems: 'flex-start',
+          padding: '8px 12px', marginTop: -8,
           background: 'var(--glass-shimmer)',
           border: '1px solid var(--glass-border)',
-          borderRadius: 10, padding: '16px',
+          borderRadius: 8, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5,
         }}>
-          <div style={sectionLabelStyle}>{t('settingsPlugins.installLocal')}</div>
-          <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-            <input
-              value={installPath}
-              onChange={e => setInstallPath(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleInstallLocal() }}
-              placeholder={t('settingsPlugins.installPathPlaceholder')}
-              style={inputStyle}
-              onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)' }}
-              onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border)' }}
-            />
-            <button
-              onClick={handleBrowseDir}
-              title={t('settingsPlugins.browseDir')}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                padding: '7px 10px', fontSize: 12,
-                background: 'var(--bg-input)',
-                border: '1px solid var(--glass-border)',
-                borderRadius: 7, color: 'var(--text-secondary)', cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.40)'
-                e.currentTarget.style.color = 'var(--accent-text)'
-                e.currentTarget.style.background = 'rgba(99,102,241,0.10)'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = 'var(--glass-border)'
-                e.currentTarget.style.color = 'var(--text-secondary)'
-                e.currentTarget.style.background = 'var(--bg-input)'
-              }}
-            >
-              <FolderOpen size={13} />
-            </button>
-          </div>
-          <div style={{
-            fontSize: 11, color: 'var(--text-faint)',
-            marginBottom: 12, lineHeight: 1.6,
-          }}>
-            {t('settingsPlugins.installDirHint')}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-            <button
-              onClick={() => { setShowInstallForm(false); setInstallPath('') }}
-              style={{
-                background: 'var(--bg-hover)',
-                border: '1px solid var(--glass-border)',
-                borderRadius: 7, padding: '6px 14px',
-                cursor: 'pointer', fontSize: 12,
-                color: 'var(--text-secondary)',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = 'var(--glass-border-md)'
-                e.currentTarget.style.color = 'var(--text-primary)'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'var(--bg-hover)'
-                e.currentTarget.style.color = 'var(--text-secondary)'
-              }}
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              onClick={handleInstallLocal}
-              disabled={installing || !installPath.trim()}
-              style={{
-                padding: '6px 16px', fontSize: 12, fontWeight: 600,
-                background: installing || !installPath.trim()
-                  ? 'rgba(99,102,241,0.25)'
-                  : 'linear-gradient(135deg, rgba(99,102,241,0.88), rgba(139,92,246,0.88))',
-                border: 'none', borderRadius: 7,
-                color: 'var(--text-primary)',
-                cursor: installing || !installPath.trim() ? 'not-allowed' : 'pointer',
-                opacity: installing || !installPath.trim() ? 0.6 : 1,
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {installing ? t('settingsPlugins.installingPlugin') : t('settingsPlugins.installPlugin')}
-            </button>
-          </div>
+          <RefreshCw size={12} style={{ flexShrink: 0, marginTop: 2 }} />
+          <span style={{ flex: 1 }}>{t(reloadNote.key, reloadNote.params)}</span>
+          <button
+            onClick={() => setReloadNote(null)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 0, display: 'flex', alignItems: 'center' }}
+          >
+            <X size={12} />
+          </button>
         </div>
+      )}
+
+      {/* Install panel */}
+      {showInstallForm && (
+        <PluginInstallPanel
+          busy={busy}
+          mode={installMode}
+          onModeChange={setInstallMode}
+          onInstallLocal={handleInstallLocal}
+          onInstallNpm={handleInstallNpm}
+          onBrowse={handleBrowse}
+          onClose={() => setShowInstallForm(false)}
+        />
       )}
 
       {/* Error banner */}

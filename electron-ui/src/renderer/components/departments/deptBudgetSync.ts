@@ -7,13 +7,27 @@
 // cap would then under-cover without ever saying so. App.tsx therefore mounts
 // this once, at startup and on every tree change.
 //
-// The module is deliberately quiet: a failed sync is not a user-facing error,
-// because the tree is still here and the next change retries. It must never
-// throw into React, so every IPC call is caught and every rejection is swallowed
-// after the promise settles.
+// Every attempt now answers. It used to return `void` and swallow both a missing
+// preload and a rejected call, so a membership refresh could vanish while the
+// Brief still showed the cap as if its coverage were current. The answer is one
+// of `saved` / `unsupported` / `failed` (see `syncOutcome.ts`); it is published
+// for the surface next to the cap and returned to a caller that wants to await
+// it. Only `{ ok: true }` from main counts as saved — a refusal is retried by
+// the next tree change instead of being remembered as delivered.
+//
+// The debounce and single-flight shape is unchanged, and nothing here throws
+// into React.
 
 import type { Department } from '../../store'
 import { subtreeEntries, type DeptBudgetSyncEntry } from './deptBudget.data'
+import { publishDeptSyncOutcome } from './deptSyncStatus'
+import {
+  SAVED_OUTCOME,
+  failedOutcome,
+  outcomeFromReply,
+  unsupportedOutcome,
+  type SyncOutcome,
+} from './syncOutcome'
 
 /** One tree edit is cheap; a burst of edits should cost one sync. */
 export const BUDGET_SYNC_DEBOUNCE_MS = 400
@@ -33,14 +47,30 @@ export function budgetSyncKey(entries: readonly DeptBudgetSyncEntry[]): string {
   return JSON.stringify(entries)
 }
 
+type Waiter = (outcome: SyncOutcome) => void
+
 let timer: ReturnType<typeof setTimeout> | null = null
 let pendingEntries: DeptBudgetSyncEntry[] | null = null
 let pendingKey: string | null = null
-/** The last payload main acknowledged. Identical payloads are not resent. */
+/** The last payload main accepted. Identical payloads are not resent. */
 let lastSentKey: string | null = null
 /** One call at a time; a tree that changes mid-flight waits its turn. */
 let inFlight = false
 let delayMs = BUDGET_SYNC_DEBOUNCE_MS
+/**
+ * Schedules that are still waiting for an answer. They all describe "the tree
+ * as last queued", so the next settled flush answers them: a newer payload that
+ * superseded theirs is at least as new, and a deduplicated one was already
+ * accepted by main.
+ */
+let waiters: Waiter[] = []
+
+function settle(outcome: SyncOutcome): void {
+  publishDeptSyncOutcome('cap', outcome)
+  const waiting = waiters
+  waiters = []
+  for (const resolve of waiting) resolve(outcome)
+}
 
 function scheduleFlush(): void {
   if (timer) clearTimeout(timer)
@@ -60,31 +90,38 @@ function flush(): void {
   const key = pendingKey
   pendingEntries = null
   pendingKey = null
-  if (key === lastSentKey) return
+
+  if (key === lastSentKey) {
+    settle(SAVED_OUTCOME)
+    return
+  }
 
   inFlight = true
   let call: Promise<unknown>
   try {
     const api = typeof window !== 'undefined' ? window.electronAPI : undefined
     if (!api?.automationDeptBudgetSync) {
-      // Preload is missing or too old. Stay silent; a later tree change retries.
+      // Preload is missing or too old. Say so; a later tree change tries again.
       inFlight = false
+      settle(unsupportedOutcome('automationDeptBudgetSync'))
       return
     }
     call = Promise.resolve(api.automationDeptBudgetSync(entries))
-  } catch {
+  } catch (err) {
     inFlight = false
+    settle(failedOutcome(err))
     return
   }
 
   call
-    .then(() => {
-      lastSentKey = key
+    .then(reply => {
+      const outcome = outcomeFromReply(reply)
+      // Only an accepted payload is remembered. A refused one is retried by
+      // the next change instead of being counted as delivered.
+      if (outcome.status === 'saved') lastSentKey = key
+      settle(outcome)
     })
-    .catch(() => {
-      // Silent by design: no cap is broken by a failed membership refresh, and
-      // the next tree change sends the then-current payload again.
-    })
+    .catch(err => settle(failedOutcome(err)))
     .finally(() => {
       inFlight = false
       // A newer tree arrived while this call was out; give it the same debounce.
@@ -93,32 +130,48 @@ function flush(): void {
 }
 
 /**
- * Queue a membership sync for this tree. Safe to call on every departments
- * render: an unchanged payload is dropped before the timer, and a payload main
- * already acknowledged is dropped again at send time.
+ * Queue a membership sync for this tree and return the answer it will receive.
+ *
+ * Safe to call on every departments render: an unchanged payload is dropped
+ * before the timer, and a payload main already acknowledged is dropped again at
+ * send time. The promise never rejects; it resolves with `saved`, `unsupported`
+ * or `failed`.
  */
 export function scheduleDeptBudgetSync(
   departments: readonly Department[],
   delay = BUDGET_SYNC_DEBOUNCE_MS,
-): void {
+): Promise<SyncOutcome> {
   delayMs = delay
   let entries: DeptBudgetSyncEntry[]
   try {
     entries = buildBudgetSyncPayload(departments)
-  } catch {
-    return
+  } catch (err) {
+    // A tree this build cannot even serialize was not sent, and saying nothing
+    // would leave the same silent gap this module now exists to close.
+    const outcome = failedOutcome(err)
+    publishDeptSyncOutcome('cap', outcome)
+    return Promise.resolve(outcome)
   }
   const key = budgetSyncKey(entries)
 
-  // Nothing pending and nothing new: do not wake the debounce at all.
-  if (pendingKey === null && key === lastSentKey) return
+  // Nothing pending and nothing new: main already has this exact payload, so
+  // any earlier schedule still waiting (for a tree no newer than this one) can
+  // be answered now.
+  if (pendingKey === null && key === lastSentKey) {
+    settle(SAVED_OUTCOME)
+    return Promise.resolve(SAVED_OUTCOME)
+  }
 
   pendingEntries = entries
   pendingKey = key
   scheduleFlush()
+  return new Promise<SyncOutcome>(resolve => { waiters.push(resolve) })
 }
 
-/** Drop a queued sync. An IPC call already out cannot be recalled. */
+/**
+ * Drop a queued sync. An IPC call already out cannot be recalled, so its answer
+ * still settles the waiters; a dropped payload is answered by the next flush.
+ */
 export function cancelDeptBudgetSync(): void {
   if (timer) clearTimeout(timer)
   timer = null
@@ -126,10 +179,11 @@ export function cancelDeptBudgetSync(): void {
   pendingKey = null
 }
 
-/** Test-only: also forget what main acknowledged, so a harness can replay. */
+/** Test-only: also forget what main accepted, so a harness can replay. */
 export function resetDeptBudgetSyncForTests(): void {
   cancelDeptBudgetSync()
   lastSentKey = null
   inFlight = false
   delayMs = BUDGET_SYNC_DEBOUNCE_MS
+  waiters = []
 }

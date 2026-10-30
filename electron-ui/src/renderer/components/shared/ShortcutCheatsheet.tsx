@@ -66,11 +66,13 @@ const SHORTCUTS: ShortcutSection[] = [
     { keys: 'Ctrl + K', actionKey: 'sessionQuickSwitcher' },
     { keys: 'Ctrl + [ / ]', actionKey: 'prevNextSession' },
     { keys: 'Ctrl + 1-8', actionKey: 'switchSidebarTab' },
+    { keys: 'Alt + 1-9', actionKey: 'deptQuickSwitch' },
     { keys: '/', actionKey: 'quickSearch' },
   ]},
   { sectionKey: 'sessionList', items: [
     { keys: 'Up / Down', actionKey: 'navigateSessions' },
     { keys: 'Enter', actionKey: 'openSession' },
+    { keys: 'Ctrl + Enter', actionKey: 'revealSessionFolder' },
     { keys: 'F2', actionKey: 'renameSession' },
     { keys: 'Delete', actionKey: 'deleteSession' },
   ]},

@@ -762,6 +762,13 @@
       "grant": {
         "action": "Allow AIPA to read this folder and run",
         "elsewhere": "{{picked}} is now readable, but this command still runs in {{cwd}}, which is still not allowed."
+      },
+      "folder": {
+        "action": "Run in another folder…",
+        "actionTitle": "Pick a folder and run this command there. Your working folder is not changed.",
+        "ranIn": "Ran in {{folder}}",
+        "runningIn": "Running in {{folder}}",
+        "notStarted": "Attempted in {{folder}} — the command did not start"
       }
     },
     "runInTerminal": "Run in Terminal",
@@ -1751,7 +1758,9 @@
     "pressEscToClose": "Press Esc to close",
     "quickCapture": "Summon AIPA and focus the composer — works while AIPA is in the background (if that chord is taken, it falls back to Ctrl + Shift + Space, then Ctrl + Alt + A)",
     "notAvailableThisSession": "not available this session",
-    "notAvailableThisSessionTitle": "The operating system refused this chord — another application owns it."
+    "notAvailableThisSessionTitle": "The operating system refused this chord — another application owns it.",
+    "deptQuickSwitch": "Jump to department 1-9",
+    "revealSessionFolder": "Reveal the highlighted conversation's folder"
   },
   "plan": {
     "executionPlan": "Execution Plan",
@@ -3432,7 +3441,50 @@
     "mcpCount": "{{count}} MCP",
     "hookCount_one": "{{count}} hook",
     "hookCount_other": "{{count}} hooks",
-    "installedLabel": "Installed"
+    "installedLabel": "Installed",
+    "mode": {
+      "local": "From a folder",
+      "npm": "From npm"
+    },
+    "installNpm": "Install from npm",
+    "npmPlaceholder": "@scope/plugin-name or plugin-name@1.2.3",
+    "npmAskAction": "Install",
+    "npmHint": "The name is checked here before anything runs. A scoped name and an optional @version are both allowed.",
+    "npmConfirm": "Install {{spec}} globally with npm? This downloads third-party code from the registry and runs its install scripts, and it will be added to the plugin registry.",
+    "npmConfirmAction": "Install package",
+    "npmProgress": "Installing {{spec}} with npm. This can take a minute; nothing is added until it finishes.",
+    "npmSecurity": "Nothing is installed until you confirm, and a package without a plugin manifest is refused instead of registered.",
+    "npmResult": {
+      "ok": "{{name}} was installed from {{spec}} and added to the plugin list.",
+      "invalid_package_name": "{{spec}} is not a package name. {{detail}}",
+      "npm_not_found": "npm could not be found, so {{spec}} was not installed. {{detail}}",
+      "install_failed": "Installing {{spec}} failed. No plugin was added. {{detail}}",
+      "manifest_missing": "{{spec}} installed, but the package has no plugin manifest, so no plugin was added. {{detail}}"
+    },
+    "gate": {
+      "busy": "An install is already running.",
+      "noFolder": "Pick a plugin folder first."
+    },
+    "npmRefused": {
+      "empty": "Enter a package name.",
+      "too_long": "That package name is longer than npm allows.",
+      "absolute_path": "A folder path is not a package name. Use the folder tab for local plugins.",
+      "leading_dash": "A package name cannot start with a dash.",
+      "path_traversal": "A package name cannot contain two dots in a row.",
+      "whitespace": "A package name cannot contain spaces.",
+      "invalid_chars": "A package name may contain only letters, digits, dot, underscore, hyphen, slash and at-sign.",
+      "invalid_shape": "That is not a package name. Try name or @scope/name, optionally followed by @version."
+    },
+    "reload": {
+      "action": "Reload plugins",
+      "title": "Rescan the plugin folders and reload the left rail",
+      "none": "No nav plugins were found in the plugin folders.",
+      "changed_one": "Reloaded: 1 nav plugin changed. {{count}} in total.",
+      "changed_other": "Reloaded: {{changed}} nav plugins changed. {{count}} in total.",
+      "unchanged_one": "Reloaded. Nothing changed: {{count}} nav plugin, as before.",
+      "unchanged_other": "Reloaded. Nothing changed: {{count}} nav plugins, as before.",
+      "failed": "The plugins could not be rescanned: {{error}}"
+    }
   },
   "settingsAdvanced": {
     "presetConcise": "Concise",
@@ -3755,7 +3807,19 @@
     "empFireAria": "Dismiss employee — the conversation moves to Recently deleted, where you can restore it",
     "handbookHintEveryTurn": "Applies to every message in this department's conversations",
     "handbookSubtitleEveryTurn": "Standing rules for this desk. Every message in a conversation that belongs to this department carries them — conventions, hand-off expectations, where things live.",
-    "positionHireHandbookHintEveryTurn": "The department handbook will travel with every message here"
+    "positionHireHandbookHintEveryTurn": "The department handbook will travel with every message here",
+    "sync": {
+      "notSaved": "{{subject}} stays on this device but was not saved to the department — {{reason}}",
+      "subject": {
+        "cap": "The limit's coverage",
+        "handbook": "The handbook snapshot"
+      },
+      "reason": {
+        "unsupported": "this build has no channel for it",
+        "failed": "the department store returned {{error}}",
+        "unknown": "the department store gave no reason"
+      }
+    }
   },
   "archive": {
     "summaryTask": "{{count}} tasks",
@@ -5301,7 +5365,11 @@
   },
   "quickSwitcher": {
     "placeholderWithFolders": "Search sessions and folders...",
-    "matchedFolder": "matched folder"
+    "matchedFolder": "matched folder",
+    "revealFolderHint": "folder",
+    "revealFolderHintTitle": "Ctrl+Enter opens this conversation's own folder in your file manager. Shown only because this conversation recorded where it ran.",
+    "revealFolderFooter": "open folder",
+    "revealFailed": "Could not open {{folder}} in the file manager."
   },
   "allowedFolders": {
     "title": "Folders AIPA may read",

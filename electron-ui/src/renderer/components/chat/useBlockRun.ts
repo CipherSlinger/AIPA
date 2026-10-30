@@ -40,6 +40,13 @@ export interface BlockRunState {
    * reuse it without consulting the current working-directory preference.
    */
   failureCwd: string | null
+  /**
+   * The folder this attempt asked main to run in. Recorded when the attempt
+   * starts, so the panel can name the folder it used — an attempt run in
+   * another folder must not be described with the working-directory
+   * preference — and a refusal can point at the folder a retry will reuse.
+   */
+  cwd: string | null
   stopping: boolean
   startedAt: number | null
   finishedAt: number | null
@@ -61,6 +68,7 @@ function initialState(): BlockRunState {
     failureMessage: null,
     failureCode: null,
     failureCwd: null,
+    cwd: null,
     stopping: false,
     startedAt: null,
     finishedAt: null,
@@ -216,16 +224,21 @@ export function useBlockRun(command: string): BlockRunController {
     const runId = createRunId()
     runIdRef.current = runId
     collectorRef.current = createShellOutputCollector()
+    // The folder this attempt asks for, recorded before the request leaves, so
+    // the panel names the folder the attempt actually used rather than whatever
+    // the preference says by the time the answer arrives.
+    const folder = typeof cwd === 'string' ? cwd.trim() : ''
     setNow(Date.now())
     setState({
       ...initialState(),
       status: 'running',
       runId,
+      cwd: folder || null,
       startedAt: Date.now(),
       outputVisible: true,
     })
 
-    if (!cwd || !cwd.trim()) {
+    if (!cwd || !folder) {
       failToStart(t('codeAction.noWorkingDir'))
       return
     }

@@ -2403,7 +2403,7 @@ const electronAPI = {
   // added to its department without the user re-entering the amount. Budgets
   // whose department is missing from `entries` keep their last membership.
   automationDeptBudgetSync: (entries: Array<{ departmentId: string; memberIds: string[] }>) =>
-    ipcRenderer.invoke('automation:deptBudgetSync', entries) as Promise<{ ok: boolean }>,
+    ipcRenderer.invoke('automation:deptBudgetSync', entries) as Promise<{ ok: boolean; error?: string }>,
   // The org tree reduced to what a scheduled run needs: each node's id, name
   // and handbook. Main keeps this snapshot beside the jobs and reads it at run
   // start; the renderer is the only writer, so main can never edit it. Text is
@@ -2993,13 +2993,22 @@ const electronAPI = {
     ipcRenderer.invoke('plugin:uninstall', { name }) as Promise<{ success: boolean }>,
   pluginRegisterLocal: (pluginPath: string) =>
     ipcRenderer.invoke('plugin:registerLocal', { pluginPath }),
+  // Resolves to a typed result; a refusal is data, not a rejected invoke.
+  pluginInstallNpm: (packageName: string) =>
+    ipcRenderer.invoke('plugin:install:npm', { packageName }) as Promise<{
+      ok: boolean
+      plugin?: { id: string; name: string; version?: string; source: string }
+      reason?: 'invalid_package_name' | 'npm_not_found' | 'install_failed' | 'manifest_missing'
+      detail?: string
+    }>,
 
   // ── Nav Plugins (Hot-Pluggable Left-Rail & Main View Plugins) ─────────────
   pluginNavList: () =>
     ipcRenderer.invoke('plugin:nav:list') as Promise<NavPlugin[]>,
-  // No renderer caller: main watches the plugin folders and pushes
-  // `plugin:nav:updated`. Retained because the wave82C split harness compares
-  // the nav-plugin channel sequence.
+  // Called by Settings → Plugins ("Reload plugins") after a plugin is
+  // installed or its files change on disk. Main also watches the plugin
+  // folders and pushes `plugin:nav:updated`; the reload returns the list so
+  // the caller can say whether anything actually changed.
   pluginNavReload: () =>
     ipcRenderer.invoke('plugin:nav:reload') as Promise<NavPlugin[]>,
   pluginNavOpenFolder: (pluginId?: string) =>

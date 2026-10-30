@@ -1,6 +1,36 @@
 import { useEffect } from 'react'
-import { usePrefsStore, useChatStore, useSessionStore, useUiStore, usePluginStore } from '../store'
+import {
+  usePrefsStore, useChatStore, useSessionStore, useUiStore, usePluginStore, useDepartmentStore,
+} from '../store'
 import { useT } from '../i18n'
+import {
+  deptQuickSwitchOrder,
+  deptQuickSwitchTarget,
+  deptSlotForKeyboardEvent,
+  isTypingFocus,
+  shortcutBlocked,
+  type ShortcutFocus,
+} from '../lib/deptQuickSwitch'
+
+/**
+ * The one "may this chord run right now?" guard for global shortcuts: not while
+ * the user is typing into a field, and not while a dialog is in front. The rule
+ * itself lives in `lib/deptQuickSwitch.ts`; this only reads the DOM into it, so
+ * every chord in this hook shares one predicate instead of growing its own.
+ */
+function focusedElement(): ShortcutFocus | null {
+  const activeEl = document.activeElement as (Element & { isContentEditable?: boolean }) | null
+  return activeEl
+    ? { tagName: activeEl.tagName, isContentEditable: activeEl.isContentEditable === true }
+    : null
+}
+
+function shortcutsSuppressed(): boolean {
+  return shortcutBlocked({
+    typing: isTypingFocus(focusedElement()),
+    modalOpen: !!document.querySelector('[role="dialog"]'),
+  })
+}
 
 /**
  * Global keyboard shortcuts registered at the App level.
@@ -22,11 +52,7 @@ export function useAppShortcuts(
       // The request is parked in the store and ChatInput consumes it on mount
       // (or immediately if it is already alive).
       if (e.ctrlKey && !e.shiftKey && e.key === 'l') {
-        const activeEl = document.activeElement
-        const inField =
-          activeEl instanceof HTMLTextAreaElement ||
-          activeEl instanceof HTMLInputElement ||
-          (activeEl as HTMLElement | null)?.isContentEditable === true
+        const inField = isTypingFocus(focusedElement())
         const ui = useUiStore.getState()
         // Do not yank the user out of a field in another view: Ctrl+L there
         // would discard their caret and the context they were editing.
@@ -99,9 +125,7 @@ export function useAppShortcuts(
       }
       // ? (Shift+/): Open shortcut cheatsheet (quick-access global shortcut)
       if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        const activeEl = document.activeElement
-        const inInput = activeEl instanceof HTMLTextAreaElement || activeEl instanceof HTMLInputElement || (activeEl as HTMLElement)?.isContentEditable
-        if (!inInput) {
+        if (!shortcutsSuppressed()) {
           e.preventDefault()
           setShowShortcuts(prev => !prev)
         }
@@ -188,6 +212,22 @@ export function useAppShortcuts(
           useUiStore.getState().setActiveNavItem(tab === 'history' ? 'department' : tab)
         }
       }
+      // Alt+1-9: switch to the Nth department the org chart draws.
+      //
+      // The chart order, "out of range means nothing", and what counts as
+      // typing are all decided in `lib/deptQuickSwitch.ts`; this only reads the
+      // four values it needs and applies the answer. A slot with no department
+      // behind it returns null and the whole handler stays out of the way —
+      // no preventDefault, no toast, no view change.
+      const deptSlot = deptSlotForKeyboardEvent(e)
+      if (deptSlot !== null && !shortcutsSuppressed()) {
+        const ordered = deptQuickSwitchOrder(useDepartmentStore.getState().departments)
+        const targetId = deptQuickSwitchTarget(ordered, deptSlot)
+        if (targetId) {
+          e.preventDefault()
+          useUiStore.getState().openDepartment(targetId)
+        }
+      }
       // / key: "find in what I'm reading".
       //
       // A loaded conversation means the in-session search bar — the existing
@@ -197,10 +237,7 @@ export function useAppShortcuts(
       // of focusing a bar over an empty transcript. The two surfaces therefore
       // never compete for `/`: one only opens where the other has no target.
       if (e.key === '/' && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
-        const activeEl = document.activeElement
-        const inInput = activeEl instanceof HTMLTextAreaElement || activeEl instanceof HTMLInputElement || (activeEl as HTMLElement)?.isContentEditable
-        const hasModal = document.querySelector('[role="dialog"]')
-        if (!inInput && !hasModal) {
+        if (!shortcutsSuppressed()) {
           e.preventDefault()
           const ui = useUiStore.getState()
           if (useChatStore.getState().messages.length > 0) {

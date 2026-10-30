@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { SPEECH_RECOGNITION_SUPPORTED, getSpeechRecognition } from './speechSupport'
 
 const MAX_RECORDING_MS = 120_000 // 2 minutes auto-stop
 
@@ -34,7 +35,8 @@ export function useSpeechRecognition(
   useEffect(() => () => clearTimers(), [clearTimers])
 
   const toggleSpeech = useCallback(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    // One resolved constructor, the same one availability was decided from.
+    const SpeechRecognition = getSpeechRecognition()
     if (!SpeechRecognition) return
 
     if (listening) {
@@ -72,5 +74,7 @@ export function useSpeechRecognition(
   // does not call clearTimers and must not depend on it.
   }, [listening, onTranscript, onAutoStop])
 
-  return { listening, recordingSeconds, toggleSpeech }
+  // `supported` is a build property, not a state read: the caller uses it to
+  // decide whether the control exists at all, so it must not change per render.
+  return { listening, recordingSeconds, toggleSpeech, supported: SPEECH_RECOGNITION_SUPPORTED }
 }

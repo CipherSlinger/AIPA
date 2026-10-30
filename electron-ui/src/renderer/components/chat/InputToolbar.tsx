@@ -13,6 +13,8 @@ interface InputToolbarProps {
   listening: boolean
   recordingSeconds: number
   toggleSpeech: () => void
+  /** False when this build has no Web Speech API; the control is then absent. */
+  speechSupported: boolean
   onAtClick: () => void
   onSlashClick: () => void
   onQueueClick: () => void
@@ -39,6 +41,7 @@ export default function InputToolbar({
   listening,
   recordingSeconds,
   toggleSpeech,
+  speechSupported,
   onAtClick,
   onSlashClick,
   onQueueClick,
@@ -206,7 +209,11 @@ export default function InputToolbar({
       {/* Ask your past conversations — retrieval runs in the main process, so
           the question never enters this conversation's engine thread. */}
       <HistoryAskButton isStreaming={Boolean(isStreamingProp)} sessionId={sessionId} />
-      {/* Voice input with enhanced recording indicator */}
+      {/* Voice input with enhanced recording indicator. A build without the
+          Web Speech API has no button at all: a control that cannot do
+          anything is not a control, and its absence leaves the rest of the
+          row's focus order untouched. */}
+      {speechSupported && (
       <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         {/* Pulsing ring animation when recording */}
         {listening && (
@@ -250,6 +257,7 @@ export default function InputToolbar({
           </span>
         )}
       </div>
+      )}
       {/* Separator */}
       <span style={{ background: 'var(--border)', width: 1, height: 16, margin: '0 3px', flexShrink: 0 }} />
       {/* Clipboard actions */}

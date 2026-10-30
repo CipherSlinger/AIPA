@@ -17,6 +17,7 @@ import RecruitEmployeeModal from './RecruitEmployeeModal'
 import PositionEditorModal from './PositionEditorModal'
 import PositionHireModal from './PositionHireModal'
 import DeptHandbookModal from './DeptHandbookModal'
+import DeptSyncNotice from './DeptSyncNotice'
 import DeptBrief from './DeptBrief'
 import { bindPersonaToNewSession } from './personaBinding'
 import {
@@ -317,6 +318,12 @@ export default function DeptView({
         onSortChange={setSortOrder}
         onNewSession={newSession}
       />
+
+      {/* The handbook modal closes on save, so its sync answer has to live on
+          the page: a snapshot main never accepted is still shown here. */}
+      <div style={{ padding: '0 24px' }}>
+        <DeptSyncNotice subject="handbook" />
+      </div>
 
       {briefOpen && (
         <DeptBrief

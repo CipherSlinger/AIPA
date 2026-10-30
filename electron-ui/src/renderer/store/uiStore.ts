@@ -100,6 +100,15 @@ interface UiState {
   requestInputFocus: () => void
   consumeInputFocus: () => void
 
+  // Alt+1..9 asks the department page to drill into one node. The request waits
+  // here because DepartmentDashboard mounts on the far side of the view switch
+  // (it is lazy), so a request fired while another view is in front would reach
+  // no component. The page consumes it once it is alive. A node that has
+  // disappeared by then is dropped rather than opening a blank page.
+  pendingDepartmentOpenId: string | null
+  openDepartment: (id: string) => void
+  consumePendingDepartmentOpenId: () => string | null
+
   // Global (cross-session) search overlay. Lives in the store, not in App, so
   // any view — and the shortcuts that fire while another view is mounted — can
   // open it without a DOM listener.
@@ -418,6 +427,19 @@ export const useUiStore = create<UiState>((set, get) => ({
   consumePendingAutomationJobId: () => {
     const id = get().pendingAutomationJobId
     if (id !== null) set({ pendingAutomationJobId: null })
+    return id
+  },
+  pendingDepartmentOpenId: null,
+  // Through `setActiveNavItem('department')`, not a hand-copied patch: the nav
+  // rail, Ctrl+1 and this chord must land on the same page in the same state.
+  openDepartment: (id) => {
+    if (!id) return
+    get().setActiveNavItem('department')
+    set({ pendingDepartmentOpenId: id })
+  },
+  consumePendingDepartmentOpenId: () => {
+    const id = get().pendingDepartmentOpenId
+    if (id !== null) set({ pendingDepartmentOpenId: null })
     return id
   },
   fromDepartment: false,

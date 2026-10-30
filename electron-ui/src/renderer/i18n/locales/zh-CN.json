@@ -762,6 +762,13 @@
       "grant": {
         "action": "允许 AIPA 读取这个文件夹并运行",
         "elsewhere": "{{picked}} 现在可以读取了，但这条命令仍然要在 {{cwd}} 里运行，而那个文件夹仍然不被允许。"
+      },
+      "folder": {
+        "action": "换一个文件夹运行…",
+        "actionTitle": "选一个文件夹，并在那里运行这条命令。不会改动你的工作文件夹。",
+        "ranIn": "在 {{folder}} 里运行",
+        "runningIn": "正在 {{folder}} 里运行",
+        "notStarted": "尝试在 {{folder}} 里运行，但命令没有启动"
       }
     },
     "runInTerminal": "在终端中运行",
@@ -1751,7 +1758,9 @@
     "pressEscToClose": "按 Esc 关闭",
     "quickCapture": "唤起 AIPA 并聚焦输入框——AIPA 在后台时也生效（若这个组合键被占用，会依次退到 Ctrl + Shift + Space、Ctrl + Alt + A）",
     "notAvailableThisSession": "本次运行不可用",
-    "notAvailableThisSessionTitle": "操作系统拒绝了这个组合键——另一个应用占用了它。"
+    "notAvailableThisSessionTitle": "操作系统拒绝了这个组合键——另一个应用占用了它。",
+    "deptQuickSwitch": "跳到第 1-9 个部门",
+    "revealSessionFolder": "在文件管理器里打开高亮对话的文件夹"
   },
   "plan": {
     "executionPlan": "执行计划",
@@ -3432,7 +3441,50 @@
     "mcpCount": "{{count}} MCP",
     "hookCount_one": "{{count}} 个钩子",
     "hookCount_other": "{{count}} 个钩子",
-    "installedLabel": "已安装"
+    "installedLabel": "已安装",
+    "mode": {
+      "local": "从文件夹",
+      "npm": "从 npm"
+    },
+    "installNpm": "从 npm 安装",
+    "npmPlaceholder": "@scope/plugin-name 或 plugin-name@1.2.3",
+    "npmAskAction": "安装",
+    "npmHint": "名称会先在这里校验，之后才会启动任何进程。支持作用域名称和可选的 @版本。",
+    "npmConfirm": "用 npm 全局安装 {{spec}}？这会从源下载第三方代码并执行它的安装脚本，还会把它加入插件注册表。",
+    "npmConfirmAction": "安装这个包",
+    "npmProgress": "正在用 npm 安装 {{spec}}。可能需要一分钟；在完成之前不会添加任何东西。",
+    "npmSecurity": "在你确认之前不会安装任何东西；没有插件清单的包会被拒绝，而不会被注册。",
+    "npmResult": {
+      "ok": "已从 {{spec}} 安装 {{name}}，并加入插件列表。",
+      "invalid_package_name": "{{spec}} 不是包名。{{detail}}",
+      "npm_not_found": "找不到 npm，因此没有安装 {{spec}}。{{detail}}",
+      "install_failed": "安装 {{spec}} 失败，没有添加插件。{{detail}}",
+      "manifest_missing": "{{spec}} 已安装，但包里没有插件清单，因此没有添加插件。{{detail}}"
+    },
+    "gate": {
+      "busy": "已经有一个安装正在进行。",
+      "noFolder": "请先选择一个插件文件夹。"
+    },
+    "npmRefused": {
+      "empty": "请输入包名。",
+      "too_long": "这个包名超出了 npm 允许的长度。",
+      "absolute_path": "文件夹路径不是包名。本地插件请用文件夹那一栏。",
+      "leading_dash": "包名不能以短横线开头。",
+      "path_traversal": "包名里不能出现连续的两个点。",
+      "whitespace": "包名里不能有空格。",
+      "invalid_chars": "包名只能包含字母、数字、点、下划线、短横线、斜杠和 @。",
+      "invalid_shape": "这不是一个包名。请用 name 或 @scope/name，后面可以跟 @版本。"
+    },
+    "reload": {
+      "action": "重新加载插件",
+      "title": "重新扫描插件文件夹并刷新左侧栏",
+      "none": "插件文件夹里没有找到任何导航插件。",
+      "changed_one": "已重新加载：1 个导航插件有变化，共 {{count}} 个。",
+      "changed_other": "已重新加载：{{changed}} 个导航插件有变化，共 {{count}} 个。",
+      "unchanged_one": "已重新加载。没有变化：仍是 {{count}} 个导航插件。",
+      "unchanged_other": "已重新加载。没有变化：仍是 {{count}} 个导航插件。",
+      "failed": "无法重新扫描插件：{{error}}"
+    }
   },
   "settingsAdvanced": {
     "presetConcise": "简洁模式",
@@ -3755,7 +3807,19 @@
     "empFireAria": "解雇这名员工——对话会移入“最近删除”，可以从那里恢复",
     "handbookHintEveryTurn": "这个部门的每一条消息都会带上它",
     "handbookSubtitleEveryTurn": "这个部门的常驻规则。属于这个部门的对话，每一条消息都会带上它——协作约定、交接要求、资料位置都写在这里。",
-    "positionHireHandbookHintEveryTurn": "部门手册会跟着这里的每一条消息一起发出去"
+    "positionHireHandbookHintEveryTurn": "部门手册会跟着这里的每一条消息一起发出去",
+    "sync": {
+      "notSaved": "{{subject}}仍保留在本机，但没有保存到部门——{{reason}}",
+      "subject": {
+        "cap": "限额的覆盖范围",
+        "handbook": "部门手册快照"
+      },
+      "reason": {
+        "unsupported": "这个版本没有发送通道",
+        "failed": "部门存储返回了 {{error}}",
+        "unknown": "部门存储没有给出原因"
+      }
+    }
   },
   "archive": {
     "summaryTask": "{{count}} 项任务",
@@ -5301,7 +5365,11 @@
   },
   "quickSwitcher": {
     "placeholderWithFolders": "搜索会话和文件夹...",
-    "matchedFolder": "匹配文件夹"
+    "matchedFolder": "匹配文件夹",
+    "revealFolderHint": "文件夹",
+    "revealFolderHintTitle": "Ctrl+Enter 会在文件管理器里打开这段对话自己的文件夹。只有它记录过在哪里运行，这条提示才会出现。",
+    "revealFolderFooter": "打开文件夹",
+    "revealFailed": "无法在文件管理器里打开「{{folder}}」。"
   },
   "allowedFolders": {
     "title": "AIPA 可读取的文件夹",

@@ -4,7 +4,7 @@
 // (EmployeeFigure) rather than generic session cards.
 import { useEffect, useState } from 'react'
 import { Building2 } from 'lucide-react'
-import { useDepartmentStore, useSessionStore } from '../../store'
+import { useDepartmentStore, useSessionStore, useUiStore } from '../../store'
 import type { SessionListItem } from '../../types/app.types'
 import OrgChart from './OrgChart'
 import { kindOf } from './deptUtils'
@@ -28,6 +28,20 @@ export default function DepartmentDashboard() {
   const [loadingSession, setLoadingSession] = useState<string | null>(null)
   // When coming from OrgChart "New Session", auto-create a pending card in DeptView
   const [autoNewSessionDeptId, setAutoNewSessionDeptId] = useState<string | null>(null)
+
+  // Alt+1..9 (and any other entry point) asks for one department by id while
+  // this page may not be mounted yet. Read once on arrival; a node that has
+  // been deleted in the meantime is dropped rather than opening a roster for a
+  // department that no longer exists.
+  const pendingDeptOpenId = useUiStore(s => s.pendingDepartmentOpenId)
+  useEffect(() => {
+    if (!pendingDeptOpenId) return
+    useUiStore.getState().consumePendingDepartmentOpenId()
+    if (departments.some(d => d.id === pendingDeptOpenId)) {
+      setActiveDepartmentId(pendingDeptOpenId)
+      setSelectedDeptId(pendingDeptOpenId)
+    }
+  }, [pendingDeptOpenId, departments, setActiveDepartmentId])
 
   // Always reload sessions when DepartmentDashboard mounts
   useEffect(() => {

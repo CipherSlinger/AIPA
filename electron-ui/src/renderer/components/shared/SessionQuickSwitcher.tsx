@@ -18,6 +18,8 @@ import { Search, Clock, Folder, MessageSquare } from 'lucide-react'
 import { useSessionStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { sessionFolderProvenance } from '../../lib/folderPick'
+import { quickSwitchFolderOf, showsFolderRevealHint } from '../../lib/deptQuickSwitch'
+import { RowRevealHint, FooterRevealHint } from './SessionQuickSwitcherRevealHint'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import type { SessionListItem } from '../../types/app.types'
 
@@ -116,6 +118,11 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
   // Reset selection when filter changes
   useEffect(() => { setSelectedIndex(0) }, [query])
 
+  // Whether the highlighted row is one the reveal chord can act on. Derived
+  // once here so the footer's hint, the row's hint and the key handler cannot
+  // disagree about whether there is a folder to reveal.
+  const highlightedRecordsFolder = showsFolderRevealHint(filtered[selectedIndex]?.cwd)
+
   // Focus input on mount
   useEffect(() => { inputRef.current?.focus() }, [])
 
@@ -133,7 +140,36 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
     onClose()
   }, [onClose])
 
+  // Ctrl+Enter on the highlighted row: reveal the folder that conversation
+  // actually ran in. `quickSwitchFolderOf` takes one argument on purpose — the
+  // conversation's own record — so there is no preference to fall back to. A
+  // session with no recorded folder reveals nothing: the overlay stays open so
+  // the key is visible as having done nothing rather than silently opening a
+  // folder this conversation never used.
+  const revealFolder = useCallback(async (session: SessionListItem) => {
+    const dir = quickSwitchFolderOf(session.cwd)
+    if (!dir) return
+    const api = window.electronAPI
+    if (!api?.shellShowItemInFolder) return
+    try {
+      const result = await api.shellShowItemInFolder(dir)
+      if (result && !result.success) {
+        useUiStore.getState().addToast('error', result.error || t('quickSwitcher.revealFailed', { folder: dir }))
+      }
+    } catch (err) {
+      useUiStore.getState().addToast('error', String(err))
+    }
+  }, [t])
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Ctrl+Enter is checked before the plain Enter case: the two differ by one
+    // modifier and both would otherwise match `e.key === 'Enter'`.
+    if (e.key === 'Enter' && e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+      e.preventDefault()
+      const row = filtered[selectedIndex]
+      if (row) void revealFolder(row)
+      return
+    }
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault()
@@ -152,7 +188,7 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
         onClose()
         break
     }
-  }, [filtered, selectedIndex, onClose, openSession])
+  }, [filtered, selectedIndex, onClose, openSession, revealFolder])
 
   const handleBackdropClick = useCallback((e: React.MouseEvent) => {
     if (e.target === backdropRef.current) onClose()
@@ -278,6 +314,11 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
             const folder = sessionFolderProvenance(session.cwd, homeDir)
             const q = query.trim()
             const folderMatched = folderMatchesQuery(session.cwd, q)
+            // The Ctrl+Enter hint is offered only where the key can act: on
+            // the highlighted row, and only when this conversation records a
+            // folder. A row with no recorded folder shows no hint, and the key
+            // does nothing there — never the app's global working folder.
+            const revealHintVisible = index === selectedIndex && showsFolderRevealHint(session.cwd)
             // A row can enter the list only because of its folder. Say so on
             // the folder line: a row that matches nothing visible reads as a
             // bug, and the hint is the one thing that explains itself.
@@ -359,6 +400,13 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
                           · {t('quickSwitcher.matchedFolder')}
                         </span>
                       )}
+                      {/* The chord, on the row it acts on. `revealHintVisible`
+                          is the same answer the key handler asks, so a row can
+                          never advertise a reveal its own key refuses. Kept on
+                          the folder line itself: it describes the path to its
+                          left, and adding a line would shift the row height on
+                          every arrow-key move. */}
+                      {revealHintVisible && <RowRevealHint />}
                     </div>
                   )}
                   {note && (
@@ -418,6 +466,9 @@ export default function SessionQuickSwitcher({ onClose }: Props) {
             <kbd style={{ background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 5, padding: '1px 5px', fontSize: 9, fontFamily: 'monospace' }}>Esc</kbd>
             {t('command.escHint')}
           </span>
+          {/* The reveal chord is listed only while the row it would act on
+              records a folder — the same condition the row's own hint uses. */}
+          {highlightedRecordsFolder && <FooterRevealHint />}
         </div>
       </div>
     </div>

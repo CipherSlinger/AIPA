@@ -36,7 +36,7 @@ import {
 } from '../../sessions/memory-manager'
 import { assembleMemoryContext, readPersonalMemories } from '../../sessions/memory-context'
 import { checkIsGitRepo, listWorktrees, createWorktree, removeWorktree } from '../../sessions/worktree-manager'
-import { listPlugins, setPluginEnabled, uninstallPlugin, registerLocalPlugin } from '../../plugins/plugin-manager'
+import { listPlugins, setPluginEnabled, uninstallPlugin, registerLocalPlugin, installNpmPlugin } from '../../plugins/plugin-manager'
 import { safePath, getAllowedFsRoots, validateApiKey } from '../../utils/validate'
 import { getAllowedRoots, forgetAllowedRoot } from '../../utils/allowed-roots'
 import { refreshAttention } from '../../clawd-attention'
@@ -381,6 +381,21 @@ export function registerConfigHandlers(): void {
   safeHandle('plugin:uninstall', (_e, { name }: { name: string }) => {
     uninstallPlugin(name)
     return { success: true }
+  })
+  // Installs a package into the user's global npm tree. Long-running (npm can
+  // take a minute), so it resolves to a refusal carrying its reason instead of
+  // rejecting: the Settings form has to say which step failed and must never
+  // claim a plugin appeared when one did not. The package name is validated
+  // again inside `installNpmPlugin`; nothing from this payload is trusted.
+  safeHandle('plugin:install:npm', async (_e, { packageName }: { packageName?: string } = {}) => {
+    try {
+      return await installNpmPlugin(typeof packageName === 'string' ? packageName : '')
+    } catch (err) {
+      // installNpmPlugin answers with refusals; reaching here means a bug, not
+      // a user error — still report it as data so the form can show it.
+      log.warn('plugin:install:npm failed:', String(err))
+      return { ok: false, reason: 'install_failed', detail: String(err) }
+    }
   })
   safeHandle('plugin:registerLocal', (_e, { pluginPath }: { pluginPath: string }) => {
     // The path is read, persisted to ~/.claude/plugins.json and later loaded by

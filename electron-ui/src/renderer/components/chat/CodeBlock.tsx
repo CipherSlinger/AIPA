@@ -4,12 +4,13 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Copy, Check, ChevronDown, ChevronUp, WrapText, Play, X, Download, Loader2, Square, RotateCcw, MessageCircle, FolderOpen } from 'lucide-react'
 import { useT } from '../../i18n'
-import { usePrefsStore, useUiStore } from '../../store'
+import { usePrefsStore, useSessionStore, useUiStore } from '../../store'
 import { grantOutcome, pickFolderToGrant } from '../../lib/grantFolder'
 import { CODE_COLLAPSE_THRESHOLD } from './messageContentConstants'
 import RunConfirmDialog from './RunConfirmDialog'
 import { useBlockRun, formatElapsed, type BlockRunState } from './useBlockRun'
 import { blockGrantOffer, blockGrantOutcome } from './blockRunGrant'
+import { planRunInFolder, runFolderNote, type RunFolderNote } from './blockRunFolder'
 import { SHELL_OUTPUT_CAP } from './shellOutput'
 import { buildRunDraft, planOutputCopy } from './runFollowThrough'
 import { prepareTerminalCommand } from './terminalSend'
@@ -219,6 +220,9 @@ function RunOutputPanel({
   granting,
   grantElsewhere,
   onGrantFolder,
+  folderNote,
+  pickingFolder,
+  onRunInFolder,
 }: {
   run: BlockRunState
   elapsedMs: number
@@ -234,11 +238,18 @@ function RunOutputPanel({
   /** The different folder the user confirmed, if that was the dialog's answer. */
   grantElsewhere: string | null
   onGrantFolder: () => void
+  /** Names the folder this attempt used, when the panel must say which one. */
+  folderNote: RunFolderNote | null
+  /** True while the "another folder" dialog is open; one dialog at a time. */
+  pickingFolder: boolean
+  onRunInFolder: () => void
 }) {
   const t = useT()
   const outputRef = useRef<HTMLPreElement>(null)
   const stickToBottom = useRef(true)
   const running = run.status === 'running'
+  // One folder dialog at a time, whichever of the two buttons opened it.
+  const dialogBusy = granting || pickingFolder
   const showOutput = running || run.outputVisible
   // The pre shows "No output." when there is none; Copy has nothing to write,
   // so it says why instead of reporting a successful copy of an empty string.
@@ -335,6 +346,26 @@ function RunOutputPanel({
         >
           {label}
         </span>
+        {/*
+          Which folder this attempt used. Quiet, shortened with `~` under home,
+          the full path in the title — and absent for an ordinary run in the
+          working directory, so a cancelled dialog leaves the panel untouched.
+        */}
+        {folderNote && (
+          <span
+            title={folderNote.title}
+            style={{
+              fontSize: 10,
+              color: 'var(--code-text-muted)',
+              maxWidth: 280,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {folderNote.text}
+          </span>
+        )}
         {running && elapsedMs >= 30_000 && (
           <span style={{ fontSize: 10, color: 'var(--code-text-muted)' }}>
             {t('codeAction.run.stillRunning')}
@@ -355,14 +386,14 @@ function RunOutputPanel({
           <button
             type="button"
             onClick={onGrantFolder}
-            disabled={granting}
-            aria-disabled={granting}
-            aria-busy={granting || undefined}
+            disabled={dialogBusy}
+            aria-disabled={dialogBusy}
+            aria-busy={dialogBusy || undefined}
             title={t('codeAction.run.grant.action')}
             style={{
               ...controlStyle,
-              cursor: granting ? 'default' : 'pointer',
-              opacity: granting ? 0.65 : 1,
+              cursor: dialogBusy ? 'default' : 'pointer',
+              opacity: dialogBusy ? 0.65 : 1,
             }}
           >
             <FolderOpen size={9} />
@@ -410,6 +441,27 @@ function RunOutputPanel({
             >
               <RotateCcw size={9} />
               {t('codeAction.run.runAgain')}
+            </button>
+            {/*
+              A run in another folder: the OS dialog is the grant, and its
+              answer decides both halves. Disabled while that dialog is open so
+              one press is one dialog; absent while a command runs.
+            */}
+            <button
+              onClick={onRunInFolder}
+              disabled={dialogBusy}
+              aria-disabled={dialogBusy}
+              aria-busy={dialogBusy || undefined}
+              aria-label={t('codeAction.run.folder.action')}
+              title={t('codeAction.run.folder.actionTitle')}
+              style={{
+                ...controlStyle,
+                cursor: dialogBusy ? 'default' : 'pointer',
+                opacity: dialogBusy ? 0.65 : 1,
+              }}
+            >
+              <FolderOpen size={9} />
+              {t('codeAction.run.folder.action')}
             </button>
             <button
               onClick={onCopyOutput}
@@ -648,6 +700,7 @@ export default function CodeBlockWithHeader({
   const isShellLang = SHELL_LANGS.has(langName.toLowerCase())
   const addToast = useUiStore(s => s.addToast)
   const workingDir = usePrefsStore(s => s.prefs.workingDir)
+  const homeDir = useSessionStore(s => s.homeDir)
   const run = useBlockRun(codeText)
   const isRunning = run.state.status === 'running'
   // Only a `cwd_not_allowed` failure with a named folder offers the grant
@@ -660,6 +713,10 @@ export default function CodeBlockWithHeader({
   // A native dialog can outlive this block; after it returns, a block that is
   // gone must not start a process into nothing.
   const grantingRef = useRef(false)
+  // Same shape for "run in another folder": the ref is what makes a double
+  // click one press, because state updates arrive after the second click.
+  const pickingFolderRef = useRef(false)
+  const [pickingFolder, setPickingFolder] = useState(false)
   const mountedRef = useRef(true)
   useEffect(() => {
     mountedRef.current = true
@@ -699,7 +756,7 @@ export default function CodeBlockWithHeader({
   // gone and the same command runs in that same folder once; a different
   // folder granted AIPA a folder but not this one, and nothing runs.
   const handleGrantFolder = useCallback(async () => {
-    if (!grantOffer || grantingRef.current) return
+    if (!grantOffer || grantingRef.current || pickingFolderRef.current) return
     grantingRef.current = true
     setGrantingFolder(true)
     setGrantElsewhere(null)
@@ -726,6 +783,62 @@ export default function CodeBlockWithHeader({
       if (mountedRef.current) setGrantingFolder(false)
     }
   }, [grantOffer, run])
+
+  // "Run in another folder…" — one folder, for this attempt only.
+  //
+  // The folder dialog is the grant (main records a root only when a human
+  // confirms it), so this path goes through the same `pickFolderToGrant` helper
+  // the refusal above uses; there is no second channel. The block's command is
+  // the one the hook already owns. A cancelled dialog changes nothing at all,
+  // and the working-directory preference is neither read for the run nor
+  // written.
+  const handleRunInFolder = useCallback(async () => {
+    // The panel never renders this while a command runs (Stop owns that slot)
+    // and the plan below refuses an in-flight answer as well; the ref is what
+    // makes a double click one press, since state arrives after the second.
+    if (pickingFolderRef.current || grantingRef.current) return
+    pickingFolderRef.current = true
+    setPickingFolder(true)
+    try {
+      // Seed the dialog where this block last ran, so the user starts near the
+      // folder that was refused. The seed grants nothing; only the answer does.
+      let picked: string | null
+      try {
+        picked = await pickFolderToGrant(run.state.cwd || workingDir || null)
+      } catch {
+        return
+      }
+      // A native dialog can outlive this block; after it returns, a block that
+      // is gone must not start a process into nothing.
+      if (!mountedRef.current) return
+      const plan = planRunInFolder({
+        picked,
+        command: codeText,
+        // The panel hides this button while a run is going; the plan still
+        // refuses an answer that arrives into an attempt already under way.
+        running: isRunning,
+      })
+      if (plan.kind !== 'run') return
+      // A fresh attempt replaces the refusal, so the earlier different-folder
+      // sentence no longer describes anything on screen.
+      setGrantElsewhere(null)
+      void run.start(plan.folder)
+    } finally {
+      pickingFolderRef.current = false
+      if (mountedRef.current) setPickingFolder(false)
+    }
+  }, [run, codeText, workingDir, isRunning])
+
+  // The folder this attempt used, named only when it is worth naming: a moved
+  // attempt, or a refusal whose retry will reuse that folder.
+  const folderNote = runFolderNote({
+    attemptFolder: run.state.cwd,
+    workingDir,
+    homeDir,
+    status: run.state.status,
+    failureCode: run.state.failureCode,
+    t,
+  })
 
   // Copy writes exactly the stripped tail the panel shows. When the collector
   // already dropped the start of the output, the toast says so rather than
@@ -755,9 +868,12 @@ export default function CodeBlockWithHeader({
   // The draft is put in the composer and never sent: ChatInput appends the
   // detail to what the user already typed, so they can edit before sending.
   const handleAskAipa = useCallback(() => {
+    // The folder the run's state recorded, not the preference: a run moved to
+    // another folder must not be described as having happened in the global
+    // working directory.
     const draft = buildRunDraft(run.state, {
       command: codeText,
-      cwd: workingDir || null,
+      cwd: run.state.cwd || workingDir || null,
       t,
     })
     if (!draft) return
@@ -920,6 +1036,9 @@ export default function CodeBlockWithHeader({
           granting={grantingFolder}
           grantElsewhere={grantElsewhere}
           onGrantFolder={() => { void handleGrantFolder() }}
+          folderNote={folderNote}
+          pickingFolder={pickingFolder}
+          onRunInFolder={() => { void handleRunInFolder() }}
         />
       )}
       {showPreview && isPreviewable && (
