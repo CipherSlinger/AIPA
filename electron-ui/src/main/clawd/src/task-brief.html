@@ -485,6 +485,92 @@ body { padding: 8px; }
   letter-spacing: 0.01em;
 }
 
+/* A finish is reversible for a few seconds. The line sits between the rows
+   and the footer and stays in flow, so it grows the card by its own height and
+   can never cover the footer; the title ellipsizes so a long name cannot push
+   the Undo button out of reach. Its only animation is an opacity fade. */
+.undo {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 7px;
+  padding: 4px 8px;
+  border: 1px solid var(--hairline);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  color: var(--muted);
+  font-size: 8.5px;
+  line-height: 1.45;
+  letter-spacing: 0.04em;
+  animation: undoIn 160ms linear;
+}
+@keyframes undoIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.panel[data-theme="clawd"] .undo {
+  border-radius: 7px;
+  font-size: 10px;
+  letter-spacing: 0.01em;
+}
+.undo-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.undo-sep { flex: none; opacity: 0.55; }
+.undo-btn {
+  appearance: none;
+  flex: none;
+  padding: 1px 5px;
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  outline: none;
+  clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
+  transition: color 140ms ease, background 140ms ease,
+    border-color 140ms ease, box-shadow 140ms ease;
+}
+.panel[data-theme="clawd"] .undo-btn {
+  border-radius: 5px;
+  clip-path: none;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10px;
+}
+.undo-btn:hover,
+.undo-btn:focus-visible {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 62%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+/* The panel's cut-corner clip crops an outer ring, so keyboard focus also
+   draws one inside the control, like every other affordance on this card. */
+.panel[data-theme="sao"] .undo-btn:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--accent),
+    0 0 12px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.undo-btn[disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
+.undo-btn[disabled]:hover {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
 /* ── Footer ───────────────────────────────────────────────────────────────── */
 .foot {
   display: flex;
@@ -558,10 +644,14 @@ body { padding: 8px; }
 @media (prefers-reduced-motion: reduce) {
   .panel { transition: none; }
   .scan { animation: none; }
+  /* The Undo line's only motion is its opacity fade; with reduced motion even
+     that goes, leaving a plain appearance. */
+  .undo { animation: none; }
   .row,
   .close,
   .start,
   .done,
+  .undo-btn,
   .open-tasks,
   .row-wrap.leaving { transition: none; }
 }
@@ -580,6 +670,13 @@ body { padding: 8px; }
   <div class="list" id="list"></div>
   <div class="empty" id="empty" hidden></div>
   <div class="error" id="error" role="status" aria-live="polite" hidden></div>
+  <!-- The short-lived way back from Done. One line in flow; the title
+       ellipsizes and the button keeps its size. -->
+  <div class="undo" id="undo" hidden>
+    <span class="undo-text" id="undoText" role="status" aria-live="polite"></span>
+    <span class="undo-sep" aria-hidden="true">·</span>
+    <button class="undo-btn" id="undoBtn" type="button">Undo</button>
+  </div>
   <footer class="foot">
     <button class="open-tasks" id="openTasksBtn" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"/><path d="m13 6 6 6-6 6"/></svg>

@@ -73,6 +73,23 @@ export interface ClawdTaskBriefItem {
   sessionId?: string
 }
 
+/**
+ * The short-lived offer to put the most recently finished task back.
+ *
+ * It travels with the payload the Done action returns, so the card can draw
+ * one quiet line without asking a second question. `previous` is the status the
+ * task had immediately before Done, captured by the main process, and
+ * `expiresAt` is the moment main will refuse to restore it any more; the page
+ * uses that same instant to hide the line, so a delayed paint cannot extend a
+ * window main has already closed.
+ */
+export interface ClawdTaskBriefUndo {
+  id: string
+  title: string
+  previous: TaskStatus
+  expiresAt: number
+}
+
 /** Everything the renderer needs for one paint. */
 export interface ClawdTaskBriefPayload {
   tasks: ClawdTaskBriefItem[]
@@ -94,9 +111,14 @@ export interface ClawdTaskBriefPayload {
    * ordinary refresh, so the page clears any previous note.
    */
   error?: string
+  /**
+   * The offer to undo the most recent finish, present only on the payload that
+   * answers that Done and only until it expires or another action intervenes.
+   */
+  undo?: ClawdTaskBriefUndo
 }
 
-type BriefActionType = 'open' | 'start' | 'done' | 'open-tasks' | 'close'
+type BriefActionType = 'open' | 'start' | 'done' | 'undo' | 'open-tasks' | 'close'
 
 interface BriefAction {
   type?: unknown
@@ -120,6 +142,11 @@ const REVEAL_TIMEOUT_MS = 900
 // The window is revealed after it painted. A blur in that first moment is the
 // pet or another window losing activation, not the user clicking away.
 const BLUR_ARM_MS = 250
+
+// A finish is reversible for a few seconds: long enough for a slip of the
+// mouse to be noticed, short enough that the card never looks like a second
+// task list. Main owns the deadline; the page only draws it.
+const UNDO_WINDOW_MS = 8000
 
 const isMac = process.platform === 'darwin'
 const isWin = process.platform === 'win32'
@@ -160,6 +187,21 @@ let actionInFlight = false
 /** The summon chord the factory actually claimed, for the footer hint. */
 let claimedShortcut = ''
 
+/**
+ * The single live post-Done offer. A finish replaces whatever was there before,
+ * any other action drops it, and the timer drops it on its own. Keeping it in
+ * one module-level slot is what makes "only the most recent finish" true: there
+ * is nowhere for an older offer to hide.
+ */
+interface UndoOffer {
+  taskId: string
+  title: string
+  previous: TaskStatus
+  expiresAt: number
+}
+let undoOffer: UndoOffer | null = null
+let undoTimer: NodeJS.Timeout | null = null
+
 // ── Payload ──────────────────────────────────────────────────────────────────
 
 function petLanguage(): string {
@@ -176,6 +218,46 @@ function petTheme(): ClawdBriefTheme {
   } catch {
     return 'sao'
   }
+}
+
+/**
+ * Forget the current offer. Safe to call any number of times: the timer is the
+ * only side effect, and a stale timer firing later must not clear a newer
+ * offer, so the timer callback also checks that it still owns the slot.
+ */
+function clearUndoOffer(): void {
+  if (undoTimer) {
+    clearTimeout(undoTimer)
+    undoTimer = null
+  }
+  undoOffer = null
+}
+
+/** Arm the one offer and close the window when it runs out. */
+function armUndoOffer(offer: UndoOffer): void {
+  clearUndoOffer()
+  undoOffer = offer
+  const remaining = Math.max(0, offer.expiresAt - Date.now())
+  undoTimer = setTimeout(() => {
+    // A newer finish replaces the timer along with the offer; this guard only
+    // matters if the timer callback was already queued when that happened.
+    if (undoOffer === offer) undoOffer = null
+    undoTimer = null
+  }, remaining)
+  undoTimer.unref?.()
+}
+
+/**
+ * The offer, but only while it is really live. The renderer hides the line on
+ * its own timer; this is the authority for whether an Undo may still write.
+ */
+function liveUndoOffer(): UndoOffer | null {
+  if (!undoOffer) return null
+  if (Date.now() >= undoOffer.expiresAt) {
+    clearUndoOffer()
+    return null
+  }
+  return undoOffer
 }
 
 function briefLabels(): Record<string, string> {
@@ -201,6 +283,10 @@ function briefLabels(): Record<string, string> {
     doneHint: petT('taskBriefDoneHint'),
     doneFailed: petT('taskBriefDoneFailed'),
     doneUndelivered: petT('taskBriefDoneUndelivered'),
+    undoLine: petT('taskBriefUndoLine'),
+    undo: petT('taskBriefUndo'),
+    undoFailed: petT('taskBriefUndoFailed'),
+    undoUndelivered: petT('taskBriefUndoUndelivered'),
   }
 }
 
@@ -291,6 +377,7 @@ function buildPayload(): ClawdTaskBriefPayload {
   }
   const departments = departmentNames()
   const active = activeTasks(tasks)
+  const offer = liveUndoOffer()
   return {
     tasks: active.slice(0, ROW_LIMIT).map(task => toItem(task, departments)),
     total: active.length,
@@ -298,6 +385,16 @@ function buildPayload(): ClawdTaskBriefPayload {
     theme: petTheme(),
     labels: briefLabels(),
     shortcut: claimedShortcut,
+    ...(offer
+      ? {
+          undo: {
+            id: offer.taskId,
+            title: offer.title,
+            previous: offer.previous,
+            expiresAt: offer.expiresAt,
+          },
+        }
+      : {}),
   }
 }
 
@@ -472,6 +569,9 @@ function reveal(): void {
  */
 function destroyWindow(restoreFocus: boolean): void {
   clearRevealTimer()
+  // The offer lives exactly as long as the card that shows it. A fresh window
+  // must never open carrying an Undo the user has not seen offered.
+  clearUndoOffer()
   blurArmedAt = 0
   actionInFlight = false
 
@@ -671,10 +771,66 @@ function withError(payload: ClawdTaskBriefPayload, message: string): ClawdTaskBr
   return message ? { ...payload, error: message } : payload
 }
 
+/**
+ * Put the most recently finished task back.
+ *
+ * The offer itself is the permission slip: it is consumed before the first
+ * store read, so a double press or a replay of the same action can only find
+ * nothing and return the current card. A task that has moved on since the
+ * finish (archived elsewhere, restored by another surface) is not silently
+ * overwritten — the row would be a different row by now — so the card states
+ * that the restore did not land instead.
+ */
+function handleUndo(): ClawdTaskBriefPayload {
+  const offer = liveUndoOffer()
+  if (!offer) {
+    // Expired, already used, or never offered: the line is gone, so there is
+    // nothing to say. In particular this keeps a second Undo from writing.
+    return buildPayload()
+  }
+  clearUndoOffer()
+
+  let task: TaskView | undefined
+  try {
+    task = listTasks().find(item => item.id === offer.taskId)
+  } catch (err) {
+    log.warn('Could not look up a task to restore:', err)
+  }
+  if (!task || task.status !== 'done') {
+    // Gone, archived, or changed by another surface between Done and Undo:
+    // restoring would claim a return that the store no longer agrees with.
+    return withError(buildPayload(), petT('taskBriefUndoFailed'))
+  }
+
+  let mutation: ReturnType<typeof updateTask> | null = null
+  try {
+    mutation = updateTask(offer.taskId, { status: offer.previous })
+  } catch (err) {
+    log.warn('Could not restore a finished task:', err)
+  }
+  if (!mutation || !mutation.ok) {
+    return withError(buildPayload(), petT('taskBriefUndoFailed'))
+  }
+
+  const notified = notifyTasksChanged()
+  // Same companion refresh the Done path performs; the store changed here too.
+  try { refreshClawdTaskBadge() } catch { /* pet gone */ }
+
+  const payload = buildPayload()
+  if (!notified) payload.error = petT('taskBriefUndoUndelivered')
+  return payload
+}
+
 function handleAction(action: unknown): ClawdTaskBriefPayload {
   const input = (action && typeof action === 'object' ? action : {}) as BriefAction
   const type = typeof input.type === 'string' ? input.type as BriefActionType : null
   const id = typeof input.id === 'string' ? input.id : ''
+
+  // Only a finish may create an offer, and only Undo may consume one. Every
+  // other gesture is a different intent, so the previous offer stops being the
+  // most recent thing the user did. Done clears here too and re-arms only if
+  // the write really landed.
+  if (type !== 'done' && type !== 'undo') clearUndoOffer()
 
   switch (type) {
     case 'open': {
@@ -726,7 +882,10 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
     case 'done': {
       // Finishing is the one row action that does not leave this card: the
       // user may want to clear several rows in a row. Store first, then tell
-      // AIPA, then rebuild the payload the page will paint.
+      // AIPA, then rebuild the payload the page will paint. The previous offer
+      // — if any — is dropped here: this finish replaces it whether or not the
+      // write lands.
+      clearUndoOffer()
       let task: TaskView | undefined
       try {
         task = id ? listTasks().find(item => item.id === id) : undefined
@@ -735,9 +894,14 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
       }
       if (!task) {
         // Gone between paint and click. Nothing in the store changed, so the
-        // row must not look finished: keep the card up and say so.
+        // row must not look finished and no Undo is offered.
         return withError(buildPayload(), petT('taskBriefDoneFailed'))
       }
+
+      // Captured before the write: this is the exact status the task had when
+      // the user pressed Done, including `needs_you`, which no history lookup
+      // would have to reconstruct.
+      const previous = task.status
 
       let mutation: ReturnType<typeof updateTask> | null = null
       try {
@@ -746,9 +910,16 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
         log.warn('Could not finish a task:', err)
       }
       if (!mutation || !mutation.ok) {
-        // A refused write leaves the row exactly as it was.
+        // A refused write leaves the row exactly as it was, and offered nothing.
         return withError(buildPayload(), petT('taskBriefDoneFailed'))
       }
+
+      armUndoOffer({
+        taskId: task.id,
+        title: task.title,
+        previous,
+        expiresAt: Date.now() + UNDO_WINDOW_MS,
+      })
 
       const notified = notifyTasksChanged()
       // This path writes the store directly, so it never passes through the
@@ -760,6 +931,8 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
       if (!notified) payload.error = petT('taskBriefDoneUndelivered')
       return payload
     }
+    case 'undo':
+      return handleUndo()
     case 'open-tasks': {
       actionInFlight = true
       if (focusAipa({ openTasks: true })) destroyWindow(false)
@@ -792,7 +965,11 @@ function ensureIpc(): void {
   ipcRegistered = true
 
   safeHandle('task-brief:load', (event: Electron.IpcMainInvokeEvent) => {
-    return isSender(event) ? buildPayload() : emptyPayload()
+    if (!isSender(event)) return emptyPayload()
+    // A (re)load is a fresh paint, not the answer to the finish; an offer from
+    // before it is no longer the most recent action.
+    clearUndoOffer()
+    return buildPayload()
   })
 
   safeHandle('task-brief:action', (event: Electron.IpcMainInvokeEvent, action: unknown) => {
@@ -842,7 +1019,10 @@ export function openClawdTaskBrief(anchor?: ClawdTaskBriefAnchor): boolean {
   try {
     if (briefWin && !briefWin.isDestroyed()) {
       // One instance only. Refresh the payload, then focus; re-creating would
-      // reset the row order under the user's cursor.
+      // reset the row order under the user's cursor. A summon is a fresh
+      // intent that has nothing to do with the previous finish, so it drops
+      // an offer still waiting in the card.
+      clearUndoOffer()
       const bounds = computeBounds(lastAnchor, briefWin.getBounds().height)
       try { briefWin.setBounds(bounds) } catch { /* closing */ }
       emitUpdate()

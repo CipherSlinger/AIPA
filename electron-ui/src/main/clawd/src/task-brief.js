@@ -25,6 +25,9 @@
   var shortcutEl = document.getElementById("shortcut");
   var hintLabel = document.getElementById("hintLabel");
   var errorEl = document.getElementById("error");
+  var undoEl = document.getElementById("undo");
+  var undoTextEl = document.getElementById("undoText");
+  var undoBtn = document.getElementById("undoBtn");
 
   var STATUSES = ["needs_you", "in_progress", "assigned", "ready", "inbox"];
   var STATUS_LABEL_KEY = {
@@ -59,6 +62,10 @@
     doneHint: "Mark this task done",
     doneFailed: "Could not finish the task. Try again.",
     doneUndelivered: "Task finished, but AIPA was closed and its task list was not refreshed.",
+    undoLine: "Task done · {name}",
+    undo: "Undo",
+    undoFailed: "Could not restore the task. It may have been archived or changed since.",
+    undoUndelivered: "Task restored, but AIPA was closed and its task list was not refreshed.",
   };
 
   var LOCALES = { en: "en-US", zh: "zh-CN", ko: "ko-KR" };
@@ -70,6 +77,12 @@
   };
 
   var heightFrame = null;
+  // The Undo line's own clock. Main owns the deadline; this timer only hides
+  // the control when the window it describes has closed.
+  var undoTimer = null;
+  // True from the click until the answer paints. It is the page's half of the
+  // "never write twice" rule; main holds the other half.
+  var undoBusy = false;
 
   function labels() {
     return state.payload.labels;
@@ -116,6 +129,21 @@
           : FALLBACK_LABELS[key];
       }
     }
+    // The Undo offer is only what main says it is: an id, the name to show and
+    // the instant main will stop accepting it. Anything malformed is simply no
+    // offer — a line that cannot restore the right task must not appear.
+    var undo = null;
+    if (data.undo && typeof data.undo === "object") {
+      var raw = data.undo;
+      if (typeof raw.id === "string" && raw.id &&
+          typeof raw.expiresAt === "number" && isFinite(raw.expiresAt)) {
+        undo = {
+          id: raw.id,
+          title: typeof raw.title === "string" ? raw.title : "",
+          expiresAt: raw.expiresAt,
+        };
+      }
+    }
     return {
       tasks: tasks,
       total: total,
@@ -126,6 +154,7 @@
       // An action may answer with one honest line about why it did not land.
       // It lives on this payload only, so the next refresh clears it.
       error: typeof data.error === "string" ? data.error : "",
+      undo: undo,
     };
   }
 
@@ -296,6 +325,66 @@
     emptyEl.textContent = hasRows ? "" : labels().empty;
   }
 
+  function clearUndoTimer() {
+    if (!undoTimer) return;
+    clearTimeout(undoTimer);
+    undoTimer = null;
+  }
+
+  function hideUndo() {
+    clearUndoTimer();
+    undoEl.hidden = true;
+    undoTextEl.textContent = "";
+    undoBtn.textContent = labels().undo;
+    undoBtn.disabled = false;
+  }
+
+  /**
+   * Draw the one post-finish offer, or clear it.
+   *
+   * The line is a single in-flow row, so it grows the card by exactly its own
+   * height and can never cover the footer. The title takes the remaining width
+   * and ellipsizes; the Undo button keeps its intrinsic size, so the control
+   * stays reachable on a narrow or long-named task. Reduced motion applies in
+   * CSS: the only animation this element has is an opacity fade.
+   */
+  function applyUndo() {
+    clearUndoTimer();
+    var offer = state.payload.undo;
+    if (!offer) {
+      hideUndo();
+      undoBusy = false;
+      return;
+    }
+    var remaining = offer.expiresAt - Date.now();
+    if (!(remaining > 0)) {
+      hideUndo();
+      undoBusy = false;
+      return;
+    }
+
+    var line = labels().undoLine || FALLBACK_LABELS.undoLine;
+    var name = offer.title || labels().untitled;
+    undoTextEl.textContent = line.indexOf("{name}") !== -1
+      ? line.replace("{name}", name)
+      : line + " · " + name;
+    undoBtn.textContent = labels().undo;
+    undoBtn.setAttribute("aria-label", labels().undo);
+    undoBtn.title = labels().undo;
+    undoBtn.disabled = !!undoBusy;
+    undoEl.hidden = false;
+
+    undoTimer = setTimeout(function () {
+      undoTimer = null;
+      // Quiet expiry: no message, no animation, the line is simply gone. A
+      // newer payload has already replaced this one if it arrived in between.
+      if (state.payload.undo && state.payload.undo.id === offer.id) {
+        state.payload.undo = null;
+      }
+      hideUndo();
+    }, remaining);
+  }
+
   function applyChrome() {
     var s = labels();
     panel.dataset.theme = state.payload.theme;
@@ -350,6 +439,7 @@
 
     applyChrome();
     renderRows(state.payload.tasks);
+    applyUndo();
 
     if (first) {
       panel.classList.add("visible");
@@ -466,6 +556,19 @@
     runAction({ type: "done", id: id });
   }
 
+  function undoTask() {
+    // The offer is the only thing Undo is allowed to restore, and it may be
+    // consumed once. Disable before the invoke leaves so a double click — or
+    // Enter followed by a click — cannot queue a second write; main enforces
+    // the same rule on its side of the boundary.
+    var offer = state.payload.undo;
+    if (!offer || undoBusy) return;
+    undoBusy = true;
+    undoBtn.disabled = true;
+    clearUndoTimer();
+    runAction({ type: "undo", id: offer.id });
+  }
+
   function openTasks() {
     runAction({ type: "open-tasks" });
   }
@@ -474,6 +577,9 @@
 
   closeBtn.addEventListener("click", closePanel);
   openTasksBtn.addEventListener("click", openTasks);
+  // A real button: Tab reaches it and Enter/Space activate it through the
+  // browser's native click, so no new global chord is introduced.
+  undoBtn.addEventListener("click", undoTask);
 
   document.addEventListener("keydown", function (event) {
     // IME composition owns Escape and the number row until the candidate

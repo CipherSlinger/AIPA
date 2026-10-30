@@ -203,6 +203,12 @@ const i18n = {
     taskBriefDoneHint: "Mark this task done",
     taskBriefDoneFailed: "Could not finish the task. Try again.",
     taskBriefDoneUndelivered: "Task finished, but AIPA was closed and its task list was not refreshed.",
+    // The quiet line after a finish. {name} is the task title, ellipsized by
+    // the page when the line is too long; the Undo label is its own control.
+    taskBriefUndoLine: "Task done · {name}",
+    taskBriefUndo: "Undo",
+    taskBriefUndoFailed: "Could not restore the task. It may have been archived or changed since.",
+    taskBriefUndoUndelivered: "Task restored, but AIPA was closed and its task list was not refreshed.",
     // Quiet count of tasks waiting on the user, drawn on the pet itself.
     // {n} is the number; the visible badge shows the digits alone.
     needsYouBadgeLabel: "Needs you: {n} tasks",
@@ -428,6 +434,10 @@ const i18n = {
     taskBriefDoneHint: "把这项任务标记为完成",
     taskBriefDoneFailed: "无法完成任务，请重试。",
     taskBriefDoneUndelivered: "任务已完成，但 AIPA 已关闭，任务列表未能刷新。",
+    taskBriefUndoLine: "任务已完成 · {name}",
+    taskBriefUndo: "撤销",
+    taskBriefUndoFailed: "无法恢复该任务，它可能已被归档或改动。",
+    taskBriefUndoUndelivered: "任务已恢复，但 AIPA 已关闭，任务列表未能刷新。",
     needsYouBadgeLabel: "待你处理：{n} 个任务",
     settingsPetNeedsYouBadge: "待办角标",
     settingsPetNeedsYouBadgeHint: "在桌宠上显示有多少任务在等你处理。",
@@ -642,6 +652,10 @@ const i18n = {
     taskBriefDoneHint: "이 작업을 완료로 표시",
     taskBriefDoneFailed: "작업을 완료하지 못했습니다. 다시 시도하세요.",
     taskBriefDoneUndelivered: "작업은 완료되었지만 AIPA가 닫혀 있어 작업 목록이 새로고침되지 않았습니다.",
+    taskBriefUndoLine: "작업 완료 · {name}",
+    taskBriefUndo: "실행 취소",
+    taskBriefUndoFailed: "작업을 복원할 수 없습니다. 보관되었거나 변경되었을 수 있습니다.",
+    taskBriefUndoUndelivered: "작업은 복원되었지만 AIPA가 닫혀 있어 작업 목록이 새로고침되지 않았습니다.",
     needsYouBadgeLabel: "확인 필요: 작업 {n}개",
     settingsPetNeedsYouBadge: "확인 필요 배지",
     settingsPetNeedsYouBadgeHint: "펫 위에 기다리는 작업 수를 표시합니다.",
