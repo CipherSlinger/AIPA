@@ -134,6 +134,9 @@ const i18n = {
     petMenuStop: "Stop",
     petMenuSilence: "Silence",
     petMenuResume: "Resume",
+    // Bottom hint of the pet menu while the pet is silenced. {time} is a
+    // locale-independent 24-hour clock (HH:MM), not a word.
+    petMenuSilencedUntil: "Silenced until {time}",
     petMenuMore: "More",
     petMenuNotices: "Notices",
     petMenuSettings: "Settings",
@@ -263,6 +266,7 @@ const i18n = {
     petMenuStop: "停止",
     petMenuSilence: "静默",
     petMenuResume: "恢复提醒",
+    petMenuSilencedUntil: "静默至 {time}",
     petMenuMore: "更多",
     petMenuNotices: "通知中心",
     petMenuSettings: "设置",
@@ -392,6 +396,7 @@ const i18n = {
     petMenuStop: "중지",
     petMenuSilence: "조용히",
     petMenuResume: "알림 재개",
+    petMenuSilencedUntil: "{time}까지 조용히",
     petMenuMore: "더보기",
     petMenuNotices: "알림 센터",
     petMenuSettings: "설정",

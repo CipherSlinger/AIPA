@@ -213,6 +213,36 @@ body { position: relative; }
   opacity: 0.65;
 }
 
+/* The silenced SILENCE petal carries a number on top of its label ("Resume ·
+   28m"). At 10.5px with 0.15em tracking that runs past the 77px of text a
+   128px chip leaves, and the label is set nowrap — so it steps down one size
+   while counting. */
+.petal.is-counting .label {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+/* Countdown rail on the silenced SILENCE petal: it starts full when the ring
+   opens and empties exactly when the silence lifts. Sized once at build time
+   as an animation duration — the menu only lives for seconds, so a per-frame
+   JS loop would spend a renderer tick to redraw the same two pixels. */
+.petal .arc {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  opacity: 0;
+  pointer-events: none;
+}
+.petal .arc.is-running {
+  opacity: 0.9;
+  animation: arcDrain var(--arc-ms, 1000ms) linear forwards;
+}
+
 /* Unread count on MORE (outer) and NOTICES (nested): the outer pill is what
    tells the user there is something behind the second level at all. */
 .petal .pill {
@@ -394,6 +424,10 @@ body { position: relative; }
 }
 @keyframes orbit { to { transform: rotate(360deg); } }
 @keyframes sweep { to { transform: rotate(360deg); } }
+@keyframes arcDrain {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   /* No scale anywhere: levels appear and disappear by opacity alone. */
@@ -409,6 +443,9 @@ body { position: relative; }
   .petal .edge,
   .petal .face,
   .orb { transition: none; }
+  /* The countdown rail is information, not decoration: with motion off it
+     stays a static line under the label instead of draining. */
+  .petal .arc.is-running { animation: none; transform: scaleX(1); opacity: 0.55; }
 }
 </style>
 </head>
@@ -475,7 +512,7 @@ body { position: relative; }
     { action: "new-chat", key: "1", label: "newChat", available: "newChat", accent: "#3fe0c8", glyph: "chat", angle: -90, fallback: "New Chat" },
     { action: "open-aipa", key: "2", label: "openAipa", available: "openAipa", accent: "#58a6ff", glyph: "open", angle: -18, fallback: "Open AIPA" },
     { action: "stop", key: "3", label: "stop", available: "stop", accent: "#ff5d5d", glyph: "stop", angle: 54, fallback: "Stop" },
-    { action: "silence", key: "4", label: "silence", available: "silence", accent: "#f0b429", glyph: "bellOff", angle: 126, fallback: "Silence" },
+    { action: "silence", key: "4", label: "silence", available: "silence", accent: "#f0b429", glyph: "bellOff", angle: 126, fallback: "Silence", arc: true },
     { action: "more", key: "5", label: "more", available: null, accent: "#b98cff", glyph: "more", angle: 198, fallback: "More" },
   ];
 
@@ -498,6 +535,10 @@ body { position: relative; }
   var view = "outer";
   var ready = false;
   var closing = false;
+  // Instant (epoch ms) the current silence lifts, 0 when there is none. The
+  // hint line is rebuilt on every level step, so it reads from here rather
+  // than from the payload the outer ring was built with.
+  var quietUntil = 0;
 
   function nestedDistance(angle) {
     var rad = (angle * Math.PI) / 180;
@@ -523,12 +564,15 @@ body { position: relative; }
     btn.style.setProperty("--i", String(order));
     btn.style.setProperty("--accent", meta.accent);
     setPosition(btn, meta.angle, nested ? nestedDistance(meta.angle) : radius);
+    // The countdown rail sits inside the face, not on the button: the face is
+    // what carries the cut corners, so it clips the rail to the chip's shape.
     btn.innerHTML =
       '<span class="edge"></span>' +
       '<span class="face">' +
         '<span class="glyph">' + GLYPH[meta.glyph] + '</span>' +
         '<span class="label"></span>' +
         '<span class="key"></span>' +
+        (meta.arc ? '<span class="arc" aria-hidden="true"></span>' : '') +
       '</span>' +
       '<span class="pill" aria-hidden="true" hidden></span>';
     btn.querySelector(".label").textContent = labels[meta.label] || meta.fallback || meta.action;
@@ -563,8 +607,63 @@ body { position: relative; }
     try { el.inert = !active; } catch (err) { /* pointer-events still covers the pointer path */ }
   }
 
+  // A silenced pet still closes on Escape; the hint just spends its width on
+  // the one fact the user came to the menu for — when the quiet ends.
   function closeHint() {
+    if (quietUntil) {
+      var until = (labels.silencedUntil || "Silenced until {time}")
+        .replace("{time}", formatClock(quietUntil));
+      return until + "  ·  ESC";
+    }
     return (labels.close || "Close") + "  ·  ESC";
+  }
+
+  // 24-hour local time, padded by hand: toLocaleTimeString follows the OS
+  // locale and can produce "9:40 PM" inside an otherwise numeric HUD line.
+  function formatClock(ms) {
+    var date = new Date(ms);
+    var hh = date.getHours();
+    var mm = date.getMinutes();
+    return (hh < 10 ? "0" : "") + hh + ":" + (mm < 10 ? "0" : "") + mm;
+  }
+
+  // Round up: 61 seconds left is "2m", not "1m". Anything under a minute is
+  // "<1m" so the petal never claims a time that has already run out.
+  function remainderText(ms) {
+    if (!(ms > 0)) return "";
+    if (ms < 60000) return "<1m";
+    var mins = Math.ceil(ms / 60000);
+    if (mins < 60) return mins + "m";
+    var hours = Math.floor(mins / 60);
+    var rest = mins % 60;
+    return rest ? hours + "h " + rest + "m" : hours + "h";
+  }
+
+  /**
+   * SILENCE while silenced: green accent, the resume label plus the time left,
+   * and a rail that empties as the deadline approaches. With no deadline in the
+   * payload (an older main process) it stays exactly the pre-countdown petal.
+   */
+  function paintSilence(btn, quiet, left) {
+    var remainder = left > 0 ? remainderText(left) : "";
+    var counting = quiet && remainder !== "";
+    btn.querySelector(".label").textContent = counting
+      ? (labels.resume || "RESUME") + " · " + remainder
+      : (quiet ? (labels.resume || "RESUME") : (labels.silence || "SILENCE"));
+    btn.classList.toggle("is-counting", counting);
+    btn.style.setProperty("--accent", quiet ? "#57d98a" : "#f0b429");
+
+    var arc = btn.querySelector(".arc");
+    if (!arc) return;
+    arc.classList.remove("is-running");
+    if (!counting) {
+      arc.style.removeProperty("--arc-ms");
+      return;
+    }
+    // Duration, not width: the rail is full at build time and reaches zero at
+    // `quietUntil`. One animation does the whole countdown.
+    arc.style.setProperty("--arc-ms", Math.max(1, Math.round(left)) + "ms");
+    arc.classList.add("is-running");
   }
 
   function backHint() {
@@ -640,6 +739,18 @@ body { position: relative; }
     var data = state || {};
     var quiet = !!data.quiet;
     var canStop = !!data.canStop;
+    // A payload from an older factory has no `quietUntil` at all. Anything that
+    // is not a usable instant reads as "unknown", so the petal falls back to
+    // exactly what it rendered before the countdown existed.
+    var until = typeof data.quietUntil === "number" && isFinite(data.quietUntil) && data.quietUntil > 0
+      ? data.quietUntil
+      : 0;
+    var left = 0;
+    if (quiet && until) {
+      var now = Date.now();
+      left = until > now ? until - now : 0;
+    }
+    quietUntil = left > 0 ? until : 0;
     for (var i = 0; i < petals.length; i++) {
       var btn = petals[i];
       if (btn.dataset.action === "stop") {
@@ -647,8 +758,7 @@ body { position: relative; }
         btn.title = canStop ? "" : (labels.nothingRunning || "");
       }
       if (btn.dataset.action === "silence") {
-        btn.querySelector(".label").textContent = quiet ? (labels.resume || "RESUME") : (labels.silence || "SILENCE");
-        btn.style.setProperty("--accent", quiet ? "#57d98a" : "#f0b429");
+        paintSilence(btn, quiet, left);
       }
     }
   }

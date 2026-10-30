@@ -251,6 +251,12 @@ const petMenuCallbacks = {
     return quiet ? 'quiet' : 'loud'
   },
   isQuiet: (): boolean => isClawdQuietActive(),
+  /** When the current silence ends (epoch ms), or 0. Drives the petal's countdown. */
+  quietUntil: (): number => {
+    if (!isClawdQuietActive()) return 0
+    const until = getPref('petQuietUntil' as any)
+    return typeof until === 'number' && Number.isFinite(until) ? until : 0
+  },
   /**
    * The notice log, anchored to the pet so the window the user opens is beside
    * the thing that told them about it. `require` at call time keeps the pet

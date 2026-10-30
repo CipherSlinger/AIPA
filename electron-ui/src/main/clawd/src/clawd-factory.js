@@ -909,6 +909,13 @@ function getPetMenuPayload() {
   const unreadNotices = typeof unreadRaw === "number" && isFinite(unreadRaw) && unreadRaw > 0
     ? Math.floor(unreadRaw)
     : 0;
+  // When the silence lifts (epoch ms). Anything that is not a usable instant —
+  // a missing callback, a string, NaN, a clock already in the past — collapses
+  // to 0, which the menu reads as "no countdown" and renders the plain petal.
+  const quietUntilRaw = callPetMenuCallback("quietUntil");
+  const quietUntil = typeof quietUntilRaw === "number" && isFinite(quietUntilRaw) && quietUntilRaw > 0
+    ? Math.floor(quietUntilRaw)
+    : 0;
   return {
     lang,
     labels: {
@@ -917,6 +924,7 @@ function getPetMenuPayload() {
       stop: t("petMenuStop"),
       silence: t("petMenuSilence"),
       resume: t("petMenuResume"),
+      silencedUntil: t("petMenuSilencedUntil"),
       more: t("petMenuMore"),
       // Second ring behind MORE.
       notices: t("petMenuNotices"),
@@ -930,6 +938,7 @@ function getPetMenuPayload() {
     state: {
       canStop: callPetMenuCallback("isBusy") === true,
       quiet: callPetMenuCallback("isQuiet") === true,
+      quietUntil,
     },
     badges: {
       notices: unreadNotices,
