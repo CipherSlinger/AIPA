@@ -288,9 +288,34 @@ body[data-theme="clawd"] .due {
   white-space: nowrap;
 }
 .due-date {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--accent);
+  font: inherit;
+  font-size: inherit;
   font-weight: 700;
+  line-height: inherit;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  outline: none;
+}
+/* The date is a button, but it must read as the same ink until the pointer or
+   Tab says there is something behind it. The rule sits inside the box so the
+   chip's ellipsis clip cannot eat it. */
+.due-date:hover,
+.due-date:focus-visible {
+  color: var(--text);
+  box-shadow: inset 0 -1px 0 currentColor;
+}
+.due-date:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  outline-offset: -1px;
 }
 .due-clear {
   flex: none;
@@ -317,6 +342,68 @@ body[data-theme="clawd"] .due-clear {
 .due-clear:hover { color: var(--text); background: var(--row-active); }
 .due-clear:focus-visible {
   color: var(--text);
+  outline: 1px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  outline-offset: -1px;
+}
+
+/* ── Preset days ─────────────────────────────────────────────────────────────
+   The day in the chip is only a guess, and retyping the phrase is a poor way
+   to correct it. This strip is the middle ground: directly under the chip,
+   three local calendar days in the same ink and type as the footer hints.
+   It is a block below the field like the chip and the suggestion list, so it
+   rides the same measured-height path and is never clipped by the bar. */
+.due-presets {
+  position: relative;
+  z-index: 1;
+  align-self: flex-start;
+  display: inline-flex;
+  gap: 4px;
+  flex: none;
+  margin-top: 5px;
+}
+.due-preset {
+  flex: none;
+  height: 22px;
+  padding: 0 7px;
+  border: 1px solid var(--field-border);
+  background: var(--field-bg);
+  color: var(--muted);
+  font: inherit;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 20px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  outline: none;
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+}
+body[data-theme="clawd"] .due-preset {
+  height: 24px;
+  padding: 0 9px;
+  line-height: 22px;
+  border-radius: 6px;
+  clip-path: none;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-size: 9px;
+}
+/* The day the chip already shows, so the strip never asks the user to guess
+   which of the three is currently in force. */
+.due-preset[aria-current="true"] {
+  color: var(--text);
+  border-color: var(--field-focus);
+  background: var(--row-active);
+}
+.due-preset:hover {
+  color: var(--text);
+  background: var(--row-active);
+}
+.due-preset:focus-visible {
+  color: var(--text);
+  background: var(--row-active);
+  border-color: var(--field-focus);
   outline: 1px solid color-mix(in srgb, var(--accent) 70%, transparent);
   outline-offset: -1px;
 }
@@ -442,8 +529,15 @@ kbd {
            aria-label="Capture a task" />
   </form>
   <div class="due" id="due" hidden>
-    <span class="due-text"><span id="duePhrase"></span><span class="due-sep" aria-hidden="true"> · </span><span class="due-date" id="dueDate"></span></span>
+    <span class="due-text"><span id="duePhrase"></span><span class="due-sep" aria-hidden="true"> · </span><button class="due-date" id="dueDate" type="button"
+            aria-haspopup="true" aria-expanded="false" aria-controls="duePresets"
+            aria-label="Change the due day"></button></span>
     <button class="due-clear" id="dueClear" type="button">×</button>
+  </div>
+  <div class="due-presets" id="duePresets" role="group" aria-label="Change the due day" hidden>
+    <button class="due-preset" id="duePresetToday" type="button" data-days="0">Today</button>
+    <button class="due-preset" id="duePresetTomorrow" type="button" data-days="1">Tomorrow</button>
+    <button class="due-preset" id="duePresetNextWeek" type="button" data-days="7">Next week</button>
   </div>
   <div class="error" id="error" role="alert" hidden></div>
   <div class="suggest" id="suggest" hidden>
@@ -473,6 +567,14 @@ kbd {
   var duePhrase = document.getElementById("duePhrase");
   var dueDate = document.getElementById("dueDate");
   var dueClear = document.getElementById("dueClear");
+  var duePresets = document.getElementById("duePresets");
+  // The strip's days, in reading order. `days` is a local calendar offset;
+  // "next week" is today + 7, not "+7 × 86400000" — see choosePreset.
+  var presetButtons = [
+    { el: document.getElementById("duePresetToday"), days: 0, key: "dueToday" },
+    { el: document.getElementById("duePresetTomorrow"), days: 1, key: "dueTomorrow" },
+    { el: document.getElementById("duePresetNextWeek"), days: 7, key: "dueNextWeek" }
+  ];
   var saveHint = document.getElementById("saveHint");
   var cancelHint = document.getElementById("cancelHint");
 
@@ -486,7 +588,11 @@ kbd {
     savedTitle: "Saved to Inbox",
     savedPill: "INBOX",
     dueLabel: "Due date",
-    dueClear: "Remove due date"
+    dueClear: "Remove due date",
+    duePresets: "Change the due day",
+    dueToday: "Today",
+    dueTomorrow: "Tomorrow",
+    dueNextWeek: "Next week"
   };
 
   // The page's own language, used only to spell the recognised day.
@@ -495,6 +601,12 @@ kbd {
   var due = null;
   // Set by ×: the same line keeps its day hidden until the text changes.
   var dueDismissed = false;
+  // A day picked from the preset strip, or null. It is the user's correction
+  // to the line's guess and outranks the parser until the line names a new day.
+  // `fromPhrase` / `fromDueOn` remember the parse standing at the moment of the
+  // choice: the same phrase staying put must not undo the choice on the next
+  // keystroke, but a different day typed into the line replaces it.
+  var chosenDue = null;
 
   var composing = false;
   // True only for the keystroke that confirmed an IME composition. The submit
@@ -730,16 +842,101 @@ kbd {
   function renderDue() {
     var today = todayParts(new Date());
     var match = parseDue(input.value, today);
-    due = match && !dueDismissed ? match : null;
+    // A different recognised phrase replaces the chosen preset: the line now
+    // names a day of its own. The phrase that was already there when the
+    // preset was chosen does not, or one more keystroke would undo the choice.
+    if (chosenDue && match &&
+        (match.phrase !== chosenDue.fromPhrase || match.dueOn !== chosenDue.fromDueOn)) {
+      chosenDue = null;
+    }
+    due = null;
+    if (!dueDismissed) {
+      if (chosenDue) {
+        // The phrase text follows the choice, never the stale line phrase.
+        due = { phrase: chosenDue.label, dueOn: chosenDue.dueOn, date: chosenDue.date };
+      } else if (match) {
+        due = match;
+      }
+    }
     if (!due) {
       dueEl.hidden = true;
       dueEl.removeAttribute("aria-label");
+      // There is nothing to offer presets for once the chip is gone.
+      hidePresets();
       return;
     }
     duePhrase.textContent = due.phrase;
     dueDate.textContent = formatChipDate(due.date, today);
     dueEl.setAttribute("aria-label", labels.dueLabel + ": " + due.phrase + " · " + dueDate.textContent);
     dueEl.hidden = false;
+  }
+
+  /**
+   * The local calendar day a preset stands for. Going through `addDays` keeps
+   * month ends and DST shifts the calendar's business, never a fixed 24-hour
+   * increment added to an instant.
+   */
+  function presetDate(days) {
+    var d = addDays(todayParts(new Date()), days);
+    return localDay(d.y, d.m, d.d);
+  }
+
+  /**
+   * A preset is a correction to the shown day, so it also becomes the phrase
+   * the chip reads. The typed line is never rewritten: only the day riding
+   * with it changes.
+   */
+  function choosePreset(days, label) {
+    var date = presetDate(days);
+    if (!date) return;
+    var today = todayParts(new Date());
+    var match = parseDue(input.value, today);
+    chosenDue = {
+      label: label,
+      dueOn: dueOnOf(date),
+      date: date,
+      fromPhrase: match ? match.phrase : null,
+      fromDueOn: match ? match.dueOn : null
+    };
+    dueDismissed = false;
+    hidePresets();
+    refresh();
+    // Hand the keyboard back to the line; the caret is where it was.
+    try { input.focus(); } catch (err) { /* window may be going away */ }
+  }
+
+  function openPresets() {
+    if (!due || !duePresets.hidden) return;
+    duePresets.hidden = false;
+    dueDate.setAttribute("aria-expanded", "true");
+    // Name the day already in force, so the three offers are a choice and not a
+    // question the user has to answer by comparing dates.
+    for (var p = 0; p < presetButtons.length; p++) {
+      var presetDay = presetDate(presetButtons[p].days);
+      var isCurrent = !!due && !!presetDay && dueOnOf(presetDay) === due.dueOn;
+      if (isCurrent) presetButtons[p].el.setAttribute("aria-current", "true");
+      else presetButtons[p].el.removeAttribute("aria-current");
+    }
+    // The strip is a keyboard stop of its own, so ←/→ work the moment it opens;
+    // a synthetic click (or a screen reader's activation) does not focus the
+    // button the way a mouse press does, so say it here rather than rely on it.
+    try { dueDate.focus(); } catch (err) { /* window may be going away */ }
+    requestExtraHeight();
+  }
+
+  /** Close the strip and give its room back. Never touches the shown day. */
+  function hidePresets() {
+    if (duePresets.hidden) return;
+    duePresets.hidden = true;
+    dueDate.setAttribute("aria-expanded", "false");
+    requestExtraHeight();
+  }
+
+  function closePresets(restoreTrigger) {
+    hidePresets();
+    if (restoreTrigger) {
+      try { dueDate.focus(); } catch (err) { /* window may be going away */ }
+    }
   }
 
   function applyLabels() {
@@ -750,6 +947,13 @@ kbd {
     saveHint.textContent = labels.save;
     cancelHint.textContent = labels.cancel;
     dueClear.setAttribute("aria-label", labels.dueClear);
+    // The date button is named for what it opens, not for the date itself;
+    // the chip's own label already carries the phrase and the day.
+    dueDate.setAttribute("aria-label", labels.duePresets);
+    duePresets.setAttribute("aria-label", labels.duePresets);
+    for (var p = 0; p < presetButtons.length; p++) {
+      presetButtons[p].el.textContent = labels[presetButtons[p].key];
+    }
     panel.setAttribute("aria-label", labels.eyebrow);
   }
 
@@ -783,7 +987,7 @@ kbd {
    * one-line due tag does not reserve a strip.
    */
   function requestExtraHeight() {
-    var extra = blockHeight(dueEl) + blockHeight(suggestEl);
+    var extra = blockHeight(dueEl) + blockHeight(duePresets) + blockHeight(suggestEl);
     if (extra === lastExtra) return;
     lastExtra = extra;
     if (api && typeof api.resize === "function") api.resize(extra);
@@ -944,6 +1148,9 @@ kbd {
     saving = false;
     due = null;
     dueDismissed = false;
+    chosenDue = null;
+    duePresets.hidden = true;
+    dueDate.setAttribute("aria-expanded", "false");
     input.value = "";
     clearError();
 
@@ -1018,7 +1225,39 @@ kbd {
     due = null;
     dueEl.hidden = true;
     dueEl.removeAttribute("aria-label");
+    hidePresets();
     requestExtraHeight();
+  });
+
+  // The date is the strip's trigger. A second Enter/click on it closes the
+  // strip, so the button is a toggle and not a one-way door.
+  dueDate.addEventListener("click", function (event) {
+    event.preventDefault();
+    if (duePresets.hidden) openPresets();
+    else closePresets(true);
+  });
+
+  for (var pb = 0; pb < presetButtons.length; pb++) {
+    (function (preset) {
+      preset.el.addEventListener("click", function (event) {
+        event.preventDefault();
+        choosePreset(preset.days, labels[preset.key]);
+      });
+    })(presetButtons[pb]);
+  }
+
+  // Clicking the panel anywhere else closes the strip but leaves the day
+  // showing; clicking the trigger is the toggle above.
+  document.addEventListener("mousedown", function (event) {
+    if (duePresets.hidden) return;
+    if (duePresets.contains(event.target) || dueDate.contains(event.target)) return;
+    var active = document.activeElement;
+    hidePresets();
+    // If the strip had the keyboard, hand it back to the line rather than
+    // leaving focus on a button that just disappeared from the page.
+    if (duePresets.contains(active)) {
+      try { input.focus(); } catch (err) { /* window may be going away */ }
+    }
   });
 
   document.addEventListener("keydown", function (event) {
@@ -1027,8 +1266,35 @@ kbd {
       // "dismiss the bar".
       if (event.isComposing) return;
       event.preventDefault();
+      // The strip is the innermost layer: Escape closes it before the bar.
+      if (!duePresets.hidden) {
+        closePresets(true);
+        return;
+      }
       if (api) api.close();
+      return;
     }
+    if (duePresets.hidden) return;
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    // ←/→ step through the three days while the strip owns the keyboard. ↑/↓
+    // are deliberately left alone: the input keeps its history walk. If the
+    // text field has focus, the arrows remain ordinary caret movement.
+    var active = document.activeElement;
+    var inside = active === dueDate;
+    var index = -1;
+    for (var i = 0; i < presetButtons.length; i++) {
+      if (presetButtons[i].el === active) {
+        inside = true;
+        index = i;
+      }
+    }
+    if (!inside) return;
+    event.preventDefault();
+    var next = event.key === "ArrowRight"
+      ? (index < 0 ? 0 : (index + 1) % presetButtons.length)
+      : (index < 0 ? presetButtons.length - 1
+        : (index + presetButtons.length - 1) % presetButtons.length);
+    try { presetButtons[next].el.focus(); } catch (err) { /* window may be going away */ }
   });
 
   // Discoverability only: the arrows walk the saved captures. A bare glyph

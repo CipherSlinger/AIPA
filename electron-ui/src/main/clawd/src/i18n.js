@@ -300,6 +300,12 @@ const i18n = {
     // and the × that dismisses the day without touching the typed line.
     taskCaptureDueLabel: "Due date",
     taskCaptureDueClear: "Remove due date",
+    // Quick capture: the day the line mentions is a guess, so the chip opens a
+    // short preset strip — Today, Tomorrow, Next week — and × clears it.
+    taskCaptureDuePresets: "Change the due day",
+    taskCaptureDueToday: "Today",
+    taskCaptureDueTomorrow: "Tomorrow",
+    taskCaptureDueNextWeek: "Next week",
   },
   zh: {
     size: "大小",
@@ -540,6 +546,12 @@ const i18n = {
     taskCaptureSavedPill: "收件箱",
     taskCaptureDueLabel: "截止日",
     taskCaptureDueClear: "移除截止日",
+    // 快速记任务：那一行里的「日子」只是猜的，点一下日期可以改成
+    // 今天 / 明天 / 下周，× 仍然表示不要这一天。
+    taskCaptureDuePresets: "改截止日",
+    taskCaptureDueToday: "今天",
+    taskCaptureDueTomorrow: "明天",
+    taskCaptureDueNextWeek: "下周",
   },
   ko: {
     size: "크기",
@@ -780,6 +792,12 @@ const i18n = {
     taskCaptureSavedPill: "받은함",
     taskCaptureDueLabel: "마감일",
     taskCaptureDueClear: "마감일 지우기",
+    // 빠른 기록: 줄에서 읽은 날짜는 추측이므로 날짜를 누르면
+    // 오늘 / 내일 / 다음 주 중에서 고를 수 있습니다. ×는 그대로 지웁니다.
+    taskCaptureDuePresets: "마감일 변경",
+    taskCaptureDueToday: "오늘",
+    taskCaptureDueTomorrow: "내일",
+    taskCaptureDueNextWeek: "다음 주",
   },
 };
 

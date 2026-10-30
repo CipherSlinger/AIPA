@@ -69,6 +69,11 @@ export interface TaskCaptureLabels {
   savedPill: string
   dueLabel: string
   dueClear: string
+  /** The chip's date is a guess: it opens a strip of these three days. */
+  duePresets: string
+  dueToday: string
+  dueTomorrow: string
+  dueNextWeek: string
 }
 
 export interface TaskCaptureContext {
