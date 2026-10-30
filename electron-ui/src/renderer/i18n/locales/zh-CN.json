@@ -102,6 +102,11 @@
     "regenerate": "重新生成回复",
     "regenerateWithModel": "使用其他模型重新生成",
     "currentModel": "当前",
+    "turnError": {
+      "retry": "重试",
+      "retryHint": "把你的上一条消息作为新一轮重新发送",
+      "retryBlocked": "请等待当前这一轮结束"
+    },
     "resetZoom": "重置缩放 (Ctrl+0)",
     "copyConversation": "复制对话",
     "copiedToClipboard": "对话已复制到剪贴板",

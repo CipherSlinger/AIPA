@@ -162,6 +162,13 @@ export interface StandardChatMessage {
   hookNotice?: HookNotice
   /** An ephemeral answer retrieved from past conversations. Never model output. */
   historyAsk?: HistoryAskNotice
+  /**
+   * This row is a turn-level engine failure created from `cli:turnError`, not
+   * model output. While it is the transcript's last row it offers Retry; the
+   * flag is cleared when a retry is attempted so a retried turn that is
+   * stopped before producing anything cannot resurrect the old offer.
+   */
+  turnError?: boolean
   attachments?: MessageAttachment[]  // user image attachments (on disk)
   /** Set when the turn failed after the images had been attached: the
    *  transcript must say they were not sent instead of implying delivery. */

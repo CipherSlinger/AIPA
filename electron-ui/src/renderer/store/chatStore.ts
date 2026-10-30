@@ -296,6 +296,13 @@ interface ChatState {
   /** Mark a user message's images as undelivered, with the honest reason. */
   markAttachmentsNotSent: (msgId: string, reason: string) => void
   /**
+   * Set or clear the retry marker on a turn-error row. Retry clears it before
+   * the new turn starts, so stopping that turn before it emits anything does
+   * not bring the old failure's button back; a send that never left the
+   * renderer restores it.
+   */
+  setTurnErrorActive: (msgId: string, active: boolean) => void
+  /**
    * Record what memory block this turn prepended to the prompt, so the user's
    * row can disclose it verbatim. Addressed by id — the row was already added
    * when assembly resolves — and never written to any other message.
@@ -749,6 +756,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
         : m
     )),
   })),
+
+  setTurnErrorActive: (msgId, active) => set((s) => {
+    const index = s.messages.findIndex(m => m.id === msgId && m.role === 'assistant')
+    if (index < 0) return s
+    const current = s.messages[index] as StandardChatMessage
+    if (!!current.turnError === active) return s
+    const next: StandardChatMessage = { ...current }
+    if (active) next.turnError = true
+    else delete next.turnError
+    const messages = s.messages.slice()
+    messages[index] = next
+    return { messages }
+  }),
 
   noteMemoryReceipt: (msgId, receipt) => set((s) => {
     const index = s.messages.findIndex(m => m.id === msgId && m.role === 'user')

@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useCallback, useRef, useState, useSyncExternalStore } from 'react'
+import React, { useEffect, useLayoutEffect, useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { ChatMessage, StandardChatMessage, HookCallbackMessage, ElicitationMessage } from '../../types/app.types'
 import Message from './Message'
@@ -16,6 +16,7 @@ import { useChatStore, useUiStore } from '../../store'
 import { useT } from '../../i18n'
 import { ArrowUp, Lock, Unlock } from 'lucide-react'
 import { useBuildItems, useMessageListMaps } from './messageListUtils'
+import { resolveRetryOffer } from './turnRetry'
 import { savedInterruptionStore, selectSavedInterruption } from './savedInterruptionStore'
 import { useMessageListScroll } from './useMessageListScroll'
 import { useMessageNavigation } from './useMessageNavigation'
@@ -61,6 +62,11 @@ interface Props {
   onFork?: (msgIdx: number) => void
   /** Codex: branch the engine thread before the user message with this id. */
   onBranch?: (msgId: string) => void
+  /**
+   * Resend the prompt behind a turn-error row. The argument names the error
+   * row, so a click that outlives its tab cannot resend another tab's prompt.
+   */
+  onRetryTurn?: (errorMessageId: string) => void
   /** Reports the scroll offset as the user scrolls, for per-tab restore. */
   onScrollTop?: (scrollTop: number) => void
   /** Tab identity — when it changes, `restoreScrollTop` is applied once. */
@@ -69,7 +75,7 @@ interface Props {
   restoreScrollTop?: number
 }
 
-export default function MessageList({ messages, onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, onRespondHookCallback, onRespondElicitation, sessionId, isStreaming, findOpen, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, evidenceMessageIdx, onEdit, onFork, onBranch, onScrollTop, tabId, restoreScrollTop }: Props) {
+export default function MessageList({ messages, onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, onRespondHookCallback, onRespondElicitation, sessionId, isStreaming, findOpen, searchQuery, searchCaseSensitive, highlightedMessageIdx, scrollToMessageIdx, evidenceMessageIdx, onEdit, onFork, onBranch, onRetryTurn, onScrollTop, tabId, restoreScrollTop }: Props) {
   const resolvePlan = useChatStore(s => s.resolvePlan)
   const addToast = useUiStore(s => s.addToast)
   const rewindToMessage = useChatStore(s => s.rewindToMessage)
@@ -136,6 +142,11 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
   // render callback on every streaming delta and defeat React.memo on Message).
   const messagesRef = useRef(messages)
   messagesRef.current = messages
+
+  // Per-tab by construction: this reads the transcript currently on screen.
+  // The offer exists only while a turn-error row is its last message, so a
+  // switch to a tab whose latest turn did not fail can never show it.
+  const retryOffer = useMemo(() => resolveRetryOffer(messages, !!isStreaming), [messages, isStreaming])
 
   const handleRewind = useCallback((ts: number) => {
     const msgs = messagesRef.current
@@ -340,11 +351,15 @@ export default function MessageList({ messages, onPermission, onGrantPermission,
         branchBlockedReason={branch.visible && !branch.enabled && branch.reason
           ? t(forkBlockedKey(branch.reason))
           : undefined}
+        // Only the tail row can offer Retry, and only while its failure is the
+        // latest thing that happened in this transcript.
+        onRetryTurn={retryOffer.visible && isLast ? onRetryTurn : undefined}
+        retryDisabled={retryOffer.visible && isLast ? !retryOffer.enabled : undefined}
         onRewind={sessionId ? handleRewind : undefined}
       />
       </MessageErrorBoundary>
     )
-  }, [onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, onRespondHookCallback, onRespondElicitation, sessionId, isStreaming, resolvePlan, searchQuery, searchCaseSensitive, showAvatarMap, showTimestampMap, onEdit, onFork, onBranch, getForkHandler, getBranchHandler, handleRewind, lastUserMsgId, assistantReplyMap, t])
+  }, [onPermission, onGrantPermission, onAlwaysAllow, onAlwaysDeny, onRespondHookCallback, onRespondElicitation, sessionId, isStreaming, resolvePlan, searchQuery, searchCaseSensitive, showAvatarMap, showTimestampMap, onEdit, onFork, onBranch, onRetryTurn, retryOffer, getForkHandler, getBranchHandler, handleRewind, lastUserMsgId, assistantReplyMap, t])
 
   return (
     <div style={{ height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>

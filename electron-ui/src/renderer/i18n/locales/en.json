@@ -102,6 +102,11 @@
     "regenerate": "Regenerate response",
     "regenerateWithModel": "Regenerate with different model",
     "currentModel": "current",
+    "turnError": {
+      "retry": "Retry",
+      "retryHint": "Send your last message again as a new turn",
+      "retryBlocked": "Wait for the current turn to finish"
+    },
     "resetZoom": "Reset zoom (Ctrl+0)",
     "copyConversation": "Copy conversation",
     "copiedToClipboard": "Conversation copied to clipboard",

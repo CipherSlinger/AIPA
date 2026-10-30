@@ -83,6 +83,9 @@ export function handleTurnEvent(event: string, data: any, ctx: StreamJsonEventCo
       role: 'assistant',
       content,
       timestamp: Date.now(),
+      // While this row is the transcript's tail it can offer Retry; a new turn
+      // appends its own row and the offer ends. See `turnRetry.ts`.
+      turnError: true,
     } as StandardChatMessage)
     // A task whose turn just died is not "in progress" any more: somebody has
     // to decide what happens next, which is what the needs-you column means.

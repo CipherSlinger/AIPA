@@ -10,7 +10,7 @@ import SelectionToolbar from './SelectionToolbar'
 import ImageLightbox from '../shared/ImageLightbox'
 import ReactionChips from './ReactionChips'
 import AnnotationEditor from './AnnotationEditor'
-import { User, Bot, Bookmark, Pin, Webhook } from 'lucide-react'
+import { User, Bot, Bookmark, Pin, Webhook, RotateCcw } from 'lucide-react'
 import { usePrefsStore, useChatStore } from '../../store'
 import { useT } from '../../i18n'
 import { useMessageActions } from '../../hooks/useMessageActions'
@@ -30,6 +30,13 @@ interface Props {
   onBranch?: () => void
   /** Localized reason the branch action is visible but disabled (streaming). */
   branchBlockedReason?: string
+  /**
+   * Resend the prompt behind this turn-error row. Only provided for a row
+   * that is the transcript's tail and whose prompt can be replayed.
+   */
+  onRetryTurn?: (errorMessageId: string) => void
+  /** A turn is still running; the send path would refuse, so show it disabled. */
+  retryDisabled?: boolean
   searchQuery?: string
   searchCaseSensitive?: boolean
   showAvatar?: boolean
@@ -39,7 +46,7 @@ interface Props {
   hasAssistantReply?: boolean
 }
 
-export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, onEdit, onFork, onBranch, branchBlockedReason, searchQuery, searchCaseSensitive, showAvatar = true, showTimestamp = true, isLastUserMsg = false, isLastMessage = false, hasAssistantReply = false }: Props) {
+export default React.memo(function Message({ message, onRate, onRewind, onBookmark, onCollapse, onEdit, onFork, onBranch, branchBlockedReason, onRetryTurn, retryDisabled = false, searchQuery, searchCaseSensitive, showAvatar = true, showTimestamp = true, isLastUserMsg = false, isLastMessage = false, hasAssistantReply = false }: Props) {
   const t = useT()
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
@@ -300,14 +307,67 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
         </div>
       )
     }
+    // A turn-level engine failure offers to resend the prompt that produced
+    // it, right where the user is already reading the error. The original user
+    // row stays untouched; the retry is a new turn whose answer lands below.
+    // The offer is deliberately a native button: Tab reaches it and
+    // Enter/Space activate it, with the app-wide `:focus-visible` ring.
+    const offerRetry = (message as StandardChatMessage).turnError === true
+      && isLastMessage
+      && !!onRetryTurn
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 20px' }}>
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        gap: offerRetry ? 6 : 0, padding: '4px 20px',
+      }}>
         <span style={{
           background: 'rgba(244, 71, 71, 0.08)', borderRadius: 6,
           padding: '4px 12px', fontSize: 12, color: 'var(--text-muted)',
         }}>
           {content}
         </span>
+        {offerRetry && (
+          <button
+            type="button"
+            data-turn-error-retry=""
+            onClick={() => onRetryTurn?.(message.id)}
+            disabled={retryDisabled}
+            title={retryDisabled
+              ? t('chat.turnError.retryBlocked')
+              : t('chat.turnError.retryHint')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '4px 12px',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              color: 'var(--accent-text)',
+              fontSize: 11,
+              fontWeight: 600,
+              lineHeight: 1.4,
+              cursor: retryDisabled ? 'not-allowed' : 'pointer',
+              opacity: retryDisabled ? 0.55 : 1,
+              // The app-wide reduced-motion rule collapses this to 0.001ms.
+              transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              if (retryDisabled) return
+              e.currentTarget.style.background = 'rgba(99,102,241,0.10)'
+              e.currentTarget.style.borderColor = 'rgba(99,102,241,0.30)'
+              e.currentTarget.style.color = 'var(--accent-text-strong)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'var(--bg-hover)'
+              e.currentTarget.style.borderColor = 'var(--border)'
+              e.currentTarget.style.color = 'var(--accent-text)'
+            }}
+          >
+            <RotateCcw size={12} aria-hidden="true" />
+            <span>{t('chat.turnError.retry')}</span>
+          </button>
+        )}
       </div>
     )
   }
@@ -593,6 +653,11 @@ export default React.memo(function Message({ message, onRate, onRewind, onBookma
   // label is the whole point of the row, so it must not be memoized away.
   if (pm.guidance?.state !== nm.guidance?.state) return false
   if (pm.guidance?.error !== nm.guidance?.error) return false
+  // Retry is offered while the failure is the tail; clearing that marker or
+  // streaming the next turn changes only these props.
+  if (pm.turnError !== nm.turnError) return false
+  if (prevProps.retryDisabled !== nextProps.retryDisabled) return false
+  if (!!prevProps.onRetryTurn !== !!nextProps.onRetryTurn) return false
   if (JSON.stringify(pm.reactions) !== JSON.stringify(nm.reactions)) return false
   if ((pm.toolUses?.length ?? 0) !== (nm.toolUses?.length ?? 0)) return false
   if (prevProps.searchQuery !== nextProps.searchQuery) return false

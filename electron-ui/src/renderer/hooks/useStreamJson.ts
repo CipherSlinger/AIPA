@@ -15,6 +15,7 @@ import { buildCodexImageInput, canSendCodexImages } from '../components/chat/ima
 import { engineNoticeStore } from '../components/chat/engineNoticeStore'
 import { autoApprovalReviewStore } from '../components/chat/autoApprovalReviewStore'
 import { clearEngineSteps } from '../components/chat/engineStepLog'
+import { findReplayableUserMessage, isTurnErrorRow } from '../components/chat/turnRetry'
 import { noteTaskTurnStarted } from '../lib/taskDispatch'
 // The one answer to "which folder will this turn run in", shared with the
 // header, the terminal dock and the open path. A local fallback chain here is
@@ -92,8 +93,17 @@ export function useStreamJson() {
     }
   }, [])
 
-  const sendMessage = useCallback(async (prompt: string, attachments?: import('./useImagePaste').ImageAttachment[], fileAttachments?: import('./useImagePaste').FileAttachment[]) => {
+  /**
+   * `options.appendUserMessage === false` sends the turn without writing a new
+   * user row. Retry uses it: the prompt it resends already sits in the
+   * transcript, and appending it again would look like the user had typed it a
+   * second time. Every other side effect of a send (streaming state, sleep
+   * lock, `beginTurn`, task bookkeeping, tab bridge ownership) is unchanged —
+   * a retry must be an ordinary turn in every respect except its missing echo.
+   */
+  const sendMessage = useCallback(async (prompt: string, attachments?: import('./useImagePaste').ImageAttachment[], fileAttachments?: import('./useImagePaste').FileAttachment[], options?: { appendUserMessage?: boolean }) => {
     if (!prompt.trim() && (!attachments || attachments.length === 0) && (!fileAttachments || fileAttachments.length === 0)) return
+    const appendUserMessage = options?.appendUserMessage !== false
 
     // PERF: read latest store values at call time so sendMessage keeps a stable
     // identity (prefs/tabs change often and would otherwise re-create it).
@@ -201,7 +211,10 @@ export function useStreamJson() {
       })),
       ...(imageNotSentReason ? { attachmentError: imageNotSentReason } : {}),
     }
-    useChatStore.getState().addMessage(userMsg)
+    // A retry answers the prompt that is already in the transcript, so its row
+    // is deliberately not added again. Receipt writes below address this id and
+    // are harmless no-ops when the row was not written.
+    if (appendUserMessage) useChatStore.getState().addMessage(userMsg)
     useChatStore.getState().setStreaming(true)
     // Deltas can arrive before cliSendMessage resolves with the bridge id;
     // record which conversation this turn belongs to so the store only accepts
@@ -457,6 +470,41 @@ export function useStreamJson() {
   sendMessageRef.current = sendMessage
 
   /**
+   * Resend the prompt behind a `cli:turnError` row as a brand-new turn, through
+   * the ordinary send path, without adding a second copy of the user's row.
+   *
+   * The caller names the error row it rendered. A click can land after the view
+   * moved to another tab, so the id is checked against the transcript that is
+   * live *now*: Retry in tab A must never resend tab B's prompt. Only text is
+   * replayable from a transcript; a prompt that carried images or files is
+   * offered no button at all (see `turnRetry.ts`), and this repeats the check
+   * for callers that bypass the component.
+   */
+  const retryLastTurn = useCallback(async (errorMessageId: string): Promise<boolean> => {
+    const state = useChatStore.getState()
+    // The send path would refuse while a turn is streaming; do not queue.
+    if (state.isStreaming) return false
+    const last = state.messages[state.messages.length - 1]
+    if (!last || last.id !== errorMessageId || !isTurnErrorRow(last)) return false
+    const user = findReplayableUserMessage(state.messages)
+    if (!user) return false
+    if ((user.attachments?.length ?? 0) > 0 || (user.fileAttachments?.length ?? 0) > 0) return false
+    const text = user.content
+    if (!text || !text.trim()) return false
+    // Retire the offer before the send. If the retried turn is stopped before
+    // it emits anything, the old failure's button must not come back.
+    state.setTurnErrorActive(errorMessageId, false)
+    try {
+      await sendMessage(text, undefined, undefined, { appendUserMessage: false })
+      return true
+    } catch {
+      // Nothing left the renderer, so the offer was never answered.
+      useChatStore.getState().setTurnErrorActive(errorMessageId, true)
+      return false
+    }
+  }, [sendMessage])
+
+  /**
    * Send a message as guidance into the turn that is already running, instead
    * of starting another one. Only `sendMessage` owns a turn's side effects
    * (clearing state, assembling memory, `beginTurn`, `setStreaming`); a steer
@@ -672,5 +720,5 @@ export function useStreamJson() {
     }
   }, [stopStreamingAndReleaseSleep])
 
-  return { sendMessage, steerMessage, abort, respondPermission, respondHookCallback, respondElicitation, grantToolPermission, alwaysAllowTool, alwaysDenyTool, newConversation }
+  return { sendMessage, retryLastTurn, steerMessage, abort, respondPermission, respondHookCallback, respondElicitation, grantToolPermission, alwaysAllowTool, alwaysDenyTool, newConversation }
 }

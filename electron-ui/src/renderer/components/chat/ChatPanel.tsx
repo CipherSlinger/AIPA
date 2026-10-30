@@ -32,6 +32,7 @@ import TokenUsageBar from './TokenUsageBar'
 import IdleReturnDialog from './IdleReturnDialog'
 import PinnedNoteStrip from './PinnedNoteStrip'
 import RegenerateButton from './RegenerateButton'
+import { isTurnErrorRow } from './turnRetry'
 import CompareView from './CompareView'
 import SpeculationCard from './SpeculationCard'
 import SpeculationStatusBar from './SpeculationStatusBar'
@@ -148,7 +149,7 @@ export default function ChatPanel() {
     })
   }, [addDreamEvent, addToast, t])
 
-  const { sendMessage, steerMessage, abort, respondPermission, respondHookCallback, respondElicitation, grantToolPermission, alwaysAllowTool, alwaysDenyTool, newConversation } = useStreamJson()
+  const { sendMessage, retryLastTurn, steerMessage, abort, respondPermission, respondHookCallback, respondElicitation, grantToolPermission, alwaysAllowTool, alwaysDenyTool, newConversation } = useStreamJson()
 
   // Extracted hooks
   const { elapsedStr } = useStreamingTimer(isStreaming)
@@ -282,8 +283,12 @@ export default function ChatPanel() {
     return () => window.removeEventListener('aipa:openExport', handleOpenExport)
   }, [])
 
-  // Regeneration
-  const canRegenerate = !isStreaming && messages.length >= 2 && messages[messages.length - 1]?.role === 'assistant'
+  // Regeneration. A turn-error row is not an answer: it has its own Retry
+  // affordance, and offering two resend controls for one failure would make
+  // the user guess which one keeps their original message in place.
+  const tailMessage = messages[messages.length - 1]
+  const canRegenerate = !isStreaming && messages.length >= 2
+    && tailMessage?.role === 'assistant' && !isTurnErrorRow(tailMessage)
 
   // STABILITY (Iteration 308): Use a stable selector to avoid recomputing on every
   // streaming RAF flush. During streaming, messages array reference changes every frame
@@ -696,6 +701,7 @@ export default function ChatPanel() {
             onEdit={handleEditMessage}
             onFork={handleFork}
             onBranch={handleBranch}
+            onRetryTurn={retryLastTurn}
             onScrollTop={handleScrollTop}
             tabId={activeTabId}
             restoreScrollTop={restoreScrollTop}
