@@ -4,6 +4,7 @@ import { describeCodexError } from '../../components/chat/codexErrorText'
 import { liveFilePatchStore } from '../../components/chat/liveFilePatchStore'
 import type { CliTurnErrorEventData } from '../../../preload/index'
 import { runCodexErrorAction } from './moduleActions'
+import { markActiveTaskNeedsYou } from '../../lib/taskWorkState'
 import type { StreamJsonEventContext } from './eventContext'
 
 /**
@@ -83,6 +84,9 @@ export function handleTurnEvent(event: string, data: any, ctx: StreamJsonEventCo
       content,
       timestamp: Date.now(),
     } as StandardChatMessage)
+    // A task whose turn just died is not "in progress" any more: somebody has
+    // to decide what happens next, which is what the needs-you column means.
+    markActiveTaskNeedsYou()
     const chatState = useChatStore.getState()
     if (chatState.isCompacting) {
       chatState.setCompacting(false)
