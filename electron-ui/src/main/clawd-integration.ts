@@ -263,6 +263,17 @@ function petRect(): { x: number; y: number; width: number; height: number } | un
   }
 }
 
+/**
+ * The pet's screen rectangle, for surfaces opened from a tray click that have
+ * no anchor of their own (the week review). Undefined while the pet is hidden
+ * or gone; the caller then falls back to its own default position.
+ */
+export function getClawdPetRect():
+  | { x: number; y: number; width: number; height: number }
+  | undefined {
+  return petRect()
+}
+
 /** The RECENT ring holds at most this many sessions: one per number key. */
 const RECENT_SESSION_LIMIT = 5
 /**
@@ -1499,6 +1510,22 @@ export function getClawdSubmenu(
         label: petT('taskCaptureMenu'),
         click: () => {
           clawdInstance?.openTaskCapture()
+        },
+      },
+      {
+        label: isZh ? '回顾上周…' : 'Week in Review…',
+        click: () => {
+          // Call-time require, like the notice log above: the week-review
+          // surface lives beside the pet factory and must not make this menu
+          // unloadable if it is missing from a build.
+          try {
+            const { openClawdWeekReview } = require('./clawd-week-review') as {
+              openClawdWeekReview: () => boolean
+            }
+            openClawdWeekReview()
+          } catch (err) {
+            log.warn('Could not open the week review from the tray menu:', String(err))
+          }
         },
       },
       { type: 'separator' },

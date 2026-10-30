@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Local-only page: no image, font, fetch or media sources. `'self'` is kept
+     for parity with task-brief.html, but this card is fully inline: nothing
+     leaves disk. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline' 'self'">
+<style>
+/* Two skins, one DOM. The default is the SAO HUD shared with the task brief
+   and the notice centre: near-black translucent slab, cut corners, faint grid,
+   scan sweep, uppercase monospace chrome, teal accent. `data-theme="clawd"`
+   swaps to the plain Clawd card — white/near-black by the system scheme,
+   rounded, sans-serif, warm orange accent. The reviewed week is the previous
+   Monday–Sunday, so no column is ever "today"; instead the day(s) with the
+   most completions carry the bright accent bar as the chart's one anchor. */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+/* Author `display` rules outrank the UA [hidden] rule; make the attribute
+   authoritative for the empty states and a missing API. */
+[hidden] { display: none !important; }
+html, body {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+  font-family: "Cascadia Code", "SF Mono", ui-monospace, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+:root {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --panel-bg-a: rgba(8, 14, 20, 0.92);
+  --panel-bg-b: rgba(4, 10, 14, 0.97);
+  --text: #dff7f3;
+  --muted: #7fa8a2;
+  --accent: #3fe0c8;
+  --line: rgba(63, 224, 200, 0.28);
+  --hairline: rgba(63, 224, 200, 0.14);
+  --grid: rgba(63, 224, 200, 0.045);
+  --hover: rgba(63, 224, 200, 0.08);
+  --key-border: rgba(63, 224, 200, 0.26);
+  --shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+  --tile-bg: rgba(63, 224, 200, 0.035);
+  --baseline: rgba(127, 168, 162, 0.38);
+  --scroll-thumb: rgba(63, 224, 200, 0.34);
+  --alert: #ffb454;
+  --good: #57d98a;
+  --ui-font: "Cascadia Code", "SF Mono", ui-monospace, "Segoe UI", sans-serif;
+}
+
+.panel[data-theme="clawd"] {
+  --panel-bg-a: #ffffff;
+  --panel-bg-b: #ffffff;
+  --text: #18181b;
+  --muted: #71717a;
+  --accent: #d97757;
+  --line: rgba(0, 0, 0, 0.08);
+  --hairline: rgba(0, 0, 0, 0.08);
+  --grid: transparent;
+  --hover: #f4f4f5;
+  --key-border: rgba(0, 0, 0, 0.14);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.08);
+  --tile-bg: #fafafa;
+  --baseline: rgba(0, 0, 0, 0.16);
+  --scroll-thumb: rgba(0, 0, 0, 0.2);
+  --alert: #c2410c;
+  --good: #15803d;
+  --ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  .panel[data-theme="clawd"] {
+    --panel-bg-a: #18181b;
+    --panel-bg-b: #18181b;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --line: rgba(255, 255, 255, 0.1);
+    --hairline: rgba(255, 255, 255, 0.1);
+    --hover: rgba(255, 255, 255, 0.06);
+    --key-border: rgba(255, 255, 255, 0.16);
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3);
+    --tile-bg: rgba(255, 255, 255, 0.04);
+    --baseline: rgba(255, 255, 255, 0.2);
+    --scroll-thumb: rgba(255, 255, 255, 0.22);
+    --alert: #f2a58c;
+    --good: #4ade80;
+  }
+}
+
+body { padding: 8px; }
+
+/* ── Panel ────────────────────────────────────────────────────────────────── */
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  /* The window is clamped by main to the work area and its own content cap.
+     Inside whatever height it was given the panel keeps header and footer
+     fixed and lets only the middle body scroll. */
+  max-height: calc(100vh - 16px);
+  overflow: hidden;
+  padding: 12px 14px 12px;
+  color: var(--text);
+  background:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+    linear-gradient(180deg, var(--panel-bg-a), var(--panel-bg-b));
+  background-size: 100% 22px, 22px 100%, 100% 100%;
+  border: 1px solid var(--line);
+  /* clip-path crops a box-shadow, so the outer glow is a filter on the panel;
+     the inset glow stays as a normal shadow. */
+  filter: drop-shadow(var(--shadow));
+  box-shadow: inset 0 0 28px rgba(63, 224, 200, 0.05);
+  clip-path: polygon(
+    0 12px, 12px 0,
+    calc(100% - 18px) 0, 100% 18px,
+    100% calc(100% - 10px), calc(100% - 10px) 100%,
+    18px 100%, 0 calc(100% - 18px)
+  );
+  text-shadow: 0 0 12px rgba(63, 224, 200, 0.10);
+  opacity: 0;
+  transform: translateY(6px) scale(0.985);
+  transition: opacity 0.16s linear, transform 0.20s var(--ease);
+  outline: none;
+}
+.panel.visible { opacity: 1; transform: none; }
+
+.panel[data-theme="clawd"] {
+  padding: 14px 16px;
+  border-radius: 14px;
+  clip-path: none;
+  box-shadow: none;
+  text-shadow: none;
+  font-family: var(--ui-font);
+}
+
+/* A slow sweep of light. Purely decorative, so it sits under the content. */
+.scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 26%;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(63, 224, 200, 0.10), transparent);
+  animation: hudScan 5.5s linear infinite;
+}
+.panel[data-theme="clawd"] .scan { display: none; }
+@keyframes hudScan {
+  0%   { transform: translateY(-120%); opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { transform: translateY(420%); opacity: 0; }
+}
+
+.head,
+.body,
+.foot { position: relative; z-index: 1; }
+
+/* Only the body may shrink when the card hits its height cap; the header and
+   footer keep their intrinsic size so Close and Open Tasks stay reachable. */
+.head,
+.foot { flex: none; }
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+.head {
+  padding: 0 2px 10px;
+  border-bottom: 1px solid var(--hairline);
+}
+.head-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.head-mark {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  transform: rotate(45deg);
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+.panel[data-theme="clawd"] .head-mark {
+  border-radius: 50%;
+  transform: none;
+  box-shadow: none;
+}
+.title {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.panel[data-theme="clawd"] .title {
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+.range {
+  margin-top: 4px;
+  padding-left: 14px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.panel[data-theme="clawd"] .range {
+  margin-top: 3px;
+  padding-left: 14px;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+/* ── Scrolling body ─────────────────────────────────────────────────────────────────────────────── */
+.body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  padding: 2px 2px 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  outline: none;
+}
+.body::-webkit-scrollbar { width: 4px; }
+.body::-webkit-scrollbar-track { background: transparent; }
+.body::-webkit-scrollbar-thumb {
+  border-radius: 2px;
+  background: transparent;
+}
+.body.scrolling::-webkit-scrollbar-thumb { background: var(--scroll-thumb); }
+
+/* ── Stat strip ───────────────────────────────────────────────────────────── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+.stat {
+  min-width: 0;
+  padding: 7px 8px 6px;
+  border: 1px solid var(--hairline);
+  background: var(--tile-bg);
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+}
+.panel[data-theme="clawd"] .stat {
+  padding: 8px 9px 7px;
+  border-radius: 9px;
+  clip-path: none;
+}
+.stat-num {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.panel[data-theme="clawd"] .stat-num {
+  font-size: 23px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.stat[data-zero="true"] .stat-num { opacity: 0.55; }
+.stat.alert .stat-num { color: var(--alert); }
+.stat.alert { border-color: color-mix(in srgb, var(--alert) 34%, transparent); }
+.stat.alert { background: color-mix(in srgb, var(--alert) 7%, var(--tile-bg)); }
+.stat-cap {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.panel[data-theme="clawd"] .stat-cap {
+  margin-top: 4px;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+/* The comparison line: one quiet sentence under the tiles. Its arrow carries
+   the direction colour; the sentence itself stays muted. */
+.compare {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 14px;
+  margin-top: 8px;
+  padding: 0 2px;
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.panel[data-theme="clawd"] .compare {
+  margin-top: 9px;
+  font-size: 11px;
+  letter-spacing: 0.01em;
+}
+.cmp-arrow {
+  flex: none;
+  width: 9px;
+  text-align: center;
+  font-size: 8px;
+  line-height: 1;
+  color: var(--muted);
+}
+.panel[data-theme="clawd"] .cmp-arrow { width: 10px; font-size: 9px; }
+.cmp-arrow.more { color: var(--good); opacity: 0.9; }
+.cmp-arrow.fewer { color: var(--alert); opacity: 0.9; }
+.cmp-arrow.same,
+.cmp-arrow.none { color: var(--muted); opacity: 0.55; }
+.cmp-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ── Seven-day chart ──────────────────────────────────────────────────────── */
+.chart {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 10px;
+  padding: 7px 4px 5px;
+  border: 1px solid var(--hairline);
+  background: color-mix(in srgb, var(--tile-bg) 70%, transparent);
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+}
+.panel[data-theme="clawd"] .chart {
+  border-radius: 9px;
+  clip-path: none;
+  background: transparent;
+}
+.day-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+.day-count {
+  height: 12px;
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 12px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.day-col.zero .day-count { visibility: hidden; }
+.day-col.peak .day-count { color: var(--accent); }
+.bar-track {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 54px;
+}
+.bar-fill {
+  width: 17px;
+  max-width: 74%;
+  border-radius: 1px;
+  transform-origin: bottom;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 72%, transparent),
+    color-mix(in srgb, var(--accent) 30%, transparent));
+}
+.panel[data-theme="clawd"] .bar-fill {
+  width: 18px;
+  border-radius: 3px 3px 1px 1px;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 82%, transparent),
+    color-mix(in srgb, var(--accent) 42%, transparent));
+}
+/* The peak day(s) are the chart's single visual anchor: the bright accent bar.
+   Every other finished day is a quiet tint, and a zero day is a flat baseline. */
+.day-col.peak .bar-fill {
+  background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 55%, transparent));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.panel[data-theme="clawd"] .day-col.peak .bar-fill { box-shadow: none; }
+.day-col.zero .bar-fill {
+  height: 2px !important;
+  width: 72%;
+  border-radius: 1px;
+  background: var(--baseline);
+  box-shadow: none;
+  animation: none;
+  transform: none;
+}
+.day-label {
+  overflow: hidden;
+  max-width: 100%;
+  white-space: nowrap;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.panel[data-theme="clawd"] .day-label {
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.day-col.peak .day-label { color: var(--text); }
+
+/* Bars grow once on first paint; a repaint or resize never replays it. */
+.chart.grow .bar-fill { animation: barGrow 480ms var(--ease) both; }
+@keyframes barGrow {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+/* ── Lists ────────────────────────────────────────────────────────────────── */
+.section { margin-top: 12px; }
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 2px 5px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.section-title::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--hairline);
+}
+.panel[data-theme="clawd"] .section-title {
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.row {
+  --k: var(--accent);
+  appearance: none;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 9px 6px 11px;
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--k) 5%, transparent), transparent 68%);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+.row.open-row.overdue { --k: var(--alert); }
+/* Accent rail, kept out of the grid so it can sit at the panel's edge. */
+.row::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 5px;
+  bottom: 5px;
+  width: 2px;
+  background: var(--k);
+  opacity: 0.5;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--k) 50%, transparent);
+}
+.row:hover {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--k) 12%, transparent), transparent 74%);
+  border-color: color-mix(in srgb, var(--k) 24%, transparent);
+}
+.row:focus-visible,
+.row.kb-focus {
+  outline: 1px solid color-mix(in srgb, var(--k) 72%, transparent);
+  outline-offset: -1px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--k) 14%, transparent), transparent 80%);
+}
+.panel[data-theme="clawd"] .row {
+  padding: 7px 9px 7px 9px;
+  border-radius: 8px;
+  background: transparent;
+}
+.panel[data-theme="clawd"] .row::before { display: none; }
+.panel[data-theme="clawd"] .row:hover { background: var(--hover); }
+.panel[data-theme="clawd"] .row:focus-visible,
+.panel[data-theme="clawd"] .row.kb-focus {
+  outline-color: color-mix(in srgb, var(--accent) 62%, transparent);
+  background: var(--hover);
+}
+.row-main {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+}
+.row-title {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+.panel[data-theme="clawd"] .row-title {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+.row-mult {
+  flex: none;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.panel[data-theme="clawd"] .row-mult { font-size: 10px; font-weight: 400; }
+.row-day {
+  flex: none;
+  white-space: nowrap;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.panel[data-theme="clawd"] .row-day {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.due {
+  flex: none;
+  max-width: 110px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 1px 6px;
+  border: 1px solid var(--hairline);
+  border-radius: 1px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.panel[data-theme="clawd"] .due {
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.due.warn {
+  border-color: color-mix(in srgb, var(--alert) 34%, transparent);
+  background: color-mix(in srgb, var(--alert) 9%, transparent);
+  color: var(--alert);
+}
+
+.more-line {
+  margin: 3px 2px 0;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.panel[data-theme="clawd"] .more-line {
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.empty {
+  padding: 9px 4px 11px;
+  font-size: 9.5px;
+  font-style: italic;
+  line-height: 1.45;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  opacity: 0.92;
+}
+.panel[data-theme="clawd"] .empty {
+  padding: 10px 4px 12px;
+  font-size: 11px;
+  letter-spacing: 0.005em;
+}
+
+/* ── Footer ───────────────────────────────────────────────────────────────── */
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid var(--hairline);
+}
+.btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border: 1px solid var(--key-border);
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  outline: none;
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  transition: color 140ms ease, background 140ms ease,
+    border-color 140ms ease, box-shadow 140ms ease;
+}
+.panel[data-theme="clawd"] .btn {
+  padding: 6px 11px;
+  border-radius: 8px;
+  clip-path: none;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+.btn.primary {
+  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  color: var(--accent);
+}
+.btn:hover,
+.btn:focus-visible {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 62%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.panel[data-theme="sao"] .btn:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--accent),
+    0 0 12px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.btn.ghost { margin-left: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .panel { transition: none; }
+  .scan { animation: none; }
+  .chart.grow .bar-fill { animation: none; }
+  .row,
+  .btn { transition: none; }
+  .body::-webkit-scrollbar-thumb { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="panel" id="panel" role="dialog" tabindex="-1" aria-labelledby="title">
+  <div class="scan" aria-hidden="true"></div>
+
+  <header class="head">
+    <div class="head-line">
+      <span class="head-mark" aria-hidden="true"></span>
+      <h1 class="title" id="title"></h1>
+    </div>
+    <div class="range" id="range"></div>
+  </header>
+
+  <div class="body" id="body" tabindex="-1">
+    <section class="stats" id="stats">
+      <div class="stat" id="statFinished" data-stat="finished">
+        <span class="stat-num" data-num>0</span>
+        <span class="stat-cap" data-cap id="capFinished"></span>
+      </div>
+      <div class="stat" id="statTasks" data-stat="tasks">
+        <span class="stat-num" data-num>0</span>
+        <span class="stat-cap" data-cap id="capTasks"></span>
+      </div>
+      <div class="stat" id="statOpen" data-stat="open">
+        <span class="stat-num" data-num>0</span>
+        <span class="stat-cap" data-cap id="capOpen"></span>
+      </div>
+      <div class="stat" id="statOverdue" data-stat="overdue">
+        <span class="stat-num" data-num>0</span>
+        <span class="stat-cap" data-cap id="capOverdue"></span>
+      </div>
+    </section>
+
+    <div class="compare" id="compare">
+      <span class="cmp-arrow" id="cmpArrow" aria-hidden="true"></span>
+      <span class="cmp-text" id="cmpText"></span>
+    </div>
+
+    <section class="chart" id="chart"></section>
+
+    <section class="section">
+      <h2 class="section-title" id="finishedTitle"></h2>
+      <div class="rows" id="finishedRows"></div>
+      <!-- Only when main caps the list (at 40 rows): how many distinct finished
+           tasks the names do not cover. `finishedTasks` is the whole week. -->
+      <p class="more-line" id="finishedMore" hidden></p>
+      <p class="empty" id="finishedEmpty" hidden></p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title" id="openTitle"></h2>
+      <div class="rows" id="openRows"></div>
+      <p class="empty" id="openEmpty" hidden></p>
+    </section>
+  </div>
+
+  <footer class="foot">
+    <button class="btn primary" id="openTasksBtn" type="button"></button>
+    <button class="btn ghost" id="closeBtn" type="button"></button>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // The preload owns IPC. A page loaded without it (a bare browser, a broken
+  // preload) renders nothing at all rather than a half-dead card.
+  var api = window.weekReviewAPI || null;
+  var panel = document.getElementById("panel");
+  if (!api) {
+    panel.hidden = true;
+    return;
+  }
+
+  var bodyEl = document.getElementById("body");
+  var titleEl = document.getElementById("title");
+  var rangeEl = document.getElementById("range");
+  var statFinished = document.getElementById("statFinished");
+  var statTasks = document.getElementById("statTasks");
+  var statOpen = document.getElementById("statOpen");
+  var statOverdue = document.getElementById("statOverdue");
+  var capFinished = document.getElementById("capFinished");
+  var capTasks = document.getElementById("capTasks");
+  var capOpen = document.getElementById("capOpen");
+  var capOverdue = document.getElementById("capOverdue");
+  var cmpArrow = document.getElementById("cmpArrow");
+  var cmpText = document.getElementById("cmpText");
+  var chartEl = document.getElementById("chart");
+  var finishedTitleEl = document.getElementById("finishedTitle");
+  var finishedRowsEl = document.getElementById("finishedRows");
+  var finishedMoreEl = document.getElementById("finishedMore");
+  var finishedEmptyEl = document.getElementById("finishedEmpty");
+  var openTitleEl = document.getElementById("openTitle");
+  var openRowsEl = document.getElementById("openRows");
+  var openEmptyEl = document.getElementById("openEmpty");
+  var openTasksBtn = document.getElementById("openTasksBtn");
+  var closeBtn = document.getElementById("closeBtn");
+
+  // Used only if a payload arrives without its label table (an older main or
+  // a truncated fixture). A real payload always carries every string.
+  var FALLBACK_LABELS = {
+    title: "Last week",
+    finished: "Done",
+    tasks: "Tasks",
+    open: "Open",
+    overdue: "Past due",
+    vsMore: "{n} more than the week before",
+    vsFewer: "{n} fewer than the week before",
+    vsSame: "Same as the week before",
+    vsNone: "Nothing finished in either week",
+    finishedTitle: "Finished",
+    openTitle: "Still on the desk",
+    emptyFinished: "Nothing was checked off last week.",
+    emptyOpen: "The desk is clear.",
+    close: "Close",
+    openTasks: "Open Tasks",
+    today: "today",
+    tomorrow: "tomorrow",
+    yesterday: "yesterday",
+    daysLate: "{n} days late",
+    more: "+{n} more",
+  };
+
+  var LOCALES = { en: "en-US", zh: "zh-CN", ko: "ko-KR" };
+
+  var state = {
+    payload: null,
+    booted: false,
+    closing: false,
+    focusIndex: -1,
+    heightFrame: null,
+    animated: false,
+  };
+
+  function isNum(value) {
+    return typeof value === "number" && isFinite(value);
+  }
+
+  function num(value) {
+    return isNum(value) ? Math.max(0, Math.round(value)) : 0;
+  }
+
+  function str(value) {
+    return typeof value === "string" ? value : "";
+  }
+
+  function localeFor(lang) {
+    return LOCALES[lang] || lang || "en-US";
+  }
+
+  function normalizePayload(raw) {
+    var data = raw && typeof raw === "object" ? raw : {};
+    var incoming = data.labels && typeof data.labels === "object" ? data.labels : {};
+    var labels = {};
+    var key;
+    for (key in FALLBACK_LABELS) {
+      if (Object.prototype.hasOwnProperty.call(FALLBACK_LABELS, key)) {
+        labels[key] = typeof incoming[key] === "string" ? incoming[key] : FALLBACK_LABELS[key];
+      }
+    }
+
+    var days = [];
+    var sourceDays = Array.isArray(data.days) ? data.days : [];
+    var i;
+    for (i = 0; i < 7; i += 1) {
+      var source = sourceDays[i];
+      if (source && typeof source === "object") {
+        days.push({ day: str(source.day), count: num(source.count) });
+      } else {
+        days.push({ day: "", count: 0 });
+      }
+    }
+
+    var rows = [];
+    if (Array.isArray(data.rows)) {
+      for (i = 0; i < data.rows.length; i += 1) {
+        var row = data.rows[i];
+        if (!row || typeof row !== "object") continue;
+        var rowId = str(row.id);
+        if (!rowId) continue;
+        rows.push({
+          id: rowId,
+          title: str(row.title),
+          day: str(row.day),
+          dayLabel: str(row.dayLabel),
+          count: Math.max(1, num(row.count)),
+        });
+      }
+    }
+
+    var openRows = [];
+    if (Array.isArray(data.openRows)) {
+      for (i = 0; i < data.openRows.length; i += 1) {
+        var open = data.openRows[i];
+        if (!open || typeof open !== "object") continue;
+        var openId = str(open.id);
+        if (!openId) continue;
+        openRows.push({
+          id: openId,
+          title: str(open.title),
+          dueOn: str(open.dueOn),
+          dueLabel: str(open.dueLabel),
+          overdue: open.overdue === true,
+          overdueDays: num(open.overdueDays),
+        });
+      }
+    }
+
+    return {
+      lang: str(data.lang) || "en",
+      theme: data.theme === "clawd" ? "clawd" : "sao",
+      weekStart: str(data.weekStart),
+      weekEnd: str(data.weekEnd),
+      range: str(data.range),
+      finished: num(data.finished),
+      finishedTasks: num(data.finishedTasks),
+      previousFinished: num(data.previousFinished),
+      open: num(data.open),
+      overdue: num(data.overdue),
+      days: days,
+      rows: rows,
+      openRows: openRows,
+      labels: labels,
+    };
+  }
+
+  // ── Height reporting ──────────────────────────────────────────────────────
+  // Main grows the window to this number, clamped to its own cap and the work
+  // area. We report what the card wants rather than what the clamped window
+  // shows, so the difference becomes the body's scroll range.
+  function reportHeight() {
+    if (state.closing || state.heightFrame) return;
+    state.heightFrame = requestAnimationFrame(function () {
+      state.heightFrame = null;
+      if (state.closing || !api || typeof api.reportHeight !== "function") return;
+      var rect = panel.getBoundingClientRect();
+      var hiddenByScroll = Math.max(0, bodyEl.scrollHeight - bodyEl.clientHeight);
+      // The page keeps an 8px transparent margin on every side.
+      var wanted = Math.ceil(rect.height + hiddenByScroll + 16);
+      try { api.reportHeight(wanted); } catch (err) { /* window may be gone */ }
+    });
+  }
+
+  // ── Date helpers (no payload date is reformatted as text) ─────────────────
+  function weekdayLabel(dayString, lang) {
+    var match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayString || "");
+    if (!match) return "";
+    try {
+      var date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+      return date.toLocaleDateString(localeFor(lang), { weekday: "short" });
+    } catch (err) {
+      return "";
+    }
+  }
+
+  function fillTemplate(template, n) {
+    return String(template || "").replace(/\{n\}/g, String(n));
+  }
+
+  function pad2(value) {
+    return value < 10 ? "0" + value : String(value);
+  }
+
+  function localDayString(date) {
+    return date.getFullYear() + "-" + pad2(date.getMonth() + 1) + "-" + pad2(date.getDate());
+  }
+
+  function shiftDay(dayString, offset) {
+    var match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayString || "");
+    if (!match) return "";
+    try {
+      return localDayString(new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + offset));
+    } catch (err) {
+      return "";
+    }
+  }
+
+  // The due chip has one precedence order: one day late says "yesterday",
+  // several days late fills `daysLate`'s `{n}`, a due day of today/tomorrow
+  // says so, and only then does the main process's pre-formatted `dueLabel`
+  // win. `daysLate` is the one label that arrives with a literal placeholder.
+  function dueChipText(open, labels) {
+    if (open.overdue) {
+      if (open.overdueDays === 1) return labels.yesterday;
+      if (open.overdueDays > 1) return fillTemplate(labels.daysLate, open.overdueDays);
+    }
+    if (open.dueOn) {
+      var today = localDayString(new Date());
+      if (open.dueOn === today) return labels.today;
+      if (open.dueOn === shiftDay(today, 1)) return labels.tomorrow;
+    }
+    return open.dueLabel;
+  }
+
+  // ── Chrome ─────────────────────────────────────────────────────────────────
+  function setStat(el, value, capEl, caption) {
+    var numberEl = el.querySelector("[data-num]");
+    numberEl.textContent = String(value);
+    capEl.textContent = caption;
+    el.dataset.zero = value > 0 ? "false" : "true";
+  }
+
+  function renderChrome(p) {
+    var s = p.labels;
+    panel.dataset.theme = p.theme;
+    titleEl.textContent = s.title;
+    rangeEl.textContent = p.range;
+    document.documentElement.lang = p.lang || "en";
+
+    setStat(statFinished, p.finished, capFinished, s.finished);
+    setStat(statTasks, p.finishedTasks, capTasks, s.tasks);
+    setStat(statOpen, p.open, capOpen, s.open);
+    setStat(statOverdue, p.overdue, capOverdue, s.overdue);
+    statOverdue.classList.toggle("alert", p.overdue > 0);
+
+    var arrowClass = "none";
+    var arrow = "";
+    var comparison;
+    if (p.finished === p.previousFinished) {
+      if (p.finished === 0) {
+        comparison = s.vsNone;
+        arrowClass = "none";
+      } else {
+        comparison = s.vsSame;
+        arrowClass = "same";
+      }
+    } else if (p.finished > p.previousFinished) {
+      comparison = fillTemplate(s.vsMore, p.finished - p.previousFinished);
+      arrowClass = "more";
+      arrow = "▲";
+    } else {
+      comparison = fillTemplate(s.vsFewer, p.previousFinished - p.finished);
+      arrowClass = "fewer";
+      arrow = "▼";
+    }
+    cmpArrow.textContent = arrow;
+    cmpArrow.className = "cmp-arrow " + arrowClass;
+    cmpText.textContent = comparison;
+
+    finishedTitleEl.textContent = s.finishedTitle;
+    openTitleEl.textContent = s.openTitle;
+    openTasksBtn.textContent = s.openTasks;
+    closeBtn.textContent = s.close;
+    openTasksBtn.setAttribute("aria-label", s.openTasks);
+    closeBtn.setAttribute("aria-label", s.close);
+    panel.setAttribute("aria-label", s.title);
+  }
+
+  // ── Chart ──────────────────────────────────────────────────────────────────
+  function renderChart(p, first) {
+    var max = 1;
+    var i;
+    for (i = 0; i < p.days.length; i += 1) {
+      if (p.days[i].count > max) max = p.days[i].count;
+    }
+    // max stays 1 when every day is empty, so a zero week is all baselines.
+    var hasPeak = false;
+    for (i = 0; i < p.days.length; i += 1) {
+      if (p.days[i].count > 0 && p.days[i].count === max) { hasPeak = true; break; }
+    }
+
+    chartEl.textContent = "";
+    chartEl.classList.remove("grow");
+    for (i = 0; i < p.days.length; i += 1) {
+      var day = p.days[i];
+      var isZero = day.count === 0;
+      var isPeak = hasPeak && day.count === max;
+      var col = document.createElement("div");
+      col.className = "day-col" + (isZero ? " zero" : "") + (isPeak ? " peak" : "");
+      col.setAttribute("data-testid", "day-col");
+
+      var countEl = document.createElement("span");
+      countEl.className = "day-count";
+      countEl.textContent = isZero ? "0" : String(day.count);
+      col.appendChild(countEl);
+
+      var track = document.createElement("div");
+      track.className = "bar-track";
+      var bar = document.createElement("div");
+      bar.className = "bar-fill";
+      bar.setAttribute("data-testid", "bar");
+      bar.setAttribute("data-count", String(day.count));
+      // Proportional to the busiest day, with a small floor so a count of 1
+      // beside a huge peak is still visible rather than a hairline.
+      bar.style.height = isZero ? "2px" : Math.max(6, Math.round((day.count / max) * 54)) + "px";
+      bar.style.animationDelay = (i * 32) + "ms";
+      track.appendChild(bar);
+      col.appendChild(track);
+
+      var label = document.createElement("span");
+      label.className = "day-label";
+      label.textContent = weekdayLabel(day.day, p.lang);
+      col.appendChild(label);
+
+      chartEl.appendChild(col);
+    }
+
+    // Grow once, on the very first paint only. A reduced-motion user gets the
+    // settled chart because the stylesheet disables the keyframes.
+    if (first && !state.animated) {
+      state.animated = true;
+      chartEl.classList.add("grow");
+    }
+  }
+
+  // ── Rows ───────────────────────────────────────────────────────────────────
+  function makeRow(className, id) {
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "row " + className;
+    button.dataset.action = "open";
+    button.dataset.id = id;
+    button.setAttribute("data-testid", className === "finished-row" ? "finished-row" : "open-row");
+    return button;
+  }
+
+  function renderRows(p) {
+    finishedRowsEl.textContent = "";
+    var i;
+    for (i = 0; i < p.rows.length; i += 1) {
+      var row = p.rows[i];
+      var button = makeRow("finished-row", row.id);
+      button.title = row.title;
+
+      var main = document.createElement("span");
+      main.className = "row-main";
+      var title = document.createElement("span");
+      title.className = "row-title";
+      title.textContent = row.title;
+      main.appendChild(title);
+      if (row.count > 1) {
+        var mult = document.createElement("span");
+        mult.className = "row-mult";
+        mult.textContent = "×" + row.count;
+        main.appendChild(mult);
+      }
+      button.appendChild(main);
+
+      var day = document.createElement("span");
+      day.className = "row-day";
+      day.textContent = row.dayLabel;
+      button.appendChild(day);
+      finishedRowsEl.appendChild(button);
+    }
+    finishedRowsEl.hidden = p.rows.length === 0;
+    finishedEmptyEl.textContent = p.labels.emptyFinished;
+    finishedEmptyEl.hidden = p.rows.length > 0;
+
+    // Main caps the named rows (40). `finishedTasks` still carries the whole
+    // week, so the difference is exactly how many names were left out.
+    var hiddenFinished = Math.max(0, p.finishedTasks - p.rows.length);
+    if (hiddenFinished > 0 && p.labels.more) {
+      finishedMoreEl.textContent = fillTemplate(p.labels.more, hiddenFinished);
+      finishedMoreEl.hidden = false;
+    } else {
+      finishedMoreEl.textContent = "";
+      finishedMoreEl.hidden = true;
+    }
+
+    openRowsEl.textContent = "";
+    for (i = 0; i < p.openRows.length; i += 1) {
+      var open = p.openRows[i];
+      var openButton = makeRow("open-row" + (open.overdue ? " overdue" : ""), open.id);
+      openButton.title = open.title;
+
+      var openMain = document.createElement("span");
+      openMain.className = "row-main";
+      var openTitle = document.createElement("span");
+      openTitle.className = "row-title";
+      openTitle.textContent = open.title;
+      openMain.appendChild(openTitle);
+      openButton.appendChild(openMain);
+
+      var chip = dueChipText(open, p.labels);
+      if (chip) {
+        var due = document.createElement("span");
+        due.className = "due" + (open.overdue ? " warn" : "");
+        due.textContent = chip;
+        openButton.appendChild(due);
+      }
+      openRowsEl.appendChild(openButton);
+    }
+    openRowsEl.hidden = p.openRows.length === 0;
+    openEmptyEl.textContent = p.labels.emptyOpen;
+    openEmptyEl.hidden = p.openRows.length > 0;
+  }
+
+  function render(raw, first) {
+    var payload = normalizePayload(raw);
+    state.payload = payload;
+    renderChrome(payload);
+    renderChart(payload, first);
+    renderRows(payload);
+
+    if (first) {
+      panel.classList.add("visible");
+      requestAnimationFrame(function () {
+        try { panel.focus({ preventScroll: true }); } catch (err) { panel.focus(); }
+        reportHeight();
+      });
+    }
+    reportHeight();
+  }
+
+  // ── Actions ────────────────────────────────────────────────────────────────
+  function sendAction(action) {
+    if (!api || typeof api.action !== "function") return;
+    try {
+      var answer = api.action(action);
+      if (answer && typeof answer.catch === "function") answer.catch(function () {});
+    } catch (err) { /* fail open: the card just stays */ }
+  }
+
+  function openTask(id) {
+    if (!id) return;
+    sendAction({ type: "open", id: id });
+  }
+
+  function openTasks() {
+    sendAction({ type: "open-tasks" });
+  }
+
+  function closePanel() {
+    state.closing = true;
+    if (state.heightFrame) {
+      cancelAnimationFrame(state.heightFrame);
+      state.heightFrame = null;
+    }
+    try {
+      if (api && typeof api.close === "function") api.close();
+      else window.close();
+    } catch (err) { /* window already gone */ }
+  }
+
+  function actionRows() {
+    return Array.prototype.slice.call(
+      bodyEl.querySelectorAll('.row[data-action="open"]')
+    );
+  }
+
+  function focusRow(rows, index) {
+    var i;
+    for (i = 0; i < rows.length; i += 1) rows[i].classList.remove("kb-focus");
+    var target = rows[index];
+    if (!target) return;
+    state.focusIndex = index;
+    target.classList.add("kb-focus");
+    try { target.focus({ preventScroll: false }); } catch (err) { target.focus(); }
+  }
+
+  // ── Wiring ────────────────────────────────────────────────────────────────
+  // One click path for pointer and keyboard: Enter calls the focused row's
+  // own click(), so both gestures produce the same action.
+  bodyEl.addEventListener("click", function (event) {
+    var target = event.target;
+    var row = target && target.closest ? target.closest('.row[data-action="open"]') : null;
+    if (!row) return;
+    var rows = actionRows();
+    state.focusIndex = rows.indexOf(row);
+    openTask(row.getAttribute("data-id"));
+  });
+
+  openTasksBtn.addEventListener("click", openTasks);
+  closeBtn.addEventListener("click", closePanel);
+
+  // Only reveal the scrollbar thumb while the body is actually being scrolled.
+  var scrollTimer = null;
+  bodyEl.addEventListener("scroll", function () {
+    bodyEl.classList.add("scrolling");
+    if (scrollTimer) clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(function () {
+      scrollTimer = null;
+      bodyEl.classList.remove("scrolling");
+    }, 600);
+  });
+
+  document.addEventListener("pointerdown", function () {
+    var rows = actionRows();
+    for (var i = 0; i < rows.length; i += 1) rows[i].classList.remove("kb-focus");
+  }, true);
+
+  document.addEventListener("keydown", function (event) {
+    // An IME owns Escape and the arrow keys until its candidate window closes;
+    // reacting mid-word would close the card or move focus under the user.
+    if (event.isComposing || event.keyCode === 229) return;
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closePanel();
+      return;
+    }
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+    var rows = actionRows();
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      if (!rows.length) return;
+      event.preventDefault();
+      var next;
+      if (event.key === "ArrowDown") {
+        next = state.focusIndex < 0 ? 0 : (state.focusIndex + 1) % rows.length;
+      } else {
+        next = state.focusIndex < 0 ? rows.length - 1 : (state.focusIndex - 1 + rows.length) % rows.length;
+      }
+      focusRow(rows, next);
+      return;
+    }
+    if (event.key === "Enter") {
+      var active = document.activeElement;
+      if (event.repeat) return;
+      if (active && active.classList && active.classList.contains("row") &&
+          active.getAttribute("data-action") === "open") {
+        event.preventDefault();
+        active.click();
+      }
+    }
+  });
+
+  window.addEventListener("resize", reportHeight);
+  document.addEventListener("contextmenu", function (event) { event.preventDefault(); });
+
+  if (typeof ResizeObserver === "function") {
+    try {
+      var observer = new ResizeObserver(function () { reportHeight(); });
+      observer.observe(panel);
+      observer.observe(bodyEl);
+    } catch (err) { /* measurement is best-effort */ }
+  }
+
+  if (document.fonts && document.fonts.ready && typeof document.fonts.ready.then === "function") {
+    document.fonts.ready.then(reportHeight).catch(function () {});
+  }
+
+  function boot() {
+    state.booted = true;
+    var loading;
+    try { loading = api.load(); } catch (err) { loading = null; }
+    Promise.resolve(loading)
+      .then(function (payload) { render(payload, true); })
+      .catch(function () { render(null, true); });
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>

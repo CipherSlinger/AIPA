@@ -1326,11 +1326,28 @@ function openMainWindow(): BrowserWindow | null {
 }
 
 function openItem(item: AttentionItem): void {
+  // The review card's destination is the week-review window: the same week the
+  // bubble just summarised, opened in full. It owns its own window and can be
+  // opened without summoning AIPA; if it cannot be created, fall back to the
+  // brief through the same route a due card uses.
+  if (item.kind === 'task-review') {
+    try {
+      const { openClawdWeekReview } = require('./clawd-week-review') as {
+        openClawdWeekReview: () => boolean
+      }
+      if (openClawdWeekReview() === true) return
+    } catch (err) {
+      log.warn('Could not open the week review for a review card:', String(err))
+    }
+    openDueTasks()
+    return
+  }
+
   // The due card's destination is the task brief, not a conversation. It owns
   // its own window and can be opened without summoning AIPA at all; if it
   // cannot be created, fall back to the Tasks view through the same hand-off
   // the notice centre uses.
-  if (item.kind === 'task-due' || item.kind === 'task-review') {
+  if (item.kind === 'task-due') {
     openDueTasks()
     return
   }

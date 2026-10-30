@@ -38,6 +38,7 @@ import { getClawdLanguage, withClawdMainWindow } from './clawd-integration'
 import { readDeptHandbookSnapshot } from './automation/dept-handbook-store'
 import { listTasks, updateTask, type TaskRecord, type TaskStatus, type TaskView } from './tasks/task-store'
 import { refreshClawdTaskBadge } from './clawd-task-badge'
+import { isDuplicateFinish, pruneFinishMarks } from './clawd-task-brief-dedupe'
 import { safeHandle } from './ipc/register/safe-handle'
 import { createLogger } from './utils/logger'
 
@@ -278,6 +279,22 @@ interface RepeatUndoOffer extends UndoOfferBase {
 type UndoOffer = DoneUndoOffer | DeferUndoOffer | RepeatUndoOffer
 let undoOffer: UndoOffer | null = null
 let undoTimer: NodeJS.Timeout | null = null
+
+/**
+ * The instant each task last took a real Done write, keyed by id.
+ *
+ * A status guard (the `done | archived` check below) cannot recognise a
+ * repeated press on a repeating task: finishing an occurrence leaves the
+ * status alone — the store rolls `dueOn` forward instead — so the row still
+ * looks finishable to a second click that lands before the card repaints.
+ * That second write skips a whole occurrence and would also drop the Undo the
+ * first click armed. Remembering the finish itself is therefore the only
+ * signal that works for both shapes of task. The window is short on purpose:
+ * it covers the same double click and its repaint, never a deliberate second
+ * finish of the next occurrence. The page ignores a second press while its
+ * answer is in flight; this map is the authority behind that guard.
+ */
+const lastFinishAt = new Map<string, number>()
 
 // ── Payload ──────────────────────────────────────────────────────────────────
 
@@ -1091,6 +1108,15 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
       return buildPayload()
     }
     case 'done': {
+      // Second press of a double click whose answer has not painted yet.
+      // Checked before the offer is dropped so the first press's Undo survives,
+      // and answered with the current payload only: no write, no re-arm. A
+      // status check cannot stand in for this on a repeating task, because its
+      // status is unchanged by a finish; the write happened, the day moved.
+      const finishNow = Date.now()
+      pruneFinishMarks(lastFinishAt, finishNow)
+      if (isDuplicateFinish(lastFinishAt.get(id), finishNow)) return buildPayload()
+
       // Finishing is the one row action that does not leave this card: the
       // user may want to clear several rows in a row. Store first, then tell
       // AIPA, then rebuild the payload the page will paint. The previous offer
@@ -1138,6 +1164,9 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
         // A refused write leaves the row exactly as it was, and offered nothing.
         return withError(buildPayload(), petT('taskBriefDoneFailed'))
       }
+      // Only a write that landed opens the window. A refused one changed
+      // nothing, so a retry a moment later is a new intent, not a double click.
+      lastFinishAt.set(task.id, Date.now())
 
       // A repeating task answers Done by rolling the occurrence forward, not
       // by finishing: the store kept the status and moved the day. The row

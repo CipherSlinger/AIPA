@@ -112,6 +112,13 @@
   // row and the repaint rebuilds the pressed control, so this remembers which
   // row should get its Done button back.
   var pendingDoneFocus = "";
+  // Task ids whose Done is waiting for main's answer. The row stays on screen
+  // until that answer paints, so without this a second click would send a
+  // second write. On a repeating task that skips a whole occurrence, because
+  // finishing leaves the status alone and only moves the day. Main refuses the
+  // same double click on its side, but the page must not send the gesture at
+  // all. Cleared when the answer arrives (or the call fails).
+  var pendingDone = Object.create(null);
 
   function labels() {
     return state.payload.labels;
@@ -884,9 +891,28 @@
     }
   }
 
-  function runAction(action) {
-    if (!api || !api.action) { pendingDeferFocus = ""; pendingDoneFocus = ""; return; }
-    Promise.resolve(api.action(action))
+  function runAction(action, onSettled) {
+    function settled() {
+      if (typeof onSettled === "function") onSettled();
+    }
+    if (!api || !api.action) {
+      pendingDeferFocus = "";
+      pendingDoneFocus = "";
+      settled();
+      return;
+    }
+    var answer;
+    try {
+      answer = api.action(action);
+    } catch (err) {
+      // A synchronous failure is still the end of this gesture; leave no row
+      // marked as in flight.
+      pendingDeferFocus = "";
+      pendingDoneFocus = "";
+      settled();
+      return;
+    }
+    Promise.resolve(answer)
       .then(function (payload) {
         if (payload) applyActionResult(payload);
       })
@@ -895,7 +921,8 @@
         // is the expected end of this renderer, not an error to surface.
         pendingDeferFocus = "";
         pendingDoneFocus = "";
-      });
+      })
+      .then(settled);
   }
 
   function openTask(id) {
@@ -909,9 +936,15 @@
   }
 
   function doneTask(id) {
-    if (!id) return;
+    // The trailing half of a double click lands while the first answer is
+    // still in flight; the row has not repainted, so the same button is under
+    // the cursor. Ignoring it here is what keeps one press one write.
+    if (!id || pendingDone[id]) return;
+    pendingDone[id] = true;
     pendingDoneFocus = id;
-    runAction({ type: "done", id: id });
+    runAction({ type: "done", id: id }, function () {
+      delete pendingDone[id];
+    });
   }
 
   function deferTask(id) {

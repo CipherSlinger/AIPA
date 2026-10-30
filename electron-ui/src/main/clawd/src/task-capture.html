@@ -1056,12 +1056,15 @@ kbd {
         // a weekly series. Slashes, a scheme or a leading www. mark the token as
         // a link; the phrase inside it is skipped like a compound's tail. The
         // same rule keeps "https://x.dev/every-2-weeks" from starting a series.
+        // A backslash marks a Windows path ("C:\reports\weekly"), which is one
+        // token too: the user named a folder, not a cadence.
         var tokenStart = match.index;
         while (tokenStart > 0 && !/\s/.test(text.charAt(tokenStart - 1))) tokenStart -= 1;
         var tokenEnd = match.index + match[0].length;
         while (tokenEnd < text.length && !/\s/.test(text.charAt(tokenEnd))) tokenEnd += 1;
         var token = text.slice(tokenStart, tokenEnd);
-        if (token.indexOf("://") >= 0 || /www\./i.test(token) || token.indexOf("/") >= 0) continue;
+        if (token.indexOf("://") >= 0 || /www\./i.test(token) || token.indexOf("/") >= 0 ||
+            token.indexOf("\\") >= 0) continue;
         var every = typeof everyOf === "function" ? everyOf(match) : null;
         if (every === false) continue;
         found.push({
@@ -1133,10 +1136,15 @@ kbd {
     offer(/매월/, "monthly");
 
     // Korean intervals: 격주 is every other week, N일/주/개월마다 is N = 2..99.
+    // Korean has no space before the counter, so the number needs a left bound
+    // of its own: without it "120일마다" matches "20일마다" and silently files a
+    // daily ×20 series while English "every 120 days" and Chinese "每120天" are
+    // rejected. A digit immediately before the number means it is part of a
+    // longer number, not an interval.
     offer(/격주/, "weekly", null, function () { return 2; });
-    offer(/(\d{1,2})일마다/, "daily", null, everyFrom({}));
-    offer(/(\d{1,2})주마다/, "weekly", null, everyFrom({}));
-    offer(/(\d{1,2})개월마다/, "monthly", null, everyFrom({}));
+    offer(/(?<!\d)(\d{1,2})일마다/, "daily", null, everyFrom({}));
+    offer(/(?<!\d)(\d{1,2})주마다/, "weekly", null, everyFrom({}));
+    offer(/(?<!\d)(\d{1,2})개월마다/, "monthly", null, everyFrom({}));
 
     if (!found.length) return null;
     // Earliest phrase wins; at the same index the longer phrase wins so
@@ -1740,6 +1748,23 @@ kbd {
       repeatPresets.hidden = true;
       repeatEl.setAttribute("aria-expanded", "false");
       input.value = "";
+    } else {
+      // A new line is already under way. The chips must start from that line's
+      // own parse, never from a pick made for the line just filed: a pick with
+      // no cadence phrase records `fromPhrase: null` (chooseRepeat), and a new
+      // line with no cadence phrase also parses to null, so renderRepeat's
+      // same-phrase guard cannot tell the two lines apart and would carry
+      // "every other week" onto "buy milk". Clear the picked state only; the
+      // text being typed is left exactly as it is.
+      due = null;
+      chosenDue = null;
+      repeat = null;
+      repeatEvery = null;
+      chosenRepeat = null;
+      duePresets.hidden = true;
+      dueDate.setAttribute("aria-expanded", "false");
+      repeatPresets.hidden = true;
+      repeatEl.setAttribute("aria-expanded", "false");
     }
     clearError();
     // Set before refresh(): the suggestion strip must see the confirmation and

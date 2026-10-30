@@ -125,10 +125,67 @@ interface CalendarDay {
   day: number
 }
 
-interface CompletedRow {
+/** One local calendar day of the reviewed week, with that day's completion count. */
+export interface WeekReviewDay {
+  /** Local `YYYY-MM-DD`. */
+  day: string
+  count: number
+}
+
+/** One distinct finished task, as the week-review card names it. */
+export interface WeekReviewRow {
+  id: string
   title: string
-  /** The last in-window completion instant of this task. */
-  at: number
+  /** Local `YYYY-MM-DD` of the task's last in-window completion. */
+  day: string
+  /** Completions of this task inside the reviewed week (>= 1). */
+  count: number
+  /** Latest conversation on the task, when one has run. */
+  sessionId?: string
+}
+
+/** One task still on the desk, read at `nowMs` rather than at the week's end. */
+export interface WeekReviewOpenRow {
+  id: string
+  title: string
+  /** Local `YYYY-MM-DD` due day; absent when the task has none. */
+  dueOn?: string
+  /** True when `dueOn` is earlier than today. */
+  overdue: boolean
+  /** Whole calendar days past due; 0 when not overdue. */
+  overdueDays: number
+}
+
+/**
+ * Everything the week-review card needs about the week that just ended.
+ *
+ * `finished` counts occurrences, so a daily task finished three times is
+ * three; `finishedTasks` counts the task once, because the list is about work,
+ * not repetitions. `previousFinished` is the same occurrence count for the
+ * seven days immediately before the reviewed week, which is what makes the
+ * "more / fewer than the week before" line honest.
+ */
+export interface WeekReviewAggregate {
+  /** Monday of the reviewed week, `YYYY-MM-DD`. */
+  weekStart: string
+  /** Sunday of the reviewed week, `YYYY-MM-DD`. */
+  weekEnd: string
+  /** Completion events (occurrences) recorded inside the reviewed week. */
+  finished: number
+  /** Distinct tasks with at least one completion in the reviewed week. */
+  finishedTasks: number
+  /** Completions in the seven days before the reviewed week. */
+  previousFinished: number
+  /** Tasks still open right now (status not 'done' and not 'archived'). */
+  open: number
+  /** Of those open tasks, how many have a dueOn earlier than today. */
+  overdue: number
+  /** Exactly seven entries, Monday → Sunday. */
+  days: WeekReviewDay[]
+  /** Every distinct finished task, newest completion first, ties by title. */
+  rows: WeekReviewRow[]
+  /** Tasks still open: past due first, then nearest due, then title. */
+  openRows: WeekReviewOpenRow[]
 }
 
 interface ReviewWindow {
@@ -218,59 +275,226 @@ function reviewWindow(nowMs: number): ReviewWindow {
 
 // ── Aggregation ───────────────────────────────────────────────────────────
 
+interface WeekReviewWindow {
+  /** Monday of the reviewed week, `YYYY-MM-DD`. */
+  weekStart: string
+  /** Sunday of the reviewed week, `YYYY-MM-DD`. */
+  weekEnd: string
+  /** Local midnight opening the reviewed week (inclusive). */
+  startMs: number
+  /** Local midnight ending it — this week's Monday (exclusive). */
+  endMs: number
+  /** Local midnight seven calendar days before `startMs` (inclusive). */
+  previousStartMs: number
+}
+
 /**
- * The week as the card tells it. `finished` counts occurrences, so a daily
- * task finished three times is three; `finishedTasks` counts the task once,
- * because the rows are about work, not about repetitions. `open` and
- * `overdue` are read at check time, not at the window's end — the card says
- * what is on the desk now, and a task finished since Sunday is not.
+ * The reviewed week plus the seven days before it. Both edges are built from
+ * calendar fields (`new Date(y, m-1, d - 7)`), never by subtracting
+ * `86_400_000` ms: on a DST change day an instant-minus-a-day can land on the
+ * same or the wrong calendar day.
  */
-export function collectReview(tasks: readonly TaskRecord[], nowMs: number): ReviewAggregate {
+function weekReviewWindow(nowMs: number): WeekReviewWindow {
   const { weekStart, startMs, endMs } = reviewWindow(nowMs)
+  const monday = parseDay(weekStart)
+  return {
+    weekStart,
+    weekEnd: formatDay(new Date(monday.year, monday.month - 1, monday.day + 6)),
+    startMs,
+    endMs,
+    previousStartMs: new Date(monday.year, monday.month - 1, monday.day - 7).getTime(),
+  }
+}
+
+/** Monday..Sunday of one local week, as day keys. */
+function weekDays(weekStart: string): string[] {
+  const monday = parseDay(weekStart)
+  const days: string[] = []
+  for (let offset = 0; offset < 7; offset += 1) {
+    days.push(formatDay(new Date(monday.year, monday.month - 1, monday.day + offset)))
+  }
+  return days
+}
+
+/**
+ * Whole calendar days from `from` to `to`, both local `YYYY-MM-DD` days.
+ *
+ * The two days are normalised to UTC midnights first: that is purely civil
+ * arithmetic on calendar fields, so no DST transition can stretch or shrink
+ * the result. It never converts a local instant plus a fixed millisecond
+ * span, which is the thing that breaks twice a year.
+ */
+function calendarDaysBetween(from: string, to: string): number {
+  const a = parseDay(from)
+  const b = parseDay(to)
+  return Math.round(
+    (Date.UTC(b.year, b.month - 1, b.day) - Date.UTC(a.year, a.month - 1, a.day)) / 86_400_000,
+  )
+}
+
+/** The conversation a task should open: the last one that ran on it. */
+function latestTaskSession(task: TaskRecord): string | undefined {
+  const sessions = Array.isArray(task.sessions) ? task.sessions : []
+  let latest: { sessionId: string; startedAt: number } | null = null
+  for (const session of sessions) {
+    if (!session || typeof session.sessionId !== 'string' || !session.sessionId) continue
+    const startedAt =
+      typeof session.startedAt === 'number' && Number.isFinite(session.startedAt) ? session.startedAt : 0
+    if (!latest || startedAt >= latest.startedAt) latest = { sessionId: session.sessionId, startedAt }
+  }
+  return latest?.sessionId
+}
+
+/**
+ * The week that just ended, in full: counts, the seven-day strip, every
+ * distinct finished task and the desk as it stands now.
+ *
+ * The reviewed window is the same half-open local-midnight span the attention
+ * bubble uses — a completion at Sunday 23:59:59 belongs to the week that
+ * ended, the one at Monday 00:00:00 to the next. `open` and `overdue` are read
+ * at `nowMs`, not at the window's end, because the card says what is on the
+ * desk now and a task finished since Sunday is not.
+ *
+ * Never throws on an odd record: a task without a history array, an event
+ * without a finite instant and a malformed due day are skipped, not fatal.
+ */
+export function collectWeekReview(tasks: readonly TaskRecord[], nowMs: number): WeekReviewAggregate {
+  const { weekStart, weekEnd, startMs, endMs, previousStartMs } = weekReviewWindow(nowMs)
+  const dayKeys = weekDays(weekStart)
+  const dayCounts = new Map<string, number>(dayKeys.map(day => [day, 0]))
   const today = localDayKey(nowMs)
+
   let finished = 0
-  let finishedTasks = 0
-  let open = 0
-  let overdue = 0
-  const rows: CompletedRow[] = []
+  let previousFinished = 0
+  const completed: Array<{
+    id: string
+    title: string
+    /** The last in-window completion instant of this task. */
+    latestAt: number
+    day: string
+    count: number
+    sessionId?: string
+  }> = []
+  const openRows: WeekReviewOpenRow[] = []
 
   for (const task of tasks) {
+    const history = Array.isArray(task.history) ? task.history : []
     let latestAt = -1
-    for (const event of task.history) {
-      if (event.kind !== 'completed') continue
-      // The window is half-open: a completion at Sunday 23:59:59 belongs to
-      // the week that ended, the one at Monday 00:00:00 to the next.
-      if (!(event.at >= startMs && event.at < endMs)) continue
-      finished += 1
-      if (event.at > latestAt) latestAt = event.at
+    let count = 0
+
+    for (const event of history) {
+      if (!event || event.kind !== 'completed') continue
+      if (typeof event.at !== 'number' || !Number.isFinite(event.at)) continue
+      if (event.at >= startMs && event.at < endMs) {
+        finished += 1
+        count += 1
+        const day = localDayKey(event.at)
+        dayCounts.set(day, (dayCounts.get(day) ?? 0) + 1)
+        if (event.at > latestAt) latestAt = event.at
+      } else if (event.at >= previousStartMs && event.at < startMs) {
+        previousFinished += 1
+      }
     }
-    if (latestAt >= 0) {
-      finishedTasks += 1
-      rows.push({ title: task.title, at: latestAt })
+
+    if (count > 0) {
+      const sessionId = latestTaskSession(task)
+      completed.push({
+        id: task.id,
+        title: task.title,
+        latestAt,
+        day: localDayKey(latestAt),
+        count,
+        ...(sessionId ? { sessionId } : {}),
+      })
     }
 
     if (task.status === 'done' || task.status === 'archived') continue
-    open += 1
-    // A task with no due day is open but can never be overdue.
-    if (task.dueOn && task.dueOn < today) overdue += 1
+
+    const row: WeekReviewOpenRow = {
+      id: task.id,
+      title: task.title,
+      overdue: false,
+      overdueDays: 0,
+    }
+    // A due day is a stored `YYYY-MM-DD`. A malformed one cannot be compared
+    // or counted, so the row stays open without a day rather than acquiring a
+    // date it never had.
+    if (typeof task.dueOn === 'string' && DAY_RE.test(task.dueOn)) {
+      row.dueOn = task.dueOn
+      if (task.dueOn < today) {
+        row.overdue = true
+        row.overdueDays = Math.max(0, calendarDaysBetween(task.dueOn, today))
+      }
+    }
+    openRows.push(row)
   }
 
   // Newest completion first; ties fall back to the title so a repaint never
-  // reshuffles the rows. `rows` is already per task — the latest completion is
-  // the only one kept — so a repeated task is named once.
-  const shown = rows
-    .sort((a, b) => (b.at - a.at) || a.title.localeCompare(b.title))
-    .slice(0, REVIEW_ROWS_SHOWN)
-    .map(row => ({ title: row.title, day: localDayKey(row.at) }))
+  // reshuffles the rows. `completed` is already per task — the latest
+  // completion is the only one kept — so a repeated task is named once.
+  const rows: WeekReviewRow[] = completed
+    .sort((a, b) => (b.latestAt - a.latestAt) || a.title.localeCompare(b.title))
+    .map(row => ({
+      id: row.id,
+      title: row.title,
+      day: row.day,
+      count: row.count,
+      ...(row.sessionId ? { sessionId: row.sessionId } : {}),
+    }))
+
+  // Oldest due first, then the nearest due, tasks with no due day last. A
+  // past-due day is simply an earlier day, so this also puts every overdue
+  // row above every row that is still on time; ties fall back to the title.
+  openRows.sort((a, b) => {
+    if (a.dueOn && b.dueOn) {
+      if (a.dueOn !== b.dueOn) return a.dueOn < b.dueOn ? -1 : 1
+      return a.title.localeCompare(b.title)
+    }
+    if (a.dueOn) return -1
+    if (b.dueOn) return 1
+    return a.title.localeCompare(b.title)
+  })
 
   return {
-    finished,
-    finishedTasks,
-    open,
-    overdue,
-    rows: shown,
-    more: Math.max(0, finishedTasks - shown.length),
     weekStart,
+    weekEnd,
+    finished,
+    finishedTasks: rows.length,
+    previousFinished,
+    open: openRows.length,
+    overdue: openRows.filter(row => row.overdue).length,
+    days: dayKeys.map(day => ({ day, count: dayCounts.get(day) ?? 0 })),
+    rows,
+    openRows,
+  }
+}
+
+/**
+ * The week as the attention bubble tells it. `finished` counts occurrences,
+ * so a daily task finished three times is three; `finishedTasks` counts the
+ * task once, because the rows are about work, not about repetitions. `open`
+ * and `overdue` are read at check time, not at the window's end — the card
+ * says what is on the desk now, and a task finished since Sunday is not.
+ *
+ * This is the first three rows of `collectWeekReview`, unchanged in shape:
+ * the bubble names at most REVIEW_ROWS_SHOWN tasks and says how many more
+ * there are. Keeping it built on the full aggregate means the bubble and the
+ * week-review card can never disagree about the week's counts.
+ */
+export function collectReview(tasks: readonly TaskRecord[], nowMs: number): ReviewAggregate {
+  const aggregate = collectWeekReview(tasks, nowMs)
+  const shown: ReviewRow[] = aggregate.rows
+    .slice(0, REVIEW_ROWS_SHOWN)
+    .map(row => ({ title: row.title, day: row.day }))
+
+  return {
+    finished: aggregate.finished,
+    finishedTasks: aggregate.finishedTasks,
+    open: aggregate.open,
+    overdue: aggregate.overdue,
+    rows: shown,
+    more: Math.max(0, aggregate.finishedTasks - shown.length),
+    weekStart: aggregate.weekStart,
   }
 }
 

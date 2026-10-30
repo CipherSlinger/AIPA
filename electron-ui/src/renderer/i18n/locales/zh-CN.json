@@ -5481,9 +5481,9 @@
       "weekly": "每周",
       "monthly": "每月",
       "everyOtherWeek": "每两周",
-      "everyDays": "每 {{n}} 天",
-      "everyWeeks": "每 {{n}} 周",
-      "everyMonths": "每 {{n}} 个月",
+      "everyDays": "每{{n}}天",
+      "everyWeeks": "每{{n}}周",
+      "everyMonths": "每{{n}}个月",
       "current": "当前：{{label}}",
       "short": {
         "daily": "每天",
