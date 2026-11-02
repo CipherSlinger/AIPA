@@ -222,6 +222,13 @@ const TASK_REVIEW_KEY = 'task-review:week'
  * same queue item instead of stacking a second summary.
  */
 const DAY_WRAP_KEY = 'day-wrap:today'
+/**
+ * How many of tomorrow's tasks the wrap's rows may name. The aggregate caps the
+ * list too; this is the render-side promise, so a card whose aggregate was
+ * built by a caller that named more still shows exactly what the sentence
+ * above it counted.
+ */
+const DAY_WRAP_TOMORROW_ROWS = 2
 /** How long after a failed turn its own completion notification stays suppressed. */
 const FAILURE_SUPPRESSION_MS = 5000
 
@@ -1007,6 +1014,10 @@ function metaRows(item: AttentionItem): ClawdBubbleMetaRow[] {
         ? fmt(t('attentionTaskDueRowLate'), { n: row.daysOverdue })
         : t('attentionTaskDueRowToday'),
       title: row.title,
+      // The row names a task, so pressing it opens that task. An aggregate
+      // from before ids existed has none; the row then stays inert rather than
+      // guessing which task its title meant.
+      ...(row.id ? { id: row.id } : {}),
       variant: 'due',
     }))
     if (due.more > 0) {
@@ -1028,6 +1039,9 @@ function metaRows(item: AttentionItem): ClawdBubbleMetaRow[] {
       label: row.title,
       value: weekdayShort(row.day),
       title: row.title,
+      // Same convention as the due card's rows: the row names a task, so a
+      // press opens it, and one from before ids existed stays inert.
+      ...(row.id ? { id: row.id } : {}),
       variant: 'due',
     }))
     if (review.more > 0) {
@@ -1059,6 +1073,10 @@ function metaRows(item: AttentionItem): ClawdBubbleMetaRow[] {
       label: row.title,
       value: row.count > 1 ? `${done} ×${row.count}` : done,
       title: row.title,
+      // The row names a task, so pressing it opens that task. An aggregate
+      // from before ids existed has no `id` here; the row then stays inert
+      // rather than guessing which task its title meant.
+      ...(row.id ? { id: row.id } : {}),
       variant: 'due',
     }))
     if (wrap.more > 0) {
@@ -1069,9 +1087,26 @@ function metaRows(item: AttentionItem): ClawdBubbleMetaRow[] {
       })
     }
     // Tomorrow's named tasks come last, so the card ends with what is next.
+    // One quiet heading separates them from today's finishes: the two groups
+    // share a row list but not a meaning, and without the break a reader cannot
+    // tell where the day that ended stops and the day that waits begins. It
+    // borrows the `more` look because it is a full-width quiet line, not a task.
+    // The aggregate already caps this list at two; re-capping here keeps a card
+    // handed a larger list from growing a block the sentence above it never
+    // counted.
     const tomorrowLabel = t('attentionDayWrapRowTomorrow')
-    for (const title of tomorrow) {
-      wrapRows.push({ label: title, value: tomorrowLabel, title, variant: 'due' })
+    const named = tomorrow.slice(0, DAY_WRAP_TOMORROW_ROWS)
+    if (named.length > 0) {
+      wrapRows.push({ label: '', value: tomorrowLabel, variant: 'more' })
+      for (const task of named) {
+        wrapRows.push({
+          label: task.title,
+          value: tomorrowLabel,
+          title: task.title,
+          ...(task.id ? { id: task.id } : {}),
+          variant: 'due',
+        })
+      }
     }
     return wrapRows
   }
@@ -1367,7 +1402,11 @@ function show(item: AttentionItem, payload: BuiltBubble): void {
  * and hands the wait to the module that owns the card's timer.
  */
 function handleAction(item: AttentionItem, action: string): void {
-  if (action === 'open') openItem(item)
+  // A task row is a control of its own: pressing it opens exactly the task it
+  // names, the way the week review's rows do, instead of the whole desk. The
+  // prefix is checked first so it can never be read as an action id.
+  if (action.startsWith('row:')) openTaskRow(action.slice('row:'.length))
+  else if (action === 'open') openItem(item)
   else if (action === 'later' && item.kind === 'task-due') snoozeDueCard()
   else if (action === 'later' && item.kind === 'day-wrap') snoozeDayWrapCard()
   // The bubble module hid its own window; the pet also needs its click
@@ -1375,6 +1414,52 @@ function handleAction(item: AttentionItem, action: string): void {
   hideClawdAttentionBubble()
   dropItem(item)
   scheduleRender()
+}
+
+/**
+ * Open the one task a card's row names. This is the same hand-off the week
+ * review's rows make: `menu:openTask` carries only the id, and the renderer's
+ * `openTaskById` opens the latest conversation when one exists and otherwise
+ * selects the record on the Tasks view. It is loaded from the task store to
+ * tell a stale row (the task is gone since the card painted) from a live one;
+ * a stale row dismisses like any other, because there is nothing to open.
+ *
+ * `readTaskStore` is required lazily: `tasks/task-store` is loaded from the
+ * modules that raise these cards, and this module must not close that cycle at
+ * load time just for one click.
+ */
+function openTaskRow(taskId: string): void {
+  if (!taskId) {
+    log.debug('task row pressed without an id — treating it as a dismiss')
+    return
+  }
+  let found = false
+  try {
+    const { readTaskStore } = require('./tasks/task-store') as {
+      readTaskStore: () => { tasks: Array<{ id: string }> }
+    }
+    found = readTaskStore().tasks.some(task => task.id === taskId)
+  } catch (err) {
+    // An unreadable store is not a reason to open a card's row into nothing:
+    // log it and let the card close like a stale row.
+    log.warn('Could not read the task store for a card row:', String(err))
+    found = false
+  }
+  if (!found) {
+    log.debug(`task row ${taskId} is no longer on the desk — dismissing`)
+    return
+  }
+
+  const win = openMainWindow()
+  if (!win) return
+  // The window may still be loading its first paint; the hand-off waits for
+  // that load the same way the Tasks view fallback does.
+  bringForward(win)
+  const deliver = (): void => {
+    if (!win.isDestroyed()) win.webContents.send('menu:openTask', taskId)
+  }
+  if (win.webContents.isLoading()) win.webContents.once('did-finish-load', deliver)
+  else deliver()
 }
 
 function retract(): void {

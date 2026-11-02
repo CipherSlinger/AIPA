@@ -95,6 +95,8 @@ const DAY_RE = /^(\d{4})-(\d{2})-(\d{2})$/
 
 /** One finished task the card may name. */
 export interface ReviewRow {
+  /** The task's id, so the card's row can open exactly the task it names. */
+  id: string
   /** Task title, as stored. */
   title: string
   /** Local `YYYY-MM-DD` of that task's LAST completion inside the reviewed week. */
@@ -512,7 +514,7 @@ export function collectReview(tasks: readonly TaskRecord[], nowMs: number): Revi
   const aggregate = collectWeekReview(tasks, nowMs)
   const shown: ReviewRow[] = aggregate.rows
     .slice(0, REVIEW_ROWS_SHOWN)
-    .map(row => ({ title: row.title, day: row.day }))
+    .map(row => ({ id: row.id, title: row.title, day: row.day }))
 
   return {
     finished: aggregate.finished,

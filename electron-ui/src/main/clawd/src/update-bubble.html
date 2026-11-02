@@ -354,6 +354,45 @@ body { padding: 6px; }
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
+/* A due row that names a task is a real button: pressing it opens that task.
+   It keeps the `.meta-row.due` look above, so a row reads the same whether or
+   not it is pressable; only the quiet hover lift says it can be pressed. */
+.meta-row.due.is-action {
+  /* A button's UA styles would centre the text, add a border and use the
+     system face. Reset them onto the row's own layout, so a pressable row and
+     an inert one occupy exactly the same box and the card never grows just
+     because its rows became controls. The face and size come from
+     `.meta-row` above, which already beats the UA font. */
+  display: flex;
+  align-items: baseline;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  /* A quiet lift only: no transform, no height change, so the card never
+     moves under the pointer. */
+  transition: background 140ms ease;
+}
+.meta-row.due.is-action:hover:not(:disabled) {
+  background: rgba(127, 127, 127, 0.12);
+}
+.meta-row.due.is-action:focus-visible {
+  /* The same ring the card's action buttons wear, so the two controls of one
+     card speak the same focus language. */
+  outline: 2px solid var(--hud-accent, #d97757);
+  outline-offset: 2px;
+}
+.meta-row.due.is-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+@media (prefers-reduced-motion: reduce) {
+  .meta-row.due.is-action { transition: none; }
+}
 .progress-wrap {
   display: none;
   flex-direction: column;
@@ -643,6 +682,10 @@ const countdownEl = document.getElementById("countdown");
 let countdownFrame = null;
 let countdownStart = 0;
 let heightFrame = null;
+// One card accepts one answer. Disabling the controls stops the usual second
+// press, but a click already queued behind the first one would still fire; the
+// page reports its choice once and then ignores the rest until a new card.
+let answered = false;
 
 // One glyph per vocabulary word. Stroke-only so the accent colour is the only
 // fill and the icons read at 22px in both themes.
@@ -698,7 +741,13 @@ function renderMeta(meta) {
   for (const row of meta) {
     if (!row || (!row.label && !row.value)) continue;
     if (row.variant === "due" || row.variant === "more") metaEl.classList.add("has-due");
-    const line = document.createElement("div");
+    // A `due` row that names a task is a control, not a line of text: pressing
+    // it opens that task. The decision is the row's own fields, never the card
+    // that raised it, so a due card, a review and an evening wrap all get the
+    // same gesture from the same row shape. A `more` row is always inert.
+    const actionable = row.variant === "due" && typeof row.id === "string" && row.id !== "";
+    const line = document.createElement(actionable ? "button" : "div");
+    if (actionable) line.type = "button";
     line.className = "meta-row";
     // `more` is one quiet count with no field name; it spans the row instead
     // of opening a 64px label gutter that would push the number to the middle.
@@ -714,6 +763,20 @@ function renderMeta(meta) {
     // `due` keeps the label/value pair but draws it as a task row: the title
     // on the left (ellipsised, full text in `title`) and its state on the right.
     if (row.variant === "due") line.classList.add("due");
+    if (actionable) {
+      line.classList.add("is-action");
+      line.addEventListener("click", (event) => {
+        // The card body is clickable when it has a clickAction; without this,
+        // a row press would also send `open` and open the whole desk.
+        event.stopPropagation();
+        answer("row:" + row.id);
+      });
+    } else {
+      // A row that names no task is still part of the card, not a gap in it: a
+      // press there is a press on the card and takes the card's own action,
+      // exactly as it did when every row was a plain line. It must not fall
+      // back to some row-level default, so it is deliberately left inert.
+    }
     const label = document.createElement("span");
     label.className = "meta-label";
     label.textContent = row.label || "";
@@ -823,8 +886,16 @@ function reportHeight() {
   });
 }
 
-function disableButtons() {
-  for (const btn of actionsEl.querySelectorAll("button")) btn.disabled = true;
+/**
+ * Report the card's one answer and lock every control. A disabled button does
+ * not fire, but a second click that was already queued would; the flag makes
+ * the page's own report idempotent instead of relying on the DOM alone.
+ */
+function answer(actionId) {
+  if (answered) return;
+  answered = true;
+  for (const btn of card.querySelectorAll("button")) btn.disabled = true;
+  window.updateBubbleAPI.choose(actionId);
 }
 
 function show(payload) {
@@ -832,6 +903,8 @@ function show(payload) {
   const lang = payload.lang || "en";
   const kind = payload.kind || "";
   clearTimers();
+  // A freshly shown card is a fresh question, whatever the last one answered.
+  answered = false;
 
   // The skin is opt-in per payload. An attention bubble names its theme; the
   // updater (and anything older than this wave) keeps the original card.
@@ -874,10 +947,7 @@ function show(payload) {
   // resolves the same promise an action button would.
   if (payload.clickAction) {
     card.classList.add("clickable");
-    card.onclick = () => {
-      disableButtons();
-      window.updateBubbleAPI.choose(payload.clickAction);
-    };
+    card.onclick = () => answer(payload.clickAction);
   } else {
     card.classList.remove("clickable");
     card.onclick = null;
@@ -894,8 +964,7 @@ function show(payload) {
       // The card body is clickable when it has a clickAction; without this the
       // button's click bubbles and sends the card action too (Stop + open).
       event.stopPropagation();
-      disableButtons();
-      window.updateBubbleAPI.choose(action.id);
+      answer(action.id);
     });
     actionsEl.appendChild(btn);
   }

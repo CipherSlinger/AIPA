@@ -123,10 +123,23 @@ const DAY_RE = /^(\d{4})-(\d{2})-(\d{2})$/
 
 /** One finished task the card may name. */
 export interface DayWrapRow {
+  /**
+   * The task this row names. The card's rows open that task, the way the due
+   * and week-review cards' rows do, so the title alone is not enough.
+   */
+  id: string
   /** Task title, as stored. */
   title: string
   /** Today's completion occurrences of this task (>= 1). */
   count: number
+}
+
+/** One task waiting tomorrow, named on the evening card. */
+export interface DayWrapTomorrowRow {
+  /** The task this row names; clicking it opens that task. */
+  id: string
+  /** Task title, as stored. */
+  title: string
 }
 
 /** The shape handed to the attention queue's day-wrap case. */
@@ -148,7 +161,7 @@ export interface DayWrapAggregate {
   /** Of those open tasks, how many have a dueOn of tomorrow. */
   dueTomorrow: number
   /** Up to DAY_WRAP_UPCOMING_SHOWN open tasks due tomorrow, by title. */
-  tomorrowRows: string[]
+  tomorrowRows: DayWrapTomorrowRow[]
 }
 
 interface CalendarDay {
@@ -216,8 +229,8 @@ export function collectDayWrap(tasks: readonly TaskRecord[], nowMs: number): Day
   let open = 0
   let overdue = 0
   let dueTomorrow = 0
-  const completed: Array<{ title: string; latestAt: number; count: number }> = []
-  const upcoming: string[] = []
+  const completed: Array<{ id: string; title: string; latestAt: number; count: number }> = []
+  const upcoming: DayWrapTomorrowRow[] = []
 
   for (const task of tasks) {
     const history = Array.isArray(task.history) ? task.history : []
@@ -234,7 +247,7 @@ export function collectDayWrap(tasks: readonly TaskRecord[], nowMs: number): Day
       }
     }
 
-    if (count > 0) completed.push({ title: task.title, latestAt, count })
+    if (count > 0) completed.push({ id: task.id, title: task.title, latestAt, count })
 
     if (task.status === 'done' || task.status === 'archived') continue
     open += 1
@@ -245,7 +258,7 @@ export function collectDayWrap(tasks: readonly TaskRecord[], nowMs: number): Day
       if (task.dueOn < day) overdue += 1
       else if (task.dueOn === tomorrow) {
         dueTomorrow += 1
-        upcoming.push(task.title)
+        upcoming.push({ id: task.id, title: task.title })
       }
     }
   }
@@ -256,13 +269,15 @@ export function collectDayWrap(tasks: readonly TaskRecord[], nowMs: number): Day
   const rows: DayWrapRow[] = completed
     .sort((a, b) => (b.latestAt - a.latestAt) || a.title.localeCompare(b.title))
     .slice(0, DAY_WRAP_ROWS_SHOWN)
-    .map(row => ({ title: row.title, count: row.count }))
+    .map(row => ({ id: row.id, title: row.title, count: row.count }))
 
   // Tomorrow's first two tasks, by title, so a repaint never reshuffles them.
   // Titles are kept exactly as stored — the card names the task, it does not
-  // tidy it. The count above them still covers every task due tomorrow.
+  // tidy it. The count above them still covers every task due tomorrow. The id
+  // travels with its title so the card's row can open that exact task; the sort
+  // still compares titles only, and ties keep their store order.
   const tomorrowRows = upcoming
-    .sort((a, b) => a.localeCompare(b))
+    .sort((a, b) => a.title.localeCompare(b.title))
     .slice(0, DAY_WRAP_UPCOMING_SHOWN)
 
   return {

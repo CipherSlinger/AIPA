@@ -63,6 +63,12 @@ export interface ClawdBubbleMetaRow {
    */
   title?: string
   /**
+   * The task this row names, when clicking it should open that task. Only a
+   * task row carries one, and only a `due` row is drawn as a control; the
+   * count line and the diagnostics rows stay inert.
+   */
+  id?: string
+  /**
    * How the row is drawn. The default is the HUD's field/value line. `due`
    * puts a task title on the left and its short due state on the right, still
    * in the meta's quiet type; `more` is a full-width quiet count ("+2 more").

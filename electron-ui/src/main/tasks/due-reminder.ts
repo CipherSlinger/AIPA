@@ -106,6 +106,8 @@ export const DUE_SNOOZE_MS = 2 * 60 * 60 * 1000
 
 /** One task a `task-due` card can name: its title and how late it is. */
 export interface DueRow {
+  /** The task's id, so the card's row can open exactly the task it names. */
+  id: string
   title: string
   /** 0 means due today; 2 means the due day was two local days ago. */
   daysOverdue: number
@@ -259,7 +261,11 @@ export function buildDueAggregate(candidates: readonly DueCandidate[]): DueAggre
     .slice()
     .sort(compareDueCandidates)
     .slice(0, DUE_ROWS_SHOWN)
-    .map(candidate => ({ title: candidate.title, daysOverdue: candidate.daysOverdue }))
+    .map(candidate => ({
+      id: candidate.id,
+      title: candidate.title,
+      daysOverdue: candidate.daysOverdue,
+    }))
   return {
     total: candidates.length,
     today,
