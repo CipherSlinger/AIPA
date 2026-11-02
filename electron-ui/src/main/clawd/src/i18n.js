@@ -180,6 +180,18 @@ const i18n = {
     weekReviewDoneHint: "Mark this task done",
     weekReviewDoneStrip: "{name} done",
     weekReviewDoneFailed: "Couldn't finish it",
+    // Done is offered on every open row, but a repeating task is refused here on
+    // purpose: the store answers a repeat's Done by rolling its occurrence to the
+    // next day, which is right on the brief and wrong on a retrospective. The
+    // row says so before the press and again if the press happens anyway.
+    weekReviewDoneRefused: "Repeating — left alone",
+    weekReviewDoneRefusedHint: "A repeat rolls to its next day on the brief, so this card leaves it alone",
+    // The Past-due tile is a door, not a number: it narrows the desk below to the
+    // rows that are late. The empty label is for the disabled tile, so a screen
+    // reader hears why there is nothing to open.
+    weekReviewPastDueFilter: "Only past due",
+    weekReviewPastDueFilterHint: "Show just the tasks that are late",
+    weekReviewPastDueEmpty: "Nothing is past due",
     // Evening wrap-up: one opt-in card at 18:30, speaking for the day that is
     // ending. The desk sentences are the weekly review's own — the desk does
     // not change its name at dusk.
@@ -332,6 +344,16 @@ const i18n = {
     taskBriefDeferFailed: "Could not move the due day. Try again.",
     taskBriefDeferLine: "Due tomorrow · {name}",
     taskBriefDeferUndoFailed: "Could not put the due day back. Try again.",
+    // The due marker opens a small chooser rather than only pushing to
+    // tomorrow, the same four answers the main app's due chip gives. Each
+    // label is that button's own text; {day} is the resulting date in the
+    // marker's own words, so the strip after a press can name it.
+    taskBriefDueMenuLabel: "Set the due day",
+    taskBriefDueClear: "No due day",
+    taskBriefDueClearHint: "Remove the due day",
+    taskBriefDueLine: "Due {day} · {name}",
+    taskBriefDueClearedLine: "Due day cleared · {name}",
+    taskBriefDueFailed: "Could not change the due day. Try again.",
     // Finishing a repeating task keeps it on the card with its next day. {when}
     // is that day in the marker's own words ("Tomorrow", "NOV 7"), filled in by
     // the page; {name} is the title, ellipsized when the line is too long.
@@ -571,6 +593,16 @@ const i18n = {
     weekReviewDoneHint: "标记为完成",
     weekReviewDoneStrip: "{name} 已完成",
     weekReviewDoneFailed: "没能完成",
+    // 每一行都给了「完成」，但重复任务在这里是有意拒绝的：仓库对重复任务的完成
+    // 是把这次推到下一天，那在任务卡上是对的，在回顾里就成了替人改日子。按之前
+    // 先说一声，真按下去也再说一句。
+    weekReviewDoneRefused: "重复任务 · 这次不动",
+    weekReviewDoneRefusedHint: "重复任务在任务卡上会顺延到下一次，所以这里不替它改日子",
+    // 「逾期」那个数字是一扇门，不是一块铭牌：按下去只看桌面上已经晚了的那几行。
+    // 空的那句是禁用态的标签，让读屏的人知道为什么打不开。
+    weekReviewPastDueFilter: "只看逾期",
+    weekReviewPastDueFilterHint: "只显示已经晚了的任务",
+    weekReviewPastDueEmpty: "没有逾期的任务",
     settingsPetEveningWrap: "晚间回顾",
     settingsPetEveningWrapHint: "18:30 一张卡片，说说今天做完了什么、明天还等着什么。",
     attentionDayWrapTitle: "今天",
@@ -686,6 +718,14 @@ const i18n = {
     taskBriefDeferFailed: "没能改截止日，再试一次。",
     taskBriefDeferLine: "已改到明天 · {name}",
     taskBriefDeferUndoFailed: "没能把截止日恢复回去，再试一次。",
+    // 日期标记点开的是一个小选择器，而不只是「推到明天」——和主界面那个截止日
+    // 小标签给的是同样四种答案。{day} 是改完之后那一天的说法，撤销条用它点名。
+    taskBriefDueMenuLabel: "设置截止日",
+    taskBriefDueClear: "不设截止日",
+    taskBriefDueClearHint: "去掉截止日",
+    taskBriefDueLine: "已改到 {day} · {name}",
+    taskBriefDueClearedLine: "已去掉截止日 · {name}",
+    taskBriefDueFailed: "没能改截止日，再试一次。",
     // 完成一个重复任务时，这一行留在卡上、日子换成下一次。{when} 是那一天的
     // 说法（「明天」「11月7日」），由页面填；{name} 是任务名，太长就省略。
     taskBriefRepeatLine: "这次做完了 · 下次 {when} · {name}",
@@ -908,6 +948,16 @@ const i18n = {
     weekReviewDoneHint: "완료로 표시",
     weekReviewDoneStrip: "{name} 완료",
     weekReviewDoneFailed: "완료하지 못했습니다",
+    // 모든 행에 완료를 두지만 반복 작업은 여기서 일부러 거절합니다. 저장소는
+    // 반복 작업의 완료를 다음 회차로 넘기는 것으로 답하는데, 브리프에서는 맞고
+    // 회고에서는 남의 날짜를 바꾸는 일이 됩니다. 누르기 전에 알리고, 눌러도 답합니다.
+    weekReviewDoneRefused: "반복 작업 · 이번엔 그대로",
+    weekReviewDoneRefusedHint: "반복 작업은 브리프에서 다음 회차로 넘어가므로, 이 카드는 건드리지 않습니다",
+    // 기한 지남 타일은 명패가 아니라 문입니다. 누르면 아래 책상에서 늦은 행만 보여 줍니다.
+    // 빈 문구는 비활성 타일용이라, 왜 열 수 없는지 화면 낭독기가 말해 줍니다.
+    weekReviewPastDueFilter: "기한 지난 것만",
+    weekReviewPastDueFilterHint: "이미 늦은 작업만 보기",
+    weekReviewPastDueEmpty: "기한 지난 작업 없음",
     settingsPetEveningWrap: "저녁 정리",
     settingsPetEveningWrapHint: "18:30에 오늘 끝낸 일과 내일 남은 일을 한 장으로 알려줍니다.",
     attentionDayWrapTitle: "오늘",
@@ -1023,6 +1073,14 @@ const i18n = {
     taskBriefDeferFailed: "마감일을 옮기지 못했습니다. 다시 시도하세요.",
     taskBriefDeferLine: "내일 마감 · {name}",
     taskBriefDeferUndoFailed: "마감일을 되돌리지 못했습니다. 다시 시도하세요.",
+    // 마감 표시는 "내일로 미루기" 하나가 아니라 작은 선택지를 엽니다. 앱의
+    // 마감 칩과 같은 네 가지 답입니다. {day}는 바뀐 날을 마커의 말투로 적습니다.
+    taskBriefDueMenuLabel: "마감일 설정",
+    taskBriefDueClear: "마감일 없음",
+    taskBriefDueClearHint: "마감일을 지웁니다",
+    taskBriefDueLine: "마감 {day} · {name}",
+    taskBriefDueClearedLine: "마감일을 지움 · {name}",
+    taskBriefDueFailed: "마감일을 바꾸지 못했습니다. 다시 시도하세요.",
     // 반복 작업을 완료하면 행은 카드에 남고 날짜만 다음 회차로 바뀝니다. {when}은
     // 그 날의 표기("내일", "11월 7일"), 페이지가 채웁니다. {name}은 작업 이름입니다.
     taskBriefRepeatLine: "이번 완료 · 다음 {when} · {name}",

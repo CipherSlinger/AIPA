@@ -156,6 +156,12 @@ export interface WeekReviewOpenRow {
   overdue: boolean
   /** Whole calendar days past due; 0 when not overdue. */
   overdueDays: number
+  /**
+   * True for a task that repeats. The week review refuses to finish one (its
+   * Done would roll the occurrence forward, which is the brief's answer), so
+   * the row carries the fact for the card to say so before the press.
+   */
+  repeat?: boolean
 }
 
 /**
@@ -445,6 +451,9 @@ export function collectWeekReview(
       overdue: false,
       overdueDays: 0,
     }
+    // Carried as a flag, never the repeat rule itself: the card only needs to
+    // know Done will be refused, not how often the task runs.
+    if (task.repeat) row.repeat = true
     // A due day is a stored `YYYY-MM-DD`. A malformed one cannot be compared
     // or counted, so the row stays open without a day rather than acquiring a
     // date it never had.

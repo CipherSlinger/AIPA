@@ -19,10 +19,12 @@
  *     the Tasks view when it has no conversation yet;
  *   - a row's Start button dispatches the task instead: a chat tab in the task
  *     folder with the brief in the composer, and nothing sent;
- *   - a row due today or already late has a due marker that moves the task to
- *     tomorrow in place, offering the old day back through the same quiet Undo
- *     line a finish uses; a future due day stays a plain word, because pushing
- *     it to tomorrow would pull the deadline earlier, not defer it;
+ *   - every row's due marker opens a small chooser — Today, Tomorrow, Next week
+ *     or No due day — and choosing writes exactly one local calendar day in
+ *     place, offering the old day back through the same quiet Undo line a
+ *     finish uses. An undated row says "no due day" quietly and can be given
+ *     one from the same chooser. A `defer` without a day keeps its old meaning
+ *     ("tomorrow") for pages that predate the chooser;
  *   - a row's Done on a repeating task completes the occurrence rather than the
  *     task: the row stays under its new day, and the same line offers the old
  *     day back.
@@ -96,7 +98,10 @@ export interface ClawdTaskBriefItem {
  * day the row was on before it rolled forward — and the page picks the matching
  * line for it. `previous` is the status the task had immediately before Done,
  * captured by the main process; `nextDueOn` is the repeat offer's new day, which
- * the page names in its line but never writes with. `expiresAt` is the moment
+ * the page names in its line but never writes with. A due-day offer from the
+ * chooser also carries `nextDueOn` — the day it wrote — or `cleared: true` when
+ * it removed the day; a legacy offer (the old one-word "tomorrow" press) carries
+ * neither and keeps the old line. `expiresAt` is the moment
  * main will refuse to restore it any more; the page uses that same instant to
  * hide the line, so a delayed paint cannot extend a window main has already
  * closed.
@@ -112,6 +117,7 @@ export interface ClawdTaskBriefUndo {
   kind: 'done' | 'defer' | 'repeat'
   previous?: TaskStatus
   nextDueOn?: string
+  cleared?: boolean
   expiresAt: number
 }
 
@@ -162,6 +168,11 @@ interface BriefAction {
   id?: unknown
   /** The capture line's typed words; only `create` reads it. */
   title?: unknown
+  /**
+   * The day a `defer` should land on: a local `YYYY-MM-DD`, or `null` to clear
+   * the day. Omitted means the legacy one-word gesture ("tomorrow").
+   */
+  dueOn?: unknown
 }
 
 // Width is fixed; height follows the content between these bounds. The page
@@ -259,13 +270,18 @@ interface DeferUndoOffer extends UndoOfferBase {
    */
   previousDueOn?: string
   /**
-   * The day this offer's own write applied (tomorrow at the moment of the
-   * press). Undo only puts `previousDueOn` back while the task still carries
-   * this day: a day set by another surface since then is newer intent, and
+   * The day this offer's own write applied, or `null` when it cleared the day.
+   * Undo only puts `previousDueOn` back while the task still carries this
+   * state: a day set by another surface since then is newer intent, and
    * replacing it with the old one would silently undo an edit the user made
    * after this action.
    */
-  appliedDueOn: string
+  appliedDueOn: string | null
+  /**
+   * True when the day came from the chooser rather than the legacy one-word
+   * "tomorrow" press. Only a chooser offer tells the page which line to draw.
+   */
+  viaChooser?: boolean
 }
 
 interface RepeatUndoOffer extends UndoOfferBase {
@@ -416,6 +432,21 @@ function briefLabels(): Record<string, string> {
     deferFailed: petT('taskBriefDeferFailed'),
     deferLine: petT('taskBriefDeferLine'),
     deferUndoFailed: petT('taskBriefDeferUndoFailed'),
+    // The chooser every open row's due marker opens: the marker's own name, the
+    // four answers, and the line a chooser write leaves. `dueLine`'s `{day}` is
+    // filled by the page, because only it owns the marker's date words. The
+    // brief's table has no "Next week" of its own, so the answer borrows the
+    // capture row's preset, which already says the same thing in every
+    // language.
+    dueMenuLabel: petT('taskBriefDueMenuLabel'),
+    dueMenuToday: petT('taskCaptureDueToday'),
+    dueMenuTomorrow: petT('taskCaptureDueTomorrow'),
+    dueNextWeek: petT('taskCaptureDueNextWeek'),
+    dueClear: petT('taskBriefDueClear'),
+    dueClearHint: petT('taskBriefDueClearHint'),
+    dueLine: petT('taskBriefDueLine'),
+    dueClearedLine: petT('taskBriefDueClearedLine'),
+    dueFailed: petT('taskBriefDueFailed'),
     // The repeating finish keeps its row, so its line names the day it moved
     // to. {when} is that day in the page's marker words, filled by the page
     // because only it owns the date formatter.
@@ -550,9 +581,17 @@ function buildPayload(): ClawdTaskBriefPayload {
             title: offer.title,
             kind: offer.kind,
             ...(offer.kind === 'done' ? { previous: offer.previous } : {}),
-            // Only the repeat offer has a forward day: the page names it in
-            // the line, while Undo itself restores `previousDueOn` in main.
+            // The repeat offer has a forward day; the page names it in the
+            // line, while Undo itself restores `previousDueOn` in main. A
+            // chooser defer likewise names the day it wrote, or says that it
+            // cleared one; the legacy defer carries neither and the page falls
+            // back to the old "tomorrow" line.
             ...(offer.kind === 'repeat' ? { nextDueOn: offer.nextDueOn } : {}),
+            ...(offer.kind === 'defer' && offer.viaChooser
+              ? offer.appliedDueOn === null
+                ? { cleared: true }
+                : { nextDueOn: offer.appliedDueOn }
+              : {}),
             expiresAt: offer.expiresAt,
           },
         }
@@ -964,6 +1003,44 @@ function tomorrowLocalDay(): string {
 }
 
 /**
+ * A local `YYYY-MM-DD` day, or null when the value is not one.
+ *
+ * The shape alone is not enough — `2026-02-30` matches it and is not a day —
+ * so the parsed local fields must round-trip. The store repeats this check
+ * before writing; doing it here too is what lets a bad value answer the card
+ * with a sentence instead of a silent no-op, and keeps an invalid action from
+ * clearing an Undo offer the way a real write does.
+ */
+function validLocalDay(value: string): string | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return null
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if (year < 2000 || year > 2100) return null
+  const date = new Date(year, month - 1, day)
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null
+  return value
+}
+
+/**
+ * Which day a defer asked for.
+ *
+ * A string is a chooser answer, `null` is the chooser's "No due day", and an
+ * omitted field is the legacy one-word press that still means tomorrow.
+ * Anything else is a page bug or a hand-made IPC call; it must not write.
+ */
+type DeferDay = { kind: 'legacy' } | { kind: 'set'; dueOn: string } | { kind: 'clear' } | { kind: 'invalid' }
+
+function readDeferDay(value: unknown): DeferDay {
+  if (value === undefined) return { kind: 'legacy' }
+  if (value === null) return { kind: 'clear' }
+  if (typeof value !== 'string') return { kind: 'invalid' }
+  const dueOn = validLocalDay(value)
+  return dueOn ? { kind: 'set', dueOn } : { kind: 'invalid' }
+}
+
+/**
  * Put back what the most recent reversible action changed.
  *
  * The offer itself is the permission slip: it is consumed before the first
@@ -1007,7 +1084,10 @@ function handleUndo(): ClawdTaskBriefPayload {
     // one would silently replace an edit the user just made. A row that left
     // the desk is likewise no longer the row the offer describes.
     const appliedDueOn = offer.kind === 'defer' ? offer.appliedDueOn : offer.nextDueOn
-    if (STATUS_ORDER[task.status] === undefined || task.dueOn !== appliedDueOn) {
+    // `undefined` and `null` both mean "no day": a chooser that cleared the
+    // day must still recognise the row it cleared, and a task that never had
+    // one must not look changed merely because the store omits the field.
+    if (STATUS_ORDER[task.status] === undefined || (task.dueOn ?? null) !== appliedDueOn) {
       return withError(
         buildPayload(),
         petT(offer.kind === 'repeat' ? 'taskBriefRepeatUndoFailed' : 'taskBriefDeferUndoFailed'),
@@ -1120,6 +1200,97 @@ function handleCreate(action: BriefAction): ClawdTaskBriefPayload {
   return { ...buildPayload(), created: { id: mutation.task.id, title: mutation.task.title } }
 }
 
+/**
+ * Set, move or clear one task's due day.
+ *
+ * The row stays on the card, so the fresh payload re-sorts it under its new
+ * day and the quiet line offers the old day back. Three shapes arrive here
+ * (see `readDeferDay`); the legacy one is the page's old one-word press and
+ * keeps its old refusal rule, while a chooser answer is welcome on any open
+ * row, including one whose day it is not changing.
+ */
+function handleDefer(id: string, dueOn: unknown): ClawdTaskBriefPayload {
+  const day = readDeferDay(dueOn)
+  // Checked before the store is even read: a value the page could only have
+  // invented must not look like a write attempt, and must not cost the user an
+  // offer an earlier action is standing behind.
+  if (day.kind === 'invalid') return withError(buildPayload(), petT('taskBriefDueFailed'))
+
+  let task: TaskView | undefined
+  try {
+    task = id ? listTasks().find(item => item.id === id) : undefined
+  } catch (err) {
+    log.warn('Could not look up a task to defer:', err)
+  }
+  if (!task) {
+    // Gone between paint and click. Nothing changed, so nothing is offered.
+    return withError(buildPayload(), petT(day.kind === 'legacy' ? 'taskBriefDeferFailed' : 'taskBriefDueFailed'))
+  }
+  // The brief only shows on-desk work. A task finished or archived while the
+  // card was up has already left the desk; moving its day would be a write the
+  // user cannot see, so fail quietly rather than resurrect a row.
+  if (STATUS_ORDER[task.status] === undefined) {
+    return withError(buildPayload(), petT(day.kind === 'legacy' ? 'taskBriefDeferFailed' : 'taskBriefDueFailed'))
+  }
+
+  // Captured before the write: `undefined` means the task had no due day, and
+  // Undo must be able to restore that exact absence.
+  const previousDueOn = task.dueOn
+  const nextDueOn = day.kind === 'legacy' ? tomorrowLocalDay() : day.kind === 'set' ? day.dueOn : null
+
+  if (day.kind === 'legacy') {
+    // Tomorrow or later: this gesture is not a deferral. Tomorrow would land
+    // on the day the row already has (an Undo built on it would visibly do
+    // nothing while claiming the day had moved); a later day would be pulled
+    // *earlier*, which is the opposite of what the marker says. The page no
+    // longer sends this shape, but an old page or a hand-made call may still
+    // do so. Refusing before the previous offer is dropped leaves an earlier
+    // action's Undo line untouched, exactly like the already-done rule on the
+    // finish path.
+    if (previousDueOn && previousDueOn >= tomorrowLocalDay()) return buildPayload()
+  } else if ((previousDueOn ?? null) === nextDueOn) {
+    // The chooser answered with the day the row already carries: nothing to
+    // write and nothing to offer, so an earlier action's Undo line stands.
+    return buildPayload()
+  }
+
+  // The gesture really moves the row, replacing whatever offer came before; a
+  // stale offer must not outlive the action that replaced it.
+  clearUndoOffer()
+
+  let mutation: ReturnType<typeof updateTask> | null = null
+  try {
+    mutation = updateTask(task.id, { dueOn: nextDueOn })
+  } catch (err) {
+    log.warn('Could not change a task due day:', err)
+  }
+  if (!mutation || !mutation.ok) {
+    // A refused write leaves the row exactly as it was, and offers nothing.
+    return withError(buildPayload(), petT(day.kind === 'legacy' ? 'taskBriefDeferFailed' : 'taskBriefDueFailed'))
+  }
+
+  armUndoOffer({
+    kind: 'defer',
+    taskId: task.id,
+    title: task.title,
+    ...(previousDueOn ? { previousDueOn } : {}),
+    // The state this write produced, so Undo can tell whether the row is still
+    // the one this offer describes. `null` means the write cleared the day.
+    appliedDueOn: nextDueOn,
+    // Only a chooser offer tells the page which line to draw; the legacy press
+    // keeps its old "tomorrow" line.
+    ...(day.kind === 'legacy' ? {} : { viaChooser: true }),
+    expiresAt: Date.now() + UNDO_WINDOW_MS,
+  })
+
+  notifyTasksChanged()
+  // This path writes the store directly, so it never passes through the IPC
+  // broadcast closure that normally refreshes the pet's badge.
+  try { refreshClawdTaskBadge() } catch { /* pet gone */ }
+
+  return buildPayload()
+}
+
 function handleAction(action: unknown): ClawdTaskBriefPayload {
   const input = (action && typeof action === 'object' ? action : {}) as BriefAction
   const type = typeof input.type === 'string' ? input.type as BriefActionType : null
@@ -1129,8 +1300,8 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
   // other gesture — a capture included — is a different intent, so the previous
   // offer stops being the most recent thing the user did. Done clears here too
   // and re-arms only if the write really landed. A defer is guarded inside its
-  // own case instead: a press on a row already due tomorrow writes nothing, so
-  // it must not cost the user the offer an earlier action is still standing
+  // own handler instead: a chooser answer that matches the row writes nothing,
+  // so it must not cost the user the offer an earlier action is still standing
   // behind.
   if (type !== 'done' && type !== 'undo' && type !== 'defer') clearUndoOffer()
 
@@ -1277,75 +1448,8 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
       if (!notified) payload.error = petT('taskBriefDoneUndelivered')
       return payload
     }
-    case 'defer': {
-      // Moving a due day is reversible but, unlike Done, the row stays on the
-      // card: the fresh payload re-sorts it under its new day and the quiet
-      // line offers the old day back.
-      let task: TaskView | undefined
-      try {
-        task = id ? listTasks().find(item => item.id === id) : undefined
-      } catch (err) {
-        log.warn('Could not look up a task to defer:', err)
-      }
-      if (!task) {
-        // Gone between paint and click. Nothing changed, so nothing is offered.
-        return withError(buildPayload(), petT('taskBriefDeferFailed'))
-      }
-      // The brief only shows on-desk work. A task finished or archived while the
-      // card was up has already left the desk; moving its day would be a write
-      // the user cannot see, so fail quietly rather than resurrect a row.
-      if (STATUS_ORDER[task.status] === undefined) {
-        return withError(buildPayload(), petT('taskBriefDeferFailed'))
-      }
-
-      // Captured before the write: `undefined` means the task had no due day,
-      // and Undo must be able to restore that exact absence.
-      const previousDueOn = task.dueOn
-      const tomorrow = tomorrowLocalDay()
-      // Tomorrow or later: this gesture is not a deferral. Tomorrow would land
-      // on the day the row already has (an Undo built on it would visibly do
-      // nothing while claiming the day had moved); a later day would be pulled
-      // *earlier*, which is the opposite of what the marker says. The page only
-      // makes the marker interactive on rows due today or already late, but a
-      // stale card (or a keyboard-driven press racing the repaint) may still
-      // send this gesture. Refusing before the previous offer is dropped leaves
-      // an earlier action's Undo line untouched, exactly like the already-done
-      // rule on the finish path.
-      if (previousDueOn && previousDueOn >= tomorrow) return buildPayload()
-
-      // The gesture really moves the row, replacing whatever offer came before;
-      // a stale offer must not outlive the action that replaced it.
-      clearUndoOffer()
-
-      let mutation: ReturnType<typeof updateTask> | null = null
-      try {
-        mutation = updateTask(task.id, { dueOn: tomorrow })
-      } catch (err) {
-        log.warn('Could not move a task due day:', err)
-      }
-      if (!mutation || !mutation.ok) {
-        // A refused write leaves the row exactly as it was, and offers nothing.
-        return withError(buildPayload(), petT('taskBriefDeferFailed'))
-      }
-
-      armUndoOffer({
-        kind: 'defer',
-        taskId: task.id,
-        title: task.title,
-        ...(previousDueOn ? { previousDueOn } : {}),
-        // The day this write landed on, so Undo can tell whether the row is
-        // still the one this offer describes.
-        appliedDueOn: tomorrow,
-        expiresAt: Date.now() + UNDO_WINDOW_MS,
-      })
-
-      notifyTasksChanged()
-      // This path writes the store directly, so it never passes through the
-      // IPC broadcast closure that normally refreshes the pet's badge.
-      try { refreshClawdTaskBadge() } catch { /* pet gone */ }
-
-      return buildPayload()
-    }
+    case 'defer':
+      return handleDefer(id, input.dueOn)
     case 'undo':
       return handleUndo()
     case 'create':

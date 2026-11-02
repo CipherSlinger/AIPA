@@ -314,6 +314,44 @@ body { padding: 8px; }
   text-transform: none;
 }
 
+/* "Past due" is a toggle: pressing it narrows the desk list to the late rows.
+   It keeps the tile's geometry (same grid cell, same padding) and only adds a
+   pointer, the accent ring the selected day column uses while pressed, and a
+   ring on hover/focus. A tile with nothing past due is disabled rather than
+   opening onto an empty list; the alert treatment above already says the
+   number is zero, so the disabled paint only drops the pointer. */
+button.stat {
+  appearance: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+button.stat:disabled {
+  cursor: default;
+}
+.stat-btn:focus-visible,
+.stat-btn:hover:not(:disabled):not(.selected) {
+  outline: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 1px;
+}
+.stat-btn:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--accent) 72%, transparent);
+}
+.stat-btn.selected {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--tile-bg));
+}
+/* The alert skin keeps its own fill while pressed; the ring alone says the
+   tile is on, so the late count never loses its warning colour. */
+.stat-btn.alert.selected {
+  background: color-mix(in srgb, var(--alert) 12%, var(--tile-bg));
+  outline-color: var(--accent);
+}
+
 /* The comparison line: one quiet sentence under the tiles. Its arrow carries
    the direction colour; the sentence itself stays muted. */
 .compare {
@@ -982,7 +1020,8 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   button.day-col,
   button.day-col .bar-fill,
   button.day-col .day-label,
-  button.day-col .day-count { transition: none; }
+  button.day-col .day-count,
+  button.stat { transition: none; }
   .row,
   .btn { transition: none; }
   .body::-webkit-scrollbar-thumb { transition: none; }
@@ -1023,10 +1062,15 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
         <span class="stat-num" data-num>0</span>
         <span class="stat-cap" data-cap id="capOpen"></span>
       </div>
-      <div class="stat" id="statOverdue" data-stat="overdue">
+      <!-- Only "Past due" is pressable: it narrows the desk list below to the
+           rows already late (the one tile whose number has a subset to show).
+           Done and Tasks describe their own lists, and every desk row is
+           already open, so those three stay inert numbers. -->
+      <button class="stat stat-btn" id="statOverdue" data-stat="overdue" type="button"
+              aria-pressed="false" disabled>
         <span class="stat-num" data-num>0</span>
         <span class="stat-cap" data-cap id="capOverdue"></span>
-      </div>
+      </button>
     </section>
 
     <div class="compare" id="compare">
@@ -1151,6 +1195,11 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     doneHint: "Mark this task done",
     doneStrip: "{name} done",
     doneFailed: "Couldn't finish it",
+    doneRefused: "Repeating — left alone",
+    doneRefusedHint: "A repeat rolls to its next day on the brief, so this card leaves it alone",
+    pastDueFilter: "Only past due",
+    pastDueFilterHint: "Show just the tasks that are late",
+    pastDueEmpty: "Nothing is past due",
   };
 
   var LOCALES = { en: "en-US", zh: "zh-CN", ko: "ko-KR" };
@@ -1162,6 +1211,10 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     // Local `YYYY-MM-DD` of the day column narrowing the finished list, or
     // null when the list is whole. Reset on every week change.
     dayFilter: null,
+    // True while the desk list is narrowed to rows already past due. Lives
+    // beside the day filter and independently of it: a day narrows the
+    // finished list, this narrows the desk. Reset on every week change.
+    pastDueFilter: false,
     focusIndex: -1,
     heightFrame: null,
     animated: false,
@@ -1244,6 +1297,7 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
           dueLabel: str(open.dueLabel),
           overdue: open.overdue === true,
           overdueDays: num(open.overdueDays),
+          repeat: open.repeat === true,
         });
       }
     }
@@ -1392,6 +1446,7 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     setStat(statOpen, p.open, capOpen, s.open);
     setStat(statOverdue, p.overdue, capOverdue, s.overdue);
     statOverdue.classList.toggle("alert", p.overdue > 0);
+    syncPastDueTile(p);
 
     var comparison = comparisonFor(p);
     cmpArrow.textContent = comparison.arrow;
@@ -1399,7 +1454,7 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     cmpText.textContent = comparison.text;
 
     finishedTitleEl.textContent = s.finishedTitle;
-    openTitleEl.textContent = s.openTitle;
+    openTitleEl.textContent = openSectionText(p);
     openTasksBtn.textContent = s.openTasks;
     closeBtn.textContent = s.close;
     // A repaint must not interrupt copy feedback or reopen the button mid-call.
@@ -1485,6 +1540,70 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     if (!state.dayFilter) return;
     state.dayFilter = null;
     applyFilterUi();
+  }
+
+  // ── Past-due filter ────────────────────────────────────────────────────────
+  // The "Past due" tile is a second, independent door: the day filter narrows
+  // the finished list, this narrows the desk to the rows already late. The
+  // tile is disabled when nothing is past due, so a press can never open an
+  // empty list; an active filter that loses its last row clears itself below.
+  function pastDueRows(p) {
+    var out = [];
+    for (var i = 0; i < p.openRows.length; i += 1) {
+      if (p.openRows[i].overdue) out.push(p.openRows[i]);
+    }
+    return out;
+  }
+
+  function shownOpenRows(p) {
+    return state.pastDueFilter ? pastDueRows(p) : p.openRows;
+  }
+
+  // The desk section's heading. While the filter is on it carries the count
+  // of rows shown, in the same quiet style the range line uses; the whole desk
+  // omits the count, exactly like the unfolded list.
+  function openSectionText(p) {
+    if (state.pastDueFilter) {
+      return p.labels.openTitle + " · " + shownOpenRows(p).length;
+    }
+    return p.labels.openTitle;
+  }
+
+  function syncPastDueTile(p) {
+    // The rows themselves decide whether the door opens: a tile that says
+    // "past due" but has none on the desk would open onto nothing.
+    var canFilter = pastDueRows(p).length > 0;
+    statOverdue.disabled = !canFilter;
+    statOverdue.classList.toggle("selected", state.pastDueFilter);
+    statOverdue.setAttribute("aria-pressed", state.pastDueFilter ? "true" : "false");
+    var label = canFilter ? p.labels.pastDueFilter : p.labels.pastDueEmpty;
+    statOverdue.setAttribute("aria-label", label);
+    statOverdue.title = canFilter ? p.labels.pastDueFilterHint : p.labels.pastDueEmpty;
+  }
+
+  // A filter whose rows are all gone is pointless: it clears itself rather than
+  // leaving an empty list under a lit tile. A desk that can still show one late
+  // row leaves the filter exactly as the user set it.
+  function normalizePastDueFilter(p) {
+    if (state.pastDueFilter && pastDueRows(p).length === 0) state.pastDueFilter = false;
+  }
+
+  // Repaint everything the past-due filter touches: the tile, the desk list
+  // (whose heading carries the shown count while on) and the measured height.
+  function applyPastDueUi() {
+    var p = state.payload;
+    if (!p) return;
+    normalizePastDueFilter(p);
+    syncPastDueTile(p);
+    renderRows(p);
+    reportHeight();
+  }
+
+  function togglePastDueFilter() {
+    var p = state.payload;
+    if (!p || pastDueRows(p).length === 0) return;
+    state.pastDueFilter = !state.pastDueFilter;
+    applyPastDueUi();
   }
 
   // ── Chart ──────────────────────────────────────────────────────────────────
@@ -1635,8 +1754,10 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     }
 
     openRowsEl.textContent = "";
-    for (i = 0; i < p.openRows.length; i += 1) {
-      var open = p.openRows[i];
+    openTitleEl.textContent = openSectionText(p);
+    var deskRows = shownOpenRows(p);
+    for (i = 0; i < deskRows.length; i += 1) {
+      var open = deskRows[i];
       var openButton = makeRow("open-row" + (open.overdue ? " overdue" : ""), open.id);
       openButton.title = open.title;
 
@@ -1666,8 +1787,13 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
       done.setAttribute("data-testid", "done-btn");
       done.setAttribute("data-id", open.id);
       done.textContent = p.labels.done;
-      done.setAttribute("aria-label", p.labels.doneHint);
-      done.title = p.labels.doneHint;
+      // A repeating task is a refusal here — main leaves it alone rather than
+      // rolling the occurrence forward (that is the brief's answer). The button
+      // still presses and still sends Done, so main stays the single
+      // authority; it only says so beforehand and never hides.
+      if (open.repeat) done.setAttribute("aria-disabled", "true");
+      done.setAttribute("aria-label", open.repeat ? p.labels.doneRefusedHint : p.labels.doneHint);
+      done.title = open.repeat ? p.labels.doneRefusedHint : p.labels.doneHint;
       side.appendChild(done);
 
       // Only a dated row due today or earlier may be pushed. An undated row
@@ -1688,14 +1814,21 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
       if (side.childNodes.length) openButton.appendChild(side);
       openRowsEl.appendChild(openButton);
     }
-    openRowsEl.hidden = p.openRows.length === 0;
-    openEmptyEl.textContent = p.labels.emptyOpen;
-    openEmptyEl.hidden = p.openRows.length > 0;
+    openRowsEl.hidden = deskRows.length === 0;
+    // A filtered desk with nothing left reads as the past-due empty state,
+    // though the tile normally clears itself first. The whole desk keeps its
+    // own copy.
+    openEmptyEl.textContent = state.pastDueFilter ? p.labels.pastDueEmpty : p.labels.emptyOpen;
+    openEmptyEl.hidden = deskRows.length > 0;
   }
 
   function render(raw, first) {
     var payload = normalizePayload(raw);
     state.payload = payload;
+    // Every fresh card is a fresh desk: a Done may have finished the last
+    // past-due row while the filter was on, so the filter settles before the
+    // chrome paints the tile it belongs to.
+    normalizePastDueFilter(payload);
     // Rows are rebuilt, so any old keyboard position is meaningless.
     state.focusIndex = -1;
     renderChrome(payload);
@@ -1741,7 +1874,8 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   // The clipboard text is the card, flattened: the header, the counts, the
   // comparison sentence, the seven-day strip, then both lists in their own
   // order. A filtered finished list narrows to what is on screen, and the chip
-  // says which day that is; the open list describes now and stays whole.
+  // says which day that is; the desk list narrows only when its own tile is
+  // pressed, and its heading says how many rows that left.
   function copyTextFor(p) {
     var s = p.labels;
     var lines = [];
@@ -1778,15 +1912,18 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     }
 
     lines.push("");
-    lines.push(s.openTitle);
-    if (p.openRows.length === 0) {
-      lines.push(s.emptyOpen);
+    // The desk heading carries the shown count while filtered, so the
+    // clipboard and the screen cannot disagree about which rows are on it.
+    lines.push(openSectionText(p));
+    var openShown = shownOpenRows(p);
+    if (openShown.length === 0) {
+      lines.push(state.pastDueFilter ? s.pastDueEmpty : s.emptyOpen);
     } else {
-      for (i = 0; i < p.openRows.length; i += 1) {
-        var chip = dueChipText(p.openRows[i], s);
+      for (i = 0; i < openShown.length; i += 1) {
+        var chip = dueChipText(openShown[i], s);
         lines.push(chip
-          ? "- " + p.openRows[i].title + " · " + chip
-          : "- " + p.openRows[i].title);
+          ? "- " + openShown[i].title + " · " + chip
+          : "- " + openShown[i].title);
       }
     }
 
@@ -1863,13 +2000,21 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   }
 
   // Show the outcome of one answer, if it carried one. A push that changed
-  // nothing and a Done on a row that was already finished carry no outcome,
-  // so they leave no strip: silence is the honest answer for a no-op.
+  // nothing and a Done on a row that was already finished carry no outcome, so
+  // they leave no strip: silence is the honest answer for a no-op. A refusal
+  // is not a no-op from the page's side — the gesture was denied, not ignored.
   function showOutcome(payload) {
     // The strip copies the card's own label table, which `render` has just
     // normalized: a payload from an older main may carry none of these keys,
     // and the fallback table is what keeps the strip speaking.
     var labels = state.payload ? state.payload.labels : FALLBACK_LABELS;
+    // A refused Done wrote nothing, so it has no Undo; it still answers, or
+    // the press would look like it never registered.
+    var refused = payload.refused && typeof payload.refused === "object" ? payload.refused : null;
+    if (refused && refused.reason === "repeat") {
+      showActionStrip(labels.doneRefused, false);
+      return;
+    }
     var push = payload.push && typeof payload.push === "object" ? payload.push : null;
     // The em dash only separates a success from its Undo; a failure line
     // stands alone, as it always has.
@@ -1985,9 +2130,12 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
       // A newer request has superseded this one; its answer is stale.
       if (seq !== state.loadSeq) return;
       // A day belongs to exactly one week, so a filter cannot survive a week
-      // change (including a stale answer landing after a newer one). Neither
-      // can a push result: it described a row on the week being left.
+      // change (including a stale answer landing after a newer one). The desk
+      // filter is about "now", not the reviewed week, but its tile and heading
+      // belong to the card being replaced; the fresh card starts unfolded.
+      // Neither can a push result: it described a row on the week being left.
       state.dayFilter = null;
+      state.pastDueFilter = false;
       hideActionStrip();
       render(payload, false);
     }).catch(function () { /* fail open: the current week stays */ });
@@ -2033,6 +2181,9 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   });
 
   copyBtn.addEventListener("click", copyCard);
+  // The tile is outside the body's delegated click path (it sits above the
+  // lists, in the header strip), so it owns its own listener.
+  statOverdue.addEventListener("click", togglePastDueFilter);
   actionUndoBtn.addEventListener("click", undoAction);
   openTasksBtn.addEventListener("click", openTasks);
   closeBtn.addEventListener("click", closePanel);
@@ -2070,7 +2221,13 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     if (event.key === "Escape") {
       event.preventDefault();
       // A filter clears before the card closes, the same way the notice log's
-      // search field clears first. Without a filter, Escape closes normally.
+      // search field clears first. The desk filter peels first, then the day
+      // filter, then the card: the more recently opened door closes first.
+      if (state.pastDueFilter) {
+        state.pastDueFilter = false;
+        applyPastDueUi();
+        return;
+      }
       if (state.dayFilter) {
         clearDayFilter();
         return;
@@ -2080,13 +2237,16 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     }
     if (event.ctrlKey || event.metaKey || event.altKey) return;
 
-    // Enter/Space on a focused day column must behave like a click even for a
-    // synthetic keydown (a real browser does this natively; isolated test
-    // harnesses do not). The columns are real buttons, so Tab reaches them.
+    // Enter/Space on a focused day column or the Past-due tile must behave like a
+    // click even for a synthetic keydown (a real browser does this natively;
+    // isolated test harnesses do not). Both are real buttons, so Tab reaches
+    // them, and handling them here never interferes with ←/→ below: only these
+    // two keys are consumed.
     if (event.key === "Enter" || event.key === " " || event.key === "Spacebar") {
       var focused = document.activeElement;
       if (focused && focused.tagName === "BUTTON" &&
-          focused.classList && focused.classList.contains("day-col")) {
+          focused.classList &&
+          (focused.classList.contains("day-col") || focused.classList.contains("stat-btn"))) {
         event.preventDefault();
         if (!event.repeat) focused.click();
         return;

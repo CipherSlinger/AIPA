@@ -45,7 +45,10 @@ html, body {
   --ui-font: "Cascadia Code", "SF Mono", ui-monospace, "Segoe UI", sans-serif;
 }
 
-.panel[data-theme="clawd"] {
+/* The due chooser lives outside the panel, so it carries the skin's tokens on
+   its own attribute rather than inheriting them from `.panel`. */
+.panel[data-theme="clawd"],
+.due-menu[data-theme="clawd"] {
   --panel-bg-a: #ffffff;
   --panel-bg-b: #ffffff;
   --text: #18181b;
@@ -66,7 +69,8 @@ html, body {
 }
 
 @media (prefers-color-scheme: dark) {
-  .panel[data-theme="clawd"] {
+  .panel[data-theme="clawd"],
+  .due-menu[data-theme="clawd"] {
     --panel-bg-a: #18181b;
     --panel-bg-b: #18181b;
     --text: #f4f4f5;
@@ -580,6 +584,10 @@ body { padding: 8px; }
   color: var(--muted);
 }
 .meta .due.due-warn { color: var(--k-needs); }
+/* An undated row's marker is the quiet way in, not a fact to read: it sits
+   back at the muted tone so a desk of undated work does not chant "no due
+   day". Its hover/focus still brightens like every other pressable word. */
+.meta .due.due-none { opacity: 0.62; }
 .panel[data-theme="clawd"] .meta .due { letter-spacing: 0.04em; }
 /* On a row due today or already late the due word is also the row's third
    action: pressing it moves the day to tomorrow. A future day stays a plain
@@ -618,6 +626,98 @@ body { padding: 8px; }
 .meta .due.defer:focus-visible {
   outline: 1px solid currentColor;
   outline-offset: 1px;
+}
+
+/* ── Due chooser ───────────────────────────────────────────────────────────── */
+/* One popover for the whole card, created once and placed beside whichever
+   marker was pressed. It lives outside `.panel` because the panel clips its
+   overflow and filters its own shadow; a fixed child there would be cropped,
+   and its coordinates would resolve against the panel instead of the window.
+   The look is the card's own: same hairline, background and type, cut corners
+   on SAO and a rounded rectangle on Clawd. Its only motion is the same 160 ms
+   opacity fade the Undo line uses. */
+.due-menu {
+  position: fixed;
+  z-index: 20;
+  min-width: 148px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  /* A solid layer under the skin's translucent gradient: this box floats over
+     rows, and the card's alpha would otherwise let their words read through. */
+  background:
+    linear-gradient(180deg, var(--panel-bg-a), var(--panel-bg-b)),
+    #07100d;
+  /* A clip-path crops a box-shadow, so the lift is a filter, like the panel's. */
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.38));
+  color: var(--text);
+  font-family: var(--ui-font);
+  text-shadow: 0 0 12px rgba(63, 224, 200, 0.10);
+  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
+  animation: dueMenuIn 160ms linear;
+}
+.due-menu[data-theme="clawd"] {
+  border-radius: 10px;
+  clip-path: none;
+  filter: none;
+  box-shadow: var(--shadow);
+  text-shadow: none;
+}
+@keyframes dueMenuIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* One answer per line, with the current one ticked. The tick's slot is always
+   reserved, so the four labels line up and a mark never shifts the text. */
+.due-option {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  outline: none;
+}
+.due-menu[data-theme="sao"] .due-option { text-transform: uppercase; }
+.due-menu[data-theme="clawd"] .due-option {
+  padding: 5px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.due-option:hover,
+.due-option.is-active { background: var(--hover); }
+.due-option:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+.due-tick {
+  flex: none;
+  width: 10px;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--accent);
+  opacity: 0;
+}
+.due-option.is-current .due-tick { opacity: 1; }
+.due-option.is-current .due-option-text { color: var(--accent); }
+.due-option-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 /* Why a needs-you task is waiting: one dim line, same ellipsis discipline as
    the title and meta, so a long engine message never grows the card. */
@@ -955,9 +1055,10 @@ body { padding: 8px; }
 @media (prefers-reduced-motion: reduce) {
   .panel { transition: none; }
   .scan { animation: none; }
-  /* The Undo line's only motion is its opacity fade; with reduced motion even
-     that goes, leaving a plain appearance. */
-  .undo { animation: none; }
+  /* The Undo line's and the due chooser's only motion is an opacity fade; with
+     reduced motion even that goes, leaving a plain appearance. */
+  .undo,
+  .due-menu { animation: none; }
   .row,
   .close,
   .filter,
@@ -1036,6 +1137,11 @@ body { padding: 8px; }
     </span>
   </footer>
 </div>
+<!-- The due chooser: one popover for the whole card, outside the panel so its
+     clip-path and overflow cannot crop it. It is filled and moved to the
+     pressed row's marker by task-brief.js, and its answers speak the payload's
+     language. -->
+<div class="due-menu" id="dueMenu" role="menu" hidden></div>
 <script src="task-brief.js"></script>
 </body>
 </html>

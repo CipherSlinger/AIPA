@@ -37,6 +37,7 @@
   var captureInput = document.getElementById("captureInput");
   var newTaskBtn = document.getElementById("newTaskBtn");
   var newTaskLabel = document.getElementById("newTaskLabel");
+  var dueMenuEl = document.getElementById("dueMenu");
 
   var STATUSES = ["needs_you", "in_progress", "assigned", "ready", "inbox"];
   // How many rows the number chords name. `1`–`4` have always meant the first
@@ -93,6 +94,18 @@
     deferFailed: "Could not move the due day. Try again.",
     deferLine: "Due tomorrow · {name}",
     deferUndoFailed: "Could not put the due day back. Try again.",
+    // The due marker's chooser. The marker names the control; the options are
+    // the same four answers the main app's due chip gives. `dueLine` carries
+    // `{day}` in the marker's own words, filled by the page.
+    dueMenuLabel: "Set the due day",
+    dueMenuToday: "Today",
+    dueMenuTomorrow: "Tomorrow",
+    dueNextWeek: "Next week",
+    dueClear: "No due day",
+    dueClearHint: "Remove the due day",
+    dueLine: "Due {day} · {name}",
+    dueClearedLine: "Due day cleared · {name}",
+    dueFailed: "Could not change the due day. Try again.",
     repeatLine: "Done · next {when} · {name}",
     repeatUndoFailed: "Could not put the task back on its old day. Try again.",
     undoLine: "Task done · {name}",
@@ -212,12 +225,17 @@
         var nextDueOn = typeof raw.nextDueOn === "string" && parseDueDay(raw.nextDueOn)
           ? raw.nextDueOn
           : "";
+        // A chooser defer says which line to draw: the day it wrote, or the
+        // fact that it cleared one. A legacy defer carries neither and keeps
+        // the old "tomorrow" line.
+        var cleared = kind === "defer" && raw.cleared === true;
         if (kind !== "repeat" || nextDueOn) {
           undo = {
             id: raw.id,
             title: typeof raw.title === "string" ? raw.title : "",
             kind: kind,
             nextDueOn: nextDueOn,
+            cleared: cleared,
             expiresAt: raw.expiresAt,
           };
         }
@@ -511,6 +529,16 @@
     return year + "-" + month + "-" + day;
   }
 
+  /**
+   * A local day `days` away from today, in the same shape. Built from local
+   * calendar fields rather than by adding hours, so a DST change can never
+   * turn "tomorrow" or "next week" into the wrong calendar day.
+   */
+  function offsetLocalDay(days) {
+    var now = new Date();
+    return todayLocalDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() + days));
+  }
+
   /** Parse a stored day into calendar components; null when it is not one. */
   function parseDueDay(value) {
     if (!value) return null;
@@ -555,34 +583,36 @@
   }
 
   /**
-   * The compact marker for one row, or null when the row carries no due day.
-   * Overdue and today are the warning states; tomorrow and later stay muted so
-   * a card with ordinary future work does not cry wolf.
+   * The compact marker for one row. Every open row draws one, because the
+   * marker is now the door to the due chooser; an undated row reads as the
+   * quiet "no due day" affordance rather than disappearing. Overdue and today
+   * are the warning states; tomorrow and later stay muted so a card with
+   * ordinary future work does not cry wolf.
    *
-   * `deferrable` says whether pressing the marker could change anything. The
-   * marker's action writes tomorrow, so only a row due today or already late is
-   * a deferral: tomorrow would be a no-op, and a later day would be pulled
-   * *earlier* — which is not what "move the due day to tomorrow" promises. Those
-   * rows keep a plain word: a fact about the row, not a control. "Tomorrow" here
-   * is the same local calendar comparison that chooses the word below — there is
-   * no second notion of the day anywhere on this page.
+   * "Tomorrow" here is the same local calendar comparison that chooses the
+   * word below — there is no second notion of the day anywhere on this page.
    */
   function dueMarker(task) {
-    if (!task.dueOn) return null;
+    if (!task.dueOn) {
+      return { text: labels().dueClear || FALLBACK_LABELS.dueClear, warn: false, none: true };
+    }
     var info = dueInfo(task.dueOn, todayLocalDay(new Date()));
-    if (!info) return null;
-    var deferrable = info.state === "overdue" || info.state === "today";
+    if (!info) {
+      // A stored value the page cannot read is drawn as the quiet absence
+      // instead of a date that was never really there.
+      return { text: labels().dueClear || FALLBACK_LABELS.dueClear, warn: false, none: true };
+    }
     if (info.state === "overdue") {
       var late = labels().dueLate || FALLBACK_LABELS.dueLate;
-      return { text: late.replace("{n}", String(-info.days)), warn: true, deferrable: deferrable };
+      return { text: late.replace("{n}", String(-info.days)), warn: true, none: false };
     }
     if (info.state === "today") {
-      return { text: labels().dueToday || FALLBACK_LABELS.dueToday, warn: true, deferrable: deferrable };
+      return { text: labels().dueToday || FALLBACK_LABELS.dueToday, warn: true, none: false };
     }
     if (info.state === "tomorrow") {
-      return { text: labels().dueTomorrow || FALLBACK_LABELS.dueTomorrow, warn: false, deferrable: deferrable };
+      return { text: labels().dueTomorrow || FALLBACK_LABELS.dueTomorrow, warn: false, none: false };
     }
-    return { text: shortDueDay(task.dueOn), warn: false, deferrable: deferrable };
+    return { text: shortDueDay(task.dueOn), warn: false, none: false };
   }
 
   /**
@@ -597,6 +627,175 @@
 
   function visibleRows() {
     return Array.prototype.slice.call(listEl.querySelectorAll(".row"));
+  }
+
+  // ── Due chooser ─────────────────────────────────────────────────────────────
+  // One popover for the whole card, opened from any row's due marker. It lives
+  // outside `.panel` because the panel clips its overflow and filters its own
+  // shadow; a child there would be cropped, and `position: fixed` inside it
+  // would resolve against the panel rather than the window. Main is the only
+  // writer: an answer closes the chooser and sends one `defer` with the day.
+  var dueMenu = { open: false, taskId: "", anchor: null, choices: [], options: [], index: 0 };
+  // True for the click that dismissed the chooser: that press must not also be
+  // read by whatever it landed on.
+  var swallowNextClick = false;
+
+  /** The four answers, in the order they are always drawn. */
+  function dueChoices() {
+    return [
+      { label: labels().dueMenuToday || FALLBACK_LABELS.dueMenuToday, dueOn: offsetLocalDay(0) },
+      { label: labels().dueMenuTomorrow || FALLBACK_LABELS.dueMenuTomorrow, dueOn: offsetLocalDay(1) },
+      { label: labels().dueNextWeek || FALLBACK_LABELS.dueNextWeek, dueOn: offsetLocalDay(7) },
+      {
+        label: labels().dueClear || FALLBACK_LABELS.dueClear,
+        dueOn: null,
+        hint: labels().dueClearHint || FALLBACK_LABELS.dueClearHint,
+      },
+    ];
+  }
+
+  /**
+   * Move the visible "active" mark to `dueMenu.index` and give that answer the
+   * keyboard. Focus is what makes Enter/Space choose without a second global
+   * chord, and the class keeps the mark visible when the menu was opened with
+   * a pointer rather than the keyboard.
+   */
+  function syncDueIndex() {
+    for (var i = 0; i < dueMenu.options.length; i++) {
+      dueMenu.options[i].classList.toggle("is-active", i === dueMenu.index);
+    }
+    var active = dueMenu.options[dueMenu.index];
+    if (!active) return;
+    try { active.focus({ preventScroll: true }); } catch (err) { active.focus(); }
+  }
+
+  /**
+   * Fill the popover for one task. The answer the row already carries is marked
+   * — including "No due day" on an undated row — and the active mark starts
+   * there so Enter repeats a known answer rather than guessing.
+   */
+  function buildDueOptions(task) {
+    dueMenuEl.textContent = "";
+    dueMenuEl.dataset.theme = state.payload.theme;
+    dueMenu.choices = dueChoices();
+    dueMenu.options = [];
+    var current = task.dueOn || null;
+    var currentIndex = 0;
+    for (var i = 0; i < dueMenu.choices.length; i++) {
+      var choice = dueMenu.choices[i];
+      var option = document.createElement("button");
+      option.type = "button";
+      option.className = "due-option";
+      option.setAttribute("role", "menuitemradio");
+      option.setAttribute("tabindex", "-1");
+      var isCurrent = choice.dueOn === current;
+      option.setAttribute("aria-checked", isCurrent ? "true" : "false");
+      option.classList.toggle("is-current", isCurrent);
+      if (choice.hint) option.title = choice.hint;
+      var tick = document.createElement("span");
+      tick.className = "due-tick";
+      tick.setAttribute("aria-hidden", "true");
+      tick.textContent = "✓";
+      var text = document.createElement("span");
+      text.className = "due-option-text";
+      text.textContent = choice.label;
+      option.appendChild(tick);
+      option.appendChild(text);
+      // A pointerdown on an answer must not pull focus out of the popover
+      // before its click has decided the day.
+      option.addEventListener("pointerdown", function (event) { event.preventDefault(); });
+      (function (index) {
+        option.addEventListener("click", function (event) {
+          event.stopPropagation();
+          chooseDue(index);
+        });
+      })(i);
+      dueMenuEl.appendChild(option);
+      dueMenu.options.push(option);
+      if (isCurrent) currentIndex = i;
+    }
+    dueMenu.index = currentIndex;
+  }
+
+  /**
+   * Place the popover beside the pressed marker, inside the card. A marker in
+   * the top row opens downward; one near the bottom flips above it. Both edges
+   * are then clamped to the card, so a long answer never pushes past its right
+   * side or off the window. Everything is measured, so a skin with different
+   * line boxes clamps correctly too.
+   */
+  function positionDueMenu() {
+    if (!dueMenu.open || !dueMenu.anchor || dueMenuEl.hidden) return;
+    var anchorRect = dueMenu.anchor.getBoundingClientRect();
+    var card = panel.getBoundingClientRect();
+    var menu = dueMenuEl.getBoundingClientRect();
+    var gap = 4;
+    var inset = 4;
+    var below = anchorRect.bottom + gap;
+    var above = anchorRect.top - gap - menu.height;
+    var top = below;
+    if (below + menu.height > card.bottom - inset && above >= card.top + inset) top = above;
+    top = Math.max(card.top + inset, Math.min(top, card.bottom - inset - menu.height));
+    // Right-aligned to the marker, then pulled back inside the card's edge.
+    var left = anchorRect.right - menu.width;
+    left = Math.max(card.left + inset, Math.min(left, card.right - inset - menu.width));
+    dueMenuEl.style.left = Math.round(left) + "px";
+    dueMenuEl.style.top = Math.round(top) + "px";
+  }
+
+  function openDueMenu(task, marker) {
+    if (dueMenu.open) closeDueMenu(false);
+    dueMenu.open = true;
+    dueMenu.taskId = task.id;
+    dueMenu.anchor = marker;
+    buildDueOptions(task);
+    dueMenuEl.hidden = false;
+    marker.setAttribute("aria-expanded", "true");
+    positionDueMenu();
+    syncDueIndex();
+  }
+
+  /**
+   * Open the chooser for this row, or put away the one already open on the same
+   * marker. Pressing a marker never changes the task by itself.
+   */
+  function toggleDueMenu(task, marker) {
+    if (dueMenu.open && dueMenu.taskId === task.id && dueMenu.anchor === marker) {
+      closeDueMenu(true);
+      return;
+    }
+    openDueMenu(task, marker);
+  }
+
+  /**
+   * Put the popover away. `restoreFocus` is for Escape, which returns the
+   * reader to the marker they came from; every other close (another row, a
+   * click-away, a repaint) leaves focus where the user put it.
+   */
+  function closeDueMenu(restoreFocus) {
+    if (!dueMenu.open) return;
+    var anchor = dueMenu.anchor;
+    dueMenu.open = false;
+    dueMenu.anchor = null;
+    dueMenu.taskId = "";
+    dueMenu.choices = [];
+    dueMenu.options = [];
+    dueMenu.index = 0;
+    dueMenuEl.hidden = true;
+    dueMenuEl.textContent = "";
+    if (!anchor) return;
+    anchor.setAttribute("aria-expanded", "false");
+    if (!restoreFocus) return;
+    try { anchor.focus({ preventScroll: true }); } catch (err) { anchor.focus(); }
+  }
+
+  /** Send the answer the user picked, then repaint from main's response. */
+  function chooseDue(index) {
+    var choice = dueMenu.choices[index];
+    var id = dueMenu.taskId;
+    closeDueMenu(false);
+    if (!choice || !id) return;
+    deferTask(id, choice.dueOn);
   }
 
   // ── Range indicator ────────────────────────────────────────────────────────
@@ -758,46 +957,35 @@
 
     // The due marker rides the existing meta line, so it adds no row line and
     // no height. It leads the line on purpose: a long department or material
-    // count may ellipsize, but the day the work is owed must stay legible. An
-    // undated row adds nothing at all, not even a separator.
+    // count may ellipsize, but the day the work is owed must stay legible.
+    // Every open row carries one, undated rows included, because the marker is
+    // the door to the due chooser. It stays a bare word — same text, colour and
+    // size as any other marker — so the card still reads as a brief at a
+    // glance; only the pointer cursor and a hover/focus underline say it is
+    // pressable. It sits inside the row, so its click must stop before the row
+    // opens the task, exactly like Start and Done do from their sibling slot.
     var marker = dueMarker(task);
-    if (marker) {
-      // On a row due today or already late the marker is the row's third action:
-      // pressing it pushes the day to tomorrow. It stays a bare word — same
-      // text, colour and size as any other marker — so the card still reads as a
-      // brief at a glance;
-      // only the pointer cursor and a hover/focus underline say it is pressable.
-      // It sits inside the row, so its click must stop before the row opens the
-      // task, exactly like Start and Done do from their sibling slot.
-      var due;
-      if (marker.deferrable) {
-        due = document.createElement("button");
-        due.type = "button";
-        due.className = marker.warn ? "due defer due-warn" : "due defer";
-        // The visible mark is a word, so the accessible name and tooltip carry
-        // the action's words, like Start and Done do.
-        due.setAttribute("aria-label", labels().deferLabel || FALLBACK_LABELS.deferLabel);
-        due.title = labels().deferHint || labels().deferLabel || FALLBACK_LABELS.deferHint;
-        due.addEventListener("click", function (event) {
-          event.stopPropagation();
-          deferTask(task.id);
-        });
-      } else {
-        // Due tomorrow or later: the write would land on the day the row already
-        // has, or pull a future deadline earlier. Either way this is the same
-        // plain word an undated row's meta line uses — a box with no role, no
-        // tab stop and no action attached. A control here would promise a
-        // change it cannot make.
-        due = document.createElement("span");
-        due.className = marker.warn ? "due due-warn" : "due";
-      }
-      due.textContent = marker.text;
-      meta.insertBefore(due, meta.firstChild);
-      var dueSep = document.createElement("span");
-      dueSep.className = "sep";
-      dueSep.textContent = "·";
-      meta.insertBefore(dueSep, due.nextSibling);
-    }
+    var due = document.createElement("button");
+    due.type = "button";
+    due.className = "due defer" +
+      (marker.warn ? " due-warn" : "") +
+      (marker.none ? " due-none" : "");
+    due.textContent = marker.text;
+    // The visible mark is a word, so the accessible name and tooltip carry the
+    // action's words, like Start and Done do.
+    due.setAttribute("aria-label", labels().dueMenuLabel || FALLBACK_LABELS.dueMenuLabel);
+    due.title = labels().dueMenuLabel || FALLBACK_LABELS.dueMenuLabel;
+    due.setAttribute("aria-haspopup", "menu");
+    due.setAttribute("aria-expanded", "false");
+    due.addEventListener("click", function (event) {
+      event.stopPropagation();
+      toggleDueMenu(task, due);
+    });
+    meta.insertBefore(due, meta.firstChild);
+    var dueSep = document.createElement("span");
+    dueSep.className = "sep";
+    dueSep.textContent = "·";
+    meta.insertBefore(dueSep, due.nextSibling);
 
     body.appendChild(statusline);
     body.appendChild(title);
@@ -913,12 +1101,21 @@
     }
 
     // One line, three verbs: a finish offers the old status back, a due-day
-    // move and a repeating finish both offer the old day. A repeat line also
-    // names the day the row moved to, in the marker's own words. All use the
+    // move and a repeating finish both offer the old day. A chooser move names
+    // the day it wrote — or says the day was cleared — and a repeat names the
+    // day it rolled to, all in the marker's own words. A defer without either
+    // field is the legacy one-word press and keeps its old line. All use the
     // same Undo control and the same clock.
     var line;
     if (offer.kind === "defer") {
-      line = labels().deferLine || FALLBACK_LABELS.deferLine;
+      if (offer.cleared) {
+        line = labels().dueClearedLine || FALLBACK_LABELS.dueClearedLine;
+      } else if (offer.nextDueOn) {
+        line = (labels().dueLine || FALLBACK_LABELS.dueLine)
+          .replace("{day}", dayWord(offer.nextDueOn));
+      } else {
+        line = labels().deferLine || FALLBACK_LABELS.deferLine;
+      }
     } else if (offer.kind === "repeat") {
       line = (labels().repeatLine || FALLBACK_LABELS.repeatLine)
         .replace("{when}", dayWord(offer.nextDueOn));
@@ -956,6 +1153,7 @@
     dateEl.textContent = todayLabel();
     closeBtn.setAttribute("aria-label", s.close);
     closeBtn.title = s.close;
+    dueMenuEl.setAttribute("aria-label", s.dueMenuLabel || FALLBACK_LABELS.dueMenuLabel);
     openTasksLabel.textContent = s.openTasks;
     syncCaptureChrome();
     // The card's aria-label is written by updateRangeFact(), which knows the
@@ -1006,6 +1204,10 @@
   }
 
   function render(payload, first) {
+    // Every row is about to be rebuilt, so the popover's anchor will not
+    // survive. A payload arriving while it is open — a refresh from main, the
+    // answer to another action — puts it away quietly.
+    closeDueMenu(false);
     state.payload = normalizePayload(payload);
     document.documentElement.lang = state.payload.lang;
 
@@ -1124,10 +1326,10 @@
 
   /**
    * Put focus back on the task that was just moved. The repaint rebuilds every
-   * row, so the pressed control is gone even though its row (possibly at a new
-   * position) is still here. The row now carries tomorrow, so its marker is
-   * plain text rather than a button; focus therefore falls back to the row
-   * itself, which keeps keyboard flow anchored on the same task.
+   * row, so the pressed marker is gone even though its row (possibly at a new
+   * position) is still here. The fresh row still carries a marker button — the
+   * chooser's door — so focus returns to it and keyboard flow stays anchored on
+   * the same task.
    *
    * `preventScroll` keeps the document still while focusing, but the row has
    * re-sorted under its new day: `scrollIntoView({ block: "nearest" })` brings
@@ -1225,10 +1427,14 @@
     });
   }
 
-  function deferTask(id) {
+  function deferTask(id, dueOn) {
     if (!id) return;
     pendingDeferFocus = id;
-    runAction({ type: "defer", id: id });
+    var action = { type: "defer", id: id };
+    // A chooser answer always carries its day (a string, or null to clear).
+    // Omitting the field is the legacy shape and means tomorrow in main.
+    if (dueOn !== undefined) action.dueOn = dueOn;
+    runAction(action);
   }
 
   function undoTask() {
@@ -1296,15 +1502,21 @@
     setFilterQuery("", true);
   });
 
-  // The wheel is native on the list; this only reveals the auto-hidden thumb
-  // while the user is actually moving it.
-  listEl.addEventListener("scroll", markScrolling);
+  // The wheel is native on the list; this reveals the auto-hidden thumb while
+  // the user is moving it, and puts the chooser away: its anchor row is moving
+  // under it, and a popover left pointing at a row that scrolled elsewhere
+  // would be lying about which task it edits.
+  listEl.addEventListener("scroll", function () {
+    markScrolling();
+    if (dueMenu.open) closeDueMenu(false);
+  });
 
   // Main sets the window height after each measurement. Whether the list
   // scrolls depends on that height, so the range line's "scroll" word is
   // refreshed here, not only at render time.
   window.addEventListener("resize", function () {
     updateRangeFact();
+    if (dueMenu.open) positionDueMenu();
     reportHeight();
   });
 
@@ -1316,6 +1528,42 @@
     // whatever row now sits at that index after the list repainted — holding
     // Alt+1 would finish task after task instead of one keypress.
     if (event.repeat) return;
+
+    // The chooser owns the keyboard while it is open. Its arrows walk the four
+    // answers, Home/End jump to the ends, Enter/Space choose, and Escape peels
+    // only the chooser and hands focus back to the marker. Every other key —
+    // bare and Alt/Shift digits, "/", "+", the list's arrows — is swallowed
+    // here, so a chord typed at the popover can never act on a row behind it.
+    // Tab is the one exception: it leaves the popover and moves focus on.
+    if (dueMenu.open) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeDueMenu(true);
+        return;
+      }
+      if (event.key === "ArrowDown" || event.key === "ArrowUp" ||
+          event.key === "Home" || event.key === "End") {
+        event.preventDefault();
+        var last = dueMenu.options.length - 1;
+        if (event.key === "Home") dueMenu.index = 0;
+        else if (event.key === "End") dueMenu.index = last;
+        else if (event.key === "ArrowDown") dueMenu.index = (dueMenu.index + 1) % (last + 1);
+        else dueMenu.index = (dueMenu.index - 1 + last + 1) % (last + 1);
+        syncDueIndex();
+        return;
+      }
+      if (event.key === "Enter" || event.key === " " || event.key === "Spacebar") {
+        event.preventDefault();
+        chooseDue(dueMenu.index);
+        return;
+      }
+      if (event.key === "Tab") {
+        closeDueMenu(false);
+        return;
+      }
+      event.preventDefault();
+      return;
+    }
 
     var mod = event.ctrlKey || event.metaKey;
 
@@ -1417,6 +1665,29 @@
     else if (event.shiftKey) startTask(row.dataset.id);
     else openTask(row.dataset.id);
   });
+
+  // A press outside the chooser puts it away, and that same press must not also
+  // act on what it landed on. Both the pointerdown and the click it would
+  // become are stopped in the capture phase, before the row, the marker, the
+  // card's click-away or the popover's own answers can see them. A fresh press
+  // with no popover open clears any dismissal flag left by a drag.
+  document.addEventListener("pointerdown", function (event) {
+    if (!dueMenu.open) {
+      swallowNextClick = false;
+      return;
+    }
+    if (dueMenuEl.contains(event.target)) return;
+    swallowNextClick = true;
+    event.preventDefault();
+    event.stopPropagation();
+    closeDueMenu(false);
+  }, true);
+  document.addEventListener("click", function (event) {
+    if (!swallowNextClick) return;
+    swallowNextClick = false;
+    event.preventDefault();
+    event.stopPropagation();
+  }, true);
 
   // Clicking the 8px transparent margin is a click-away, mirroring the notice
   // centre; the main process also closes on window blur.

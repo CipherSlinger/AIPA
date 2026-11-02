@@ -75,6 +75,11 @@ export interface ClawdWeekReviewOpenRow {
   overdue: boolean
   /** Whole days past due; 0 when not overdue. */
   overdueDays: number
+  /**
+   * Present only for a repeating task. Its Done is a refusal on this card
+   * (see `case 'done'`), so the page says so before the press.
+   */
+  repeat?: boolean
 }
 
 /** The outcome of a `push-tomorrow` press, so the page can report it. */
@@ -93,6 +98,16 @@ export interface ClawdWeekReviewDone {
   id: string
   title: string
   ok: boolean
+}
+
+/**
+ * Why a Done was refused without a write. A repeating task is the only case:
+ * finishing it here would roll its occurrence to the next day, which is the
+ * brief's answer, not this card's (see the guard in `case 'done'`).
+ */
+export interface ClawdWeekReviewRefusal {
+  id: string
+  reason: 'repeat'
 }
 
 /** One Undo the card is offering: either a moved due day or a finished task. */
@@ -168,6 +183,12 @@ export interface ClawdWeekReviewPayload {
    * nothing.
    */
   done?: ClawdWeekReviewDone
+  /**
+   * Present only on the answer to a `done` press that main deliberately
+   * declined: nothing was written, so there is no `done` and no Undo, but the
+   * page still needs to say why rather than look like it missed the press.
+   */
+  refused?: ClawdWeekReviewRefusal
 }
 
 /** The pet's screen rectangle, in Electron's DIP screen coordinates. */
@@ -439,6 +460,11 @@ function weekReviewLabels(difference: number): Record<string, string> {
     doneHint: petT('weekReviewDoneHint'),
     doneStrip: petT('weekReviewDoneStrip'),
     doneFailed: petT('weekReviewDoneFailed'),
+    doneRefused: petT('weekReviewDoneRefused'),
+    doneRefusedHint: petT('weekReviewDoneRefusedHint'),
+    pastDueFilter: petT('weekReviewPastDueFilter'),
+    pastDueFilterHint: petT('weekReviewPastDueFilterHint'),
+    pastDueEmpty: petT('weekReviewPastDueEmpty'),
   }
 }
 
@@ -493,6 +519,7 @@ function buildPayload(weekOffset = currentWeekOffset): ClawdWeekReviewPayload {
       ...(row.dueOn ? { dueLabel: dueLabelFor(row.dueOn, today, labels, lang) } : {}),
       overdue: row.overdue,
       overdueDays: row.overdueDays,
+      ...(row.repeat ? { repeat: true } : {}),
     })),
     labels,
   }
@@ -1036,7 +1063,10 @@ function handleAction(action: unknown): ClawdWeekReviewPayload {
       // card does nothing rather than something the user did not mean.
       if (task.repeat) {
         log.debug(`Week review left repeating task ${task.id} alone: Done does not finish a repeat here`)
-        return buildPayload()
+        // The answer still says so: a press that visibly did nothing reads as
+        // a missed click. No `done`, so the strip carries no Undo — nothing
+        // was written to reverse.
+        return { ...buildPayload(), refused: { id: task.id, reason: 'repeat' } }
       }
 
       // Captured before the write: this is the exact status the task had when
