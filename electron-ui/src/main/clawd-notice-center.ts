@@ -405,17 +405,19 @@ function reveal(): void {
  * `restoreFocus` is false on click-away and on "open a session": in both cases
  * the user has already chosen where focus belongs.
  *
- * `markRead` is set only on the two closes the user asked for. The visit is the
- * read: leaving by the close button or Escape means every row has been on
- * screen, so the unread badge and the UNREAD filter should both clear. It is
+ * `markRead` is set only on the two closes the user asked for. `seenIds` is the
+ * set the page actually painted: with a query or a kind chip active, the rows
+ * the filter hid were never on screen, so closing must leave them unread.
+ * Without ids the old "the visit is the read" behaviour stays for callers that
+ * cannot report a paint (nothing in the shipped page takes that path). It is
  * deliberately not set on click-away (the user may have only glanced), on
  * shutdown, on a failed load, or on replacement — none of those mean "seen".
  * Marking here rather than on load keeps the unread dots meaningful *during*
  * the visit, so the UNREAD filter the user just clicked still filters.
  */
-function destroyWindow(restoreFocus: boolean, markRead = false): void {
+function destroyWindow(restoreFocus: boolean, markRead = false, seenIds?: string[]): void {
   if (markRead) {
-    try { markClawdNoticesRead() } catch (err) { log.warn('Could not mark notices read:', err) }
+    try { markClawdNoticesRead(seenIds) } catch (err) { log.warn('Could not mark notices read:', err) }
   }
   clearRevealTimer()
   blurArmedAt = 0
@@ -917,8 +919,16 @@ function ensureIpc(): void {
     // The renderer says whether this close means "seen": the × and Escape do,
     // the transparent margin around the panel does not — that is a click-away,
     // and a click just outside the window blurs without marking anything.
-    const opts = (options && typeof options === 'object' ? options : {}) as { markRead?: unknown }
-    destroyWindow(true, opts.markRead !== false)
+    // A marking close also names the rows it painted; an absent list keeps the
+    // legacy "mark all" answer for an older page.
+    const opts = (options && typeof options === 'object' ? options : {}) as {
+      markRead?: unknown
+      seen?: unknown
+    }
+    const seen = Array.isArray(opts.seen)
+      ? opts.seen.filter((id): id is string => typeof id === 'string' && !!id)
+      : undefined
+    destroyWindow(true, opts.markRead !== false, seen)
   })
 }
 

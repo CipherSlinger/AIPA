@@ -131,6 +131,12 @@
     expandedId: null,
     /** Per-notice transient copy/save feedback, keyed by notice id. */
     rowStatus: {},
+    /**
+     * The ids the last render actually painted. A close reports these, not the
+     * store's full list: a row hidden by the query or a kind chip was never
+     * seen and must stay unread.
+     */
+    paintedIds: [],
     booted: false,
     closing: false,
   };
@@ -811,6 +817,9 @@
 
   function renderList(notices) {
     listEl.textContent = "";
+    // What this pass paints is what the reader can see. `closePanel` reports
+    // exactly this set, so a row the filter hid keeps its unread dot.
+    state.paintedIds = notices.map(function (n) { return n.id; });
     var stillSelected = notices.some(function (n) { return n.id === state.selectedId; });
     if (!stillSelected) state.selectedId = null;
     // Tally the filtered rows per calendar day first: the header shows that
@@ -1017,13 +1026,20 @@
   // Escape). The transparent margin is a click-away like any other: the main
   // process leaves the unread state alone on blur, so the 8 px ring inside the
   // window must not mean something different from a click just outside it.
+  // A marking close names the rows it painted; a filtered-out row was never on
+  // screen and stays unread, which is the point of keeping the unread dot.
   function closePanel(markRead) {
     state.closing = true;
     if (heightFrame) {
       cancelAnimationFrame(heightFrame);
       heightFrame = null;
     }
-    if (api && api.close) { api.close(markRead === false ? { markRead: false } : undefined); return; }
+    if (api && api.close) {
+      api.close(markRead === false
+        ? { markRead: false }
+        : { markRead: true, seen: state.paintedIds.slice() });
+      return;
+    }
     window.close();
   }
 

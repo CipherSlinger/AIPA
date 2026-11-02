@@ -28,6 +28,13 @@ const log = createLogger('clawd-notifications')
 const STORE_VERSION = 1
 export const MAX_CLAWD_NOTICES = 50
 const MAX_TEXT = 600
+/**
+ * A notice body is not the same kind of text as its detail/meta. The bubble
+ * clips the body to fit a card, but the log's Copy must return what the engine
+ * said; the quick-command reply alone can run past the old 600. This is a
+ * runaway guard for a 50-record file, not a display width.
+ */
+const MAX_MESSAGE_TEXT = 20_000
 const DEDUPE_WINDOW_MS = 3_000
 
 /**
@@ -59,6 +66,12 @@ export interface ClawdNoticeRecord {
   pluginId?: string
   /** Action id the user chose, when they chose one. */
   action?: string
+  /**
+   * False when the notice could not be displayed — an actionable card already
+   * owned the bubble. The record still exists and counts as unread; absence
+   * means it was spoken (or the field predates this marker).
+   */
+  spoken?: boolean
 }
 
 interface StoreShape {
@@ -111,13 +124,14 @@ function normalizeRecord(value: unknown): ClawdNoticeRecord | null {
     kind: cleanText(raw.kind, 40) || 'system',
     ...(sourceKind ? { sourceKind } : {}),
     title,
-    message: cleanText(raw.message),
+    message: cleanText(raw.message, MAX_MESSAGE_TEXT),
     at,
     ...(readAt ? { readAt } : {}),
     ...(detail ? { detail } : {}),
     ...(sessionId ? { sessionId } : {}),
     ...(pluginId ? { pluginId } : {}),
     ...(action ? { action } : {}),
+    ...(raw.spoken === false ? { spoken: false } : {}),
   }
 }
 
@@ -162,6 +176,8 @@ export interface ClawdNoticeInput {
   detail?: string
   sessionId?: string | null
   pluginId?: string | null
+  /** False records a notice the bubble could not show (an actionable card was up). */
+  spoken?: boolean
   at?: number
 }
 
@@ -176,7 +192,8 @@ export function recordClawdNotice(input: ClawdNoticeInput): ClawdNoticeRecord | 
   const at = typeof input.at === 'number' && Number.isFinite(input.at) ? input.at : Date.now()
   const kind = cleanText(input.kind, 40) || 'system'
   const sourceKind = cleanText(input.sourceKind, 40)
-  const message = cleanText(input.message)
+  const message = cleanText(input.message, MAX_MESSAGE_TEXT)
+  const spoken = input.spoken === false ? false : undefined
 
   const file = storePath()
   if (!file) return null
@@ -190,6 +207,10 @@ export function recordClawdNotice(input: ClawdNoticeInput): ClawdNoticeRecord | 
     at - newest.at <= DEDUPE_WINDOW_MS
   ) {
     newest.at = at
+    // The latest raise decides whether anyone saw it: a blocked repeat stays
+    // marked, and a repeat that was actually shown stops claiming it was not.
+    if (spoken === false) newest.spoken = false
+    else delete newest.spoken
     writeStore(store, file)
     return newest
   }
@@ -207,6 +228,7 @@ export function recordClawdNotice(input: ClawdNoticeInput): ClawdNoticeRecord | 
     ...(detail ? { detail } : {}),
     ...(sessionId ? { sessionId } : {}),
     ...(pluginId ? { pluginId } : {}),
+    ...(spoken === false ? { spoken: false } : {}),
   }
   store.notices = [record, ...store.notices].slice(0, MAX_CLAWD_NOTICES)
   writeStore(store, file)

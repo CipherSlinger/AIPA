@@ -10,7 +10,8 @@ contextBridge.exposeInMainWorld("noticeCenterAPI", {
   copy: (id) => ipcRenderer.invoke("notice-center:copy", id),
   onUpdate: (cb) => ipcRenderer.on("notice-center:update", (_event, payload) => cb(payload)),
   // `options.markRead === false` is the click-away margin: it closes the panel
-  // without claiming the user read the list.
+  // without claiming the user read the list. A marking close also sends
+  // `seen`, the ids the page actually painted, so filtered-out rows stay unread.
   close: (options) => ipcRenderer.send("notice-center:close", options),
   reportHeight: (height) => ipcRenderer.send("notice-center:report-height", height),
 });

@@ -681,7 +681,18 @@ const countdownEl = document.getElementById("countdown");
 
 let countdownFrame = null;
 let countdownStart = 0;
+// The rail is a picture of the main process's dismissal clock. The owner's
+// clock is not ours to stop, so a pause only stops the paint: the fraction
+// resumes from the same start time, and a card that was nearly gone does not
+// gain a fresh life by being crossed.
+let countdownMs = 0;
+let countdownPaused = false;
+let countdownFrozen = false;
 let heightFrame = null;
+// A focusable:false window only sees the pointer; whether it is on the card is
+// the whole input state this page has. It is reported to the main process,
+// which holds its dismissal until the pointer leaves.
+let hovering = false;
 // One card accepts one answer. Disabling the controls stops the usual second
 // press, but a click already queued behind the first one would still fire; the
 // page reports its choice once and then ignores the rest until a new card.
@@ -724,8 +735,20 @@ function eyebrowText(kind, lang) {
   return dict[kind] || "";
 }
 
+// This page carries its own words for the one control it adds itself. The
+// updater's dictionaries live in i18n.js and are not loaded here; these match
+// the `dismiss` entry the rest of the pet already uses.
+const DISMISS_STRINGS = { en: "Dismiss", zh: "关闭", ko: "닫기" };
+
+function dismissText(lang) {
+  return DISMISS_STRINGS[lang] || DISMISS_STRINGS.en;
+}
+
 function clearTimers() {
   if (countdownFrame) { cancelAnimationFrame(countdownFrame); countdownFrame = null; }
+  countdownMs = 0;
+  countdownPaused = false;
+  countdownFrozen = false;
 }
 
 function renderIcon(kind) {
@@ -802,22 +825,56 @@ function renderProgress(progress) {
   progressFillEl.style.width = progress.indeterminate ? "100%" : `${pct}%`;
 }
 
+function tickCountdown(now) {
+  countdownFrame = null;
+  if (!countdownMs || countdownPaused) return;
+  const t = Math.min(1, Math.max(0, now - countdownStart) / countdownMs);
+  countdownEl.style.transform = `scaleX(${1 - t})`;
+  if (t < 1) countdownFrame = requestAnimationFrame(tickCountdown);
+}
+
 function startCountdown(ms) {
   if (!ms || ms <= 0) return;
   countdownEl.style.display = "block";
-  const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (reduced) {
+  countdownMs = ms;
+  countdownPaused = false;
+  countdownFrozen = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  if (countdownFrozen) {
     // The rail still says "this closes on its own"; it just does not move.
     countdownEl.style.transform = "scaleX(0.55)";
     return;
   }
   countdownStart = performance.now();
-  const tick = (now) => {
-    const t = Math.min(1, (now - countdownStart) / ms);
-    countdownEl.style.transform = `scaleX(${1 - t})`;
-    if (t < 1) countdownFrame = requestAnimationFrame(tick);
-  };
-  countdownFrame = requestAnimationFrame(tick);
+  countdownFrame = requestAnimationFrame(tickCountdown);
+}
+
+function pauseCountdown() {
+  // A rail that has already reached zero has nothing left to hold, and the
+  // reduced-motion rail was never moving.
+  if (!countdownMs || countdownPaused || countdownFrozen) return;
+  countdownPaused = true;
+  if (countdownFrame) { cancelAnimationFrame(countdownFrame); countdownFrame = null; }
+}
+
+function resumeCountdown() {
+  if (!countdownMs || !countdownPaused || countdownFrozen) return;
+  countdownPaused = false;
+  countdownFrame = requestAnimationFrame(tickCountdown);
+}
+
+/**
+ * Tell the main process whether the pointer rests on the card. The hide timer
+ * itself belongs to the owner of the card; this only reports the one input a
+ * non-focusable window receives.
+ */
+function setHovering(next) {
+  next = !!next;
+  if (next === hovering) return;
+  hovering = next;
+  if (next) pauseCountdown(); else resumeCountdown();
+  if (window.updateBubbleAPI && typeof window.updateBubbleAPI.hover === "function") {
+    window.updateBubbleAPI.hover(next);
+  }
 }
 
 // A small synthesized cue — no audio files, no licensing, and it fails silently
@@ -898,6 +955,22 @@ function answer(actionId) {
   window.updateBubbleAPI.choose(actionId);
 }
 
+/** One action-row button. The implicit Dismiss uses this same construction. */
+function addActionButton(action) {
+  const btn = document.createElement("button");
+  const variant = action.variant || "secondary";
+  btn.className = `btn btn-${variant}`;
+  btn.textContent = action.label;
+  if (action.hint) btn.title = action.hint;
+  btn.addEventListener("click", (event) => {
+    // The card body is clickable when it has a clickAction; without this the
+    // button's click bubbles and sends the card action too (Stop + open).
+    event.stopPropagation();
+    answer(action.id);
+  });
+  actionsEl.appendChild(btn);
+}
+
 function show(payload) {
   const mode = payload.mode || "checking";
   const lang = payload.lang || "en";
@@ -943,34 +1016,40 @@ function show(payload) {
   modePillEl.dataset.mode = mode;
   card.dataset.mode = mode;
 
+  const actions = payload.actions || [];
+  // A card that dismisses on a press but has no button saying so gets one
+  // quiet control; the whole-card press still works. A card with a real
+  // destination or its own buttons already offers an affordance, so it is
+  // left alone — one affordance, not two.
+  const implicitDismiss = !!kind && actions.length === 0
+    && (!payload.clickAction || payload.clickAction === "dismiss");
+  const cardAction = payload.clickAction || (implicitDismiss ? "dismiss" : "");
+
   // When the whole card is the action (attention), clicking anywhere on it
   // resolves the same promise an action button would.
-  if (payload.clickAction) {
+  if (cardAction) {
     card.classList.add("clickable");
-    card.onclick = () => answer(payload.clickAction);
+    card.onclick = () => answer(cardAction);
   } else {
     card.classList.remove("clickable");
     card.onclick = null;
   }
 
   actionsEl.innerHTML = "";
-  for (const action of payload.actions || []) {
-    const btn = document.createElement("button");
-    const variant = action.variant || "secondary";
-    btn.className = `btn btn-${variant}`;
-    btn.textContent = action.label;
-    if (action.hint) btn.title = action.hint;
-    btn.addEventListener("click", (event) => {
-      // The card body is clickable when it has a clickAction; without this the
-      // button's click bubbles and sends the card action too (Stop + open).
-      event.stopPropagation();
-      answer(action.id);
-    });
-    actionsEl.appendChild(btn);
+  for (const action of actions) addActionButton(action);
+  if (implicitDismiss) {
+    addActionButton({ id: "dismiss", label: dismissText(lang), variant: "secondary" });
   }
 
   card.classList.remove("hiding");
   card.classList.add("visible");
+  // A refresh can repaint the same card under a pointer that never left it;
+  // `mouseenter` will not fire again, so the position is reported explicitly.
+  hovering = card.matches(":hover");
+  if (hovering) pauseCountdown();
+  if (window.updateBubbleAPI && typeof window.updateBubbleAPI.hover === "function") {
+    window.updateBubbleAPI.hover(hovering);
+  }
   playCue(payload.sound);
   reportHeight();
 }
@@ -995,6 +1074,12 @@ if (typeof ResizeObserver === "function") {
   });
   observer.observe(card);
 }
+
+// The pointer is the only input this window accepts. Crossing the card's edge
+// is reported both ways; the main process holds a dismissal that expires while
+// the pointer is inside, and the rail freezes so the two clocks stay together.
+card.addEventListener("mouseenter", () => setHovering(true));
+card.addEventListener("mouseleave", () => setHovering(false));
 
 window.updateBubbleAPI.onShow(show);
 window.updateBubbleAPI.onHide(hide);

@@ -59,8 +59,6 @@ const isWin = process.platform === 'win32'
 const isLinux = process.platform === 'linux'
 const WIN_TOPMOST_LEVEL = 'pop-up-menu'
 const LINUX_WINDOW_TYPE = 'toolbar'
-/** The notice card is a summary, not a transcript. */
-const REPLY_LIMIT = 700
 
 export interface QuickCommandLabels {
   ask: string
@@ -155,10 +153,8 @@ function formatDuration(ms: number): string {
   return `${Math.floor(whole / 60)}m ${String(whole % 60).padStart(2, '0')}s`
 }
 
-function clipReply(text: string): string {
-  const trimmed = text.trim()
-  if (trimmed.length <= REPLY_LIMIT) return trimmed
-  return `${trimmed.slice(0, REPLY_LIMIT).trimEnd()}…`
+function trimReply(text: string): string {
+  return text.trim()
 }
 
 function sanitizeHistoryText(value: unknown): string {
@@ -641,7 +637,7 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
         {
           kind: 'quest',
           title: labels.replyTitle,
-          message: clipReply(text) || labels.noReply,
+          message: trimReply(text) || labels.noReply,
           pill: labels.replyPill,
           mode: 'done',
           lang: ctx.getLang(),
@@ -668,7 +664,7 @@ export default function initQuickCommand(ctx: QuickCommandContext) {
         {
           kind: 'error',
           title: labels.errorTitle,
-          message: clipReply(raw) || labels.turnFailed,
+          message: trimReply(raw) || labels.turnFailed,
           pill: labels.errorPill,
           mode: 'error',
           lang: ctx.getLang(),

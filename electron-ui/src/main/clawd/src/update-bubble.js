@@ -44,7 +44,13 @@ function estimateHeight(payload) {
     const wrappedLines = Math.ceil(detailText.length / 72);
     height += Math.min(220, 32 + detailLines * 16 + wrappedLines * 6);
   }
-  if (payload && Array.isArray(payload.actions) && payload.actions.length) height += 44;
+  // The page adds one quiet Dismiss row to an attention card that has no
+  // click action and no buttons of its own. Counting it here keeps the first
+  // paint from opening the window one row short of the measured card.
+  const actions = payload && Array.isArray(payload.actions) ? payload.actions.length : 0;
+  const implicitDismiss = !!payload && !!payload.kind && actions === 0
+    && (!payload.clickAction || payload.clickAction === "dismiss");
+  if (actions || implicitDismiss) height += 44;
   return height;
 }
 
@@ -110,6 +116,11 @@ module.exports = function initUpdateBubble(ctx) {
   // window, the pending promise and the entrance transition are all reused.
   let activeKey = null;
   let activeHandle = null;
+  // The pointer is the only input a focusable:false card accepts. While it
+  // rests on the card, a dismissal the owner's clock has already reached is
+  // held here and released when the pointer leaves.
+  let hovering = false;
+  let pendingHide = false;
 
   function getPermissionStackHeight() {
     const pending = typeof ctx.getPendingPermissions === "function" ? ctx.getPendingPermissions() : [];
@@ -148,6 +159,15 @@ module.exports = function initUpdateBubble(ctx) {
     if (isWin) bubble.setAlwaysOnTop(true, WIN_TOPMOST_LEVEL);
 
     bubble.loadFile(path.join(__dirname, "update-bubble.html"));
+
+    // The card reports the pointer crossing its edge. Keep it local to this
+    // window: the module is instantiated twice (updater + attention) and a
+    // shared ipcMain listener would let each instance see the other's card.
+    bubble.webContents.on("ipc-message", (_event, channel, value) => {
+      if (channel !== "update-bubble-hover" || !bubble || bubble.isDestroyed()) return;
+      setHovering(!!value);
+    });
+
     bubble.on("closed", () => {
       bubble = null;
       measuredHeight = 0;
@@ -227,6 +247,10 @@ module.exports = function initUpdateBubble(ctx) {
     const inPlace = !!key && activeKey === key && bubble && !bubble.isDestroyed();
 
     activePayload = payload;
+    // A new card starts with its own question and its own pointer state; the
+    // page reports the pointer's current position again after it paints.
+    pendingHide = false;
+    hovering = false;
     if (hideTimer) {
       clearTimeout(hideTimer);
       hideTimer = null;
@@ -285,7 +309,18 @@ module.exports = function initUpdateBubble(ctx) {
     try { ctx.onBubbleHidden(); } catch { /* owner gone */ }
   }
 
-  function hideUpdateBubble() {
+  /**
+   * Whether a dismissal that arrives now may be held for the pointer. Only a
+   * card that is still visible, not already leaving, and carrying a live
+   * countdown has a clock worth holding; the others keep hiding at once.
+   */
+  function canHoldHide(force) {
+    if (force || !hovering || hideTimer) return false;
+    if (bubble && !bubble.isDestroyed() && !bubble.isVisible()) return false;
+    return !!(activePayload && activePayload.countdownMs > 0);
+  }
+
+  function hideNow() {
     if (!bubble || bubble.isDestroyed()) return;
     // The card is leaving the screen; the next payload starts a fresh card
     // (and a fresh handle) even if it carries the same key.
@@ -294,9 +329,38 @@ module.exports = function initUpdateBubble(ctx) {
     bubble.webContents.send("update-bubble-hide");
     if (hideTimer) clearTimeout(hideTimer);
     hideTimer = setTimeout(() => {
+      hideTimer = null;
       if (bubble && !bubble.isDestroyed()) bubble.hide();
     }, 250);
     notifyHidden();
+    // The hide has begun, so anyone awaiting this card's answer no longer
+    // waits on a card that will never be answered. The result is null, the
+    // same shape a superseded card already resolves with.
+    settlePrevious(null);
+  }
+
+  /**
+   * The pointer moved onto or off the card. A hide that expired while the
+   * pointer was inside is held until it leaves; the wait is the remainder of
+   * the owner's clock, never a fresh interval.
+   */
+  function setHovering(next) {
+    hovering = next;
+    if (hovering || !pendingHide) return;
+    pendingHide = false;
+    hideNow();
+  }
+
+  function hideUpdateBubble(options) {
+    // An explicit answer or a teardown is not a TTL running out; it must not
+    // wait for the pointer. `options === true` is the internal force marker.
+    const force = options === true;
+    if (canHoldHide(force)) {
+      pendingHide = true;
+      return;
+    }
+    pendingHide = false;
+    hideNow();
   }
 
   function resolveCurrentAction(actionId) {
@@ -309,8 +373,10 @@ module.exports = function initUpdateBubble(ctx) {
   function handleUpdateBubbleAction(event, actionId) {
     const senderWin = BrowserWindow.fromWebContents(event.sender);
     if (!bubble || senderWin !== bubble) return;
-    hideUpdateBubble();
+    // Settle the answer before the hide: a hide with no answer resolves null,
+    // and the action is the one thing this card was waiting for.
     resolveCurrentAction(actionId);
+    hideUpdateBubble(true);
   }
 
   function handleUpdateBubbleHeight(event, height) {
@@ -324,6 +390,8 @@ module.exports = function initUpdateBubble(ctx) {
 
   function cleanup() {
     if (hideTimer) clearTimeout(hideTimer);
+    pendingHide = false;
+    hovering = false;
     settlePrevious(activePayload && activePayload.defaultAction != null ? activePayload.defaultAction : null);
     if (bubble && !bubble.isDestroyed()) bubble.destroy();
     bubble = null;

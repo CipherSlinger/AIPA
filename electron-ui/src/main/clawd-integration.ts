@@ -1204,11 +1204,55 @@ function clampNoticeTtl(ttlMs: number): number {
 }
 
 /**
+ * The bubble card is a summary, not a transcript: it paints one short line.
+ * Clipping belongs here, on the way to the card, because the notice history
+ * must keep what the engine actually said — the log's Copy is the full text.
+ */
+const BUBBLE_MESSAGE_LIMIT = 700
+
+function clipForBubble(text: string): string {
+  const trimmed = text.trim()
+  if (trimmed.length <= BUBBLE_MESSAGE_LIMIT) return trimmed
+  return `${trimmed.slice(0, BUBBLE_MESSAGE_LIMIT).trimEnd()}…`
+}
+
+/**
+ * Write a notice to the history and let an open log repaint. `spoken` is false
+ * when an actionable card kept the notice off the screen: the bubble is
+ * untouched, but the record still exists and stays unread. Never throws — the
+ * record is worth less than the card that is already on its way.
+ */
+function recordNoticeForHistory(payload: ClawdAttentionBubblePayload, spoken = true): void {
+  try {
+    recordClawdNotice({
+      kind: payload.kind || 'system',
+      title: payload.title,
+      message: payload.message,
+      detail: payload.meta?.map(row => `${row.label}: ${row.value}`).join('\n'),
+      // Optional: a notice that points at a conversation (the quick command
+      // reply) stays openable from the log after its card has faded.
+      ...(payload.sessionId ? { sessionId: payload.sessionId } : {}),
+      ...(spoken ? {} : { spoken: false }),
+    })
+    // An open log should grow as the pet speaks, not only when reopened.
+    const { refreshClawdNoticeCenter } = require('./clawd-notice-center') as {
+      refreshClawdNoticeCenter: () => void
+    }
+    refreshClawdNoticeCenter()
+  } catch (err) {
+    log.warn('Could not record clawd notice:', err)
+  }
+}
+
+/**
  * Show a passive notice (boot greeting, finished turn, context warning).
  * Returns false when the pet cannot speak or an actionable bubble is already
  * on screen — a notice must never replace something the user still has to
- * answer. The card disappears on its own after `ttlMs`; clicking it still
- * resolves `clickAction`, so "Open" remains available while it is visible.
+ * answer. A notice blocked by that card is still written to the history
+ * (`spoken: false`), just not shown: vanishing from both places is the one
+ * outcome that leaves the user with no trace of what the pet wanted to say.
+ * The card disappears on its own after `ttlMs`; clicking it still resolves
+ * `clickAction`, so "Open" remains available while it is visible.
  */
 export function showClawdNotice(
   payload: ClawdAttentionBubblePayload,
@@ -1221,7 +1265,12 @@ export function showClawdNotice(
   // The live activity strip is not actionable, so a real notice may replace it.
   // So may another notice: two turns finishing 3 s apart should not produce one
   // pet card and one system toast. A real attention item must not be replaced.
-  if (isClawdAttentionActionable()) return false
+  // It does not swallow the notice either: a blocked notice is still recorded,
+  // with `spoken: false`, so the log can answer "what did the pet want to say?"
+  if (isClawdAttentionActionable()) {
+    recordNoticeForHistory(payload, false)
+    return false
+  }
   // A notice arriving while the pet is asleep would wake it for something the
   // user does not have to act on. Sleep and a timed silence are both explicit
   // "leave me alone". The exception is an answer the user just asked for by
@@ -1238,6 +1287,8 @@ export function showClawdNotice(
     let myTimer: NodeJS.Timeout | null = null
     void Promise.resolve(clawdInstance.showAttentionBubble({
       ...applyHudDefaults(payload),
+      // The record below keeps the full message; only the card is shortened.
+      message: clipForBubble(payload.message),
       // Clamped to the same window as the hide timer: an unclamped countdown
       // would keep draining after the card is gone, or finish long before it.
       countdownMs: payload.countdownMs != null ? Math.min(payload.countdownMs, ttl) : payload.countdownMs,
@@ -1258,22 +1309,7 @@ export function showClawdNotice(
       try { clawdInstance?.hideAttentionBubble() } catch { /* pet gone */ }
     }, ttl)
     noticeTimer = myTimer
-    recordClawdNotice({
-      kind: payload.kind || 'system',
-      title: payload.title,
-      message: payload.message,
-      detail: payload.meta?.map(row => `${row.label}: ${row.value}`).join('\n'),
-      // Optional: a notice that points at a conversation (the quick command
-      // reply) stays openable from the log after its card has faded.
-      ...(payload.sessionId ? { sessionId: payload.sessionId } : {}),
-    })
-    // An open log should grow as the pet speaks, not only when reopened.
-    try {
-      const { refreshClawdNoticeCenter } = require('./clawd-notice-center') as {
-        refreshClawdNoticeCenter: () => void
-      }
-      refreshClawdNoticeCenter()
-    } catch { /* the log is not part of this build */ }
+    recordNoticeForHistory(payload)
     return true
   } catch (err) {
     log.warn('showClawdNotice failed:', String(err))
