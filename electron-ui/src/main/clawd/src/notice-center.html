@@ -94,7 +94,8 @@ body { padding: 8px; }
 .filters,
 .search,
 .list,
-.empty { position: relative; z-index: 1; }
+.empty,
+.strip { position: relative; z-index: 1; }
 
 /* ── Title bar ────────────────────────────────────────────────────────────── */
 .head {
@@ -826,6 +827,24 @@ body { padding: 8px; }
   box-shadow: 0 0 10px color-mix(in srgb, var(--k) 24%, transparent);
 }
 
+/* Clear all is about the whole log, not one row, so its feedback is the same
+   row-status strip lifted under the list. It is the panel's only strip: a
+   later clear replaces the line rather than adding a second one. */
+.strip {
+  --k: var(--accent);
+  margin-top: 8px;
+  padding: 5px 8px;
+  border: 1px solid rgba(63, 224, 200, 0.32);
+  background: rgba(63, 224, 200, 0.07);
+}
+.strip[data-tone="ok"] { color: color-mix(in srgb, var(--accent) 78%, #dff7f3); }
+.strip[data-tone="error"] {
+  --k: #ff8a8a;
+  border-color: rgba(255, 138, 138, 0.34);
+  background: rgba(255, 138, 138, 0.08);
+}
+.strip .status-action { flex: none; }
+
 /* One accent per kind, matching update-bubble.js. */
 .row[data-kind="system"]        { --k: #3fe0c8; }
 .row[data-kind="info"]          { --k: #58a6ff; }
@@ -886,6 +905,10 @@ body { padding: 8px; }
   </div>
   <div class="list" id="list" role="list"></div>
   <div class="empty" id="empty" hidden></div>
+  <div class="row-status strip" id="clearStrip" role="status" aria-live="polite" hidden>
+    <span class="status-text" id="clearStripText"></span>
+    <button class="status-action" id="clearUndoBtn" type="button" hidden></button>
+  </div>
 </div>
 <script src="i18n.js"></script>
 <script src="notice-center.js"></script>

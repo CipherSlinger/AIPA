@@ -22,6 +22,9 @@
   var searchClearBtn = document.getElementById("searchClear");
   var listEl = document.getElementById("list");
   var emptyEl = document.getElementById("empty");
+  var clearStrip = document.getElementById("clearStrip");
+  var clearStripText = document.getElementById("clearStripText");
+  var clearUndoBtn = document.getElementById("clearUndoBtn");
 
   var KIND_ORDER = ["system", "info", "success", "warning", "error", "quest", "approval", "clarification", "due", "review"];
 
@@ -66,6 +69,11 @@
       dismiss: "Dismiss",
       close: "Close",
       justNow: "just now",
+      // Clear all leaves one undoable strip. Same voice as the row feedback:
+      // what happened, in a sentence, with one action after it.
+      noticeCenterCleared: "Cleared {n} notices",
+      noticeCenterUndo: "Undo",
+      noticeCenterUndoFailed: "Couldn't restore them",
       // Same values as `i18n.js`; this page loads the bundle as a plain script
       // and prefers it, so these are only the fallback if it never arrives.
       noticeCenterToday: "Today",
@@ -84,6 +92,9 @@
       dismiss: "忽略",
       close: "关闭",
       justNow: "刚刚",
+      noticeCenterCleared: "已清空 {n} 条通知",
+      noticeCenterUndo: "撤销",
+      noticeCenterUndoFailed: "没能恢复",
       noticeCenterToday: "今天",
       noticeCenterYesterday: "昨天",
     },
@@ -100,6 +111,9 @@
       dismiss: "무시",
       close: "닫기",
       justNow: "방금",
+      noticeCenterCleared: "알림 {n}개를 지웠습니다",
+      noticeCenterUndo: "실행 취소",
+      noticeCenterUndoFailed: "복원하지 못했습니다",
       noticeCenterToday: "오늘",
       noticeCenterYesterday: "어제",
     },
@@ -194,12 +208,21 @@
     var notices = Array.isArray(data.notices)
       ? data.notices.map(normalizeNotice).filter(function (n) { return n !== null; })
       : [];
+    // Main owns the clear snapshot, so the offer is part of every payload. A
+    // count that is not a positive integer is simply no offer instead of a
+    // strip that cannot be undone.
+    var count = data.undo && typeof data.undo === "object" && typeof data.undo.count === "number" &&
+      isFinite(data.undo.count) && data.undo.count > 0
+      ? Math.round(data.undo.count)
+      : 0;
     return {
       notices: notices,
       lang: data.lang === "zh" || data.lang === "ko" ? data.lang : "en",
       unread: typeof data.unread === "number" && isFinite(data.unread)
         ? Math.max(0, Math.round(data.unread))
         : notices.filter(function (n) { return !n.read; }).length,
+      undo: count > 0 ? { count: count } : null,
+      undoFailed: data.undoFailed === true,
     };
   }
 
@@ -660,6 +683,51 @@
     return "";
   }
 
+  // ── The clear strip ────────────────────────────────────────────────────────
+  // Clear all is the one gesture that is not about one row, so its feedback
+  // lives in a panel-level strip. It reuses the row feedback's type and action
+  // control, and there is exactly one: a later clear, or a failed Undo,
+  // replaces the line instead of stacking a second one. The offer itself is
+  // main's snapshot, which is why every payload can repaint it after a reload.
+
+  function fillCount(template, n) {
+    return String(template || "").replace(/\{n\}/g, String(n));
+  }
+
+  function showClearStrip(text, canUndo, failed) {
+    clearStripText.textContent = text;
+    clearUndoBtn.textContent = canUndo ? petString("noticeCenterUndo") : "";
+    clearUndoBtn.hidden = !canUndo;
+    clearStrip.dataset.tone = failed ? "error" : "ok";
+    clearStrip.hidden = false;
+    reportHeight();
+  }
+
+  function hideClearStrip() {
+    if (clearStrip.hidden) return;
+    clearStrip.hidden = true;
+    clearStrip.dataset.tone = "";
+    clearStripText.textContent = "";
+    clearUndoBtn.textContent = "";
+    clearUndoBtn.hidden = true;
+    reportHeight();
+  }
+
+  function syncClearStrip() {
+    var undo = state.payload.undo;
+    if (undo && undo.count > 0) {
+      // A failed write leaves the offer armed, so the retry control stays and
+      // only the sentence changes.
+      if (state.payload.undoFailed) {
+        showClearStrip(petString("noticeCenterUndoFailed"), true, true);
+        return;
+      }
+      showClearStrip(fillCount(petString("noticeCenterCleared"), undo.count), true, false);
+      return;
+    }
+    hideClearStrip();
+  }
+
   function renderStatus(el, id) {
     var status = state.rowStatus[id];
     // The link outlives this panel session: main derives it from the task's own
@@ -1006,6 +1074,9 @@
     applyChrome();
     applyFilters();
     paintList();
+    // The offer rides the payload, so a reload or a refresh repaints the same
+    // strip; only main forgetting the snapshot takes it away.
+    syncClearStrip();
 
     if (first) {
       panel.classList.add("visible");
@@ -1126,6 +1197,12 @@
   clearBtn.addEventListener("click", function () {
     if (state.payload.notices.length === 0) return;
     runAction({ type: "clear-all" });
+  });
+
+  // The offer is one press: main puts the snapshot back at its original
+  // timestamps and clears it, so a second press has nothing left to restore.
+  clearUndoBtn.addEventListener("click", function () {
+    runAction({ type: "undo-clear" });
   });
 
   closeBtn.addEventListener("click", function () { closePanel(); });

@@ -23,8 +23,15 @@ import { showClawdNotice, withClawdMainWindow } from './clawd-integration'
 import type { IpcMainEvent, Rectangle } from 'electron'
 
 const WIDTH = 368
-/** Head, one field, a two-line reason and the footer, plus shadow padding. */
-const HEIGHT = 146
+/**
+ * Head, one field, the always-visible due/repeat row, the footer and shadow
+ * padding. The row used to appear only after the line parsed a day or a
+ * cadence, so the empty bar opened without it; now both rows rest under the
+ * field and the base height holds them. This is the parsed-sentence height the
+ * bar already opened at (146 + a 29 px row), and the taller clawd skin fits
+ * inside the same slack.
+ */
+const HEIGHT = 175
 /**
  * Ceiling on how much taller the remembered-titles strip may make the bar.
  * Five rows plus the gap above them come to ~147 px; the slack covers the
@@ -128,14 +135,35 @@ function normalizeTitle(raw: unknown): string {
 }
 
 /**
- * The page resolves the due day itself; this boundary only refuses shapes it
- * cannot represent. A malformed day is dropped rather than failing the save:
- * the typed line is what the user came for, the day is the bonus.
+ * The page resolves the due day itself, but the boundary is still a gate: an
+ * explicit day now rides with the capture even when the typed line says
+ * nothing about it, so a malformed one must refuse the write instead of being
+ * dropped behind the user's back. The check mirrors the task brief's defer
+ * day: a real calendar day in this machine's local calendar, or null/absent
+ * for "no due day". A hand-made IPC call cannot widen what the store accepts.
  */
-const DUE_ON_SHAPE = /^\d{4}-\d{2}-\d{2}$/
+const DUE_ON_SHAPE = /^(\d{4})-(\d{2})-(\d{2})$/
 
-function normalizeDueOn(raw: unknown): string | undefined {
-  return typeof raw === 'string' && DUE_ON_SHAPE.test(raw) ? raw : undefined
+type DueOnArg = { ok: true; value: string | undefined } | { ok: false }
+
+function normalizeDueOn(raw: unknown): DueOnArg {
+  if (raw === null || raw === undefined) return { ok: true, value: undefined }
+  if (typeof raw !== 'string') return { ok: false }
+  const match = DUE_ON_SHAPE.exec(raw)
+  if (!match) return { ok: false }
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if (year < 2000 || year > 2100) return { ok: false }
+  // Local parts, not UTC: `dueOn` is the user's calendar day, and the page
+  // resolved it from `new Date(y, m - 1, d)` on this machine.
+  const date = new Date(year, month - 1, day)
+  if (
+    date.getFullYear() !== year
+    || date.getMonth() !== month - 1
+    || date.getDate() !== day
+  ) return { ok: false }
+  return { ok: true, value: raw }
 }
 
 const REPEAT_VALUES: readonly TaskRepeat[] = ['daily', 'weekly', 'monthly']
@@ -608,6 +636,15 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
       return
     }
 
+    // Refuse a malformed explicit day before the store is touched: the page
+    // resolved it, so a bad one is a page bug or a hand-made call, and neither
+    // may file the line under a day nobody chose.
+    const due = normalizeDueOn(rawDue)
+    if (!due.ok) {
+      showBarError(labels.failed, 'error')
+      return
+    }
+
     const repeat = normalizeRepeatArg(rawRepeat)
     // The page may send no interval, a number or null; only an integer 2..99
     // reaches the store, which validates again and drops it without a cadence.
@@ -619,7 +656,7 @@ export default function initTaskCapture(ctx: TaskCaptureContext) {
       // `repeat` is spread in only when set, so a one-off is an absent field.
       result = createTask({
         title,
-        dueOn: normalizeDueOn(rawDue),
+        dueOn: due.value,
         ...(repeat ? { repeat } : {}),
         ...(repeatEvery !== null ? { repeatEvery } : {}),
       })

@@ -351,6 +351,17 @@ body[data-theme="clawd"] .due {
   outline: 1px solid color-mix(in srgb, var(--accent) 70%, transparent);
   outline-offset: -1px;
 }
+/* An unset day is an invitation, not an error: the same box, height and
+   padding as a parsed chip, in the quiet ink the footer uses. Only the ink
+   changes; no warning colour and no border shift that would read as a fault. */
+.due.placeholder .due-date {
+  color: var(--muted);
+  font-weight: 400;
+}
+.due.placeholder .due-date:hover,
+.due.placeholder .due-date:focus-visible {
+  color: var(--text);
+}
 .due-clear {
   flex: none;
   width: 18px;
@@ -404,6 +415,16 @@ body[data-theme="clawd"] .repeat { font-size: 11px; }
 .repeat:focus-visible {
   outline: 1px solid color-mix(in srgb, var(--accent) 70%, transparent);
   outline-offset: -1px;
+}
+/* The unset cadence reads "Doesn't repeat" in the same muted ink. The chip is
+   always on screen now, so this is the resting state, not a warning. */
+.repeat.placeholder {
+  color: var(--muted);
+  font-weight: 400;
+}
+.repeat.placeholder:hover,
+.repeat.placeholder:focus-visible {
+  color: var(--text);
 }
 
 /* ── Preset days ─────────────────────────────────────────────────────────────
@@ -1205,9 +1226,10 @@ kbd {
   }
 
   /**
-   * Show the day the line names, or the day a cadence lands on when the line
-   * named none. Nothing here touches the input: no value rewrite, no
-   * selection, no focus.
+   * Show the day the line names, the day a chip chose, or the day a cadence
+   * lands on. The row never disappears: with no day it is the quiet label that
+   * opens the preset strip. Nothing here touches the input: no value rewrite,
+   * no selection, no focus.
    */
   function renderDue(parsed, today) {
     var match = parsed.due;
@@ -1245,19 +1267,26 @@ kbd {
         if (derived) due = { phrase: "", dueOn: dueOnOf(derived), date: derived };
       }
     }
+    // The row is always on screen now. With no day it is the quiet label that
+    // opens the same strip; a day set by the text or by a chip reads as before.
+    dueEl.hidden = false;
+    dueEl.classList.toggle("placeholder", !due);
     if (!due) {
-      dueEl.hidden = true;
-      dueEl.removeAttribute("aria-label");
-      // There is nothing to offer presets for once the chip is gone.
+      duePhrase.textContent = "";
+      dueSep.hidden = true;
+      dueDate.textContent = labels.dueLabel;
+      dueEl.setAttribute("aria-label", labels.dueLabel);
+      dueClear.hidden = true;
+      // The strip stays reachable: it is the placeholder row's whole purpose.
       hidePresets();
       return;
     }
+    dueClear.hidden = false;
     duePhrase.textContent = due.phrase;
     dueSep.hidden = !due.phrase;
     dueDate.textContent = formatChipDate(due.date, today);
     dueEl.setAttribute("aria-label", labels.dueLabel + ": " +
       (due.phrase ? due.phrase + " · " + dueDate.textContent : dueDate.textContent));
-    dueEl.hidden = false;
   }
 
   // Chinese spells small intervals in characters: 每两天, 每三天 … 每十天. The
@@ -1296,8 +1325,8 @@ kbd {
    * Show the cadence in force. The line outranks the manual pick exactly as it
    * does for the day: a different cadence phrase in the line replaces the
    * choice, while the same phrase survives further typing. A manual "Doesn't
-   * repeat" is a choice with a null value, so the chip disappears and the day
-   * chip beside it is left alone.
+   * repeat" is a choice with a null value, so the chip falls back to its muted
+   * resting label and the day chip beside it is left alone.
    */
   function renderRepeat(parsed) {
     // The phrase is the whole comparison: a pick survives further keystrokes
@@ -1311,21 +1340,23 @@ kbd {
     repeatEvery = repeat
       ? (chosenRepeat ? chosenRepeat.every : parsed.repeatEvery) || null
       : null;
+    // Both rows are always on screen now; no cadence is the muted resting
+    // state, and its five-row strip is still reachable from it.
+    repeatEl.hidden = false;
+    repeatEl.classList.toggle("placeholder", !repeat);
     if (!repeat) {
-      repeatEl.hidden = true;
-      repeatEl.removeAttribute("aria-label");
-      // Nothing to offer the five-row strip for once the chip is gone.
+      repeatText.textContent = labels.repeatNone;
+      repeatEl.setAttribute("aria-label", labels.repeatLabel + ": " + repeatText.textContent);
       hideRepeatPresets();
       return;
     }
     repeatText.textContent = repeatLabelFor(repeat, repeatEvery);
     repeatEl.setAttribute("aria-label", labels.repeatLabel + ": " + repeatText.textContent);
-    repeatEl.hidden = false;
   }
 
-  /** The chip row exists only while at least one of its chips does. */
+  /** Both rows live under the field for the whole life of the bar. */
   function syncChips() {
-    chipsEl.hidden = dueEl.hidden && repeatEl.hidden;
+    chipsEl.hidden = false;
   }
 
   /**
@@ -1363,7 +1394,9 @@ kbd {
   }
 
   function openPresets() {
-    if (!due || !duePresets.hidden) return;
+    // The placeholder row opens the same strip: "no day yet" is exactly the
+    // state the three offers are for.
+    if (!duePresets.hidden) return;
     // Two strips under the same field would stack two answers to "when".
     hideRepeatPresets();
     duePresets.hidden = false;
@@ -1399,7 +1432,8 @@ kbd {
   }
 
   function openRepeatPresets() {
-    if (!repeat || !repeatPresets.hidden) return;
+    // Mirrors the day row: the muted "Doesn't repeat" opens the five offers.
+    if (!repeatPresets.hidden) return;
     // Mirrors the day strip: one open strip at a time.
     hidePresets();
     repeatPresets.hidden = false;
@@ -1517,9 +1551,10 @@ kbd {
    * one-line due tag does not reserve a strip.
    */
   function requestExtraHeight() {
-    // The chips share one row, so the row is the block: measuring each chip
-    // would count the gap above it twice when both are showing.
-    var extra = blockHeight(chipsEl) + blockHeight(duePresets) + blockHeight(repeatPresets) +
+    // The two chip rows are always on screen now, so main's base height already
+    // holds them; only blocks that come and go ask for more room. Counting the
+    // chip row here as well would double its height.
+    var extra = blockHeight(duePresets) + blockHeight(repeatPresets) +
       blockHeight(savedInlineEl) + blockHeight(suggestEl);
     if (extra === lastExtra) return;
     lastExtra = extra;
@@ -1826,7 +1861,6 @@ kbd {
     dueDate.setAttribute("aria-expanded", "false");
     repeatPresets.hidden = true;
     repeatEl.setAttribute("aria-expanded", "false");
-    repeatEl.hidden = true;
     input.value = "";
     savedInlineEl.hidden = true;
     clearError();
@@ -1910,16 +1944,17 @@ kbd {
   dueClear.addEventListener("click", function (event) {
     event.preventDefault();
     dueDismissed = true;
+    // A day set by a chip is a choice too; clearing it must clear the choice,
+    // or the next keystroke would put it back.
+    chosenDue = null;
     due = null;
-    dueEl.hidden = true;
-    dueEl.removeAttribute("aria-label");
     hidePresets();
     // The × removes the day only; a cadence chip beside it stays. When the day
     // was derived from that cadence, this is the user's explicit override: the
     // task lives on the desk as an undated repeating row, and its first Done
-    // rolls it forward from today.
-    syncChips();
-    requestExtraHeight();
+    // rolls it forward from today. The row itself drops back to its quiet
+    // placeholder rather than disappearing.
+    refresh();
   });
 
   // The date is the strip's trigger. A second Enter/click on it closes the

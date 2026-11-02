@@ -153,7 +153,7 @@ function readStore(file: string): StoreShape {
   }
 }
 
-function writeStore(store: StoreShape, file: string): void {
+function writeStore(store: StoreShape, file: string): boolean {
   try {
     fs.mkdirSync(path.dirname(file), { recursive: true })
     const tmp = `${file}.tmp`
@@ -163,8 +163,10 @@ function writeStore(store: StoreShape, file: string): void {
       'utf-8',
     )
     fs.renameSync(tmp, file)
+    return true
   } catch (err) {
     log.warn('Could not write clawd-notifications.json:', err)
+    return false
   }
 }
 
@@ -297,4 +299,40 @@ export function clearClawdNotices(file?: string): void {
   const target = file ?? storePath()
   if (!target) return
   writeStore({ version: STORE_VERSION, notices: [] }, target)
+}
+
+export interface ClawdNoticeRestoreResult {
+  /** False only when the store could not be written; the caller may retry. */
+  ok: boolean
+  /** How many records were merged in before the 50-record cap was applied. */
+  restored: number
+}
+
+/**
+ * Put notices removed by Clear all back into the store. This is deliberately
+ * not `recordClawdNotice` in a loop: restored records must keep their original
+ * ids and `at` values, so the page restores the same rows rather than a fresh
+ * copy. Merging and slicing match the store's ordinary newest-first rule, so a
+ * log that filled up in the meantime keeps its newest 50 and the oldest lose.
+ * Records already present (an id a page somehow re-sent) are skipped instead of
+ * duplicated.
+ */
+export function restoreClawdNotices(records: ClawdNoticeRecord[]): ClawdNoticeRestoreResult {
+  const file = storePath()
+  if (!file) return { ok: false, restored: 0 }
+  const store = readStore(file)
+  const seen = new Set(store.notices.map(notice => notice.id))
+  const restored: ClawdNoticeRecord[] = []
+  for (const value of Array.isArray(records) ? records : []) {
+    const record = normalizeRecord(value)
+    if (!record || seen.has(record.id)) continue
+    seen.add(record.id)
+    restored.push(record)
+  }
+  if (restored.length === 0) return { ok: true, restored: 0 }
+  const merged = [...store.notices, ...restored]
+    .sort((a, b) => b.at - a.at)
+    .slice(0, MAX_CLAWD_NOTICES)
+  const ok = writeStore({ version: STORE_VERSION, notices: merged }, file)
+  return { ok, restored: ok ? restored.length : 0 }
 }

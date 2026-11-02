@@ -36,6 +36,7 @@ import {
   listClawdNotices,
   markClawdNoticesRead,
   removeClawdNotice,
+  restoreClawdNotices,
   type ClawdNoticeRecord,
 } from './clawd-notifications'
 import {
@@ -115,11 +116,26 @@ export interface ClawdNoticeCenterPayload {
   lang: string
   /** Number of unread records, for the title-bar badge. */
   unread: number
+  /**
+   * Present while this panel can still put back what Clear all removed. The
+   * count rides every payload, not just the reply, so a reloaded page can
+   * paint the same offer from main.
+   */
+  undo?: { count: number }
+  /** Set only on the reply to an Undo that could not write the store. */
+  undoFailed?: boolean
   /** Present only on the reply to a row action, never on load/update. */
   outcome?: ClawdNoticeActionResult
 }
 
-type NoticeActionType = 'open' | 'dismiss' | 'clear-all' | 'close' | 'save-task' | 'open-task'
+type NoticeActionType =
+  | 'open'
+  | 'dismiss'
+  | 'clear-all'
+  | 'undo-clear'
+  | 'close'
+  | 'save-task'
+  | 'open-task'
 
 interface NoticeCenterAction {
   type?: unknown
@@ -156,6 +172,14 @@ let revealTimer: NodeJS.Timeout | null = null
 let blurArmedAt = 0
 let ipcRegistered = false
 let lastAnchor: ClawdNoticeCenterAnchor | null = null
+/**
+ * What the last Clear all removed, held by main for the life of this panel.
+ * The page never owns the data: a reload asks for a payload and gets the same
+ * offer back. Closing the panel drops it, so a clear that was not undone
+ * stands, exactly like the pet's other Undo windows. A second clear replaces
+ * it — one offer at a time.
+ */
+let clearedSnapshot: ClawdNoticeRecord[] | null = null
 /** Window to hand focus back to on an explicit close (not a click-away). */
 let previousFocus: BrowserWindow | null = null
 
@@ -246,6 +270,7 @@ function buildPayload(): ClawdNoticeCenterPayload {
     notices: records.map(record => toItem(record, saved)),
     lang: petLanguage(),
     unread: records.reduce((count, record) => count + (record.readAt ? 0 : 1), 0),
+    ...(clearedSnapshot && clearedSnapshot.length ? { undo: { count: clearedSnapshot.length } } : {}),
   }
 }
 
@@ -421,6 +446,9 @@ function destroyWindow(restoreFocus: boolean, markRead = false, seenIds?: string
   }
   clearRevealTimer()
   blurArmedAt = 0
+  // The Undo offer is tied to the panel that showed it. Once the window is
+  // gone the clear stands; the snapshot must not leak into the next open.
+  clearedSnapshot = null
 
   const win = noticeWin
   noticeWin = null
@@ -537,6 +565,9 @@ function createWindow(anchor: ClawdNoticeCenterAnchor | null): boolean {
   win.on('closed', () => {
     clearRevealTimer()
     if (noticeWin === win) noticeWin = null
+    // A window destroyed outside destroyWindow (a crash, a renderer close)
+    // ends the offer with it.
+    clearedSnapshot = null
     previousFocus = null
   })
 
@@ -861,7 +892,37 @@ function handleAction(action: unknown): ClawdNoticeCenterPayload {
       return emitUpdate()
     }
     case 'clear-all': {
+      let removed: ClawdNoticeRecord[] = []
+      try { removed = listClawdNotices() } catch (err) { log.warn('Could not list notices to clear:', err) }
+      // An empty log has nothing to offer back; a clear with it is a no-op and
+      // must not replace an offer that is already armed. No push either: there
+      // is nothing on screen to refresh.
+      if (removed.length === 0) return buildPayload()
       try { clearClawdNotices() } catch (err) { log.warn('Could not clear notices:', err) }
+      // Arm only when the store really is empty now; a failed write would
+      // otherwise promise an Undo for records that were never removed.
+      let empty = false
+      try { empty = listClawdNotices().length === 0 } catch (err) { log.warn('Could not verify clear:', err) }
+      if (empty) clearedSnapshot = removed
+      return emitUpdate()
+    }
+    case 'undo-clear': {
+      // The offer is one-shot on success. A failed write keeps it so the user
+      // can try again from the failure line.
+      if (!clearedSnapshot || clearedSnapshot.length === 0) return buildPayload()
+      let restored = { ok: false, restored: 0 }
+      try { restored = restoreClawdNotices(clearedSnapshot) } catch (err) {
+        log.warn('Could not restore cleared notices:', err)
+      }
+      if (!restored.ok) {
+        // Both the pushed update and the reply carry the failure, so the
+        // page cannot repaint the offer line over the failure line when the
+        // two arrive in either order.
+        const failed: ClawdNoticeCenterPayload = { ...buildPayload(), undoFailed: true }
+        emitUpdate(failed)
+        return failed
+      }
+      clearedSnapshot = null
       return emitUpdate()
     }
     case 'close': {
