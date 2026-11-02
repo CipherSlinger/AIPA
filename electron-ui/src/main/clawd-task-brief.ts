@@ -371,6 +371,12 @@ function briefLabels(): Record<string, string> {
     shortcutHint: petT('taskBriefShortcutHint'),
     untitled: petT('taskBriefUntitled'),
     justNow: petT('taskBriefJustNow'),
+    // The desk card's text filter. The page folds the query and matches it
+    // against each row's own words; main only carries the field's placeholder,
+    // the empty answer and the clear button's name.
+    filterPlaceholder: petT('taskBriefFilterPlaceholder'),
+    filterEmpty: petT('taskBriefFilterEmpty'),
+    filterClear: petT('taskBriefFilterClear'),
     // The quiet range line beside the count: which of the desk's tasks the
     // number chords name ("1–4 of 9"), and the word appended when the card is
     // too short to show them all. {start}/{end}/{total} are filled by the page.

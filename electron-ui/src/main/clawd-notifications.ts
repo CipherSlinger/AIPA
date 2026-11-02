@@ -30,10 +30,18 @@ export const MAX_CLAWD_NOTICES = 50
 const MAX_TEXT = 600
 const DEDUPE_WINDOW_MS = 3_000
 
-/** One thing the pet announced. `kind` mirrors the bubble kind vocabulary. */
+/**
+ * One thing the pet announced. `kind` mirrors the bubble kind vocabulary —
+ * what the card looked like. `sourceKind` remembers which attention kind
+ * raised it, because several surfaces can share one bubble kind (the weekly
+ * review and the evening wrap both look like `review`) and the log needs that
+ * distinction to route a click back to the window the card mirrors.
+ */
 export interface ClawdNoticeRecord {
   id: string
   kind: string
+  /** The attention kind that raised the card (`task-review`, `day-wrap`, …). */
+  sourceKind?: string
   title: string
   message: string
   detail?: string
@@ -97,9 +105,11 @@ function normalizeRecord(value: unknown): ClawdNoticeRecord | null {
   const sessionId = optionalText(raw.sessionId, 200)
   const pluginId = optionalText(raw.pluginId, 200)
   const action = optionalText(raw.action, 40)
+  const sourceKind = optionalText(raw.sourceKind, 40)
   return {
     id,
     kind: cleanText(raw.kind, 40) || 'system',
+    ...(sourceKind ? { sourceKind } : {}),
     title,
     message: cleanText(raw.message),
     at,
@@ -146,6 +156,7 @@ function writeStore(store: StoreShape, file: string): void {
 
 export interface ClawdNoticeInput {
   kind?: string
+  sourceKind?: string
   title: string
   message?: string
   detail?: string
@@ -164,6 +175,7 @@ export function recordClawdNotice(input: ClawdNoticeInput): ClawdNoticeRecord | 
   if (!title) return null
   const at = typeof input.at === 'number' && Number.isFinite(input.at) ? input.at : Date.now()
   const kind = cleanText(input.kind, 40) || 'system'
+  const sourceKind = cleanText(input.sourceKind, 40)
   const message = cleanText(input.message)
 
   const file = storePath()
@@ -188,6 +200,7 @@ export function recordClawdNotice(input: ClawdNoticeInput): ClawdNoticeRecord | 
   const record: ClawdNoticeRecord = {
     id: `notice-${at.toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
     kind,
+    ...(sourceKind ? { sourceKind } : {}),
     title,
     message,
     at,

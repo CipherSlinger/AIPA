@@ -66,8 +66,10 @@
       dismiss: "Dismiss",
       close: "Close",
       justNow: "just now",
-      today: "TODAY",
-      yesterday: "YESTERDAY",
+      // Same values as `i18n.js`; this page loads the bundle as a plain script
+      // and prefers it, so these are only the fallback if it never arrives.
+      noticeCenterToday: "Today",
+      noticeCenterYesterday: "Yesterday",
     },
     zh: {
       clear: "清空全部",
@@ -82,8 +84,8 @@
       dismiss: "忽略",
       close: "关闭",
       justNow: "刚刚",
-      today: "今天",
-      yesterday: "昨天",
+      noticeCenterToday: "今天",
+      noticeCenterYesterday: "昨天",
     },
     ko: {
       clear: "모두 지우기",
@@ -98,8 +100,8 @@
       dismiss: "무시",
       close: "닫기",
       justNow: "방금",
-      today: "오늘",
-      yesterday: "어제",
+      noticeCenterToday: "오늘",
+      noticeCenterYesterday: "어제",
     },
   };
 
@@ -143,10 +145,15 @@
   // Newer notice-log copy lives in the pet's shared string table, which the
   // page loads as a plain script (see i18n.js). Keeping it there means the log
   // and the bubbles speak from one dictionary instead of a second one here.
+  // A key the bundle lacks (or a page opened without it) falls through to the
+  // local table rather than showing a raw identifier.
   function petString(key) {
     var bundle = window.clawdI18n;
     var dict = bundle ? (bundle.i18n[state.payload.lang] || bundle.i18n.en) : null;
-    return (dict && dict[key]) || key;
+    if (dict && dict[key]) return dict[key];
+    var local = strings();
+    if (local && typeof local[key] === "string" && local[key]) return local[key];
+    return key;
   }
 
   function kindLabel(kind) {
@@ -159,9 +166,28 @@
       typeof value.id === "string" && typeof value.title === "string";
   }
 
+  // `sourceKind` is the attention kind whose card the notice mirrored. The
+  // expanded strip offers Open for a review or wrap row because that field
+  // names a window to open even though the row has no session. Keep it only
+  // when it is a real non-empty string; anything else is dropped rather than
+  // letting a malformed payload advertise an action that cannot run.
+  function normalizeNotice(notice) {
+    if (!isNotice(notice)) return null;
+    var usable = typeof notice.sourceKind === "string" && notice.sourceKind.length > 0;
+    if (usable) return notice;
+    if (!Object.prototype.hasOwnProperty.call(notice, "sourceKind")) return notice;
+    var copy = {};
+    for (var key in notice) {
+      if (Object.prototype.hasOwnProperty.call(notice, key) && key !== "sourceKind") copy[key] = notice[key];
+    }
+    return copy;
+  }
+
   function normalizePayload(payload) {
     var data = payload && typeof payload === "object" ? payload : {};
-    var notices = Array.isArray(data.notices) ? data.notices.filter(isNotice) : [];
+    var notices = Array.isArray(data.notices)
+      ? data.notices.map(normalizeNotice).filter(function (n) { return n !== null; })
+      : [];
     return {
       notices: notices,
       lang: data.lang === "zh" || data.lang === "ko" ? data.lang : "en",
@@ -211,9 +237,12 @@
   }
 
   // ── Day grouping ───────────────────────────────────────────────────────────
-  // The header carries the calendar day, so rows keep their short relative
-  // times (just now / 4m / 2h). Month names stay in the HUD's uppercase
-  // monospace idiom for every language; only today/yesterday are translated.
+  // One header per local calendar day: a log opened after a weekend still says
+  // which day each older row belongs to instead of flattening the whole past
+  // into one lump. Rows keep their short relative times (just now / 4m / 2h)
+  // because the header carries the date. Month names stay in the HUD's
+  // uppercase monospace idiom for every language; only today/yesterday are
+  // translated.
 
   var MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
@@ -242,8 +271,8 @@
     // previous calendar day.
     var yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
     var key = dayKey(date);
-    if (key === dayKey(today)) return strings().today;
-    if (key === dayKey(yesterday)) return strings().yesterday;
+    if (key === dayKey(today)) return petString("noticeCenterToday");
+    if (key === dayKey(yesterday)) return petString("noticeCenterYesterday");
     var label = MONTHS[date.getMonth()] + " " + date.getDate();
     if (date.getFullYear() !== today.getFullYear()) label += " " + date.getFullYear();
     return label;
@@ -545,7 +574,13 @@
     actions.className = "actions";
     actions.setAttribute("role", "group");
     actions.setAttribute("aria-label", petString("noticeCenterActions"));
-    if (notice.sessionId) {
+    // A session is the usual destination. A review or wrap row has no
+    // session but still mirrors a card with a window of its own; the main
+    // process reads `sourceKind` and opens that window for the row.
+    var openable = !!notice.sessionId ||
+      notice.sourceKind === "task-review" ||
+      notice.sourceKind === "day-wrap";
+    if (openable) {
       actions.appendChild(actionButton(petString("noticeCenterOpen"), "act--primary", function () {
         openNotice(notice.id);
       }));
@@ -743,12 +778,34 @@
     });
   }
 
-  function buildDayHeader(date) {
+  /**
+   * A section separator, not a row. It has no data-id, no tabindex, no role
+   * and no click handler, so `visibleRows()` (which only collects `.row`),
+   * the keyboard model and the card's own unread badge are all blind to it.
+   * The count is the number of rows painted under this day in the *current*
+   * filtered set, right-aligned past a hairline rule.
+   */
+  function buildDayHeader(date, count) {
     var header = document.createElement("div");
     header.className = "day";
-    // Not a row: no data-id, no tabindex, no role — invisible to the keyboard
-    // model and to visibleRows(), but still announced as plain text.
-    header.textContent = dayLabel(date);
+    header.dataset.day = String(dayKey(date));
+
+    var label = document.createElement("span");
+    label.className = "day-label";
+    label.textContent = dayLabel(date);
+
+    var rule = document.createElement("span");
+    rule.className = "day-rule";
+    rule.setAttribute("aria-hidden", "true");
+
+    var tally = document.createElement("span");
+    tally.className = "day-count";
+    tally.setAttribute("aria-hidden", "true");
+    tally.textContent = String(count);
+
+    header.appendChild(label);
+    header.appendChild(rule);
+    header.appendChild(tally);
     return header;
   }
 
@@ -756,9 +813,19 @@
     listEl.textContent = "";
     var stillSelected = notices.some(function (n) { return n.id === state.selectedId; });
     if (!stillSelected) state.selectedId = null;
+    // Tally the filtered rows per calendar day first: the header shows that
+    // count, so it must be known before the day's first row is appended. An
+    // undated row is not tallied and never owns a header.
+    var counts = {};
+    for (var c = 0; c < notices.length; c++) {
+      var counted = noticeDay(notices[c]);
+      if (!counted) continue;
+      var countedKey = dayKey(counted);
+      counts[countedKey] = (counts[countedKey] || 0) + 1;
+    }
     // Notices arrive newest first, so one pass in order is enough: a header is
     // emitted for the first painted row of a day, and a day whose rows were
-    // all filtered out never reaches this loop, so it emits no header.
+    // all filtered out never reaches this loop, so it emits no header at all.
     var lastDay = null;
     for (var i = 0; i < notices.length; i++) {
       var notice = notices[i];
@@ -766,7 +833,7 @@
       if (day) {
         var key = dayKey(day);
         if (key !== lastDay) {
-          listEl.appendChild(buildDayHeader(day));
+          listEl.appendChild(buildDayHeader(day, counts[key]));
           lastDay = key;
         }
       }

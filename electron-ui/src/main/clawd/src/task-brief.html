@@ -169,6 +169,9 @@ body { padding: 8px; }
   display: flex;
   align-items: center;
   gap: 8px;
+  /* The filter is a full-width second line inside the header block; wrapping
+     lets it appear under the eyebrow row without moving any header control. */
+  flex-wrap: wrap;
   padding: 0 2px 9px;
   border-bottom: 1px solid var(--hairline);
 }
@@ -264,6 +267,126 @@ body { padding: 8px; }
 .panel[data-theme="sao"] .close:focus-visible {
   box-shadow: inset 0 0 0 1px var(--accent),
     0 0 12px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* ── Filter ───────────────────────────────────────────────────────────────── */
+/* One slim line under the eyebrow row, never beside it: the header row keeps
+   its exact geometry and the card grows by this line only while the filter is
+   open. Same hairline, cut corner and inset focus as the rest of the card. */
+.filter {
+  display: flex;
+  flex: 0 0 100%;
+  align-items: center;
+  gap: 7px;
+  height: 24px;
+  padding: 0 7px;
+  border: 1px solid var(--hairline);
+  background: color-mix(in srgb, var(--accent) 3.5%, transparent);
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+}
+.panel[data-theme="clawd"] .filter {
+  height: 28px;
+  border-radius: 7px;
+  clip-path: none;
+}
+.filter:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  box-shadow: inset 0 0 14px color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.filter-glyph {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  color: var(--muted);
+  transition: color 140ms ease;
+}
+.filter:focus-within .filter-glyph { color: var(--accent); }
+.filter-glyph svg { display: block; width: 100%; height: 100%; }
+.filter-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  outline: none;
+  caret-color: var(--accent);
+  /* The page turns selection off globally; the query still needs a caret and
+     drag-select. */
+  user-select: text;
+}
+/* A real search input, but the card's own × is the only clear affordance: the
+   native one would bring its own size and skin into both themes. */
+.filter-input::-webkit-search-cancel-button,
+.filter-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+.filter-input::placeholder {
+  color: var(--muted);
+  opacity: 0.75;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.panel[data-theme="clawd"] .filter-input { font-size: 11px; letter-spacing: 0.01em; }
+.panel[data-theme="clawd"] .filter-input::placeholder {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+/* The "/" cue is a keycap, not chrome: it disappears once the caret is in the
+   field or a query is held. */
+.filter-hint {
+  flex: none;
+  padding: 0 4px;
+  border: 1px solid var(--key-border);
+  border-radius: 1px;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 13px;
+  opacity: 0.7;
+}
+.filter:focus-within .filter-hint,
+.filter.has-query .filter-hint { display: none; }
+.filter-clear {
+  appearance: none;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: 1px solid var(--key-border);
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  outline: none;
+  transition: color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+.panel[data-theme="clawd"] .filter-clear { border-radius: 5px; }
+.filter.has-query .filter-clear { display: inline-flex; }
+.filter-clear:hover,
+.filter-clear:focus-visible {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 62%, transparent);
+}
+.panel[data-theme="sao"] .filter-clear:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 /* Rows. The list takes the card's remaining height and scrolls when the whole
@@ -754,6 +877,10 @@ body { padding: 8px; }
   .undo { animation: none; }
   .row,
   .close,
+  .filter,
+  .filter-glyph,
+  .filter-input,
+  .filter-clear,
   .start,
   .done,
   .undo-btn,
@@ -778,6 +905,15 @@ body { padding: 8px; }
     <span class="spacer"></span>
     <span class="date" id="date"></span>
     <button class="close" id="closeBtn" type="button" aria-label="Close">×</button>
+    <!-- The desk can run past twenty rows on a busy day. "/" or Ctrl+F opens
+         this one-line filter under the eyebrow row; the header row itself never
+         moves, and the card grows by this line only while it is open. -->
+    <div class="filter" id="filter" role="search" hidden>
+      <span class="filter-glyph" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.4" cy="10.4" r="6.4"/><path d="m15.4 15.4 5.1 5.1"/></svg></span>
+      <input class="filter-input" id="filterInput" type="search" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Filter tasks" placeholder="Filter tasks" title="Filter tasks" />
+      <button class="filter-clear" id="filterClear" type="button" aria-label="Clear filter" title="Clear filter">×</button>
+      <span class="filter-hint" aria-hidden="true">/</span>
+    </div>
   </header>
   <div class="list" id="list"></div>
   <div class="empty" id="empty" hidden></div>

@@ -35,6 +35,8 @@ html, body {
   --line-soft: rgba(63, 224, 200, 0.045);
   --scroll-thumb: rgba(63, 224, 200, 0.25);
   --scroll-thumb-hover: rgba(63, 224, 200, 0.45);
+  /* The sticky day header's backing; a skin may remap it with the rest. */
+  --day-bg: linear-gradient(180deg, rgba(7, 13, 18, 0.97), rgba(6, 12, 17, 0.93));
 }
 
 body { padding: 8px; }
@@ -379,7 +381,10 @@ body { padding: 8px; }
 /* Section separators, not rows: no data-id, no tabindex, so visibleRows() and
    the filter never see them. They stick to .list, which is the scroll
    container; .list carries no top padding, so top: 0 sits flush with the
-   scrollport and the group's first row can never peek above the label. */
+   scrollport and the group's first row can never peek above the label.
+   One quiet line: label, hairline rule, right-aligned row count. The label and
+   the count are flex:none and nowrap, so the 420px window never wraps them in
+   any language; only the rule stretches. */
 .day {
   position: sticky;
   top: 0;
@@ -391,21 +396,35 @@ body { padding: 8px; }
   height: 26px;
   padding: 0 4px 0 12px;
   color: var(--muted);
+  /* Opaque enough to mask the rows sliding under it, close enough to the
+     panel slab that the band does not read as a separate surface. */
+  background: var(--day-bg);
+  cursor: default;
+}
+.day-label {
+  flex: none;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-  /* Opaque enough to mask the rows sliding under it, close enough to the
-     panel slab that the band does not read as a separate surface. */
-  background: linear-gradient(180deg, rgba(7, 13, 18, 0.97), rgba(6, 12, 17, 0.93));
 }
-.day::after {
-  content: "";
+.day-rule {
   flex: 1;
+  min-width: 8px;
   height: 1px;
-  background: rgba(63, 224, 200, 0.14);
+  background: var(--line);
+  opacity: 0.5;
+}
+.day-count {
+  flex: none;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  /* Section counts line up down the column as the list grows. */
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  opacity: 0.85;
 }
 
 .row {

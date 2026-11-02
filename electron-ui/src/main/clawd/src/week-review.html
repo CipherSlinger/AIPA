@@ -702,6 +702,50 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   background: color-mix(in srgb, var(--alert) 9%, transparent);
   color: var(--alert);
 }
+/* The due chip and the Tomorrow button share the row's trailing cell. The
+   button is a real control (Tab reaches it) but stays visually quiet, so the
+   row still reads as one task. */
+.row-side {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.push-btn {
+  appearance: none;
+  flex: none;
+  padding: 1px 6px;
+  border: 1px solid var(--key-border);
+  border-radius: 1px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  text-transform: uppercase;
+  cursor: pointer;
+  outline: none;
+}
+.panel[data-theme="clawd"] .push-btn {
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.push-btn:hover,
+.push-btn:focus-visible {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 62%, transparent);
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
+}
+.panel[data-theme="sao"] .push-btn:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
 
 .more-line {
   margin: 3px 2px 0;
@@ -775,8 +819,12 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
 }
 
 /* ── Footer ───────────────────────────────────────────────────────────────── */
+/* Copy, Open Tasks and Close stay on one line even when the labels grow
+   ("Couldn't move it"): the buttons never wrap and never shrink. Only Close is
+   pushed to the right edge; Copy sits immediately beside Open Tasks. */
 .foot {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
   margin-top: 9px;
@@ -786,6 +834,7 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
 .btn {
   appearance: none;
   display: inline-flex;
+  flex: none;
   align-items: center;
   justify-content: center;
   gap: 6px;
@@ -798,6 +847,7 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   font-size: 8.5px;
   font-weight: 700;
   letter-spacing: 0.16em;
+  white-space: nowrap;
   text-transform: uppercase;
   cursor: pointer;
   outline: none;
@@ -830,7 +880,58 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   box-shadow: inset 0 0 0 1px var(--accent),
     0 0 12px color-mix(in srgb, var(--accent) 16%, transparent);
 }
-.btn.ghost { margin-left: auto; }
+/* The last control owns the right edge; Copy stays beside Open Tasks. */
+.foot .btn:last-child { margin-left: auto; }
+
+/* The push strip: one slim row between the scrolling body and the footer.
+   It reports its own appearance with reportHeight(), so the window grows to
+   make room rather than clipping the footer. */
+.push-strip {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  margin-top: 8px;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--good) 32%, transparent);
+  background: color-mix(in srgb, var(--good) 7%, transparent);
+  color: var(--good);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.push-strip.failed {
+  border-color: color-mix(in srgb, var(--alert) 34%, transparent);
+  background: color-mix(in srgb, var(--alert) 8%, transparent);
+  color: var(--alert);
+}
+.push-undo {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  outline: none;
+}
+.push-undo:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 2px;
+}
+.panel[data-theme="clawd"] .push-strip {
+  padding: 7px 10px;
+  border-radius: 9px;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
 
 /* Week navigation. The arrows are the same chrome as the footer buttons —
    cut-corner in the HUD skin, a quiet rounded chip in clawd — sized down to
@@ -952,7 +1053,16 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     </section>
   </div>
 
+  <!-- The result of a push lives directly above the footer, outside the
+       scrolling body, so it never scrolls away from the gesture that caused
+       it. It is shown only after a real push answer. -->
+  <div class="push-strip" id="pushStrip" role="status" hidden>
+    <span id="pushText"></span>
+    <button class="push-undo" id="pushUndoBtn" type="button" hidden></button>
+  </div>
+
   <footer class="foot">
+    <button class="btn ghost" id="copyBtn" type="button"></button>
     <button class="btn primary" id="openTasksBtn" type="button"></button>
     <button class="btn ghost" id="closeBtn" type="button"></button>
   </footer>
@@ -993,6 +1103,10 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   var openTitleEl = document.getElementById("openTitle");
   var openRowsEl = document.getElementById("openRows");
   var openEmptyEl = document.getElementById("openEmpty");
+  var pushStripEl = document.getElementById("pushStrip");
+  var pushTextEl = document.getElementById("pushText");
+  var pushUndoBtn = document.getElementById("pushUndoBtn");
+  var copyBtn = document.getElementById("copyBtn");
   var openTasksBtn = document.getElementById("openTasksBtn");
   var closeBtn = document.getElementById("closeBtn");
   var prevBtn = document.getElementById("prevBtn");
@@ -1023,6 +1137,13 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     more: "+{n} more",
     prevWeek: "Previous week",
     nextWeek: "Next week",
+    copy: "Copy",
+    copied: "Copied",
+    copyFailed: "Couldn't copy",
+    pushTomorrow: "Tomorrow",
+    pushed: "Moved to tomorrow",
+    pushUndo: "Undo",
+    pushFailed: "Couldn't move it",
   };
 
   var LOCALES = { en: "en-US", zh: "zh-CN", ko: "ko-KR" };
@@ -1040,6 +1161,10 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     // Every week request gets a sequence number; only the newest answer may
     // repaint, so a slow older answer cannot overwrite a newer week.
     loadSeq: 0,
+    // A copy is in flight; a second press is ignored until it answers.
+    copyPending: false,
+    // The timer that returns the Copy label after "Copied" / "Couldn't copy".
+    copyResetTimer: null,
   };
 
   function isNum(value) {
@@ -1217,6 +1342,33 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     el.dataset.zero = value > 0 ? "false" : "true";
   }
 
+  // The week-over-week sentence and its arrow. The copy builds the same
+  // sentence the header shows, so both read from one place.
+  function comparisonFor(p) {
+    var s = p.labels;
+    var arrowClass = "none";
+    var arrow = "";
+    var text;
+    if (p.finished === p.previousFinished) {
+      if (p.finished === 0) {
+        text = s.vsNone;
+        arrowClass = "none";
+      } else {
+        text = s.vsSame;
+        arrowClass = "same";
+      }
+    } else if (p.finished > p.previousFinished) {
+      text = fillTemplate(s.vsMore, p.finished - p.previousFinished);
+      arrowClass = "more";
+      arrow = "▲";
+    } else {
+      text = fillTemplate(s.vsFewer, p.previousFinished - p.finished);
+      arrowClass = "fewer";
+      arrow = "▼";
+    }
+    return { text: text, arrow: arrow, arrowClass: arrowClass };
+  }
+
   function renderChrome(p) {
     var s = p.labels;
     panel.dataset.theme = p.theme;
@@ -1230,34 +1382,18 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     setStat(statOverdue, p.overdue, capOverdue, s.overdue);
     statOverdue.classList.toggle("alert", p.overdue > 0);
 
-    var arrowClass = "none";
-    var arrow = "";
-    var comparison;
-    if (p.finished === p.previousFinished) {
-      if (p.finished === 0) {
-        comparison = s.vsNone;
-        arrowClass = "none";
-      } else {
-        comparison = s.vsSame;
-        arrowClass = "same";
-      }
-    } else if (p.finished > p.previousFinished) {
-      comparison = fillTemplate(s.vsMore, p.finished - p.previousFinished);
-      arrowClass = "more";
-      arrow = "▲";
-    } else {
-      comparison = fillTemplate(s.vsFewer, p.previousFinished - p.finished);
-      arrowClass = "fewer";
-      arrow = "▼";
-    }
-    cmpArrow.textContent = arrow;
-    cmpArrow.className = "cmp-arrow " + arrowClass;
-    cmpText.textContent = comparison;
+    var comparison = comparisonFor(p);
+    cmpArrow.textContent = comparison.arrow;
+    cmpArrow.className = "cmp-arrow " + comparison.arrowClass;
+    cmpText.textContent = comparison.text;
 
     finishedTitleEl.textContent = s.finishedTitle;
     openTitleEl.textContent = s.openTitle;
     openTasksBtn.textContent = s.openTasks;
     closeBtn.textContent = s.close;
+    // A repaint must not interrupt copy feedback or reopen the button mid-call.
+    if (!state.copyPending && !state.copyResetTimer) setCopyLabel(s.copy);
+    copyBtn.disabled = state.copyPending;
     openTasksBtn.setAttribute("aria-label", s.openTasks);
     closeBtn.setAttribute("aria-label", s.close);
     panel.setAttribute("aria-label", s.title);
@@ -1284,6 +1420,13 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     return false;
   }
 
+  // The chip's exact words. Copy writes the same line, so the clipboard and
+  // the screen cannot disagree about which day is being shown.
+  function filterChipText(p) {
+    if (!state.dayFilter) return "";
+    return weekdayLabel(state.dayFilter, p.lang) + " · " + visibleRows(p).length + " ×";
+  }
+
   function updateFilterChip(p) {
     if (!state.dayFilter) {
       filterChipEl.hidden = true;
@@ -1292,7 +1435,7 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
       filterChipEl.removeAttribute("aria-label");
       return;
     }
-    var text = weekdayLabel(state.dayFilter, p.lang) + " · " + visibleRows(p).length + " ×";
+    var text = filterChipText(p);
     filterChipEl.textContent = text;
     filterChipEl.title = text;
     filterChipEl.setAttribute("aria-label", text);
@@ -1407,14 +1550,18 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   }
 
   // ── Rows ───────────────────────────────────────────────────────────────────
+  // A row is a div rather than a button because an open row can carry its own
+  // Tomorrow button, and a button may not contain another control. It keeps the
+  // button's behaviour: role, tab stop, and Enter/Space activation below.
   function makeRow(className, id) {
-    var button = document.createElement("button");
-    button.type = "button";
-    button.className = "row " + className;
-    button.dataset.action = "open";
-    button.dataset.id = id;
-    button.setAttribute("data-testid", className === "finished-row" ? "finished-row" : "open-row");
-    return button;
+    var row = document.createElement("div");
+    row.className = "row " + className;
+    row.dataset.action = "open";
+    row.dataset.id = id;
+    row.setAttribute("role", "button");
+    row.tabIndex = 0;
+    row.setAttribute("data-testid", className === "finished-row" ? "finished-row" : "open-row");
+    return row;
   }
 
   // Rows shown for the current day filter. The desk half is never filtered:
@@ -1490,13 +1637,31 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
       openMain.appendChild(openTitle);
       openButton.appendChild(openMain);
 
+      var side = document.createElement("span");
+      side.className = "row-side";
       var chip = dueChipText(open, p.labels);
       if (chip) {
         var due = document.createElement("span");
         due.className = "due" + (open.overdue ? " warn" : "");
         due.textContent = chip;
-        openButton.appendChild(due);
+        side.appendChild(due);
       }
+      // Only a dated row due today or earlier may be pushed. An undated row
+      // gets nothing: moving it to tomorrow would invent a deadline the user
+      // never set. A row already due tomorrow or later gets nothing either.
+      var today = localDayString(new Date());
+      if (open.dueOn && open.dueOn <= today) {
+        var push = document.createElement("button");
+        push.type = "button";
+        push.className = "push-btn";
+        push.setAttribute("data-testid", "push-btn");
+        push.setAttribute("data-id", open.id);
+        push.textContent = p.labels.pushTomorrow;
+        push.setAttribute("aria-label", p.labels.pushTomorrow);
+        push.title = p.labels.pushTomorrow;
+        side.appendChild(push);
+      }
+      if (side.childNodes.length) openButton.appendChild(side);
       openRowsEl.appendChild(openButton);
     }
     openRowsEl.hidden = p.openRows.length === 0;
@@ -1542,8 +1707,174 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     sendAction({ type: "open-tasks" });
   }
 
+  // ── Copy ──────────────────────────────────────────────────────────────────
+  function setCopyLabel(text) {
+    copyBtn.textContent = text;
+    copyBtn.setAttribute("aria-label", text);
+    copyBtn.title = text;
+  }
+
+  // The clipboard text is the card, flattened: the header, the counts, the
+  // comparison sentence, the seven-day strip, then both lists in their own
+  // order. A filtered finished list narrows to what is on screen, and the chip
+  // says which day that is; the open list describes now and stays whole.
+  function copyTextFor(p) {
+    var s = p.labels;
+    var lines = [];
+    var i;
+
+    lines.push(s.title + " · " + p.range);
+    lines.push(
+      p.finished + " " + String(s.finished).toLowerCase() +
+      " · " + p.finishedTasks + " " + String(s.tasks).toLowerCase() +
+      " · " + p.open + " " + String(s.open).toLowerCase() +
+      " · " + p.overdue + " " + String(s.overdue).toLowerCase()
+    );
+    if (state.dayFilter) lines.push(filterChipText(p));
+    lines.push(comparisonFor(p).text);
+
+    var dayParts = [];
+    for (i = 0; i < p.days.length; i += 1) {
+      dayParts.push(weekdayLabel(p.days[i].day, p.lang) + " " + p.days[i].count);
+    }
+    lines.push("");
+    lines.push(dayParts.join(" · "));
+
+    lines.push("");
+    lines.push(s.finishedTitle);
+    var rows = visibleRows(p);
+    if (rows.length === 0) {
+      lines.push(s.emptyFinished);
+    } else {
+      for (i = 0; i < rows.length; i += 1) {
+        lines.push(rows[i].count > 1
+          ? "- " + rows[i].title + " (×" + rows[i].count + ") · " + rows[i].dayLabel
+          : "- " + rows[i].title);
+      }
+    }
+
+    lines.push("");
+    lines.push(s.openTitle);
+    if (p.openRows.length === 0) {
+      lines.push(s.emptyOpen);
+    } else {
+      for (i = 0; i < p.openRows.length; i += 1) {
+        var chip = dueChipText(p.openRows[i], s);
+        lines.push(chip
+          ? "- " + p.openRows[i].title + " · " + chip
+          : "- " + p.openRows[i].title);
+      }
+    }
+
+    // No trailing blank line: the last line is the last row (or empty copy).
+    return lines.join("\n");
+  }
+
+  function finishCopy(ok) {
+    state.copyPending = false;
+    copyBtn.disabled = false;
+    var s = state.payload ? state.payload.labels : FALLBACK_LABELS;
+    setCopyLabel(ok ? s.copied : s.copyFailed);
+    if (state.copyResetTimer) clearTimeout(state.copyResetTimer);
+    state.copyResetTimer = setTimeout(function () {
+      state.copyResetTimer = null;
+      var current = state.payload ? state.payload.labels : FALLBACK_LABELS;
+      setCopyLabel(current.copy);
+    }, ok ? 1600 : 2400);
+  }
+
+  function copyCard() {
+    if (state.copyPending) return;
+    var p = state.payload;
+    if (!p || !api || typeof api.copy !== "function") return;
+    // A new press during the feedback window replaces that feedback rather
+    // than stacking timers; the label is about to become Copy again anyway.
+    if (state.copyResetTimer) {
+      clearTimeout(state.copyResetTimer);
+      state.copyResetTimer = null;
+    }
+    var text = copyTextFor(p);
+    state.copyPending = true;
+    copyBtn.disabled = true;
+    setCopyLabel(p.labels.copy);
+    var answer;
+    try {
+      answer = api.copy(text);
+    } catch (err) {
+      answer = Promise.reject(err);
+    }
+    Promise.resolve(answer).then(function (result) {
+      finishCopy(!!result && result.ok === true);
+    }).catch(function () {
+      finishCopy(false);
+    });
+  }
+
+  // ── Push to tomorrow ───────────────────────────────────────────────────────
+  function isPayload(data) {
+    return !!data && typeof data === "object" &&
+      !!data.labels && typeof data.labels === "object" && Array.isArray(data.days);
+  }
+
+  function showPushStrip(ok) {
+    var s = state.payload ? state.payload.labels : FALLBACK_LABELS;
+    pushTextEl.textContent = ok ? s.pushed + " — " : s.pushFailed;
+    pushUndoBtn.textContent = ok ? s.pushUndo : "";
+    pushUndoBtn.hidden = !ok;
+    pushStripEl.classList.toggle("failed", !ok);
+    pushStripEl.hidden = false;
+    reportHeight();
+  }
+
+  function hidePushStrip() {
+    if (pushStripEl.hidden) return;
+    pushStripEl.hidden = true;
+    pushStripEl.classList.remove("failed");
+    pushTextEl.textContent = "";
+    pushUndoBtn.textContent = "";
+    pushUndoBtn.hidden = true;
+    reportHeight();
+  }
+
+  // The answer to a push carries the whole fresh card. Repaint first, then
+  // report the outcome, so the strip sits under the list it just shortened and
+  // the window's measured height includes it.
+  function pushTomorrow(id) {
+    if (!id || !api || typeof api.action !== "function") return;
+    var answer;
+    try {
+      answer = api.action({ type: "push-tomorrow", id: id });
+    } catch (err) {
+      return;
+    }
+    Promise.resolve(answer).then(function (payload) {
+      if (!isPayload(payload)) return;
+      var push = payload.push && typeof payload.push === "object" ? payload.push : null;
+      render(payload, false);
+      if (push) showPushStrip(push.ok === true);
+    }).catch(function () { /* fail open: the card stays */ });
+  }
+
+  function undoPush() {
+    // The strip describes the push being undone; it goes at the press, and the
+    // fresh card that comes back puts the old due day on the row again.
+    hidePushStrip();
+    if (!api || typeof api.action !== "function") return;
+    var answer;
+    try {
+      answer = api.action({ type: "undo-push" });
+    } catch (err) {
+      return;
+    }
+    Promise.resolve(answer).then(function (payload) {
+      if (isPayload(payload)) render(payload, false);
+      hidePushStrip();
+    }).catch(function () { /* fail open */ });
+  }
+
   function closePanel() {
     state.closing = true;
+    hidePushStrip();
     if (state.heightFrame) {
       cancelAnimationFrame(state.heightFrame);
       state.heightFrame = null;
@@ -1592,8 +1923,10 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
       // A newer request has superseded this one; its answer is stale.
       if (seq !== state.loadSeq) return;
       // A day belongs to exactly one week, so a filter cannot survive a week
-      // change (including a stale answer landing after a newer one).
+      // change (including a stale answer landing after a newer one). Neither
+      // can a push result: it described a row on the week being left.
       state.dayFilter = null;
+      hidePushStrip();
       render(payload, false);
     }).catch(function () { /* fail open: the current week stays */ });
     return true;
@@ -1614,6 +1947,14 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   // own click(), so both gestures produce the same action.
   bodyEl.addEventListener("click", function (event) {
     var target = event.target;
+    // The Tomorrow button owns its click; the row's open gesture never sees it.
+    var push = target && target.closest ? target.closest(".push-btn") : null;
+    if (push) {
+      event.preventDefault();
+      event.stopPropagation();
+      pushTomorrow(push.getAttribute("data-id"));
+      return;
+    }
     var row = target && target.closest ? target.closest('.row[data-action="open"]') : null;
     if (!row) return;
     var rows = actionRows();
@@ -1621,6 +1962,8 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     openTask(row.getAttribute("data-id"));
   });
 
+  copyBtn.addEventListener("click", copyCard);
+  pushUndoBtn.addEventListener("click", undoPush);
   openTasksBtn.addEventListener("click", openTasks);
   closeBtn.addEventListener("click", closePanel);
   filterChipEl.addEventListener("click", clearDayFilter);
@@ -1705,7 +2048,10 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
       focusRow(rows, next);
       return;
     }
-    if (event.key === "Enter") {
+    // A row is a div with role="button", so it has none of a button's native
+    // key activation; Enter and Space reproduce it. The Tomorrow button inside
+    // a row is a real button, so it keeps its own native activation.
+    if (event.key === "Enter" || event.key === " " || event.key === "Spacebar") {
       var active = document.activeElement;
       if (event.repeat) return;
       if (active && active.classList && active.classList.contains("row") &&

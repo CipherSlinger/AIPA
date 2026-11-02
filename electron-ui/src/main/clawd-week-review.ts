@@ -21,19 +21,22 @@
  *     record on the Tasks view when it has no conversation yet;
  *   - the footer hands AIPA the Tasks view.
  *
- * The card is read-only: it never writes a task, a due day or a status. Its
- * only destination is an existing one — a conversation, a task record, or the
- * Tasks page.
+ * The card is a read of the week, with one deliberate exception: pressing
+ * Tomorrow on an overdue row defers that task's due day, and that — and only
+ * that — is a write. Nothing is written on the card's own initiative; copying
+ * the week, opening a conversation, a task record or the Tasks page all stay
+ * reads or hand-offs.
  *
  * Everything is fail-open: a missing store, a display query that throws while
  * Electron is still starting, or a window that never paints must never take the
  * app down. The worst outcome is that the card does not open.
  */
-import { BrowserWindow, ipcMain, screen } from 'electron'
+import { BrowserWindow, clipboard, ipcMain, screen } from 'electron'
 import * as path from 'path'
 import { getPref } from './config/config-manager'
 import { getClawdLanguage, getClawdPetRect, withClawdMainWindow } from './clawd-integration'
-import { readTaskStore } from './tasks/task-store'
+import { refreshClawdTaskBadge } from './clawd-task-badge'
+import { readTaskStore, updateTask, type TaskRecord } from './tasks/task-store'
 import {
   collectWeekReview,
   weekStartOf,
@@ -74,6 +77,13 @@ export interface ClawdWeekReviewOpenRow {
   overdueDays: number
 }
 
+/** The outcome of a `push-tomorrow` press, so the page can report it. */
+export interface ClawdWeekReviewPush {
+  id: string
+  title: string
+  ok: boolean
+}
+
 /** Everything the renderer needs for one paint. */
 export interface ClawdWeekReviewPayload {
   /** Pet language: "en" | "zh" | "ko". */
@@ -109,6 +119,12 @@ export interface ClawdWeekReviewPayload {
   openRows: ClawdWeekReviewOpenRow[]
   /** Pre-built strings; the page renders them verbatim. */
   labels: Record<string, string>
+  /**
+   * Present only on the answer to a `push-tomorrow` press that actually moved
+   * a due day (or tried to). A push that was a no-op carries nothing, so the
+   * page cannot show a strip for a gesture that changed nothing.
+   */
+  push?: ClawdWeekReviewPush
 }
 
 /** The pet's screen rectangle, in Electron's DIP screen coordinates. */
@@ -119,7 +135,12 @@ export interface ClawdWeekReviewAnchor {
   height: number
 }
 
-type WeekReviewActionType = 'open' | 'open-tasks' | 'close'
+type WeekReviewActionType =
+  | 'open'
+  | 'open-tasks'
+  | 'close'
+  | 'push-tomorrow'
+  | 'undo-push'
 
 interface WeekReviewAction {
   type?: unknown
@@ -182,9 +203,30 @@ let actionInFlight = false
  * moves it and every action answer repaints the same week.
  */
 let currentWeekOffset = 0
+/**
+ * The one deferral Undo can still reverse: the task id and the due day it had
+ * before the push (absent when it had none). A second push replaces it — the
+ * card offers one Undo, never a history — and destroying the window forgets it.
+ */
+let pendingPush: { id: string; previousDueOn?: string } | null = null
 
 /** How far back the card may walk: 52 whole weeks. */
 const MIN_WEEK_OFFSET = -52
+
+/** A copy is clipboard text, not a payload; bound what one press may carry. */
+const MAX_COPY_CHARS = 20_000
+
+/**
+ * The clip, kept from cutting an emoji or any other astral character in half.
+ * A lone surrogate pastes as a replacement glyph, which is worse than one
+ * fewer character of a title nobody asked to keep whole.
+ */
+function clampCopy(text: string): string {
+  if (text.length <= MAX_COPY_CHARS) return text
+  const last = text.charCodeAt(MAX_COPY_CHARS - 1)
+  const cut = last >= 0xd800 && last <= 0xdbff ? MAX_COPY_CHARS - 1 : MAX_COPY_CHARS
+  return text.slice(0, cut)
+}
 
 // ── Payload ──────────────────────────────────────────────────────────────────
 
@@ -341,6 +383,13 @@ function weekReviewLabels(difference: number): Record<string, string> {
     daysLate: petT('weekReviewDaysLate'),
     prevWeek: petT('weekReviewPrevWeek'),
     nextWeek: petT('weekReviewNextWeek'),
+    copy: petT('weekReviewCopy'),
+    copied: petT('weekReviewCopied'),
+    copyFailed: petT('weekReviewCopyFailed'),
+    pushTomorrow: petT('weekReviewPushTomorrow'),
+    pushed: petT('weekReviewPushed'),
+    pushUndo: petT('weekReviewPushUndo'),
+    pushFailed: petT('weekReviewPushFailed'),
   }
 }
 
@@ -605,8 +654,10 @@ function destroyWindow(restoreFocus: boolean): void {
   clearRevealTimer()
   blurArmedAt = 0
   actionInFlight = false
-  // A fresh open starts at the week that just ended.
+  // A fresh open starts at the week that just ended, and no Undo survives the
+  // window that offered it.
   currentWeekOffset = 0
+  pendingPush = null
 
   const win = weekReviewWin
   weekReviewWin = null
@@ -783,6 +834,21 @@ function focusAipa(target: AipaTarget): boolean {
   }
 }
 
+/**
+ * Tell AIPA's own surfaces that a due day moved: the Tasks view repaints and
+ * the pet's badge recounts. The card writes the store directly rather than
+ * through the task IPC broadcast, exactly like the brief's defer, so the
+ * notification the IPC layer would have sent has to be sent here.
+ */
+function notifyTasksChanged(): void {
+  try {
+    withClawdMainWindow(win => {
+      if (!win.webContents.isDestroyed()) win.webContents.send('tasks:changed')
+    })
+  } catch { /* no main window */ }
+  try { refreshClawdTaskBadge() } catch { /* pet gone */ }
+}
+
 function handleAction(action: unknown): ClawdWeekReviewPayload {
   const input = (action && typeof action === 'object' ? action : {}) as WeekReviewAction
   const type = typeof input.type === 'string' ? input.type as WeekReviewActionType : null
@@ -818,6 +884,70 @@ function handleAction(action: unknown): ClawdWeekReviewPayload {
       if (focusAipa({ openTasks: true })) destroyWindow(false)
       else actionInFlight = false
       return buildPayload()
+    case 'push-tomorrow': {
+      let task: TaskRecord | undefined
+      try {
+        task = id ? readTaskStore().tasks.find(item => item.id === id) : undefined
+      } catch (err) {
+        log.warn('Could not look up a task to push:', err)
+      }
+      // Gone between paint and press. Nothing changed, so nothing is owed.
+      if (!task) return buildPayload()
+
+      const tomorrow = addDays(localDayKey(Date.now()), 1)
+      // Tomorrow or later is not a deferral: it would either leave the row
+      // where it is or pull a later deadline earlier. The page only offers the
+      // gesture on rows due today or earlier, and this refuses a stale card too.
+      if (task.dueOn && task.dueOn >= tomorrow) return buildPayload()
+
+      // Captured before the write: `undefined` means the task had no due day,
+      // and Undo must be able to restore that exact absence.
+      const previousDueOn = task.dueOn
+      let mutation: ReturnType<typeof updateTask> | null = null
+      try {
+        mutation = updateTask(task.id, { dueOn: tomorrow })
+      } catch (err) {
+        log.warn('Could not move a task due day:', err)
+      }
+      if (!mutation || !mutation.ok) {
+        log.warn(
+          `Could not defer task ${task.id}:`,
+          mutation && !mutation.ok ? mutation.error : 'write failed',
+        )
+        return { ...buildPayload(), push: { id: task.id, title: task.title, ok: false } }
+      }
+
+      // One entry, replaced by the next push: the strip offers one Undo.
+      pendingPush = {
+        id: task.id,
+        ...(previousDueOn ? { previousDueOn } : {}),
+      }
+      notifyTasksChanged()
+      return { ...buildPayload(), push: { id: task.id, title: task.title, ok: true } }
+    }
+    case 'undo-push': {
+      if (!pendingPush) return buildPayload()
+      const offer = pendingPush
+      // Consume before the write: a double press can only find nothing.
+      pendingPush = null
+      let mutation: ReturnType<typeof updateTask> | null = null
+      try {
+        // `null` clears the field, which is how a task that had no due day must
+        // come back; omitting the patch would leave the pushed day in place.
+        mutation = updateTask(offer.id, { dueOn: offer.previousDueOn ?? null })
+      } catch (err) {
+        log.warn('Could not restore a task due day:', err)
+      }
+      if (!mutation || !mutation.ok) {
+        log.warn(
+          `Could not undo the push of task ${offer.id}:`,
+          mutation && !mutation.ok ? mutation.error : 'write failed',
+        )
+      } else {
+        notifyTasksChanged()
+      }
+      return buildPayload()
+    }
     case 'close':
       destroyWindow(true)
       return buildPayload()
@@ -848,6 +978,22 @@ function ensureIpc(): void {
   safeHandle('week-review:action', (event: Electron.IpcMainInvokeEvent, action: unknown) => {
     if (!isSender(event)) return emptyPayload(currentWeekOffset)
     return handleAction(action)
+  })
+
+  // Copy is its own channel because it touches the OS clipboard and nothing
+  // else: no store read, no window lifecycle. `isSender` keeps every other
+  // webContents in the app from writing the clipboard through this card, and
+  // the handler never throws across IPC — the page only needs ok / not-ok.
+  safeHandle('week-review:copy', (event: Electron.IpcMainInvokeEvent, text: unknown) => {
+    if (!isSender(event)) return { ok: false }
+    if (typeof text !== 'string') return { ok: false }
+    try {
+      clipboard.writeText(clampCopy(text))
+      return { ok: true }
+    } catch (err) {
+      log.warn('Could not copy the week review:', err)
+      return { ok: false }
+    }
   })
 
   ipcMain.on('week-review:report-height', (event: Electron.IpcMainEvent, height: unknown) => {

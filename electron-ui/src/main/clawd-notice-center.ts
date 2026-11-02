@@ -72,6 +72,11 @@ export interface ClawdNoticeCenterItem {
   read: boolean
   /** AIPA session to open, when the notice is about a conversation. */
   sessionId?: string
+  /**
+   * The attention kind that raised the card. A review/wrap notice has no
+   * session; this is what tells the page its Open button has a destination.
+   */
+  sourceKind?: string
   /** Meta rows recorded with the bubble (session, tools, elapsed time). */
   meta?: ClawdBubbleMetaRow[]
   /** The message is worth turning into a task; see SAVEABLE_NOTICE_KINDS. */
@@ -215,6 +220,7 @@ function toItem(
     at: record.at,
     read: !!record.readAt,
     ...(record.sessionId ? { sessionId: record.sessionId } : {}),
+    ...(record.sourceKind ? { sourceKind: record.sourceKind } : {}),
     ...(meta.length ? { meta } : {}),
     canSaveTask: canSaveNotice(record),
     // Both fields ride the same lookup: a row that can open its task can also
@@ -734,6 +740,34 @@ function handOffToTasks(): boolean {
   return handled
 }
 
+/**
+ * Open the window whose bubble this notice mirrored. The weekly review and
+ * the evening wrap share the `review` bubble kind but not a destination, and
+ * neither carries a session, so the log needs `sourceKind` to send the click
+ * where the card would have sent it. The owning modules are required lazily:
+ * importing them at the top would close a runtime cycle through the pet
+ * factory. Returns false for an unknown kind, a failed open or a throw.
+ */
+function openNoticeSource(sourceKind: string): boolean {
+  try {
+    if (sourceKind === 'task-review') {
+      const { openClawdWeekReview } = require('./clawd-week-review') as {
+        openClawdWeekReview: () => boolean
+      }
+      return openClawdWeekReview() === true
+    }
+    if (sourceKind === 'day-wrap') {
+      const { openClawdTaskBrief } = require('./clawd-task-brief') as {
+        openClawdTaskBrief: () => boolean
+      }
+      return openClawdTaskBrief() === true
+    }
+  } catch (err) {
+    log.warn('Could not open the window behind a review notice:', err)
+  }
+  return false
+}
+
 function handleAction(action: unknown): ClawdNoticeCenterPayload {
   const input = (action && typeof action === 'object' ? action : {}) as NoticeCenterAction
   const type = typeof input.type === 'string' ? input.type as NoticeActionType : null
@@ -751,6 +785,16 @@ function handleAction(action: unknown): ClawdNoticeCenterPayload {
       }
       if (id) {
         try { markClawdNoticesRead([id]) } catch (err) { log.warn('Could not mark notice read:', err) }
+      }
+      // A review-shaped notice mirrors a card, not a conversation: open the
+      // card's own window before the generic focus path, which has no session
+      // to land on and would otherwise only bring AIPA forward.
+      if (record?.sourceKind === 'task-review' || record?.sourceKind === 'day-wrap') {
+        if (openNoticeSource(record.sourceKind)) {
+          destroyWindow(false)
+          return buildPayload()
+        }
+        log.debug('The window behind a review notice did not open; falling back to focus')
       }
       // A conversation that belongs to a task opens that task: the log row is
       // the work, not the thread. An unattributed session keeps the plain

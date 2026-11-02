@@ -1332,6 +1332,7 @@ function show(item: AttentionItem, payload: BuiltBubble): void {
     item.recorded = true
     recordClawdNotice({
       kind: payload.kind || 'system',
+      sourceKind: item.kind,
       title: payload.title,
       message: payload.message,
       // A due card's last row is only a count (`+2 more`), with no field name;

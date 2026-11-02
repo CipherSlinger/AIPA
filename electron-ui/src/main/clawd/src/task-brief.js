@@ -19,6 +19,9 @@
   var rangeEl = document.getElementById("range");
   var dateEl = document.getElementById("date");
   var closeBtn = document.getElementById("closeBtn");
+  var filterEl = document.getElementById("filter");
+  var filterInput = document.getElementById("filterInput");
+  var filterClearBtn = document.getElementById("filterClear");
   var listEl = document.getElementById("list");
   var emptyEl = document.getElementById("empty");
   var openTasksBtn = document.getElementById("openTasksBtn");
@@ -63,6 +66,9 @@
     shortcutHint: "open brief",
     untitled: "Untitled task",
     justNow: "now",
+    filterPlaceholder: "Filter tasks",
+    filterEmpty: "No matching tasks",
+    filterClear: "Clear filter",
     range: "{start}–{end} of {total}",
     scroll: "scroll",
     dueToday: "TODAY",
@@ -93,6 +99,11 @@
     payload: { tasks: [], total: 0, lang: "en", theme: "sao", labels: FALLBACK_LABELS, shortcut: "" },
     booted: false,
     closing: false,
+    // The text filter. It only ever changes what is painted: the payload, the
+    // task store and the actions are exactly what they would be unfiltered.
+    // `scrollTop` is the whole list's position when the filter opened, so
+    // clearing it puts the reader back where they were.
+    filter: { open: false, query: "", scrollTop: 0 },
   };
 
   var heightFrame = null;
@@ -222,6 +233,131 @@
     var raw = (count === 1 && labels().materialOne) || labels().materials || "{n} materials";
     if (raw.indexOf("{n}") !== -1) return raw.replace("{n}", String(count));
     return count + " " + raw;
+  }
+
+  // ── Filter ─────────────────────────────────────────────────────────────────
+  // The desk card scrolls past twenty rows on a busy day. A one-line field
+  // narrows the paint to the rows whose own words contain the query; it is a
+  // view, never a write, so the task state and every row action are untouched.
+
+  /** True while the event target is somewhere the user is typing. */
+  function isEditable(target) {
+    if (!target || !target.tagName) return false;
+    var tag = target.tagName;
+    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" ||
+      target.isContentEditable === true;
+  }
+
+  /** The folded query; whitespace-only means "no query". */
+  function activeFilter() {
+    return state.filter.query.trim().toLowerCase();
+  }
+
+  /**
+   * The rows the card should paint. The match is a plain case-insensitive
+   * substring over exactly the words a row shows — title, department (the
+   * unassigned word when there is none) and status label. No ranking, no
+   * fuzzy guessing, and no matching on material counts or reasons that are
+   * not what the user is reading for.
+   */
+  function visibleTasks() {
+    var query = activeFilter();
+    if (!query) return state.payload.tasks;
+    return state.payload.tasks.filter(function (task) {
+      var title = task.title || labels().untitled;
+      var department = task.department || labels().unassigned;
+      return title.toLowerCase().indexOf(query) !== -1 ||
+        department.toLowerCase().indexOf(query) !== -1 ||
+        statusLabel(task.status).toLowerCase().indexOf(query) !== -1;
+    });
+  }
+
+  /** Keep the field's words and its clear affordance in the payload's language. */
+  function syncFilterChrome() {
+    var s = labels();
+    filterInput.setAttribute("aria-label", s.filterPlaceholder);
+    filterInput.title = s.filterPlaceholder;
+    filterInput.placeholder = s.filterPlaceholder;
+    filterClearBtn.setAttribute("aria-label", s.filterClear);
+    filterClearBtn.title = s.filterClear;
+    filterEl.classList.toggle("has-query", state.filter.query.length > 0);
+  }
+
+  function focusPanel() {
+    try { panel.focus({ preventScroll: true }); } catch (err) { panel.focus(); }
+  }
+
+  function focusFilter(selectAll) {
+    try { filterInput.focus({ preventScroll: true }); } catch (err) { filterInput.focus(); }
+    if (selectAll) {
+      // Ctrl+F means "find again": keep an existing query selected so typing
+      // replaces it, the way a browser find bar behaves.
+      try { filterInput.select(); } catch (err) { /* caret only */ }
+      return;
+    }
+    try {
+      var end = filterInput.value.length;
+      filterInput.setSelectionRange(end, end);
+    } catch (err) { /* not fatal */ }
+  }
+
+  /** Show the field under the eyebrow row and put the caret in it. */
+  function openFilter(selectAll) {
+    if (!state.filter.open) {
+      state.filter.open = true;
+      // Remember where the reader was before the list narrowed.
+      state.filter.scrollTop = listEl.scrollTop;
+      filterEl.hidden = false;
+      syncFilterChrome();
+      // One new line in the header block: the window has to follow it, and the
+      // header row itself has not moved.
+      reportHeight();
+    }
+    focusFilter(!!selectAll);
+  }
+
+  /**
+   * Narrow (or restore) the paint for `value`. An empty value restores the
+   * whole desk and its old scroll position; a non-empty one starts the matches
+   * at the top, because the first match is what the reader is looking for.
+   */
+  function setFilterQuery(value, keepFocus) {
+    var next = typeof value === "string" ? value : "";
+    if (filterInput.value !== next) filterInput.value = next;
+    state.filter.query = next;
+    syncFilterChrome();
+    if (next) {
+      renderRows(visibleTasks(), false);
+      listEl.scrollTop = 0;
+    } else {
+      renderRows(state.payload.tasks, false);
+      listEl.scrollTop = state.filter.scrollTop;
+    }
+    reportHeight();
+    if (keepFocus) focusFilter(false);
+  }
+
+  /** Put the field away and bring the whole desk back where it was. */
+  function closeFilter() {
+    state.filter.open = false;
+    state.filter.query = "";
+    filterInput.value = "";
+    filterEl.hidden = true;
+    syncFilterChrome();
+    renderRows(state.payload.tasks, false);
+    listEl.scrollTop = state.filter.scrollTop;
+    reportHeight();
+    focusPanel();
+  }
+
+  /** A (re)opened card always starts unfiltered. */
+  function resetFilter() {
+    state.filter.open = false;
+    state.filter.query = "";
+    state.filter.scrollTop = 0;
+    filterInput.value = "";
+    filterEl.hidden = true;
+    syncFilterChrome();
   }
 
   function relativeTime(at) {
@@ -357,11 +493,24 @@
   // of them the 1–4 chords name, and whether there are more rows below the
   // fold. It is hidden at four or fewer tasks because nothing there needs
   // qualifying.
+  //
+  // While a filter holds a query the cards' rows are a subset, so the line
+  // switches to that subset and is always shown: the count badge still names
+  // the whole desk, and this line must not describe rows that are not painted.
+  // A query that matches nothing says `0–0 of 0` rather than disappearing, so
+  // the empty line below it is never unexplained.
 
   function rangeFact() {
+    var raw = labels().range || FALLBACK_LABELS.range;
+    if (activeFilter()) {
+      var matched = visibleTasks().length;
+      return raw
+        .replace("{start}", matched ? "1" : "0")
+        .replace("{end}", String(Math.min(KEYED_ROWS, matched)))
+        .replace("{total}", String(matched));
+    }
     var total = state.payload.total;
     if (total <= KEYED_ROWS) return "";
-    var raw = labels().range || FALLBACK_LABELS.range;
     return raw
       .replace("{start}", "1")
       .replace("{end}", String(KEYED_ROWS))
@@ -602,7 +751,12 @@
     var hasRows = tasks.length > 0;
     listEl.hidden = !hasRows;
     emptyEl.hidden = hasRows;
-    emptyEl.textContent = hasRows ? "" : labels().empty;
+    // An ordinary empty desk and a filter that matched nothing say different
+    // things: one is the day's fact, the other is about the query, and the
+    // field above stays open in the second case.
+    emptyEl.textContent = hasRows
+      ? ""
+      : (activeFilter() ? labels().filterEmpty : labels().empty);
     // A shorter desk clamps the restored offset on its own, which is exactly
     // what should happen when rows have left the card.
     listEl.scrollTop = resetScroll ? 0 : previousTop;
@@ -743,15 +897,17 @@
     state.payload = normalizePayload(payload);
     document.documentElement.lang = state.payload.lang;
 
+    // The window is destroyed on close, so a fresh card is always a fresh page;
+    // resetting here keeps that promise even for a page that survives a reload
+    // or a standalone preview.
+    if (first) resetFilter();
     applyChrome();
-    renderRows(state.payload.tasks, first);
+    renderRows(visibleTasks(), first);
     applyUndo();
 
     if (first) {
       panel.classList.add("visible");
-      requestAnimationFrame(function () {
-        try { panel.focus({ preventScroll: true }); } catch (err) { panel.focus(); }
-      });
+      requestAnimationFrame(focusPanel);
     }
     reportHeight();
   }
@@ -978,6 +1134,19 @@
   // browser's native click, so no new global chord is introduced.
   undoBtn.addEventListener("click", undoTask);
 
+  // Typing only narrows the paint. `setFilterQuery` owns the rows so the field,
+  // the clear button and Escape all take one path.
+  filterInput.addEventListener("input", function () {
+    setFilterQuery(filterInput.value, false);
+  });
+
+  // Keep the caret in the field when the × is clicked; the button itself never
+  // needs focus, and yanking focus to a control that then disappears is worse.
+  filterClearBtn.addEventListener("mousedown", function (event) { event.preventDefault(); });
+  filterClearBtn.addEventListener("click", function () {
+    setFilterQuery("", true);
+  });
+
   // The wheel is native on the list; this only reveals the auto-hidden thumb
   // while the user is actually moving it.
   listEl.addEventListener("scroll", markScrolling);
@@ -999,7 +1168,37 @@
     // Alt+1 would finish task after task instead of one keypress.
     if (event.repeat) return;
 
+    var mod = event.ctrlKey || event.metaKey;
+
+    // Ctrl+F / Cmd+F opens the filter, like the notice log, and is swallowed
+    // so the window never shows the browser's own find box. With the field
+    // already open it only puts the caret back and selects the query.
+    if (mod && !event.altKey && (event.key === "f" || event.key === "F")) {
+      event.preventDefault();
+      openFilter(true);
+      return;
+    }
+    // "/" opens the filter unless the caret already sits in a text field:
+    // typing a slash into a query must stay a slash.
+    if (event.key === "/" && !mod && !event.altKey && !isEditable(event.target)) {
+      event.preventDefault();
+      openFilter(false);
+      return;
+    }
     if (event.key === "Escape") {
+      // Escape undoes one layer at a time: the query, then the field, then the
+      // card. Clearing the query keeps the field and the card up, with the
+      // caret where the reader left it.
+      if (state.filter.open && state.filter.query) {
+        event.preventDefault();
+        setFilterQuery("", true);
+        return;
+      }
+      if (state.filter.open) {
+        event.preventDefault();
+        closeFilter();
+        return;
+      }
       event.preventDefault();
       closePanel();
       return;
@@ -1008,6 +1207,12 @@
     // is not claimed by any menu in this window (it has no menu bar, and the
     // app template defines no Alt accelerator), so it reaches this handler.
     if (event.ctrlKey || event.metaKey) return;
+
+    // The filter field owns its typing and its caret: while it has focus the
+    // arrows move the caret and a digit is a character in the query, never a
+    // row chord or a list scroll. The chords stay global everywhere else and
+    // keep naming the rows that are actually painted, filtered or not.
+    if (isEditable(event.target)) return;
 
     // Scrolling the desk's overflow. These keys are only claimed while the
     // list actually scrolls, never touch the number row, and are plain (no
