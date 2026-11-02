@@ -36,7 +36,7 @@ import * as path from 'path'
 import { getPref } from './config/config-manager'
 import { getClawdLanguage, withClawdMainWindow } from './clawd-integration'
 import { readDeptHandbookSnapshot } from './automation/dept-handbook-store'
-import { listTasks, updateTask, type TaskRecord, type TaskStatus, type TaskView } from './tasks/task-store'
+import { createTask, listTasks, updateTask, type TaskRecord, type TaskStatus, type TaskView } from './tasks/task-store'
 import { refreshClawdTaskBadge } from './clawd-task-badge'
 import { isDuplicateFinish, pruneFinishMarks } from './clawd-task-brief-dedupe'
 import { safeHandle } from './ipc/register/safe-handle'
@@ -147,13 +147,21 @@ export interface ClawdTaskBriefPayload {
    * intervenes.
    */
   undo?: ClawdTaskBriefUndo
+  /**
+   * The task a capture line just filed. The fresh `tasks` list already carries
+   * it; this only tells the page which row is new, so it can keep the line open
+   * for the next one without guessing from the diff.
+   */
+  created?: { id: string; title: string }
 }
 
-type BriefActionType = 'open' | 'start' | 'done' | 'defer' | 'undo' | 'open-tasks' | 'close'
+type BriefActionType = 'open' | 'start' | 'done' | 'defer' | 'undo' | 'open-tasks' | 'close' | 'create'
 
 interface BriefAction {
   type?: unknown
   id?: unknown
+  /** The capture line's typed words; only `create` reads it. */
+  title?: unknown
 }
 
 // Width is fixed; height follows the content between these bounds. The page
@@ -377,6 +385,12 @@ function briefLabels(): Record<string, string> {
     filterPlaceholder: petT('taskBriefFilterPlaceholder'),
     filterEmpty: petT('taskBriefFilterEmpty'),
     filterClear: petT('taskBriefFilterClear'),
+    // The one-line capture row above the footer. The reader who notices
+    // something missing from the desk files it without leaving the card.
+    capture: petT('taskBriefCapture'),
+    captureHint: petT('taskBriefCaptureHint'),
+    capturePlaceholder: petT('taskBriefCapturePlaceholder'),
+    captureFailed: petT('taskBriefCaptureFailed'),
     // The quiet range line beside the count: which of the desk's tasks the
     // number chords name ("1–4 of 9"), and the word appended when the card is
     // too short to show them all. {start}/{end}/{total} are filled by the page.
@@ -1054,17 +1068,70 @@ function handleUndo(): ClawdTaskBriefPayload {
   return payload
 }
 
+/** The store's title cap, mirrored so an over-long paste is trimmed, not refused. */
+const CAPTURE_TITLE_MAX = 200
+
+/**
+ * The capture line's words, in the shape the store expects.
+ *
+ * Whitespace is collapsed rather than preserved: a title is one line in every
+ * surface that shows it, and the two ends of a typed line are almost always a
+ * stray space. The length is cut here, at the store's own cap, so a long paste
+ * becomes a valid title instead of a refusal the line would have to explain.
+ * `task-capture.ts` does the same for the pet's separate capture bar; this is
+ * a deliberate one-liner rather than an import, because that module anchors on
+ * the pet, which is exactly what the brief's own line is avoiding.
+ */
+function normalizeCaptureTitle(raw: unknown): string {
+  if (typeof raw !== 'string') return ''
+  return raw.replace(/\s+/g, ' ').trim().slice(0, CAPTURE_TITLE_MAX).trimEnd()
+}
+
+/**
+ * File one task from the card's capture line.
+ *
+ * The store decides everything else — inbox, no due day, one-off — so this path
+ * passes only the title and never restates today's defaults. No Undo is armed:
+ * the brief's Undo restores a status or a due day, while undoing a creation
+ * would mean deleting a task, which is a much bigger gesture than a one-line
+ * capture can honestly promise.
+ */
+function handleCreate(action: BriefAction): ClawdTaskBriefPayload {
+  const title = normalizeCaptureTitle(action.title)
+  // Whitespace only is not an error: the user changed their mind, and the line
+  // closes on the page side without a row appearing.
+  if (!title) return buildPayload()
+
+  let mutation: ReturnType<typeof createTask> | null = null
+  try {
+    mutation = createTask({ title })
+  } catch (err) {
+    log.warn('Could not create a task from the brief:', err)
+  }
+  if (!mutation || !mutation.ok) {
+    return withError(buildPayload(), petT('taskBriefCaptureFailed'))
+  }
+
+  notifyTasksChanged()
+  // Same companion refresh every other write on this card performs: the pet's
+  // badge counts the desk, and the desk just changed.
+  try { refreshClawdTaskBadge() } catch { /* pet gone */ }
+
+  return { ...buildPayload(), created: { id: mutation.task.id, title: mutation.task.title } }
+}
+
 function handleAction(action: unknown): ClawdTaskBriefPayload {
   const input = (action && typeof action === 'object' ? action : {}) as BriefAction
   const type = typeof input.type === 'string' ? input.type as BriefActionType : null
   const id = typeof input.id === 'string' ? input.id : ''
 
   // Only a finish may create an offer, and only Undo may consume one. Every
-  // other gesture is a different intent, so the previous offer stops being the
-  // most recent thing the user did. Done clears here too and re-arms only if
-  // the write really landed. A defer is guarded inside its own case instead:
-  // a press on a row already due tomorrow writes nothing, so it must not cost
-  // the user the offer an earlier action is still standing behind.
+  // other gesture — a capture included — is a different intent, so the previous
+  // offer stops being the most recent thing the user did. Done clears here too
+  // and re-arms only if the write really landed. A defer is guarded inside its
+  // own case instead: a press on a row already due tomorrow writes nothing, so
+  // it must not cost the user the offer an earlier action is still standing
+  // behind.
   if (type !== 'done' && type !== 'undo' && type !== 'defer') clearUndoOffer()
 
   switch (type) {
@@ -1281,6 +1348,8 @@ function handleAction(action: unknown): ClawdTaskBriefPayload {
     }
     case 'undo':
       return handleUndo()
+    case 'create':
+      return handleCreate(input)
     case 'open-tasks': {
       actionInFlight = true
       if (focusAipa({ openTasks: true })) destroyWindow(false)

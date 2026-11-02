@@ -21,11 +21,11 @@
  *     record on the Tasks view when it has no conversation yet;
  *   - the footer hands AIPA the Tasks view.
  *
- * The card is a read of the week, with one deliberate exception: pressing
- * Tomorrow on an overdue row defers that task's due day, and that — and only
- * that — is a write. Nothing is written on the card's own initiative; copying
- * the week, opening a conversation, a task record or the Tasks page all stay
- * reads or hand-offs.
+ * The card is a read of the week with two deliberate exceptions, both on an
+ * open row: Tomorrow defers that task's due day, and Done finishes it. Each
+ * write arms exactly one Undo. Nothing is written on the card's own
+ * initiative; copying the week, opening a conversation, a task record or the
+ * Tasks page all stay reads or hand-offs.
  *
  * Everything is fail-open: a missing store, a display query that throws while
  * Electron is still starting, or a window that never paints must never take the
@@ -36,7 +36,7 @@ import * as path from 'path'
 import { getPref } from './config/config-manager'
 import { getClawdLanguage, getClawdPetRect, withClawdMainWindow } from './clawd-integration'
 import { refreshClawdTaskBadge } from './clawd-task-badge'
-import { readTaskStore, updateTask, type TaskRecord } from './tasks/task-store'
+import { readTaskStore, updateTask, type TaskRecord, type TaskStatus } from './tasks/task-store'
 import {
   collectWeekReview,
   weekStartOf,
@@ -84,6 +84,42 @@ export interface ClawdWeekReviewPush {
   ok: boolean
 }
 
+/**
+ * The outcome of a `done` press. Same shape as a push's for the same reason:
+ * the page needs the row's title to say which task it was, and `ok` to decide
+ * between a report with Undo and a bare failure line.
+ */
+export interface ClawdWeekReviewDone {
+  id: string
+  title: string
+  ok: boolean
+}
+
+/** One Undo the card is offering: either a moved due day or a finished task. */
+type PendingOffer =
+  | {
+    kind: 'push'
+    id: string
+    previousDueOn?: string
+    /**
+     * The day this offer's own write applied. Undo only puts `previousDueOn`
+     * back while the task still carries this day: a day set by another surface
+     * since then is newer intent, and restoring would erase it.
+     */
+    appliedDueOn: string
+  }
+  | {
+    kind: 'done'
+    id: string
+    previous: TaskStatus
+    /**
+     * Why a `needs_you` task was waiting. The reason lives only on the latest
+     * `status_changed` detail, which Done overwrites, so restoring the status
+     * without it would bring the row back unable to say what it waits for.
+     */
+    reason?: string
+  }
+
 /** Everything the renderer needs for one paint. */
 export interface ClawdWeekReviewPayload {
   /** Pet language: "en" | "zh" | "ko". */
@@ -125,6 +161,13 @@ export interface ClawdWeekReviewPayload {
    * page cannot show a strip for a gesture that changed nothing.
    */
   push?: ClawdWeekReviewPush
+  /**
+   * Present only on the answer to a `done` press that actually tried a write.
+   * A Done on a row that was already finished (or is repeating) answers with
+   * no `done`, so the page cannot offer an Undo for a gesture that changed
+   * nothing.
+   */
+  done?: ClawdWeekReviewDone
 }
 
 /** The pet's screen rectangle, in Electron's DIP screen coordinates. */
@@ -140,7 +183,8 @@ type WeekReviewActionType =
   | 'open-tasks'
   | 'close'
   | 'push-tomorrow'
-  | 'undo-push'
+  | 'done'
+  | 'undo'
 
 interface WeekReviewAction {
   type?: unknown
@@ -204,11 +248,12 @@ let actionInFlight = false
  */
 let currentWeekOffset = 0
 /**
- * The one deferral Undo can still reverse: the task id and the due day it had
- * before the push (absent when it had none). A second push replaces it — the
- * card offers one Undo, never a history — and destroying the window forgets it.
+ * The one gesture Undo can still reverse. A push remembers the due day the
+ * task had before it (absent when it had none); a Done remembers the status
+ * the task had. Either gesture replaces the other — the card offers one Undo,
+ * never a history — and destroying the window forgets it.
  */
-let pendingPush: { id: string; previousDueOn?: string } | null = null
+let pendingOffer: PendingOffer | null = null
 
 /** How far back the card may walk: 52 whole weeks. */
 const MIN_WEEK_OFFSET = -52
@@ -390,6 +435,10 @@ function weekReviewLabels(difference: number): Record<string, string> {
     pushed: petT('weekReviewPushed'),
     pushUndo: petT('weekReviewPushUndo'),
     pushFailed: petT('weekReviewPushFailed'),
+    done: petT('weekReviewDone'),
+    doneHint: petT('weekReviewDoneHint'),
+    doneStrip: petT('weekReviewDoneStrip'),
+    doneFailed: petT('weekReviewDoneFailed'),
   }
 }
 
@@ -657,7 +706,7 @@ function destroyWindow(restoreFocus: boolean): void {
   // A fresh open starts at the week that just ended, and no Undo survives the
   // window that offered it.
   currentWeekOffset = 0
-  pendingPush = null
+  pendingOffer = null
 
   const win = weekReviewWin
   weekReviewWin = null
@@ -840,6 +889,39 @@ function focusAipa(target: AipaTarget): boolean {
  * through the task IPC broadcast, exactly like the brief's defer, so the
  * notification the IPC layer would have sent has to be sent here.
  */
+/**
+ * The reason a status carries, as recorded by `updateTask`.
+ *
+ * A status reason is stored on the event as `<from> -> <to> | <note>`; the
+ * prefix is the store's, not the card's. Only the latest status change may
+ * speak: a task that was waiting on an error, ran again and came back with no
+ * reason must not keep showing the old error. This is the same read the brief
+ * makes, because it guards the same thing — a `needs_you` row restored without
+ * its reason is a row that no longer explains itself.
+ */
+function statusNote(task: TaskRecord): string | undefined {
+  for (let i = task.history.length - 1; i >= 0; i--) {
+    const event = task.history[i]
+    if (event.kind !== 'status_changed' || !event.detail) continue
+    const separator = event.detail.indexOf(' | ')
+    const transition = separator === -1 ? event.detail : event.detail.slice(0, separator)
+    if (!transition.endsWith(' -> needs_you')) return undefined
+    if (separator === -1) return undefined
+    const note = event.detail.slice(separator + ' | '.length).trim()
+    return note || undefined
+  }
+  return undefined
+}
+
+/**
+ * A task is on the desk when it is neither done nor archived. Undo is only
+ * allowed while the row still looks like the one its offer described: a row
+ * that left the desk, or that changed status, is a different row by now.
+ */
+function isOnDesk(task: TaskRecord): boolean {
+  return task.status !== 'done' && task.status !== 'archived'
+}
+
 function notifyTasksChanged(): void {
   try {
     withClawdMainWindow(win => {
@@ -917,30 +999,127 @@ function handleAction(action: unknown): ClawdWeekReviewPayload {
         return { ...buildPayload(), push: { id: task.id, title: task.title, ok: false } }
       }
 
-      // One entry, replaced by the next push: the strip offers one Undo.
-      pendingPush = {
+      // One entry, replaced by the next gesture: the strip offers one Undo.
+      pendingOffer = {
+        kind: 'push',
         id: task.id,
         ...(previousDueOn ? { previousDueOn } : {}),
+        appliedDueOn: tomorrow,
       }
       notifyTasksChanged()
       return { ...buildPayload(), push: { id: task.id, title: task.title, ok: true } }
     }
-    case 'undo-push': {
-      if (!pendingPush) return buildPayload()
-      const offer = pendingPush
-      // Consume before the write: a double press can only find nothing.
-      pendingPush = null
+    case 'done': {
+      let task: TaskRecord | undefined
+      try {
+        task = id ? readTaskStore().tasks.find(item => item.id === id) : undefined
+      } catch (err) {
+        log.warn('Could not look up a task to finish:', err)
+      }
+      // Gone between paint and press: nothing changed, so nothing is owed.
+      if (!task) return buildPayload()
+
+      // Already finished elsewhere, or this is the second half of a double
+      // click that landed before the row collapsed. There is nothing to finish
+      // and nothing to undo, so no offer is armed — a Done that visibly did
+      // nothing must not claim an Undo.
+      if (task.status === 'done' || task.status === 'archived') return buildPayload()
+
+      // A repeating task is a refusal on this card, deliberately unlike the
+      // brief. `updateTask` answers `status: 'done'` on a task with `repeat` by
+      // rolling the occurrence forward and keeping the status — the right
+      // answer where the brief is about the work in front of the user. This
+      // card is a retrospective of a finished week, and moving a recurring
+      // task's next due day from it would be a write nobody asked for, while a
+      // strip saying "done" with an Undo would be describing a finish that the
+      // store never recorded. So the guard lives here, before the call, and the
+      // card does nothing rather than something the user did not mean.
+      if (task.repeat) {
+        log.debug(`Week review left repeating task ${task.id} alone: Done does not finish a repeat here`)
+        return buildPayload()
+      }
+
+      // Captured before the write: this is the exact status the task had when
+      // the user pressed Done, so Undo can put the row back as it was. A
+      // waiting task's reason lives only on its latest `status_changed` event,
+      // which this Done replaces, so it has to be carried into the offer or
+      // Undo cannot bring the row back saying what it waits for.
+      const previous = task.status
+      const reason = previous === 'needs_you' ? statusNote(task) : undefined
       let mutation: ReturnType<typeof updateTask> | null = null
       try {
-        // `null` clears the field, which is how a task that had no due day must
-        // come back; omitting the patch would leave the pushed day in place.
-        mutation = updateTask(offer.id, { dueOn: offer.previousDueOn ?? null })
+        mutation = updateTask(task.id, { status: 'done' })
       } catch (err) {
-        log.warn('Could not restore a task due day:', err)
+        log.warn('Could not finish a task:', err)
       }
       if (!mutation || !mutation.ok) {
         log.warn(
-          `Could not undo the push of task ${offer.id}:`,
+          `Could not finish task ${task.id}:`,
+          mutation && !mutation.ok ? mutation.error : 'write failed',
+        )
+        return { ...buildPayload(), done: { id: task.id, title: task.title, ok: false } }
+      }
+
+      pendingOffer = { kind: 'done', id: task.id, previous, ...(reason ? { reason } : {}) }
+      notifyTasksChanged()
+      return { ...buildPayload(), done: { id: task.id, title: task.title, ok: true } }
+    }
+    case 'undo': {
+      if (!pendingOffer) return buildPayload()
+      const offer = pendingOffer
+      // Consume before the write: a double press can only find nothing.
+      pendingOffer = null
+
+      // Undo may only claim the row its own write produced. The card can be
+      // up for a while, and AIPA may have finished, archived or re-dated the
+      // task in between; restoring the old state then would silently overwrite
+      // a newer intent. The brief refuses in the same case, and answers the
+      // unchanged card — the strip is already gone, so silence is the honest
+      // outcome. A row that is missing altogether is the same story.
+      let task: TaskRecord | undefined
+      try {
+        task = readTaskStore().tasks.find(item => item.id === offer.id)
+      } catch (err) {
+        log.warn('Could not look up a task to restore:', err)
+      }
+      if (!task) return buildPayload()
+
+      let mutation: ReturnType<typeof updateTask> | null = null
+      if (offer.kind === 'push') {
+        // The pushed day must still be the one on the task. A different day
+        // set since the push is newer intent; putting the old one back would
+        // erase an edit made after this card offered to undo.
+        if (!isOnDesk(task) || task.dueOn !== offer.appliedDueOn) return buildPayload()
+        try {
+          // `null` clears the field, which is how a task that had no due day
+          // must come back; omitting the patch would leave the pushed day in
+          // place and make Undo a silent no-op.
+          mutation = updateTask(offer.id, { dueOn: offer.previousDueOn ?? null })
+        } catch (err) {
+          log.warn('Could not restore a task due day:', err)
+        }
+      } else {
+        // A Done offer is only valid while the task is still finished. If it
+        // is back on the desk (someone else restored it) or archived, the row
+        // is not the one this Undo describes.
+        if (task.status !== 'done') return buildPayload()
+        try {
+          // Restoring `needs_you` restores its reason too, or the row comes
+          // back saying it waits on the user but no longer saying why. The
+          // store only records a note alongside an actual status change, and
+          // this restore is one.
+          mutation = updateTask(offer.id, {
+            status: offer.previous,
+            ...(offer.previous === 'needs_you' && offer.reason ? { note: offer.reason } : {}),
+          })
+        } catch (err) {
+          log.warn('Could not restore a finished task:', err)
+        }
+      }
+
+      if (!mutation || !mutation.ok) {
+        log.warn(
+          `Could not undo the ${offer.kind} of task ${offer.id}:`,
           mutation && !mutation.ok ? mutation.error : 'write failed',
         )
       } else {

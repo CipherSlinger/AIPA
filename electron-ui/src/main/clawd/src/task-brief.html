@@ -162,6 +162,7 @@ body { padding: 8px; }
 .empty,
 .error,
 .undo,
+.capture,
 .foot { flex: none; }
 
 /* ── Title bar ────────────────────────────────────────────────────────────── */
@@ -273,9 +274,15 @@ body { padding: 8px; }
 /* One slim line under the eyebrow row, never beside it: the header row keeps
    its exact geometry and the card grows by this line only while the filter is
    open. Same hairline, cut corner and inset focus as the rest of the card. */
-.filter {
+.filter { flex: 0 0 100%; }
+
+/* The capture line is the filter's sibling: the same slim in-flow row, drawn
+   with the same hairline, cut corner and focus glow, but it sits above the
+   footer and grows the card by its own height while it is open. Grouping the
+   shared declarations is what keeps the two lines from drifting apart. */
+.filter,
+.capture {
   display: flex;
-  flex: 0 0 100%;
   align-items: center;
   gap: 7px;
   height: 24px;
@@ -285,26 +292,33 @@ body { padding: 8px; }
   clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
   transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
 }
-.panel[data-theme="clawd"] .filter {
+.capture { margin-top: 7px; }
+.panel[data-theme="clawd"] .filter,
+.panel[data-theme="clawd"] .capture {
   height: 28px;
   border-radius: 7px;
   clip-path: none;
 }
-.filter:focus-within {
+.filter:focus-within,
+.capture:focus-within {
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
   background: color-mix(in srgb, var(--accent) 7%, transparent);
   box-shadow: inset 0 0 14px color-mix(in srgb, var(--accent) 6%, transparent);
 }
-.filter-glyph {
+.filter-glyph,
+.capture-glyph {
   flex: none;
   width: 11px;
   height: 11px;
   color: var(--muted);
   transition: color 140ms ease;
 }
-.filter:focus-within .filter-glyph { color: var(--accent); }
-.filter-glyph svg { display: block; width: 100%; height: 100%; }
-.filter-input {
+.filter:focus-within .filter-glyph,
+.capture:focus-within .capture-glyph { color: var(--accent); }
+.filter-glyph svg,
+.capture-glyph svg { display: block; width: 100%; height: 100%; }
+.filter-input,
+.capture-input {
   flex: 1;
   min-width: 0;
   height: 100%;
@@ -329,7 +343,8 @@ body { padding: 8px; }
   appearance: none;
   display: none;
 }
-.filter-input::placeholder {
+.filter-input::placeholder,
+.capture-input::placeholder {
   color: var(--muted);
   opacity: 0.75;
   font-size: 8px;
@@ -337,13 +352,29 @@ body { padding: 8px; }
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
-.panel[data-theme="clawd"] .filter-input { font-size: 11px; letter-spacing: 0.01em; }
-.panel[data-theme="clawd"] .filter-input::placeholder {
+.panel[data-theme="clawd"] .filter-input,
+.panel[data-theme="clawd"] .capture-input { font-size: 11px; letter-spacing: 0.01em; }
+.panel[data-theme="clawd"] .filter-input::placeholder,
+.panel[data-theme="clawd"] .capture-input::placeholder {
   font-size: 10px;
   font-weight: 400;
   letter-spacing: 0.01em;
   text-transform: none;
 }
+/* The capture line's "↵" cue says Enter files the words: a keycap, the same
+   way the filter names "/". It disappears once the line has focus, because at
+   that point the caret is the affordance. */
+.capture-hint {
+  flex: none;
+  padding: 0 4px;
+  border: 1px solid var(--key-border);
+  border-radius: 1px;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 13px;
+  opacity: 0.7;
+}
+.capture:focus-within .capture-hint { display: none; }
 /* The "/" cue is a keycap, not chrome: it disappears once the caret is in the
    field or a query is held. */
 .filter-hint {
@@ -800,14 +831,20 @@ body { padding: 8px; }
 }
 
 /* ── Footer ───────────────────────────────────────────────────────────────── */
+/* One calm row. Two labelled buttons plus the shortcut hint now share a line
+   that only just holds them, so the labels never wrap and the gap is a little
+   tighter than before — wrapping made both buttons two lines tall, which pushed
+   the footer to double height at the width the card actually opens at. */
 .foot {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin-top: 9px;
   padding-top: 9px;
   border-top: 1px solid var(--hairline);
 }
+.open-tasks,
+.new-task { white-space: nowrap; }
 .open-tasks {
   appearance: none;
   display: inline-flex;
@@ -846,20 +883,66 @@ body { padding: 8px; }
     0 0 12px color-mix(in srgb, var(--accent) 16%, transparent);
 }
 .open-tasks svg { width: 10px; height: 10px; display: block; }
-.hint {
+/* New task sits before Open Tasks, same height and skin family, but quieter:
+   no accent text at rest and a softer hairline, so the footer still reads as
+   one calm row and the secondary gesture does not compete with Open Tasks.
+   Colour and border brighten only on hover or keyboard focus. */
+.new-task {
+  appearance: none;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid var(--hairline);
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  outline: none;
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  transition: background 140ms ease, border-color 140ms ease,
+    color 140ms ease, box-shadow 140ms ease;
+}
+.panel[data-theme="clawd"] .new-task {
+  border-radius: 7px;
+  clip-path: none;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-size: 11px;
+}
+.new-task:hover,
+.new-task:focus-visible {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.panel[data-theme="sao"] .new-task:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* The glyph steps out of the footer's tight budget: the word alone already
+   names the gesture (and the capture line it opens carries the same "+"), so
+   the label is what has to survive the narrower line. */
+.new-task svg { display: none; }
+.hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   margin-left: auto;
   font-size: 8px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
   white-space: nowrap;
 }
 .panel[data-theme="clawd"] .hint { text-transform: none; letter-spacing: 0.02em; font-size: 10px; }
 .hint kbd {
-  padding: 1px 5px;
+  padding: 1px 3px;
   border: 1px solid var(--key-border);
   border-radius: 1px;
   font: inherit;
@@ -881,10 +964,14 @@ body { padding: 8px; }
   .filter-glyph,
   .filter-input,
   .filter-clear,
+  .capture,
+  .capture-glyph,
+  .capture-input,
   .start,
   .done,
   .undo-btn,
   .open-tasks,
+  .new-task,
   .row-wrap.leaving { transition: none; }
   /* The scrollbar's fade is the only motion the list adds; with reduced motion
      the thumb simply appears while scrolling and disappears after. */
@@ -926,7 +1013,19 @@ body { padding: 8px; }
     <span class="undo-sep" aria-hidden="true">·</span>
     <button class="undo-btn" id="undoBtn" type="button">Undo</button>
   </div>
+  <!-- The capture row: one line in flow above the footer, hidden until the
+       New task button or "+" opens it. It is the filter's sibling in the same
+       construction, so a reader who files a stray thought sees the card grow
+       by exactly this line and no more. -->
+  <div class="capture" id="capture" hidden>
+    <span class="capture-glyph" aria-hidden="true">+</span>
+    <input class="capture-input" id="captureInput" type="text" maxlength="200" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Add a task" placeholder="What needs doing?" title="Add a task" />
+    <span class="capture-hint" aria-hidden="true">↵</span>
+  </div>
   <footer class="foot">
+    <button class="new-task" id="newTaskBtn" type="button">
+      <span id="newTaskLabel">New task</span>
+    </button>
     <button class="open-tasks" id="openTasksBtn" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"/><path d="m13 6 6 6-6 6"/></svg>
       <span id="openTasksLabel">Open Tasks</span>

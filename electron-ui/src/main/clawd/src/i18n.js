@@ -174,6 +174,12 @@ const i18n = {
     weekReviewPushed: "Moved to tomorrow",
     weekReviewPushUndo: "Undo",
     weekReviewPushFailed: "Couldn't move it",
+    // The other half of a week in review: a task that is really done, just
+    // never ticked. Same strip, one offer at a time.
+    weekReviewDone: "Done",
+    weekReviewDoneHint: "Mark this task done",
+    weekReviewDoneStrip: "{name} done",
+    weekReviewDoneFailed: "Couldn't finish it",
     // Evening wrap-up: one opt-in card at 18:30, speaking for the day that is
     // ending. The desk sentences are the weekly review's own — the desk does
     // not change its name at dusk.
@@ -291,6 +297,12 @@ const i18n = {
     taskBriefFilterPlaceholder: "Filter tasks",
     taskBriefFilterEmpty: "No matching tasks",
     taskBriefFilterClear: "Clear filter",
+    // Filing a task from the card itself. The line is a sibling of the filter
+    // field, so it borrows its words: one question, one answer, one Enter.
+    taskBriefCapture: "New task",
+    taskBriefCaptureHint: "Add a task",
+    taskBriefCapturePlaceholder: "What needs doing?",
+    taskBriefCaptureFailed: "Couldn't add it",
     taskBriefJustNow: "now",
     // The quiet range beside the count: which rows the 1–4 chords name and how
     // many active tasks are on the desk. `{start}`/`{end}` are row numbers and
@@ -555,6 +567,10 @@ const i18n = {
     weekReviewPushed: "已推到明天",
     weekReviewPushUndo: "撤销",
     weekReviewPushFailed: "没能推过去",
+    weekReviewDone: "完成",
+    weekReviewDoneHint: "标记为完成",
+    weekReviewDoneStrip: "{name} 已完成",
+    weekReviewDoneFailed: "没能完成",
     settingsPetEveningWrap: "晚间回顾",
     settingsPetEveningWrapHint: "18:30 一张卡片，说说今天做完了什么、明天还等着什么。",
     attentionDayWrapTitle: "今天",
@@ -647,6 +663,10 @@ const i18n = {
     taskBriefFilterPlaceholder: "筛选任务",
     taskBriefFilterEmpty: "没有匹配的任务",
     taskBriefFilterClear: "清除筛选",
+    taskBriefCapture: "新任务",
+    taskBriefCaptureHint: "添加任务",
+    taskBriefCapturePlaceholder: "要做点什么？",
+    taskBriefCaptureFailed: "没能添加",
     taskBriefJustNow: "刚刚",
     taskBriefRange: "{start}–{end}，共 {total} 条",
     taskBriefScroll: "滚动",
@@ -884,6 +904,10 @@ const i18n = {
     weekReviewPushed: "내일로 미룸",
     weekReviewPushUndo: "실행 취소",
     weekReviewPushFailed: "미루지 못했습니다",
+    weekReviewDone: "완료",
+    weekReviewDoneHint: "완료로 표시",
+    weekReviewDoneStrip: "{name} 완료",
+    weekReviewDoneFailed: "완료하지 못했습니다",
     settingsPetEveningWrap: "저녁 정리",
     settingsPetEveningWrapHint: "18:30에 오늘 끝낸 일과 내일 남은 일을 한 장으로 알려줍니다.",
     attentionDayWrapTitle: "오늘",
@@ -976,6 +1000,10 @@ const i18n = {
     taskBriefFilterPlaceholder: "작업 필터",
     taskBriefFilterEmpty: "일치하는 작업 없음",
     taskBriefFilterClear: "필터 지우기",
+    taskBriefCapture: "새 작업",
+    taskBriefCaptureHint: "작업 추가",
+    taskBriefCapturePlaceholder: "무엇을 해야 하나요?",
+    taskBriefCaptureFailed: "추가하지 못했습니다",
     taskBriefJustNow: "방금",
     taskBriefRange: "{start}–{end} / 총 {total}개",
     taskBriefScroll: "스크롤",

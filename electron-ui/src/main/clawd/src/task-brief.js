@@ -33,6 +33,10 @@
   var undoEl = document.getElementById("undo");
   var undoTextEl = document.getElementById("undoText");
   var undoBtn = document.getElementById("undoBtn");
+  var captureEl = document.getElementById("capture");
+  var captureInput = document.getElementById("captureInput");
+  var newTaskBtn = document.getElementById("newTaskBtn");
+  var newTaskLabel = document.getElementById("newTaskLabel");
 
   var STATUSES = ["needs_you", "in_progress", "assigned", "ready", "inbox"];
   // How many rows the number chords name. `1`–`4` have always meant the first
@@ -69,6 +73,10 @@
     filterPlaceholder: "Filter tasks",
     filterEmpty: "No matching tasks",
     filterClear: "Clear filter",
+    capture: "New task",
+    captureHint: "Add a task",
+    capturePlaceholder: "What needs doing?",
+    captureFailed: "Couldn't add it",
     range: "{start}–{end} of {total}",
     scroll: "scroll",
     dueToday: "TODAY",
@@ -104,6 +112,10 @@
     // `scrollTop` is the whole list's position when the filter opened, so
     // clearing it puts the reader back where they were.
     filter: { open: false, query: "", scrollTop: 0 },
+    // The capture line above the footer. `open` only decides whether the line
+    // is painted; `busy` spans one request so a held Enter cannot file the
+    // same words twice before the answer repaints.
+    capture: { open: false, busy: false },
   };
 
   var heightFrame = null;
@@ -222,6 +234,16 @@
       // It lives on this payload only, so the next refresh clears it.
       error: typeof data.error === "string" ? data.error : "",
       undo: undo,
+      // The task a capture line just filed, if that is what this payload
+      // answers. Absent on every other payload, so a normal paint never
+      // touches the line.
+      created: data.created && typeof data.created === "object" &&
+        typeof data.created.id === "string" && data.created.id
+        ? {
+            id: data.created.id,
+            title: typeof data.created.title === "string" ? data.created.title : "",
+          }
+        : null,
     };
   }
 
@@ -358,6 +380,95 @@
     filterInput.value = "";
     filterEl.hidden = true;
     syncFilterChrome();
+  }
+
+  // ── Capture ────────────────────────────────────────────────────────────────
+  // The moment a reader sees the desk is the moment they remember what is
+  // missing from it. The line files that thought without leaving the card:
+  // one line above the footer, one Enter, and the new row appears in the same
+  // paint. It is deliberately as quiet as the filter — a secondary gesture,
+  // never a second task form.
+
+  /** Put the capture line's words and its accessible name in the payload's language. */
+  function syncCaptureChrome() {
+    var s = labels();
+    newTaskLabel.textContent = s.capture;
+    newTaskBtn.setAttribute("aria-label", s.capture);
+    newTaskBtn.title = s.capture;
+    captureInput.setAttribute("aria-label", s.captureHint || s.capture);
+    captureInput.title = s.captureHint || s.capture;
+    captureInput.placeholder = s.capturePlaceholder || s.capture;
+  }
+
+  function focusCapture() {
+    try { captureInput.focus({ preventScroll: true }); } catch (err) { captureInput.focus(); }
+  }
+
+  /** Show the line above the footer and put the caret in it. */
+  function openCapture() {
+    if (!state.capture.open) {
+      state.capture.open = true;
+      captureEl.hidden = false;
+      syncCaptureChrome();
+      // One new line above the footer: the window has to follow it. The
+      // ResizeObserver would report it too, but asking here makes the growth
+      // visible in the same frame the line appears.
+      reportHeight();
+    }
+    focusCapture();
+  }
+
+  /**
+   * Put the line away and hand focus back to the button that opened it, so a
+   * keyboard reader who changed their mind is exactly where they started.
+   * `restoreFocus` is false when the card itself is closing: there is no
+   * footer left to return to.
+   */
+  function closeCapture(restoreFocus) {
+    state.capture.open = false;
+    captureEl.hidden = true;
+    captureInput.value = "";
+    reportHeight();
+    if (restoreFocus) {
+      try { newTaskBtn.focus({ preventScroll: true }); } catch (err) { newTaskBtn.focus(); }
+    }
+  }
+
+  /** A (re)opened card always starts with the line put away. */
+  function resetCapture() {
+    state.capture.open = false;
+    state.capture.busy = false;
+    captureEl.hidden = true;
+    captureInput.value = "";
+  }
+
+  /**
+   * Enter on the capture line. Whitespace only is not an error — the user
+   * changed their mind — so it closes the line and writes nothing. A real
+   * title travels as one `create` action; the page never invents the store's
+   * defaults, because main and the store own them.
+   */
+  function submitCapture() {
+    if (state.capture.busy) return;
+    var title = captureInput.value.replace(/\s+/g, " ").trim();
+    if (!title) {
+      closeCapture(true);
+      return;
+    }
+    state.capture.busy = true;
+    runAction({ type: "create", title: title }, function () {
+      state.capture.busy = false;
+    });
+  }
+
+  /** A successful capture: paint its answer, then leave the line ready for the next. */
+  function applyCaptureResult(payload) {
+    render(payload, false);
+    // The list repainted with the new row; the line stays exactly where it is,
+    // empty, with the caret in it, so the reader can file the next thing
+    // without a second gesture. Nothing else on the card takes focus.
+    captureInput.value = "";
+    if (state.capture.open) focusCapture();
   }
 
   function relativeTime(at) {
@@ -846,6 +957,7 @@
     closeBtn.setAttribute("aria-label", s.close);
     closeBtn.title = s.close;
     openTasksLabel.textContent = s.openTasks;
+    syncCaptureChrome();
     // The card's aria-label is written by updateRangeFact(), which knows the
     // range as well as the eyebrow.
 
@@ -900,7 +1012,10 @@
     // The window is destroyed on close, so a fresh card is always a fresh page;
     // resetting here keeps that promise even for a page that survives a reload
     // or a standalone preview.
-    if (first) resetFilter();
+    if (first) {
+      resetFilter();
+      resetCapture();
+    }
     applyChrome();
     renderRows(visibleTasks(), first);
     applyUndo();
@@ -979,6 +1094,13 @@
    * already rebuilt. Every other action repaints immediately.
    */
   function applyActionResult(payload) {
+    // A capture keeps its line open, so it takes the plain repaint rather than
+    // the finished-row collapse below: there is no row leaving the desk, only
+    // one arriving.
+    if (payload && payload.created) {
+      applyCaptureResult(payload);
+      return;
+    }
     var finished = payload && typeof payload.finished === "string" ? payload.finished : "";
     var wrap = null;
     if (finished) {
@@ -1129,7 +1251,34 @@
   // ── Wiring ─────────────────────────────────────────────────────────────────
 
   closeBtn.addEventListener("click", closePanel);
+  newTaskBtn.addEventListener("click", openCapture);
   openTasksBtn.addEventListener("click", openTasks);
+
+  captureInput.addEventListener("keydown", function (event) {
+    // IME: Enter is choosing a candidate while the composition is open, and
+    // Escape cancels it. Submitting mid-word would file the unfinished text.
+    // This guard must live on the field itself — the document handler cannot
+    // see keys the field has already consumed.
+    if (event.isComposing || event.keyCode === 229) return;
+    // A held Enter means one file, not a burst: without this the auto-repeat
+    // would land after the field was cleared and close the line instead.
+    if (event.repeat) return;
+    if (event.key === "Enter") {
+      event.preventDefault();
+      // Enter belongs to this line and nowhere else; stopping here keeps the
+      // document handler from also reading it as a gesture.
+      event.stopPropagation();
+      submitCapture();
+      return;
+    }
+    if (event.key === "Escape") {
+      // The capture line is a layer of its own: Escape here puts only the line
+      // away and never falls through to the card's own Escape cascade.
+      event.preventDefault();
+      event.stopPropagation();
+      closeCapture(true);
+    }
+  });
   // A real button: Tab reaches it and Enter/Space activate it through the
   // browser's native click, so no new global chord is introduced.
   undoBtn.addEventListener("click", undoTask);
@@ -1185,10 +1334,18 @@
       openFilter(false);
       return;
     }
+    // "+" opens the capture line from anywhere the reader is not typing. A "+"
+    // typed into the filter or the capture field is a character, which is why
+    // the editable guard is the same one "/" uses.
+    if (event.key === "+" && !mod && !event.altKey && !isEditable(event.target)) {
+      event.preventDefault();
+      openCapture();
+      return;
+    }
     if (event.key === "Escape") {
       // Escape undoes one layer at a time: the query, then the field, then the
-      // card. Clearing the query keeps the field and the card up, with the
-      // caret where the reader left it.
+      // capture line, then the card. Clearing the query keeps the field and
+      // the card up, with the caret where the reader left it.
       if (state.filter.open && state.filter.query) {
         event.preventDefault();
         setFilterQuery("", true);
@@ -1197,6 +1354,15 @@
       if (state.filter.open) {
         event.preventDefault();
         closeFilter();
+        return;
+      }
+      // The capture line sits between the filter and the card so a card with
+      // both open peels back in the order the reader sees them. The field's
+      // own keydown normally handles this; reaching here means focus left the
+      // field, and the line must still close before the card does.
+      if (state.capture.open) {
+        event.preventDefault();
+        closeCapture(true);
         return;
       }
       event.preventDefault();

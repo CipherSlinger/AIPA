@@ -702,9 +702,10 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   background: color-mix(in srgb, var(--alert) 9%, transparent);
   color: var(--alert);
 }
-/* The due chip and the Tomorrow button share the row's trailing cell. The
-   button is a real control (Tab reaches it) but stays visually quiet, so the
-   row still reads as one task. */
+/* The due chip and the row's action buttons share the row's trailing cell.
+   Each button is a real control (Tab reaches it) but stays visually quiet, so
+   the row still reads as one task. Done comes before Tomorrow: finishing is
+   the gesture the row is about, and deferring is the fallback beside it. */
 .row-side {
   display: flex;
   flex: none;
@@ -712,7 +713,7 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   gap: 6px;
   min-width: 0;
 }
-.push-btn {
+.action-btn {
   appearance: none;
   flex: none;
   padding: 1px 6px;
@@ -729,7 +730,7 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   cursor: pointer;
   outline: none;
 }
-.panel[data-theme="clawd"] .push-btn {
+.panel[data-theme="clawd"] .action-btn {
   padding: 2px 7px;
   border-radius: 999px;
   font-size: 9.5px;
@@ -737,13 +738,13 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   letter-spacing: 0;
   text-transform: none;
 }
-.push-btn:hover,
-.push-btn:focus-visible {
+.action-btn:hover,
+.action-btn:focus-visible {
   color: var(--accent);
   border-color: color-mix(in srgb, var(--accent) 62%, transparent);
   background: color-mix(in srgb, var(--accent) 13%, transparent);
 }
-.panel[data-theme="sao"] .push-btn:focus-visible {
+.panel[data-theme="sao"] .action-btn:focus-visible {
   box-shadow: inset 0 0 0 1px var(--accent);
 }
 
@@ -883,10 +884,11 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
 /* The last control owns the right edge; Copy stays beside Open Tasks. */
 .foot .btn:last-child { margin-left: auto; }
 
-/* The push strip: one slim row between the scrolling body and the footer.
-   It reports its own appearance with reportHeight(), so the window grows to
-   make room rather than clipping the footer. */
-.push-strip {
+/* The action strip: one slim row between the scrolling body and the footer,
+   shared by both open-row gestures. It reports its own appearance with
+   reportHeight(), so the window grows to make room rather than clipping the
+   footer. */
+.action-strip {
   display: flex;
   flex: none;
   align-items: center;
@@ -901,12 +903,12 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.push-strip.failed {
+.action-strip.failed {
   border-color: color-mix(in srgb, var(--alert) 34%, transparent);
   background: color-mix(in srgb, var(--alert) 8%, transparent);
   color: var(--alert);
 }
-.push-undo {
+.action-undo {
   appearance: none;
   padding: 0;
   border: 0;
@@ -920,11 +922,11 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   cursor: pointer;
   outline: none;
 }
-.push-undo:focus-visible {
+.action-undo:focus-visible {
   outline: 1px solid currentColor;
   outline-offset: 2px;
 }
-.panel[data-theme="clawd"] .push-strip {
+.panel[data-theme="clawd"] .action-strip {
   padding: 7px 10px;
   border-radius: 9px;
   font-size: 10.5px;
@@ -1053,12 +1055,13 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     </section>
   </div>
 
-  <!-- The result of a push lives directly above the footer, outside the
-       scrolling body, so it never scrolls away from the gesture that caused
-       it. It is shown only after a real push answer. -->
-  <div class="push-strip" id="pushStrip" role="status" hidden>
-    <span id="pushText"></span>
-    <button class="push-undo" id="pushUndoBtn" type="button" hidden></button>
+  <!-- The result of an open-row gesture (a push or a Done) lives directly
+       above the footer, outside the scrolling body, so it never scrolls away
+       from the gesture that caused it. It is shown only after a real answer,
+       and only one offer is up at a time. -->
+  <div class="action-strip" id="actionStrip" role="status" hidden>
+    <span id="actionText"></span>
+    <button class="action-undo" id="actionUndoBtn" type="button" hidden></button>
   </div>
 
   <footer class="foot">
@@ -1103,9 +1106,9 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   var openTitleEl = document.getElementById("openTitle");
   var openRowsEl = document.getElementById("openRows");
   var openEmptyEl = document.getElementById("openEmpty");
-  var pushStripEl = document.getElementById("pushStrip");
-  var pushTextEl = document.getElementById("pushText");
-  var pushUndoBtn = document.getElementById("pushUndoBtn");
+  var actionStripEl = document.getElementById("actionStrip");
+  var actionTextEl = document.getElementById("actionText");
+  var actionUndoBtn = document.getElementById("actionUndoBtn");
   var copyBtn = document.getElementById("copyBtn");
   var openTasksBtn = document.getElementById("openTasksBtn");
   var closeBtn = document.getElementById("closeBtn");
@@ -1144,6 +1147,10 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     pushed: "Moved to tomorrow",
     pushUndo: "Undo",
     pushFailed: "Couldn't move it",
+    done: "Done",
+    doneHint: "Mark this task done",
+    doneStrip: "{name} done",
+    doneFailed: "Couldn't finish it",
   };
 
   var LOCALES = { en: "en-US", zh: "zh-CN", ko: "ko-KR" };
@@ -1297,6 +1304,10 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
 
   function fillTemplate(template, n) {
     return String(template || "").replace(/\{n\}/g, String(n));
+  }
+
+  function fillName(template, name) {
+    return String(template || "").replace(/\{name\}/g, String(name == null ? "" : name));
   }
 
   function pad2(value) {
@@ -1646,6 +1657,19 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
         due.textContent = chip;
         side.appendChild(due);
       }
+      // Every open row can be finished, dated or not: "this one is actually
+      // done" does not depend on when it was owed. Done sits first so the row
+      // reads as finish, then defer.
+      var done = document.createElement("button");
+      done.type = "button";
+      done.className = "action-btn done-btn";
+      done.setAttribute("data-testid", "done-btn");
+      done.setAttribute("data-id", open.id);
+      done.textContent = p.labels.done;
+      done.setAttribute("aria-label", p.labels.doneHint);
+      done.title = p.labels.doneHint;
+      side.appendChild(done);
+
       // Only a dated row due today or earlier may be pushed. An undated row
       // gets nothing: moving it to tomorrow would invent a deadline the user
       // never set. A row already due tomorrow or later gets nothing either.
@@ -1653,7 +1677,7 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
       if (open.dueOn && open.dueOn <= today) {
         var push = document.createElement("button");
         push.type = "button";
-        push.className = "push-btn";
+        push.className = "action-btn push-btn";
         push.setAttribute("data-testid", "push-btn");
         push.setAttribute("data-id", open.id);
         push.textContent = p.labels.pushTomorrow;
@@ -1810,71 +1834,109 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
     });
   }
 
-  // ── Push to tomorrow ───────────────────────────────────────────────────────
+  // ── Open-row actions: Tomorrow and Done ────────────────────────────────────
   function isPayload(data) {
     return !!data && typeof data === "object" &&
       !!data.labels && typeof data.labels === "object" && Array.isArray(data.days);
   }
 
-  function showPushStrip(ok) {
+  // One strip serves both gestures. `text` is already complete: the caller
+  // says what happened, and `ok` decides only whether Undo can be offered.
+  function showActionStrip(text, ok) {
     var s = state.payload ? state.payload.labels : FALLBACK_LABELS;
-    pushTextEl.textContent = ok ? s.pushed + " — " : s.pushFailed;
-    pushUndoBtn.textContent = ok ? s.pushUndo : "";
-    pushUndoBtn.hidden = !ok;
-    pushStripEl.classList.toggle("failed", !ok);
-    pushStripEl.hidden = false;
+    actionTextEl.textContent = text;
+    actionUndoBtn.textContent = ok ? s.pushUndo : "";
+    actionUndoBtn.hidden = !ok;
+    actionStripEl.classList.toggle("failed", !ok);
+    actionStripEl.hidden = false;
     reportHeight();
   }
 
-  function hidePushStrip() {
-    if (pushStripEl.hidden) return;
-    pushStripEl.hidden = true;
-    pushStripEl.classList.remove("failed");
-    pushTextEl.textContent = "";
-    pushUndoBtn.textContent = "";
-    pushUndoBtn.hidden = true;
+  function hideActionStrip() {
+    if (actionStripEl.hidden) return;
+    actionStripEl.hidden = true;
+    actionStripEl.classList.remove("failed");
+    actionTextEl.textContent = "";
+    actionUndoBtn.textContent = "";
+    actionUndoBtn.hidden = true;
     reportHeight();
   }
 
-  // The answer to a push carries the whole fresh card. Repaint first, then
+  // Show the outcome of one answer, if it carried one. A push that changed
+  // nothing and a Done on a row that was already finished carry no outcome,
+  // so they leave no strip: silence is the honest answer for a no-op.
+  function showOutcome(payload) {
+    // The strip copies the card's own label table, which `render` has just
+    // normalized: a payload from an older main may carry none of these keys,
+    // and the fallback table is what keeps the strip speaking.
+    var labels = state.payload ? state.payload.labels : FALLBACK_LABELS;
+    var push = payload.push && typeof payload.push === "object" ? payload.push : null;
+    // The em dash only separates a success from its Undo; a failure line
+    // stands alone, as it always has.
+    if (push) {
+      showActionStrip(
+        push.ok === true ? labels.pushed + " — " : labels.pushFailed,
+        push.ok === true
+      );
+      return;
+    }
+    var done = payload.done && typeof payload.done === "object" ? payload.done : null;
+    if (done) {
+      showActionStrip(
+        done.ok === true
+          ? fillName(labels.doneStrip, done.title) + " — "
+          : labels.doneFailed,
+        done.ok === true
+      );
+    }
+  }
+
+  // The answer to an action carries the whole fresh card. Repaint first, then
   // report the outcome, so the strip sits under the list it just shortened and
   // the window's measured height includes it.
-  function pushTomorrow(id) {
-    if (!id || !api || typeof api.action !== "function") return;
+  function runAction(action) {
+    if (!action || !action.id || !api || typeof api.action !== "function") return;
     var answer;
     try {
-      answer = api.action({ type: "push-tomorrow", id: id });
+      answer = api.action(action);
     } catch (err) {
       return;
     }
     Promise.resolve(answer).then(function (payload) {
       if (!isPayload(payload)) return;
-      var push = payload.push && typeof payload.push === "object" ? payload.push : null;
       render(payload, false);
-      if (push) showPushStrip(push.ok === true);
+      showOutcome(payload);
     }).catch(function () { /* fail open: the card stays */ });
   }
 
-  function undoPush() {
-    // The strip describes the push being undone; it goes at the press, and the
-    // fresh card that comes back puts the old due day on the row again.
-    hidePushStrip();
+  function pushTomorrow(id) {
+    runAction({ type: "push-tomorrow", id: id });
+  }
+
+  function finishTask(id) {
+    runAction({ type: "done", id: id });
+  }
+
+  function undoAction() {
+    // The strip describes the gesture being undone; it goes at the press, and
+    // the fresh card that comes back puts the row back as it was.
+    hideActionStrip();
     if (!api || typeof api.action !== "function") return;
     var answer;
     try {
-      answer = api.action({ type: "undo-push" });
+      answer = api.action({ type: "undo" });
     } catch (err) {
       return;
     }
     Promise.resolve(answer).then(function (payload) {
       if (isPayload(payload)) render(payload, false);
-      hidePushStrip();
+      hideActionStrip();
     }).catch(function () { /* fail open */ });
   }
 
   function closePanel() {
     state.closing = true;
-    hidePushStrip();
+    hideActionStrip();
     if (state.heightFrame) {
       cancelAnimationFrame(state.heightFrame);
       state.heightFrame = null;
@@ -1926,7 +1988,7 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
       // change (including a stale answer landing after a newer one). Neither
       // can a push result: it described a row on the week being left.
       state.dayFilter = null;
-      hidePushStrip();
+      hideActionStrip();
       render(payload, false);
     }).catch(function () { /* fail open: the current week stays */ });
     return true;
@@ -1947,7 +2009,15 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   // own click(), so both gestures produce the same action.
   bodyEl.addEventListener("click", function (event) {
     var target = event.target;
-    // The Tomorrow button owns its click; the row's open gesture never sees it.
+    // The row's own controls own their click; the row's open gesture never
+    // sees it.
+    var done = target && target.closest ? target.closest(".done-btn") : null;
+    if (done) {
+      event.preventDefault();
+      event.stopPropagation();
+      finishTask(done.getAttribute("data-id"));
+      return;
+    }
     var push = target && target.closest ? target.closest(".push-btn") : null;
     if (push) {
       event.preventDefault();
@@ -1963,7 +2033,7 @@ button.day-col:hover:not(.selected):not(:focus-visible) {
   });
 
   copyBtn.addEventListener("click", copyCard);
-  pushUndoBtn.addEventListener("click", undoPush);
+  actionUndoBtn.addEventListener("click", undoAction);
   openTasksBtn.addEventListener("click", openTasks);
   closeBtn.addEventListener("click", closePanel);
   filterChipEl.addEventListener("click", clearDayFilter);
